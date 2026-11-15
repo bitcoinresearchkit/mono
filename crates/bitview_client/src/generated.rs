@@ -1070,9 +1070,11 @@ pub mod tree {
         _1y: Value = "*_1y",
     } }
     shape! { PoolFees at "series().pools._175btc.fees" {
-        avg: OpReturnWindows = "*",
+        cumulative: Value = "*_cumulative",
+        sum: OpReturnWindows = "*_sum",
+        avg: OpReturnWindows = "*_avg",
     } }
-    shape! { Coinbase at "series().pools._175btc.coinbase" {
+    shape! { Amount at "series().pools._175btc.coinbase" {
         cumulative: Value = "*_cumulative",
         sum: OpReturnWindows = "*_sum",
     } }
@@ -1743,7 +1745,7 @@ pub mod tree {
         unknown_script: Flow<Count> = "coinbase_unknown_script_*",
         op_return: Flow<Count> = "coinbase_op_return_*",
     } }
-    shape! { OutputsCoinbase at "series().outputs.coinbase" {
+    shape! { Coinbase at "series().outputs.coinbase" {
         count: Flow<Count> = "coinbase_*",
         types: ByType = "*",
     } }
@@ -1870,7 +1872,7 @@ pub mod tree {
         non_op_return_count: Flow<Count> = "non_op_return_*_count",
         types: Types = "*",
         op_return_value: ValueFlow = "op_return_value",
-        coinbase: OutputsCoinbase = "*_count",
+        coinbase: Coinbase = "*_count",
         pubkeys: Pubkeys = "pubkey_in_*_count",
     } }
     shape! { Averaged<A, B> at "series().blocks.interval" {
@@ -1963,8 +1965,12 @@ pub mod tree {
     shape! { Pool at "series().pools._175btc" {
         block_count: CumulativeFlow = "*_block_count",
         block_share: Share = "*_block_share",
-        coinbase: Coinbase = "*_coinbase",
-        fees: PoolFees = "*_fees_avg",
+        coinbase: Amount = "*_coinbase",
+        fees: PoolFees = "*_fees",
+        empty_block_count: CumulativeFlow = "*_empty_block_count",
+        bip54_coinbase_locktime_block_count: CumulativeFlow = "*_bip54_coinbase_locktime_block_count",
+        nonzero_coinbase_locktime_block_count: CumulativeFlow = "*_nonzero_coinbase_locktime_block_count",
+        fee_rate_under_0p1_sat_vb_tx_count: CumulativeFlow = "*_fee_rate_under_0p1_sat_vb_tx_count",
         hashrate: Windows<Option<Hashrate>> = "*_hashrate",
     } }
     shape! { Pools at "series().pools" {

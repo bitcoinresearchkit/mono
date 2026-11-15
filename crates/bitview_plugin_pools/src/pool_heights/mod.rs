@@ -7,11 +7,8 @@ use rangeindex::Pages;
 use rustc_hash::FxHashMap;
 use vecdb::{AnyVec, BytesVec, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue, Version};
 
-/// Per-block reward values of one block: coinbase and fees, in sats and in cents at the
-/// block's spot price.
-pub type Rewards = [u64; 4];
-
-/// Which running total a lazy vec reads.
+/// Which running total a lazy vec reads: the pool's block count, or its part of a chain-wide
+/// per-block series (each after `Blocks` is one of [`Totals`], in order).
 #[derive(Clone, Copy)]
 pub enum Column {
     Blocks,
@@ -19,13 +16,23 @@ pub enum Column {
     CoinbaseCents,
     FeeSats,
     FeeCents,
+    EmptyBlocks,
+    Bip54LocktimeBlocks,
+    NonzeroLocktimeBlocks,
+    Under0p1SatVbTxs,
 }
+
+/// One block's value of each chain-wide series split by pool, or a pool's running totals of
+/// them: one per [`Column`] after `Blocks`.
+pub type Totals = [u64; TOTALS];
+
+pub(crate) const TOTALS: usize = Column::Under0p1SatVbTxs as usize;
 
 #[derive(Clone, Default)]
 struct Record {
     heights: Pages<Height>,
-    /// Running reward totals through each of `heights`, for the first `totals.len()` of them.
-    totals: Pages<Rewards>,
+    /// Running totals through each of `heights`, for the first `totals.len()` of them.
+    totals: Pages<Totals>,
 }
 
 static NO_HEIGHTS: Pages<Height> = Pages::new();
@@ -36,25 +43,25 @@ impl Record {
     }
 }
 
-/// One published state of every pool's blocks and reward totals. A clone shares every record
+/// One published state of every pool's blocks and running totals. A clone shares every record
 /// and page; the compute stages one, updates it, and publishes it whole.
 #[derive(Clone, Default)]
 pub(crate) struct PoolSnapshot {
     by_pool: FxHashMap<PoolSlug, Arc<Record>>,
     len: usize,
     version: Version,
-    /// Blocks below this height have their rewards in every pool's totals.
+    /// Blocks below this height are in every pool's totals.
     totals_len: usize,
     totals_version: Version,
 }
 
-/// Every pool's blocks and reward running totals, in memory; all per-pool series read it.
+/// Every pool's blocks and running totals, in memory; all per-pool series read it.
 /// Each read loads one immutable snapshot, so readers never wait for the compute.
 #[derive(Clone, Default)]
 pub struct PoolHeights(Arc<ArcSwap<PoolSnapshot>>);
 
 impl PoolHeights {
-    /// Rewards are filled by the first compute, once their sources are computed.
+    /// Totals are filled by the first compute, once their sources are computed.
     pub(crate) fn build(pool: &BytesVec<Height, PoolSlug>) -> Self {
         let len = pool.len();
         let mut by_pool: FxHashMap<PoolSlug, Record> = FxHashMap::default();
@@ -175,15 +182,15 @@ impl PoolSnapshot {
         from
     }
 
-    /// Folds the next blocks (each one's pool and rewards) into their pools' running totals.
-    pub(crate) fn append_totals(&mut self, blocks: impl IntoIterator<Item = (PoolSlug, Rewards)>) {
+    /// Folds the next blocks (each one's pool and values) into their pools' running totals.
+    pub(crate) fn append_totals(&mut self, blocks: impl IntoIterator<Item = (PoolSlug, Totals)>) {
         let mut height = self.totals_len;
         for (slug, block) in blocks {
             let record = Arc::make_mut(self.by_pool.get_mut(&slug).expect("block's pool is known"));
             debug_assert_eq!(
                 record.heights.get(record.totals.len()),
                 Some(&Height::from(height)),
-                "rewards fold in block order"
+                "totals fold in block order"
             );
             let mut running = record.totals.last().copied().unwrap_or_default();
             for (total, value) in running.iter_mut().zip(block) {
@@ -192,7 +199,7 @@ impl PoolSnapshot {
             record.totals.push(running);
             height += 1;
         }
-        debug_assert!(height <= self.len, "rewards only for known blocks");
+        debug_assert!(height <= self.len, "totals only for known blocks");
         self.totals_len = height;
     }
 }
@@ -236,7 +243,7 @@ impl<T: VecValue + From<u64>> PoolCumulativeVec<T> {
             (Column::Blocks, _) => position as u64,
             (_, None) => 0,
             (column, Some(record)) => {
-                debug_assert!(position <= record.totals.len(), "reward totals behind len");
+                debug_assert!(position <= record.totals.len(), "totals behind len");
                 position
                     .checked_sub(1)
                     .map_or(0, |last| record.totals[last][column as usize - 1])

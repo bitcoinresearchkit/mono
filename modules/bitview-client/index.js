@@ -4271,20 +4271,24 @@ const _OpReturnWindows = _s({
 
 /**
  * @typedef {{
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
  *   avg: OpReturnWindows,
  * }} PoolFees
  */
 const _PoolFees = _s({
-  avg: [_OpReturnWindows, '*'],
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
+  avg: [_OpReturnWindows, '*_avg'],
 });
 
 /**
  * @typedef {{
  *   cumulative: Value,
  *   sum: OpReturnWindows,
- * }} Coinbase
+ * }} Amount
  */
-const _Coinbase = _s({
+const _Amount = _s({
   cumulative: [_Value, '*_cumulative'],
   sum: [_OpReturnWindows, '*_sum'],
 });
@@ -5889,9 +5893,9 @@ const _ByType = _s({
  * @typedef {{
  *   count: Flow<Count>,
  *   types: ByType,
- * }} OutputsCoinbase
+ * }} Coinbase
  */
-const _OutputsCoinbase = _s({
+const _Coinbase = _s({
   count: [_Flow, 'coinbase_*'],
   types: [_ByType, '*'],
 });
@@ -6182,7 +6186,7 @@ const _FlowStats = _s({
  *   nonOpReturnCount: Flow<Count>,
  *   types: Types,
  *   opReturnValue: ValueFlow,
- *   coinbase: OutputsCoinbase,
+ *   coinbase: Coinbase,
  *   pubkeys: Pubkeys,
  * }} Outputs
  */
@@ -6193,7 +6197,7 @@ const _Outputs = _s({
   nonOpReturnCount: [_Flow, 'non_op_return_*_count'],
   types: [_Types, '*'],
   opReturnValue: [_ValueFlow, 'op_return_value'],
-  coinbase: [_OutputsCoinbase, '*_count'],
+  coinbase: [_Coinbase, '*_count'],
   pubkeys: [_Pubkeys, 'pubkey_in_*_count'],
 });
 
@@ -6420,16 +6424,24 @@ const _Groups = _s({
  * @typedef {{
  *   blockCount: CumulativeFlow,
  *   blockShare: Share,
- *   coinbase: Coinbase,
+ *   coinbase: Amount,
  *   fees: PoolFees,
+ *   emptyBlockCount: CumulativeFlow,
+ *   bip54CoinbaseLocktimeBlockCount: CumulativeFlow,
+ *   nonzeroCoinbaseLocktimeBlockCount: CumulativeFlow,
+ *   feeRateUnder0p1SatVbTxCount: CumulativeFlow,
  *   hashrate: Windows<?Hashrate>,
  * }} Pool
  */
 const _Pool = _s({
   blockCount: [_CumulativeFlow, '*_block_count'],
   blockShare: [_Share, '*_block_share'],
-  coinbase: [_Coinbase, '*_coinbase'],
-  fees: [_PoolFees, '*_fees_avg'],
+  coinbase: [_Amount, '*_coinbase'],
+  fees: [_PoolFees, '*_fees'],
+  emptyBlockCount: [_CumulativeFlow, '*_empty_block_count'],
+  bip54CoinbaseLocktimeBlockCount: [_CumulativeFlow, '*_bip54_coinbase_locktime_block_count'],
+  nonzeroCoinbaseLocktimeBlockCount: [_CumulativeFlow, '*_nonzero_coinbase_locktime_block_count'],
+  feeRateUnder0p1SatVbTxCount: [_CumulativeFlow, '*_fee_rate_under_0p1_sat_vb_tx_count'],
   hashrate: [_Windows, '*_hashrate'],
 });
 

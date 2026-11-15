@@ -106,7 +106,8 @@ pub struct Ranges<M: StorageMode = Rw> {
         lead = "Zero-fee transactions."
     )]
     pub zero_fee: PerBlockCumulativeRolling<Count, M>,
-    /// Non-coinbase transactions whose own fee divided by their virtual size falls in each range.
+    /// Non-coinbase transactions paying a fee whose own fee divided by their virtual size falls in
+    /// each range (zero-fee ones are counted apart).
     #[traversable(lead = "Transactions by the fee rate they paid themselves.")]
     pub tx_count_by_fee_rate: ByRange<PerBlockCumulativeRolling<Count, M>>,
     /// The virtual size of non-coinbase transactions whose effective fee rate falls in each range,

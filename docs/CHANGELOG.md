@@ -277,6 +277,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- Per-pool block features: each pool's part of the chain-wide per-block series, its empty blocks
+  (`pool_<slug>_empty_block_count_*`), BIP-54 and nonzero coinbase locktimes
+  (`pool_<slug>_bip54_coinbase_locktime_block_count_*`, `pool_<slug>_nonzero_coinbase_locktime_block_count_*`),
+  transactions under 0.1 sat/vB (`pool_<slug>_fee_rate_under_0p1_sat_vb_tx_count_*`) and fee totals
+  (`pool_<slug>_fees_cumulative`, `pool_<slug>_fees_sum_<window>`, BTC and USD): cumulative and over each window,
+  5,010 series over 167 pools, each summing over the pools to its chain-wide series.
 - `GET /api/block-template`: the next block's template (BIP 22), built by Bitview from projected block 0, the same
   transactions in the same order, in the format pools and mining software read (`getblocktemplate`'s, with the
   height, previous block, bits, target and `mintime` from the indexed chain): a complete block once a coinbase paying

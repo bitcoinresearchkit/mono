@@ -25,10 +25,24 @@ pub struct PoolVecs {
     /// Coinbase output value of the pool's blocks, with USD valuing each block's coinbase at its
     /// spot price.
     #[traversable(lead = "What the pool's blocks paid it, new coins and fees together.")]
-    pub coinbase: Coinbase,
+    pub coinbase: Amount,
     /// Transaction fees of the pool's blocks.
     #[traversable(lead = "Fees in the pool's blocks.")]
     fees: PoolFees,
+    /// The pool's blocks holding only their coinbase transaction.
+    #[traversable(lead = "Empty blocks the pool mined: ones with nothing but the coinbase.")]
+    empty_block_count: LazyCumulativeRolling<Count>,
+    /// The pool's blocks whose coinbase nLockTime is the height minus 1 and whose sequence isn't
+    /// final: BIP-54's rule.
+    #[traversable(lead = "The pool's blocks following BIP-54's coinbase locktime rule.")]
+    bip54_coinbase_locktime_block_count: LazyCumulativeRolling<Count>,
+    /// The pool's blocks whose coinbase has a nonzero nLockTime.
+    #[traversable(lead = "The pool's blocks with a locktime set on the coinbase.")]
+    nonzero_coinbase_locktime_block_count: LazyCumulativeRolling<Count>,
+    /// Non-coinbase transactions in the pool's blocks paying a fee whose own fee divided by their
+    /// virtual size is under 0.1 sat/vB (zero-fee ones are not counted).
+    #[traversable(lead = "Transactions under 0.1 sat/vB in the pool's blocks.")]
+    fee_rate_under_0p1_sat_vb_tx_count: LazyCumulativeRolling<Count>,
     /// Estimated hash rate over a trailing window, in hashes per second: the pool's share of the
     /// window's blocks times the network hash-rate estimate for the same window.
     #[traversable(lead = "The pool's hash rate, estimated from its share of the blocks.")]
@@ -43,7 +57,7 @@ pub struct BlockShare {
 }
 
 #[derive(Clone, Traversable)]
-pub struct Coinbase {
+pub struct Amount {
     /// Through the represented block, from genesis.
     #[traversable(accumulation = Cumulative)]
     pub cumulative: LazyCumulativeValuePerBlock,
@@ -52,6 +66,8 @@ pub struct Coinbase {
 
 #[derive(Clone, Traversable)]
 pub struct PoolFees {
+    #[traversable(flatten)]
+    pub total: Amount,
     /// Average transaction fees of the pool's blocks over a trailing window: the fees of its
     /// blocks in the window divided by their number; null when it mined none.
     #[traversable(lead = "On average, per block.")]
@@ -87,30 +103,60 @@ impl PoolVecs {
             Column::Blocks,
             pool_heights.clone(),
         );
-        let coinbase_sats = PoolCumulativeVec::<Sats>::new(
-            &name("coinbase_cumulative_sats_source"),
-            slug,
-            Column::CoinbaseSats,
-            pool_heights.clone(),
-        );
-        let coinbase_cents = PoolCumulativeVec::<Cents>::new(
-            &name("coinbase_cumulative_cents_source"),
-            slug,
-            Column::CoinbaseCents,
-            pool_heights.clone(),
-        );
-        let fee_sats = PoolCumulativeVec::<Sats>::new(
-            &name("fees_cumulative_sats_source"),
-            slug,
-            Column::FeeSats,
-            pool_heights.clone(),
-        );
-        let fee_cents = PoolCumulativeVec::<Cents>::new(
-            &name("fees_cumulative_cents_source"),
-            slug,
-            Column::FeeCents,
-            pool_heights.clone(),
-        );
+        let amount_sources = |id: &str, sats: Column, cents: Column| {
+            (
+                PoolCumulativeVec::<Sats>::new(
+                    &name(&format!("{id}_cumulative_sats_source")),
+                    slug,
+                    sats,
+                    pool_heights.clone(),
+                ),
+                PoolCumulativeVec::<Cents>::new(
+                    &name(&format!("{id}_cumulative_cents_source")),
+                    slug,
+                    cents,
+                    pool_heights.clone(),
+                ),
+            )
+        };
+        let (coinbase_sats, coinbase_cents) =
+            amount_sources("coinbase", Column::CoinbaseSats, Column::CoinbaseCents);
+        let (fee_sats, fee_cents) = amount_sources("fees", Column::FeeSats, Column::FeeCents);
+        let amount =
+            |id: &str, sats: &PoolCumulativeVec<Sats>, cents: &PoolCumulativeVec<Cents>| {
+                let name = name(id);
+                Amount {
+                    cumulative: LazyCumulativeValuePerBlock::from_sources(
+                        &format!("{name}_cumulative"),
+                        version,
+                        sats,
+                        cents,
+                        mappings,
+                    ),
+                    sum: LazyRollingSumsAmountFromHeight::new(
+                        &format!("{name}_sum"),
+                        version,
+                        sats,
+                        cents,
+                        window_starts,
+                        mappings,
+                    ),
+                }
+            };
+        let count = |id: &str, column: Column| {
+            LazyCumulativeRolling::from_cumulative_source(
+                &name(id),
+                version,
+                &PoolCumulativeVec::<Count>::new(
+                    &name(&format!("{id}_cumulative_source")),
+                    slug,
+                    column,
+                    pool_heights.clone(),
+                ),
+                window_starts,
+                mappings,
+            )
+        };
 
         let block_count = LazyCumulativeRolling::from_cumulative_source(
             &name("block_count"),
@@ -137,25 +183,6 @@ impl PoolVecs {
                 &share_name,
                 version,
                 &blocks,
-                window_starts,
-                mappings,
-            ),
-        };
-
-        let coinbase_name = name("coinbase");
-        let coinbase = Coinbase {
-            cumulative: LazyCumulativeValuePerBlock::from_sources(
-                &format!("{coinbase_name}_cumulative"),
-                version,
-                &coinbase_sats,
-                &coinbase_cents,
-                mappings,
-            ),
-            sum: LazyRollingSumsAmountFromHeight::new(
-                &format!("{coinbase_name}_sum"),
-                version,
-                &coinbase_sats,
-                &coinbase_cents,
                 window_starts,
                 mappings,
             ),
@@ -248,8 +275,24 @@ impl PoolVecs {
         Self {
             block_count,
             block_share,
-            coinbase,
-            fees: PoolFees { avg: fees_avg },
+            coinbase: amount("coinbase", &coinbase_sats, &coinbase_cents),
+            fees: PoolFees {
+                total: amount("fees", &fee_sats, &fee_cents),
+                avg: fees_avg,
+            },
+            empty_block_count: count("empty_block_count", Column::EmptyBlocks),
+            bip54_coinbase_locktime_block_count: count(
+                "bip54_coinbase_locktime_block_count",
+                Column::Bip54LocktimeBlocks,
+            ),
+            nonzero_coinbase_locktime_block_count: count(
+                "nonzero_coinbase_locktime_block_count",
+                Column::NonzeroLocktimeBlocks,
+            ),
+            fee_rate_under_0p1_sat_vb_tx_count: count(
+                "fee_rate_under_0p1_sat_vb_tx_count",
+                Column::Under0p1SatVbTxs,
+            ),
             hashrate,
         }
     }

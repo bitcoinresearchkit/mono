@@ -68,5 +68,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     )]
     pub(crate) cpfp_child: Classified<M>,
     #[traversable(flatten)]
-    pub(crate) ranges: Ranges<M>,
+    pub ranges: Ranges<M>,
 }

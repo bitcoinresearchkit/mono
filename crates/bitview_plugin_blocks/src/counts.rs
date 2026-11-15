@@ -27,14 +27,14 @@ pub(crate) fn compute_version_bit_4(
 }
 
 #[derive(Traversable)]
-pub(crate) struct CoinbaseLocktime<M: StorageMode = Rw> {
+pub struct CoinbaseLocktime<M: StorageMode = Rw> {
     /// Blocks whose coinbase has a nonzero nLockTime.
     #[traversable(lead = "Blocks with a locktime set on the coinbase.")]
-    nonzero: CumulativeRolling<Count, M>,
+    pub nonzero: CumulativeRolling<Count, M>,
     /// Blocks whose coinbase nLockTime is the height minus 1 and whose sequence isn't final:
     /// BIP-54's rule.
     #[traversable(lead = "Blocks following BIP-54's coinbase locktime rule.")]
-    bip54: CumulativeRolling<Count, M>,
+    pub bip54: CumulativeRolling<Count, M>,
 }
 
 impl CoinbaseLocktime {

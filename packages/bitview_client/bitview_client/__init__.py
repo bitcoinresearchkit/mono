@@ -3677,10 +3677,12 @@ class OpReturnWindows(_Node):
 
 
 class PoolFees(_Node):
-    avg: OpReturnWindows = _at(OpReturnWindows, '*')
+    cumulative: Value = _at(Value, '*_cumulative')
+    sum: OpReturnWindows = _at(OpReturnWindows, '*_sum')
+    avg: OpReturnWindows = _at(OpReturnWindows, '*_avg')
 
 
-class Coinbase(_Node):
+class Amount(_Node):
     cumulative: Value = _at(Value, '*_cumulative')
     sum: OpReturnWindows = _at(OpReturnWindows, '*_sum')
 
@@ -4436,7 +4438,7 @@ class ByType(_Node):
     op_return: Flow[Count] = _at(Flow, 'coinbase_op_return_*')
 
 
-class OutputsCoinbase(_Node):
+class Coinbase(_Node):
     count: Flow[Count] = _at(Flow, 'coinbase_*')
     types: ByType = _at(ByType, '*')
 
@@ -4579,7 +4581,7 @@ class Outputs(_Node):
     non_op_return_count: Flow[Count] = _at(Flow, 'non_op_return_*_count')
     types: Types = _at(Types, '*')
     op_return_value: ValueFlow = _at(ValueFlow, 'op_return_value')
-    coinbase: OutputsCoinbase = _at(OutputsCoinbase, '*_count')
+    coinbase: Coinbase = _at(Coinbase, '*_count')
     pubkeys: Pubkeys = _at(Pubkeys, 'pubkey_in_*_count')
 
 
@@ -4687,8 +4689,12 @@ class Groups(_Node):
 class Pool(_Node):
     block_count: CumulativeFlow = _at(CumulativeFlow, '*_block_count')
     block_share: Share = _at(Share, '*_block_share')
-    coinbase: Coinbase = _at(Coinbase, '*_coinbase')
-    fees: PoolFees = _at(PoolFees, '*_fees_avg')
+    coinbase: Amount = _at(Amount, '*_coinbase')
+    fees: PoolFees = _at(PoolFees, '*_fees')
+    empty_block_count: CumulativeFlow = _at(CumulativeFlow, '*_empty_block_count')
+    bip54_coinbase_locktime_block_count: CumulativeFlow = _at(CumulativeFlow, '*_bip54_coinbase_locktime_block_count')
+    nonzero_coinbase_locktime_block_count: CumulativeFlow = _at(CumulativeFlow, '*_nonzero_coinbase_locktime_block_count')
+    fee_rate_under_0p1_sat_vb_tx_count: CumulativeFlow = _at(CumulativeFlow, '*_fee_rate_under_0p1_sat_vb_tx_count')
     hashrate: Windows[Optional[Hashrate]] = _at(Windows, '*_hashrate')
 
 

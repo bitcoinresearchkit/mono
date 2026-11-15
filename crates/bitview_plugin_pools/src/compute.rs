@@ -1,14 +1,20 @@
 use bitview_compute::{prepare_computed, write_chunks};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_plugin_blocks::Vecs as BlocksVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mining::Vecs as MiningVecs;
+use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{Index40, TxOutIndex};
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_types::Height;
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, Version, WritableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, TypedVec, VecIndex, Version, WritableVec};
 
-use crate::{Dependencies, Vecs, pool_heights::PoolSnapshot};
+use crate::{
+    Dependencies, Vecs,
+    pool_heights::{PoolSnapshot, TOTALS},
+};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -20,6 +26,8 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             indexer,
+            blocks,
+            transactions,
             mining,
             mappings,
         } = dependencies;
@@ -28,7 +36,7 @@ impl ComputePlugin for Vecs {
         // Blocks and their totals publish together, once both are complete.
         let mut snapshot = self.heights.stage();
         self.compute_pool(indexer, exit, &mut snapshot)?;
-        self.fill_rewards(mining, &mut snapshot);
+        self.fill_totals(blocks, transactions, mining, &mut snapshot);
         self.heights.publish(snapshot);
         let from = indexer.compute_start().height;
         crate::concentration::compute(
@@ -43,51 +51,81 @@ impl ComputePlugin for Vecs {
     }
 }
 
+/// A chain-wide running total, read back as each block's value.
+trait Running: AnyVec {
+    /// Each block's value from `start` to `end`.
+    fn block_values_into(&self, start: usize, end: usize, out: &mut Vec<u64>);
+}
+
+impl<V> Running for V
+where
+    V: ReadableVec<Height, V::T> + TypedVec<I = Height>,
+    u64: From<V::T>,
+{
+    fn block_values_into(&self, start: usize, end: usize, out: &mut Vec<u64>) {
+        out.clear();
+        // One read from the total through the block before (zero before genesis).
+        let mut previous = (start == 0).then_some(0);
+        self.for_each_range_at(start.saturating_sub(1), end, |total| {
+            let total = u64::from(total);
+            if let Some(previous) = previous {
+                out.push(total - previous);
+            }
+            previous = Some(total);
+        });
+    }
+}
+
 impl Vecs {
-    /// Folds every new block's coinbase and fees into its pool's running totals.
-    fn fill_rewards(&self, mining: &MiningVecs, snapshot: &mut PoolSnapshot) {
-        let rewards = &mining.rewards;
-        let coinbase = &rewards.coinbase.block;
-        let fees = &rewards.fees.block;
-        let version = coinbase.sats.version()
-            + coinbase.cents.version()
-            + fees.sats.version()
-            + fees.cents.version();
-        let to = self
-            .block_pool
-            .len()
-            .min(coinbase.sats.len())
-            .min(coinbase.cents.len())
-            .min(fees.sats.len())
-            .min(fees.cents.len());
+    /// Folds every new block's value of each chain-wide series in `Totals` into its pool's
+    /// running totals.
+    fn fill_totals(
+        &self,
+        blocks: &BlocksVecs,
+        transactions: &TransactionsVecs,
+        mining: &MiningVecs,
+        snapshot: &mut PoolSnapshot,
+    ) {
+        let (coinbase, fees) = (
+            &mining.rewards.coinbase.cumulative,
+            &mining.rewards.fees.cumulative,
+        );
+        let locktime = &blocks.coinbase_locktime;
+        // In `Column` order.
+        let sources: [&dyn Running; TOTALS] = [
+            &coinbase.sats.height,
+            &coinbase.cents.height,
+            &fees.sats.height,
+            &fees.cents.height,
+            &blocks.empty_count.cumulative.height,
+            &locktime.bip54.cumulative.height,
+            &locktime.nonzero.cumulative.height,
+            &transactions
+                .fees
+                .ranges
+                .tx_count_by_fee_rate
+                .under_0p1_sat_vb
+                .cumulative
+                .height,
+        ];
+        let version = sources.iter().map(|source| source.version()).sum();
+        let to = sources
+            .iter()
+            .fold(self.block_pool.len(), |to, source| to.min(source.len()));
         // A shorter source re-fills from its end, so no stale total survives.
         let from = snapshot.resume_totals(version, to);
-        let (mut slugs, mut coinbase_sats, mut coinbase_cents, mut fee_sats, mut fee_cents) =
-            Default::default();
+        let mut slugs = Vec::new();
+        let mut columns: [Vec<u64>; TOTALS] = Default::default();
         // Bounded chunks: long refills keep little scratch.
         for chunk in write_chunks(from..to) {
             let (start, end) = (chunk.start, chunk.end);
             self.block_pool
                 .collect_range_into_at(start, end, &mut slugs);
-            coinbase
-                .sats
-                .collect_range_into_at(start, end, &mut coinbase_sats);
-            coinbase
-                .cents
-                .collect_range_into_at(start, end, &mut coinbase_cents);
-            fees.sats.collect_range_into_at(start, end, &mut fee_sats);
-            fees.cents.collect_range_into_at(start, end, &mut fee_cents);
-            let blocks = (0..end - start).map(|i| {
-                (
-                    slugs[i],
-                    [
-                        u64::from(coinbase_sats[i]),
-                        u64::from(coinbase_cents[i]),
-                        u64::from(fee_sats[i]),
-                        u64::from(fee_cents[i]),
-                    ],
-                )
-            });
+            for (source, column) in sources.iter().zip(&mut columns) {
+                source.block_values_into(start, end, column);
+            }
+            let blocks = (0..end - start)
+                .map(|i| (slugs[i], std::array::from_fn(|column| columns[column][i])));
             snapshot.append_totals(blocks);
         }
     }

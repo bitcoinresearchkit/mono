@@ -63,7 +63,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     halving: HalvingVecs,
     /// Blocks holding only their coinbase transaction.
     #[traversable(lead = "Empty blocks: ones with nothing but the coinbase.")]
-    empty_count: CumulativeRolling<Count, M>,
+    pub empty_count: CumulativeRolling<Count, M>,
     /// Proof of work: each block's difficulty times 2^48 / 0xFFFF, the hashes expected to find
     /// it. Its running total is the chain work, a floating-point sum rather than Bitcoin Core's
     /// exact integer one.
@@ -77,5 +77,5 @@ pub struct Vecs<M: StorageMode = Rw> {
         lead = "Blocks signaling bit 4, as BIP-110 does."
     )]
     version_bit_4: CumulativeRolling<Count, M>,
-    coinbase_locktime: CoinbaseLocktime<M>,
+    pub coinbase_locktime: CoinbaseLocktime<M>,
 }

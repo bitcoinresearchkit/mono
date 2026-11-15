@@ -135,8 +135,8 @@ impl DefaultPlugins {
                 )
             });
 
-            // Blocks beside Transactions (only Mining reads Blocks), then OP_RETURN beside Mining
-            // and Pools after it: the branch hands Mining over once it completes.
+            // Blocks beside Transactions, then OP_RETURN beside Mining and Pools after it (Mining
+            // and Pools read Blocks): the branch hands Mining over once it completes.
             let (op_return, pools) = (&mut *self.op_return, &mut *self.pools);
             let mining = scope.spawn(|| -> Result<_> {
                 let (blocks, transactions) = join(
@@ -184,12 +184,14 @@ impl DefaultPlugins {
                     },
                     context,
                 )?;
-                let mining = self.mining.as_ref();
+                let (blocks, mining) = (self.blocks.as_ref(), self.mining.as_ref());
                 let pools = scope.spawn(move || {
                     timed_compute(
                         pools,
                         PoolsDependencies {
                             indexer,
+                            blocks,
+                            transactions,
                             mining,
                             mappings,
                         },
