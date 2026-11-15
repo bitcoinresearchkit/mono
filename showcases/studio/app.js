@@ -5858,7 +5858,9 @@ function sizeOnce() {
   sizeHeld = true;
   footPinned = edge === "top";
   chartHeight = height;
-  Object.assign(engine.element.style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
+  // (Its own clipping let go of meanwhile: its foot moves with the box's (placeFoot), past its end size; the card's
+  // own clips at the box.)
+  Object.assign(engine.element.style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px`, overflow: "visible" });
   if (!later && (width !== own.width || height !== own.height)) {
     // (Drawn at its new size now, the motions held at their start meanwhile: they start on the next frame, from
     // their start, not a long frame in.)
@@ -5990,7 +5992,7 @@ function releaseSize() {
   placeFoot(0);
   // (Back in its box, the whole of it, as the library made it: drawn there now, if the motion only stretched it,
   // its stretch of time kept.)
-  Object.assign(engine.element.style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
+  Object.assign(engine.element.style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%", overflow: "" });
   // (Its view as it is now, a pan or a zoom meanwhile kept; another chart opened meanwhile drew itself.)
   const { width, height } = $("chart").getBoundingClientRect();
   if (stretchKept && stretchKept === chart?.id && drawnChart === chart.id) {
