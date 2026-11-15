@@ -4679,7 +4679,7 @@ function toggleSidebar() {
   while (top?.classList.contains("in-folder")) top = top.previousElementSibling;
   if (inFolder) /** @type {HTMLElement | null | undefined} */ (top?.querySelector(".folder-item"))?.focus({ preventScroll: true });
   applySidebar();
-  renderCharts();
+  movingSide(renderCharts);
   // (The list where it was: the first row in sight (or, gone, the nearest before it there still, its folder's) where it
   // was, not the list scrolled to where its other rows put it. Widened again, the rail not scrolled since: the open
   // list's first row in sight as it was before it narrowed (the rail, shorter, couldn't hold its place).)
@@ -4693,9 +4693,7 @@ function toggleSidebar() {
   const focused = list.contains(document.activeElement) ? /** @type {Element} */ (document.activeElement).getBoundingClientRect() : null;
   if (focused) list.scrollTop += Math.min(0, focused.top - sight.top) || Math.max(0, focused.bottom - sight.bottom);
   sideKept = prefs.sidebar === "collapsed" && first >= 0 ? { key: keys[first], top: /** @type {number} */ (was.get(keys[first])), rail: list.scrollTop } : null;
-  // (Those in sight, before or after: none other's seen moving.)
-  const seen = (/** @type {number | undefined} */ top) => top !== undefined && top < sight.bottom && top > sight.top - 60;
-  slide([...after.keys()].filter((row) => seen(row.getBoundingClientRect().top) || seen(was.get(after.get(row)))), (row) => after.get(row), was, { fade: true, layout: true });
+  glideList(list, was);
   // (No motion to it (transitions held off meanwhile: a width dragged): no slide to wait on.)
   if (!widthMoving()) document.body.removeAttribute("data-sliding");
   // (The list's one stop for Tab on a row in sight.)
@@ -13079,6 +13077,18 @@ for (const host of [document.body, ...all$("dialog")]) {
 const listWritten = new WeakMap();
 /** A list's rows as last written, each with its key (see writeList). @param {HTMLElement} container */
 const listRows = (container) => new Map((listWritten.get(container) ?? []).map(([key], i) => [/** @type {HTMLElement} */ (container.children[i]), key]));
+/** Where a written list's rows are now, by key (see slide). @param {HTMLElement} container */
+const listPlaces = (container) => ((rows) => placesOf([...rows.keys()], (row) => rows.get(row)))(listRows(container));
+/**
+ * A written list's rows gliding from where they were (`was`, see listPlaces) to where they are: those in sight, before
+ * or after (none other's seen moving), each over the others on its ground, one come fading in as they uncover it.
+ * @param {HTMLElement} list @param {Map<string | undefined, number>} was
+ */
+function glideList(list, was) {
+  const sight = list.getBoundingClientRect(), after = listRows(list);
+  const seen = (/** @type {number | undefined} */ top) => top !== undefined && top < sight.bottom && top > sight.top - 60;
+  slide([...after.keys()].filter((row) => seen(row.getBoundingClientRect().top) || seen(was.get(after.get(row)))), (row) => after.get(row), was, { fade: true, layout: true });
+}
 /**
  * A list written again only where it changed: each part kept where its key is (its element, its hover, what it's
  * doing: a row lit stays lit, a folder opened above doesn't draw it again, a press on it still clicks), brought to its
@@ -16448,6 +16458,17 @@ function renderCharts() {
   // (The empty chart's cards, where they show, one of them edited since: as it is now.)
   if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
 }
+/** Set while what writes the sidebar's list moves its rows itself: a fold, a reorder, its width (see movingSide). */
+let sideMoved = false;
+/** The sidebar written by `change`, which moves its rows itself: they don't glide there again (see writeSideList). */
+function movingSide(/** @type {() => void} */ change) {
+  sideMoved = true;
+  try {
+    change();
+  } finally {
+    sideMoved = false;
+  }
+}
 /** The sidebar's list written (see renderCharts): its rows, ⌘1–⌘9's keys, the presets' marks, the open one lit. @param {Chart | null} current */
 function writeSideList(current) {
   listOwed = false;
@@ -16494,8 +16515,13 @@ function writeSideList(current) {
     })]),
     ...presetParts(),
   ];
+  // (What it lists changed (a chart opened, saved, closed or deleted, a group come): its rows glide to their places,
+  // none jumping there, unless what changed it moves them itself (see movingSide). Where they were, read only then.)
+  const list = $("chart-list"), drawn = listWritten.get(list), keys = (/** @type {[string, string][]} */ items) => items.map(([key]) => key).join("\n");
+  const was = drawn && !sideMoved && !reduced.matches && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
   // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
-  if (writeList($("chart-list"), parts)) fitSoon($("chart-list"), true);
+  if (writeList(list, parts)) fitSoon(list, true);
+  if (was) glideList(list, was);
   // (⌘1–⌘9 shown on the rows they open, those alone: their key, and their tip's.)
   const keyed = numbered();
   for (const button of all$("[data-kbd]", $("chart-list"))) {
@@ -16973,7 +16999,7 @@ function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolea
   const rowKey = (/** @type {HTMLElement} */ row) => row.dataset.chartRow ?? row.dataset.folderRow ?? row.dataset.sectionRow ?? row.dataset.presetRow ?? row.dataset.previewRow ?? "";
   const shown = new Map(closing ? [] : rowsUnder(head).filter((row) => row.getAnimations().length).map((row) => [rowKey(row), row.getBoundingClientRect().height]));
   if (!closing) {
-    renderCharts();
+    movingSide(renderCharts);
     head = find();
     if (!head) return;
   }
@@ -17263,7 +17289,7 @@ function arrange(/** @type {() => void} */ edit, /** @type {string} */ moved, /*
   const after = arrangement();
   if (before.order.join() !== after.order.join() && [...before.folders].every(([key, folder]) => after.folders.get(key) === folder)) reorderStep(all, before, after);
   save();
-  renderCharts();
+  movingSide(renderCharts);
   slide(rows(), sideId, was, { moved });
 }
 /** An item reordered, the Library's step: undone, back after what was before it (others as they are now); redone, again. */
