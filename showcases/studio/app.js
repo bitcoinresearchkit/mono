@@ -5713,6 +5713,7 @@ const resized = new ResizeObserver((entries) => {
     chartHeight = entry.contentRect.height;
     if (!exporting) chartSize = { width: entry.contentRect.width, height: entry.contentRect.height };
   }
+  for (const entry of entries) if (entry.target === $("chart")) placeFoot(entry.contentRect.height);
   relayout();
 });
 resized.observe($("chart"));
@@ -5853,6 +5854,7 @@ function sizeOnce() {
   stretchKept = later ? (chart?.id ?? null) : null;
   const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
   sizeHeld = true;
+  footPinned = edge === "top";
   chartHeight = height;
   Object.assign(engine.element.style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
   if (!later && (width !== own.width || height !== own.height)) {
@@ -5863,6 +5865,7 @@ function sizeOnce() {
     // (Its panes' room for their legends, a share of their height, fitted to it now too: nothing moves once it lands.)
     fitMargins();
     if (across) keepStretch(was);
+    placeFoot(now.height);
     // (Those another toggle has replaced meanwhile left be: started again, they'd come back.)
     // (Which are still paused, all read first, then each started: a read between writes would lay the page out again
     // for each of them, hundreds with a long Library's rows.)
@@ -5871,7 +5874,6 @@ function sizeOnce() {
   // (Stretched, by its scales as drawn (at its end's width, or as it was); a motion started mid-motion, as drawn
   // too.)
   if (across) stretchAcross(run, now.width, width);
-  if (edge === "top" && height > now.height) rideFoot(run);
   // (Drawn at its end's size once the page is idle, not in the frames that end the motion (what fades in as it ends:
   // the sidebar's words, New folder): a heavy chart's draw is a long frame.)
   Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => {
@@ -5918,19 +5920,18 @@ function holdChart() {
 }
 /** Stretched to its box as laid out now: a grip's frame, its width just set (the stretch's own frame read it before). */
 const stretchNow = () => drawnStretch && stretchDrawn($("chart").getBoundingClientRect().width);
+/** Whether the chart, its size held, is pinned at its box's top (see sizeOnce): its foot then at the box's (placeFoot). */
+let footPinned = false;
 /**
- * The chart's date axis at its box's foot each frame till `run` is over, the chart drawn taller than its box meanwhile
- * (pinned at its top, see sizeOnce): it moves with what's under it (the chart's foot, full screen's), not hidden by it
- * till the motion's over. By `translate`, apart from a stretch's `transform` (see stretchDrawn).
+ * The chart's foot (its date axis, and its corner beside it: full screen's button) at its box's foot, `height` tall,
+ * the chart drawn at another height meanwhile and pinned at its top (a layout's motion, see sizeOnce): it moves with
+ * what's under it (the card's foot: a sheet's, full screen's), not hidden under it nor waiting at its end. Set as the
+ * box is laid out (see resized: after layout, not a frame behind, whatever moves it). By `translate`, apart from a
+ * stretch's `transform` (see stretchDrawn). @param {number} height
  */
-function rideFoot(/** @type {number} */ run) {
-  const axis = engine.timeAxis.canvas, box = $("chart");
-  const frame = () => {
-    if (run !== motionsSized || !sizeHeld) return void (axis.style.translate = "");
-    axis.style.translate = `0 ${Math.min(0, box.getBoundingClientRect().bottom - engine.element.getBoundingClientRect().bottom)}px`;
-    requestAnimationFrame(frame);
-  };
-  frame();
+function placeFoot(height) {
+  const by = sizeHeld && footPinned ? height - chartSize.height : 0;
+  for (const item of [engine.timeAxis.canvas, engine.corner]) item.style.translate = Math.abs(by) < 0.5 ? "" : `0 ${by}px`;
 }
 /**
  * The chart as drawn at its end's width (`drawnStretch.to`, its plot's), stretched to its box `shown` wide, as the box is
@@ -5984,6 +5985,7 @@ function releaseSize() {
   if (!sizeHeld) return;
   sizeHeld = false;
   stretchDrawn(null);
+  placeFoot(0);
   // (Back in its box, the whole of it, as the library made it: drawn there now, if the motion only stretched it,
   // its stretch of time kept.)
   Object.assign(engine.element.style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
