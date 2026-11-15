@@ -5871,6 +5871,7 @@ function sizeOnce() {
   // (Stretched, by its scales as drawn (at its end's width, or as it was); a motion started mid-motion, as drawn
   // too.)
   if (across) stretchAcross(run, now.width, width);
+  if (edge === "top" && height > now.height) rideFoot(run);
   // (Drawn at its end's size once the page is idle, not in the frames that end the motion (what fades in as it ends:
   // the sidebar's words, New folder): a heavy chart's draw is a long frame.)
   Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => {
@@ -5917,6 +5918,20 @@ function holdChart() {
 }
 /** Stretched to its box as laid out now: a grip's frame, its width just set (the stretch's own frame read it before). */
 const stretchNow = () => drawnStretch && stretchDrawn($("chart").getBoundingClientRect().width);
+/**
+ * The chart's date axis at its box's foot each frame till `run` is over, the chart drawn taller than its box meanwhile
+ * (pinned at its top, see sizeOnce): it moves with what's under it (the chart's foot, full screen's), not hidden by it
+ * till the motion's over. By `translate`, apart from a stretch's `transform` (see stretchDrawn).
+ */
+function rideFoot(/** @type {number} */ run) {
+  const axis = engine.timeAxis.canvas, box = $("chart");
+  const frame = () => {
+    if (run !== motionsSized || !sizeHeld) return void (axis.style.translate = "");
+    axis.style.translate = `0 ${Math.min(0, box.getBoundingClientRect().bottom - engine.element.getBoundingClientRect().bottom)}px`;
+    requestAnimationFrame(frame);
+  };
+  frame();
+}
 /**
  * The chart as drawn at its end's width (`drawnStretch.to`, its plot's), stretched to its box `shown` wide, as the box is
  * laid out this frame (one clock: the browser's own animations of a transform can run a frame or two off the box's):
