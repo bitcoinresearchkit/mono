@@ -9021,11 +9021,28 @@
           order: -1;
           flex: 1 0 100%;
           height: 24px;
+
+          /* (Its drawing as tall as the row is, whatever the row: folding, cut by it, not drawn again, see below.) */
+          canvas {
+            bottom: auto;
+            height: 24px;
+          }
         }
 
-        /* (Not over a half sheet: the chart above it, small then, has its room.) */
+        /* (Its row moving as the foot's: the foot's children's fade, see the belt's, its own.) */
+        .stage-foot .navigator {
+          transition: height var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), opacity var(--dur-micro) var(--ease), visibility 0s;
+        }
+
+        /* (Not over a half sheet: the chart above it, small then, has its room. Folded away with the sheet's motion, its
+           row, its margins and the gap over the ranges, as the card's foot moves (the chart sized once for it: see
+           sizeOnce); back the same way.) */
         body[data-sheet="panel"]:not([data-sheet-size="full"]) .navigator {
-          display: none;
+          height: 0;
+          margin-block: 0 -8px;
+          opacity: 0;
+          visibility: hidden;
+          transition-delay: 0s, 0s, 0s, var(--dur-layout);
         }
 
         /* The drawing belt: in the stage foot's place (see placeBelt), one row sliding sideways, its edges fading where
