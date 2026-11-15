@@ -4098,18 +4098,12 @@ impl BitviewClient {
 
     /// Tweak index
     ///
-    /// The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.
+    /// The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required, from 600, the least value held, to 10,000 (BlindBit's is optional, and 0 by default).
     ///
     /// Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
-    pub fn get_blindbit_tweak_index(
-        &self,
-        height: Height,
-        dustLimit: Option<u64>,
-    ) -> Result<Vec<Tweak>> {
+    pub fn get_blindbit_tweak_index(&self, height: Height, dustLimit: u64) -> Result<Vec<Tweak>> {
         let mut query = Vec::new();
-        if let Some(v) = dustLimit {
-            query.push(query_pair("dustLimit", v));
-        }
+        query.push(query_pair("dustLimit", dustLimit));
         let query_str = if query.is_empty() {
             String::new()
         } else {
@@ -4128,15 +4122,9 @@ impl BitviewClient {
     /// `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
     ///
     /// Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
-    pub fn get_blindbit_tweaks(
-        &self,
-        height: Height,
-        dustLimit: Option<u64>,
-    ) -> Result<Vec<Tweak>> {
+    pub fn get_blindbit_tweaks(&self, height: Height, dustLimit: u64) -> Result<Vec<Tweak>> {
         let mut query = Vec::new();
-        if let Some(v) = dustLimit {
-            query.push(query_pair("dustLimit", v));
-        }
+        query.push(query_pair("dustLimit", dustLimit));
         let query_str = if query.is_empty() {
             String::new()
         } else {

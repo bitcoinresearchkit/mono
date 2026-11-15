@@ -183,12 +183,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/tweak-index/{height}",
         summary: "Tweak index",
-        description: "The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.",
+        description: "The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required, from 600, the least value held, to 10,000 (BlindBit's is optional, and 0 by default).",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed; 0 (every\neligible transaction) when left out, as BlindBit takes it.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: true, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed: from 600, the\nleast value held, to 10,000.") },
         ],
         request_body: None,
     },
@@ -202,7 +202,7 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed; 0 (every\neligible transaction) when left out, as BlindBit takes it.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: true, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed: from 600, the\nleast value held, to 10,000.") },
         ],
         request_body: None,
     },

@@ -5,7 +5,7 @@ use std::ops::Range;
 
 use bitcoin::{Block, consensus::deserialize, hashes::Hash, hex::DisplayHex};
 use bitview_plugin_outputs::published_spend;
-use bitview_plugin_silent_payments::{TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
+use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
 use bitview_primitives::{Lengths, TxInIndex};
 use bitview_types::{BlindbitFilter, BlindbitFilterKind, BlindbitSpentIndex, BlindbitUtxo};
 use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Tweak, TxIndex, Vout};
@@ -177,15 +177,15 @@ impl Query {
     }
 
     /// The tweaks of the block's eligible transactions with a Taproot output holding at least
-    /// `dust_limit`.
+    /// `dust_limit`, no less than the dust floor (the plugin keeps none below it).
     pub fn blindbit_tweak_index(
         &self,
         block: &BlindbitBlock,
         dust_limit: Sats,
     ) -> Result<Vec<Tweak>> {
+        debug_assert!(dust_limit >= DUST_FLOOR, "limit {dust_limit}");
         let rows = self.blindbit_rows(block)?;
-        // Every eligible transaction has a Taproot output: none to read at no limit.
-        if dust_limit == Sats::ZERO || rows.is_empty() {
+        if dust_limit == DUST_FLOOR || rows.is_empty() {
             return self.blindbit_tweaks_where(rows, |_| true);
         }
         let outputs = self.blindbit_outputs(block)?;
@@ -197,8 +197,9 @@ impl Query {
     }
 
     /// Cut-through: the tweaks of the block's eligible transactions with an unspent Taproot output
-    /// holding at least `dust_limit`, as of the block's publication.
+    /// holding at least `dust_limit`, no less than the dust floor, as of the block's publication.
     pub fn blindbit_tweaks(&self, block: &BlindbitBlock, dust_limit: Sats) -> Result<Vec<Tweak>> {
+        debug_assert!(dust_limit >= DUST_FLOOR, "limit {dust_limit}");
         let rows = self.blindbit_rows(block)?;
         if rows.is_empty() {
             return Ok(Vec::new());

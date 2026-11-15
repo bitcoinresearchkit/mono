@@ -142,11 +142,9 @@ const TAGS: [(&str, &str); 13] = [
         oracle's paths, so a wallet switches by changing the host. Per block: the tweaks of its \
         eligible transactions, BIP158 filters of its new Taproot outputs and of its spends of \
         Taproot outputs, its eligible transactions' Taproot outputs and its spent index. \
-        Precomputed: no tweak or filter math per request. Every eligible transaction is \
-        indexed; `dustLimit` is optional, 0 by default, any value.\n\n\
-        Out on purpose: mempool tweaks and a server-side scan. Both need a push subscription, \
-        which Bitview's API doesn't offer, and a scan would hold a wallet's scan key and minutes \
-        of CPU per request on a stateless public server.",
+        Precomputed: no tweak or filter math per request.\n\n\
+        Transactions whose Taproot outputs all hold less than 600 sats are left out \
+        (inscription and rune postage, mostly), so `dustLimit` runs from 600 to 10,000.",
     ),
 ];
 
