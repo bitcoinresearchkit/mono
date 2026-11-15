@@ -30,8 +30,9 @@ chart.show(365);                                 // the last 365 points in view
   none there, null for the library's.
   `embedded`, a chart in a page that scrolls: a finger's mostly vertical swipe scrolls the page (the browser deciding:
   `touch-action: pan-y`), a sideways one pans, a pinch zooms, a held finger's crosshair holds the page still; a finger
-  takes no separator or price axis there (their drags are vertical; a mouse's still do). Else (a chart filling its
-  screen) it takes every gesture.
+  takes no separator or price axis there (their drags are vertical; a mouse's still do). A pinch starts with both
+  fingers: a second one joining a scroll already running is the browser's. Else (a chart filling its screen) it takes
+  every gesture.
 - `setTimes(times)` (an end in view shifts by the change in point count, retaining its screen position on appends;
   a historical view stays put; callers replacing or rolling the timeline set their desired range explicitly),
   `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to, options?)` (logical indices,

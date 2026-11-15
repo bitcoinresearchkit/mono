@@ -779,9 +779,11 @@ export class Chart {
       trailSize = 0;
       if (!stale && Math.abs(speed) >= FLICK_LEAST) this.#fling(speed);
     };
-    // (Embedded: a held finger's crosshair and a pinch keep the page from scrolling under them, its scroll otherwise
-    // the browser's (touch-action can't say "vertical unless held"; a touchmove's default can).)
-    element.addEventListener("touchmove", (event) => (held >= 0 || event.touches.length > 1) && event.cancelable && event.preventDefault(), { passive: false, signal });
+    // (Embedded: the browser scrolls the page unless a touchmove's default is cancelled, which touch-action can't say
+    // "vertical unless held" for: cancelled while a finger holds the crosshair or two of the chart's own fingers pinch
+    // (`down` holds only pointers the chart took: a page's own control over it isn't counted). A pinch starts with
+    // both fingers: one that joins a scroll already running is the browser's.)
+    if (this.embedded) element.addEventListener("touchmove", (event) => (held >= 0 || down.size > 1) && event.cancelable && event.preventDefault(), { passive: false, signal });
     element.addEventListener("pointerup", up, { signal });
     element.addEventListener("lostpointercapture", up, { signal });
     element.addEventListener("pointercancel", up, { signal });
