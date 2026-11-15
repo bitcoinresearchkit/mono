@@ -29,48 +29,6 @@ pub struct GetChainTip {
     pub status: String,
 }
 
-/// `getblocktemplate`.
-#[derive(Deserialize)]
-pub struct GetBlockTemplate {
-    #[serde(rename = "previousblockhash")]
-    pub previous_block_hash: String,
-    pub transactions: Vec<BlockTemplateTransaction>,
-    #[serde(flatten)]
-    pub header: CoreTemplateHeader,
-}
-
-/// What Core's `getblocktemplate` says of the next block: the benchmark our own template is
-/// checked against.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-pub struct CoreTemplateHeader {
-    pub height: u32,
-    /// The compact target, as 8 hex digits.
-    pub bits: String,
-    pub mintime: u32,
-    #[serde(rename = "coinbasevalue")]
-    pub coinbase_value: u64,
-    /// Its transactions' weight and count, summed from the list.
-    #[serde(skip)]
-    pub weight: u64,
-    #[serde(skip)]
-    pub txs: usize,
-}
-
-/// One of `getblocktemplate`'s transactions.
-#[derive(Deserialize)]
-pub struct BlockTemplateTransaction {
-    /// The serialized transaction, in hex.
-    pub data: String,
-    pub txid: String,
-    /// The wtxid.
-    pub hash: String,
-    /// The 1-based positions in the template of the transactions it spends.
-    pub depends: Vec<i64>,
-    pub fee: i64,
-    pub sigops: i64,
-    pub weight: u64,
-}
-
 /// `getmempoolinfo`.
 #[derive(Deserialize)]
 pub struct GetMempoolInfo {

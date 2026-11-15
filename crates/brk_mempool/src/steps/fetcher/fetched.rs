@@ -1,5 +1,5 @@
 use bitcoin::Transaction as BitcoinTransaction;
-use brk_rpc::{CoreTemplateHeader, MempoolState};
+use brk_rpc::MempoolState;
 use brk_types::{MempoolEntryInfo, Txid};
 use rapidhash::{RapidHashMap, RapidHashSet};
 
@@ -19,11 +19,8 @@ pub struct Fetched {
     /// keep their first-sight entry on the live store).
     pub new_entries: Vec<MempoolEntryInfo>,
     pub new_txs: RapidHashMap<Txid, BitcoinTransaction>,
-    /// Core's template's header and reward, the benchmark ours is checked against.
-    pub core_header: Option<CoreTemplateHeader>,
     /// The new txids filled the per-cycle cap: more are left for the next cycles.
     pub capped: bool,
-    /// The listed txids asked for this cycle (the template's aside): one still not loaded after
-    /// failed this time.
+    /// The listed txids asked for this cycle: one still not loaded after failed this time.
     pub requested: Vec<Txid>,
 }

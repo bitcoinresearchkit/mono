@@ -6,8 +6,8 @@
 //! tomb.
 //!
 //! Existing entries are not re-classified - they keep their first-sight
-//! state on the live store (a template's witness variant takes over a
-//! record, its sighting kept). Removals are inferred by cross-referencing
+//! state on the live store (a witness variant takes over a record, its
+//! sighting kept). Removals are inferred by cross-referencing
 //! inputs against the full `live_txids` set from the cycle's pull.
 
 use bitcoin::Transaction as BitcoinTransaction;
@@ -46,9 +46,8 @@ pub fn prepare(
         })
         .collect();
     let mut removed = classify_removals(&live, &added, confirmed, state);
-    // A pooled txid fetched again is a witness variant (the template's, or one a restored record's
-    // check found): its record leaves for the new body, which takes its place (and first sighting)
-    // in the same apply.
+    // A pooled txid fetched again is a witness variant (one a restored record's check found): its
+    // record leaves for the new body, which takes its place (and first sighting) in the same apply.
     removed.extend(
         added
             .iter()

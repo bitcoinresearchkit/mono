@@ -12,12 +12,11 @@ use serde_json::{from_str, json, value::RawValue};
 use tracing::{debug, info, warn};
 
 use super::{
-    BlockSpends, Client, ClientInner,
+    BlockSpends, Client,
     mempool_entry::MempoolEntry,
     mempool_state::{MempoolObservation, MempoolState},
     responses::{
-        GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockchainInfo, GetChainTip,
-        GetMempoolInfo,
+        GetBlockCount, GetBlockHeaderVerbose, GetBlockchainInfo, GetChainTip, GetMempoolInfo,
     },
     rpc_call::RpcCall,
     txid_array_parser::TxidArrayParser,
@@ -111,22 +110,16 @@ impl Client {
         Ok(hashes)
     }
 
-    /// Core's projected next block (`getblocktemplate`), the live mempool txids
-    /// (`getrawmempool false`), `mempoolminfee` (`getmempoolinfo`) and the modified fees of
-    /// prioritised transactions (`getprioritisedtransactions`), in one batched round trip. GBT carries each tx's full body and stats, so block 0
-    /// is exact even when a tx vanishes from the mempool listing between the GBT
-    /// and `getrawmempool` calls; no follow-up entry fetch can race it. No template when Core
-    /// refuses one (in initial sync, or with no peers): the tip is then `getbestblockhash`'s. A
-    /// failed priority read retains `previous` with a warning; membership and the returned
-    /// template still update.
+    /// The chain tip (`getbestblockhash`), the live mempool txids (`getrawmempool false`),
+    /// `mempoolminfee` (`getmempoolinfo`) and the modified fees of prioritised transactions
+    /// (`getprioritisedtransactions`), in one batched round trip. A failed priority read retains
+    /// `previous` with a warning; membership still updates.
     pub fn fetch_mempool_state(
         &self,
         previous: &[(Txid, i64)],
     ) -> Result<MempoolObservation> {
-        let template_args = (json!({ "rules": ["segwit"] }),);
         let calls = [
             RpcCall::new("getbestblockhash", &NO_ARGS)?,
-            RpcCall::new("getblocktemplate", &template_args)?,
             // Before the listing (Core runs a batch in order): a load reported finished was
             // finished when the listing was taken.
             RpcCall::new("getmempoolinfo", &NO_ARGS)?,
@@ -134,55 +127,19 @@ impl Client {
             RpcCall::new("getprioritisedtransactions", &NO_ARGS)?,
         ];
         // The batch answers every request, a missing response as an item error.
-        let [tip_raw, template_raw, info_raw, txids_raw, priorities_raw] =
-            <[_; 5]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
-        let (tip_raw, txids_raw, info_raw) = (tip_raw?, txids_raw?, info_raw?);
-
-        let live_txids = TxidArrayParser::parse(txids_raw.get())?;
-        // A template that doesn't read, or breaks a block's limits, is none: block 0 packs from
-        // the pool, and the cycle goes on.
-        let template = match template_raw {
-            Ok(raw) => {
-                let read = || -> Result<_> {
-                    let mut template: GetBlockTemplate = from_str(raw.get())?;
-                    template.header.weight = template.transactions.iter().map(|tx| tx.weight).sum();
-                    template.header.txs = template.transactions.len();
-                    Ok((
-                        Self::parse_block_hash(&template.previous_block_hash, "previousblockhash")?,
-                        ClientInner::build_gbt(template.transactions)?,
-                        template.header,
-                    ))
-                };
-                read()
-                    .inspect_err(|error| warn!(%error, "getblocktemplate: unreadable, set aside"))
-                    .ok()
-            }
-            Err(error) => {
-                debug!(%error, "getblocktemplate: none");
-                None
-            }
-        };
-        let (tip_hash, block_template, core_header) = match template {
-            Some((tip, template, header)) => (tip, Some(template), Some(header)),
-            None => {
-                let tip: String = from_str(tip_raw.get())?;
-                (Self::parse_block_hash(&tip, "getbestblockhash")?, None, None)
-            }
-        };
-        let info: GetMempoolInfo = from_str(info_raw.get())?;
-        let min_fee = Self::build_min_fee(info.mempool_min_fee)?;
-        let modified_fees = Self::modified_fees(priorities_raw, previous);
+        let [tip_raw, info_raw, txids_raw, priorities_raw] =
+            <[_; 4]>::try_from(self.0.call_mixed_batch(&calls)?).expect("one result per call");
+        let tip: String = from_str(tip_raw?.get())?;
+        let info: GetMempoolInfo = from_str(info_raw?.get())?;
 
         Ok(MempoolObservation {
             state: MempoolState {
-                live_txids,
-                min_fee,
-                tip_hash,
+                live_txids: TxidArrayParser::parse(txids_raw?.get())?,
+                min_fee: Self::build_min_fee(info.mempool_min_fee)?,
+                tip_hash: Self::parse_block_hash(&tip, "getbestblockhash")?,
                 loaded: info.loaded,
             },
-            block_template,
-            core_header,
-            modified_fees,
+            modified_fees: Self::modified_fees(priorities_raw, previous),
         })
     }
 

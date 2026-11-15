@@ -2,8 +2,8 @@ use brk_types::{FeeRate, MempoolBlock, Sats, VSize, Weight, weighted_percentiles
 
 use super::{SnapTx, TxIndex};
 
-/// Block 0 is the next block itself (the template's), so the full 0..100 range is exact and
-/// worth surfacing.
+/// Block 0 is the next block, packed from transactions all already broadcast, so the full 0..100
+/// range is worth surfacing.
 const NEXT_BLOCK_PERCENTILES: [u64; 7] = [0, 10, 25, 50, 75, 90, 100];
 
 /// Blocks 1..N are a projection: later blocks depend on transactions not yet broadcast. Tightened

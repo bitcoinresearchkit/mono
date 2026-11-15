@@ -13,8 +13,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - Refresh MARA Pool’s Stratum V2 coinbase tags and payout address; blocks are re-attributed (`POOL_ATTRIBUTION_VERSION` 5)
 
 - Projected block 0 (`/api/v1/fees/mempool-blocks`, `/api/mempool-blocks/0`, the fee tiers) is packed by Bitview as
-  the later blocks are, not taken from Core's `getblocktemplate`: one packer for every block. Core's template is still
-  read each poll for the bodies it carries. A block's tail is filled past Core's rules: a chunk that doesn't fit holds
+  the later blocks are, not taken from Core's `getblocktemplate`: one packer for every block. Core's template is no
+  longer read each poll: in a local server comparison, cycle p50/p90 fell from 165/212 to 142/188 ms and batch
+  p50/p90 from 144/191 to 124/156 ms. A later run over a block measured 229/315 ms and 196/276 ms respectively;
+  all 613 proposal checks passed. New
+  transactions load as the rest do (`getmempoolentry` + `getrawtransaction`). A block's tail is filled past Core's rules: a chunk that doesn't fit holds
   back only the chunks that depend on it, and every other chunk is tried to the end of the pool (Core skips the rest
   of the cluster and stops after 1,000 misses in a row). Then a chunk that missed takes the place of the newest chunks
   taken when they pay less in all and dropping them makes room, so a large chunk that misses by a little no longer
@@ -218,9 +221,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `/api/v1/tx/{txid}/rbf` answers a history past its bounds (63 versions, 4,096 transactions) with 400
   `limit_exceeded` instead of 500 (it was 32 versions); `/api/v1/replacements` no longer lists a lone transaction
   as a tree when its replacer was confirmed unseen
-- Fee tiers come only from a complete view of the pool: while it loads, or while Core's template is stale, the
-  last complete view's tiers stand, raised to the current `mempoolminfee` floor (they sank toward the floor, built
-  from part of the pool), and the fee endpoints answer 503 before the first
+- Fee tiers come only from a complete view of the pool: while it loads, or while listed transactions are still
+  loading, the last complete view's tiers stand, raised to the current `mempoolminfee` floor (they sank toward the
+  floor, built from part of the pool), and the fee endpoints answer 503 before the first
 - A transaction a new block confirmed reads mined even when it was buried as vanished first (the block read failed
   or lagged), and a vanished one a confirmed conflict displaced reads replaced by it; a failed read of the new tip's
   block is retried the next cycle
@@ -297,8 +300,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `GET /api/v1/tx/{txid}/rbf` answers `{"replacements":null,"replaces":null}` for a transaction that neither replaced
   nor was replaced, as mempool.space (it gave a one-node tree)
 - `GET /api/mempool/recent` lists the ten latest arrivals by first-seen time (a poll's fetch order before)
-- A block template's witness variant of a pooled transaction (same txid, another witness) replaces the stored body
-  and weight, keeping its first sighting
+- A restored transaction Core now holds under another witness (same txid) takes Core's body and weight, keeping its
+  first sighting
 - The mempool's maps keyed by addresses, txids and outpoints are seeded per process: output scripts crafted to
   hash alike under the unkeyed hasher (20 chosen bytes each) made every rebuild quadratic
 - Search: a repeated word no longer raises the typo match's length floor ("bitoin bitoin" finds what "bitoin" finds),

@@ -1,11 +1,9 @@
 use brk_types::{BlockHash, FeeRate, Txid};
 
-use super::responses::CoreTemplateHeader;
-
 pub struct MempoolState {
     pub live_txids: Vec<Txid>,
     pub min_fee: FeeRate,
-    /// Chain tip's hash from the block template.
+    /// The chain tip's hash.
     pub tip_hash: BlockHash,
     /// The node finished loading its saved mempool before the listing was taken: until then a
     /// transaction missing from it may only be unread yet.
@@ -15,9 +13,6 @@ pub struct MempoolState {
 /// One observation for the projector.
 pub struct MempoolObservation {
     pub state: MempoolState,
-    pub block_template: Option<Vec<crate::BlockTemplateTx>>,
-    /// Core's template's header and reward, when `block_template` read from it.
-    pub core_header: Option<CoreTemplateHeader>,
     /// The node's signed `modified_fee` (sats) of each prioritised transaction in the mempool,
     /// in txid byte order: base fee plus the operator's `prioritisetransaction` delta. Empty on a
     /// node without `getprioritisedtransactions` (before Core 27); the previous cycle's after a

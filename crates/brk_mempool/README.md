@@ -63,7 +63,7 @@ On a loaded `ReadOnlyState`:
   recommendations and projected-block statistics; the JSON bodies are serialized once per
   projection, with their hash.
 - `mempool_block_source` captures a projected block with its transactions in block order (block
-  0's: Bitcoin Core's `getblocktemplate`'s); `resolve_mempool_block_diff` captures a block's
+  0's packed as the others are); `resolve_mempool_block_diff` captures a block's
   changes since a recent hash of it. Both build serializable views over the shared bodies,
   without copying them. Every projected block is served but a last one holding more than a block
   (what's left of a busy mempool, mempool.space's catch-all): that one has only its statistics.
@@ -127,8 +127,6 @@ offsets.
 
 Each publication pairs one membership observation with the graph built from it. Each poll
 brackets its fetch and prevout resolution with best-block hashes; an observation whose tip moved
-is not published. Core's template, built at most every few seconds while its pool changes, can
-hold transactions that left the pool since: their bodies serve block 0 alone, and the pool buries
-them as it would any leaver, so membership (address balances and pages, lookups) follows the
-listing alone and publishes every cycle. These are consistency checks on sampled observations, not a claim that a JSON-RPC
-batch is atomic.
+is not published. Membership (address balances and pages, lookups) follows the listing alone and
+publishes every cycle. These are consistency checks on sampled observations, not a claim that a
+JSON-RPC batch is atomic.

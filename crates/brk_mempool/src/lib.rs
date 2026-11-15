@@ -9,7 +9,7 @@
 use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use arc_swap::ArcSwap;
-use brk_rpc::{Client, CoreTemplateHeader};
+use brk_rpc::Client;
 use rapidhash::RapidHashMap;
 
 mod api;
@@ -84,9 +84,6 @@ pub struct Mempool {
     withheld: Option<(brk_types::BlockHash, bool)>,
     /// Builds and checks block 0's template off the cycle, once driven ([`Self::start_with`]).
     checker: Option<template::Checker>,
-    /// What Core's own template of the last applied cycle says of the next block: the benchmark
-    /// ours is checked against.
-    core_header: Option<CoreTemplateHeader>,
     /// Cycles in a row whose new blocks couldn't all be read.
     unread_cycles: u32,
     /// Listed transactions asked for that didn't load, with how many cycles in a row.
@@ -112,7 +109,6 @@ impl Mempool {
             chain: ChainWaker::default(),
             withheld: None,
             checker: None,
-            core_header: None,
             unread_cycles: 0,
             failing: RapidHashMap::default(),
             graveyard_file: None,

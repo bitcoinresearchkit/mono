@@ -158,7 +158,6 @@ impl Mempool {
             modified_fees,
             new_entries,
             new_txs,
-            core_header,
             capped,
             requested,
             checked,
@@ -177,7 +176,7 @@ impl Mempool {
                 "mempool new-tx fetch hit the per-cycle cap"
             );
         }
-        // A block arriving during the fetch can leave the listing past the template's tip: nothing
+        // A block arriving during the fetch can leave the listing past the fetched tip: nothing
         // of such a cycle is applied (its removals would be classified without that block). Nor
         // while the node reloads its saved mempool: its listing lacks what it hasn't read back yet,
         // which would read as gone (readers keep the last publication meanwhile).
@@ -188,7 +187,6 @@ impl Mempool {
             return Err(Error::updating());
         }
         self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked, recheck);
-        self.core_header = core_header;
         let (unloaded, publishable) = self.track_unloaded(&rpc.live_txids, &requested);
         prevouts::fill(&mut self.state, resolver, &unloaded);
         let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
@@ -224,7 +222,7 @@ impl Mempool {
     ) {
         let confirmed = Confirmed::since(&self.client, tip, self.state.graveyard.confirmed_tip());
         let diff = preparer::prepare(live, new_entries, new_txs, &confirmed, &self.state);
-        // The preparer alone decides which entry/body pairs are usable, including templates.
+        // The preparer alone decides which entry/body pairs are usable.
         if !recheck.is_empty() {
             for addition in &diff.added {
                 recheck.remove(&addition.entry.txid);
@@ -330,7 +328,7 @@ impl Mempool {
             self.read_only.current.store(Arc::new(next));
         }
         if let Some(checker) = &self.checker {
-            checker.check(snapshot.clone(), tip, self.core_header.clone());
+            checker.check(snapshot.clone(), tip);
         }
     }
 

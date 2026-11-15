@@ -8,7 +8,7 @@ use crate::key::TxKey;
 #[derive(Debug, Clone)]
 pub struct TxEntry {
     pub txid: Txid,
-    /// The body's witness id: a template naming another under the same txid replaces the body.
+    /// The body's witness id: a restored record Core holds under another is fetched afresh.
     pub wtxid: Wtxid,
     pub fee: Sats,
     pub vsize: VSize,

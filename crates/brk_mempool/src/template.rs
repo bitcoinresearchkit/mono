@@ -22,7 +22,7 @@ use bitcoin::{
     params::Params,
     transaction,
 };
-use brk_rpc::{Client, CoreTemplateHeader};
+use brk_rpc::Client;
 use brk_types::{BlockHash, BlockTemplate, BlockTemplateTransaction, Height, Sats, Timestamp, Txid};
 use rapidhash::RapidHashMap;
 use tracing::{debug, warn};
@@ -67,7 +67,6 @@ pub(crate) struct Checker {
 struct Job {
     snapshot: Arc<Snapshot>,
     tip: BlockHash,
-    core: Option<CoreTemplateHeader>,
 }
 
 impl Checker {
@@ -103,7 +102,7 @@ impl Checker {
                         facts = tip_facts(&job.tip).map(|read| (job.tip, read));
                     }
                     let checked = facts.as_ref().and_then(|(_, facts)| {
-                        accepted(&job.snapshot.block0, facts, job.core.as_ref(), &client)
+                        accepted(&job.snapshot.block0, facts, &client)
                     });
                     if let Some(template) = checked {
                         served.store(Some(Arc::new(template)));
@@ -117,9 +116,9 @@ impl Checker {
 
     /// Hands over `snapshot` at `tip`, replacing one not yet taken. Handed over at every
     /// publication: one Core couldn't check is tried again, one it accepted is skipped.
-    pub fn check(&self, snapshot: Arc<Snapshot>, tip: BlockHash, core: Option<CoreTemplateHeader>) {
+    pub fn check(&self, snapshot: Arc<Snapshot>, tip: BlockHash) {
         let (slot, ready) = &*self.next;
-        *slot.lock().expect("checker slot") = Some(Job { snapshot, tip, core });
+        *slot.lock().expect("checker slot") = Some(Job { snapshot, tip });
         ready.notify_one();
     }
 }
@@ -128,25 +127,12 @@ impl Checker {
 fn accepted(
     block0: &[TxRecord],
     facts: &TipFacts,
-    core: Option<&CoreTemplateHeader>,
     client: &Client,
 ) -> Option<Template> {
     let started = Instant::now();
     let (template, proposal) = build(block0, facts, Timestamp::now());
     let built = started.elapsed();
     let height = *template.height;
-    if let Some(core) = core.filter(|core| core.height == height)
-        && (core.bits != template.bits || core.mintime != *template.mintime)
-    {
-        warn!(
-            height,
-            bits = template.bits,
-            core_bits = core.bits,
-            mintime = *template.mintime,
-            core_mintime = core.mintime,
-            "block template: the chain's next header differs from Core's"
-        );
-    }
     let verdict = client.propose_block(&proposal);
     let proposed = started.elapsed() - built;
     match verdict {
@@ -161,17 +147,11 @@ fn accepted(
         }
     }
     let json = serde_json::to_vec(&template).expect("a template serializes");
-    let fees = u64::from(template.coinbasevalue - template.height.subsidy());
-    let weight: u64 = template.transactions.iter().map(|tx| u64::from(tx.weight)).sum();
-    let core = core.filter(|core| core.height == height);
     debug!(
         height,
         txs = template.transactions.len(),
-        fees,
-        weight,
-        core_fees = core.map(|core| core.coinbase_value - u64::from(template.height.subsidy())),
-        core_weight = core.map(|core| core.weight),
-        core_txs = core.map(|core| core.txs),
+        fees = u64::from(template.coinbasevalue - template.height.subsidy()),
+        weight = template.transactions.iter().map(|tx| u64::from(tx.weight)).sum::<u64>(),
         build_us = built.as_micros() as u64,
         propose_us = proposed.as_micros() as u64,
         serialize_us = (started.elapsed() - built - proposed).as_micros() as u64,
