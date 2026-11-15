@@ -98,8 +98,8 @@ Base URL: https://bitview.space. Every operation, with its query parameters (`*`
 - `GET /blindbit/mainnet/info` Server info
 - `GET /blindbit/mainnet/block-height` Last indexed block
 - `GET /blindbit/mainnet/block-hash/{height}` Block hash
-- `GET /blindbit/mainnet/tweak-index/{height}` Tweak index. Query: `dustLimit`*
-- `GET /blindbit/mainnet/tweaks/{height}` Cut-through tweaks. Query: `dustLimit`*
+- `GET /blindbit/mainnet/tweak-index/{height}` Tweak index. Query: `dustLimit`
+- `GET /blindbit/mainnet/tweaks/{height}` Cut-through tweaks. Query: `dustLimit`
 - `GET /blindbit/mainnet/filter/{kind}/{height}` Block filter
 - `GET /blindbit/mainnet/spent-index/{height}` Spent index
 - `GET /blindbit/mainnet/utxos/{height}` Taproot outputs

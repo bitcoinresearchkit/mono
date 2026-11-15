@@ -107,7 +107,7 @@ fn info(height: Height) -> BlindbitInfo {
         network: "main".into(),
         height,
         tweaks_only: false,
-        tweaks_full_basic: false,
+        tweaks_full_basic: true,
         tweaks_full_with_dust_filter: true,
         tweaks_cut_through_with_dust_filter: true,
     }
@@ -203,7 +203,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        Path(path): Path<HeightParam>,
                        QueryParams(query): QueryParams<DustLimitQuery>,
                        RequestState(state): RequestState| {
-                    let dust_limit = query.limit()?;
+                    let dust_limit = query.limit();
                     state
                         .respond_blindbit(
                             headers,
@@ -219,7 +219,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Tweak index")
-                        .description("The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required, from 600, the least value held, to 10,000 (BlindBit's is optional, and 0 by default).")
+                        .description("The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()
@@ -233,7 +233,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        Path(path): Path<HeightParam>,
                        QueryParams(query): QueryParams<DustLimitQuery>,
                        RequestState(state): RequestState| {
-                    let dust_limit = query.limit()?;
+                    let dust_limit = query.limit();
                     state
                         .respond_blindbit(
                             headers,

@@ -4,7 +4,7 @@ use bitcoin::{Block, Transaction, consensus::deserialize, hashes::Hash, secp256k
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, Sats, Tweak, TxIndex};
+use brk_types::{BlkPosition, OutputType, Tweak, TxIndex};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -15,12 +15,6 @@ use crate::{
 
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
 pub const TAPROOT_ACTIVATION: usize = 709_632;
-
-/// The least a Taproot output holds for its transaction to be kept: one whose Taproot outputs all
-/// hold less (mostly inscription and rune postage) is left out everywhere. 600 is the limit Dana
-/// and Bull Bitcoin ask for, and sits above the many outputs of exactly 546. A kept transaction
-/// keeps all its Taproot outputs, whatever they hold: a wallet matches its outputs in order.
-pub const DUST_FLOOR: Sats = Sats::new(600);
 
 /// An eligible transaction.
 pub struct Eligible {
@@ -63,13 +57,14 @@ fn may_have_key(output_type: OutputType) -> bool {
     )
 }
 
-/// Whether a transaction may be eligible and is kept, from the types its inputs spend: a Taproot
-/// output holding at least the [`DUST_FLOOR`], and an input BIP352 may count a key for.
+/// Whether a transaction may be eligible, from the types its inputs spend: a Taproot output,
+/// whatever it holds (a wallet's dust limit picks at answer time), and an input BIP352 may count a
+/// key for.
 pub(crate) fn is_candidate(transaction: &Transaction, input_types: &[OutputType]) -> bool {
     transaction
         .output
         .iter()
-        .any(|output| output.script_pubkey.is_p2tr() && Sats::from(output.value) >= DUST_FLOOR)
+        .any(|output| output.script_pubkey.is_p2tr())
         && input_types.iter().any(|&output_type| may_have_key(output_type))
 }
 
