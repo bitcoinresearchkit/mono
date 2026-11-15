@@ -1015,7 +1015,13 @@
         if (request !== opening) return;
         changes = data;
         if (changes) {
-          rules = index(changes.rules);
+          // Series renames written in the notes belong to the same lookup as the API comparison.
+          const ids = tab.notes.flatMap((release) => release.groups.flatMap((group) => group.notes.flatMap((note) => {
+            const [heading] = note.html.split('<ul class="subs">');
+            if (!/\bseries ids?\b/i.test(heading)) return [];
+            return [...note.html.matchAll(/<code>([a-z0-9_]+)<\/code>\s*→\s*<code>([a-z0-9_]+)<\/code>/g)].map((match) => [match[1], match[2], 1]);
+          })));
+          rules = index({ ...changes.rules, ids: [...changes.rules.ids, ...ids] });
           different = new Set(changes.different);
         }
         $("lead").innerHTML = leadOf(tab);
