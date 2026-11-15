@@ -1,5 +1,5 @@
 use bitview_cohort::{AmountRange, SpendableType};
-use bitview_primitives::SupplyState;
+use bitview_primitives::{Boolean, SupplyState};
 use brk_types::{OutputType, Sats};
 use vecdb::unlikely;
 
@@ -10,8 +10,10 @@ pub struct ReceivedOutputs {
 }
 
 impl ReceivedOutputs {
-    pub fn add(&mut self, value: Sats, ty: OutputType) {
-        if unlikely(ty.is_unspendable()) {
+    /// An output the block created; an unspendable one (Core's coin-pruning rule) never enters
+    /// the UTXO set.
+    pub fn add(&mut self, value: Sats, ty: OutputType, unspendable: Boolean) {
+        if unlikely(unspendable.is_true()) {
             return;
         }
         let supply = SupplyState {

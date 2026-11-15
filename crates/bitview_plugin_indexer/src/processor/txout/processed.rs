@@ -19,6 +19,8 @@ pub enum ProcessedOutputData {
 #[derive(Clone, Copy)]
 pub struct ProcessedOutput {
     pub output_type: OutputType,
+    /// Core's coin-pruning rule (see `is_unspendable`): the output never enters the UTXO set.
+    pub is_unspendable: bool,
     /// The legacy sigop cost a spend executes: the locking script's accurate count, scaled.
     pub legacy_sigop_cost: SigOps32,
     pub data: ProcessedOutputData,

@@ -1,4 +1,4 @@
-use bitview_primitives::{TxOutIndex, TypeIndex};
+use bitview_primitives::{Boolean, TxOutIndex, TypeIndex};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Height, OutputType, Sats, Version};
@@ -26,21 +26,28 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     /// input. Address types index distinct addresses, while other types index
     /// outputs in canonical order.
     pub type_index: M::Stored<BytesVec<TxOutIndex, TypeIndex>>,
+    /// Whether the output meets Core's coin-pruning rule (`CScript::IsUnspendable`: OP_RETURN, or a
+    /// locking script over 10,000 bytes), so it never enters the UTXO set. The script's length is
+    /// gone once the block is dropped, so the indexer keeps the fact.
+    #[traversable(hidden)]
+    pub is_unspendable: M::Stored<PcoVec<TxOutIndex, Boolean>>,
 }
 
 impl OutputsVecs {
     pub fn import(db: &Database, version: Version) -> Result<Self> {
-        let (first_txout_index, value, output_type, type_index) = parallel_import! {
+        let (first_txout_index, value, output_type, type_index, is_unspendable) = parallel_import! {
             first_txout_index = PcoVec::import(db, "first_txout_index", version),
             value = OverflowVec::import(db, "output_value", version),
             output_type = BytesVec::import(db, "output_type", version),
             type_index = BytesVec::import(db, "type_index", version),
+            is_unspendable = PcoVec::import(db, "is_unspendable_output", version),
         };
         Ok(Self {
             first_txout_index,
             value,
             output_type,
             type_index,
+            is_unspendable,
         })
     }
 
@@ -50,6 +57,7 @@ impl OutputsVecs {
             &self.value,
             &self.output_type,
             &self.type_index,
+            &self.is_unspendable,
         ]
         .into_iter()
     }

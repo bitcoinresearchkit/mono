@@ -7,8 +7,8 @@ use vecdb::{Cursor, PcoVec, ReadableVec};
 
 use super::Batch;
 
-/// Sequential txin reader; type indexes only `WITH_INDEXES`.
-pub(super) struct TxInReaders<'a, const WITH_INDEXES: bool> {
+/// Sequential txin reader; type indexes only `BY_ADDRESS`.
+pub(super) struct TxInReaders<'a, const BY_ADDRESS: bool> {
     input_values: Cursor<'a, TxInIndex, Sats, PcoVec<TxInIndex, Sats>>,
     references: Cursor<'a, TxInIndex, TxOutIndex, PcoVec<TxInIndex, TxOutIndex>>,
     output_types: Cursor<'a, TxInIndex, OutputType, PcoVec<TxInIndex, OutputType>>,
@@ -16,14 +16,14 @@ pub(super) struct TxInReaders<'a, const WITH_INDEXES: bool> {
     output_heights: &'a HeightMap<TxOutIndex>,
 }
 
-impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
+impl<'a, const BY_ADDRESS: bool> TxInReaders<'a, BY_ADDRESS> {
     pub(super) fn new(indexer: &'a Indexer, output_heights: &'a HeightMap<TxOutIndex>) -> Self {
         let inputs = &indexer.vecs().inputs;
         Self {
             input_values: inputs.value.cursor(),
             references: inputs.txout_index.cursor(),
             output_types: inputs.output_type.cursor(),
-            type_indexes: WITH_INDEXES.then(|| inputs.type_index.cursor()),
+            type_indexes: BY_ADDRESS.then(|| inputs.type_index.cursor()),
             output_heights,
         }
     }
@@ -63,7 +63,7 @@ impl<'a, const WITH_INDEXES: bool> TxInReaders<'a, WITH_INDEXES> {
         if values.len() != input_count
             || prev_heights.len() != input_count
             || output_types.len() != input_count
-            || (WITH_INDEXES && type_indexes.len() != input_count)
+            || (BY_ADDRESS && type_indexes.len() != input_count)
         {
             return Err(Error::NotFound(
                 "incomplete distribution input columns".into(),

@@ -8,7 +8,7 @@ use std::{
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::HeightMap;
-use bitview_primitives::{TxInIndex, TxOutIndex, TypeIndex};
+use bitview_primitives::{Boolean, TxInIndex, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{Height, OutputType, Sats};
 use rayon::join;
@@ -106,12 +106,15 @@ impl Batch<'_> {
     }
 }
 
-/// One batch's output and input columns; type indexes stay empty unless the
-/// reader reads them.
+/// One batch's output and input columns: type indexes only for an address reader, unspendable
+/// flags only for the others.
 #[derive(Default)]
 pub struct BatchColumns {
     pub output_values: Vec<Sats>,
     pub output_types: Vec<OutputType>,
+    /// Core's coin-pruning rule per output: an unspendable one never enters the UTXO set. Address
+    /// scripts are never unspendable, so an address reader leaves it empty.
+    pub output_unspendable: Vec<Boolean>,
     pub output_indexes: Vec<TypeIndex>,
     pub input_values: Vec<Sats>,
     pub input_heights: Vec<Height>,
@@ -119,13 +122,14 @@ pub struct BatchColumns {
     pub input_indexes: Vec<TypeIndex>,
 }
 
-/// Output and input column readers; type indexes only `WITH_INDEXES`.
-pub struct ColumnReaders<'a, const WITH_INDEXES: bool> {
+/// Output and input column readers, `BY_ADDRESS` for consumers tracking addresses (they read type
+/// indexes) or not (they read the unspendable flags).
+pub struct ColumnReaders<'a, const BY_ADDRESS: bool> {
     indexer: &'a Indexer,
-    inputs: TxInReaders<'a, WITH_INDEXES>,
+    inputs: TxInReaders<'a, BY_ADDRESS>,
 }
 
-impl<'a, const WITH_INDEXES: bool> ColumnReaders<'a, WITH_INDEXES> {
+impl<'a, const BY_ADDRESS: bool> ColumnReaders<'a, BY_ADDRESS> {
     pub fn new(indexer: &'a Indexer, output_heights: &'a HeightMap<TxOutIndex>) -> Self {
         Self {
             indexer,
@@ -193,6 +197,7 @@ impl<'a, const WITH_INDEXES: bool> ColumnReaders<'a, WITH_INDEXES> {
         let BatchColumns {
             output_values,
             output_types,
+            output_unspendable,
             output_indexes,
             input_values,
             input_heights,
@@ -207,15 +212,20 @@ impl<'a, const WITH_INDEXES: bool> ColumnReaders<'a, WITH_INDEXES> {
                 outputs
                     .output_type
                     .collect_range_into_at(from, to, output_types);
-                if WITH_INDEXES {
+                if BY_ADDRESS {
                     outputs
                         .type_index
                         .collect_range_into_at(from, to, output_indexes);
+                } else {
+                    outputs
+                        .is_unspendable
+                        .collect_range_into_at(from, to, output_unspendable);
                 }
                 let count = to - from;
                 if output_values.len() != count
                     || output_types.len() != count
-                    || (WITH_INDEXES && output_indexes.len() != count)
+                    || (BY_ADDRESS && output_indexes.len() != count)
+                    || (!BY_ADDRESS && output_unspendable.len() != count)
                 {
                     return Err(Error::NotFound(
                         "incomplete distribution output columns".into(),

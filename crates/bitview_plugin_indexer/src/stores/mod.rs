@@ -318,6 +318,10 @@ impl Stores {
 
         let rollback_start = starting_lengths.txout_index.to_usize();
         let rollback_end = vecs.outputs.output_type.len();
+        let mut unspendable = vecs
+            .outputs
+            .is_unspendable
+            .bounded_cursor_at(rollback_start, rollback_end);
 
         let starting_tx_index = starting_lengths.tx_index;
         let first_txout_indexes = vecs
@@ -369,7 +373,7 @@ impl Stores {
             for (vout, txout_index) in txout_range.enumerate() {
                 let output_type = txout_index_to_output_type_reader.get_at(txout_index);
                 let type_index = txout_index_to_type_index_reader.get_at(txout_index);
-                if !output_type.is_unspendable() {
+                if !unspendable.next().expect("aligned unspendable flag").is_true() {
                     let key = UtxoKey::new(txid_prefix, vout as u32);
                     let value = txout_index_to_value_reader.get_at(txout_index);
                     if let Some((original, first_txout_index)) = restored {

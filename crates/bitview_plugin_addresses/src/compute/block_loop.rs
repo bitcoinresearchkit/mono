@@ -200,6 +200,8 @@ pub fn process_chunk(
             input_heights,
             input_types,
             input_indexes,
+            // Address templates are never unspendable.
+            output_unspendable: _,
         } = columns;
 
         // Addresses created within this batch start at these per-type indexes.

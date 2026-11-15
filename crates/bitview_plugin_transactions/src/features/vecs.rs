@@ -38,8 +38,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub rbf_signaling: Flagged<FlagView, Windowed<M>>,
     /// Non-coinbase transactions with at least one output below the type-specific dust threshold: 672 sats for
     /// P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or P2TR, 240 for P2A, and
-    /// 471 for an empty script. P2MS and unknown scripts use their computed minimal non-dust value; OP_RETURN is
-    /// excluded.
+    /// 471 for an empty script. P2MS and unknown scripts use their computed minimal non-dust value; unspendable outputs
+    /// (OP_RETURN, or a script over 10,000 bytes) are excluded, as in Core.
     #[traversable(lead = "Transactions with dust: outputs below Bitcoin Core's dust threshold.")]
     pub dust_output: Flagged<FlagView, Windowed<M>>,
     /// Version-1 transactions tagged as EPOBC colored-coin transfers or issuances: the first

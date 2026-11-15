@@ -28,8 +28,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// value is the market cap.
     #[traversable(lead = "Circulating supply: all the bitcoin in existence, unspent.")]
     circulating: LazyPerBlock<Bitcoin, Bitcoin>,
-    /// Value made provably unspendable: the genesis subsidy, `OP_RETURN` output
-    /// values, unclaimed block rewards and the two coinbase outputs that BIP30
+    /// Value made provably unspendable: the genesis subsidy, the values of outputs
+    /// Bitcoin Core leaves out of its UTXO set (`OP_RETURN`, or a locking script over
+    /// 10,000 bytes), unclaimed block rewards and the two coinbase outputs that BIP30
     /// duplicates overwrote (blocks 91812 and 91722, at 91842 and 91880).
     #[traversable(lead = "Burned: bitcoin made unspendable for good.")]
     burned: ValuePerBlockCumulativeRolling<M>,

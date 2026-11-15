@@ -26,6 +26,7 @@ impl ComputePlugin for Vecs {
             count,
             types,
             op_return_value,
+            unspendable_value,
             coinbase,
             pubkeys,
             ..
@@ -43,6 +44,7 @@ impl ComputePlugin for Vecs {
                 value::compute_sats(
                     value::Targets {
                         op_return: &mut op_return_value.cumulative.sats.height,
+                        unspendable_value,
                         values: &mut types.values,
                         coinbase,
                     },

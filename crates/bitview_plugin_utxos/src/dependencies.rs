@@ -21,6 +21,7 @@ impl Dependencies<'_> {
                 v.inputs.first_txin_index.version(),
                 v.outputs.value.version(),
                 v.outputs.output_type.version(),
+                v.outputs.is_unspendable.version(),
                 v.inputs.txout_index.version(),
                 v.inputs.output_type.version(),
             ])

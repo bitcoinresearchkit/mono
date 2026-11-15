@@ -5,7 +5,10 @@ use bitcoin::{
 use brk_types::{Height, OutputType};
 
 use super::{super::ComputedTx, input, sigops::ComputedSigOps};
-use crate::{TxFeatureFlags, processor::txout::ProcessedOutput};
+use crate::{
+    TxFeatureFlags,
+    processor::txout::{ProcessedOutput, is_unspendable},
+};
 
 // Deterministic policy snapshots, not consensus activation heights.
 const LAST_V2_POLICY_HEIGHT: u32 = 863_500;
@@ -154,8 +157,9 @@ pub fn is_dust(value: Amount, output_type: OutputType, script: &Script) -> bool 
         OutputType::P2PK65 => 672,
         OutputType::P2PK33 => 576,
         OutputType::P2PKH => 546,
+        // Core's dust threshold is zero for an unspendable output.
         OutputType::P2MS | OutputType::UnknownScript => {
-            return value < script.minimal_non_dust();
+            return !is_unspendable(output_type, script) && value < script.minimal_non_dust();
         }
         OutputType::P2SH => 540,
         OutputType::OpReturn => return false,

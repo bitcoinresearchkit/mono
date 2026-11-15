@@ -29,6 +29,7 @@ pub fn process_chunk(
         let BatchColumns {
             output_values: values,
             output_types: types,
+            output_unspendable: unspendable,
             input_values: spent_values,
             input_heights: origins,
             input_types: spent_types,
@@ -39,8 +40,12 @@ pub fn process_chunk(
             let spent = batch.block_spends(height);
             let price = prices[height];
             let mut received_outputs = ReceivedOutputs::default();
-            for (&value, &ty) in values[received.clone()].iter().zip(&types[received]) {
-                received_outputs.add(value, ty);
+            for ((&value, &ty), &unspendable) in values[received.clone()]
+                .iter()
+                .zip(&types[received.clone()])
+                .zip(&unspendable[received])
+            {
+                received_outputs.add(value, ty, unspendable);
             }
             let mut detailed = DetailedSpends::default();
             for ((&value, &ty), &origin) in spent_values[spent.clone()]

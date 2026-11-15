@@ -24,9 +24,9 @@ impl ComputePlugin for Vecs {
         self.burned.compute_from_pair(
             indexer.compute_start().height,
             &price.spot.cents.height,
-            &outputs.op_return_value.block.sats,
+            &outputs.unspendable_value,
             &mining.rewards.unclaimed.block.sats,
-            |height, op_return, unclaimed| {
+            |height, unspendable, unclaimed| {
                 let genesis = if height.to_usize() == 0 {
                     Sats::FIFTY_BTC
                 } else {
@@ -35,7 +35,7 @@ impl ComputePlugin for Vecs {
                 // A BIP30 duplicate coinbase made the output it overwrote unspendable.
                 let overwritten =
                     overwritten_output(height).map_or(Sats::ZERO, |(_, lost)| lost.value);
-                genesis + op_return + unclaimed + overwritten
+                genesis + unspendable + unclaimed + overwritten
             },
             context.exit(),
         )

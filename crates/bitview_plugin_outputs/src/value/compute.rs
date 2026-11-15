@@ -18,13 +18,18 @@ use crate::{STORAGE, by_type::OutputValue, counts::Coinbase};
 pub(crate) struct Targets<'a> {
     /// The value sent to OP_RETURN outputs, through every block.
     pub(crate) op_return: &'a mut CachedSeries<Height, Sats>,
+    /// The value sent to unspendable outputs (Core's coin-pruning rule), per block.
+    pub(crate) unspendable_value: &'a mut CachedSeries<Height, Sats>,
     pub(crate) values: &'a mut SpendableType<OutputValue>,
     pub(crate) coinbase: &'a mut Coinbase,
 }
 
 impl Targets<'_> {
     fn stored_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut stored: Vec<&mut dyn AnyStoredVec> = vec![&mut *self.op_return];
+        let mut stored: Vec<&mut dyn AnyStoredVec> = vec![
+            &mut *self.op_return,
+            &mut *self.unspendable_value,
+        ];
         stored.extend(
             self.values
                 .iter_mut()
@@ -43,10 +48,11 @@ pub(crate) fn compute_sats(
     exit: &Exit,
 ) -> Result<()> {
     let vecs = indexer.vecs();
-    let (first_txout, output_types, values) = (
+    let (first_txout, output_types, values, unspendable) = (
         &vecs.outputs.first_txout_index,
         &vecs.outputs.output_type,
         &vecs.outputs.value,
+        &vecs.outputs.is_unspendable,
     );
     let (first_tx, tx_first_txout, hashes) = (
         &vecs.transactions.first_tx_index,
@@ -58,6 +64,7 @@ pub(crate) fn compute_sats(
         + first_txout.version()
         + output_types.version()
         + values.version()
+        + unspendable.version()
         + first_tx.version()
         + tx_first_txout.version();
     let end = range.end;
@@ -81,6 +88,7 @@ pub(crate) fn compute_sats(
         let value_len = values.len();
         let mut values = values.bounded_cursor_at(output_index, value_len);
         let mut output_types = output_types.range_cursor_at(output_index, value_len);
+        let mut unspendable = unspendable.range_cursor_at(output_index, value_len);
         let mut cumulative = targets.op_return.collect_last().unwrap_or_default();
         let op_return = OutputTypeId::OpReturn.index();
         for h in start..end {
@@ -93,12 +101,19 @@ pub(crate) fn compute_sats(
             let block_outputs = next_output - output_index;
             debug_assert!(coinbase_outputs <= block_outputs);
             // Each output's value and count in its type's slot, OP_RETURN's last: the coinbase's
-            // outputs, counted by type too, then the block's others.
+            // outputs, counted by type too, then the block's others. The unspendable ones (every
+            // OP_RETURN, and any script past the size limit) are also summed apart.
             let mut by_type = [(Sats::ZERO, 0u64); OutputTypeId::COUNT];
+            let mut pruned = SupplyState::default();
             let mut add = |slot: usize| {
-                let (value, count) = &mut by_type[slot];
-                *value += values.next().expect("aligned output value");
+                let value = values.next().expect("aligned output value");
+                let (total, count) = &mut by_type[slot];
+                *total += value;
                 *count += 1;
+                if unspendable.next().expect("aligned unspendable flag").is_true() {
+                    pruned.value += value;
+                    pruned.utxo_count += 1;
+                }
             };
             let mut coinbase_types = [0u64; OutputTypeId::COUNT];
             output_types.for_each(coinbase_outputs, |output_type| {
@@ -112,8 +127,9 @@ pub(crate) fn compute_sats(
             output_index = next_output;
             cumulative += by_type[op_return].0;
             targets.op_return.push(cumulative);
-            // Every type but OP_RETURN is spendable: the supply created.
-            let supply = by_type[..op_return].iter().fold(
+            targets.unspendable_value.push(pruned.value);
+            // Every output but the unspendable ones: the supply created.
+            let mut supply = by_type.iter().fold(
                 SupplyState::default(),
                 |mut supply, &(value, count)| {
                     supply.value += value;
@@ -121,6 +137,7 @@ pub(crate) fn compute_sats(
                     supply
                 },
             );
+            supply -= &pruned;
             for (output, (total, _)) in targets.values.iter_mut().zip(by_type) {
                 output.value.push_sats(total);
             }

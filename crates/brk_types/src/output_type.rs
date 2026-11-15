@@ -135,10 +135,6 @@ impl OutputType {
         !self.is_addr()
     }
 
-    pub fn is_unspendable(&self) -> bool {
-        matches!(self, Self::OpReturn)
-    }
-
     pub(crate) const fn normalized(self) -> OutputTypeNormalized {
         match self {
             Self::P2PK65 | Self::P2PK33 => OutputTypeNormalized::P2PK,

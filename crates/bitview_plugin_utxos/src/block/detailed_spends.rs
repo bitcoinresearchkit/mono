@@ -9,8 +9,9 @@ pub struct DetailedSpends {
 }
 impl DetailedSpends {
     pub fn add(&mut self, value: Sats, ty: OutputType, previous: Cents, current: Cents) {
-        // Inputs never spend an OP_RETURN output: it never enters the UTXO set.
-        debug_assert!(!ty.is_unspendable());
+        // Inputs never spend an OP_RETURN output: it never enters the UTXO set. (The type alone
+        // can't rule out an oversized script, which never does either.)
+        debug_assert!(ty != OutputType::OpReturn);
         let delta = SpendDelta::new(value, previous, current);
         *self.by_type.get_mut(ty) += delta;
         *self.by_amount.get_mut(value) += delta;
