@@ -6,6 +6,8 @@
 
 /** @typedef {"linear" | "log" | "percent" | "indexed"} ScaleMode */
 
+/** Ticks' least room between them (CSS pixels): two and a half lines of text, as the chart library marked them. */
+export const EVERY = 28;
 // (A log scale's ticks in a decade, the sparsest first, and each one's least gap (in decades): the densest with room.)
 const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6, 7, 8, 9]];
 const DECADE_GAP = DECADE.map((set) => Math.min(...set.map((v, i) => Math.log10((set[i + 1] ?? 10) / v))));
@@ -185,7 +187,7 @@ export class Scale {
    * to 6 and 8; all); within a decade, those or round numbers, whichever marks it more evenly. None where it's empty.
    * @param {Float64Array} out @param {number} [every]
    */
-  ticks(out, every = 28) {
+  ticks(out, every = EVERY) {
     if (this.empty) return 0;
     const lo = this.value(this.height), hi = this.value(0), want = Math.max(2, this.height / every);
     let count = 0;
