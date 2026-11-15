@@ -6,23 +6,24 @@ use bitview_vecs::{
 use brk_types::{Height, Version};
 use vecdb::ReadableCloneableVec;
 
-/// Outputs excluding the provably unspendable `OP_RETURN` ones: every output count minus
-/// theirs. The genesis and BIP30-overwritten coinbase outputs stay counted.
-pub fn spendable_output_count(
+/// Outputs other than `OP_RETURN` ones: every output count minus theirs. The other outputs that
+/// can never be spent (genesis, the BIP30-overwritten coinbase outputs, scripts over 10,000 bytes)
+/// stay counted.
+pub fn non_op_return_output_count(
     version: Version,
     op_return_count: &impl ReadableCloneableVec<Height, Count>,
     mappings: &MappingsVecs,
     window_starts: &Windows<&LazyWindowStartVec>,
 ) -> LazyPerBlockCumulativeRolling<Count> {
     let cumulative = LazyIndexedVec::new(
-        "spendable_output_count_cumulative",
+        "non_op_return_output_count_cumulative",
         version,
         op_return_count,
         &mappings.output_count_source(),
         |_, op_return, total| total - op_return,
     );
     LazyPerBlockCumulativeRolling::from_cumulative_source(
-        "spendable_output_count",
+        "non_op_return_output_count",
         version,
         &cumulative,
         window_starts,

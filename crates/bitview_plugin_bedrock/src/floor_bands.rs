@@ -8,27 +8,27 @@ use super::Percentiles;
 pub struct FloorBands<T> {
     /// Below the 95th-percentile floor, at or above the 98th.
     #[traversable(lead = "Between the 95th- and 98th-percentile floors.")]
-    pub p95_to_p98: T,
+    pub between_p95_and_p98_floors: T,
     /// Below the 98th-percentile floor, at or above the 99th.
     #[traversable(lead = "Between the 98th- and 99th-percentile floors.")]
-    pub p98_to_p99: T,
+    pub between_p98_and_p99_floors: T,
     /// Below the 99th-percentile floor, at or above the 99.5th.
     #[traversable(lead = "Between the 99th- and 99.5th-percentile floors.")]
-    pub p99_to_p99_5: T,
+    pub between_p99_and_p99_5_floors: T,
     /// Below the 99.5th-percentile floor, at or above the 99.9th.
     #[traversable(lead = "Between the 99.5th- and 99.9th-percentile floors.")]
-    pub p99_5_to_p99_9: T,
+    pub between_p99_5_and_p99_9_floors: T,
     /// Below the 99.9th-percentile floor.
     #[traversable(lead = "Below the 99.9th-percentile floor.")]
-    pub below_p99_9: T,
+    pub below_p99_9_floor: T,
 }
 
 collection!(FloorBandId for FloorBands {
-    P95ToP98 => p95_to_p98,
-    P98ToP99 => p98_to_p99,
-    P99ToP99_5 => p99_to_p99_5,
-    P99_5ToP99_9 => p99_5_to_p99_9,
-    BelowP99_9 => below_p99_9,
+    BetweenP95AndP98Floors => between_p95_and_p98_floors,
+    BetweenP98AndP99Floors => between_p98_and_p99_floors,
+    BetweenP99AndP99_5Floors => between_p99_and_p99_5_floors,
+    BetweenP99_5AndP99_9Floors => between_p99_5_and_p99_9_floors,
+    BelowP99_9Floor => below_p99_9_floor,
 });
 
 impl FloorBandId {

@@ -457,15 +457,15 @@ pub mod tree {
         p1: SeriesPattern1<Option<Dollars>> = "*_p1",
         p2: SeriesPattern1<Option<Dollars>> = "*_p2",
         p5: SeriesPattern1<Option<Dollars>> = "*_p5",
-        p10: SeriesPattern1<Option<Dollars>> = "*_p10",
-        p20: SeriesPattern1<Option<Dollars>> = "*_p20",
-        p30: SeriesPattern1<Option<Dollars>> = "*_p30",
-        p40: SeriesPattern1<Option<Dollars>> = "*_p40",
-        median: SeriesPattern1<Option<Dollars>> = "*_median",
-        p60: SeriesPattern1<Option<Dollars>> = "*_p60",
-        p70: SeriesPattern1<Option<Dollars>> = "*_p70",
-        p80: SeriesPattern1<Option<Dollars>> = "*_p80",
-        p90: SeriesPattern1<Option<Dollars>> = "*_p90",
+        p10: SeriesPattern1<Option<Dollars>> = "*_interpolated_p10",
+        p20: SeriesPattern1<Option<Dollars>> = "*_interpolated_p20",
+        p30: SeriesPattern1<Option<Dollars>> = "*_interpolated_p30",
+        p40: SeriesPattern1<Option<Dollars>> = "*_interpolated_p40",
+        median: SeriesPattern1<Option<Dollars>> = "*_interpolated_midpoint",
+        p60: SeriesPattern1<Option<Dollars>> = "*_interpolated_p60",
+        p70: SeriesPattern1<Option<Dollars>> = "*_interpolated_p70",
+        p80: SeriesPattern1<Option<Dollars>> = "*_interpolated_p80",
+        p90: SeriesPattern1<Option<Dollars>> = "*_interpolated_p90",
         p95: SeriesPattern1<Option<Dollars>> = "*_p95",
         p98: SeriesPattern1<Option<Dollars>> = "*_p98",
         p99: SeriesPattern1<Option<Dollars>> = "*_p99",
@@ -652,11 +652,11 @@ pub mod tree {
         cycle: Meter = "cycle_*_meter",
     } }
     shape! { EntryCapital at "series().bedrock.awake.entry_capital" {
-        p95_to_p98: SeriesPattern1<Option<Dollars>> = "*_p95_to_p98",
-        p98_to_p99: SeriesPattern1<Option<Dollars>> = "*_p98_to_p99",
-        p99_to_p99_5: SeriesPattern1<Option<Dollars>> = "*_p99_to_p99_5",
-        p99_5_to_p99_9: SeriesPattern1<Option<Dollars>> = "*_p99_5_to_p99_9",
-        below_p99_9: SeriesPattern1<Option<Dollars>> = "*_below_p99_9",
+        between_p95_and_p98_floors: SeriesPattern1<Option<Dollars>> = "*_between_p95_and_p98_floors",
+        between_p98_and_p99_floors: SeriesPattern1<Option<Dollars>> = "*_between_p98_and_p99_floors",
+        between_p99_and_p99_5_floors: SeriesPattern1<Option<Dollars>> = "*_between_p99_and_p99_5_floors",
+        between_p99_5_and_p99_9_floors: SeriesPattern1<Option<Dollars>> = "*_between_p99_5_and_p99_9_floors",
+        below_p99_9_floor: SeriesPattern1<Option<Dollars>> = "*_below_p99_9_floor",
     } }
     shape! { Levels at "series().bedrock.awake.cost_basis_above_p95_floor" {
         p10: SeriesPattern1<Option<Dollars>> = "*_p10",
@@ -939,26 +939,36 @@ pub mod tree {
         ath: SeriesPattern1<Option<Hashrate>> = "*_ath",
         drawdown: SeriesPattern1<Option<Percent>> = "*_drawdown",
     } }
-    shape! { PerTxDistribution<A> at "series().transactions.fees.effective_fee_rate" {
-        tx: SeriesPattern20<A> = "*",
-        min: SeriesPattern1<A> = "*_min",
-        max: SeriesPattern1<A> = "*_max",
-        p10: SeriesPattern1<A> = "*_p10",
-        p25: SeriesPattern1<A> = "*_p25",
-        median: SeriesPattern1<A> = "*_median",
-        p75: SeriesPattern1<A> = "*_p75",
-        p90: SeriesPattern1<A> = "*_p90",
+    shape! { EffectiveFeeRate at "series().transactions.fees.effective_fee_rate" {
+        tx: SeriesPattern20<Option<FeeRate>> = "*",
+        min: SeriesPattern1<Option<FeeRate>> = "*_low_estimate",
+        max: SeriesPattern1<Option<FeeRate>> = "*_high_estimate",
+        p10: SeriesPattern1<Option<FeeRate>> = "*_p10",
+        p25: SeriesPattern1<Option<FeeRate>> = "*_p25",
+        median: SeriesPattern1<Option<FeeRate>> = "*_median",
+        p75: SeriesPattern1<Option<FeeRate>> = "*_p75",
+        p90: SeriesPattern1<Option<FeeRate>> = "*_p90",
+    } }
+    shape! { Fee at "series().transactions.fees.fee" {
+        tx: SeriesPattern20<Sats> = "*",
+        min: SeriesPattern1<Sats> = "*_min",
+        max: SeriesPattern1<Sats> = "*_max",
+        p10: SeriesPattern1<Sats> = "*_p10",
+        p25: SeriesPattern1<Sats> = "*_p25",
+        median: SeriesPattern1<Sats> = "*_median",
+        p75: SeriesPattern1<Sats> = "*_p75",
+        p90: SeriesPattern1<Sats> = "*_p90",
     } }
     shape! { Value at "series().addresses.avg_balance" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
         usd: SeriesPattern1<Option<Dollars>> = "*_usd",
     } }
     shape! { EntrySupply at "series().bedrock.awake.entry_supply" {
-        p95_to_p98: Value = "*_p95_to_p98",
-        p98_to_p99: Value = "*_p98_to_p99",
-        p99_to_p99_5: Value = "*_p99_to_p99_5",
-        p99_5_to_p99_9: Value = "*_p99_5_to_p99_9",
-        below_p99_9: Value = "*_below_p99_9",
+        between_p95_and_p98_floors: Value = "*_between_p95_and_p98_floors",
+        between_p98_and_p99_floors: Value = "*_between_p98_and_p99_floors",
+        between_p99_and_p99_5_floors: Value = "*_between_p99_and_p99_5_floors",
+        between_p99_5_and_p99_9_floors: Value = "*_between_p99_5_and_p99_9_floors",
+        below_p99_9_floor: Value = "*_below_p99_9_floor",
     } }
     shape! { Mode at "series().bedrock.awake" {
         supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
@@ -1593,7 +1603,7 @@ pub mod tree {
         over_520_bytes: OutputCount = "*_520_bytes_output_count",
         over_10k_bytes: OutputCount = "*_10k_bytes_output_count",
     } }
-    shape! { Bucket at "series().op_return.policies.multiple" {
+    shape! { Bucket at "series().op_return.policies.beyond_pre_v30_relay_limits" {
         output_count: Flow<Count> = "*_output_count",
         data_bytes: DataBytesSeries = "*_data",
         tx_count: Flow<Count> = "*_tx_count",
@@ -1602,8 +1612,8 @@ pub mod tree {
         fees: FeesSeries = "*",
     } }
     shape! { Policy at "series().op_return.policies" {
-        pre_v30_standard: Bucket = "*_pre_v30_standard",
-        pre_v30_nonstandard: Bucket = "*_pre_v30_nonstandard",
+        within_pre_v30_relay_limits: Bucket = "*_within_pre_v30_relay_limits",
+        beyond_pre_v30_relay_limits: Bucket = "*_beyond_pre_v30_relay_limits",
         oversized: Bucket = "*_oversized",
         multiple: Bucket = "*_multiple",
     } }
@@ -1697,9 +1707,9 @@ pub mod tree {
         tx_count: Flow<Count> = "*",
     } }
     shape! { Fees at "series().transactions.fees" {
-        fee: PerTxDistribution<Sats> = "*_fee",
+        fee: Fee = "*_fee",
         fee_rate: SeriesPattern20<Option<FeeRate>> = "*_fee_rate",
-        effective_fee_rate: PerTxDistribution<Option<FeeRate>> = "*_effective_fee_rate",
+        effective_fee_rate: EffectiveFeeRate = "*_effective_fee_rate",
         cpfp_parent: TransactionsFlagged = "cpfp_parent",
         cpfp_child: TransactionsFlagged = "cpfp_child",
         zero_fee: ZeroFee = "zero_fee_*_count",
@@ -1857,7 +1867,7 @@ pub mod tree {
         spending_txin_index: SeriesPattern24<TxInIndex> = "spending_txin_index",
         count: FlowStats<Count, Option<CountFract>> = "*_count",
         per_second: Windows<Option<PerSecond>> = "outputs_per_second",
-        spendable_count: Flow<Count> = "spendable_*_count",
+        non_op_return_count: Flow<Count> = "non_op_return_*_count",
         types: Types = "*",
         op_return_value: ValueFlow = "op_return_value",
         coinbase: OutputsCoinbase = "*_count",

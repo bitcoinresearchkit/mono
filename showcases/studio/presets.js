@@ -1420,7 +1420,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       section("Outputs", [
         ...stats(t.outputs.count, "Count", numberOf("outputs")),
         chart("Per second", "Outputs per second", windows(t.outputs.perSecond, "")),
-        ...flow(t.outputs.spendableCount, "Spendable", numberOf("spendable outputs created")),
+        ...flow(t.outputs.nonOpReturnCount, "Non-OP_RETURN", numberOf("outputs created other than OP_RETURN")),
         section("By type", byType(t.outputs.types, "outputs", "creating", ["opReturn"])),
         section("Coinbase", [
           ...flow(t.outputs.coinbase.count, "Count", numberOf("coinbase outputs")),
@@ -1581,7 +1581,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     return key === "other" ? "Other" : `Version ${key.slice(1)}`;
   }
   function policyName(/** @type {string} */ key) {
-    return key === "preV30Standard" ? "Standard before v30" : key === "preV30Nonstandard" ? "Nonstandard before v30" : words(key);
+    return key === "withinPreV30RelayLimits" ? "Within pre-v30 relay limits" : key === "beyondPreV30RelayLimits" ? "Beyond pre-v30 relay limits" : words(key);
   }
   /** An output type's name ("P2TR", "OP_RETURN"), one nested in another by both ("p2shP2wsh" "P2SH-P2WSH"). @param {string} key */
   function typeName(key) {

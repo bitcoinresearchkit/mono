@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_types::{TxIndex, VSize, Version, Weight32};
 use vecdb::{Convert, Database, LazyVec, ReadableCloneableVec, Rw, StorageMode};
 
-use crate::distribution::TxDistribution;
+use crate::distribution::{Ranking, TxDistribution};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
@@ -34,7 +34,13 @@ impl Vecs {
                 version,
                 indexer.vecs().transactions.weight.read_only_boxed_clone(),
             ),
-            distribution: TxDistribution::import(db, "tx_vsize", version, mappings)?,
+            distribution: TxDistribution::import(
+                db,
+                "tx_vsize",
+                version,
+                mappings,
+                Ranking::Counted,
+            )?,
             total: CumulativeRolling::import(db, "tx_vsize", version, mappings, window_starts)?,
         })
     }

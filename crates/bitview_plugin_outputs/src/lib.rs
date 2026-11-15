@@ -50,7 +50,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BIP30 duplicate coinbases overwrote, and any locking script over 10,000
     /// bytes (none on chain), which Bitcoin Core leaves out of its UTXO set.
     #[traversable(lead = "Outputs other than OP_RETURN's.")]
-    spendable_count: LazyPerBlockCumulativeRolling<Count>,
+    non_op_return_count: LazyPerBlockCumulativeRolling<Count>,
     /// The value sent to provably unspendable outputs (`OP_RETURN`, or a locking
     /// script over 10,000 bytes) in each block: the burned value's share of outputs.
     #[traversable(hidden)]

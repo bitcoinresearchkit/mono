@@ -45,6 +45,16 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
 
 const VERSION: Version = Version::new(4);
 
+/// A price band's id. The interior ones are interpolated between the combined 5th and 95th
+/// boundaries, not quantiles of any history, and their ids say so (the middle one is a midpoint).
+fn price_name(prefix: &str, id: RarityPercentileId) -> String {
+    match id {
+        _ if id.boundary_index().is_some() => format!("{prefix}_{}", id.suffix()),
+        RarityPercentileId::Median => format!("{prefix}_interpolated_midpoint"),
+        _ => format!("{prefix}_interpolated_{}", id.suffix()),
+    }
+}
+
 impl RarityMeterInner {
     pub(crate) fn import(
         db: &Database,
@@ -54,7 +64,7 @@ impl RarityMeterInner {
     ) -> Result<Self> {
         let version = version + VERSION;
         let prices = RarityPercentiles::try_from_fn(|id| {
-            Price::import(db, &format!("{prefix}_{}", id.suffix()), version, mappings)
+            Price::import(db, &price_name(prefix, id), version, mappings)
         })?;
 
         Ok(RarityMeterInner {

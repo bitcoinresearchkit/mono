@@ -2783,15 +2783,15 @@ const _Meter = _s({
   p1: [_i1, '*_p1'],
   p2: [_i1, '*_p2'],
   p5: [_i1, '*_p5'],
-  p10: [_i1, '*_p10'],
-  p20: [_i1, '*_p20'],
-  p30: [_i1, '*_p30'],
-  p40: [_i1, '*_p40'],
-  median: [_i1, '*_median'],
-  p60: [_i1, '*_p60'],
-  p70: [_i1, '*_p70'],
-  p80: [_i1, '*_p80'],
-  p90: [_i1, '*_p90'],
+  p10: [_i1, '*_interpolated_p10'],
+  p20: [_i1, '*_interpolated_p20'],
+  p30: [_i1, '*_interpolated_p30'],
+  p40: [_i1, '*_interpolated_p40'],
+  median: [_i1, '*_interpolated_midpoint'],
+  p60: [_i1, '*_interpolated_p60'],
+  p70: [_i1, '*_interpolated_p70'],
+  p80: [_i1, '*_interpolated_p80'],
+  p90: [_i1, '*_interpolated_p90'],
   p95: [_i1, '*_p95'],
   p98: [_i1, '*_p98'],
   p99: [_i1, '*_p99'],
@@ -3243,19 +3243,19 @@ const _RarityMeter = _s({
 
 /**
  * @typedef {{
- *   p95ToP98: SeriesPattern1<?Dollars>,
- *   p98ToP99: SeriesPattern1<?Dollars>,
- *   p99ToP99_5: SeriesPattern1<?Dollars>,
- *   p99_5ToP99_9: SeriesPattern1<?Dollars>,
- *   belowP99_9: SeriesPattern1<?Dollars>,
+ *   betweenP95AndP98Floors: SeriesPattern1<?Dollars>,
+ *   betweenP98AndP99Floors: SeriesPattern1<?Dollars>,
+ *   betweenP99AndP99_5Floors: SeriesPattern1<?Dollars>,
+ *   betweenP99_5AndP99_9Floors: SeriesPattern1<?Dollars>,
+ *   belowP99_9Floor: SeriesPattern1<?Dollars>,
  * }} EntryCapital
  */
 const _EntryCapital = _s({
-  p95ToP98: [_i1, '*_p95_to_p98'],
-  p98ToP99: [_i1, '*_p98_to_p99'],
-  p99ToP99_5: [_i1, '*_p99_to_p99_5'],
-  p99_5ToP99_9: [_i1, '*_p99_5_to_p99_9'],
-  belowP99_9: [_i1, '*_below_p99_9'],
+  betweenP95AndP98Floors: [_i1, '*_between_p95_and_p98_floors'],
+  betweenP98AndP99Floors: [_i1, '*_between_p98_and_p99_floors'],
+  betweenP99AndP99_5Floors: [_i1, '*_between_p99_and_p99_5_floors'],
+  betweenP99_5AndP99_9Floors: [_i1, '*_between_p99_5_and_p99_9_floors'],
+  belowP99_9Floor: [_i1, '*_below_p99_9_floor'],
 });
 
 /**
@@ -3951,19 +3951,41 @@ const _Rate = _s({
 });
 
 /**
- * @template A
  * @typedef {{
- *   tx: SeriesPattern20<A>,
- *   min: SeriesPattern1<A>,
- *   max: SeriesPattern1<A>,
- *   p10: SeriesPattern1<A>,
- *   p25: SeriesPattern1<A>,
- *   median: SeriesPattern1<A>,
- *   p75: SeriesPattern1<A>,
- *   p90: SeriesPattern1<A>,
- * }} PerTxDistribution
+ *   tx: SeriesPattern20<?FeeRate>,
+ *   min: SeriesPattern1<?FeeRate>,
+ *   max: SeriesPattern1<?FeeRate>,
+ *   p10: SeriesPattern1<?FeeRate>,
+ *   p25: SeriesPattern1<?FeeRate>,
+ *   median: SeriesPattern1<?FeeRate>,
+ *   p75: SeriesPattern1<?FeeRate>,
+ *   p90: SeriesPattern1<?FeeRate>,
+ * }} EffectiveFeeRate
  */
-const _PerTxDistribution = _s({
+const _EffectiveFeeRate = _s({
+  tx: [_i20, '*'],
+  min: [_i1, '*_low_estimate'],
+  max: [_i1, '*_high_estimate'],
+  p10: [_i1, '*_p10'],
+  p25: [_i1, '*_p25'],
+  median: [_i1, '*_median'],
+  p75: [_i1, '*_p75'],
+  p90: [_i1, '*_p90'],
+});
+
+/**
+ * @typedef {{
+ *   tx: SeriesPattern20<Sats>,
+ *   min: SeriesPattern1<Sats>,
+ *   max: SeriesPattern1<Sats>,
+ *   p10: SeriesPattern1<Sats>,
+ *   p25: SeriesPattern1<Sats>,
+ *   median: SeriesPattern1<Sats>,
+ *   p75: SeriesPattern1<Sats>,
+ *   p90: SeriesPattern1<Sats>,
+ * }} Fee
+ */
+const _Fee = _s({
   tx: [_i20, '*'],
   min: [_i1, '*_min'],
   max: [_i1, '*_max'],
@@ -3987,19 +4009,19 @@ const _Value = _s({
 
 /**
  * @typedef {{
- *   p95ToP98: Value,
- *   p98ToP99: Value,
- *   p99ToP99_5: Value,
- *   p99_5ToP99_9: Value,
- *   belowP99_9: Value,
+ *   betweenP95AndP98Floors: Value,
+ *   betweenP98AndP99Floors: Value,
+ *   betweenP99AndP99_5Floors: Value,
+ *   betweenP99_5AndP99_9Floors: Value,
+ *   belowP99_9Floor: Value,
  * }} EntrySupply
  */
 const _EntrySupply = _s({
-  p95ToP98: [_Value, '*_p95_to_p98'],
-  p98ToP99: [_Value, '*_p98_to_p99'],
-  p99ToP99_5: [_Value, '*_p99_to_p99_5'],
-  p99_5ToP99_9: [_Value, '*_p99_5_to_p99_9'],
-  belowP99_9: [_Value, '*_below_p99_9'],
+  betweenP95AndP98Floors: [_Value, '*_between_p95_and_p98_floors'],
+  betweenP98AndP99Floors: [_Value, '*_between_p98_and_p99_floors'],
+  betweenP99AndP99_5Floors: [_Value, '*_between_p99_and_p99_5_floors'],
+  betweenP99_5AndP99_9Floors: [_Value, '*_between_p99_5_and_p99_9_floors'],
+  belowP99_9Floor: [_Value, '*_below_p99_9_floor'],
 });
 
 /**
@@ -5565,15 +5587,15 @@ const _Bucket = _s({
 
 /**
  * @typedef {{
- *   preV30Standard: Bucket,
- *   preV30Nonstandard: Bucket,
+ *   withinPreV30RelayLimits: Bucket,
+ *   beyondPreV30RelayLimits: Bucket,
  *   oversized: Bucket,
  *   multiple: Bucket,
  * }} Policy
  */
 const _Policy = _s({
-  preV30Standard: [_Bucket, '*_pre_v30_standard'],
-  preV30Nonstandard: [_Bucket, '*_pre_v30_nonstandard'],
+  withinPreV30RelayLimits: [_Bucket, '*_within_pre_v30_relay_limits'],
+  beyondPreV30RelayLimits: [_Bucket, '*_beyond_pre_v30_relay_limits'],
   oversized: [_Bucket, '*_oversized'],
   multiple: [_Bucket, '*_multiple'],
 });
@@ -5782,9 +5804,9 @@ const _ZeroFee = _s({
 
 /**
  * @typedef {{
- *   fee: PerTxDistribution<Sats>,
+ *   fee: Fee,
  *   feeRate: SeriesPattern20<?FeeRate>,
- *   effectiveFeeRate: PerTxDistribution<?FeeRate>,
+ *   effectiveFeeRate: EffectiveFeeRate,
  *   cpfpParent: TransactionsFlagged,
  *   cpfpChild: TransactionsFlagged,
  *   zeroFee: ZeroFee,
@@ -5793,9 +5815,9 @@ const _ZeroFee = _s({
  * }} Fees
  */
 const _Fees = _s({
-  fee: [_PerTxDistribution, '*_fee'],
+  fee: [_Fee, '*_fee'],
   feeRate: [_i20, '*_fee_rate'],
-  effectiveFeeRate: [_PerTxDistribution, '*_effective_fee_rate'],
+  effectiveFeeRate: [_EffectiveFeeRate, '*_effective_fee_rate'],
   cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
   cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
   zeroFee: [_ZeroFee, 'zero_fee_*_count'],
@@ -6157,7 +6179,7 @@ const _FlowStats = _s({
  *   spendingTxinIndex: SeriesPattern24<TxInIndex>,
  *   count: FlowStats<Count, ?CountFract>,
  *   perSecond: Windows<?PerSecond>,
- *   spendableCount: Flow<Count>,
+ *   nonOpReturnCount: Flow<Count>,
  *   types: Types,
  *   opReturnValue: ValueFlow,
  *   coinbase: OutputsCoinbase,
@@ -6168,7 +6190,7 @@ const _Outputs = _s({
   spendingTxinIndex: [_i24, 'spending_txin_index'],
   count: [_FlowStats, '*_count'],
   perSecond: [_Windows, 'outputs_per_second'],
-  spendableCount: [_Flow, 'spendable_*_count'],
+  nonOpReturnCount: [_Flow, 'non_op_return_*_count'],
   types: [_Types, '*'],
   opReturnValue: [_ValueFlow, 'op_return_value'],
   coinbase: [_OutputsCoinbase, '*_count'],

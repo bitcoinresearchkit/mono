@@ -43,9 +43,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Metrics by the size and count limits of the pre-v30 `OP_RETURN` relay
     /// policy, over non-coinbase transactions. These categories check output
     /// count and data size only, not full relay standardness (a non-push-only
-    /// `OP_RETURN` script still lands in `pre_v30_standard`). `oversized` and
-    /// `multiple` can overlap, and both are subsets of `pre_v30_nonstandard`;
-    /// `pre_v30_standard` is the complementary category.
+    /// `OP_RETURN` script still lands in `within_pre_v30_relay_limits`). `oversized` and
+    /// `multiple` can overlap, and both are subsets of `beyond_pre_v30_relay_limits`;
+    /// `within_pre_v30_relay_limits` is the complementary category.
     policies: PolicyBreakdownVecs<M>,
     /// `OP_RETURN` outputs by how many bytes follow the opcode.
     sizes: Sizes<M>,

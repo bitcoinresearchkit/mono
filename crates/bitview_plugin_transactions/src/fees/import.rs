@@ -6,7 +6,7 @@ use vecdb::{Database, ImportableVec, PcoVec, ReadableCloneableVec};
 
 use super::{Vecs, ranges::Ranges};
 use crate::{
-    distribution::PerTxDistribution,
+    distribution::{PerTxDistribution, Ranking},
     flagged::{Classified, Totals},
 };
 
@@ -45,13 +45,20 @@ impl Vecs {
             total: PcoVec::import(db, "fee_total", fee_version)?,
             total_cumulative: PcoVec::import(db, "fee_total_cumulative", fee_version)?,
             coinbase_value: PcoVec::import(db, "coinbase_value", fee_version)?,
-            fee: PerTxDistribution::import(db, "tx_fee", fee_version, mappings)?,
+            fee: PerTxDistribution::import(
+                db,
+                "tx_fee",
+                fee_version,
+                mappings,
+                Ranking::Counted,
+            )?,
             fee_rate: PcoVec::import(db, "tx_fee_rate", fee_version)?,
             effective_fee_rate: PerTxDistribution::import(
                 db,
                 "tx_effective_fee_rate",
                 fee_version + CHUNK_VERSION,
                 mappings,
+                Ranking::Weighted,
             )?,
             cpfp_parent: cpfp_role("is_cpfp_parent", "cpfp_parent_tx")?,
             cpfp_child: cpfp_role("is_cpfp_child", "cpfp_child_tx")?,

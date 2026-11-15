@@ -6,12 +6,12 @@ pub struct Policy<T> {
     /// at most 82 post-OP_RETURN bytes: within the pre-v30 relay policy's size and
     /// count limits.
     #[traversable(lead = "Within the old relay limits: transactions with one OP_RETURN output, of no more than the size Bitcoin Core allowed before version 30.")]
-    pub pre_v30_standard: T,
+    pub within_pre_v30_relay_limits: T,
     /// Restricted to transactions with an oversized OP_RETURN output or more
     /// than one OP_RETURN output: beyond the pre-v30 relay policy's size or count
     /// limits.
     #[traversable(lead = "Beyond the old relay limits: transactions with a larger OP_RETURN output than Bitcoin Core allowed before version 30, or several.")]
-    pub pre_v30_nonstandard: T,
+    pub beyond_pre_v30_relay_limits: T,
     /// Restricted to transactions with at least one OP_RETURN output containing
     /// more than 82 post-OP_RETURN bytes. Output counts and data bytes count only
     /// those oversized outputs.
@@ -25,8 +25,8 @@ pub struct Policy<T> {
 impl<T> Policy<T> {
     pub fn try_new<E>(mut create: impl FnMut(&'static str) -> Result<T, E>) -> Result<Self, E> {
         Ok(Self {
-            pre_v30_standard: create("pre_v30_standard")?,
-            pre_v30_nonstandard: create("pre_v30_nonstandard")?,
+            within_pre_v30_relay_limits: create("within_pre_v30_relay_limits")?,
+            beyond_pre_v30_relay_limits: create("beyond_pre_v30_relay_limits")?,
             oversized: create("oversized")?,
             multiple: create("multiple")?,
         })
@@ -34,8 +34,8 @@ impl<T> Policy<T> {
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         [
-            &mut self.pre_v30_standard,
-            &mut self.pre_v30_nonstandard,
+            &mut self.within_pre_v30_relay_limits,
+            &mut self.beyond_pre_v30_relay_limits,
             &mut self.oversized,
             &mut self.multiple,
         ]
@@ -50,8 +50,8 @@ impl<T> IntoIterator for Policy<T> {
     /// The values in field order, as [`Self::iter_mut`].
     fn into_iter(self) -> Self::IntoIter {
         [
-            self.pre_v30_standard,
-            self.pre_v30_nonstandard,
+            self.within_pre_v30_relay_limits,
+            self.beyond_pre_v30_relay_limits,
             self.oversized,
             self.multiple,
         ]

@@ -18,6 +18,26 @@ const EDGE_SHARE: f64 = 0.02;
 /// p25, median, p75, p90.
 pub type Stats<T> = [T; 7];
 
+/// How a distribution ranks its values, which decides what its ends are and their ids.
+#[derive(Clone, Copy)]
+pub enum Ranking {
+    /// Each value counted once ([`counted`]): its ends are the extrema, `min` and `max`.
+    Counted,
+    /// Values weighted by vsize ([`weighted`]): its ends are estimates that can leave out an
+    /// outlier mid-block, `low_estimate` and `high_estimate`.
+    Weighted,
+}
+
+impl Ranking {
+    fn stat_name(self, stat: &str) -> &str {
+        match (self, stat) {
+            (Self::Weighted, "min") => "low_estimate",
+            (Self::Weighted, "max") => "high_estimate",
+            _ => stat,
+        }
+    }
+}
+
 /// Per-block distributions of a per-transaction value, statistic first, ids `{name}_{stat}`.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct TxDistribution<T, M: StorageMode = Rw>(pub DistributionStats<PerBlock<T, M>>)
@@ -33,8 +53,10 @@ where
         name: &str,
         version: Version,
         indexes: &IndexSources,
+        ranking: Ranking,
     ) -> Result<Self> {
         Ok(Self(DistributionStats::try_from_fn(|stat| {
+            let stat = ranking.stat_name(stat);
             PerBlock::import(db, &format!("{name}_{stat}"), version, indexes)
         })?))
     }

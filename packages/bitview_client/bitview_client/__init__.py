@@ -2974,15 +2974,15 @@ class Meter(_Node):
     p1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p1')
     p2: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p2')
     p5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p5')
-    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p10')
-    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p20')
-    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p30')
-    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p40')
-    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median')
-    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p60')
-    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p70')
-    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p80')
-    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p90')
+    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p10')
+    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p20')
+    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p30')
+    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p40')
+    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_midpoint')
+    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p60')
+    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p70')
+    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p80')
+    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_interpolated_p90')
     p95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p95')
     p98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p98')
     p99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99')
@@ -3197,11 +3197,11 @@ class RarityMeter(_Node):
 
 
 class EntryCapital(_Node):
-    p95_to_p98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p95_to_p98')
-    p98_to_p99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p98_to_p99')
-    p99_to_p99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_to_p99_5')
-    p99_5_to_p99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_5_to_p99_9')
-    below_p99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_p99_9')
+    between_p95_and_p98_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p95_and_p98_floors')
+    between_p98_and_p99_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p98_and_p99_floors')
+    between_p99_and_p99_5_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p99_and_p99_5_floors')
+    between_p99_5_and_p99_9_floors: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_between_p99_5_and_p99_9_floors')
+    below_p99_9_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_p99_9_floor')
 
 
 class Levels(_Node):
@@ -3527,15 +3527,26 @@ class Rate(_Node):
     drawdown: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_drawdown')
 
 
-class PerTxDistribution(_Node, Generic[A]):
-    tx: SeriesPattern20[A] = _at(SeriesPattern20, '*')
-    min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
-    max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
-    p10: SeriesPattern1[A] = _at(SeriesPattern1, '*_p10')
-    p25: SeriesPattern1[A] = _at(SeriesPattern1, '*_p25')
-    median: SeriesPattern1[A] = _at(SeriesPattern1, '*_median')
-    p75: SeriesPattern1[A] = _at(SeriesPattern1, '*_p75')
-    p90: SeriesPattern1[A] = _at(SeriesPattern1, '*_p90')
+class EffectiveFeeRate(_Node):
+    tx: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_low_estimate')
+    max: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_high_estimate')
+    p10: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p25')
+    median: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_median')
+    p75: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[Optional[FeeRate]] = _at(SeriesPattern1, '*_p90')
+
+
+class Fee(_Node):
+    tx: SeriesPattern20[Sats] = _at(SeriesPattern20, '*')
+    min: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_min')
+    max: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_max')
+    p10: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p25')
+    median: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_median')
+    p75: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[Sats] = _at(SeriesPattern1, '*_p90')
 
 
 class Value(_Node):
@@ -3544,11 +3555,11 @@ class Value(_Node):
 
 
 class EntrySupply(_Node):
-    p95_to_p98: Value = _at(Value, '*_p95_to_p98')
-    p98_to_p99: Value = _at(Value, '*_p98_to_p99')
-    p99_to_p99_5: Value = _at(Value, '*_p99_to_p99_5')
-    p99_5_to_p99_9: Value = _at(Value, '*_p99_5_to_p99_9')
-    below_p99_9: Value = _at(Value, '*_below_p99_9')
+    between_p95_and_p98_floors: Value = _at(Value, '*_between_p95_and_p98_floors')
+    between_p98_and_p99_floors: Value = _at(Value, '*_between_p98_and_p99_floors')
+    between_p99_and_p99_5_floors: Value = _at(Value, '*_between_p99_and_p99_5_floors')
+    between_p99_5_and_p99_9_floors: Value = _at(Value, '*_between_p99_5_and_p99_9_floors')
+    below_p99_9_floor: Value = _at(Value, '*_below_p99_9_floor')
 
 
 class Mode(_Node):
@@ -4282,8 +4293,8 @@ class Bucket(_Node):
 
 
 class Policy(_Node):
-    pre_v30_standard: Bucket = _at(Bucket, '*_pre_v30_standard')
-    pre_v30_nonstandard: Bucket = _at(Bucket, '*_pre_v30_nonstandard')
+    within_pre_v30_relay_limits: Bucket = _at(Bucket, '*_within_pre_v30_relay_limits')
+    beyond_pre_v30_relay_limits: Bucket = _at(Bucket, '*_beyond_pre_v30_relay_limits')
     oversized: Bucket = _at(Bucket, '*_oversized')
     multiple: Bucket = _at(Bucket, '*_multiple')
 
@@ -4386,9 +4397,9 @@ class ZeroFee(_Node):
 
 
 class Fees(_Node):
-    fee: PerTxDistribution[Sats] = _at(PerTxDistribution, '*_fee')
+    fee: Fee = _at(Fee, '*_fee')
     fee_rate: SeriesPattern20[Optional[FeeRate]] = _at(SeriesPattern20, '*_fee_rate')
-    effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, '*_effective_fee_rate')
+    effective_fee_rate: EffectiveFeeRate = _at(EffectiveFeeRate, '*_effective_fee_rate')
     cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
     cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
     zero_fee: ZeroFee = _at(ZeroFee, 'zero_fee_*_count')
@@ -4565,7 +4576,7 @@ class Outputs(_Node):
     spending_txin_index: SeriesPattern24[TxInIndex] = _at(SeriesPattern24, 'spending_txin_index')
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, 'outputs_per_second')
-    spendable_count: Flow[Count] = _at(Flow, 'spendable_*_count')
+    non_op_return_count: Flow[Count] = _at(Flow, 'non_op_return_*_count')
     types: Types = _at(Types, '*')
     op_return_value: ValueFlow = _at(ValueFlow, 'op_return_value')
     coinbase: OutputsCoinbase = _at(OutputsCoinbase, '*_count')

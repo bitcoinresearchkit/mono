@@ -74,13 +74,13 @@ impl Carrier {
         }
 
         if self.oversized_output_count > 0 || self.output_count > 1 {
-            policy.pre_v30_nonstandard.output_count += self.output_count;
-            policy.pre_v30_nonstandard.data_bytes += self.data_bytes;
-            self.add_tx_to(&mut policy.pre_v30_nonstandard);
+            policy.beyond_pre_v30_relay_limits.output_count += self.output_count;
+            policy.beyond_pre_v30_relay_limits.data_bytes += self.data_bytes;
+            self.add_tx_to(&mut policy.beyond_pre_v30_relay_limits);
         } else {
-            policy.pre_v30_standard.output_count += self.output_count;
-            policy.pre_v30_standard.data_bytes += self.data_bytes;
-            self.add_tx_to(&mut policy.pre_v30_standard);
+            policy.within_pre_v30_relay_limits.output_count += self.output_count;
+            policy.within_pre_v30_relay_limits.data_bytes += self.data_bytes;
+            self.add_tx_to(&mut policy.within_pre_v30_relay_limits);
         }
     }
 
