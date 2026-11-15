@@ -738,10 +738,16 @@
           background: none;
           font: 510 12px/1 var(--sans);
           white-space: nowrap;
-          transition: color var(--fade), background var(--fade);
+          transition: color var(--fade), background var(--fade), transform var(--dur-micro) var(--ease);
 
           &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
             color: var(--text);
+          }
+
+          /* (Pressed, it gives a little as every control does (see .cap): by touch, the press seen as the finger lands,
+             not once it's lifted.) */
+          &:active:not(:disabled, [aria-disabled="true"]) {
+            transform: scale(0.92);
           }
 
           &[aria-pressed="true"] {
