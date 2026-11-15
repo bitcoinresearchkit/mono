@@ -13,6 +13,11 @@ import { addressSteps } from "/studio/addresses.js";
 import { initialsOf, initialsWord, initialsRanges } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
+// (Begun as the page started, with the page's own Inter: see the first script; its file for the chart's characters.)
+const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
+// Match font-display's block period: a stalled font must not hold the chart forever.
+const chartFontReady = await Promise.race([chartFont, new Promise((done) => setTimeout(() => done(false), 3000))]);
+
 document.getElementById("page-info")?.remove();
 
 // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -5699,13 +5704,10 @@ const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => 
  * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
  * the page's own font files (no second copy of them), as "Inter Chart" from 500 up (a variable font: a canvas's
  * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
- * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. The page's
- * until it's loaded: the chart measures its labels in the font it's given, and a new one is what makes it measure
- * them again.
+ * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. The first
+ * chart waits for it, since canvas text does not honor font-display.
  */
-let chartSans = css("--sans");
-// (Begun as the page started, with the page's own Inter: see the first script; its file for the chart's characters.)
-const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
+let chartSans = css(chartFontReady ? "--chart-sans" : "--sans");
 // Register the page's resize work before the chart's observer, so it joins the chart's next draw.
 const resized = new ResizeObserver((entries) => {
   for (const entry of entries) if (entry.target === $("overview")) overviewBox = entry.contentRect;
@@ -6061,9 +6063,8 @@ function releaseSize() {
   laidOut.observe(/** @type {HTMLElement} */ (document.querySelector(".app")), { attributes: true, attributeFilter: ["data-full"] });
 }
 addEventListener("resize", releaseSize);
-// Its figures in Inter, as every figure here (tabular, by the face's own setting: see chartFont), set again once the
-// font has loaded: a canvas doesn't wait for it.
-chartFont.then((loaded) => {
+// If the block period expired, use Inter when it eventually arrives and remeasure the chart.
+if (!chartFontReady) chartFont.then((loaded) => {
   if (!loaded) return;
   chartSans = css("--chart-sans");
   navigatorFont = "";

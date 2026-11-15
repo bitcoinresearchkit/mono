@@ -4468,11 +4468,14 @@
       themeButton.textContent = root.dataset.theme === "dark" ? "Light" : "Dark";
       resize();
       Object.assign(camera, savedCamera() ?? homeView());
-      document.fonts.load(`12px ${FONT}`).then(() => (dirty = true));
+      const font = document.fonts.load(`12px ${FONT}`).catch(() => []);
       tick();
       setInterval(tick, 1_000);
-      requestAnimationFrame(frame);
       void start();
+      // Canvas ignores font-display; wait for the face, but no longer than its block period.
+      const ready = await Promise.race([font.then(() => true), new Promise((done) => setTimeout(() => done(false), 3000))]);
+      if (!ready) font.then(() => (dirty = true));
+      requestAnimationFrame(frame);
     </script>
   </body>
 </html>
