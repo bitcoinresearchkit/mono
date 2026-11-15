@@ -97,13 +97,14 @@ if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().
 // (Every page git knows, but one deleted and not yet committed as such.)
 const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(HERE, file)));
 const folders = pages.map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
-// (On it: in its rows, APPS or DEV, the footer's links not counting; or unlisted, in UNLISTED: served at its address,
+// (On it: in its rows, APPS or DEV, or linked from its footer; or unlisted, in UNLISTED: served at its address,
 // with its icon, but off the front page and the sitemap, until it's ready to be listed.)
+const footer = tags(/<footer\b[^>]*>([\s\S]*?)<\/footer>/i.exec(html)?.[1] ?? "", "a").map((tag) => tag.href);
 const UNLISTED = ["/ledger/"];
-for (const href of UNLISTED) if ([...apps, ...dev].includes(href)) problems.push(`${href}: in the front page's rows and in UNLISTED (take it out of UNLISTED)`);
+for (const href of UNLISTED) if ([...apps, ...dev, ...footer].includes(href)) problems.push(`${href}: on the front page and in UNLISTED (take it out of UNLISTED)`);
 for (const name of folders)
-  if (![...apps, ...dev, ...UNLISTED].includes(`/${name}/`))
-    problems.push(`/${name}/: an app not in the front page's rows (add it to APPS or DEV, to UNLISTED to serve it unlisted, or name its folder _${name} to keep it off)`);
+  if (![...apps, ...dev, ...footer, ...UNLISTED].includes(`/${name}/`))
+    problems.push(`/${name}/: a page not on the front page (add it to APPS or DEV, link it in the footer, add it to UNLISTED, or name its folder _${name} to keep it off)`);
 
 // ── The stars on GitHub ──
 
@@ -134,14 +135,18 @@ if (!check) {
 
 // (Each app's, the front page's "bitview": Bitview's cube (assets/favicon/app-icon.svg) in its launch tag's colour
 // (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
-// screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons.)
+// screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons. A page without
+// a launch tag, as the footer's legal ones, links no icon, so has none.)
 const MCP_ICON = join(HERE, "..", "crates", "bitview_mcp", "assets", "logo.png");
 /** The touch icons at the root, Bitview's own icon: iOS asks for the precomposed one first, then the other, and link
  * previews for either. */
 const TOUCH_ICONS = ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"];
 const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntries([
   ["bitview", undefined],
-  ...folders.map((name) => [name, tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"))?.["data-color"]]),
+  ...folders.flatMap((name) => {
+    const launch = tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"));
+    return launch ? [[name, launch["data-color"]]] : [];
+  }),
 ]));
 
 // ── Each page's head: its address, and how a link to it previews ──
