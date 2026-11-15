@@ -17702,21 +17702,22 @@ const lifts = new WeakMap();
 function slide(elements, key, was, { moved = null, fade = false, pseudo, layout = false } = {}) {
   if (reduced.matches) return;
   const timing = { duration: layout ? MOTION.layout : MOTION.panel, easing: layout ? MOTION.easeLayout : MOTION.ease, ...(pseudo ? { pseudoElement: pseudo } : {}) };
-  // (Their ground, read once: they're one list's.)
-  let ground = "";
   const come = elements.filter((element) => was.get(key(element)) === undefined), going = elements.filter((element) => was.get(key(element)) !== undefined);
   // (A glide still under way goes first: where it's laid out now is measured, not where it's being carried. All
   // cancelled, then all read, then all moved: a read between writes would lay a long list out again for each row.)
   for (const element of going) for (const animation of element.getAnimations()) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.getKeyframes().some((frame) => "transform" in frame)) animation.cancel();
   const tops = going.map((element) => element.getBoundingClientRect().top);
+  const lifted = (/** @type {HTMLElement} */ element) => layout || (moved !== null && key(element) === moved);
+  // (Their ground, read once with the rest: they're one list's.)
+  const first = going.find(lifted), ground = first ? groundOf(first) : "";
   // (At a layout's pace (the sidebar widening), with its words: once there's room for them, see data-sliding.)
   if (fade) for (const element of come) element.animate({ opacity: [0, 1] }, layout ? { delay: MOTION.wordsWait, duration: MOTION.wordsIn, easing: MOTION.ease, fill: "backwards" } : timing);
   for (const [i, element] of going.entries()) {
     const by = /** @type {number} */ (was.get(key(element))) - tops[i];
     if (Math.abs(by) < 0.5) continue;
-    const lift = layout || (moved !== null && key(element) === moved), glide = {};
+    const lift = lifted(element), glide = {};
     // (Its ground over half its list's gap above and below too: what fades in under it never shows between them.)
-    if (lift) Object.assign(element.style, { zIndex: "1", background: (ground ||= groundOf(element)), boxShadow: `0 calc(var(--row-gap, 0px) / -2) 0 ${ground}, 0 calc(var(--row-gap, 0px) / 2) 0 ${ground}` });
+    if (lift) Object.assign(element.style, { zIndex: "1", background: ground, boxShadow: `0 calc(var(--row-gap, 0px) / -2) 0 ${ground}, 0 calc(var(--row-gap, 0px) / 2) 0 ${ground}` });
     if (lift) lifts.set(element, glide);
     // (A glide cancelled by a newer one lands after it began: only the latest lift is let go, by its own end.)
     const land = () => lifts.get(element) === glide && (lifts.delete(element), Object.assign(element.style, { zIndex: "", background: "", boxShadow: "" }));
