@@ -165,7 +165,16 @@ fn accepted(
 /// ([`proposal`]).
 fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> (BlockTemplate, String) {
     let height = Height::new(*tip.height + 1);
-    let mintime = Timestamp::from(*tip.median_time + 1);
+    // Core's GetMinimumTime applies BIP94 and BIP54 on every network.
+    let interval = Params::MAINNET.difficulty_adjustment_interval();
+    let mut mintime = *tip.median_time + 1;
+    if u64::from(*height).is_multiple_of(interval) {
+        mintime = mintime.max(tip.header.time.saturating_sub(600));
+    }
+    if u64::from(*height) % interval == interval - 1 {
+        mintime = mintime.max(*tip.epoch_start_time);
+    }
+    let mintime = Timestamp::from(mintime);
     let position: RapidHashMap<Txid, u32> =
         block0.iter().enumerate().map(|(i, record)| (record.entry.txid, i as u32 + 1)).collect();
     let transactions: Vec<BlockTemplateTransaction> = block0

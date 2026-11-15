@@ -189,6 +189,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- `GET /api/block-template` sets `mintime` at difficulty period boundaries using Bitcoin Core’s BIP94 and BIP54 rules
+
 - Log files older than seven days are deleted every day while the server runs, not only when it starts
 - BIP-47 notifications are an OP_RETURN protocol of their own; VeriBlock, guessed from an 82-byte length, counted
   them
