@@ -5837,7 +5837,7 @@ function sizeOnce() {
   // (A hair before their end, not at it: WebKit takes a transition sought to its very end as done, and starts a copy
   // of it beside the first, whose second motion lays the chart out again once the first lands. WebKit bug.)
   const moving = inMotion.filter((motion) => ((target) => !target || !target.parentElement?.closest(".sidebar, #panel"))(/** @type {KeyframeEffect | null} */ (motion.effect)?.target));
-  for (const motion of moving) motion.currentTime = Number(motion.effect?.getComputedTiming().endTime ?? 0) - 0.01;
+  for (const motion of moving) motion.currentTime = Number(/** @type {AnimationEffect} */ (motion.effect).getComputedTiming().endTime) - 0.01;
   const end = box.getBoundingClientRect();
   moving.forEach((motion) => (motion.currentTime = at[inMotion.indexOf(motion)]));
   // (Across, its stretch kept: the view as drawn (a motion's in flight, as it'll end), and the plot's width shown now
