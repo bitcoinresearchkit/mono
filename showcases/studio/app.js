@@ -2,7 +2,7 @@
 import { BitviewClient } from "/modules/bitview-client/index.js";
 import XKCD from "/modules/xkcd-colors/index.js";
 // (Studio's chart library: bitview-charts.)
-import { createChart, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
+import { createChart, onTouchesLost, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
 import { inBands, bandNames } from "/studio/bands.js";
@@ -4038,7 +4038,10 @@ let handledYet = false;
 /** The pointers held down (fingers, by their ids): a hand on the page till the last is let go (said halfway, a drag held on is still one). */
 const handsHeld = new Set();
 for (const type of ["pointerdown", "wheel", "keydown"]) addEventListener(type, (event) => ((handled = handledYet = true), event instanceof PointerEvent && handsHeld.add(event.pointerId)), { capture: true, passive: true });
-for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => handsHeld.delete(/** @type {PointerEvent} */ (event).pointerId), { capture: true, passive: true });
+/** A pointer's end (or a touch the browser forgot: see onTouchesLost). @param {PointerEvent} event */
+const handLifted = (event) => handsHeld.delete(event.pointerId);
+for (const type of /** @type {const} */ (["pointerup", "pointercancel"])) addEventListener(type, handLifted, { capture: true, passive: true });
+onTouchesLost(handLifted);
 /**
  * The linked view the open chart is drawn again to take (see followLinked), as it was when taken: its chunks and its
  * view both for it, one said meanwhile taken next; its chart's, while it's linked (by date). @type {{ view: any, at: number, id: string } | null}
@@ -9524,7 +9527,10 @@ $("chart").addEventListener("pointerdown", (event) => {
 engine.element.addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));
 // (A press on the chart lets a ruler's measure go: the next one, or none.)
 $("chart").addEventListener("pointerdown", () => clearMeasure(), true);
-for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (fingers.delete(id), pressed.delete(id) && !pressed.size && released()))(/** @type {PointerEvent} */ (event).pointerId));
+/** A pointer's end (or a touch the browser forgot: see onTouchesLost). @param {PointerEvent} event */
+const pressLifted = ({ pointerId }) => (fingers.delete(pointerId), pressed.delete(pointerId) && !pressed.size && released());
+for (const type of /** @type {const} */ (["pointerup", "pointercancel"])) addEventListener(type, pressLifted);
+onTouchesLost(pressLifted);
 // (The window let go of, a press's up may never come: none down after it.)
 addEventListener("blur", () => (fingers.clear(), pressed.size && (pressed.clear(), released()), dropBrush()));
 /**
@@ -9768,6 +9774,7 @@ $("navigator").addEventListener("keydown", (event) => {
   glide(event.key === "Home" ? { from: -0.5, to: width - 0.5 } : event.key === "End" ? { from: end - width, to: end } : { from: range.from + by, to: range.to + by });
 });
 $("navigator").addEventListener("pointercancel", endBrush);
+onTouchesLost(endBrush);
 // (Its capture lost without a release reaching it (hidden mid-drag, the system taking the touch): over too.)
 $("navigator").addEventListener("lostpointercapture", endBrush);
 
@@ -12110,7 +12117,10 @@ addEventListener("mousemove", (event) => (pointerAt = { x: event.clientX, y: eve
 addEventListener("mousemove", (event) => magnifying && !lensAt?.touch && event.target instanceof Node && $("chart").contains(event.target) && lookAt(closest(event, ".legend, button") ? null : { x: event.clientX, y: event.clientY, touch: false }));
 // (A finger's: the one pressing, another's moves and lifts nothing.)
 $("chart").addEventListener("pointermove", (event) => lensAt?.touch && event.pointerId === gesturePointer && lookAt({ x: event.clientX, y: event.clientY, touch: true }));
-for (const type of ["pointerleave", "pointerup", "pointercancel"]) $("chart").addEventListener(type, (event) => magnifying && (type === "pointerleave" ? event.pointerType === "mouse" && !lensAt?.touch : event.pointerType !== "mouse" && event.pointerId === gesturePointer) && lookAt(null));
+/** The lens let go of with its pointer (or its touch the browser forgot: see onTouchesLost). @param {PointerEvent} event */
+const lensLifted = (event) => magnifying && (event.type === "pointerleave" ? event.pointerType === "mouse" && !lensAt?.touch : event.pointerType !== "mouse" && event.pointerId === gesturePointer) && lookAt(null);
+for (const type of ["pointerleave", "pointerup", "pointercancel"]) $("chart").addEventListener(type, lensLifted);
+onTouchesLost(lensLifted);
 // (A scale reset by a double-click on its axis, the pointer still: the lens after it.)
 $("chart").addEventListener("dblclick", () => lensAt && lookAt(lensAt));
 $("chart").addEventListener("wheel", () => lensAt && lookAt(lensAt), { passive: true });
@@ -12199,11 +12209,15 @@ $("chart").addEventListener("pointerup", (event) => {
   else if (pressedAt && !fingerCross.dismissing && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) < 4) chooseDrawings(pressedAt.pick ? [pressedAt.pick] : []);
   pressedAt = null;
 });
-$("chart").addEventListener("pointercancel", (event) => {
+/** A pointer on the chart cancelled: what a gesture was drawing or moving let go of, as it was (by its own pointer's, or any while none is held). @param {PointerEvent} event */
+const gestureCancelled = (event) => {
   swallow = false;
   if (otherPointer(event)) return;
   stopDrawing();
-});
+};
+$("chart").addEventListener("pointercancel", gestureCancelled);
+// (A touch the browser forgot (see onTouchesLost) may never have been the chart's: the gesture's own only.)
+onTouchesLost((event) => event.pointerId === gesturePointer && gestureCancelled(event));
 $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
 // Double-click a text: typed into, where it is; a line: its label, typed where the click was (on it: typed into).
 $("chart").addEventListener("dblclick", (event) => {

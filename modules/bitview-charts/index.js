@@ -49,6 +49,57 @@ const fine = (event) => event.pointerType !== "touch";
 /** How near a separator between panes a pointer takes it (CSS pixels): a mouse or pen's, a finger's; a pane's least height. */
 const NEAR_FINE = 4, NEAR_TOUCH = 12, LEAST = 32;
 
+// iOS WebKit can hand a touch to a native gesture and send it neither pointerup nor pointercancel (WebKit bug 239014).
+// Only the browser's own touch list proves such a touch gone: a touch event with every finger on the screen new to it
+// (at a touchend or touchcancel, none; at a touchstart, only those it starts), or a press taking the id of a touch still
+// down. A press's pointerdown comes before its touchstart, a lift's pointerup before its touchend (Chromium and WebKit,
+// iOS's too): those pressed since the last touch event are the new fingers. Anything short of that proof is left alone.
+/** The touch pointers down on the page; of them, those pressed since the last touch event. */
+const touchesDown = new Set(), touchesNew = new Set();
+/** What holds touches, told of each forgotten one (see onTouchesLost). @type {Set<(event: PointerEvent) => void>} */
+const touchOwners = new Set();
+/** Charts needing to replay presses after all lost touches have been cancelled. @type {Set<() => void>} */
+const touchRecoveries = new Set();
+/** Touches proved gone, let go of by every owner before any press is replayed. @param {number[]} ids */
+const loseTouches = (ids) => {
+  let error, failed = false;
+  const attempt = (/** @type {() => void} */ action) => {
+    try { action(); } catch (cause) { if (!failed) error = cause, failed = true; }
+  };
+  for (const id of ids) {
+    touchesDown.delete(id);
+    const cancel = new PointerEvent("pointercancel", { pointerId: id, pointerType: "touch" });
+    for (const owner of touchOwners) attempt(() => owner(cancel));
+  }
+  for (const recover of touchRecoveries) attempt(recover);
+  touchRecoveries.clear();
+  if (failed) throw error;
+};
+const listen = { capture: true, passive: true };
+addEventListener("pointerdown", (event) => {
+  if (event.pointerType !== "touch") return;
+  try { if (touchesDown.has(event.pointerId)) loseTouches([event.pointerId]); }
+  finally { touchesDown.add(event.pointerId), touchesNew.add(event.pointerId); }
+}, listen);
+for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => touchesDown.delete(/** @type {PointerEvent} */ (event).pointerId), listen);
+for (const type of ["touchstart", "touchend", "touchcancel"]) addEventListener(type, (event) => {
+  const { touches, changedTouches } = /** @type {TouchEvent} */ (event);
+  try {
+    if (touches.length === (type === "touchstart" ? changedTouches.length : 0)) loseTouches([...touchesDown].filter((id) => !touchesNew.has(id)));
+  } finally { touchesNew.clear(); }
+}, listen);
+/**
+ * Tells `cancel` of each touch the browser forgot to end (see above), as a pointercancel for its id (made, never
+ * dispatched), once it's proved gone: before the press that proves it, if its id is taken again; else at the touch
+ * event that does, before any move of the presses come since.
+ * @param {(event: PointerEvent) => void} cancel @param {AbortSignal} [signal] its end
+ */
+export function onTouchesLost(cancel, signal) {
+  if (signal?.aborted) return;
+  touchOwners.add(cancel);
+  signal?.addEventListener("abort", () => touchOwners.delete(cancel), { once: true });
+}
+
 /** An axis' least width (CSS pixels): a short label's, as "0". */
 const AXIS_LEAST = 28;
 /** A flick's speed kept each millisecond: a chart's glide, two thirds of iOS's lists' (0.998), not years past what it was flicked for. */
@@ -557,7 +608,7 @@ export class Chart {
      * right end) at `held` of the plot's width, the press's x in the plot `at`). Scaled once the press has moved as far
      * as a click can't (a click on a tag scales nothing).
      */
-    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null }>} */ (new Map());
+    const element = this.element, time = this.time, down = /** @type {Map<number, { x: number, y: number, startX: number, startY: number, panning: boolean, moved: boolean, axis: Axis | null, pane: Pane | null, beside: PointerEvent | null }>} */ (new Map());
     let held = -1;
     // (Two fingers down in this gesture: its end no click.)
     let twoFingers = false;
@@ -645,7 +696,7 @@ export class Chart {
     let trailEnd = 0, trailSize = 0;
     const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
     const signal = this.listening.signal;
-    element.addEventListener("pointerdown", (event) => {
+    const press = (/** @type {PointerEvent} */ event) => {
       // (A separator dragged: no other pointer does anything meanwhile. A press beginning on a page's own element in the
       // chart (a legend's button) is the page's: none of its canvases (wherever a page put them), not the chart's; one
       // more during the chart's own (a second finger: a pinch), the chart's wherever it lands.)
@@ -655,7 +706,7 @@ export class Chart {
       const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
       if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.#stopGlide()), this.#clearPointer());
       const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
-      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null });
+      down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null });
       this.#stopGlide();
       trailSize = 0;
       clearTimeout(this.holding);
@@ -681,7 +732,8 @@ export class Chart {
           this.setCrosshair(time.index(at.x - box.left - this.left), at.y - box.top, true, at.x - box.left - this.left);
         }, HOLD);
       }
-    }, { signal });
+    };
+    element.addEventListener("pointerdown", press, { signal });
     element.addEventListener("pointermove", (event) => {
       if (sizer === event.pointerId) return void (sizing && !this.#size(sizing[0], sizing[1], event.clientY - element.getBoundingClientRect().top) && stopSizing());
       // (Another pointer meanwhile (a mouse beside a finger): nothing while a separator's dragged.)
@@ -750,7 +802,7 @@ export class Chart {
       this.holding = 0;
       // (The finger holding the crosshair let go: it goes at the next frame (a page's own lifting handled first, as a
       // touch's end came after it: Studio keeps it there); no glide.)
-      if (held === event.pointerId) return void ((held = -1), (trailSize = 0), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
+      if (held === event.pointerId) return void ((held = -1), (trailSize = 0), (tapAt = -Infinity), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
       // (Let go where it began: a click.)
       if (released && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
         trailSize = 0;
@@ -787,6 +839,19 @@ export class Chart {
     element.addEventListener("pointerup", up, { signal });
     element.addEventListener("lostpointercapture", up, { signal });
     element.addEventListener("pointercancel", up, { signal });
+    // (Cancel every forgotten touch first; only then replay presses still down that were taken as a second finger.)
+    const recover = () => {
+      let error, failed = false;
+      for (const [id, at] of [...down]) if (at.beside && touchesDown.has(id) && touchesNew.has(id)) {
+        down.delete(id), down.size || (twoFingers = false);
+        try { press(at.beside); } catch (cause) { if (!failed) error = cause, failed = true; }
+      }
+      if (failed) throw error;
+    };
+    onTouchesLost((event) => {
+      if (down.has(event.pointerId)) touchRecoveries.add(recover);
+      up(event);
+    }, signal);
     element.addEventListener("wheel", (event) => {
       event.preventDefault();
       const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.height : 1;

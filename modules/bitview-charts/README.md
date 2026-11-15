@@ -66,6 +66,16 @@ chart.show(365);                                 // the last 365 points in view
   each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
+- Forgotten touches: iOS WebKit can hand a touch to a native gesture and send it neither pointerup nor pointercancel
+  (WebKit bug 239014). `onTouchesLost(cancel, signal?)` (exported) tells `cancel` of each such touch as a pointercancel
+  for its id, made and never dispatched, so whatever holds touches lets it go through its own cancel; the chart does,
+  and a press it took meanwhile as a pinch's second finger is pressed again alone. Only the browser's proof counts: a
+  touchend or touchcancel with no finger left on the screen (every touch still down is gone), a touchstart whose fingers
+  are all those it starts (every other is), or a press taking the id of one still down (that one, before the press is
+  handled). A touch dropped while another finger stays down is held till then: until that finger lifts, a drag pinches
+  about it. A press arriving while a lost touch still holds a navigator or separator drag is spent freeing that drag;
+  the next press works. This relies on a press's pointerdown coming before its touchstart and a lift's pointerup before its touchend
+  (measured in Chromium, WebKit and iOS 27.2's WebKit).
 
 Range synchronization should flow from the chart being interacted with to its followers. Avoid reflecting a follower's
 rounded range back to the source: different widths can turn that echo into a real view change and stop its flick.
