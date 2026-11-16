@@ -16,8 +16,9 @@ use crate::{
     website::{File, hash},
 };
 
-/// Addresses served elsewhere on the site, each old folder with where its addresses go now: a link or a search
-/// result to the old address still arrives, and so does one written for another explorer's addresses.
+/// Addresses served elsewhere on the site, each old folder (a path from the root) with where its addresses go now: a
+/// link or a search result to the old address still arrives, and so does one written for another explorer's addresses.
+/// Under a folder that lists its addresses (page info), only to one it lists.
 const MOVED: &[(&str, To)] = &[
     ("series", To::Under("catalog")),
     ("api-changes", To::Under("changes")),
@@ -29,6 +30,8 @@ const MOVED: &[(&str, To)] = &[
     ("mempool-block", To::Under("explorer/mempool-block")),
     // The old charts' addresses name nothing in Studio, which replaced them.
     ("charts", To::Page("studio")),
+    // Studio's presets' first addresses (October 2026), each to its place now, written as listed.
+    ("studio/chart", To::Under("studio/presets")),
 ];
 
 /// Where a moved folder's addresses go.
@@ -67,16 +70,29 @@ pub async fn file_handler(
 /// place under the new folder when the address is written the one way (no other spelling names anything there).
 /// From the path as sent (still percent-encoded), so what it encodes stays encoded in `Location`.
 fn moved(path: &str, query: Option<&str>) -> Option<String> {
-    let trimmed = path.trim_start_matches('/');
-    let (folder, rest) = trimmed.split_once('/').unwrap_or((trimmed, ""));
-    let (_, to) = MOVED.iter().find(|(from, _)| *from == folder)?;
+    let (to, rest) = MOVED.iter().find_map(|(from, to)| {
+        let rest = path.strip_prefix('/')?.strip_prefix(from)?;
+        (rest.is_empty() || rest.starts_with('/'))
+            .then(|| (to, rest.strip_prefix('/').unwrap_or(rest)))
+    })?;
     match to {
-        To::Under(to) => is_one_address(path).then(|| {
-            let query = query.map(|query| format!("?{query}")).unwrap_or_default();
-            format!("/{to}/{rest}{query}")
-        }),
+        To::Under(to) => is_one_address(path).then(|| with_query(&format!("/{to}/{rest}"), query)),
         To::Page(to) => Some(format!("/{to}/")),
     }
+}
+
+fn with_query(path: &str, query: Option<&str>) -> String {
+    match query {
+        Some(query) => format!("{path}?{query}"),
+        None => path.to_owned(),
+    }
+}
+
+/// The address written with the slash the other way.
+fn other_spelling(address: &str) -> String {
+    address
+        .strip_suffix('/')
+        .map_or_else(|| format!("{address}/"), str::to_owned)
 }
 
 /// A file's version, its content hash.
@@ -161,11 +177,10 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     let has_slash = path.ends_with('/');
     // A folder's page is at its address with the slash, the links' and the sitemap's.
     if !path.is_empty() && !has_slash && file.ends_with(Path::new(path).join("index.html")) {
-        let query = uri
-            .query()
-            .map(|query| format!("?{query}"))
-            .unwrap_or_default();
-        return Ok(permanent(&format!("{}/{query}", uri.path())));
+        return Ok(permanent(&with_query(
+            &format!("{}/", uri.path()),
+            uri.query(),
+        )));
     }
     // A slash after a file's name, or a query for anything but a page, whose script reads it.
     if (has_slash && file.ends_with(Path::new(path)))
@@ -180,9 +195,21 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     {
         Listing::Listed => true,
         Listing::Unlisted => false,
-        // Not one of an app's addresses, a 404 for search engines; a browser still gets the app, to say what's
-        // missing there (a renamed address, an old spelling of one).
-        Listing::Unknown => return Ok(not_found(wants_page(request_headers).then_some(found))),
+        // Not one of an app's addresses. One of them written the slash the other way, or under a folder that moved,
+        // or both: there. Else a 404 for search engines; a browser still gets the app, to say what's missing there (a
+        // renamed address).
+        Listing::Unknown => {
+            let moved = moved(uri.path(), None);
+            let listed = [Some(uri.path()), moved.as_deref()]
+                .into_iter()
+                .flatten()
+                .flat_map(|address| [address.to_owned(), other_spelling(address)])
+                .find(|address| site.pages.lists(&found.path, address));
+            return Ok(match listed {
+                Some(to) => permanent(&with_query(&to, uri.query())),
+                None => not_found(wants_page(request_headers).then_some(found)),
+            });
+        }
     };
     let File {
         contents,

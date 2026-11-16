@@ -10913,8 +10913,8 @@
         // (The Charts page where start() opens it: as the history or the last visit says; nothing kept yet, a first visit.)
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
         // (An address of the presets': their page's or a section's, ending in a slash, the page; a preset's, without, its
-        // chart (an old one's, /chart/, too).)
-        const routed = /^\/studio\/presets(?:\/.*)?\/$|^\/studio\/presets$/.test(location.pathname) ? true : /^\/studio\/(?:presets|chart)\//.test(location.pathname) ? false : null;
+        // chart. Its server sends other spellings to these.)
+        const routed = /^\/studio\/presets\/(?:.*\/)?$/.test(location.pathname) ? true : /^\/studio\/presets\//.test(location.pathname) ? false : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>

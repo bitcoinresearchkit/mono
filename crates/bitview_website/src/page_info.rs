@@ -98,9 +98,19 @@ impl Pages {
                     .map_err(|_| "Cannot read page-info index.html")?;
                 let html = std::str::from_utf8(&template.contents)?;
                 slots(html)?;
+                // Kept by the address as requested: the folder's own path, then the key.
+                let folder = file
+                    .parent()
+                    .and_then(Path::to_str)
+                    .ok_or("Non-UTF-8 website folder")?;
+                let prefix = if folder.is_empty() {
+                    String::new()
+                } else {
+                    format!("/{folder}")
+                };
                 sources.into_iter().map(|(address, source)| {
                     if !address.starts_with('/') || address.contains(['?', '#']) { return Err("Page-info keys must be folder-relative addresses starting with /, without query or fragment".into()); }
-                    Ok((address, Page::new(source)))
+                    Ok((format!("{prefix}{address}"), Page::new(source)))
                 }).collect()
             };
             let entries = load().map_err(|error| format!("{}: {error}", file.display()))?;
@@ -109,6 +119,13 @@ impl Pages {
         }
         info!(elapsed = ?start.elapsed(), "Website page info ready");
         Ok(pages)
+    }
+
+    /// Whether the folder of `index` lists `address`.
+    pub(crate) fn lists(&self, index: &Path, address: &str) -> bool {
+        self.0
+            .get(index)
+            .is_some_and(|entries| entries.contains_key(address))
     }
 
     /// Only the folder whose index actually answered owns this address's content.
@@ -121,20 +138,7 @@ impl Pages {
         let Some(entries) = self.0.get(&file.path) else {
             return Ok(Listing::Unlisted);
         };
-        let folder = file
-            .path
-            .parent()
-            .and_then(Path::to_str)
-            .ok_or("Non-UTF-8 website folder")?;
-        let prefix = if folder.is_empty() {
-            String::new()
-        } else {
-            format!("/{folder}")
-        };
-        let Some(page) = address
-            .strip_prefix(&prefix)
-            .and_then(|address| entries.get(address))
-        else {
+        let Some(page) = entries.get(address) else {
             return Ok(Listing::Unknown);
         };
         file.hash = None;

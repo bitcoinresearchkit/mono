@@ -18355,8 +18355,8 @@ function templateDoc(/** @type {number} */ i) {
 
 /** Where Studio's served on a domain: DOMAIN/studio/, its own addresses (the presets') under it. */
 const BASE = "/studio";
-/** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts; elsewhere (a file, another server's), none. */
-const ROUTED = /^\/studio\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
+/** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts (an old /chart/ one its server can't place, too: said missing); elsewhere (a file, another server's), none. */
+const ROUTED = /^\/studio\/(?:$|presets\/|chart\/)/.test(location.pathname);
 /** Whether an address's hash holds a link (a chart's, compressed or written, or a picture's), not how to look at one. @param {string} hash */
 const isLinkHash = (hash) => /^#(?:.*&)?(?:chart|image|c)=/.test(hash);
 /** The presets' addresses, made once they're read. */
@@ -18376,14 +18376,10 @@ const addressesSoon = (deadline) => {
   inSlices(deadline, () => ((step) => (step.done && (addressBook.book = step.value), Boolean(step.done)))(steps.next()), addressesSoon);
 };
 /**
- * What an address opens: a preset, a place of the presets'; none, nothing of theirs. Its slash as written, else the
- * other way (a section's without it, a preset's with it); an old preset's, /chart/ and its place, as /presets/ (a
- * place that's a section's now, that section).
+ * What an address opens: a preset, a place of the presets'; none, nothing of theirs. As written: its server sends the
+ * other spellings of one (the slash the other way, an old /chart/ one) to it.
  */
-const routeOf = (/** @type {string} */ pathname) => {
-  const book = addresses(), address = pathname.slice(BASE.length).replace(/^\/chart\//, "/presets/").replace(/\/{2,}$/, "/");
-  return book?.at.get(address) ?? book?.at.get(address.endsWith("/") ? address.slice(0, -1) : `${address}/`) ?? null;
-};
+const routeOf = (/** @type {string} */ pathname) => addresses()?.at.get(pathname.slice(BASE.length)) ?? null;
 /** An address of the presets' naming none of them (renamed, or gone): their page (its step), saying so. @param {string} address */
 function missedRoute(address) {
   // (Still on the page it opened on, there in its step, as goTo leaves a page; a chart opened meanwhile, said alone.)
