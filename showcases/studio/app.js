@@ -13,11 +13,6 @@ import { addressSteps } from "/studio/addresses.js";
 import { initialsOf, initialsWord, initialsRanges } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
-// (Begun as the page started, with the page's own Inter: see the first script; its file for the chart's characters.)
-const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
-// Match font-display's block period: a stalled font must not hold the chart forever.
-const chartFontReady = await Promise.race([chartFont, new Promise((done) => setTimeout(() => done(false), 3000))]);
-
 document.getElementById("page-info")?.remove();
 
 // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -5705,10 +5700,12 @@ const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => 
  * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
  * the page's own font files (no second copy of them), as "Inter Chart" from 500 up (a variable font: a canvas's
  * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
- * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. The first
- * chart waits for it, since canvas text does not honor font-display.
+ * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. Begun as the
+ * page started, with the page's own Inter (see the first script). Until it's in, the page's font: the page shows at
+ * once, never held for it (a canvas has no font-display, and measures its words by the font's name).
  */
-let chartSans = css(chartFontReady ? "--chart-sans" : "--sans");
+const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
+let chartSans = css("--sans");
 // Register the page's resize work before the chart's observer, so it joins the chart's next draw.
 const resized = new ResizeObserver((entries) => {
   for (const entry of entries) if (entry.target === $("overview")) overviewBox = entry.contentRect;
@@ -6025,8 +6022,9 @@ addEventListener("resize", () => {
   card.style.setProperty("--card-motion", "0s");
   requestAnimationFrame(() => requestAnimationFrame(() => card.style.removeProperty("--card-motion")));
 });
-// If the block period expired, use Inter when it eventually arrives and remeasure the chart.
-if (!chartFontReady) chartFont.then((loaded) => {
+// Once it's in (before the first frame when it already is), the chart's words in it, measured again (a new name: the
+// axes' kept widths are by the font's).
+chartFont.then((loaded) => {
   if (!loaded) return;
   chartSans = css("--chart-sans");
   navigatorFont = "";
