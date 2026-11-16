@@ -3,6 +3,7 @@ use bitview_plugin_coinflow::Vecs as CoinflowVecs;
 use bitview_plugin_cointime::Vecs as CointimeVecs;
 use bitview_plugin_holders::Vecs as HoldersVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
 
 use crate::{STORAGE, Vecs, components, extremes, inner};
@@ -14,12 +15,13 @@ impl Vecs {
         holders: &HoldersVecs,
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
+        price: &PriceVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
         let version = STORAGE.schema_version();
         let this = Self {
             components: components::Components::import(
-                &db, version, mappings, holders, cointime, coinflow,
+                &db, version, mappings, holders, cointime, coinflow, price,
             )?,
             extremes: extremes::Extremes::import(&db, version, mappings, holders)?,
             full: inner::RarityMeterInner::import(&db, "rarity_meter", version, mappings)?,

@@ -13,26 +13,18 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let exit = context.exit();
-        let Dependencies {
-            indexer,
-            holders,
-            cointime,
-            coinflow,
-            price: prices,
-        } = dependencies;
+        let Dependencies { indexer, price } = dependencies;
 
-        let spot = &prices.spot.cents.height;
+        let spot = &price.spot.cents.height;
+        let starting_lengths = indexer.compute_start();
         let (components_result, extremes_result) = join(
-            || {
-                self.components
-                    .compute(indexer, holders, cointime, coinflow, spot, exit)
-            },
+            || self.components.compute(&starting_lengths, exit),
             || self.extremes.compute(indexer, exit),
         );
         components_result?;
         extremes_result?;
 
-        let starting_height = indexer.compute_start().height;
+        let starting_height = starting_lengths.height;
         let local = self.components.local();
         let cycle = self.components.cycle();
         // Full combines all 16 components itself: with disputed ranges reading as neither, its

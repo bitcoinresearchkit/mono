@@ -893,6 +893,7 @@ dependencies = [
 name = "bitview_plugin_rarity_meter"
 version = "0.13.0"
 dependencies = [
+ "bitview_cohort",
  "bitview_compute",
  "bitview_plugin",
  "bitview_plugin_coinflow",

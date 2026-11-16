@@ -1,17 +1,23 @@
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{PartsPerMillion32, PriceRatio};
 use bitview_vecs::{IndexSources, LazyIndexedVec, LazyPerBlock, Price, ops::PriceTimesRatio};
 use brk_types::{Cents, Height, Version};
 use vecdb::{BinaryTransform, ReadableBoxedVec, ReadableCloneableVec, ReadableVec};
 
-/// A component's reference price, which its ratio percentiles multiply into price bands.
+/// A component's reference price, which its ratio percentiles multiply into price bands, and
+/// spot's ratio to it, which they rank.
 pub struct ComponentPrice {
     price: ReadableBoxedVec<Height, Cents>,
+    pub ratio: ReadableBoxedVec<Height, PriceRatio>,
 }
 
 impl ComponentPrice {
-    pub fn new(source: &impl ReadableCloneableVec<Height, Cents>) -> Self {
+    pub fn new(
+        price: &impl ReadableCloneableVec<Height, Cents>,
+        ratio: &impl ReadableCloneableVec<Height, PriceRatio>,
+    ) -> Self {
         Self {
-            price: source.read_only_boxed_clone(),
+            price: price.read_only_boxed_clone(),
+            ratio: ratio.read_only_boxed_clone(),
         }
     }
 

@@ -364,13 +364,7 @@ impl DefaultPlugins {
                     || {
                         timed_compute(
                             &mut *self.rarity_meter,
-                            RarityMeterDependencies {
-                                indexer,
-                                holders,
-                                cointime,
-                                coinflow,
-                                price,
-                            },
+                            RarityMeterDependencies { indexer, price },
                             context,
                         )
                     },

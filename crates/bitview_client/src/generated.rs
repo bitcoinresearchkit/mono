@@ -503,153 +503,165 @@ pub mod tree {
         realized_peak_regret_sum_24h: Extreme<Option<Dollars>> = "realized_peak_regret_sum_*",
         sell_side_risk_ratio_24h: Extreme<Option<Ratio>> = "sell_side_risk_ratio_*",
     } }
-    shape! { MobileMedianCapitalizedPriceMedian at "series().rarity_meter.components.mobile.median_capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "mobile_median_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "mobile_median_capitalized_price_*",
+    shape! { P99_9 at "series().rarity_meter.components.all.capitalized_price.p99_9" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p99_9",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p99_9",
     } }
-    shape! { MobileMedianRealizedPriceMedian at "series().rarity_meter.components.mobile.median_realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "mobile_median_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "mobile_median_realized_price_*",
+    shape! { P99_5 at "series().rarity_meter.components.all.capitalized_price.p99_5" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p99_5",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p99_5",
     } }
-    shape! { MobileRealizedPriceMedian at "series().rarity_meter.components.mobile.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "mobile_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "mobile_realized_price_*",
+    shape! { P99 at "series().rarity_meter.components.all.capitalized_price.p99" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p99",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p99",
     } }
-    shape! { AwakeRealizedPriceMedian at "series().rarity_meter.components.awake.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "awake_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "awake_realized_price_*",
+    shape! { P98 at "series().rarity_meter.components.all.capitalized_price.p98" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p98",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p98",
     } }
-    shape! { Under6mCapitalizedPriceMedian at "series().rarity_meter.components.under_6m.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "age_under_6m_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "age_under_6m_capitalized_price_*",
+    shape! { P95 at "series().rarity_meter.components.all.capitalized_price.p95" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p95",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p95",
     } }
-    shape! { Under6mRealizedPriceMedian at "series().rarity_meter.components.under_6m.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "age_under_6m_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "age_under_6m_realized_price_*",
+    shape! { P90 at "series().rarity_meter.components.all.capitalized_price.p90" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p90",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p90",
     } }
-    shape! { SthMedianCapitalizedPriceMedian at "series().rarity_meter.components.sth.median_capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_median_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_median_capitalized_price_*",
+    shape! { P80 at "series().rarity_meter.components.all.capitalized_price.p80" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p80",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p80",
     } }
-    shape! { SthMedianRealizedPriceMedian at "series().rarity_meter.components.sth.median_realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_median_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_median_realized_price_*",
+    shape! { P70 at "series().rarity_meter.components.all.capitalized_price.p70" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p70",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p70",
     } }
-    shape! { SthCapitalizedPriceMedian at "series().rarity_meter.components.sth.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_capitalized_price_*",
+    shape! { P60 at "series().rarity_meter.components.all.capitalized_price.p60" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p60",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p60",
     } }
-    shape! { SthRealizedPriceMedian at "series().rarity_meter.components.sth.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "sth_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "sth_realized_price_*",
+    shape! { Median at "series().rarity_meter.components.all.capitalized_price.median" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_median",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_median",
     } }
-    shape! { TrueMarketMeanMedian at "series().rarity_meter.components.all.true_market_mean.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "true_market_mean_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "true_market_mean_*",
+    shape! { P40 at "series().rarity_meter.components.all.capitalized_price.p40" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p40",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p40",
     } }
-    shape! { VaultedPriceMedian at "series().rarity_meter.components.all.vaulted_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "vaulted_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "vaulted_price_*",
+    shape! { P30 at "series().rarity_meter.components.all.capitalized_price.p30" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p30",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p30",
     } }
-    shape! { AllMedianCapitalizedPriceMedian at "series().rarity_meter.components.all.median_capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "median_capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "median_capitalized_price_*",
+    shape! { P20 at "series().rarity_meter.components.all.capitalized_price.p20" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p20",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p20",
     } }
-    shape! { AllMedianRealizedPriceMedian at "series().rarity_meter.components.all.median_realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "median_realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "median_realized_price_*",
+    shape! { P10 at "series().rarity_meter.components.all.capitalized_price.p10" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p10",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p10",
     } }
-    shape! { MedianComponent<A> at "series().rarity_meter.components.all.median_capitalized_price" {
+    shape! { P5 at "series().rarity_meter.components.all.capitalized_price.p5" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p5",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p5",
+    } }
+    shape! { P2 at "series().rarity_meter.components.all.capitalized_price.p2" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p2",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p2",
+    } }
+    shape! { P1 at "series().rarity_meter.components.all.capitalized_price.p1" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p1",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p1",
+    } }
+    shape! { P0_5 at "series().rarity_meter.components.all.capitalized_price.p0_5" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p0_5",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p0_5",
+    } }
+    shape! { P0_1 at "series().rarity_meter.components.all.capitalized_price.p0_1" {
+        ratio: SeriesPattern1<Option<Multiple>> = "*_ratio_rarity_p0_1",
+        band: SeriesPattern1<Option<Dollars>> = "*_rarity_p0_1",
+    } }
+    shape! { MedianComponent at "series().rarity_meter.components.all.median_capitalized_price" {
         value: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
-        p0_1: A = "rarity_p0_1",
-        p0_5: A = "rarity_p0_5",
-        p1: A = "rarity_p1",
-        p2: A = "rarity_p2",
-        p5: A = "rarity_p5",
-        p10: A = "rarity_p10",
-        p20: A = "rarity_p20",
-        p30: A = "rarity_p30",
-        p40: A = "rarity_p40",
-        median: A = "rarity_median",
-        p60: A = "rarity_p60",
-        p70: A = "rarity_p70",
-        p80: A = "rarity_p80",
-        p90: A = "rarity_p90",
-        p95: A = "rarity_p95",
-        p98: A = "rarity_p98",
-        p99: A = "rarity_p99",
-        p99_5: A = "rarity_p99_5",
-        p99_9: A = "rarity_p99_9",
+        p0_1: P0_1 = "*",
+        p0_5: P0_5 = "*",
+        p1: P1 = "*",
+        p2: P2 = "*",
+        p5: P5 = "*",
+        p10: P10 = "*",
+        p20: P20 = "*",
+        p30: P30 = "*",
+        p40: P40 = "*",
+        median: Median = "*",
+        p60: P60 = "*",
+        p70: P70 = "*",
+        p80: P80 = "*",
+        p90: P90 = "*",
+        p95: P95 = "*",
+        p98: P98 = "*",
+        p99: P99 = "*",
+        p99_5: P99_5 = "*",
+        p99_9: P99_9 = "*",
     } }
-    shape! { AllCapitalizedPriceMedian at "series().rarity_meter.components.all.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "capitalized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "capitalized_price_*",
+    shape! { RarityPercentiles at "series().rarity_meter.components.all.capitalized_price" {
+        p0_1: P0_1 = "*",
+        p0_5: P0_5 = "*",
+        p1: P1 = "*",
+        p2: P2 = "*",
+        p5: P5 = "*",
+        p10: P10 = "*",
+        p20: P20 = "*",
+        p30: P30 = "*",
+        p40: P40 = "*",
+        median: Median = "*",
+        p60: P60 = "*",
+        p70: P70 = "*",
+        p80: P80 = "*",
+        p90: P90 = "*",
+        p95: P95 = "*",
+        p98: P98 = "*",
+        p99: P99 = "*",
+        p99_5: P99_5 = "*",
+        p99_9: P99_9 = "*",
     } }
-    shape! { AllRealizedPriceMedian at "series().rarity_meter.components.all.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "realized_price_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "realized_price_*",
+    shape! { CohortComponents at "series().rarity_meter.components.all.awake" {
+        realized_price: RarityPercentiles = "*_realized_price",
+        capitalized_price: RarityPercentiles = "*_capitalized_price",
+        median_realized_price: MedianComponent = "*_median_realized_price",
+        median_capitalized_price: MedianComponent = "*_median_capitalized_price",
     } }
-    shape! { RarityPercentiles<A> at "series().rarity_meter.components.all.capitalized_price" {
-        p0_1: A = "*_p0_1",
-        p0_5: A = "*_p0_5",
-        p1: A = "*_p1",
-        p2: A = "*_p2",
-        p5: A = "*_p5",
-        p10: A = "*_p10",
-        p20: A = "*_p20",
-        p30: A = "*_p30",
-        p40: A = "*_p40",
-        median: A = "*_median",
-        p60: A = "*_p60",
-        p70: A = "*_p70",
-        p80: A = "*_p80",
-        p90: A = "*_p90",
-        p95: A = "*_p95",
-        p98: A = "*_p98",
-        p99: A = "*_p99",
-        p99_5: A = "*_p99_5",
-        p99_9: A = "*_p99_9",
-    } }
-    shape! { MobileComponents at "series().rarity_meter.components.mobile" {
-        realized_price: RarityPercentiles<MobileRealizedPriceMedian> = "rarity",
-        median_realized_price: MedianComponent<MobileMedianRealizedPriceMedian> = "*_realized_price",
-        median_capitalized_price: MedianComponent<MobileMedianCapitalizedPriceMedian> = "*_capitalized_price",
-    } }
-    shape! { AwakeComponents at "series().rarity_meter.components.awake" {
-        realized_price: RarityPercentiles<AwakeRealizedPriceMedian> = "*",
-    } }
-    shape! { MeanComponents at "series().rarity_meter.components.under_6m" {
-        realized_price: RarityPercentiles<Under6mRealizedPriceMedian> = "*",
-        capitalized_price: RarityPercentiles<Under6mCapitalizedPriceMedian> = "*",
-    } }
-    shape! { CohortComponents at "series().rarity_meter.components.sth" {
-        realized_price: RarityPercentiles<SthRealizedPriceMedian> = "*",
-        capitalized_price: RarityPercentiles<SthCapitalizedPriceMedian> = "*",
-        median_realized_price: MedianComponent<SthMedianRealizedPriceMedian> = "sth_median_realized_price",
-        median_capitalized_price: MedianComponent<SthMedianCapitalizedPriceMedian> = "sth_median_capitalized_price",
+    shape! { BySupply at "series().rarity_meter.components.lth" {
+        realized_price: RarityPercentiles = "*_realized_price",
+        capitalized_price: RarityPercentiles = "*_capitalized_price",
+        median_realized_price: MedianComponent = "*_median_realized_price",
+        median_capitalized_price: MedianComponent = "*_median_capitalized_price",
+        awake: CohortComponents = "*_awake",
+        mobile: CohortComponents = "*_mobile",
     } }
     shape! { AllComponents at "series().rarity_meter.components.all" {
-        realized_price: RarityPercentiles<AllRealizedPriceMedian> = "*",
-        capitalized_price: RarityPercentiles<AllCapitalizedPriceMedian> = "*",
-        median_realized_price: MedianComponent<AllMedianRealizedPriceMedian> = "median_realized_price",
-        median_capitalized_price: MedianComponent<AllMedianCapitalizedPriceMedian> = "median_capitalized_price",
-        vaulted_price: RarityPercentiles<VaultedPriceMedian> = "*",
-        true_market_mean: RarityPercentiles<TrueMarketMeanMedian> = "*",
+        realized_price: RarityPercentiles = "realized_*",
+        capitalized_price: RarityPercentiles = "capitalized_*",
+        median_realized_price: MedianComponent = "median_realized_*",
+        median_capitalized_price: MedianComponent = "median_capitalized_*",
+        awake: CohortComponents = "awake",
+        mobile: CohortComponents = "mobile",
+        vaulted_price: RarityPercentiles = "vaulted_*",
+        true_market_mean: RarityPercentiles = "true_market_mean",
     } }
-    shape! { Components at "series().rarity_meter.components" {
-        all: AllComponents = "*",
-        sth: CohortComponents = "*",
-        under_6m: MeanComponents = "*",
-        awake: AwakeComponents = "*",
-        mobile: MobileComponents = "mobile_median",
+    shape! { RarityMeterAgeAggregate at "series().rarity_meter.components" {
+        all: AllComponents = "price",
+        sth: BySupply = "sth",
+        lth: BySupply = "lth",
+        under_4m: BySupply = "*_under_4m",
+        under_6m: BySupply = "*_under_6m",
+        over_4m: BySupply = "*_over_4m",
+        over_6m: BySupply = "*_over_6m",
     } }
     shape! { RarityMeter at "series().rarity_meter" {
-        components: Components = "*",
+        components: RarityMeterAgeAggregate = "age",
         extremes: Extremes = "24h",
-        full: Meter = "*_meter",
-        local: Meter = "local_*_meter",
-        cycle: Meter = "cycle_*_meter",
+        full: Meter = "*",
+        local: Meter = "local_*",
+        cycle: Meter = "cycle_*",
     } }
     shape! { UnweightedEntrySupplyBelowP99_9Floor at "series().bedrock.unweighted.entry_supply.below_p99_9_floor" {
         btc: SeriesPattern1<Option<Bitcoin>> = "bedrock_unweighted_entry_supply_*",
@@ -2584,7 +2596,7 @@ pub mod tree {
         cointime: Cointime = "age",
         coinflow: Coinflow = "age",
         bedrock: Bedrock = "bedrock",
-        rarity_meter: RarityMeter = "rarity",
+        rarity_meter: RarityMeter = "rarity_meter",
     } }
 }
 pub use tree::SeriesTree;

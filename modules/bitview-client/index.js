@@ -2871,363 +2871,386 @@ const _Extremes = _s({
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} MobileMedianCapitalizedPriceMedian
+ * }} P99_9
  */
-const _MobileMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_median_capitalized_price_ratio_*'],
-  band: [_i1, 'mobile_median_capitalized_price_*'],
+const _P99_9 = _s({
+  ratio: [_i1, '*_ratio_rarity_p99_9'],
+  band: [_i1, '*_rarity_p99_9'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} MobileMedianRealizedPriceMedian
+ * }} P99_5
  */
-const _MobileMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_median_realized_price_ratio_*'],
-  band: [_i1, 'mobile_median_realized_price_*'],
+const _P99_5 = _s({
+  ratio: [_i1, '*_ratio_rarity_p99_5'],
+  band: [_i1, '*_rarity_p99_5'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} MobileRealizedPriceMedian
+ * }} P99
  */
-const _MobileRealizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_realized_price_ratio_*'],
-  band: [_i1, 'mobile_realized_price_*'],
+const _P99 = _s({
+  ratio: [_i1, '*_ratio_rarity_p99'],
+  band: [_i1, '*_rarity_p99'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} AwakeRealizedPriceMedian
+ * }} P98
  */
-const _AwakeRealizedPriceMedian = _s({
-  ratio: [_i1, 'awake_realized_price_ratio_*'],
-  band: [_i1, 'awake_realized_price_*'],
+const _P98 = _s({
+  ratio: [_i1, '*_ratio_rarity_p98'],
+  band: [_i1, '*_rarity_p98'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Under6mCapitalizedPriceMedian
+ * }} P95
  */
-const _Under6mCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'age_under_6m_capitalized_price_ratio_*'],
-  band: [_i1, 'age_under_6m_capitalized_price_*'],
+const _P95 = _s({
+  ratio: [_i1, '*_ratio_rarity_p95'],
+  band: [_i1, '*_rarity_p95'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} Under6mRealizedPriceMedian
+ * }} P90
  */
-const _Under6mRealizedPriceMedian = _s({
-  ratio: [_i1, 'age_under_6m_realized_price_ratio_*'],
-  band: [_i1, 'age_under_6m_realized_price_*'],
+const _P90 = _s({
+  ratio: [_i1, '*_ratio_rarity_p90'],
+  band: [_i1, '*_rarity_p90'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} SthMedianCapitalizedPriceMedian
+ * }} P80
  */
-const _SthMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'sth_median_capitalized_price_ratio_*'],
-  band: [_i1, 'sth_median_capitalized_price_*'],
+const _P80 = _s({
+  ratio: [_i1, '*_ratio_rarity_p80'],
+  band: [_i1, '*_rarity_p80'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} SthMedianRealizedPriceMedian
+ * }} P70
  */
-const _SthMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'sth_median_realized_price_ratio_*'],
-  band: [_i1, 'sth_median_realized_price_*'],
+const _P70 = _s({
+  ratio: [_i1, '*_ratio_rarity_p70'],
+  band: [_i1, '*_rarity_p70'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} SthCapitalizedPriceMedian
+ * }} P60
  */
-const _SthCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'sth_capitalized_price_ratio_*'],
-  band: [_i1, 'sth_capitalized_price_*'],
+const _P60 = _s({
+  ratio: [_i1, '*_ratio_rarity_p60'],
+  band: [_i1, '*_rarity_p60'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} SthRealizedPriceMedian
+ * }} Median
  */
-const _SthRealizedPriceMedian = _s({
-  ratio: [_i1, 'sth_realized_price_ratio_*'],
-  band: [_i1, 'sth_realized_price_*'],
+const _Median = _s({
+  ratio: [_i1, '*_ratio_rarity_median'],
+  band: [_i1, '*_rarity_median'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} TrueMarketMeanMedian
+ * }} P40
  */
-const _TrueMarketMeanMedian = _s({
-  ratio: [_i1, 'true_market_mean_ratio_*'],
-  band: [_i1, 'true_market_mean_*'],
+const _P40 = _s({
+  ratio: [_i1, '*_ratio_rarity_p40'],
+  band: [_i1, '*_rarity_p40'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} VaultedPriceMedian
+ * }} P30
  */
-const _VaultedPriceMedian = _s({
-  ratio: [_i1, 'vaulted_price_ratio_*'],
-  band: [_i1, 'vaulted_price_*'],
+const _P30 = _s({
+  ratio: [_i1, '*_ratio_rarity_p30'],
+  band: [_i1, '*_rarity_p30'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} AllMedianCapitalizedPriceMedian
+ * }} P20
  */
-const _AllMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'median_capitalized_price_ratio_*'],
-  band: [_i1, 'median_capitalized_price_*'],
+const _P20 = _s({
+  ratio: [_i1, '*_ratio_rarity_p20'],
+  band: [_i1, '*_rarity_p20'],
 });
 
 /**
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} AllMedianRealizedPriceMedian
+ * }} P10
  */
-const _AllMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'median_realized_price_ratio_*'],
-  band: [_i1, 'median_realized_price_*'],
+const _P10 = _s({
+  ratio: [_i1, '*_ratio_rarity_p10'],
+  band: [_i1, '*_rarity_p10'],
 });
 
 /**
- * @template A
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} P5
+ */
+const _P5 = _s({
+  ratio: [_i1, '*_ratio_rarity_p5'],
+  band: [_i1, '*_rarity_p5'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} P2
+ */
+const _P2 = _s({
+  ratio: [_i1, '*_ratio_rarity_p2'],
+  band: [_i1, '*_rarity_p2'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} P1
+ */
+const _P1 = _s({
+  ratio: [_i1, '*_ratio_rarity_p1'],
+  band: [_i1, '*_rarity_p1'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} P0_5
+ */
+const _P0_5 = _s({
+  ratio: [_i1, '*_ratio_rarity_p0_5'],
+  band: [_i1, '*_rarity_p0_5'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} P0_1
+ */
+const _P0_1 = _s({
+  ratio: [_i1, '*_ratio_rarity_p0_1'],
+  band: [_i1, '*_rarity_p0_1'],
+});
+
+/**
  * @typedef {{
  *   value: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
- *   p0_1: A,
- *   p0_5: A,
- *   p1: A,
- *   p2: A,
- *   p5: A,
- *   p10: A,
- *   p20: A,
- *   p30: A,
- *   p40: A,
- *   median: A,
- *   p60: A,
- *   p70: A,
- *   p80: A,
- *   p90: A,
- *   p95: A,
- *   p98: A,
- *   p99: A,
- *   p99_5: A,
- *   p99_9: A,
+ *   p0_1: P0_1,
+ *   p0_5: P0_5,
+ *   p1: P1,
+ *   p2: P2,
+ *   p5: P5,
+ *   p10: P10,
+ *   p20: P20,
+ *   p30: P30,
+ *   p40: P40,
+ *   median: Median,
+ *   p60: P60,
+ *   p70: P70,
+ *   p80: P80,
+ *   p90: P90,
+ *   p95: P95,
+ *   p98: P98,
+ *   p99: P99,
+ *   p99_5: P99_5,
+ *   p99_9: P99_9,
  * }} MedianComponent
  */
-/** @type {_Make} */
-const _MedianComponent = (c, b, f0) => _n(c, b, {
+const _MedianComponent = _s({
   value: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
-  p0_1: [f0, 'rarity_p0_1'],
-  p0_5: [f0, 'rarity_p0_5'],
-  p1: [f0, 'rarity_p1'],
-  p2: [f0, 'rarity_p2'],
-  p5: [f0, 'rarity_p5'],
-  p10: [f0, 'rarity_p10'],
-  p20: [f0, 'rarity_p20'],
-  p30: [f0, 'rarity_p30'],
-  p40: [f0, 'rarity_p40'],
-  median: [f0, 'rarity_median'],
-  p60: [f0, 'rarity_p60'],
-  p70: [f0, 'rarity_p70'],
-  p80: [f0, 'rarity_p80'],
-  p90: [f0, 'rarity_p90'],
-  p95: [f0, 'rarity_p95'],
-  p98: [f0, 'rarity_p98'],
-  p99: [f0, 'rarity_p99'],
-  p99_5: [f0, 'rarity_p99_5'],
-  p99_9: [f0, 'rarity_p99_9'],
+  p0_1: [_P0_1, '*'],
+  p0_5: [_P0_5, '*'],
+  p1: [_P1, '*'],
+  p2: [_P2, '*'],
+  p5: [_P5, '*'],
+  p10: [_P10, '*'],
+  p20: [_P20, '*'],
+  p30: [_P30, '*'],
+  p40: [_P40, '*'],
+  median: [_Median, '*'],
+  p60: [_P60, '*'],
+  p70: [_P70, '*'],
+  p80: [_P80, '*'],
+  p90: [_P90, '*'],
+  p95: [_P95, '*'],
+  p98: [_P98, '*'],
+  p99: [_P99, '*'],
+  p99_5: [_P99_5, '*'],
+  p99_9: [_P99_9, '*'],
 });
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AllCapitalizedPriceMedian
- */
-const _AllCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'capitalized_price_ratio_*'],
-  band: [_i1, 'capitalized_price_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} AllRealizedPriceMedian
- */
-const _AllRealizedPriceMedian = _s({
-  ratio: [_i1, 'realized_price_ratio_*'],
-  band: [_i1, 'realized_price_*'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   p0_1: A,
- *   p0_5: A,
- *   p1: A,
- *   p2: A,
- *   p5: A,
- *   p10: A,
- *   p20: A,
- *   p30: A,
- *   p40: A,
- *   median: A,
- *   p60: A,
- *   p70: A,
- *   p80: A,
- *   p90: A,
- *   p95: A,
- *   p98: A,
- *   p99: A,
- *   p99_5: A,
- *   p99_9: A,
+ *   p0_1: P0_1,
+ *   p0_5: P0_5,
+ *   p1: P1,
+ *   p2: P2,
+ *   p5: P5,
+ *   p10: P10,
+ *   p20: P20,
+ *   p30: P30,
+ *   p40: P40,
+ *   median: Median,
+ *   p60: P60,
+ *   p70: P70,
+ *   p80: P80,
+ *   p90: P90,
+ *   p95: P95,
+ *   p98: P98,
+ *   p99: P99,
+ *   p99_5: P99_5,
+ *   p99_9: P99_9,
  * }} RarityPercentiles
  */
-/** @type {_Make} */
-const _RarityPercentiles = (c, b, f0) => _n(c, b, {
-  p0_1: [f0, '*_p0_1'],
-  p0_5: [f0, '*_p0_5'],
-  p1: [f0, '*_p1'],
-  p2: [f0, '*_p2'],
-  p5: [f0, '*_p5'],
-  p10: [f0, '*_p10'],
-  p20: [f0, '*_p20'],
-  p30: [f0, '*_p30'],
-  p40: [f0, '*_p40'],
-  median: [f0, '*_median'],
-  p60: [f0, '*_p60'],
-  p70: [f0, '*_p70'],
-  p80: [f0, '*_p80'],
-  p90: [f0, '*_p90'],
-  p95: [f0, '*_p95'],
-  p98: [f0, '*_p98'],
-  p99: [f0, '*_p99'],
-  p99_5: [f0, '*_p99_5'],
-  p99_9: [f0, '*_p99_9'],
+const _RarityPercentiles = _s({
+  p0_1: [_P0_1, '*'],
+  p0_5: [_P0_5, '*'],
+  p1: [_P1, '*'],
+  p2: [_P2, '*'],
+  p5: [_P5, '*'],
+  p10: [_P10, '*'],
+  p20: [_P20, '*'],
+  p30: [_P30, '*'],
+  p40: [_P40, '*'],
+  median: [_Median, '*'],
+  p60: [_P60, '*'],
+  p70: [_P70, '*'],
+  p80: [_P80, '*'],
+  p90: [_P90, '*'],
+  p95: [_P95, '*'],
+  p98: [_P98, '*'],
+  p99: [_P99, '*'],
+  p99_5: [_P99_5, '*'],
+  p99_9: [_P99_9, '*'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: RarityPercentiles<MobileRealizedPriceMedian>,
- *   medianRealizedPrice: MedianComponent<MobileMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianComponent<MobileMedianCapitalizedPriceMedian>,
- * }} MobileComponents
- */
-const _MobileComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _MobileRealizedPriceMedian), 'rarity'],
-  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<AwakeRealizedPriceMedian>,
- * }} AwakeComponents
- */
-const _AwakeComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _AwakeRealizedPriceMedian), '*'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<Under6mRealizedPriceMedian>,
- *   capitalizedPrice: RarityPercentiles<Under6mCapitalizedPriceMedian>,
- * }} MeanComponents
- */
-const _MeanComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _Under6mRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _Under6mCapitalizedPriceMedian), '*'],
-});
-
-/**
- * @typedef {{
- *   realizedPrice: RarityPercentiles<SthRealizedPriceMedian>,
- *   capitalizedPrice: RarityPercentiles<SthCapitalizedPriceMedian>,
- *   medianRealizedPrice: MedianComponent<SthMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianComponent<SthMedianCapitalizedPriceMedian>,
+ *   realizedPrice: RarityPercentiles,
+ *   capitalizedPrice: RarityPercentiles,
+ *   medianRealizedPrice: MedianComponent,
+ *   medianCapitalizedPrice: MedianComponent,
  * }} CohortComponents
  */
 const _CohortComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _SthRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _SthCapitalizedPriceMedian), '*'],
-  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _SthMedianRealizedPriceMedian), 'sth_median_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _SthMedianCapitalizedPriceMedian), 'sth_median_capitalized_price'],
+  realizedPrice: [_RarityPercentiles, '*_realized_price'],
+  capitalizedPrice: [_RarityPercentiles, '*_capitalized_price'],
+  medianRealizedPrice: [_MedianComponent, '*_median_realized_price'],
+  medianCapitalizedPrice: [_MedianComponent, '*_median_capitalized_price'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: RarityPercentiles<AllRealizedPriceMedian>,
- *   capitalizedPrice: RarityPercentiles<AllCapitalizedPriceMedian>,
- *   medianRealizedPrice: MedianComponent<AllMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianComponent<AllMedianCapitalizedPriceMedian>,
- *   vaultedPrice: RarityPercentiles<VaultedPriceMedian>,
- *   trueMarketMean: RarityPercentiles<TrueMarketMeanMedian>,
+ *   realizedPrice: RarityPercentiles,
+ *   capitalizedPrice: RarityPercentiles,
+ *   medianRealizedPrice: MedianComponent,
+ *   medianCapitalizedPrice: MedianComponent,
+ *   awake: CohortComponents,
+ *   mobile: CohortComponents,
+ * }} BySupply
+ */
+const _BySupply = _s({
+  realizedPrice: [_RarityPercentiles, '*_realized_price'],
+  capitalizedPrice: [_RarityPercentiles, '*_capitalized_price'],
+  medianRealizedPrice: [_MedianComponent, '*_median_realized_price'],
+  medianCapitalizedPrice: [_MedianComponent, '*_median_capitalized_price'],
+  awake: [_CohortComponents, '*_awake'],
+  mobile: [_CohortComponents, '*_mobile'],
+});
+
+/**
+ * @typedef {{
+ *   realizedPrice: RarityPercentiles,
+ *   capitalizedPrice: RarityPercentiles,
+ *   medianRealizedPrice: MedianComponent,
+ *   medianCapitalizedPrice: MedianComponent,
+ *   awake: CohortComponents,
+ *   mobile: CohortComponents,
+ *   vaultedPrice: RarityPercentiles,
+ *   trueMarketMean: RarityPercentiles,
  * }} AllComponents
  */
 const _AllComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _AllRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _AllCapitalizedPriceMedian), '*'],
-  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _AllMedianRealizedPriceMedian), 'median_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _AllMedianCapitalizedPriceMedian), 'median_capitalized_price'],
-  vaultedPrice: [(c, b) => _RarityPercentiles(c, b, _VaultedPriceMedian), '*'],
-  trueMarketMean: [(c, b) => _RarityPercentiles(c, b, _TrueMarketMeanMedian), '*'],
+  realizedPrice: [_RarityPercentiles, 'realized_*'],
+  capitalizedPrice: [_RarityPercentiles, 'capitalized_*'],
+  medianRealizedPrice: [_MedianComponent, 'median_realized_*'],
+  medianCapitalizedPrice: [_MedianComponent, 'median_capitalized_*'],
+  awake: [_CohortComponents, 'awake'],
+  mobile: [_CohortComponents, 'mobile'],
+  vaultedPrice: [_RarityPercentiles, 'vaulted_*'],
+  trueMarketMean: [_RarityPercentiles, 'true_market_mean'],
 });
 
 /**
  * @typedef {{
  *   all: AllComponents,
- *   sth: CohortComponents,
- *   under6m: MeanComponents,
- *   awake: AwakeComponents,
- *   mobile: MobileComponents,
- * }} Components
+ *   sth: BySupply,
+ *   lth: BySupply,
+ *   under4m: BySupply,
+ *   under6m: BySupply,
+ *   over4m: BySupply,
+ *   over6m: BySupply,
+ * }} RarityMeterAgeAggregate
  */
-const _Components = _s({
-  all: [_AllComponents, '*'],
-  sth: [_CohortComponents, '*'],
-  under6m: [_MeanComponents, '*'],
-  awake: [_AwakeComponents, '*'],
-  mobile: [_MobileComponents, 'mobile_median'],
+const _RarityMeterAgeAggregate = _s({
+  all: [_AllComponents, 'price'],
+  sth: [_BySupply, 'sth'],
+  lth: [_BySupply, 'lth'],
+  under4m: [_BySupply, '*_under_4m'],
+  under6m: [_BySupply, '*_under_6m'],
+  over4m: [_BySupply, '*_over_4m'],
+  over6m: [_BySupply, '*_over_6m'],
 });
 
 /**
  * @typedef {{
- *   components: Components,
+ *   components: RarityMeterAgeAggregate,
  *   extremes: Extremes,
  *   full: Meter,
  *   local: Meter,
@@ -3235,11 +3258,11 @@ const _Components = _s({
  * }} RarityMeter
  */
 const _RarityMeter = _s({
-  components: [_Components, '*'],
+  components: [_RarityMeterAgeAggregate, 'age'],
   extremes: [_Extremes, '24h'],
-  full: [_Meter, '*_meter'],
-  local: [_Meter, 'local_*_meter'],
-  cycle: [_Meter, 'cycle_*_meter'],
+  full: [_Meter, '*'],
+  local: [_Meter, 'local_*'],
+  cycle: [_Meter, 'cycle_*'],
 });
 
 /**
@@ -7896,7 +7919,7 @@ const _SeriesTree = _s({
   cointime: [_Cointime, 'age'],
   coinflow: [_Coinflow, 'age'],
   bedrock: [_Bedrock, 'bedrock'],
-  rarityMeter: [_RarityMeter, 'rarity'],
+  rarityMeter: [_RarityMeter, 'rarity_meter'],
 });
 
 /**
@@ -7907,7 +7930,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** This file's content stamp: the SHA-256 of its text with this value empty, so any other byte changes it. */
-  static HASH = "5dd2fe2f910021f9832e89b5fe0e987cc35199072f7119bc07ac590a618ae7f3";
+  static HASH = "340da3eb9e8a72e8077c54bf1a23c5cf3691e72f9875e87aeaea1227febb9c0f";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

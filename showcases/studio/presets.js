@@ -711,12 +711,25 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ]);
   };
   /**
-   * A rarity component's reference price and the price's ratio to it, by the component's cohort (a holder group's, or
-   * the awake or mobile coins') and key.
-   * @param {string} cohort @param {string} key @returns {[any, any] | undefined}
+   * A holder group's rarity components: its coins' (all coins' with the cointime prices), then its awake and its mobile
+   * coins', each their own section; `kind` the coins `node` holds (all of them: "").
+   * @param {string} cohort @param {any} node @param {string} [kind] @returns {SectionNode[]}
    */
-  const referenceOf = (cohort, key) => {
-    const cost = (t.holders[cohort] ?? { awake: ct.cohorts.all.awake, mobile: cf.cohorts.all.mobile }[cohort])?.costBasis;
+  const rarityComponents = (cohort, node, kind = "") => {
+    const list = entries(node), weighted = (/** @type {string} */ k) => k === "awake" || k === "mobile";
+    const who = kind ? capitalized(holderName(cohort).of(kind)) : holderName(cohort).who;
+    return [
+      ...list.filter(([k]) => !weighted(k)).map(([k, v]) => component(v, words(k), who, referenceOf(cohort, kind, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")])),
+      ...list.filter(([k]) => weighted(k)).map(([k, v]) => section(capitalized(k), rarityComponents(cohort, v, k))),
+    ];
+  };
+  /**
+   * A rarity component's reference price and the price's ratio to it, by the component's holder group, its coins
+   * (`kind`: all of them, or the awake or mobile ones) and key.
+   * @param {string} cohort @param {string} kind @param {string} key @returns {[any, any] | undefined}
+   */
+  const referenceOf = (cohort, kind, key) => {
+    const cost = ({ "": t.holders[cohort], awake: ct.cohorts[cohort]?.awake, mobile: cf.cohorts[cohort]?.mobile }[kind])?.costBasis;
     return /** @type {Record<string, [any, any]>} */ ({
       realizedPrice: [cost?.byCoin.realizedPrice, cost?.byCoin.avg.mvrv],
       capitalizedPrice: [cost?.byDollar.capitalizedPrice, cost?.byDollar.avg.ratio],
@@ -1209,7 +1222,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
-        section("Components", entries(t.rarityMeter.components).map(([key, node]) => holderSection(key, entries(node).map(([k, v]) => component(v, words(k), holderName(key).who, referenceOf(key, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")]))))),
+        section("Components", entries(t.rarityMeter.components).map(([key, node]) => holderSection(key, rarityComponents(key, node)))),
         // (Each extreme against its bands: the median and its rare side's tail shown, the others a click away.)
         section("Extremes", [eventsChart(), ...entries(t.rarityMeter.extremes).flatMap(([key, node]) => {
           if (!EXTREMES[key]) {

@@ -245,7 +245,7 @@ impl DefaultPlugins {
             })?;
             let rarity_meter = large_stack_thread().spawn_scoped(scope, || {
                 timed_import(RARITY_METER_ID, || {
-                    RarityMeter::import(context, &mappings, &holders, &cointime, &coinflow)
+                    RarityMeter::import(context, &mappings, &holders, &cointime, &coinflow, &price)
                 })
             })?;
             Ok((supply.join().unwrap()?, rarity_meter.join().unwrap()?))
