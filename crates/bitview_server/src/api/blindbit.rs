@@ -327,7 +327,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             "utxos".into(),
-                            Lifetime::Spends(Sats::ZERO),
+                            Lifetime::Spends(bitview_query::DUST_FLOOR),
                             |q, block| q.blindbit_utxos(block),
                         )
                         .await
