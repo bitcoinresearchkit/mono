@@ -111,10 +111,14 @@ pub(crate) fn generate_llm_clients(
         }
     }
     if let Some(path) = &paths.llm_manifest {
+        let tools = endpoints
+            .iter()
+            .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
+            .collect::<Vec<_>>();
         manifest::generate_tool_manifest(
-            endpoints,
+            &tools,
             schemas,
-            &render_mcp_instructions(endpoints, &terms_and_help)?,
+            &render_mcp_instructions(&tools, &terms_and_help)?,
             path,
         )?;
     }
@@ -239,13 +243,9 @@ fn pretty(value: &Value) -> io::Result<String> {
 }
 
 /// The MCP server's instructions: the skill's pointer, with tools in place of routes.
-fn render_mcp_instructions(endpoints: &[Endpoint], terms_and_help: &str) -> io::Result<String> {
+fn render_mcp_instructions(tools: &[&Endpoint], terms_and_help: &str) -> io::Result<String> {
     let traps = render_traps();
-    let tools = endpoints
-        .iter()
-        .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
-        .collect::<Vec<_>>();
-    let flow = render_series_flow(&tools, |endpoint| endpoint.operation_id.clone())?;
+    let flow = render_series_flow(tools, |endpoint| endpoint.operation_id.clone())?;
     Ok(format!(
         "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS} {terms_and_help}\n\n\
 For a series:\n\n\

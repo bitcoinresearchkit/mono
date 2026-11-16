@@ -35,7 +35,7 @@ use rmcp::{
         },
     },
 };
-use serde_json::{Value, from_str, json};
+use serde_json::{Value, json};
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
     task::spawn_blocking,
@@ -55,8 +55,7 @@ use crate::{
 const CACHE_META_KEY: &str = "org.bitcoinresearchkit/upstreamCache";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 /// Bytes of large upstream bodies that calls may hold at once, from reading the body until the response is written.
-/// Rendering peaks at about ten times the body (the parsed `Value` and the serialized response), so this bounds them
-/// near 1.3 GB, as 16 calls of the largest bodies did. Small bodies, which end within the first read, take none:
+/// The budget allows sixteen maximum-sized bodies. Small bodies, which end within the first read, take none:
 /// their memory is bounded by the calls in flight.
 const BODY_BUDGET: u64 = 16 * MAX_RESPONSE_BYTES;
 /// The longest a call waits for its body's share of the budget.
@@ -221,7 +220,6 @@ impl ServerHandler for BitviewMcp {
         operation
             .validate_arguments(&arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
-        let has_output_schema = operation.tool.output_schema.is_some();
         let url = self
             .state
             .upstream
@@ -271,7 +269,7 @@ impl ServerHandler for BitviewMcp {
                 permit
             });
             log_cache_status(&name, &response);
-            let result = render(response, has_output_schema, &state.server_name);
+            let result = render(response, &state.server_name);
             if let (Some(charge), Some(permit)) = (charge, permit) {
                 let _ = charge.set(permit);
             }
@@ -335,11 +333,7 @@ fn log_cache_status(tool: &str, response: &UpstreamResponse) {
     }
 }
 
-fn render(
-    response: UpstreamResponse,
-    has_output_schema: bool,
-    server_name: &str,
-) -> CallToolResponse {
+fn render(response: UpstreamResponse, server_name: &str) -> CallToolResponse {
     if !(200..300).contains(&response.status) {
         let detail = String::from_utf8_lossy(
             &response.body[..response.body.len().min(MAX_UPSTREAM_ERROR_BYTES)],
@@ -363,25 +357,7 @@ fn render(
     let meta = Some(upstream_meta(&response, server_name));
 
     let is_json = content_type == "application/json" || content_type.ends_with("+json");
-    if is_json && has_output_schema {
-        // The text content is the upstream body itself, so integers beyond u64 (u128 hashrates) stay
-        // exact there. The structured `Value` holds those as f64: exact numbers would need serde_json's
-        // arbitrary_precision, which feature unification would leak into every workspace build.
-        // Checked as UTF-8 once: parsing a `str` skips serde_json's own check of each string.
-        let parsed = String::from_utf8(response.body)
-            .ok()
-            .and_then(|text| Some((from_str::<Value>(&text).ok()?, text)));
-        return match parsed {
-            Some((value, text)) => {
-                let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
-                result.structured_content = Some(value);
-                result.with_meta(meta).into()
-            }
-            None => tool_error("Bitview API returned invalid JSON", server_name),
-        };
-    }
-
-    // JSON without an output schema is passed on as the text it is, unparsed.
+    // Pass JSON through unparsed so every upstream number stays exact.
     if is_json || content_type.starts_with("text/") {
         return match String::from_utf8(response.body) {
             Ok(text) => CallToolResult::success(vec![ContentBlock::text(text)])

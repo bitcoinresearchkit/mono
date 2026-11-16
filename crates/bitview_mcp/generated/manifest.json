@@ -14,261 +14,16 @@
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             }
           },
           "additionalProperties": false,
           "required": [
             "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Address": {
-              "type": "string"
-            },
-            "AddressChainStats": {
-              "required": [
-                "balance",
-                "funded_txo_count",
-                "funded_txo_sum",
-                "spent_txo_count",
-                "spent_txo_sum",
-                "tx_count",
-                "realized_price"
-              ],
-              "type": "object",
-              "properties": {
-                "balance": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "funded_txo_count": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "funded_txo_sum": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "spent_txo_count": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "spent_txo_sum": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "tx_count": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "type_index": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/TypeIndex"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "realized_price": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                }
-              }
-            },
-            "AddressMempoolStats": {
-              "required": [
-                "balance_delta",
-                "funded_txo_count",
-                "funded_txo_sum",
-                "spent_txo_count",
-                "spent_txo_sum",
-                "tx_count"
-              ],
-              "type": "object",
-              "properties": {
-                "balance_delta": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/SatsSigned"
-                    }
-                  ]
-                },
-                "funded_txo_count": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "funded_txo_sum": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "spent_txo_count": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "spent_txo_sum": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "tx_count": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              }
-            },
-            "AddressStats": {
-              "required": [
-                "address",
-                "address_type",
-                "chain_stats",
-                "mempool_stats",
-                "balance"
-              ],
-              "type": "object",
-              "properties": {
-                "address": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Address"
-                    }
-                  ]
-                },
-                "address_type": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/OutputType"
-                    }
-                  ]
-                },
-                "chain_stats": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/AddressChainStats"
-                    }
-                  ]
-                },
-                "mempool_stats": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/AddressMempoolStats"
-                    }
-                  ]
-                },
-                "balance": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                }
-              }
-            },
-            "Dollars": {
-              "type": "number"
-            },
-            "OutputType": {
-              "enum": [
-                "p2pk65",
-                "p2pk33",
-                "p2pkh",
-                "p2ms",
-                "p2sh",
-                "op_return",
-                "p2wpkh",
-                "p2wsh",
-                "p2tr",
-                "p2a",
-                "empty_script",
-                "unknown_script"
-              ],
-              "type": "string"
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "SatsSigned": {
-              "type": "integer"
-            },
-            "TypeIndex": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "address",
-            "address_type",
-            "chain_stats",
-            "mempool_stats",
-            "balance"
-          ],
-          "type": "object",
-          "properties": {
-            "address": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Address"
-                }
-              ]
-            },
-            "address_type": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/OutputType"
-                }
-              ]
-            },
-            "chain_stats": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/AddressChainStats"
-                }
-              ]
-            },
-            "mempool_stats": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/AddressMempoolStats"
-                }
-              ]
-            },
-            "balance": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Sats"
-                }
-              ]
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Address information",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -291,7 +46,7 @@
       "tool": {
         "name": "get_address_confirmed_txs",
         "title": "Address confirmed transactions",
-        "description": "Bitcoin: Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.",
+        "description": "Bitcoin: Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `get_address_confirmed_txs_after` with the last returned txid.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -299,9 +54,7 @@
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             },
             "max_txs": {
@@ -313,11 +66,9 @@
           "additionalProperties": false,
           "required": [
             "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Address confirmed transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -353,18 +104,14 @@
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             },
             "after_txid": {
               "description": "Last txid from the previous page (return transactions strictly older than this)",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
@@ -378,11 +125,9 @@
           "required": [
             "address",
             "after_txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Address confirmed transactions (paginated)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -415,7 +160,7 @@
       "tool": {
         "name": "get_address_hash_prefix_matches",
         "title": "Address hash-prefix matches",
-        "description": "Bitcoin: Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.",
+        "description": "Bitcoin: Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `get_address`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -443,84 +188,9 @@
           "required": [
             "address_type",
             "prefix"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Address": {
-              "type": "string"
-            },
-            "AddressHashPrefixMatches": {
-              "type": "object",
-              "properties": {
-                "address_type": {
-                  "$ref": "#/$defs/AddressOutputType"
-                },
-                "prefix": {
-                  "pattern": "^[0-9a-f]{1,16}$",
-                  "type": "string"
-                },
-                "truncated": {
-                  "type": "boolean"
-                },
-                "addresses": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/Address"
-                  }
-                }
-              },
-              "required": [
-                "address_type",
-                "prefix",
-                "truncated",
-                "addresses"
-              ]
-            },
-            "AddressOutputType": {
-              "enum": [
-                "p2pk65",
-                "p2pk33",
-                "p2pkh",
-                "p2sh",
-                "p2wpkh",
-                "p2wsh",
-                "p2tr",
-                "p2a"
-              ],
-              "type": "string"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "address_type": {
-              "$ref": "#/$defs/AddressOutputType"
-            },
-            "prefix": {
-              "pattern": "^[0-9a-f]{1,16}$",
-              "type": "string"
-            },
-            "truncated": {
-              "type": "boolean"
-            },
-            "addresses": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Address"
-              }
-            }
-          },
-          "required": [
-            "address_type",
-            "prefix",
-            "truncated",
-            "addresses"
           ]
         },
         "annotations": {
-          "title": "Address hash-prefix matches",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -556,9 +226,7 @@
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             },
             "max_txs": {
@@ -570,11 +238,9 @@
           "additionalProperties": false,
           "required": [
             "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Address mempool transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -602,7 +268,7 @@
       "tool": {
         "name": "get_address_txs",
         "title": "Address transactions",
-        "description": "Bitcoin: Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.",
+        "description": "Bitcoin: Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `get_address_confirmed_txs_after` for confirmed history.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -610,18 +276,14 @@
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             },
             "after_txid": {
               "description": "Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed\ncursor skips the mempool). One that is neither answers 422.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
@@ -634,11 +296,9 @@
           "additionalProperties": false,
           "required": [
             "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Address transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -679,20 +339,16 @@
               "description": "Bitcoin address, or the hex public key of a P2PK output.",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             }
           },
           "additionalProperties": false,
           "required": [
             "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Address UTXOs",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -723,8 +379,7 @@
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
-                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -732,206 +387,9 @@
           "additionalProperties": false,
           "required": [
             "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "BlockInfo": {
-              "required": [
-                "id",
-                "height",
-                "version",
-                "timestamp",
-                "bits",
-                "nonce",
-                "difficulty",
-                "merkle_root",
-                "tx_count",
-                "size",
-                "weight",
-                "mediantime"
-              ],
-              "type": "object",
-              "properties": {
-                "id": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
-                },
-                "height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "version": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "bits": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "nonce": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "difficulty": {
-                  "type": "number"
-                },
-                "merkle_root": {
-                  "$ref": "#/$defs/MerkleNode"
-                },
-                "tx_count": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "size": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "weight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
-                },
-                "previousblockhash": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "mediantime": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                }
-              }
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "MerkleNode": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Weight": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "id",
-            "height",
-            "version",
-            "timestamp",
-            "bits",
-            "nonce",
-            "difficulty",
-            "merkle_root",
-            "tx_count",
-            "size",
-            "weight",
-            "mediantime"
-          ],
-          "type": "object",
-          "properties": {
-            "id": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                }
-              ]
-            },
-            "height": {
-              "$ref": "#/$defs/Height"
-            },
-            "version": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "timestamp": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            },
-            "bits": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "nonce": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "difficulty": {
-              "type": "number"
-            },
-            "merkle_root": {
-              "$ref": "#/$defs/MerkleNode"
-            },
-            "tx_count": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "size": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "weight": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Weight"
-                }
-              ]
-            },
-            "previousblockhash": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "mediantime": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Block information",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -962,11 +420,7 @@
               "description": "A Unix timestamp, in seconds.",
               "type": "integer",
               "examples": [
-                1231006505,
-                1672531200,
-                1713571200,
-                1743631892,
-                1759000868
+                1231006505
               ],
               "minimum": 0
             }
@@ -974,62 +428,9 @@
           "additionalProperties": false,
           "required": [
             "timestamp"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "BlockTimestamp": {
-              "required": [
-                "height",
-                "hash",
-                "timestamp"
-              ],
-              "type": "object",
-              "properties": {
-                "height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "hash": {
-                  "$ref": "#/$defs/BlockHash"
-                },
-                "timestamp": {
-                  "format": "date-time",
-                  "type": "string"
-                }
-              }
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "height",
-            "hash",
-            "timestamp"
-          ],
-          "type": "object",
-          "properties": {
-            "height": {
-              "$ref": "#/$defs/Height"
-            },
-            "hash": {
-              "$ref": "#/$defs/BlockHash"
-            },
-            "timestamp": {
-              "format": "date-time",
-              "type": "string"
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Block by timestamp",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1043,61 +444,6 @@
           {
             "name": "timestamp",
             "argument": "timestamp",
-            "location": "path"
-          }
-        ]
-      }
-    },
-    {
-      "tool": {
-        "name": "get_block_fee_rates",
-        "title": "Block fee rates",
-        "description": "Bitcoin: Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
-              "examples": [
-                "24h"
-              ],
-              "type": "string",
-              "enum": [
-                "24h",
-                "3d",
-                "1w",
-                "1m",
-                "3m",
-                "6m",
-                "1y",
-                "2y",
-                "3y",
-                "4y",
-                "all"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "annotations": {
-          "title": "Block fee rates",
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v1/mining/blocks/fee-rates/{time_period}",
-        "parameters": [
-          {
-            "name": "time_period",
-            "argument": "time_period",
             "location": "path"
           }
         ]
@@ -1135,11 +481,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Block fee rates (precise)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1190,11 +534,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Block fees",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1225,10 +567,7 @@
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
-                0,
-                210000,
-                420000,
-                840000
+                0
               ],
               "minimum": 0
             }
@@ -1236,11 +575,9 @@
           "additionalProperties": false,
           "required": [
             "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Block hash by height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1271,8 +608,7 @@
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
-                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -1280,11 +616,9 @@
           "additionalProperties": false,
           "required": [
             "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Block header",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1335,11 +669,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Block rewards",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1390,127 +722,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "BlockSizeEntry": {
-              "required": [
-                "avgHeight",
-                "timestamp",
-                "avgSize"
-              ],
-              "type": "object",
-              "properties": {
-                "avgHeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "avgSize": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              }
-            },
-            "BlockSizesWeights": {
-              "type": "object",
-              "properties": {
-                "sizes": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/BlockSizeEntry"
-                  }
-                },
-                "weights": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/BlockWeightEntry"
-                  }
-                }
-              },
-              "required": [
-                "sizes",
-                "weights"
-              ]
-            },
-            "BlockWeightEntry": {
-              "required": [
-                "avgHeight",
-                "timestamp",
-                "avgWeight"
-              ],
-              "type": "object",
-              "properties": {
-                "avgHeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "avgWeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
-                }
-              }
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Weight": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "sizes": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/BlockSizeEntry"
-              }
-            },
-            "weights": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/BlockWeightEntry"
-              }
-            }
-          },
-          "required": [
-            "sizes",
-            "weights"
           ]
         },
         "annotations": {
-          "title": "Block sizes and weights",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1541,8 +755,7 @@
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
-                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -1550,84 +763,9 @@
           "additionalProperties": false,
           "required": [
             "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "BlockStatus": {
-              "type": "object",
-              "properties": {
-                "in_best_chain": {
-                  "type": "boolean"
-                },
-                "height": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "next_best": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "in_best_chain"
-              ]
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "in_best_chain": {
-              "type": "boolean"
-            },
-            "height": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "next_best": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "in_best_chain"
           ]
         },
         "annotations": {
-          "title": "Block status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1654,11 +792,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Block tip hash",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1679,11 +815,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Block tip height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1708,8 +842,7 @@
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
-                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
@@ -1726,11 +859,9 @@
           "required": [
             "hash",
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Transaction ID at index",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1766,8 +897,7 @@
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
-                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
@@ -1784,11 +914,9 @@
           "required": [
             "hash",
             "start_index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Block transactions (paginated)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -1824,8 +952,7 @@
               "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
               "type": "string",
               "examples": [
-                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
-                "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -1833,724 +960,9 @@
           "additionalProperties": false,
           "required": [
             "hash"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Address": {
-              "type": "string"
-            },
-            "BlockExtras": {
-              "required": [
-                "totalFees",
-                "medianFee",
-                "feeRange",
-                "reward",
-                "pool",
-                "avgFee",
-                "avgFeeRate",
-                "coinbaseRaw",
-                "coinbaseAddresses",
-                "coinbaseSignature",
-                "coinbaseSignatureAscii",
-                "avgTxSize",
-                "totalInputs",
-                "totalOutputs",
-                "totalOutputAmt",
-                "medianFeeAmt",
-                "feePercentiles",
-                "segwitTotalTxs",
-                "segwitTotalSize",
-                "segwitTotalWeight",
-                "header",
-                "utxoSetChange",
-                "utxoSetSize",
-                "totalInputAmt",
-                "virtualSize",
-                "orphans",
-                "price"
-              ],
-              "type": "object",
-              "properties": {
-                "totalFees": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "medianFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                },
-                "feeRange": {
-                  "maxItems": 7,
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/FeeRate"
-                  },
-                  "minItems": 7
-                },
-                "reward": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "pool": {
-                  "$ref": "#/$defs/BlockPool"
-                },
-                "avgFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "avgFeeRate": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                },
-                "coinbaseRaw": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Hex"
-                    }
-                  ]
-                },
-                "coinbaseAddress": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Address"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "coinbaseAddresses": {
-                  "items": {
-                    "$ref": "#/$defs/Address"
-                  },
-                  "type": "array"
-                },
-                "coinbaseSignature": {
-                  "type": "string"
-                },
-                "coinbaseSignatureAscii": {
-                  "type": "string"
-                },
-                "avgTxSize": {
-                  "type": "number"
-                },
-                "totalInputs": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "totalOutputs": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "totalOutputAmt": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "medianFeeAmt": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "feePercentiles": {
-                  "maxItems": 7,
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/Sats"
-                  },
-                  "minItems": 7
-                },
-                "segwitTotalTxs": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "segwitTotalSize": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "segwitTotalWeight": {
-                  "$ref": "#/$defs/Weight"
-                },
-                "header": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Hex"
-                    }
-                  ]
-                },
-                "utxoSetChange": {
-                  "type": "integer"
-                },
-                "utxoSetSize": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "totalInputAmt": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "virtualSize": {
-                  "type": "number"
-                },
-                "coinbaseBip54": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "firstSeen": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "orphans": {
-                  "items": {
-                    "$ref": "#/$defs/BlockOrphan"
-                  },
-                  "type": "array"
-                },
-                "matchRate": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "expectedFees": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "expectedWeight": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "price": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                }
-              }
-            },
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "BlockInfoV1": {
-              "required": [
-                "id",
-                "height",
-                "version",
-                "timestamp",
-                "bits",
-                "nonce",
-                "difficulty",
-                "merkle_root",
-                "tx_count",
-                "size",
-                "weight",
-                "mediantime",
-                "extras"
-              ],
-              "type": "object",
-              "properties": {
-                "id": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
-                },
-                "height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "version": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "bits": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "nonce": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "difficulty": {
-                  "type": "number"
-                },
-                "merkle_root": {
-                  "$ref": "#/$defs/MerkleNode"
-                },
-                "tx_count": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "size": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "weight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
-                },
-                "previousblockhash": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "mediantime": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "stale": {
-                  "type": "boolean"
-                },
-                "extras": {
-                  "$ref": "#/$defs/BlockExtras"
-                }
-              }
-            },
-            "BlockOrphan": {
-              "required": [
-                "height",
-                "hash",
-                "branchlen",
-                "status",
-                "prevhash"
-              ],
-              "type": "object",
-              "properties": {
-                "height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "hash": {
-                  "$ref": "#/$defs/BlockHash"
-                },
-                "branchlen": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "status": {
-                  "$ref": "#/$defs/BlockOrphanStatus"
-                },
-                "prevhash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
-                }
-              }
-            },
-            "BlockOrphanStatus": {
-              "oneOf": [
-                {
-                  "const": "valid-headers",
-                  "type": "string"
-                },
-                {
-                  "const": "valid-fork",
-                  "type": "string"
-                }
-              ]
-            },
-            "BlockPool": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "maximum": 255,
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "name": {
-                  "type": "string"
-                },
-                "slug": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/PoolSlug"
-                    }
-                  ]
-                },
-                "blockNumber": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "minerNames": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": [
-                    "array",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "slug",
-                "blockNumber"
-              ]
-            },
-            "Dollars": {
-              "type": "number"
-            },
-            "FeeRate": {
-              "type": "number"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Hex": {
-              "pattern": "^([0-9a-f]{2})*$",
-              "type": "string"
-            },
-            "MerkleNode": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "PoolSlug": {
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ],
-              "type": "string"
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Weight": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "id",
-            "height",
-            "version",
-            "timestamp",
-            "bits",
-            "nonce",
-            "difficulty",
-            "merkle_root",
-            "tx_count",
-            "size",
-            "weight",
-            "mediantime",
-            "extras"
-          ],
-          "type": "object",
-          "properties": {
-            "id": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                }
-              ]
-            },
-            "height": {
-              "$ref": "#/$defs/Height"
-            },
-            "version": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "timestamp": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            },
-            "bits": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "nonce": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "difficulty": {
-              "type": "number"
-            },
-            "merkle_root": {
-              "$ref": "#/$defs/MerkleNode"
-            },
-            "tx_count": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "size": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "weight": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Weight"
-                }
-              ]
-            },
-            "previousblockhash": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "mediantime": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            },
-            "stale": {
-              "type": "boolean"
-            },
-            "extras": {
-              "$ref": "#/$defs/BlockExtras"
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Block (v1)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2577,11 +989,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Recent blocks",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2606,10 +1016,7 @@
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
-                0,
-                210000,
-                420000,
-                840000
+                0
               ],
               "minimum": 0
             }
@@ -2617,11 +1024,9 @@
           "additionalProperties": false,
           "required": [
             "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Blocks from height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2648,11 +1053,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Recent blocks with extras",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2677,10 +1080,7 @@
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
-                0,
-                210000,
-                420000,
-                840000
+                0
               ],
               "minimum": 0
             }
@@ -2688,11 +1088,9 @@
           "additionalProperties": false,
           "required": [
             "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Blocks from height with extras",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2723,9 +1121,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -2733,11 +1129,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "CPFP info",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2764,158 +1158,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "DifficultyAdjustment": {
-              "type": "object",
-              "properties": {
-                "progressPercent": {
-                  "type": "number"
-                },
-                "difficultyChange": {
-                  "type": "number"
-                },
-                "estimatedRetargetDate": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "remainingBlocks": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "remainingTime": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "previousRetarget": {
-                  "type": "number"
-                },
-                "previousTime": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "nextRetargetHeight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "timeAvg": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "adjustedTimeAvg": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "timeOffset": {
-                  "type": "integer"
-                },
-                "expectedBlocks": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "progressPercent",
-                "difficultyChange",
-                "estimatedRetargetDate",
-                "remainingBlocks",
-                "remainingTime",
-                "previousRetarget",
-                "previousTime",
-                "nextRetargetHeight",
-                "timeAvg",
-                "adjustedTimeAvg",
-                "timeOffset",
-                "expectedBlocks"
-              ]
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "progressPercent": {
-              "type": "number"
-            },
-            "difficultyChange": {
-              "type": "number"
-            },
-            "estimatedRetargetDate": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "remainingBlocks": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "remainingTime": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "previousRetarget": {
-              "type": "number"
-            },
-            "previousTime": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            },
-            "nextRetargetHeight": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "timeAvg": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "adjustedTimeAvg": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "timeOffset": {
-              "type": "integer"
-            },
-            "expectedBlocks": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "progressPercent",
-            "difficultyChange",
-            "estimatedRetargetDate",
-            "remainingBlocks",
-            "remainingTime",
-            "previousRetarget",
-            "previousTime",
-            "nextRetargetHeight",
-            "timeAvg",
-            "adjustedTimeAvg",
-            "timeOffset",
-            "expectedBlocks"
-          ]
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Difficulty adjustment",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -2925,31 +1170,6 @@
       "http": {
         "method": "GET",
         "path": "/api/v1/difficulty-adjustment",
-        "parameters": []
-      }
-    },
-    {
-      "tool": {
-        "name": "get_difficulty_adjustments",
-        "title": "Difficulty adjustments (all time)",
-        "description": "Bitcoin: Every difficulty adjustment in the chain's history.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "annotations": {
-          "title": "Difficulty adjustments (all time)",
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v1/mining/difficulty-adjustments",
         "parameters": []
       }
     },
@@ -2985,11 +1205,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Difficulty adjustments",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3012,15 +1230,13 @@
       "tool": {
         "name": "get_fullrbf_replacements",
         "title": "Recent full-RBF replacements",
-        "description": "Bitcoin: Same response shape as `GET /api/v1/replacements`, but limited to trees where at least one predecessor was non-signaling (full-RBF).",
+        "description": "Bitcoin: Same response shape as `get_replacements`, but limited to trees where at least one predecessor was non-signaling (full-RBF).",
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Recent full-RBF replacements",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3030,149 +1246,6 @@
       "http": {
         "method": "GET",
         "path": "/api/v1/fullrbf/replacements",
-        "parameters": []
-      }
-    },
-    {
-      "tool": {
-        "name": "get_hashrate",
-        "title": "Network hashrate (all time)",
-        "description": "Bitcoin: Get network hashrate and difficulty data for all time.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "DifficultyEntry": {
-              "required": [
-                "time",
-                "height",
-                "difficulty",
-                "adjustment"
-              ],
-              "type": "object",
-              "properties": {
-                "time": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "difficulty": {
-                  "type": "number"
-                },
-                "adjustment": {
-                  "type": "number"
-                }
-              }
-            },
-            "HashrateEntry": {
-              "type": "object",
-              "properties": {
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "avgHashrate": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "timestamp",
-                "avgHashrate"
-              ]
-            },
-            "HashrateSummary": {
-              "type": "object",
-              "properties": {
-                "hashrates": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/HashrateEntry"
-                  }
-                },
-                "difficulty": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/DifficultyEntry"
-                  }
-                },
-                "currentHashrate": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "currentDifficulty": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "hashrates",
-                "difficulty",
-                "currentHashrate",
-                "currentDifficulty"
-              ]
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "hashrates": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/HashrateEntry"
-              }
-            },
-            "difficulty": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/DifficultyEntry"
-              }
-            },
-            "currentHashrate": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "currentDifficulty": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "hashrates",
-            "difficulty",
-            "currentHashrate",
-            "currentDifficulty"
-          ]
-        },
-        "annotations": {
-          "title": "Network hashrate (all time)",
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v1/mining/hashrate",
         "parameters": []
       }
     },
@@ -3208,129 +1281,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "DifficultyEntry": {
-              "required": [
-                "time",
-                "height",
-                "difficulty",
-                "adjustment"
-              ],
-              "type": "object",
-              "properties": {
-                "time": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "difficulty": {
-                  "type": "number"
-                },
-                "adjustment": {
-                  "type": "number"
-                }
-              }
-            },
-            "HashrateEntry": {
-              "type": "object",
-              "properties": {
-                "timestamp": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "avgHashrate": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "timestamp",
-                "avgHashrate"
-              ]
-            },
-            "HashrateSummary": {
-              "type": "object",
-              "properties": {
-                "hashrates": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/HashrateEntry"
-                  }
-                },
-                "difficulty": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/DifficultyEntry"
-                  }
-                },
-                "currentHashrate": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "currentDifficulty": {
-                  "type": "number"
-                }
-              },
-              "required": [
-                "hashrates",
-                "difficulty",
-                "currentHashrate",
-                "currentDifficulty"
-              ]
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "hashrates": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/HashrateEntry"
-              }
-            },
-            "difficulty": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/DifficultyEntry"
-              }
-            },
-            "currentHashrate": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "currentDifficulty": {
-              "type": "number"
-            }
-          },
-          "required": [
-            "hashrates",
-            "difficulty",
-            "currentHashrate",
-            "currentDifficulty"
           ]
         },
         "annotations": {
-          "title": "Network hashrate",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3361,11 +1314,7 @@
               "description": "UNIX timestamp: the latest close at or before it",
               "type": "integer",
               "examples": [
-                1231006505,
-                1672531200,
-                1713571200,
-                1743631892,
-                1759000868
+                1231006505
               ],
               "minimum": 0
             },
@@ -3377,92 +1326,9 @@
               ]
             }
           },
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Dollars": {
-              "type": "number"
-            },
-            "ExchangeRates": {
-              "additionalProperties": false,
-              "type": "object"
-            },
-            "HistoricalPrice": {
-              "type": "object",
-              "properties": {
-                "prices": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/PricePoint"
-                  }
-                },
-                "exchangeRates": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/ExchangeRates"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "prices",
-                "exchangeRates"
-              ]
-            },
-            "PricePoint": {
-              "required": [
-                "time",
-                "USD"
-              ],
-              "type": "object",
-              "properties": {
-                "time": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "USD": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                }
-              }
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "prices": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/PricePoint"
-              }
-            },
-            "exchangeRates": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/ExchangeRates"
-                }
-              ]
-            }
-          },
-          "required": [
-            "prices",
-            "exchangeRates"
-          ]
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Historical price",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3494,102 +1360,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "MempoolInfo": {
-              "required": [
-                "count",
-                "vsize",
-                "total_fee",
-                "fee_histogram"
-              ],
-              "type": "object",
-              "properties": {
-                "count": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "vsize": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/VSize"
-                    }
-                  ]
-                },
-                "total_fee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "fee_histogram": {
-                  "items": {
-                    "type": "array",
-                    "items": {
-                      "type": "number"
-                    },
-                    "minItems": 2,
-                    "maxItems": 2
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "VSize": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "count",
-            "vsize",
-            "total_fee",
-            "fee_histogram"
-          ],
-          "type": "object",
-          "properties": {
-            "count": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "vsize": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/VSize"
-                }
-              ]
-            },
-            "total_fee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Sats"
-                }
-              ]
-            },
-            "fee_histogram": {
-              "items": {
-                "type": "array",
-                "items": {
-                  "type": "number"
-                },
-                "minItems": 2,
-                "maxItems": 2
-              },
-              "type": "array"
-            }
-          }
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Mempool statistics",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3610,11 +1383,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Projected mempool blocks",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3635,11 +1406,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Recent mempool transactions",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -3837,363 +1606,9 @@
           "additionalProperties": false,
           "required": [
             "slug"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Address": {
-              "type": "string"
-            },
-            "PoolBlockCounts": {
-              "required": [
-                "all",
-                "24h",
-                "1w"
-              ],
-              "type": "object",
-              "properties": {
-                "all": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "24h": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "1w": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              }
-            },
-            "PoolBlockShares": {
-              "required": [
-                "all",
-                "24h",
-                "1w"
-              ],
-              "type": "object",
-              "properties": {
-                "all": {
-                  "type": "number"
-                },
-                "24h": {
-                  "type": "number"
-                },
-                "1w": {
-                  "type": "number"
-                }
-              }
-            },
-            "PoolDetail": {
-              "type": "object",
-              "properties": {
-                "pool": {
-                  "$ref": "#/$defs/PoolDetailInfo"
-                },
-                "blockCount": {
-                  "$ref": "#/$defs/PoolBlockCounts"
-                },
-                "blockShare": {
-                  "$ref": "#/$defs/PoolBlockShares"
-                },
-                "estimatedHashrate": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "reportedHashrate": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "avgBlockHealth": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "totalReward": {
-                  "pattern": "^[0-9]+$",
-                  "type": "string"
-                }
-              },
-              "required": [
-                "pool",
-                "blockCount",
-                "blockShare",
-                "estimatedHashrate",
-                "totalReward"
-              ]
-            },
-            "PoolDetailInfo": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "maximum": 255,
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "name": {
-                  "type": "string"
-                },
-                "link": {
-                  "type": "string"
-                },
-                "addresses": {
-                  "items": {
-                    "$ref": "#/$defs/Address"
-                  },
-                  "type": "array"
-                },
-                "regexes": {
-                  "items": {
-                    "type": "string"
-                  },
-                  "type": "array"
-                },
-                "slug": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/PoolSlug"
-                    }
-                  ]
-                },
-                "unique_id": {
-                  "maximum": 255,
-                  "type": "integer",
-                  "minimum": 0
-                }
-              },
-              "required": [
-                "id",
-                "name",
-                "link",
-                "addresses",
-                "regexes",
-                "slug",
-                "unique_id"
-              ]
-            },
-            "PoolSlug": {
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ],
-              "type": "string"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "pool": {
-              "$ref": "#/$defs/PoolDetailInfo"
-            },
-            "blockCount": {
-              "$ref": "#/$defs/PoolBlockCounts"
-            },
-            "blockShare": {
-              "$ref": "#/$defs/PoolBlockShares"
-            },
-            "estimatedHashrate": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "reportedHashrate": {
-              "minimum": 0,
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "avgBlockHealth": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "totalReward": {
-              "pattern": "^[0-9]+$",
-              "type": "string"
-            }
-          },
-          "required": [
-            "pool",
-            "blockCount",
-            "blockShare",
-            "estimatedHashrate",
-            "totalReward"
           ]
         },
         "annotations": {
-          "title": "Mining pool details",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4397,11 +1812,9 @@
           "additionalProperties": false,
           "required": [
             "slug"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Mining pool blocks",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4605,10 +2018,7 @@
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
-                0,
-                210000,
-                420000,
-                840000
+                0
               ],
               "minimum": 0
             }
@@ -4617,11 +2027,9 @@
           "required": [
             "slug",
             "height"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Mining pool blocks before height",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4830,11 +2238,9 @@
           "additionalProperties": false,
           "required": [
             "slug"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Mining pool hashrate",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -4885,320 +2291,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "PoolSlug": {
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ],
-              "type": "string"
-            },
-            "PoolStats": {
-              "required": [
-                "poolId",
-                "name",
-                "link",
-                "blockCount",
-                "rank",
-                "emptyBlocks",
-                "slug",
-                "poolUniqueId",
-                "share"
-              ],
-              "type": "object",
-              "properties": {
-                "poolId": {
-                  "maximum": 255,
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "name": {
-                  "type": "string"
-                },
-                "link": {
-                  "type": "string"
-                },
-                "blockCount": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "rank": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "emptyBlocks": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "slug": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/PoolSlug"
-                    }
-                  ]
-                },
-                "avgMatchRate": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "avgFeeDelta": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "poolUniqueId": {
-                  "maximum": 255,
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "share": {
-                  "type": "number"
-                }
-              }
-            },
-            "PoolsSummary": {
-              "type": "object",
-              "properties": {
-                "pools": {
-                  "items": {
-                    "$ref": "#/$defs/PoolStats"
-                  },
-                  "type": "array"
-                },
-                "blockCount": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "lastEstimatedHashrate": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "lastEstimatedHashrate3d": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "lastEstimatedHashrate1w": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "pools",
-                "blockCount",
-                "lastEstimatedHashrate",
-                "lastEstimatedHashrate3d",
-                "lastEstimatedHashrate1w"
-              ]
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "pools": {
-              "items": {
-                "$ref": "#/$defs/PoolStats"
-              },
-              "type": "array"
-            },
-            "blockCount": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "lastEstimatedHashrate": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "lastEstimatedHashrate3d": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "lastEstimatedHashrate1w": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "required": [
-            "pools",
-            "blockCount",
-            "lastEstimatedHashrate",
-            "lastEstimatedHashrate3d",
-            "lastEstimatedHashrate1w"
           ]
         },
         "annotations": {
-          "title": "Mining pool statistics",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5225,11 +2320,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "List all mining pools",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5239,31 +2332,6 @@
       "http": {
         "method": "GET",
         "path": "/api/v1/mining/pools",
-        "parameters": []
-      }
-    },
-    {
-      "tool": {
-        "name": "get_pools_hashrate",
-        "title": "All pools hashrate (all time)",
-        "description": "Bitcoin: Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "annotations": {
-          "title": "All pools hashrate (all time)",
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/v1/mining/hashrate/pools",
         "parameters": []
       }
     },
@@ -5299,11 +2367,9 @@
           "additionalProperties": false,
           "required": [
             "time_period"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "All pools hashrate",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5330,111 +2396,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "FeeRate": {
-              "type": "number"
-            },
-            "PreciseRecommendedFees": {
-              "required": [
-                "fastestFee",
-                "halfHourFee",
-                "hourFee",
-                "economyFee",
-                "minimumFee"
-              ],
-              "type": "object",
-              "properties": {
-                "fastestFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                },
-                "halfHourFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                },
-                "hourFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                },
-                "economyFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                },
-                "minimumFee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/FeeRate"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "fastestFee",
-            "halfHourFee",
-            "hourFee",
-            "economyFee",
-            "minimumFee"
-          ],
-          "type": "object",
-          "properties": {
-            "fastestFee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/FeeRate"
-                }
-              ]
-            },
-            "halfHourFee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/FeeRate"
-                }
-              ]
-            },
-            "hourFee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/FeeRate"
-                }
-              ]
-            },
-            "economyFee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/FeeRate"
-                }
-              ]
-            },
-            "minimumFee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/FeeRate"
-                }
-              ]
-            }
-          }
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Recommended fee rates (precise)",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5455,67 +2419,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Dollars": {
-              "type": "number"
-            },
-            "PricePoint": {
-              "required": [
-                "time",
-                "USD"
-              ],
-              "type": "object",
-              "properties": {
-                "time": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "USD": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                }
-              }
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "time",
-            "USD"
-          ],
-          "type": "object",
-          "properties": {
-            "time": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            },
-            "USD": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Dollars"
-                }
-              ]
-            }
-          }
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Current BTC price",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5532,15 +2438,13 @@
       "tool": {
         "name": "get_replacements",
         "title": "Recent RBF replacements",
-        "description": "Bitcoin: Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.",
+        "description": "Bitcoin: Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `get_tx_rbf`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Recent RBF replacements",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5573,94 +2477,9 @@
           "additionalProperties": false,
           "required": [
             "block_count"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "RewardStats": {
-              "required": [
-                "startBlock",
-                "endBlock",
-                "totalReward",
-                "totalFee",
-                "totalTx"
-              ],
-              "type": "object",
-              "properties": {
-                "startBlock": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "endBlock": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "totalReward": {
-                  "pattern": "^[0-9]+$",
-                  "type": "string"
-                },
-                "totalFee": {
-                  "pattern": "^[0-9]+$",
-                  "type": "string"
-                },
-                "totalTx": {
-                  "pattern": "^[0-9]+$",
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "startBlock",
-            "endBlock",
-            "totalReward",
-            "totalFee",
-            "totalTx"
-          ],
-          "type": "object",
-          "properties": {
-            "startBlock": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "endBlock": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "totalReward": {
-              "pattern": "^[0-9]+$",
-              "type": "string"
-            },
-            "totalFee": {
-              "pattern": "^[0-9]+$",
-              "type": "string"
-            },
-            "totalTx": {
-              "pattern": "^[0-9]+$",
-              "type": "string"
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Mining reward statistics",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5690,9 +2509,7 @@
             "series": {
               "type": "string",
               "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
+                "price_close"
               ],
               "pattern": "^[a-z0-9_]+$"
             },
@@ -5742,8 +2559,7 @@
                 {
                   "type": "integer",
                   "examples": [
-                    0,
-                    -366
+                    0
                   ]
                 },
                 {
@@ -5773,8 +2589,7 @@
                 {
                   "type": "integer",
                   "examples": [
-                    0,
-                    -366
+                    0
                   ]
                 },
                 {
@@ -5802,9 +2617,7 @@
               "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
               "type": "integer",
               "examples": [
-                1,
-                10,
-                100
+                1
               ],
               "minimum": 0
             },
@@ -5820,11 +2633,9 @@
           "required": [
             "series",
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Get series data",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -5880,10 +2691,7 @@
               "description": "Comma-separated list of series names\n\nDeserialization permits at most 32 names, each exact, and 2,048 decoded input\nstring bytes. Array members must all be strings and share the byte budget.",
               "type": "string",
               "examples": [
-                "date,price_close",
-                "price_close",
-                "price_close,market_cap",
-                "realized_price,market_cap,mvrv"
+                "date,price_close"
               ],
               "maxLength": 2048
             },
@@ -5933,8 +2741,7 @@
                 {
                   "type": "integer",
                   "examples": [
-                    0,
-                    -366
+                    0
                   ]
                 },
                 {
@@ -5964,8 +2771,7 @@
                 {
                   "type": "integer",
                   "examples": [
-                    0,
-                    -366
+                    0
                   ]
                 },
                 {
@@ -5993,9 +2799,7 @@
               "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
               "type": "integer",
               "examples": [
-                1,
-                10,
-                100
+                1
               ],
               "minimum": 0
             },
@@ -6011,11 +2815,9 @@
           "required": [
             "series",
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Bulk series data",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6067,109 +2869,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "DetailedSeriesCount": {
-              "required": [
-                "distinct",
-                "total",
-                "lazy",
-                "stored",
-                "by_db"
-              ],
-              "type": "object",
-              "properties": {
-                "distinct": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "total": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "lazy": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "stored": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "by_db": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "$ref": "#/$defs/SeriesCount"
-                  }
-                }
-              }
-            },
-            "SeriesCount": {
-              "type": "object",
-              "properties": {
-                "distinct": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "total": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "lazy": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "stored": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              },
-              "required": [
-                "distinct",
-                "total",
-                "lazy",
-                "stored"
-              ]
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "distinct",
-            "total",
-            "lazy",
-            "stored",
-            "by_db"
-          ],
-          "type": "object",
-          "properties": {
-            "distinct": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "total": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "lazy": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "stored": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "by_db": {
-              "type": "object",
-              "additionalProperties": {
-                "$ref": "#/$defs/SeriesCount"
-              }
-            }
-          }
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Series count",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6193,9 +2895,7 @@
             "series": {
               "type": "string",
               "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
+                "price_close"
               ],
               "pattern": "^[a-z0-9_]+$"
             }
@@ -6203,156 +2903,9 @@
           "additionalProperties": false,
           "required": [
             "series"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Accumulation": {
-              "oneOf": [
-                {
-                  "const": "flow",
-                  "type": "string"
-                },
-                {
-                  "const": "level",
-                  "type": "string"
-                },
-                {
-                  "const": "cumulative",
-                  "type": "string"
-                }
-              ]
-            },
-            "Index": {
-              "enum": [
-                "minute10",
-                "minute30",
-                "hour1",
-                "hour4",
-                "hour12",
-                "day1",
-                "day3",
-                "week1",
-                "month1",
-                "month3",
-                "month6",
-                "year1",
-                "year10",
-                "halving_epoch",
-                "difficulty_epoch",
-                "height",
-                "tx_index",
-                "txin_index",
-                "txout_index",
-                "empty_script_output_index",
-                "op_return_output_index",
-                "p2a_address_index",
-                "p2ms_output_index",
-                "p2pk33_address_index",
-                "p2pk65_address_index",
-                "p2pkh_address_index",
-                "p2sh_address_index",
-                "p2tr_address_index",
-                "p2wpkh_address_index",
-                "p2wsh_address_index",
-                "unknown_script_output_index"
-              ],
-              "type": "string"
-            },
-            "SeriesInfo": {
-              "type": "object",
-              "properties": {
-                "description": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "indexes": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/Index"
-                  }
-                },
-                "nullable": {
-                  "items": {
-                    "$ref": "#/$defs/Index"
-                  },
-                  "type": "array"
-                },
-                "type": {
-                  "type": "string"
-                },
-                "unit": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "accumulation": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Accumulation"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "indexes",
-                "nullable",
-                "type",
-                "accumulation"
-              ]
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "indexes": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Index"
-              }
-            },
-            "nullable": {
-              "items": {
-                "$ref": "#/$defs/Index"
-              },
-              "type": "array"
-            },
-            "type": {
-              "type": "string"
-            },
-            "unit": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "accumulation": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Accumulation"
-                }
-              ]
-            }
-          },
-          "required": [
-            "indexes",
-            "nullable",
-            "type",
-            "accumulation"
           ]
         },
         "annotations": {
-          "title": "Get series info",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6382,9 +2935,7 @@
             "series": {
               "type": "string",
               "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
+                "price_close"
               ],
               "pattern": "^[a-z0-9_]+$"
             },
@@ -6433,11 +2984,9 @@
           "required": [
             "series",
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Get latest series value",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6472,9 +3021,7 @@
             "series": {
               "type": "string",
               "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
+                "price_close"
               ],
               "pattern": "^[a-z0-9_]+$"
             },
@@ -6523,11 +3070,9 @@
           "required": [
             "series",
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Get series data length",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6562,9 +3107,7 @@
             "series": {
               "type": "string",
               "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
+                "price_close"
               ],
               "pattern": "^[a-z0-9_]+$"
             },
@@ -6613,11 +3156,9 @@
           "required": [
             "series",
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Get series version",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6649,126 +3190,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "SyncStatus": {
-              "type": "object",
-              "properties": {
-                "indexed_height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "computed_height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "tip_height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "blocks_behind": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "last_indexed_at": {
-                  "format": "date-time",
-                  "type": "string"
-                },
-                "last_indexed_at_unix": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "indexed_height",
-                "computed_height",
-                "tip_height",
-                "blocks_behind",
-                "last_indexed_at",
-                "last_indexed_at_unix"
-              ]
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "indexed_height": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "computed_height": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "tip_height": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "blocks_behind": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "last_indexed_at": {
-              "format": "date-time",
-              "type": "string"
-            },
-            "last_indexed_at_unix": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                }
-              ]
-            }
-          },
-          "required": [
-            "indexed_height",
-            "computed_height",
-            "tip_height",
-            "blocks_behind",
-            "last_indexed_at",
-            "last_indexed_at_unix"
-          ]
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Sync status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6803,22 +3227,18 @@
           "required": [
             "txids"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
         "annotations": {
-          "title": "Transaction first-seen times",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -6849,9 +3269,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -6859,407 +3277,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Address": {
-              "type": "string"
-            },
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Hex": {
-              "pattern": "^([0-9a-f]{2})*$",
-              "type": "string"
-            },
-            "OutputTypeNormalized": {
-              "enum": [
-                "p2pk",
-                "p2pkh",
-                "multisig",
-                "p2sh",
-                "op_return",
-                "v0_p2wpkh",
-                "v0_p2wsh",
-                "v1_p2tr",
-                "anchor",
-                "empty",
-                "unknown"
-              ],
-              "type": "string"
-            },
-            "RawLockTime": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "SigOps": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Transaction": {
-              "required": [
-                "txid",
-                "version",
-                "locktime",
-                "vin",
-                "vout",
-                "size",
-                "weight",
-                "sigops",
-                "fee",
-                "status"
-              ],
-              "type": "object",
-              "properties": {
-                "index": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/TxIndex"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "txid": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Txid"
-                    }
-                  ]
-                },
-                "version": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/TxVersionRaw"
-                    }
-                  ]
-                },
-                "locktime": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/RawLockTime"
-                    }
-                  ]
-                },
-                "vin": {
-                  "items": {
-                    "$ref": "#/$defs/TxIn"
-                  },
-                  "type": "array"
-                },
-                "vout": {
-                  "items": {
-                    "$ref": "#/$defs/TxOut"
-                  },
-                  "type": "array"
-                },
-                "size": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "weight": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Weight"
-                    }
-                  ]
-                },
-                "sigops": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/SigOps"
-                    }
-                  ]
-                },
-                "fee": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "status": {
-                  "$ref": "#/$defs/TxStatus"
-                }
-              }
-            },
-            "TxIn": {
-              "type": "object",
-              "properties": {
-                "txid": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Txid"
-                    }
-                  ]
-                },
-                "vout": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Vout"
-                    }
-                  ]
-                },
-                "prevout": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/TxOut"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "scriptsig": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Hex"
-                    }
-                  ]
-                },
-                "scriptsig_asm": {
-                  "type": "string"
-                },
-                "witness": {
-                  "items": {
-                    "$ref": "#/$defs/Hex"
-                  },
-                  "type": "array"
-                },
-                "is_coinbase": {
-                  "type": "boolean"
-                },
-                "sequence": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "inner_redeemscript_asm": {
-                  "type": "string"
-                },
-                "inner_witnessscript_asm": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "txid",
-                "vout",
-                "prevout",
-                "scriptsig",
-                "scriptsig_asm",
-                "is_coinbase",
-                "sequence"
-              ]
-            },
-            "TxIndex": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "TxOut": {
-              "type": "object",
-              "properties": {
-                "scriptpubkey": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Hex"
-                    }
-                  ]
-                },
-                "scriptpubkey_asm": {
-                  "type": "string"
-                },
-                "scriptpubkey_type": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/OutputTypeNormalized"
-                    }
-                  ]
-                },
-                "scriptpubkey_address": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Address"
-                    }
-                  ]
-                },
-                "value": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "scriptpubkey",
-                "scriptpubkey_asm",
-                "scriptpubkey_type",
-                "value"
-              ]
-            },
-            "TxStatus": {
-              "type": "object",
-              "properties": {
-                "confirmed": {
-                  "type": "boolean"
-                },
-                "block_height": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "block_hash": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "block_time": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "confirmed"
-              ]
-            },
-            "TxVersionRaw": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Txid": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Vout": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Weight": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "txid",
-            "version",
-            "locktime",
-            "vin",
-            "vout",
-            "size",
-            "weight",
-            "sigops",
-            "fee",
-            "status"
-          ],
-          "type": "object",
-          "properties": {
-            "index": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/TxIndex"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "txid": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Txid"
-                }
-              ]
-            },
-            "version": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/TxVersionRaw"
-                }
-              ]
-            },
-            "locktime": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/RawLockTime"
-                }
-              ]
-            },
-            "vin": {
-              "items": {
-                "$ref": "#/$defs/TxIn"
-              },
-              "type": "array"
-            },
-            "vout": {
-              "items": {
-                "$ref": "#/$defs/TxOut"
-              },
-              "type": "array"
-            },
-            "size": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "weight": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Weight"
-                }
-              ]
-            },
-            "sigops": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/SigOps"
-                }
-              ]
-            },
-            "fee": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Sats"
-                }
-              ]
-            },
-            "status": {
-              "$ref": "#/$defs/TxStatus"
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Transaction information",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7290,9 +3310,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -7300,11 +3318,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Transaction hex",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7335,9 +3351,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -7345,68 +3359,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "MerkleNode": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "MerkleProof": {
-              "required": [
-                "block_height",
-                "merkle",
-                "pos"
-              ],
-              "type": "object",
-              "properties": {
-                "block_height": {
-                  "$ref": "#/$defs/Height"
-                },
-                "merkle": {
-                  "items": {
-                    "$ref": "#/$defs/MerkleNode"
-                  },
-                  "type": "array"
-                },
-                "pos": {
-                  "minimum": 0,
-                  "type": "integer"
-                }
-              }
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "block_height",
-            "merkle",
-            "pos"
-          ],
-          "type": "object",
-          "properties": {
-            "block_height": {
-              "$ref": "#/$defs/Height"
-            },
-            "merkle": {
-              "items": {
-                "$ref": "#/$defs/MerkleNode"
-              },
-              "type": "array"
-            },
-            "pos": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Transaction merkle proof",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7437,9 +3392,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -7447,11 +3400,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Transaction merkleblock proof",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7482,9 +3433,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             },
@@ -7492,11 +3441,7 @@
               "description": "Output index",
               "type": "integer",
               "examples": [
-                0,
-                1,
-                2,
-                5,
-                10
+                0
               ],
               "minimum": 0
             }
@@ -7505,158 +3450,9 @@
           "required": [
             "txid",
             "vout"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "TxOutspend": {
-              "type": "object",
-              "properties": {
-                "spent": {
-                  "type": "boolean"
-                },
-                "txid": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Txid"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "vin": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Vin"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "status": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/TxStatus"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "spent"
-              ]
-            },
-            "TxStatus": {
-              "type": "object",
-              "properties": {
-                "confirmed": {
-                  "type": "boolean"
-                },
-                "block_height": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "block_hash": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "block_time": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "confirmed"
-              ]
-            },
-            "Txid": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Vin": {
-              "maximum": 65535,
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "spent": {
-              "type": "boolean"
-            },
-            "txid": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Txid"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "vin": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Vin"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "status": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/TxStatus"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "spent"
           ]
         },
         "annotations": {
-          "title": "Output spend status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7692,9 +3488,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -7702,11 +3496,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "All output spend statuses",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7737,9 +3529,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -7747,181 +3537,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "FeeRate": {
-              "type": "number"
-            },
-            "RbfResponse": {
-              "properties": {
-                "replacements": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/ReplacementNode"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "replaces": {
-                  "type": [
-                    "array",
-                    "null"
-                  ],
-                  "items": {
-                    "$ref": "#/$defs/Txid"
-                  }
-                }
-              },
-              "type": "object"
-            },
-            "RbfTx": {
-              "required": [
-                "txid",
-                "fee",
-                "vsize",
-                "value",
-                "rate",
-                "time",
-                "rbf"
-              ],
-              "type": "object",
-              "properties": {
-                "txid": {
-                  "$ref": "#/$defs/Txid"
-                },
-                "fee": {
-                  "$ref": "#/$defs/Sats"
-                },
-                "vsize": {
-                  "$ref": "#/$defs/VSize"
-                },
-                "value": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
-                  ]
-                },
-                "rate": {
-                  "$ref": "#/$defs/FeeRate"
-                },
-                "time": {
-                  "$ref": "#/$defs/Timestamp"
-                },
-                "rbf": {
-                  "type": "boolean"
-                },
-                "fullRbf": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "mined": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                }
-              }
-            },
-            "ReplacementNode": {
-              "required": [
-                "tx",
-                "time",
-                "fullRbf",
-                "replaces"
-              ],
-              "type": "object",
-              "properties": {
-                "tx": {
-                  "$ref": "#/$defs/RbfTx"
-                },
-                "time": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    }
-                  ]
-                },
-                "fullRbf": {
-                  "type": "boolean"
-                },
-                "interval": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "mined": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "truncated": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "replaces": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/ReplacementNode"
-                  }
-                }
-              }
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Txid": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "VSize": {
-              "minimum": 0,
-              "type": "integer"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "properties": {
-            "replacements": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/ReplacementNode"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "replaces": {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "$ref": "#/$defs/Txid"
-              }
-            }
-          },
-          "type": "object"
+          ]
         },
         "annotations": {
-          "title": "RBF replacement history",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -7952,9 +3570,7 @@
               "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
-                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
-                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
-                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
               ],
               "pattern": "^[0-9a-f]{64}$"
             }
@@ -7962,108 +3578,9 @@
           "additionalProperties": false,
           "required": [
             "txid"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Timestamp": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "TxStatus": {
-              "type": "object",
-              "properties": {
-                "confirmed": {
-                  "type": "boolean"
-                },
-                "block_height": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "block_hash": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "block_time": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Timestamp"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
-              },
-              "required": [
-                "confirmed"
-              ]
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "confirmed": {
-              "type": "boolean"
-            },
-            "block_height": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "block_hash": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "block_time": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Timestamp"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            }
-          },
-          "required": [
-            "confirmed"
           ]
         },
         "annotations": {
-          "title": "Transaction status",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8102,11 +3619,9 @@
           "additionalProperties": false,
           "required": [
             "index"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Txid by index",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8218,7 +3733,6 @@
             "cohort",
             "point"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Date": {
               "description": "Calendar date in YYYY-MM-DD format.",
@@ -8226,267 +3740,20 @@
               "format": "date",
               "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
               "examples": [
-                "2009-01-03",
-                "2024-04-20"
+                "2009-01-03"
               ]
             },
             "Height": {
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
-                0,
-                210000,
-                420000,
-                840000
+                0
               ],
               "minimum": 0
             }
           }
         },
-        "outputSchema": {
-          "$defs": {
-            "Bitcoin": {
-              "type": "number"
-            },
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Date": {
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "type": "string",
-              "format": "date"
-            },
-            "Dollars": {
-              "type": "number"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Urpd": {
-              "required": [
-                "height",
-                "hash",
-                "date",
-                "cohort",
-                "weight",
-                "aggregation",
-                "close",
-                "supply",
-                "buckets"
-              ],
-              "type": "object",
-              "properties": {
-                "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "hash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
-                },
-                "date": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Date"
-                    }
-                  ]
-                },
-                "cohort": {
-                  "$ref": "#/$defs/UrpdCohort"
-                },
-                "weight": {
-                  "$ref": "#/$defs/UrpdWeight"
-                },
-                "aggregation": {
-                  "$ref": "#/$defs/UrpdAggregation"
-                },
-                "close": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                },
-                "supply": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Bitcoin"
-                    }
-                  ]
-                },
-                "buckets": {
-                  "$ref": "#/$defs/UrpdBuckets"
-                }
-              }
-            },
-            "UrpdAggregation": {
-              "enum": [
-                "raw",
-                "lin200",
-                "lin500",
-                "lin1000",
-                "log10",
-                "log50",
-                "log100",
-                "log200",
-                "log500",
-                "log1000",
-                "log2000"
-              ],
-              "type": "string"
-            },
-            "UrpdBuckets": {
-              "required": [
-                "price",
-                "supply",
-                "realized_cap",
-                "unrealized_pnl"
-              ],
-              "type": "object",
-              "properties": {
-                "price": {
-                  "items": {
-                    "$ref": "#/$defs/Dollars"
-                  },
-                  "type": "array"
-                },
-                "supply": {
-                  "items": {
-                    "$ref": "#/$defs/Bitcoin"
-                  },
-                  "type": "array"
-                },
-                "realized_cap": {
-                  "items": {
-                    "$ref": "#/$defs/Dollars"
-                  },
-                  "type": "array"
-                },
-                "unrealized_pnl": {
-                  "items": {
-                    "$ref": "#/$defs/Dollars"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "UrpdCohort": {
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "age_under_4m",
-                "age_under_6m",
-                "age_over_4m",
-                "age_over_6m",
-                "age_under_1h",
-                "age_1h_to_1d",
-                "age_1d_to_1w",
-                "age_1w_to_1m",
-                "age_1m_to_2m",
-                "age_2m_to_3m",
-                "age_3m_to_4m",
-                "age_4m_to_5m",
-                "age_5m_to_6m",
-                "age_6m_to_9m",
-                "age_9m_to_1y",
-                "age_1y_to_18m",
-                "age_18m_to_2y",
-                "age_2y_to_3y",
-                "age_3y_to_4y",
-                "age_4y_to_5y",
-                "age_5y_to_6y",
-                "age_6y_to_7y",
-                "age_7y_to_8y",
-                "age_8y_to_10y",
-                "age_10y_to_12y",
-                "age_12y_to_15y",
-                "age_over_15y"
-              ],
-              "type": "string"
-            },
-            "UrpdWeight": {
-              "enum": [
-                "none",
-                "wakefulness",
-                "mobility"
-              ],
-              "type": "string"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "height",
-            "hash",
-            "date",
-            "cohort",
-            "weight",
-            "aggregation",
-            "close",
-            "supply",
-            "buckets"
-          ],
-          "type": "object",
-          "properties": {
-            "height": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "hash": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                }
-              ]
-            },
-            "date": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Date"
-                }
-              ]
-            },
-            "cohort": {
-              "$ref": "#/$defs/UrpdCohort"
-            },
-            "weight": {
-              "$ref": "#/$defs/UrpdWeight"
-            },
-            "aggregation": {
-              "$ref": "#/$defs/UrpdAggregation"
-            },
-            "close": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Dollars"
-                }
-              ]
-            },
-            "supply": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Bitcoin"
-                }
-              ]
-            },
-            "buckets": {
-              "$ref": "#/$defs/UrpdBuckets"
-            }
-          }
-        },
         "annotations": {
-          "title": "URPD at block height or date",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8524,7 +3791,7 @@
       "tool": {
         "name": "get_urpd_latest",
         "title": "Latest URPD",
-        "description": "Bitcoin: URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
+        "description": "Bitcoin: URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `get_urpd`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -8596,253 +3863,9 @@
           "additionalProperties": false,
           "required": [
             "cohort"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Bitcoin": {
-              "type": "number"
-            },
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Date": {
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "type": "string",
-              "format": "date"
-            },
-            "Dollars": {
-              "type": "number"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "Urpd": {
-              "required": [
-                "height",
-                "hash",
-                "date",
-                "cohort",
-                "weight",
-                "aggregation",
-                "close",
-                "supply",
-                "buckets"
-              ],
-              "type": "object",
-              "properties": {
-                "height": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "hash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
-                },
-                "date": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Date"
-                    }
-                  ]
-                },
-                "cohort": {
-                  "$ref": "#/$defs/UrpdCohort"
-                },
-                "weight": {
-                  "$ref": "#/$defs/UrpdWeight"
-                },
-                "aggregation": {
-                  "$ref": "#/$defs/UrpdAggregation"
-                },
-                "close": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Dollars"
-                    }
-                  ]
-                },
-                "supply": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Bitcoin"
-                    }
-                  ]
-                },
-                "buckets": {
-                  "$ref": "#/$defs/UrpdBuckets"
-                }
-              }
-            },
-            "UrpdAggregation": {
-              "enum": [
-                "raw",
-                "lin200",
-                "lin500",
-                "lin1000",
-                "log10",
-                "log50",
-                "log100",
-                "log200",
-                "log500",
-                "log1000",
-                "log2000"
-              ],
-              "type": "string"
-            },
-            "UrpdBuckets": {
-              "required": [
-                "price",
-                "supply",
-                "realized_cap",
-                "unrealized_pnl"
-              ],
-              "type": "object",
-              "properties": {
-                "price": {
-                  "items": {
-                    "$ref": "#/$defs/Dollars"
-                  },
-                  "type": "array"
-                },
-                "supply": {
-                  "items": {
-                    "$ref": "#/$defs/Bitcoin"
-                  },
-                  "type": "array"
-                },
-                "realized_cap": {
-                  "items": {
-                    "$ref": "#/$defs/Dollars"
-                  },
-                  "type": "array"
-                },
-                "unrealized_pnl": {
-                  "items": {
-                    "$ref": "#/$defs/Dollars"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "UrpdCohort": {
-              "enum": [
-                "all",
-                "sth",
-                "lth",
-                "age_under_4m",
-                "age_under_6m",
-                "age_over_4m",
-                "age_over_6m",
-                "age_under_1h",
-                "age_1h_to_1d",
-                "age_1d_to_1w",
-                "age_1w_to_1m",
-                "age_1m_to_2m",
-                "age_2m_to_3m",
-                "age_3m_to_4m",
-                "age_4m_to_5m",
-                "age_5m_to_6m",
-                "age_6m_to_9m",
-                "age_9m_to_1y",
-                "age_1y_to_18m",
-                "age_18m_to_2y",
-                "age_2y_to_3y",
-                "age_3y_to_4y",
-                "age_4y_to_5y",
-                "age_5y_to_6y",
-                "age_6y_to_7y",
-                "age_7y_to_8y",
-                "age_8y_to_10y",
-                "age_10y_to_12y",
-                "age_12y_to_15y",
-                "age_over_15y"
-              ],
-              "type": "string"
-            },
-            "UrpdWeight": {
-              "enum": [
-                "none",
-                "wakefulness",
-                "mobility"
-              ],
-              "type": "string"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "height",
-            "hash",
-            "date",
-            "cohort",
-            "weight",
-            "aggregation",
-            "close",
-            "supply",
-            "buckets"
-          ],
-          "type": "object",
-          "properties": {
-            "height": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "hash": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                }
-              ]
-            },
-            "date": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Date"
-                }
-              ]
-            },
-            "cohort": {
-              "$ref": "#/$defs/UrpdCohort"
-            },
-            "weight": {
-              "$ref": "#/$defs/UrpdWeight"
-            },
-            "aggregation": {
-              "$ref": "#/$defs/UrpdAggregation"
-            },
-            "close": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Dollars"
-                }
-              ]
-            },
-            "supply": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Bitcoin"
-                }
-              ]
-            },
-            "buckets": {
-              "$ref": "#/$defs/UrpdBuckets"
-            }
-          }
+          ]
         },
         "annotations": {
-          "title": "Latest URPD",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -8899,7 +3922,6 @@
           "required": [
             "point"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Date": {
               "description": "Calendar date in YYYY-MM-DD format.",
@@ -8907,183 +3929,20 @@
               "format": "date",
               "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
               "examples": [
-                "2009-01-03",
-                "2024-04-20"
+                "2009-01-03"
               ]
             },
             "Height": {
               "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "examples": [
-                0,
-                210000,
-                420000,
-                840000
+                0
               ],
               "minimum": 0
             }
           }
         },
-        "outputSchema": {
-          "$defs": {
-            "Bitcoin": {
-              "type": "number"
-            },
-            "BlockHash": {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            "Date": {
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-              "type": "string",
-              "format": "date"
-            },
-            "Height": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "UtxoChanges": {
-              "required": [
-                "height",
-                "count",
-                "supply"
-              ],
-              "type": "object",
-              "properties": {
-                "height": {
-                  "items": {
-                    "$ref": "#/$defs/Height"
-                  },
-                  "type": "array"
-                },
-                "count": {
-                  "items": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "type": "array"
-                },
-                "supply": {
-                  "items": {
-                    "$ref": "#/$defs/Bitcoin"
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "UtxoSetDiff": {
-              "required": [
-                "first",
-                "last",
-                "hash",
-                "date",
-                "created",
-                "spent"
-              ],
-              "type": "object",
-              "properties": {
-                "first": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "last": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Height"
-                    }
-                  ]
-                },
-                "hash": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/BlockHash"
-                    }
-                  ]
-                },
-                "date": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Date"
-                    }
-                  ]
-                },
-                "created": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/UtxoChanges"
-                    }
-                  ]
-                },
-                "spent": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/UtxoChanges"
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "first",
-            "last",
-            "hash",
-            "date",
-            "created",
-            "spent"
-          ],
-          "type": "object",
-          "properties": {
-            "first": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "last": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Height"
-                }
-              ]
-            },
-            "hash": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/BlockHash"
-                }
-              ]
-            },
-            "date": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/Date"
-                }
-              ]
-            },
-            "created": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/UtxoChanges"
-                }
-              ]
-            },
-            "spent": {
-              "allOf": [
-                {
-                  "$ref": "#/$defs/UtxoChanges"
-                }
-              ]
-            }
-          }
-        },
         "annotations": {
-          "title": "UTXO set changes of a block or date",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9110,11 +3969,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "List available indexes",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9139,9 +3996,7 @@
               "description": "Zero-based page number (default: 0)",
               "type": "integer",
               "examples": [
-                0,
-                1,
-                2
+                0
               ],
               "minimum": 0,
               "default": 0
@@ -9150,102 +4005,16 @@
               "description": "Results per page, 1 to 1,000 (default: 1000)",
               "type": "integer",
               "examples": [
-                100,
-                1000
+                100
               ],
               "minimum": 1,
               "maximum": 1000,
               "default": 1000
             }
           },
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "PaginatedSeries": {
-              "required": [
-                "current_page",
-                "max_page",
-                "total_count",
-                "per_page",
-                "has_more",
-                "series"
-              ],
-              "type": "object",
-              "properties": {
-                "current_page": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "max_page": {
-                  "minimum": 0,
-                  "type": "integer"
-                },
-                "total_count": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "per_page": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "has_more": {
-                  "type": "boolean"
-                },
-                "series": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/$defs/SeriesName"
-                  }
-                }
-              }
-            },
-            "SeriesName": {
-              "type": "string",
-              "pattern": "^[a-z0-9_]+$"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "required": [
-            "current_page",
-            "max_page",
-            "total_count",
-            "per_page",
-            "has_more",
-            "series"
-          ],
-          "type": "object",
-          "properties": {
-            "current_page": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "max_page": {
-              "minimum": 0,
-              "type": "integer"
-            },
-            "total_count": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "per_page": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "has_more": {
-              "type": "boolean"
-            },
-            "series": {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/SeriesName"
-              }
-            }
-          }
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Series list",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9277,11 +4046,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "additionalProperties": false
         },
         "annotations": {
-          "title": "Available URPD cohorts",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9313,8 +4080,7 @@
               "description": "Maximum number of results, 1 to 1,000 (default: 100)",
               "type": "integer",
               "examples": [
-                10,
-                100
+                10
               ],
               "minimum": 1,
               "maximum": 1000,
@@ -9324,11 +4090,9 @@
           "additionalProperties": false,
           "required": [
             "q"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          ]
         },
         "annotations": {
-          "title": "Search series",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,
@@ -9364,185 +4128,16 @@
               "description": "Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);\nanything else answers 400, as mempool.space does",
               "type": "string",
               "examples": [
-                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
-                "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "notavalidaddr",
-                "bc1qinvalid"
+                "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f"
               ]
             }
           },
           "additionalProperties": false,
           "required": [
             "address"
-          ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$defs": {
-            "Address": {
-              "type": "string"
-            },
-            "AddressValidation": {
-              "type": "object",
-              "properties": {
-                "isvalid": {
-                  "type": "boolean"
-                },
-                "address": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Address"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "scriptPubKey": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Hex"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "isscript": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "iswitness": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "witness_version": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "maximum": 255
-                },
-                "witness_program": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Hex"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "error_locations": {
-                  "items": {
-                    "type": "integer",
-                    "minimum": 0
-                  },
-                  "type": [
-                    "array",
-                    "null"
-                  ]
-                },
-                "error": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "required": [
-                "isvalid"
-              ]
-            },
-            "Hex": {
-              "pattern": "^([0-9a-f]{2})*$",
-              "type": "string"
-            }
-          },
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "type": "object",
-          "properties": {
-            "isvalid": {
-              "type": "boolean"
-            },
-            "address": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Address"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "scriptPubKey": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Hex"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "isscript": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "iswitness": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "witness_version": {
-              "minimum": 0,
-              "type": [
-                "integer",
-                "null"
-              ],
-              "maximum": 255
-            },
-            "witness_program": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Hex"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "error_locations": {
-              "items": {
-                "type": "integer",
-                "minimum": 0
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "error": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "required": [
-            "isvalid"
           ]
         },
         "annotations": {
-          "title": "Validate address",
           "readOnlyHint": true,
           "destructiveHint": false,
           "idempotentHint": true,

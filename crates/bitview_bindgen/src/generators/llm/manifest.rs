@@ -5,12 +5,11 @@ use std::{
 };
 
 use serde::Serialize;
-use serde_json::{Map, Value, json, to_string_pretty};
+use serde_json::{Map, Value, to_string_pretty};
 
 use crate::{Endpoint, Parameter, TypeSchemas, generators::write_if_changed};
 
 const MANIFEST_SCHEMA_VERSION: u32 = 2;
-const JSON_SCHEMA_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
 const COMPONENT_REF_PREFIX: &str = "#/components/schemas/";
 
 #[derive(Serialize)]
@@ -36,16 +35,12 @@ struct ManifestTool {
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
     input_schema: Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    output_schema: Option<Value>,
     annotations: ManifestToolAnnotations,
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ManifestToolAnnotations {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    title: Option<String>,
     read_only_hint: bool,
     destructive_hint: bool,
     idempotent_hint: bool,
@@ -73,10 +68,10 @@ enum ParameterLocation {
     Query,
 }
 
-/// The MCP tool catalog: a tool per non-deprecated operation without `x-mcp-ignore: true`, each of
-/// which must be a `GET` ([`validate_http`]).
+/// Generate an MCP tool catalog from the selected endpoints, each of which must be a `GET`
+/// ([`validate_http`]).
 pub fn generate_tool_manifest(
-    endpoints: &[Endpoint],
+    endpoints: &[&Endpoint],
     schemas: &TypeSchemas,
     instructions: &str,
     path: &Path,
@@ -86,15 +81,18 @@ pub fn generate_tool_manifest(
 }
 
 fn render_tool_manifest(
-    endpoints: &[Endpoint],
+    endpoints: &[&Endpoint],
     schemas: &TypeSchemas,
     instructions: &str,
 ) -> io::Result<String> {
+    let routes = endpoints
+        .iter()
+        .map(|endpoint| (super::route(endpoint), endpoint.operation_id.as_str()))
+        .collect::<BTreeMap<_, _>>();
     let mut names = BTreeSet::new();
     let mut operations = endpoints
         .iter()
-        .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
-        .map(|endpoint| operation_from_endpoint(endpoint, schemas, &mut names))
+        .map(|endpoint| operation_from_endpoint(endpoint, &routes, schemas, &mut names))
         .collect::<io::Result<Vec<_>>>()?;
 
     operations.sort_by(|a, b| a.tool.name.cmp(&b.tool.name));
@@ -112,6 +110,7 @@ fn render_tool_manifest(
 
 fn operation_from_endpoint<'a>(
     endpoint: &'a Endpoint,
+    routes: &BTreeMap<String, &str>,
     schemas: &TypeSchemas,
     names: &mut BTreeSet<&'a str>,
 ) -> io::Result<ManifestOperation> {
@@ -126,7 +125,6 @@ fn operation_from_endpoint<'a>(
     }
 
     let input_schema = build_input_schema(endpoint, schemas)?;
-    let output_schema = build_output_schema(endpoint, schemas)?;
     let parameters = endpoint
         .path_params
         .iter()
@@ -143,11 +141,9 @@ fn operation_from_endpoint<'a>(
         tool: ManifestTool {
             name: name.clone(),
             title: endpoint.summary.clone(),
-            description: tool_description(endpoint),
+            description: tool_description(endpoint, routes),
             input_schema,
-            output_schema,
             annotations: ManifestToolAnnotations {
-                title: endpoint.summary.clone(),
                 read_only_hint: true,
                 destructive_hint: false,
                 idempotent_hint: true,
@@ -165,13 +161,24 @@ fn operation_from_endpoint<'a>(
 /// What a model reads to choose a tool: the domain first, since a tool list can mix servers, then
 /// the operation's own description. A paragraph that is only a link to another API's docs stays in
 /// the OpenAPI document and out of here.
-fn tool_description(endpoint: &Endpoint) -> Option<String> {
+fn tool_description(endpoint: &Endpoint, routes: &BTreeMap<String, &str>) -> Option<String> {
     let description = endpoint
         .description
         .as_deref()
         .map(without_link_paragraphs)
         .filter(|description| !description.is_empty())
         .or_else(|| endpoint.summary.clone())?;
+    let description = description
+        .split('`')
+        .enumerate()
+        .map(|(index, mention)| {
+            if index % 2 == 0 {
+                return mention.to_string();
+            }
+            routes.get(mention).copied().unwrap_or(mention).to_string()
+        })
+        .collect::<Vec<_>>()
+        .join("`");
     Some(format!("Bitcoin: {description}"))
 }
 
@@ -186,43 +193,16 @@ fn without_link_paragraphs(description: &str) -> String {
         .join("\n\n")
 }
 
-/// MCP before 2026-07-28 requires an output schema's root to be `type: "object"`, and strict clients
-/// reject the whole tool list over one that isn't. So only a tool that always answers with a JSON
-/// object declares one; the others answer as text.
-fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<Option<Value>> {
-    let json_schema = endpoint
-        .json_response_schema
-        .clone()
-        .filter(|_| !endpoint.supports_csv);
-    let Some(json_schema) = json_schema else {
-        return Ok(None);
-    };
-    let mut schema = standalone_schema(json_schema, schemas)?;
-    let definitions = schema.get("$defs").cloned().unwrap_or_default();
-    inline_root_reference(&mut schema, "#/$defs/", |name| {
-        definitions.get(name).cloned()
-    });
-    if schema.get("type").and_then(Value::as_str) != Some("object") {
-        return Ok(None);
-    }
-    strip_output_annotations(&mut schema);
-    Ok(Some(schema))
-}
-
 /// Replaces a root `$ref` with the definition it names, so the root states its own type.
-fn inline_root_reference(
-    schema: &mut Value,
-    prefix: &str,
-    definition: impl Fn(&str) -> Option<Value>,
-) {
+fn inline_root_reference(schema: &mut Value, schemas: &TypeSchemas) {
     let Some(root) = schema.as_object_mut() else {
         return;
     };
     let target = root
         .get("$ref")
         .and_then(Value::as_str)
-        .and_then(|reference| reference.strip_prefix(prefix))
-        .and_then(|name| definition(&unescape_json_pointer(name)))
+        .and_then(|reference| reference.strip_prefix(COMPONENT_REF_PREFIX))
+        .and_then(|name| schemas.get(&unescape_json_pointer(name)))
         .and_then(|target| target.as_object().cloned());
     let Some(target) = target else {
         return;
@@ -230,66 +210,6 @@ fn inline_root_reference(
     root.remove("$ref");
     for (key, value) in target {
         root.entry(key).or_insert(value);
-    }
-}
-
-/// Output schemas are validation contracts, not a second documentation
-/// bundle. Remove annotation-only keywords while preserving every structural
-/// and validation keyword. Traversal is schema-aware so an output property
-/// literally named `description`, `title`, or `default` is never removed.
-fn strip_output_annotations(schema: &mut Value) {
-    let Some(object) = schema.as_object_mut() else {
-        return;
-    };
-    for key in [
-        "title",
-        "description",
-        "default",
-        "examples",
-        "deprecated",
-        "readOnly",
-        "writeOnly",
-        "$comment",
-    ] {
-        object.remove(key);
-    }
-
-    for key in [
-        "$defs",
-        "definitions",
-        "properties",
-        "patternProperties",
-        "dependentSchemas",
-    ] {
-        if let Some(schemas) = object.get_mut(key).and_then(Value::as_object_mut) {
-            for schema in schemas.values_mut() {
-                strip_output_annotations(schema);
-            }
-        }
-    }
-    for key in [
-        "additionalProperties",
-        "contains",
-        "contentSchema",
-        "else",
-        "if",
-        "items",
-        "not",
-        "propertyNames",
-        "then",
-        "unevaluatedItems",
-        "unevaluatedProperties",
-    ] {
-        if let Some(schema) = object.get_mut(key) {
-            strip_output_annotations(schema);
-        }
-    }
-    for key in ["allOf", "anyOf", "oneOf", "prefixItems"] {
-        if let Some(schemas) = object.get_mut(key).and_then(Value::as_array_mut) {
-            for schema in schemas {
-                strip_output_annotations(schema);
-            }
-        }
     }
 }
 
@@ -311,9 +231,7 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
         .chain(endpoint.query_params.iter())
     {
         let mut schema = parameter.schema.clone();
-        inline_root_reference(&mut schema, COMPONENT_REF_PREFIX, |name| {
-            schemas.get(name).cloned()
-        });
+        inline_root_reference(&mut schema, schemas);
         // A union also states its accepted primitive types for clients that inspect only `type`.
         if schema.get("type").is_none()
             && let Some(branches) = schema.get("anyOf").and_then(Value::as_array)
@@ -322,9 +240,7 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
                 .iter()
                 .map(|branch| {
                     let mut branch = branch.clone();
-                    inline_root_reference(&mut branch, COMPONENT_REF_PREFIX, |name| {
-                        schemas.get(name).cloned()
-                    });
+                    inline_root_reference(&mut branch, schemas);
                     branch
                         .get("type")
                         .and_then(Value::as_str)
@@ -378,7 +294,7 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
         root.insert("required".to_string(), Value::Array(required));
     }
 
-    let schema = standalone_schema(Value::Object(root), schemas)?;
+    let schema = standalone_schema(root, schemas)?;
     check_validated_keywords(&schema)?;
     Ok(schema)
 }
@@ -426,21 +342,8 @@ fn check_validated_keywords(schema: &Value) -> io::Result<()> {
 /// Turn an OpenAPI schema into a self-contained JSON Schema. MCP clients must
 /// not fetch external `$ref` targets, so component references are rewritten to
 /// local `$defs` and only the transitively used definitions are copied.
-fn standalone_schema(mut root: Value, schemas: &TypeSchemas) -> io::Result<Value> {
-    if root.is_boolean() {
-        root = if root == Value::Bool(true) {
-            json!({})
-        } else {
-            json!({ "not": {} })
-        };
-    }
-    if !root.is_object() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            "MCP schemas must be JSON objects",
-        ));
-    }
-
+fn standalone_schema(root: Map<String, Value>, schemas: &TypeSchemas) -> io::Result<Value> {
+    let mut root = Value::Object(root);
     let mut pending = VecDeque::new();
     localize_refs(&mut root, &mut pending)?;
     let mut definitions = BTreeMap::new();
@@ -461,18 +364,14 @@ fn standalone_schema(mut root: Value, schemas: &TypeSchemas) -> io::Result<Value
         definitions.insert(name, schema);
     }
 
-    let object = root.as_object_mut().expect("root checked above");
-    object.insert(
-        "$schema".to_string(),
-        Value::String(JSON_SCHEMA_2020_12.to_string()),
-    );
+    let object = root.as_object_mut().expect("input schema object");
     if !definitions.is_empty() {
         object.insert(
             "$defs".to_string(),
             Value::Object(definitions.into_iter().collect()),
         );
     }
-    strip_custom_formats(&mut root);
+    normalize_input_schema(&mut root);
     Ok(root)
 }
 
@@ -500,26 +399,33 @@ const JSON_SCHEMA_FORMATS: [&str; 19] = [
     "regex",
 ];
 
-/// Drop every `format` JSON Schema doesn't define, leaving values (`default`, `examples`,
-/// `enum`, `const`) as they are.
-fn strip_custom_formats(schema: &mut Value) {
-    match schema {
-        Value::Object(object) => {
-            if object
-                .get("format")
-                .and_then(Value::as_str)
-                .is_some_and(|format| !JSON_SCHEMA_FORMATS.contains(&format))
-            {
-                object.remove("format");
+/// Keep standard formats and one example per schema. Values such as
+/// `default`, `examples`, `enum` and `const` are data, not nested schemas.
+fn normalize_input_schema(schema: &mut Value) {
+    let Some(object) = schema.as_object_mut() else {
+        return;
+    };
+    if let Some(examples) = object.get_mut("examples").and_then(Value::as_array_mut) {
+        examples.truncate(1);
+    }
+    if object
+        .get("format")
+        .and_then(Value::as_str)
+        .is_some_and(|format| !JSON_SCHEMA_FORMATS.contains(&format))
+    {
+        object.remove("format");
+    }
+    for (key, value) in object {
+        match (key.as_str(), value) {
+            ("properties" | "$defs", Value::Object(schemas)) => {
+                schemas.values_mut().for_each(normalize_input_schema);
             }
-            for (key, value) in object.iter_mut() {
-                if !matches!(key.as_str(), "default" | "examples" | "enum" | "const") {
-                    strip_custom_formats(value);
-                }
+            ("anyOf", Value::Array(schemas)) => {
+                schemas.iter_mut().for_each(normalize_input_schema);
             }
+            ("items" | "additionalProperties", schema) => normalize_input_schema(schema),
+            _ => {}
         }
-        Value::Array(values) => values.iter_mut().for_each(strip_custom_formats),
-        _ => {}
     }
 }
 

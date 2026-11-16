@@ -218,9 +218,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `bitview_traversable`: `Traversable::collect_series_descriptions` is `collect_series_metadata`, and
   `bitview_plugin`'s `PluginData::collect_descriptions` is `collect_metadata`: they collect `MetadataFragment`s, a
   description's `Fragment` or a series' accumulation, which `split_metadata` sets apart
-- MCP: a tool that can answer with anything but a JSON object no longer declares an output schema or returns
-  `structuredContent`; it answers as text. Before protocol `2026-07-28` an output schema must be an object, and strict
-  clients rejected the whole tool list
+- MCP: no tool declares an `outputSchema` or returns `structuredContent`; results are the API's JSON text, with exact
+  numbers. Four duplicate tools are removed: use `get_hashrate_by_period`, `get_difficulty_adjustments_by_period` and
+  `get_pools_hashrate_by_period` with `all` in place of `get_hashrate`, `get_difficulty_adjustments` and
+  `get_pools_hashrate`; use `get_block_fee_rates_precise` (3 decimals: round it for whole sat/vB) in place of `get_block_fee_rates`.
+  Clients holding the old tool list must refresh it by reconnecting the connector
 - The server no longer compresses anything: every response goes out uncompressed, without `Vary: Accept-Encoding`, for
   a CDN in front to compress, and an instance reached directly sends them as they are. `Accept-Encoding` is no longer
   read, so a request refusing `identity` gets the response as it is (was: 406 when it refused every encoding)

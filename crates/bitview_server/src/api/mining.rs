@@ -112,6 +112,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             },
             |op| {
                 op.id("get_pools_hashrate")
+                    .mcp_ignore()
                     .tag(tags::MINING)
                     .summary("All pools hashrate (all time)")
                     .description("Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*")
@@ -199,6 +200,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             },
             |op| {
                 op.id("get_hashrate")
+                    .mcp_ignore()
                     .tag(tags::MINING)
                     .summary("Network hashrate (all time)")
                     .description("Get network hashrate and difficulty data for all time.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*")
@@ -232,6 +234,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             },
             |op| {
                 op.id("get_difficulty_adjustments")
+                    .mcp_ignore()
                     .tag(tags::MINING)
                     .summary("Difficulty adjustments (all time)")
                     .description("Every difficulty adjustment in the chain's history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*")
@@ -316,6 +319,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             },
             |op| {
                 op.id("get_block_fee_rates")
+                    .mcp_ignore()
                     .tag(tags::MINING)
                     .summary("Block fee rates")
                     .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
