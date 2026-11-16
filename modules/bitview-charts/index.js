@@ -112,10 +112,7 @@ export function press(down, { end, move, captor, signal }) {
   const own = (handle) => (/** @type {Event} */ event) => {
     if (/** @type {PointerEvent} */ (event).pointerId === pointer) handle(/** @type {PointerEvent} */ (event));
   };
-  if (signal?.aborted) {
-    stop();
-    return stop;
-  }
+  if (signal?.aborted) return stop;
   signal?.addEventListener("abort", stop, { signal: held.signal });
   const touch = down.pointerType === "touch";
   if (move || !touch) addEventListener("pointermove", own((event) => (!touch && !event.buttons ? ended(null) : move?.(event))), heard);

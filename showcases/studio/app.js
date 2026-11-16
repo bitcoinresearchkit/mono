@@ -12065,6 +12065,13 @@ $("chart").addEventListener("pointerleave", (event) => magnifying && event.point
 $("chart").addEventListener("dblclick", () => lensAt && lookAt(lensAt));
 $("chart").addEventListener("wheel", () => lensAt && lookAt(lensAt), { passive: true });
 $("chart").addEventListener("pointerdown", (event) => {
+  // (Any press on the chart let go of with no release (cancelled, its touch lost, the window left) while no gesture's
+  // held: what's placed click by click goes with it.)
+  press(event, {
+    end: (release) => {
+      if (!release && !gesturing()) stopDrawing();
+    },
+  });
   // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan. A
   // finger's move, another finger down too: the move let go, the drawing as it was, nothing pinched.)
   if (otherPointer(event)) {
@@ -15042,10 +15049,24 @@ new ResizeObserver(() => {
 const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
 // (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
-$("home").addEventListener("scroll", () => (galleryResting = false), { capture: true, passive: true });
-$("home").addEventListener("scrollend", () => ((galleryResting = true), drawGallery()), { capture: true });
-// (A press holds it till its release; one the browser cancels to scroll, till the scroll ends.)
-$("home").addEventListener("pointerdown", (event) => ((galleryResting = false), press(event, { end: (release) => release && ((galleryResting = true), drawGallery()) })));
+let galleryScrolling = false;
+const galleryRests = () => {
+  galleryResting = true;
+  drawGallery();
+};
+$("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
+$("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
+// (A press holds it till its release. Let go of otherwise (a cancel, a lost touch, the window left), at the next
+// frame unless a scroll's begun by then: a pan's pointer is cancelled as its scroll starts, whose end says it's over.)
+$("home").addEventListener("pointerdown", (event) => {
+  galleryResting = false;
+  press(event, {
+    end: (release) => {
+      if (release) galleryRests();
+      else requestAnimationFrame(() => galleryScrolling || galleryRests());
+    },
+  });
+});
 /** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
 const nextGallery = (tried) => {
   for (const i of galleryQueue) return galleryQueue.delete(i), i;
