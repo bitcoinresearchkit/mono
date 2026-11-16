@@ -33,6 +33,14 @@ const tx = await client.getTx(
   'a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d',
 );
 
+// Path parameters stay positional; query parameters share the request options object.
+const distribution = await client.getUrpd('all', '2025-01-01', {
+  agg: 'log100',
+  weight: 'none',
+  cache: false,
+});
+const matches = await client.searchSeries({ q: 'realized price', limit: 5 });
+
 // Typed, chainable series access.
 const prices = await client.series.price.close.by.day1
   .last(30)

@@ -11544,7 +11544,7 @@ function heatPump() {
     heatDays.set(want.key, asked);
     heatAsking++;
     const weight = /** @type {any} */ (want.weight || undefined), agg = /** @type {any} */ (want.agg);
-    (want.day === "latest" ? client.getUrpdLatest(/** @type {any} */ (want.cohort), agg, weight) : client.getUrpd(/** @type {any} */ (want.cohort), want.day, agg, weight))
+    (want.day === "latest" ? client.getUrpdLatest(/** @type {any} */ (want.cohort), { agg, weight }) : client.getUrpd(/** @type {any} */ (want.cohort), want.day, { agg, weight }))
       .then((urpd) => {
         if (heatDays.get(want.key) !== asked) return;
         const buckets = /** @type {any} */ (urpd).buckets, n = buckets.price.length;

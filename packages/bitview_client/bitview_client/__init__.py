@@ -6209,7 +6209,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/server/sync`"""
         return self.get_json('/api/server/sync')
 
-    def get_logs(self, after: Optional[str] = None) -> Logs:
+    def get_logs(self, *, after: Optional[str] = None) -> Logs:
         """Logs.
 
         The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
@@ -6253,7 +6253,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/indexes`"""
         return self.get_json('/api/series/indexes')
 
-    def list_series(self, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
+    def list_series(self, *, page: Optional[int] = None, per_page: Optional[int] = None) -> PaginatedSeries:
         """Series list.
 
         Paginated flat list of all available series names.
@@ -6266,7 +6266,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/series/list{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def search_series(self, q: str, limit: Optional[int] = None) -> List[SeriesName]:
+    def search_series(self, *, q: str, limit: Optional[int] = None) -> List[SeriesName]:
         """Search series.
 
         Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
@@ -6287,7 +6287,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/{series}`"""
         return self.get_json(f'/api/series/{_segment(series)}')
 
-    def get_series(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
+    def get_series(self, series: SeriesName, index: Index, *, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[AnySeriesData, str]:
         """Get series data.
 
         History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.
@@ -6304,7 +6304,7 @@ class BitviewClient(BitviewClientBase):
             return self.get_text(path)
         return _series_data(self.get_json(path))
 
-    def get_series_data(self, series: SeriesName, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[Any], str]:
+    def get_series_data(self, series: SeriesName, index: Index, *, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[Any], str]:
         """Get raw series data.
 
         The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
@@ -6343,7 +6343,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/{series}/{index}/version`"""
         return self.get_json(f'/api/series/{_segment(series)}/{_segment(index)}/version')
 
-    def get_series_bulk(self, series: SeriesList, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[AnySeriesData], str]:
+    def get_series_bulk(self, *, series: SeriesList, index: Index, start: Optional[RangeIndex] = None, end: Optional[RangeIndex] = None, limit: Optional[Limit] = None, format: Optional[Format] = None) -> Union[List[AnySeriesData], str]:
         """Bulk series data.
 
         Fetch multiple series in a single request. Supports filtering by index and date range. Returns an array of SeriesData objects. For a single series, use `get_series` instead.
@@ -6370,7 +6370,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/urpd`"""
         return self.get_json('/api/urpd')
 
-    def get_urpd_latest(self, cohort: UrpdCohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
+    def get_urpd_latest(self, cohort: UrpdCohort, *, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.
 
         URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
@@ -6383,7 +6383,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/urpd/{_segment(cohort)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_urpd(self, cohort: UrpdCohort, point: HeightOrDate, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
+    def get_urpd(self, cohort: UrpdCohort, point: HeightOrDate, *, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """URPD at block height or date.
 
         URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
@@ -6416,7 +6416,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/prices`"""
         return self.get_json('/api/v1/prices')
 
-    def get_historical_price(self, timestamp: Optional[Timestamp] = None, currency: Optional[Currency] = None) -> HistoricalPrice:
+    def get_historical_price(self, *, timestamp: Optional[Timestamp] = None, currency: Optional[Currency] = None) -> HistoricalPrice:
         """Historical price.
 
         Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
@@ -6449,7 +6449,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}`"""
         return self.get_json(f'/api/address/{_segment(address)}')
 
-    def get_address_txs(self, address: Address, after_txid: Optional[Txid] = None, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_txs(self, address: Address, *, after_txid: Optional[Txid] = None, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address transactions.
 
         Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.
@@ -6464,7 +6464,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_confirmed_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_confirmed_txs(self, address: Address, *, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address confirmed transactions.
 
         Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
@@ -6478,7 +6478,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs/chain{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid, *, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address confirmed transactions (paginated).
 
         Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).
@@ -6492,7 +6492,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/address/{_segment(address)}/txs/chain/{_segment(after_txid)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_mempool_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
+    def get_address_mempool_txs(self, address: Address, *, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address mempool transactions.
 
         Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
@@ -7090,7 +7090,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/tx/{txid}/status`"""
         return self.get_json(f'/api/tx/{_segment(txid)}/status')
 
-    def get_transaction_times(self, txids: List[Txid]) -> List[Timestamp]:
+    def get_transaction_times(self, *, txids: List[Txid]) -> List[Timestamp]:
         """Transaction first-seen times.
 
         First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
@@ -7162,7 +7162,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /blindbit/mainnet/block-hash/{height}`"""
         return self.get_json(f'/blindbit/mainnet/block-hash/{_segment(height)}')
 
-    def get_blindbit_tweak_index(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
+    def get_blindbit_tweak_index(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
         """Tweak index.
 
         The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.
@@ -7174,7 +7174,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/blindbit/mainnet/tweak-index/{_segment(height)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_blindbit_tweaks(self, height: Height, dustLimit: Optional[int] = None) -> List[Tweak]:
+    def get_blindbit_tweaks(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
         """Cut-through tweaks.
 
         `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.

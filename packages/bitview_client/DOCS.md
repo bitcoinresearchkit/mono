@@ -369,7 +369,7 @@ Endpoint: `GET /api/server/sync`
 #### get\_logs
 
 ```python
-def get_logs(after: Optional[str] = None) -> Logs
+def get_logs(*, after: Optional[str] = None) -> Logs
 ```
 
 Logs.
@@ -439,7 +439,8 @@ Endpoint: `GET /api/series/indexes`
 #### list\_series
 
 ```python
-def list_series(page: Optional[int] = None,
+def list_series(*,
+                page: Optional[int] = None,
                 per_page: Optional[int] = None) -> PaginatedSeries
 ```
 
@@ -454,7 +455,7 @@ Endpoint: `GET /api/series/list`
 #### search\_series
 
 ```python
-def search_series(q: str, limit: Optional[int] = None) -> List[SeriesName]
+def search_series(*, q: str, limit: Optional[int] = None) -> List[SeriesName]
 ```
 
 Search series.
@@ -484,6 +485,7 @@ Endpoint: `GET /api/series/{series}`
 ```python
 def get_series(series: SeriesName,
                index: Index,
+               *,
                start: Optional[RangeIndex] = None,
                end: Optional[RangeIndex] = None,
                limit: Optional[Limit] = None,
@@ -503,6 +505,7 @@ Endpoint: `GET /api/series/{series}/{index}`
 ```python
 def get_series_data(series: SeriesName,
                     index: Index,
+                    *,
                     start: Optional[RangeIndex] = None,
                     end: Optional[RangeIndex] = None,
                     limit: Optional[Limit] = None,
@@ -561,6 +564,7 @@ Endpoint: `GET /api/series/{series}/{index}/version`
 
 ```python
 def get_series_bulk(
+        *,
         series: SeriesList,
         index: Index,
         start: Optional[RangeIndex] = None,
@@ -595,6 +599,7 @@ Endpoint: `GET /api/urpd`
 
 ```python
 def get_urpd_latest(cohort: UrpdCohort,
+                    *,
                     agg: Optional[UrpdAggregation] = None,
                     weight: Optional[UrpdWeight] = None) -> Urpd
 ```
@@ -612,6 +617,7 @@ Endpoint: `GET /api/urpd/{cohort}`
 ```python
 def get_urpd(cohort: UrpdCohort,
              point: HeightOrDate,
+             *,
              agg: Optional[UrpdAggregation] = None,
              weight: Optional[UrpdWeight] = None) -> Urpd
 ```
@@ -660,6 +666,7 @@ Endpoint: `GET /api/v1/prices`
 
 ```python
 def get_historical_price(
+        *,
         timestamp: Optional[Timestamp] = None,
         currency: Optional[Currency] = None) -> HistoricalPrice
 ```
@@ -709,6 +716,7 @@ Endpoint: `GET /api/address/{address}`
 
 ```python
 def get_address_txs(address: Address,
+                    *,
                     after_txid: Optional[Txid] = None,
                     max_txs: Optional[int] = None) -> List[Transaction]
 ```
@@ -726,9 +734,10 @@ Endpoint: `GET /api/address/{address}/txs`
 #### get\_address\_confirmed\_txs
 
 ```python
-def get_address_confirmed_txs(address: Address,
-                              max_txs: Optional[int] = None
-                              ) -> List[Transaction]
+def get_address_confirmed_txs(
+        address: Address,
+        *,
+        max_txs: Optional[int] = None) -> List[Transaction]
 ```
 
 Address confirmed transactions.
@@ -747,6 +756,7 @@ Endpoint: `GET /api/address/{address}/txs/chain`
 def get_address_confirmed_txs_after(
         address: Address,
         after_txid: Txid,
+        *,
         max_txs: Optional[int] = None) -> List[Transaction]
 ```
 
@@ -763,9 +773,10 @@ Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`
 #### get\_address\_mempool\_txs
 
 ```python
-def get_address_mempool_txs(address: Address,
-                            max_txs: Optional[int] = None
-                            ) -> List[Transaction]
+def get_address_mempool_txs(
+        address: Address,
+        *,
+        max_txs: Optional[int] = None) -> List[Transaction]
 ```
 
 Address mempool transactions.
@@ -1693,7 +1704,7 @@ Endpoint: `GET /api/tx/{txid}/status`
 #### get\_transaction\_times
 
 ```python
-def get_transaction_times(txids: List[Txid]) -> List[Timestamp]
+def get_transaction_times(*, txids: List[Txid]) -> List[Timestamp]
 ```
 
 Transaction first-seen times.

@@ -371,9 +371,9 @@ Endpoint: `GET /api/address/{address}`
 
 ### getAddressConfirmedTxs()
 
-> **getAddressConfirmedTxs**(`address`, `max_txs?`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
+> **getAddressConfirmedTxs**(`address`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
 
-Defined in: [modules/bitview-client/index.js:8501](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8501)
+Defined in: [modules/bitview-client/index.js:9343](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9343)
 
 Address confirmed transactions
 
@@ -389,17 +389,17 @@ Endpoint: `GET /api/address/{address}/txs/chain`
 
 `string`
 
-##### max\_txs?
-
-`number`
-
-Transactions to return, at most 25 (the default); larger values return 25.
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### max_txs?
+
+`number`
+
+Transactions to return, at most 25 (the default); larger values return 25.
 
 ###### memCache?
 
@@ -421,9 +421,9 @@ Transactions to return, at most 25 (the default); larger values return 25.
 
 ### getAddressConfirmedTxsAfter()
 
-> **getAddressConfirmedTxsAfter**(`address`, `after_txid`, `max_txs?`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
+> **getAddressConfirmedTxsAfter**(`address`, `after_txid`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
 
-Defined in: [modules/bitview-client/index.js:8524](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8524)
+Defined in: [modules/bitview-client/index.js:9370](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9370)
 
 Address confirmed transactions (paginated)
 
@@ -445,17 +445,17 @@ Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`
 
 Last txid from the previous page (return transactions strictly older than this)
 
-##### max\_txs?
-
-`number`
-
-Transactions to return, at most 25 (the default); larger values return 25.
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### max_txs?
+
+`number`
+
+Transactions to return, at most 25 (the default); larger values return 25.
 
 ###### memCache?
 
@@ -526,9 +526,9 @@ First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
 
 ### getAddressMempoolTxs()
 
-> **getAddressMempoolTxs**(`address`, `max_txs?`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
+> **getAddressMempoolTxs**(`address`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
 
-Defined in: [modules/bitview-client/index.js:8546](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8546)
+Defined in: [modules/bitview-client/index.js:9396](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9396)
 
 Address mempool transactions
 
@@ -544,17 +544,17 @@ Endpoint: `GET /api/address/{address}/txs/mempool`
 
 `string`
 
-##### max\_txs?
-
-`number`
-
-Transactions to return, at most 50 (the default); larger values return 50.
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### max_txs?
+
+`number`
+
+Transactions to return, at most 50 (the default); larger values return 50.
 
 ###### memCache?
 
@@ -622,9 +622,9 @@ Raw payload bytes matching addressType length
 
 ### getAddressTxs()
 
-> **getAddressTxs**(`address`, `after_txid?`, `max_txs?`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
+> **getAddressTxs**(`address`, `options?`): `Promise`\<readonly [`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Transaction`](../interfaces/Transaction.md)\>[]\>
 
-Defined in: [modules/bitview-client/index.js:8478](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8478)
+Defined in: [modules/bitview-client/index.js:9316](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9316)
 
 Address transactions
 
@@ -640,24 +640,24 @@ Endpoint: `GET /api/address/{address}/txs`
 
 `string`
 
-##### after\_txid?
+##### options?
+
+###### after_txid?
 
 `string`
 
 Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
   cursor skips the mempool). One that is neither answers 422.
 
-##### max\_txs?
+###### cache?
+
+`boolean`
+
+###### max_txs?
 
 `number`
 
 Transactions to return, at most 50 (the default); larger values return 50.
-
-##### options?
-
-###### cache?
-
-`boolean`
 
 ###### memCache?
 
@@ -967,13 +967,13 @@ Endpoint: `GET /blindbit/mainnet/spent-index/{height}`
 
 ### getBlindbitTweakIndex()
 
-> **getBlindbitTweakIndex**(`height`, `dustLimit`, `options?`): `Promise`\<readonly `string`[]\>
+> **getBlindbitTweakIndex**(`height`, `options?`): `Promise`\<readonly `string`[]\>
 
-Defined in: [modules/bitview-client/index.js:9692](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9692)
+Defined in: [modules/bitview-client/index.js:10845](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L10845)
 
 Tweak index
 
-The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is required, from 600, the least value held, to 10,000 (BlindBit's is optional, and 0 by default).
+The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.
 
 Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
 
@@ -983,18 +983,18 @@ Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
 
 `number`
 
-##### dustLimit
-
-`number`
-
-Least value in sats of a Taproot output for its transaction to be listed: from 600, the
-  least value held, to 10,000.
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### dustLimit?
+
+`number`
+
+Least value in sats of a Taproot output for its transaction to be listed; 0 (every
+  eligible transaction) when left out, as BlindBit takes it.
 
 ###### memCache?
 
@@ -1016,9 +1016,9 @@ Least value in sats of a Taproot output for its transaction to be listed: from 6
 
 ### getBlindbitTweaks()
 
-> **getBlindbitTweaks**(`height`, `dustLimit`, `options?`): `Promise`\<readonly `string`[]\>
+> **getBlindbitTweaks**(`height`, `options?`): `Promise`\<readonly `string`[]\>
 
-Defined in: [modules/bitview-client/index.js:9713](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9713)
+Defined in: [modules/bitview-client/index.js:10870](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L10870)
 
 Cut-through tweaks
 
@@ -1032,18 +1032,18 @@ Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
 
 `number`
 
-##### dustLimit
-
-`number`
-
-Least value in sats of a Taproot output for its transaction to be listed: from 600, the
-  least value held, to 10,000.
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### dustLimit?
+
+`number`
+
+Least value in sats of a Taproot output for its transaction to be listed; 0 (every
+  eligible transaction) when left out, as BlindBit takes it.
 
 ###### memCache?
 
@@ -2473,9 +2473,9 @@ Endpoint: `GET /health`
 
 ### getHistoricalPrice()
 
-> **getHistoricalPrice**(`timestamp?`, `currency?`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`HistoricalPrice`](../interfaces/HistoricalPrice.md)\>\>
+> **getHistoricalPrice**(`options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`HistoricalPrice`](../interfaces/HistoricalPrice.md)\>\>
 
-Defined in: [modules/bitview-client/index.js:8417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8417)
+Defined in: [modules/bitview-client/index.js:9243](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9243)
 
 Historical price
 
@@ -2487,23 +2487,17 @@ Endpoint: `GET /api/v1/historical-price`
 
 #### Parameters
 
-##### timestamp?
-
-`number`
-
-UNIX timestamp: the latest close at or before it
-
-##### currency?
-
-`"USD"`
-
-Quote currency: USD, the only one served
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### currency?
+
+`"USD"`
+
+Quote currency: USD, the only one served
 
 ###### memCache?
 
@@ -2516,6 +2510,12 @@ Quote currency: USD, the only one served
 ###### signal?
 
 `AbortSignal`
+
+###### timestamp?
+
+`number`
+
+UNIX timestamp: the latest close at or before it
 
 #### Returns
 
@@ -2605,9 +2605,9 @@ Endpoint: `GET /api/oracle/price`
 
 ### getLogs()
 
-> **getLogs**(`after?`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Logs`](../interfaces/Logs.md)\>\>
+> **getLogs**(`options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Logs`](../interfaces/Logs.md)\>\>
 
-Defined in: [modules/bitview-client/index.js:8055](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8055)
+Defined in: [modules/bitview-client/index.js:8800](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8800)
 
 Logs
 
@@ -2617,13 +2617,13 @@ Endpoint: `GET /api/server/logs`
 
 #### Parameters
 
-##### after?
+##### options?
+
+###### after?
 
 `string`
 
 The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-
-##### options?
 
 ###### cache?
 
@@ -3615,13 +3615,13 @@ Number of recent blocks to include
 
 ### getSeries()
 
-> **getSeries**(`series`, `index`, `start?`, `end?`, `limit?`, `format?`, `options?`): `Promise`\<`string` \| [`AnySeriesData`](../type-aliases/AnySeriesData.md)\>
+> **getSeries**(`series`, `index`, `options?`): `Promise`\<`string` \| [`AnySeriesData`](../type-aliases/AnySeriesData.md)\>
 
-Defined in: [modules/bitview-client/index.js:8193](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8193)
+Defined in: [modules/bitview-client/index.js:8972](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8972)
 
 Get series data
 
-Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
+History of an on-chain metric, by the series id from `search_series`: rows selected by a range of positions, dates or timestamps, as JSON or CSV.
 
 Endpoint: `GET /api/series/{series}/{index}`
 
@@ -3635,33 +3635,27 @@ Endpoint: `GET /api/series/{series}/{index}`
 
 [`Index`](../type-aliases/Index.md)
 
-##### start?
-
-[`RangeIndex`](../type-aliases/RangeIndex.md)
-
-Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-
-##### end?
-
-[`RangeIndex`](../type-aliases/RangeIndex.md)
-
-Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-
-##### limit?
-
-`number`
-
-Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-
-##### format?
-
-[`Format`](../type-aliases/Format.md)
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### end?
+
+[`RangeIndex`](../type-aliases/RangeIndex.md)
+
+Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+
+###### format?
+
+[`Format`](../type-aliases/Format.md)
+
+###### limit?
+
+`number`
+
+Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 
 ###### memCache?
 
@@ -3674,6 +3668,12 @@ Maximum number of values to return; with `end` too, the tighter of the two appli
 ###### signal?
 
 `AbortSignal`
+
+###### start?
+
+[`RangeIndex`](../type-aliases/RangeIndex.md)
+
+Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 
 #### Returns
 
@@ -3683,9 +3683,9 @@ Maximum number of values to return; with `end` too, the tighter of the two appli
 
 ### getSeriesBulk()
 
-> **getSeriesBulk**(`series`, `index`, `start?`, `end?`, `limit?`, `format?`, `options?`): `Promise`\<`string` \| [`AnySeriesData`](../type-aliases/AnySeriesData.md)[]\>
+> **getSeriesBulk**(`options?`): `Promise`\<`string` \| [`AnySeriesData`](../type-aliases/AnySeriesData.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8298](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8298)
+Defined in: [modules/bitview-client/index.js:9098](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9098)
 
 Bulk series data
 
@@ -3695,41 +3695,31 @@ Endpoint: `GET /api/series/bulk`
 
 #### Parameters
 
-##### series
-
-`string`
-
-##### index
-
-[`Index`](../type-aliases/Index.md)
-
-##### start?
-
-[`RangeIndex`](../type-aliases/RangeIndex.md)
-
-Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-
-##### end?
-
-[`RangeIndex`](../type-aliases/RangeIndex.md)
-
-Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-
-##### limit?
-
-`number`
-
-Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-
-##### format?
-
-[`Format`](../type-aliases/Format.md)
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### end?
+
+[`RangeIndex`](../type-aliases/RangeIndex.md)
+
+Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+
+###### format?
+
+[`Format`](../type-aliases/Format.md)
+
+###### index
+
+[`Index`](../type-aliases/Index.md)
+
+###### limit?
+
+`number`
+
+Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 
 ###### memCache?
 
@@ -3739,9 +3729,19 @@ Maximum number of values to return; with `end` too, the tighter of the two appli
 
 (`value`) => `void`
 
+###### series
+
+`string`
+
 ###### signal?
 
 `AbortSignal`
+
+###### start?
+
+[`RangeIndex`](../type-aliases/RangeIndex.md)
+
+Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 
 #### Returns
 
@@ -3789,9 +3789,9 @@ Endpoint: `GET /api/series/count`
 
 ### getSeriesData()
 
-> **getSeriesData**(`series`, `index`, `start?`, `end?`, `limit?`, `format?`, `options?`): `Promise`\<`string` \| readonly `any`[]\>
+> **getSeriesData**(`series`, `index`, `options?`): `Promise`\<`string` \| readonly `any`[]\>
 
-Defined in: [modules/bitview-client/index.js:8221](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8221)
+Defined in: [modules/bitview-client/index.js:9004](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9004)
 
 Get raw series data
 
@@ -3809,33 +3809,27 @@ Endpoint: `GET /api/series/{series}/{index}/data`
 
 [`Index`](../type-aliases/Index.md)
 
-##### start?
-
-[`RangeIndex`](../type-aliases/RangeIndex.md)
-
-Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-
-##### end?
-
-[`RangeIndex`](../type-aliases/RangeIndex.md)
-
-Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-
-##### limit?
-
-`number`
-
-Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-
-##### format?
-
-[`Format`](../type-aliases/Format.md)
-
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### end?
+
+[`RangeIndex`](../type-aliases/RangeIndex.md)
+
+Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+
+###### format?
+
+[`Format`](../type-aliases/Format.md)
+
+###### limit?
+
+`number`
+
+Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 
 ###### memCache?
 
@@ -3848,6 +3842,12 @@ Maximum number of values to return; with `end` too, the tighter of the two appli
 ###### signal?
 
 `AbortSignal`
+
+###### start?
+
+[`RangeIndex`](../type-aliases/RangeIndex.md)
+
+Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 
 #### Returns
 
@@ -4139,9 +4139,9 @@ Cached and supports `onValue`, same as `getJson`.
 
 ### getTransactionTimes()
 
-> **getTransactionTimes**(`txids`, `options?`): `Promise`\<readonly `number`[]\>
+> **getTransactionTimes**(`options?`): `Promise`\<readonly `number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9563](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9563)
+Defined in: [modules/bitview-client/index.js:10686](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L10686)
 
 Transaction first-seen times
 
@@ -4152,12 +4152,6 @@ First-seen UNIX timestamps in seconds, in request order, of transactions in the 
 Endpoint: `GET /api/v1/transaction-times`
 
 #### Parameters
-
-##### txids
-
-`string`[]
-
-Transaction IDs to look up (max 100 per request).
 
 ##### options?
 
@@ -4176,6 +4170,12 @@ Transaction IDs to look up (max 100 per request).
 ###### signal?
 
 `AbortSignal`
+
+###### txids
+
+`string`[]
+
+Transaction IDs to look up (max 100 per request).
 
 #### Returns
 
@@ -4627,13 +4627,13 @@ Endpoint: `GET /api/tx/{txid}/status`
 
 ### getUrpd()
 
-> **getUrpd**(`cohort`, `point`, `agg?`, `weight?`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Urpd`](../interfaces/Urpd.md)\>\>
+> **getUrpd**(`cohort`, `point`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Urpd`](../interfaces/Urpd.md)\>\>
 
-Defined in: [modules/bitview-client/index.js:8362](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8362)
+Defined in: [modules/bitview-client/index.js:9176](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9176)
 
 URPD at block height or date
 
-URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+URPD (UTXO realized price distribution: how much supply last moved at each price) for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
 Endpoint: `GET /api/urpd/{cohort}/{point}`
 
@@ -4649,19 +4649,13 @@ Endpoint: `GET /api/urpd/{cohort}/{point}`
 
 Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
-##### agg?
+##### options?
+
+###### agg?
 
 [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
 Aggregation strategy. Default: raw (no aggregation).
-
-##### weight?
-
-[`UrpdWeight`](../type-aliases/UrpdWeight.md)
-
-Supply weighting. Default: none (unweighted).
-
-##### options?
 
 ###### cache?
 
@@ -4678,6 +4672,12 @@ Supply weighting. Default: none (unweighted).
 ###### signal?
 
 `AbortSignal`
+
+###### weight?
+
+[`UrpdWeight`](../type-aliases/UrpdWeight.md)
+
+Supply weighting. Default: none (unweighted).
 
 #### Returns
 
@@ -4687,13 +4687,13 @@ Supply weighting. Default: none (unweighted).
 
 ### getUrpdLatest()
 
-> **getUrpdLatest**(`cohort`, `agg?`, `weight?`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Urpd`](../interfaces/Urpd.md)\>\>
+> **getUrpdLatest**(`cohort`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`Urpd`](../interfaces/Urpd.md)\>\>
 
-Defined in: [modules/bitview-client/index.js:8339](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8339)
+Defined in: [modules/bitview-client/index.js:9149](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9149)
 
 Latest URPD
 
-URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
+URPD (UTXO realized price distribution: how much supply last moved at each price) for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
 Endpoint: `GET /api/urpd/{cohort}`
 
@@ -4703,19 +4703,13 @@ Endpoint: `GET /api/urpd/{cohort}`
 
 [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-##### agg?
+##### options?
+
+###### agg?
 
 [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
 Aggregation strategy. Default: raw (no aggregation).
-
-##### weight?
-
-[`UrpdWeight`](../type-aliases/UrpdWeight.md)
-
-Supply weighting. Default: none (unweighted).
-
-##### options?
 
 ###### cache?
 
@@ -4732,6 +4726,12 @@ Supply weighting. Default: none (unweighted).
 ###### signal?
 
 `AbortSignal`
+
+###### weight?
+
+[`UrpdWeight`](../type-aliases/UrpdWeight.md)
+
+Supply weighting. Default: none (unweighted).
 
 #### Returns
 
@@ -4965,9 +4965,9 @@ Endpoint: `GET /api/series/indexes`
 
 ### listSeries()
 
-> **listSeries**(`page?`, `per_page?`, `options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`PaginatedSeries`](../interfaces/PaginatedSeries.md)\>\>
+> **listSeries**(`options?`): `Promise`\<[`FrozenObject`](../type-aliases/FrozenObject.md)\<[`PaginatedSeries`](../interfaces/PaginatedSeries.md)\>\>
 
-Defined in: [modules/bitview-client/index.js:8131](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8131)
+Defined in: [modules/bitview-client/index.js:8896](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8896)
 
 Series list
 
@@ -4976,18 +4976,6 @@ Paginated flat list of all available series names.
 Endpoint: `GET /api/series/list`
 
 #### Parameters
-
-##### page?
-
-`number`
-
-Zero-based page number (default: 0)
-
-##### per\_page?
-
-`number`
-
-Results per page, 1 to 1,000 (default: 1000)
 
 ##### options?
 
@@ -5002,6 +4990,18 @@ Results per page, 1 to 1,000 (default: 1000)
 ###### onValue?
 
 (`value`) => `void`
+
+###### page?
+
+`number`
+
+Zero-based page number (default: 0)
+
+###### per_page?
+
+`number`
+
+Results per page, 1 to 1,000 (default: 1000)
 
 ###### signal?
 
@@ -5274,35 +5274,29 @@ Endpoint: `POST /api/tx`
 
 ### searchSeries()
 
-> **searchSeries**(`q`, `limit?`, `options?`): `Promise`\<readonly `string`[]\>
+> **searchSeries**(`options?`): `Promise`\<readonly `string`[]\>
 
-Defined in: [modules/bitview-client/index.js:8152](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8152)
+Defined in: [modules/bitview-client/index.js:8922](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8922)
 
 Search series
 
-Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
+Find on-chain metrics by plain words: MVRV, realized price, SOPR, NUPL, supply held by long-term or short-term holders, coin age, addresses by balance, hashrate, fees, volume, and thousands more. Start here for any metric question: it returns the series ids to pass to `get_series_latest` or `get_series`. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
 
 Endpoint: `GET /api/series/search`
 
 #### Parameters
-
-##### q
-
-`string`
-
-Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-
-##### limit?
-
-`number`
-
-Maximum number of results, 1 to 1,000 (default: 100)
 
 ##### options?
 
 ###### cache?
 
 `boolean`
+
+###### limit?
+
+`number`
+
+Maximum number of results, 1 to 1,000 (default: 100)
 
 ###### memCache?
 
@@ -5311,6 +5305,12 @@ Maximum number of results, 1 to 1,000 (default: 100)
 ###### onValue?
 
 (`value`) => `void`
+
+###### q
+
+`string`
+
+Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
 
 ###### signal?
 

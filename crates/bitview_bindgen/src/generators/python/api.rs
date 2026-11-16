@@ -267,27 +267,25 @@ fn build_method_params(endpoint: &Endpoint) -> String {
         let py_type = api_type(&param.ty);
         write!(params, ", {}: {}", safe_name, py_type).unwrap();
     }
-    // Required query params must come before optional ones (Python syntax requirement)
-    for param in &endpoint.query_params {
-        if param.required {
-            let safe_name = escape_python_keyword(&param.arg);
-            let py_type = api_type(&param.ty);
-            write!(params, ", {}: {}", safe_name, py_type).unwrap();
-        }
-    }
-    for param in &endpoint.query_params {
-        if !param.required {
-            let safe_name = escape_python_keyword(&param.arg);
-            let py_type = api_type(&param.ty);
-            write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
-        }
-    }
     if let Some(body) = &endpoint.request_body {
         let py_type = api_type(&body.ty);
         if body.required {
             write!(params, ", body: {}", py_type).unwrap();
         } else {
             write!(params, ", body: Optional[{}] = None", py_type).unwrap();
+        }
+    }
+    // Query parameters are named: adding one never shifts a caller's other arguments.
+    if !endpoint.query_params.is_empty() {
+        params.push_str(", *");
+    }
+    for param in &endpoint.query_params {
+        let safe_name = escape_python_keyword(&param.arg);
+        let py_type = api_type(&param.ty);
+        if param.required {
+            write!(params, ", {}: {}", safe_name, py_type).unwrap();
+        } else {
+            write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
         }
     }
     params

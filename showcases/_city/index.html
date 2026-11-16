@@ -2393,7 +2393,7 @@
 
       async function loadLayout(/** @type {Block} */ block) {
         const client = await clientReady;
-        const range = await client.getSeriesBulk("first_tx_index,tx_count", "height", block.height, block.height + 1);
+        const range = await client.getSeriesBulk({ series: "first_tx_index,tx_count", index: "height", start: block.height, end: block.height + 1 });
         const [first, count] = /** @type {{ data: number[] }[]} */ (range);
         const start = first.data[0];
         const n = count.data[0];
@@ -2401,7 +2401,7 @@
         const fees = new Float32Array(n);
         for (let from = 0; from < n; from += TX_BATCH) {
           const to = Math.min(n, from + TX_BATCH);
-          const response = await client.getSeriesBulk("tx_size,tx_fee_rate", "tx_index", start + from, start + to);
+          const response = await client.getSeriesBulk({ series: "tx_size,tx_fee_rate", index: "tx_index", start: start + from, end: start + to });
           const [size, fee] = /** @type {{ data: number[] }[]} */ (response);
           sizes.set(size.data, from);
           fees.set(fee.data, from);
@@ -4333,7 +4333,7 @@
       /** @param {number} start @param {number} end @param {boolean} cache @returns {Promise<Block[]>} */
       async function fetchBlocks(start, end, cache) {
         const client = await clientReady;
-        const response = await client.getSeriesBulk(SERIES, "height", start, end, undefined, undefined, { cache });
+        const response = await client.getSeriesBulk({ series: SERIES, index: "height", start, end, cache });
         const [time, pool, weight, txs, fee] = /** @type {{ start: number, data: any[] }[]} */ (response);
         const length = Math.min(time.data.length, pool.data.length, weight.data.length, txs.data.length, fee.data.length);
         /** @type {Block[]} */

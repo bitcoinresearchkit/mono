@@ -10,6 +10,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- `bitview-client` JavaScript query parameters now belong in the final options object; path parameters
+  stay positional. For example, `client.getUrpd(cohort, point, agg, weight, { signal, cache })`
+  becomes `client.getUrpd(cohort, point, { agg, weight, signal, cache })`. Required query fields remain
+  required and missing values throw before a request is sent. Python query parameters are now keyword-only
+  (for example, `client.get_urpd(cohort, point, agg=agg, weight=weight)`). The `_wallets` call
+  `getAddressTxs(member, { cache: false, signal })` now works correctly instead of sending `after_txid=[object Object]`.
+
 - 182 series ids renamed to say what they measure; their values and indexes are unchanged, and the old ids
   answer 404. Clients, Studio and the generated references use the new ids
   - OP_RETURN relay-limit categories say what they check, the pre-v30 relay policy’s size and count limits, not full standardness (102 ids):

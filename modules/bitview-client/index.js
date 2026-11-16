@@ -8736,7 +8736,11 @@ class BitviewClient extends BitviewClientBase {
    * Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
    *
    * Endpoint: `GET /health`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Health>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Health>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Health>>}
    */
   async getHealth({ signal, onValue, cache, memCache } = {}) {
@@ -8748,7 +8752,11 @@ class BitviewClient extends BitviewClientBase {
    * API version
    *
    * Endpoint: `GET /version`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ServerVersion>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<ServerVersion>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<ServerVersion>>}
    */
   async getVersion({ signal, onValue, cache, memCache } = {}) {
@@ -8762,7 +8770,11 @@ class BitviewClient extends BitviewClientBase {
    * Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
    *
    * Endpoint: `GET /api/server/sync`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<SyncStatus>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<SyncStatus>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<SyncStatus>>}
    */
   async getSyncStatus({ signal, onValue, cache, memCache } = {}) {
@@ -8777,13 +8789,17 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/server/logs`
    *
-   * @param {string=} [after] - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Logs>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {string} [options.after] - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Logs>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Logs>>}
    */
-  async getLogs(after, { signal, onValue, cache, memCache } = {}) {
+  async getLogs({ after, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (after !== undefined) params.set('after', String(after));
+    if (after != null) params.set('after', String(after));
     const query = params.toString();
     const path = `/api/server/logs${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -8795,7 +8811,11 @@ class BitviewClient extends BitviewClientBase {
    * Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
    *
    * Endpoint: `GET /api/server/disk`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DiskUsage>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DiskUsage>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<DiskUsage>>}
    */
   async getDiskUsage({ signal, onValue, cache, memCache } = {}) {
@@ -8809,7 +8829,11 @@ class BitviewClient extends BitviewClientBase {
    * The available series as a tree of categories and subcategories.
    *
    * Endpoint: `GET /api/series`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TreeNode>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TreeNode>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<TreeNode>>}
    */
   async getSeriesTree({ signal, onValue, cache, memCache } = {}) {
@@ -8823,7 +8847,11 @@ class BitviewClient extends BitviewClientBase {
    * Returns the number of series available per index type.
    *
    * Endpoint: `GET /api/series/count`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DetailedSeriesCount>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DetailedSeriesCount>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<DetailedSeriesCount>>}
    */
   async getSeriesCount({ signal, onValue, cache, memCache } = {}) {
@@ -8837,7 +8865,11 @@ class BitviewClient extends BitviewClientBase {
    * Returns every index a series can be read at, by the name series routes take.
    *
    * Endpoint: `GET /api/series/indexes`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Index[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Index[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Index[]>>}
    */
   async listIndexes({ signal, onValue, cache, memCache } = {}) {
@@ -8852,15 +8884,19 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/list`
    *
-   * @param {number=} [page] - Zero-based page number (default: 0)
-   * @param {number=} [per_page] - Results per page, 1 to 1,000 (default: 1000)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PaginatedSeries>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {number} [options.page] - Zero-based page number (default: 0)
+   * @param {number} [options.per_page] - Results per page, 1 to 1,000 (default: 1000)
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PaginatedSeries>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PaginatedSeries>>}
    */
-  async listSeries(page, per_page, { signal, onValue, cache, memCache } = {}) {
+  async listSeries({ page, per_page, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (page !== undefined) params.set('page', String(page));
-    if (per_page !== undefined) params.set('per_page', String(per_page));
+    if (page != null) params.set('page', String(page));
+    if (per_page != null) params.set('per_page', String(per_page));
     const query = params.toString();
     const path = `/api/series/list${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -8873,15 +8909,21 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/search`
    *
-   * @param {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-   * @param {number=} [limit] - Maximum number of results, 1 to 1,000 (default: 100)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<SeriesName[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} options
+   * @param {string} options.q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
+   * @param {number} [options.limit] - Maximum number of results, 1 to 1,000 (default: 100)
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<SeriesName[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<SeriesName[]>>}
    */
-  async searchSeries(q, limit, { signal, onValue, cache, memCache } = {}) {
+  // @ts-expect-error Missing options are checked at runtime.
+  async searchSeries({ q, limit, signal, onValue, cache, memCache } = {}) {
+    if (q == null) throw new TypeError('searchSeries: options.q is required');
     const params = new URLSearchParams();
     params.set('q', String(q));
-    if (limit !== undefined) params.set('limit', String(limit));
+    if (limit != null) params.set('limit', String(limit));
     const query = params.toString();
     const path = `/api/series/search${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -8895,7 +8937,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/{series}`
    *
    * @param {SeriesName} series
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<SeriesInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<SeriesInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<SeriesInfo>>}
    */
   async getSeriesInfo(series, { signal, onValue, cache, memCache } = {}) {
@@ -8912,23 +8958,27 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-   * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData | string) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+   * @param {Format} [options.format]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: AnySeriesData | string) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<AnySeriesData | string>}
    */
-  async getSeries(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
+  async getSeries(series, index, { start, end, limit, format, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format !== undefined) params.set('format', String(format));
+    if (start != null) params.set('start', String(start));
+    if (end != null) params.set('end', String(end));
+    if (limit != null) params.set('limit', String(limit));
+    if (format != null) params.set('format', String(format));
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return _wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))) }));
+    return _wrapSeriesData(await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, onValue: onValue && ((v) => onValue(_wrapSeriesData(v))), cache, memCache }));
   }
 
   /**
@@ -8940,19 +8990,23 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-   * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<*[]> | string) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+   * @param {Format} [options.format]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<*[]> | string) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<*[]> | string>}
    */
-  async getSeriesData(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
+  async getSeriesData(series, index, { start, end, limit, format, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format !== undefined) params.set('format', String(format));
+    if (start != null) params.set('start', String(start));
+    if (end != null) params.set('end', String(end));
+    if (limit != null) params.set('limit', String(limit));
+    if (format != null) params.set('format', String(format));
     const query = params.toString();
     const path = `/api/series/${encodeURIComponent(series)}/${encodeURIComponent(index)}/data${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
@@ -8968,7 +9022,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: *) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<*>}
    */
   async getSeriesLatest(series, index, { signal, onValue, cache, memCache } = {}) {
@@ -8983,7 +9041,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<number>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<number>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<number>>}
    */
   async getSeriesLen(series, index, { signal, onValue, cache, memCache } = {}) {
@@ -9000,7 +9062,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Version>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Version>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Version>>}
    */
   async getSeriesVersion(series, index, { signal, onValue, cache, memCache } = {}) {
@@ -9015,27 +9081,34 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/bulk`
    *
-   * @param {SeriesList} series
-   * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
-   * @param {Format=} [format]
-   * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} options
+   * @param {SeriesList} options.series
+   * @param {Index} options.index
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
+   * @param {Format} [options.format]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: AnySeriesData[] | string) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<AnySeriesData[] | string>}
    */
-  async getSeriesBulk(series, index, start, end, limit, format, { signal, onValue, cache, memCache } = {}) {
+  // @ts-expect-error Missing options are checked at runtime.
+  async getSeriesBulk({ series, index, start, end, limit, format, signal, onValue, cache, memCache } = {}) {
+    if (series == null) throw new TypeError('getSeriesBulk: options.series is required');
+    if (index == null) throw new TypeError('getSeriesBulk: options.index is required');
     const params = new URLSearchParams();
     params.set('series', String(series));
     params.set('index', String(index));
-    if (start !== undefined) params.set('start', String(start));
-    if (end !== undefined) params.set('end', String(end));
-    if (limit !== undefined) params.set('limit', String(limit));
-    if (format !== undefined) params.set('format', String(format));
+    if (start != null) params.set('start', String(start));
+    if (end != null) params.set('end', String(end));
+    if (limit != null) params.set('limit', String(limit));
+    if (format != null) params.set('format', String(format));
     const query = params.toString();
     const path = `/api/series/bulk${query ? '?' + query : ''}`;
     if (format === 'csv') return this.getText(path, { signal, onValue, cache, memCache });
-    return (await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData);
+    return (await this._getCached(path, 'json', _readJson(_SERIES_KEEP), { signal, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))), cache, memCache })).map(_wrapSeriesData);
   }
 
   /**
@@ -9044,7 +9117,11 @@ class BitviewClient extends BitviewClientBase {
    * Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
    *
    * Endpoint: `GET /api/urpd`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UrpdCohort[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UrpdCohort[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<UrpdCohort[]>>}
    */
   async listUrpdCohorts({ signal, onValue, cache, memCache } = {}) {
@@ -9060,15 +9137,19 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/urpd/{cohort}`
    *
    * @param {UrpdCohort} cohort
-   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Urpd>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {UrpdAggregation} [options.agg] - Aggregation strategy. Default: raw (no aggregation).
+   * @param {UrpdWeight} [options.weight] - Supply weighting. Default: none (unweighted).
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Urpd>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Urpd>>}
    */
-  async getUrpdLatest(cohort, agg, weight, { signal, onValue, cache, memCache } = {}) {
+  async getUrpdLatest(cohort, { agg, weight, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (agg !== undefined) params.set('agg', String(agg));
-    if (weight !== undefined) params.set('weight', String(weight));
+    if (agg != null) params.set('agg', String(agg));
+    if (weight != null) params.set('weight', String(weight));
     const query = params.toString();
     const path = `/api/urpd/${encodeURIComponent(cohort)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9083,15 +9164,19 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {UrpdCohort} cohort
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Urpd>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {UrpdAggregation} [options.agg] - Aggregation strategy. Default: raw (no aggregation).
+   * @param {UrpdWeight} [options.weight] - Supply weighting. Default: none (unweighted).
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Urpd>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Urpd>>}
    */
-  async getUrpd(cohort, point, agg, weight, { signal, onValue, cache, memCache } = {}) {
+  async getUrpd(cohort, point, { agg, weight, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (agg !== undefined) params.set('agg', String(agg));
-    if (weight !== undefined) params.set('weight', String(weight));
+    if (agg != null) params.set('agg', String(agg));
+    if (weight != null) params.set('weight', String(weight));
     const query = params.toString();
     const path = `/api/urpd/${encodeURIComponent(cohort)}/${encodeURIComponent(point)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9105,7 +9190,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
    *
    * Endpoint: `GET /api/v1/difficulty-adjustment`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DifficultyAdjustment>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DifficultyAdjustment>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<DifficultyAdjustment>>}
    */
   async getDifficultyAdjustment({ signal, onValue, cache, memCache } = {}) {
@@ -9121,7 +9210,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
    *
    * Endpoint: `GET /api/v1/prices`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PricePoint>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PricePoint>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PricePoint>>}
    */
   async getPrices({ signal, onValue, cache, memCache } = {}) {
@@ -9138,15 +9231,19 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/v1/historical-price`
    *
-   * @param {Timestamp=} [timestamp] - UNIX timestamp: the latest close at or before it
-   * @param {Currency=} [currency] - Quote currency: USD, the only one served
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<HistoricalPrice>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {Timestamp} [options.timestamp] - UNIX timestamp: the latest close at or before it
+   * @param {Currency} [options.currency] - Quote currency: USD, the only one served
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<HistoricalPrice>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<HistoricalPrice>>}
    */
-  async getHistoricalPrice(timestamp, currency, { signal, onValue, cache, memCache } = {}) {
+  async getHistoricalPrice({ timestamp, currency, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (timestamp !== undefined) params.set('timestamp', String(timestamp));
-    if (currency !== undefined) params.set('currency', String(currency));
+    if (timestamp != null) params.set('timestamp', String(timestamp));
+    if (currency != null) params.set('currency', String(currency));
     const query = params.toString();
     const path = `/api/v1/historical-price${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson({ "exchangeRates": true }), { signal, onValue, cache, memCache });
@@ -9162,7 +9259,11 @@ class BitviewClient extends BitviewClientBase {
    * @param {AddressOutputType} address_type
    * @param {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
    *   address payload bytes.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressHashPrefixMatches>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AddressHashPrefixMatches>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<AddressHashPrefixMatches>>}
    */
   async getAddressHashPrefixMatches(address_type, prefix, { signal, onValue, cache, memCache } = {}) {
@@ -9180,7 +9281,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}`
    *
    * @param {Address} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressStats>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AddressStats>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<AddressStats>>}
    */
   async getAddress(address, { signal, onValue, cache, memCache } = {}) {
@@ -9198,16 +9303,20 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}/txs`
    *
    * @param {Address} address
-   * @param {Txid=} [after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
+   * @param {object} [options]
+   * @param {Txid} [options.after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
    *   cursor skips the mempool). One that is neither answers 422.
-   * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressTxs(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressTxs(address, { after_txid, max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (after_txid !== undefined) params.set('after_txid', String(after_txid));
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (after_txid != null) params.set('after_txid', String(after_txid));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9223,13 +9332,17 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}/txs/chain`
    *
    * @param {Address} address
-   * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressConfirmedTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressConfirmedTxs(address, { max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/chain${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9246,13 +9359,17 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Address} address
    * @param {Txid} after_txid - Last txid from the previous page (return transactions strictly older than this)
-   * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressConfirmedTxsAfter(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressConfirmedTxsAfter(address, after_txid, { max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/chain/${encodeURIComponent(after_txid)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9268,13 +9385,17 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}/txs/mempool`
    *
    * @param {Address} address
-   * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {number} [options.max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction[]>>}
    */
-  async getAddressMempoolTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+  async getAddressMempoolTxs(address, { max_txs, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    if (max_txs != null) params.set('max_txs', String(max_txs));
     const query = params.toString();
     const path = `/api/address/${encodeURIComponent(address)}/txs/mempool${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -9290,7 +9411,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/address/{address}/utxo`
    *
    * @param {Address} address
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Utxo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Utxo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Utxo[]>>}
    */
   async getAddressUtxos(address, { signal, onValue, cache, memCache } = {}) {
@@ -9309,7 +9434,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
    *   anything else answers 400, as mempool.space does
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<AddressValidation>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AddressValidation>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<AddressValidation>>}
    */
   async validateAddress(address, { signal, onValue, cache, memCache } = {}) {
@@ -9327,7 +9456,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfo>>}
    */
   async getBlock(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9345,7 +9478,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/block/{hash}`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfoV1>>}
    */
   async getBlockV1(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9363,7 +9500,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/header`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Hex) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Hex) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Hex>}
    */
   async getBlockHeader(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9381,7 +9522,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block-height/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockHash) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: BlockHash) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<BlockHash>}
    */
   async getBlockHashByHeight(height, { signal, onValue, cache, memCache } = {}) {
@@ -9399,7 +9544,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/timestamp/{timestamp}`
    *
    * @param {Timestamp} timestamp
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockTimestamp>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockTimestamp>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockTimestamp>>}
    */
   async getBlockByTimestamp(timestamp, { signal, onValue, cache, memCache } = {}) {
@@ -9417,7 +9566,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/raw`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Uint8Array) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Uint8Array) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Uint8Array>}
    */
   async getBlockRaw(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9435,7 +9588,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/status`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockStatus>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockStatus>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockStatus>>}
    */
   async getBlockStatus(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9451,12 +9608,16 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
    *
    * Endpoint: `GET /api/blocks/tip/height`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Height) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Height) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Height>}
    */
   async getBlockTipHeight({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/blocks/tip/height`;
-    return Number(await this.getText(path, { signal, cache, memCache, onValue: onValue ? (v) => onValue(Number(v)) : undefined }));
+    return Number(await this.getText(path, { signal, onValue: onValue ? (v) => onValue(Number(v)) : undefined, cache, memCache }));
   }
 
   /**
@@ -9467,7 +9628,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
    *
    * Endpoint: `GET /api/blocks/tip/hash`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockHash) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: BlockHash) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<BlockHash>}
    */
   async getBlockTipHash({ signal, onValue, cache, memCache } = {}) {
@@ -9486,7 +9651,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {BlockHash} hash
    * @param {BlockTxIndex} index - Transaction index within the block (0-based)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Txid) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Txid>}
    */
   async getBlockTxid(hash, index, { signal, onValue, cache, memCache } = {}) {
@@ -9504,7 +9673,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/txids`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Txid[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Txid[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Txid[]>>}
    */
   async getBlockTxids(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9522,7 +9695,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/block/{hash}/txs`
    *
    * @param {BlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getBlockTxs(hash, { signal, onValue, cache, memCache } = {}) {
@@ -9541,7 +9718,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {BlockHash} hash
    * @param {BlockTxIndex} start_index - Starting transaction index within the block (0-based)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction[]>>}
    */
   async getBlockTxsFromIndex(hash, start_index, { signal, onValue, cache, memCache } = {}) {
@@ -9557,7 +9738,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
    *
    * Endpoint: `GET /api/blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfo[]>>}
    */
   async getBlocks({ signal, onValue, cache, memCache } = {}) {
@@ -9575,7 +9760,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfo[]>>}
    */
   async getBlocksFromHeight(height, { signal, onValue, cache, memCache } = {}) {
@@ -9591,7 +9780,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
    *
    * Endpoint: `GET /api/v1/blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getBlocksV1({ signal, onValue, cache, memCache } = {}) {
@@ -9609,7 +9802,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getBlocksV1FromHeight(height, { signal, onValue, cache, memCache } = {}) {
@@ -9625,7 +9822,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
    *
    * Endpoint: `GET /api/v1/mining/pools`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolInfo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolInfo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PoolInfo[]>>}
    */
   async getPools({ signal, onValue, cache, memCache } = {}) {
@@ -9643,7 +9844,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pools/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolsSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolsSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PoolsSummary>>}
    */
   async getPoolRanking(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9661,7 +9866,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pool/{slug}`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolDetail>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolDetail>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PoolDetail>>}
    */
   async getPool(slug, { signal, onValue, cache, memCache } = {}) {
@@ -9677,7 +9886,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolHashrateEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolHashrateEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolsHashrate({ signal, onValue, cache, memCache } = {}) {
@@ -9695,7 +9908,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/hashrate/pools/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolHashrateEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolHashrateEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolsHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9713,7 +9930,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PoolHashrateEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PoolHashrateEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PoolHashrateEntry[]>>}
    */
   async getPoolHashrate(slug, { signal, onValue, cache, memCache } = {}) {
@@ -9731,7 +9952,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
    *
    * @param {PoolSlug} slug
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getPoolBlocks(slug, { signal, onValue, cache, memCache } = {}) {
@@ -9750,7 +9975,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {PoolSlug} slug
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockInfoV1[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockInfoV1[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockInfoV1[]>>}
    */
   async getPoolBlocksFromHeight(slug, height, { signal, onValue, cache, memCache } = {}) {
@@ -9766,7 +9995,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<HashrateSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<HashrateSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<HashrateSummary>>}
    */
   async getHashrate({ signal, onValue, cache, memCache } = {}) {
@@ -9784,7 +10017,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/hashrate/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<HashrateSummary>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<HashrateSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<HashrateSummary>>}
    */
   async getHashrateByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9800,7 +10037,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
    *
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DifficultyAdjustmentEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DifficultyAdjustmentEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<DifficultyAdjustmentEntry[]>>}
    */
   async getDifficultyAdjustments({ signal, onValue, cache, memCache } = {}) {
@@ -9818,7 +10059,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<DifficultyAdjustmentEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<DifficultyAdjustmentEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<DifficultyAdjustmentEntry[]>>}
    */
   async getDifficultyAdjustmentsByPeriod(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9836,7 +10081,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/reward-stats/{block_count}`
    *
    * @param {number} block_count - Number of recent blocks to include
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<RewardStats>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<RewardStats>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<RewardStats>>}
    */
   async getRewardStats(block_count, { signal, onValue, cache, memCache } = {}) {
@@ -9854,7 +10103,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeesEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockFeesEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockFeesEntry[]>>}
    */
   async getBlockFees(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9872,7 +10125,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockRewardsEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockRewardsEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockRewardsEntry[]>>}
    */
   async getBlockRewards(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9890,7 +10147,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeeRatesEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockFeeRatesEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockFeeRatesEntry[]>>}
    */
   async getBlockFeeRates(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9908,7 +10169,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockFeeRatesPreciseEntry[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockFeeRatesPreciseEntry[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockFeeRatesPreciseEntry[]>>}
    */
   async getBlockFeeRatesPrecise(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9926,7 +10191,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`
    *
    * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockSizesWeights>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockSizesWeights>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockSizesWeights>>}
    */
   async getBlockSizesWeights(time_period, { signal, onValue, cache, memCache } = {}) {
@@ -9942,7 +10211,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
    *
    * Endpoint: `GET /api/v1/fees/mempool-blocks`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolBlock[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolBlock[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<MempoolBlock[]>>}
    */
   async getMempoolBlocks({ signal, onValue, cache, memCache } = {}) {
@@ -9958,7 +10231,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
    *
    * Endpoint: `GET /api/v1/fees/recommended`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<RecommendedFees>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<RecommendedFees>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<RecommendedFees>>}
    */
   async getRecommendedFees({ signal, onValue, cache, memCache } = {}) {
@@ -9974,7 +10251,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
    *
    * Endpoint: `GET /api/v1/fees/precise`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<PreciseRecommendedFees>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<PreciseRecommendedFees>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<PreciseRecommendedFees>>}
    */
   async getPreciseFees({ signal, onValue, cache, memCache } = {}) {
@@ -9990,7 +10271,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
    *
    * Endpoint: `GET /api/mempool`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<MempoolInfo>>}
    */
   async getMempool({ signal, onValue, cache, memCache } = {}) {
@@ -10006,7 +10291,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*
    *
    * Endpoint: `GET /api/mempool/txids`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Txid[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Txid[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Txid[]>>}
    */
   async getMempoolTxids({ signal, onValue, cache, memCache } = {}) {
@@ -10022,7 +10311,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
    *
    * Endpoint: `GET /api/mempool/recent`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolTxSummary[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolTxSummary[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<MempoolTxSummary[]>>}
    */
   async getMempoolRecent({ signal, onValue, cache, memCache } = {}) {
@@ -10038,7 +10331,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
    *
    * Endpoint: `GET /api/v1/replacements`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ReplacementNode[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<ReplacementNode[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<ReplacementNode[]>>}
    */
   async getReplacements({ signal, onValue, cache, memCache } = {}) {
@@ -10054,7 +10351,11 @@ class BitviewClient extends BitviewClientBase {
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-fullrbf-replacements)*
    *
    * Endpoint: `GET /api/v1/fullrbf/replacements`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<ReplacementNode[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<ReplacementNode[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<ReplacementNode[]>>}
    */
   async getFullrbfReplacements({ signal, onValue, cache, memCache } = {}) {
@@ -10070,7 +10371,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/mempool-blocks/{index}`
    *
    * @param {MempoolBlockIndex} index
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolBlockContent>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolBlockContent>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<MempoolBlockContent>>}
    */
   async getMempoolBlock(index, { signal, onValue, cache, memCache } = {}) {
@@ -10087,7 +10392,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {MempoolBlockIndex} index
    * @param {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MempoolBlockDiff>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MempoolBlockDiff>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<MempoolBlockDiff>>}
    */
   async getMempoolBlockDiff(index, since, { signal, onValue, cache, memCache } = {}) {
@@ -10103,7 +10412,11 @@ class BitviewClient extends BitviewClientBase {
    * *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
    *
    * Endpoint: `GET /api/block-template`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlockTemplate>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlockTemplate>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlockTemplate>>}
    */
   async getBlockTemplate({ signal, onValue, cache, memCache } = {}) {
@@ -10119,7 +10432,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx-index/{index}`
    *
    * @param {TxIndex} index - Global transaction index across the chain
-   * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Txid) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Txid>}
    */
   async getTxidByIndex(index, { signal, onValue, cache, memCache } = {}) {
@@ -10137,7 +10454,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/cpfp/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Cpfp>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Cpfp>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Cpfp>>}
    */
   async getCpfp(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10155,7 +10476,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/v1/tx/{txid}/rbf`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<RbfResponse>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<RbfResponse>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<RbfResponse>>}
    */
   async getTxRbf(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10173,7 +10498,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Transaction>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Transaction>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Transaction>>}
    */
   async getTx(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10191,7 +10520,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/hex`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Hex) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Hex) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Hex>}
    */
   async getTxHex(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10209,7 +10542,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/merkleblock-proof`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Hex) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Hex) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Hex>}
    */
   async getTxMerkleblockProof(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10227,7 +10564,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/merkle-proof`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<MerkleProof>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<MerkleProof>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<MerkleProof>>}
    */
   async getTxMerkleProof(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10246,7 +10587,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Txid} txid
    * @param {Vout} vout - Output index
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxOutspend>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxOutspend>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<TxOutspend>>}
    */
   async getTxOutspend(txid, vout, { signal, onValue, cache, memCache } = {}) {
@@ -10264,7 +10609,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/outspends`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxOutspend[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxOutspend[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<TxOutspend[]>>}
    */
   async getTxOutspends(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10282,7 +10631,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/raw`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Uint8Array) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Uint8Array) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Uint8Array>}
    */
   async getTxRaw(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10300,7 +10653,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/tx/{txid}/status`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<TxStatus>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxStatus>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<TxStatus>>}
    */
   async getTxStatus(txid, { signal, onValue, cache, memCache } = {}) {
@@ -10317,11 +10674,17 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/v1/transaction-times`
    *
-   * @param {Txid[]} txids - Transaction IDs to look up (max 100 per request).
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Timestamp[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} options
+   * @param {Txid[]} options.txids - Transaction IDs to look up (max 100 per request).
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Timestamp[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Timestamp[]>>}
    */
-  async getTransactionTimes(txids, { signal, onValue, cache, memCache } = {}) {
+  // @ts-expect-error Missing options are checked at runtime.
+  async getTransactionTimes({ txids, signal, onValue, cache, memCache } = {}) {
+    if (txids == null) throw new TypeError('getTransactionTimes: options.txids is required');
     const params = new URLSearchParams();
     for (const _v of txids) params.append('txId[]', String(_v));
     const query = params.toString();
@@ -10339,7 +10702,8 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `POST /api/tx`
    *
    * @param {string} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
    * @returns {Promise<Txid>}
    */
   async postTx(body, { signal } = {}) {
@@ -10353,7 +10717,11 @@ class BitviewClient extends BitviewClientBase {
    * The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
    *
    * Endpoint: `GET /api/utxo-set`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UtxoSet>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UtxoSet>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<UtxoSet>>}
    */
   async getUtxoSetLatest({ signal, onValue, cache, memCache } = {}) {
@@ -10369,7 +10737,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/utxo-set/{point}`
    *
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UtxoSet>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UtxoSet>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<UtxoSet>>}
    */
   async getUtxoSet(point, { signal, onValue, cache, memCache } = {}) {
@@ -10385,7 +10757,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/utxo-set/{point}/diff`
    *
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<UtxoSetDiff>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<UtxoSetDiff>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<UtxoSetDiff>>}
    */
   async getUtxoSetDiff(point, { signal, onValue, cache, memCache } = {}) {
@@ -10399,7 +10775,11 @@ class BitviewClient extends BitviewClientBase {
    * The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
    *
    * Endpoint: `GET /blindbit/mainnet/info`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitInfo>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitInfo>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlindbitInfo>>}
    */
   async getBlindbitInfo({ signal, onValue, cache, memCache } = {}) {
@@ -10413,7 +10793,11 @@ class BitviewClient extends BitviewClientBase {
    * The height of the last indexed block.
    *
    * Endpoint: `GET /blindbit/mainnet/block-height`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitBlockHeight>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitBlockHeight>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlindbitBlockHeight>>}
    */
   async getBlindbitBlockHeight({ signal, onValue, cache, memCache } = {}) {
@@ -10429,7 +10813,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /blindbit/mainnet/block-hash/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitBlockHash>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitBlockHash>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlindbitBlockHash>>}
    */
   async getBlindbitBlockHash(height, { signal, onValue, cache, memCache } = {}) {
@@ -10445,14 +10833,18 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
    *
    * @param {Height} height
-   * @param {number=} [dustLimit] - Least value in sats of a Taproot output for its transaction to be listed; 0 (every
+   * @param {object} [options]
+   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed; 0 (every
    *   eligible transaction) when left out, as BlindBit takes it.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Tweak[]>>}
    */
-  async getBlindbitTweakIndex(height, dustLimit, { signal, onValue, cache, memCache } = {}) {
+  async getBlindbitTweakIndex(height, { dustLimit, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (dustLimit !== undefined) params.set('dustLimit', String(dustLimit));
+    if (dustLimit != null) params.set('dustLimit', String(dustLimit));
     const query = params.toString();
     const path = `/blindbit/mainnet/tweak-index/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -10466,14 +10858,18 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
    *
    * @param {Height} height
-   * @param {number=} [dustLimit] - Least value in sats of a Taproot output for its transaction to be listed; 0 (every
+   * @param {object} [options]
+   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed; 0 (every
    *   eligible transaction) when left out, as BlindBit takes it.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Tweak[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Tweak[]>>}
    */
-  async getBlindbitTweaks(height, dustLimit, { signal, onValue, cache, memCache } = {}) {
+  async getBlindbitTweaks(height, { dustLimit, signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (dustLimit !== undefined) params.set('dustLimit', String(dustLimit));
+    if (dustLimit != null) params.set('dustLimit', String(dustLimit));
     const query = params.toString();
     const path = `/blindbit/mainnet/tweaks/${encodeURIComponent(height)}${query ? '?' + query : ''}`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
@@ -10488,7 +10884,11 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {BlindbitFilterKind} kind
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitFilter>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitFilter>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlindbitFilter>>}
    */
   async getBlindbitFilter(kind, height, { signal, onValue, cache, memCache } = {}) {
@@ -10504,7 +10904,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /blindbit/mainnet/spent-index/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitSpentIndex>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitSpentIndex>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlindbitSpentIndex>>}
    */
   async getBlindbitSpentIndex(height, { signal, onValue, cache, memCache } = {}) {
@@ -10520,7 +10924,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /blindbit/mainnet/utxos/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<BlindbitUtxo[]>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<BlindbitUtxo[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<BlindbitUtxo[]>>}
    */
   async getBlindbitUtxos(height, { signal, onValue, cache, memCache } = {}) {
@@ -10536,7 +10944,8 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `POST /blindbit/mainnet/forward-tx`
    *
    * @param {ForwardTx} body
-   * @param {{ signal?: AbortSignal }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
    * @returns {Promise<Txid>}
    */
   async postBlindbitForwardTx(body, { signal } = {}) {
@@ -10550,7 +10959,11 @@ class BitviewClient extends BitviewClientBase {
    * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
    *
    * Endpoint: `GET /api/oracle/price`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<Dollars>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<Dollars>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<Dollars>>}
    */
   async getLivePrice({ signal, onValue, cache, memCache } = {}) {
@@ -10564,7 +10977,11 @@ class BitviewClient extends BitviewClientBase {
    * The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
    *
    * Endpoint: `GET /api/oracle/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<OracleBlock>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<OracleBlock>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<OracleBlock>>}
    */
   async getOracleLive({ signal, onValue, cache, memCache } = {}) {
@@ -10580,7 +10997,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/oracle/blocks/{height}`
    *
    * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<OracleBlock>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<OracleBlock>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<OracleBlock>>}
    */
   async getOracleBlock(height, { signal, onValue, cache, memCache } = {}) {
@@ -10596,7 +11017,11 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/oracle/payments/{start}`
    *
    * @param {Height} start - The first block's height.
-   * @param {{ signal?: AbortSignal, onValue?: (value: Frozen<OraclePayments>) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<OraclePayments>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<Frozen<OraclePayments>>}
    */
   async getOraclePayments(start, { signal, onValue, cache, memCache } = {}) {
@@ -10610,7 +11035,11 @@ class BitviewClient extends BitviewClientBase {
    * Full OpenAPI 3.1 specification for this API. Build tools from this document.
    *
    * Endpoint: `GET /openapi.json`
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: *) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<*>}
    */
   async getOpenapi({ signal, onValue, cache, memCache } = {}) {
@@ -10624,7 +11053,11 @@ class BitviewClient extends BitviewClientBase {
    * Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
    *
    * Endpoint: `GET /api.json`
-   * @param {{ signal?: AbortSignal, onValue?: (value: *) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: *) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
    * @returns {Promise<*>}
    */
   async getApi({ signal, onValue, cache, memCache } = {}) {
