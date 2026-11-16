@@ -313,15 +313,12 @@ impl Query {
             return Err(Error::Internal("Block transactions missing"));
         }
         let mut utxos = Vec::new();
+        // A single reader keeps the immutable published keys mapped throughout the request.
+        let keys = vecs.addrs.p2tr.bytes.reader();
         for tx in tx_indexes {
             let txid = txids[tx.to_usize() - outputs.txs.start];
             for (vout, output) in outputs.taproot(tx) {
-                let key = vecs
-                    .addrs
-                    .p2tr
-                    .bytes
-                    .collect_one_at(usize::from(type_indexes[output]))
-                    .data()?;
+                let key = keys.try_get_at(usize::from(type_indexes[output])).data()?;
                 if check_keys && !is_on_curve(&key[..]) {
                     continue;
                 }
