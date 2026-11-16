@@ -87,6 +87,11 @@ export class Timeline {
     return this.times.length;
   }
 
+  /** CSS pixels the points share with the end in view: the plot less the right offset (all of it, narrower than that). */
+  get dataWidth() {
+    return this.width > this.rightOffset ? this.width - this.rightOffset : this.width;
+  }
+
   /** CSS pixels a point. */
   get spacing() {
     return this.width / (this.to - this.from);
@@ -115,10 +120,10 @@ export class Timeline {
     this.limit();
   }
 
-  /** The last `span` points in view, the right offset past them. @param {number} span */
+  /** The last `span` points in view, the first at the left edge, the right offset past the last. @param {number} span */
   show(span) {
     // (Up to the zoom's bound, or as close as a resize kept it: see kept.)
-    const spacing = Math.min(Math.max(this.width / span, this.minSpacing), Math.max(this.maxSpacing, this.width / this.kept));
+    const spacing = Math.min(Math.max(this.dataWidth / Math.max(span - 1, 0), this.minSpacing), Math.max(this.maxSpacing, this.width / this.kept));
     this.to = this.length - 1 + this.rightOffset / spacing;
     this.from = this.to - this.width / spacing;
     this.rest = 0;
@@ -187,10 +192,10 @@ export class Timeline {
 
   /**
    * A span (points) within the zoom's bounds: `maxSpacing` a point at most (or as many as a resize kept, see `kept`); at
-   * most all of the data, or `minSpacing`. @param {number} span
+   * most all of the data (a tenth to spare) and the right offset, or `minSpacing`. @param {number} span
    */
   within(span) {
-    const least = Math.min(this.width / this.maxSpacing, this.kept), most = this.minSpacing > 0 ? this.width / this.minSpacing : Math.max(this.length, 2) * 1.1 + this.rightOffset;
+    const least = Math.min(this.width / this.maxSpacing, this.kept), most = this.minSpacing > 0 ? this.width / this.minSpacing : (Math.max(this.length, 2) * 1.1 * this.width) / this.dataWidth;
     return Math.min(Math.max(span, least), Math.max(most, least));
   }
 
