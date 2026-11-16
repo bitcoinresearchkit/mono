@@ -859,6 +859,11 @@
       }
 
       .atlas {
+        /* (The compass's cells, as its drawing places them: 600 of its 696 units across, 76 in from its left (its
+           viewBox), the drawing centred and at most 560px wide. The strip and the foot under them line up with them.) */
+        --drawn: min(100%, 560px);
+        --cells-width: calc(var(--drawn) * 600 / 696);
+        --cells-left: calc((100% - var(--drawn)) / 2 + var(--drawn) * 76 / 696);
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 40px;
@@ -1091,7 +1096,7 @@
           stroke-linejoin: round;
         }
 
-        /* (Sizes in the drawing's units, 680 across: larger where it's drawn small, so they read the same.) */
+        /* (Sizes in the drawing's units, 696 across: larger where it's drawn small, so they read the same.) */
         .cell .name {
           font: 400 28px var(--serif);
 
@@ -1119,18 +1124,97 @@
           }
         }
 
+        /* (The page's smallest text, 12px, at whatever width the drawing is: --axis, in its units, set by fitToText.) */
         .axis {
           fill: var(--faint);
-          font: 500 14px var(--sans);
-
-          @media (max-width: 600px) {
-            font-size: 20px;
-          }
+          font: 500 var(--axis, 15px) var(--sans);
         }
 
         .point {
           fill: var(--ink);
           font-weight: 700;
+        }
+
+        /* (A side's part: axis words, its compass point no louder, its share a step stronger; pressed anywhere over
+           its row or column in the margin; lit, in ink with a bar along its row or column, as the cells it lights.) */
+        .side {
+          .hit {
+            fill: transparent;
+          }
+
+          .point {
+            fill: var(--soft);
+            font-weight: 600;
+          }
+
+          .share {
+            fill: var(--soft);
+            font-weight: 500;
+            font-variant-numeric: tabular-nums;
+          }
+
+          /* (Faint at rest, the sign it can be pressed; stronger under a mouse, its words too; solid once lit.) */
+          .bar {
+            stroke: var(--ink);
+            stroke-width: 3;
+            stroke-linecap: round;
+            opacity: 0.35;
+            transition: opacity 0.2s;
+          }
+
+          /* (Focused, a ring round its words and bar, not round its whole unseen reach.) */
+          .focus {
+            fill: none;
+            stroke: var(--ink);
+            stroke-width: 2;
+            visibility: hidden;
+          }
+
+          &:focus-visible {
+            outline: none;
+
+            .focus {
+              visibility: visible;
+            }
+          }
+
+          &.lit {
+            :is(text, .point, .share) {
+              fill: var(--ink);
+            }
+
+            .bar {
+              opacity: 1;
+            }
+          }
+
+          @media (hover: hover) {
+            &:hover:not(.lit) {
+              text {
+                fill: var(--soft);
+              }
+
+              .bar {
+                opacity: 0.6;
+              }
+            }
+          }
+
+        }
+
+        /* (A cloud's name over its three parts, a heading for them, as the lists' are. Not pressable: its box takes a
+           tap there, so it never reaches the part whose reach runs under it.) */
+        .title {
+          .axis {
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            pointer-events: none;
+          }
+
+          .block {
+            fill: transparent;
+          }
         }
 
         .trail {
@@ -1158,9 +1242,9 @@
          thumb's middle is on its day. */
       .scrub {
         position: relative;
-        width: calc(min(100%, 560px) * 600 / 680);
+        width: var(--cells-width);
         height: 36px;
-        margin: 18px auto 0;
+        margin: 18px 0 0 var(--cells-left);
 
         /* (8px past each end, for the playhead's knob there.) */
         canvas {
@@ -1235,8 +1319,8 @@
         grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
         gap: 4px 12px;
-        width: calc(min(100%, 560px) * 600 / 680);
-        margin: 10px auto 0;
+        width: var(--cells-width);
+        margin: 10px 0 0 var(--cells-left);
         color: var(--soft);
         font-size: 13px;
 
@@ -1518,7 +1602,7 @@
         <div class="atlas">
           <div>
             <div class="compass">
-              <svg id="compass" viewBox="-40 -40 680 890" role="img" aria-label="The nine moods as a compass, the three trends under it"></svg>
+              <svg id="compass" viewBox="-76 -76 696 846" role="group" aria-label="The nine moods as a compass, the three trends under it"></svg>
             </div>
             <div class="scrub">
               <canvas id="strip" aria-hidden="true"></canvas>
@@ -2768,17 +2852,25 @@
       };
       /** What's lit, for the drawings kept as bitmaps (made again when it changes). */
       const litKey = () => `${[...lit.state].sort()}|${[...lit.trend].sort()}`;
-      /** A mood or trend ("state:3", "trend:0") lit, or let go if it was. */
-      function light(/** @type {string} */ what) {
-        const [kind, i] = what.split(":"), set = lit[/** @type {"state" | "trend"} */ (kind)];
-        if (!set.delete(Number(i))) set.add(Number(i));
+      /** A lighting key's kind and the moods or trends it names: one ("state:3", "trend:0"), or a compass side's three
+       * ("state:0,1,2", the days above the long-term cloud). */
+      const keyOf = (/** @type {string} */ key) => {
+        const [kind, ids] = key.split(":");
+        return { kind: /** @type {"state" | "trend"} */ (kind), ids: ids.split(",").map(Number) };
+      };
+      /** Whether all a key names are lit. */
+      const allLit = (/** @type {string} */ key) => { const { kind, ids } = keyOf(key); return ids.every((i) => lit[kind].has(i)); };
+      /** What a key names lit, or let go if all of it was. */
+      function light(/** @type {string} */ key) {
+        const { kind, ids } = keyOf(key), on = !allLit(key);
+        for (const i of ids) on ? lit[kind].add(i) : lit[kind].delete(i);
         sayLit();
         redraw();
       }
       /** What's lit, where it's named: pressed there, the others dimmed. */
       function sayLit() {
         for (const at of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-light]"))) {
-          const [kind, i] = /** @type {string} */ (at.dataset.light).split(":"), on = lit[/** @type {"state" | "trend"} */ (kind)].has(Number(i));
+          const on = allLit(/** @type {string} */ (at.dataset.light));
           at.classList.toggle("lit", on);
           if (at.hasAttribute("role")) at.setAttribute("aria-pressed", String(on));
         }
@@ -2797,7 +2889,27 @@
       // ── The compass ──
 
       /** A compass cell's size, the gap between cells; the trend's row, its top and height. */
-      const CELL = 200, GAP = 6, TREND_Y = 668, TREND_H = 130;
+      const CELL = 200, GAP = 6, TREND_Y = 630, TREND_H = 130;
+      /** How far out a side's tap reaches from the cells: past the drawing's 76-unit margin, unseen, into the page's own. */
+      const REACH = 110;
+      /** Its sides: each cloud's three parts, the long-term one's rows down the west side, the short-term one's columns
+       * along the top, the compass point at each end; each part's share the sum of its row's or column's. */
+      const SIDES = [
+        { cloud: "long", title: "long-term cloud", of: "cycle", points: { 1: "N", [-1]: "S" } },
+        { cloud: "short", title: "short-term cloud", of: "local", points: { 1: "E", [-1]: "W" } },
+      ];
+      /** Whole percents of shares that add up to 100, as the shares do: each rounded down, the rest given to the largest
+       * remainders. So the sides read as the sums of the cells they're shown beside. */
+      function percents(/** @type {{ share: number }[]} */ of) {
+        const whole = of.map(({ share }) => Math.floor(share * 100));
+        const rest = 100 - whole.reduce((sum, n) => sum + n, 0);
+        for (const i of of.map((_, i) => i).sort((p, q) => (of[q].share * 100 - whole[q]) - (of[p].share * 100 - whole[p])).slice(0, rest)) whole[i]++;
+        return whole;
+      }
+      /** A key's percent of the days counted, from each kind's whole percents: the sum of those of what it names. */
+      const percentOf = (/** @type {string} */ key, /** @type {{ state: number[], trend: number[] }} */ shown) => { const { kind, ids } = keyOf(key); return `${ids.reduce((sum, i) => sum + shown[kind][i], 0)}%`; };
+      /** Whether a key names the day's mood or trend. */
+      const namesDay = (/** @type {string} */ key, /** @type {number} */ day) => { const { kind, ids } = keyOf(key); return ids.includes(/** @type {Days} */ (days)[kind][day]); };
       const compass = $("compass");
       /** A compass point (-1 to 1 each way) on the svg, which is 600 across inside its margin. */
       const at = (/** @type {number} */ v) => 300 + v * 0.97 * 300;
@@ -2808,43 +2920,68 @@
 
       /** The compass: before the days are read, its cells alone, their shares dashes. */
       function buildCompass() {
-        const shares = days ? tally(days.state, 9) : null;
+        const tallies = days ? { state: tally(days.state, 9), trend: tally(days.trend, 3) } : null;
+        const shares = tallies?.state, shown = tallies && { state: percents(tallies.state), trend: percents(tallies.trend) };
+        const said = (/** @type {string} */ key) => (shown ? percentOf(key, shown) : "–");
         // (Its shares as of the day shown: see updateShares.)
         const cells = [], words = [];
         for (const [i, s] of STATES.entries()) {
           const col = 1 - s.local, row = 1 - s.cycle, cx = (2 - col) * CELL, cy = row * CELL;
           cells.push(`<g class="cell" data-i="${i}" data-light="state:${i}" role="button" tabindex="0" aria-label="${s.name}: light its days" aria-pressed="false" style="--c: var(--s-${s.id})"><rect x="${cx + GAP / 2}" y="${cy + GAP / 2}" width="${CELL - GAP}" height="${CELL - GAP}" rx="14" /></g>`);
-          words.push(`<g class="cell" data-i="${i}" data-light="state:${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${shares ? `${Math.round(shares[i].share * 100)}%` : "–"}</text><text class="move" x="${cx + 18}" y="${cy + 178}">${s.move}</text></g>`);
+          words.push(`<g class="cell" data-i="${i}" data-light="state:${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${said(`state:${i}`)}</text><text class="move" x="${cx + 18}" y="${cy + 178}">${s.move}</text></g>`);
         }
         // (The trend's three under them, cells of the same kind: bear west, bull east, as the moment's sides are.)
-        const trends = days ? tally(days.trend, 3) : null;
         for (const [i, t] of TRENDS.entries()) {
           const cx = (2 - i) * CELL;
           cells.push(`<g class="cell" data-t="${i}" data-light="trend:${i}" role="button" tabindex="0" aria-label="${t.name} trend: light its days" aria-pressed="false" style="--c: var(--s-${t.color})"><rect x="${cx + GAP / 2}" y="${TREND_Y + GAP / 2}" width="${CELL - GAP}" height="${TREND_H - GAP}" rx="14" /></g>`);
-          words.push(`<g class="cell" data-t="${i}" data-light="trend:${i}" style="--c: var(--s-${t.color})"><text class="name" x="${cx + 18}" y="${TREND_Y + 44}">${t.name}</text><g class="icon" data-x="${cx + 18}" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${trends ? `${Math.round(trends[i].share * 100)}%` : "–"}</text></g>`);
+          words.push(`<g class="cell" data-t="${i}" data-light="trend:${i}" style="--c: var(--s-${t.color})"><text class="name" x="${cx + 18}" y="${TREND_Y + 44}">${t.name}</text><g class="icon" data-x="${cx + 18}" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${said(`trend:${i}`)}</text></g>`);
         }
+        // (Each side: its cloud named on the outside, its three parts inside, each over its row or column, pressed
+        // anywhere in that stretch of the margin. Rows read upward, west of the compass; columns along its top.)
+        const sides = SIDES.map(({ cloud, title, of, points }) => {
+          const west = of === "cycle", along = (/** @type {number} */ v) => (west ? (1 - v) * CELL : (1 + v) * CELL) + CELL / 2;
+          const placed = (/** @type {number} */ out, /** @type {number} */ v) => (west ? `transform="translate(${-out} ${v}) rotate(-90)"` : `x="${v}" y="${-out}"`);
+          // (In reading order: the west side top to bottom, the top left to right.)
+          const parts = (west ? [1, 0, -1] : [-1, 0, 1]).map((v) => {
+            const key = `state:${STATES.flatMap((s, i) => (s[of] === v ? [i] : []))}`, c = along(v), words = `${SIDE_WORDS[v]} the ${title}`;
+            const [a, b] = [c - CELL / 2 + GAP / 2 + 14, c + CELL / 2 - GAP / 2 - 14];
+            // (Its reach: the margin's depth and on past it, unseen, toward a finger's 44px; a cloud's name blocks it.)
+            const hit = west ? `x="-${REACH}" y="${a - 14}" width="${REACH - 2}" height="${b - a + 28}"` : `x="${a - 14}" y="-${REACH}" width="${b - a + 28}" height="${REACH - 2}"`;
+            const bar = west ? `x1="-6" y1="${a}" x2="-6" y2="${b}"` : `x1="${a}" y1="-6" x2="${b}" y2="-6"`;
+            const focus = west ? `x="-46" y="${a - 10}" width="46" height="${b - a + 20}"` : `x="${a - 10}" y="-46" width="${b - a + 20}" height="46"`;
+            // (Its compass point at the axis's outer end: first on the low side, last on the high.)
+            const point = points[v] ? `<tspan class="point">${points[v]}</tspan>` : "", text = `${SIDE_WORDS[v]} <tspan class="share">${said(key)}</tspan>`;
+            return `<g class="side" data-light="${key}" role="button" tabindex="0" aria-label="${words[0].toUpperCase()}${words.slice(1)}: light its days" aria-pressed="false"><rect class="hit" ${hit} /><rect class="focus" ${focus} rx="8" /><line class="bar" ${bar} /><text class="axis" ${placed(20, c)} text-anchor="middle">${v === -1 ? `${point} ${text}` : v === 1 ? `${text} ${point}` : text}</text></g>`;
+          });
+          const named = west ? `transform="translate(-60 ${CELL * 1.5}) rotate(-90)"` : `transform="translate(${CELL * 1.5} -60)"`;
+          return `${parts.join("")}<g class="title" data-cloud="${cloud}" ${named}><rect class="block" /><text class="axis" text-anchor="middle">${title}</text></g>`;
+        });
         // (The path under the cells' words, which keep a halo of the page's colour over it.)
-        compass.innerHTML = `${cells.join("")}<g id="trail"></g>${words.join("")}${shares ? '<circle class="ring" id="ring" r="13" /><circle class="dot" id="dot" r="8" />' : ""}
-          <text class="axis" x="300" y="-16" text-anchor="middle"><tspan class="point">N</tspan>  above the long-term cloud</text>
-          <text class="axis" x="300" y="628" text-anchor="middle"><tspan class="point">S</tspan>  below the long-term cloud</text>
-          <text class="axis" transform="translate(624 300) rotate(90)" text-anchor="middle"><tspan class="point">E</tspan>  above the short-term cloud</text>
-          <text class="axis" transform="translate(-24 300) rotate(-90)" text-anchor="middle"><tspan class="point">W</tspan>  below the short-term cloud</text>
-          <text class="axis" transform="translate(-24 ${TREND_Y + TREND_H / 2}) rotate(-90)" text-anchor="middle">trend</text>`;
+        compass.innerHTML = `${cells.join("")}<g id="trail"></g>${words.join("")}${shares ? '<circle class="ring" id="ring" r="13" /><circle class="dot" id="dot" r="8" />' : ""}${sides.join("")}
+          <text class="axis" transform="translate(-20 ${TREND_Y + TREND_H / 2}) rotate(-90)" text-anchor="middle">trend</text>`;
         trail = compass.querySelector("#trail");
         dot = compass.querySelector("#dot");
         compassDrawn = -1;
-        placeIcons();
+        fitToText();
         sayLit();
       }
-      /** Each trend's arrow after its name, as wide as its font draws it (its size changes with the screen's). */
-      function placeIcons() {
+      /** What follows the drawing's width and its text's size as its font draws it: the axis words at the page's 12px
+       * (in the drawing's units, so at any width), each trend's arrow after its name, each cloud's name's box over it. */
+      function fitToText() {
+        const drawn = compass.getBoundingClientRect().width;
+        if (drawn) compass.style.setProperty("--axis", `${((12 * compass.viewBox.baseVal.width) / drawn).toFixed(2)}px`);
         for (const icon of compass.querySelectorAll("g.icon")) {
           const name = /** @type {SVGTextElement} */ (icon.previousElementSibling), x = Number(/** @type {SVGGElement} */ (icon).dataset.x) + name.getComputedTextLength() + 10;
           icon.setAttribute("transform", `translate(${x.toFixed(1)} ${TREND_Y + 23}) scale(1.4)`);
         }
+        for (const title of compass.querySelectorAll("g.title")) {
+          // (From its capitals' top to its baseline, the side toward the cells, where it has no descenders.)
+          const box = /** @type {SVGTextElement} */ (title.querySelector("text")).getBBox(), pad = 3;
+          for (const [name, value] of Object.entries({ x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: -box.y + 2 * pad })) title.querySelector("rect")?.setAttribute(name, value.toFixed(1));
+        }
       }
-      new ResizeObserver(placeIcons).observe(compass);
-      document.fonts.ready.then(placeIcons);
+      new ResizeObserver(fitToText).observe(compass);
+      document.fonts.ready.then(fitToText);
 
       /** The year to the compass's day, as a path fading into the past; the day a dot. */
       const TRAIL = 365;
@@ -2866,10 +3003,7 @@
         const ring = /** @type {SVGCircleElement} */ (compass.querySelector("#ring"));
         ring.setAttribute("cx", cx);
         ring.setAttribute("cy", cy);
-        for (const cell of compass.querySelectorAll(".cell")) {
-          const { i, t } = /** @type {SVGElement} */ (cell).dataset;
-          cell.classList.toggle("on", i !== undefined ? Number(i) === d.state[day] : Number(t) === d.trend[day]);
-        }
+        for (const at of /** @type {NodeListOf<SVGElement>} */ (compass.querySelectorAll(".cell[data-light]"))) at.classList.toggle("on", namesDay(/** @type {string} */ (at.dataset.light), day));
         compass.setAttribute("aria-label", `The nine moods as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the year before.`);
       }
 
@@ -3468,10 +3602,8 @@
             /** @type {HTMLElement} */ (row.querySelector(".stay")).textContent = s.runs ? `${s.runs} ${s.runs === 1 ? "time" : "times"}, typically ${lasted(s.median)}` : "Never yet";
           }
         }
-        for (const text of compass.querySelectorAll("text.share")) {
-          const { i, t } = /** @type {SVGElement} */ (/** @type {unknown} */ (text.parentNode)).dataset;
-          text.textContent = `${Math.round((i !== undefined ? states[Number(i)] : trends[Number(t)]).share * 100)}%`;
-        }
+        const shown = { state: percents(states), trend: percents(trends) };
+        for (const share of compass.querySelectorAll(".share")) share.textContent = percentOf(/** @type {string} */ (/** @type {SVGElement} */ (share.closest("[data-light]")).dataset.light), shown);
         $("counted").textContent = `Every day from ${dated(d.first)} to ${day === d.last ? "today" : dated(day)}: ${grouped(day - d.first + 1)} days. Typically: the median length of its runs.`;
       }
 
