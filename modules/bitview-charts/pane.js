@@ -5,7 +5,7 @@
 // size changed; else, the view moved by whole pixels, its picture is moved and only the strip come into view drawn
 // (drawn whole again once the motion stops: no seams left).
 
-import { Scale, EVERY } from "./scale.js";
+import { Scale, EVERY, EVERY_POWER } from "./scale.js";
 import { Line, FAINT } from "./line.js";
 import { Band } from "./band.js";
 import { Bars } from "./bars.js";
@@ -453,8 +453,9 @@ export class Pane {
     Object.assign(this.axisCanvas.style, { top: `${top}px`, width: `${width - this.plot}px`, height: `${height}px`, transform: "" });
     this.scale.height = height;
     if (this.left) this.left.height = height;
-    // (Its ticks' room: at most one each EVERY pixels (see Scale.ticks), a few more at the ends; its finer ones', twice that.)
-    const ticks = Math.ceil(height / EVERY) + 4, fine = 2 * ticks;
+    // (Its ticks' room: at most one each EVERY_POWER pixels (a log scale's decades, see Scale.ticks), a few more at the
+    // ends; its finer ones', twice that.)
+    const ticks = Math.ceil(height / EVERY_POWER) + 4, fine = 2 * ticks;
     if (this.ticks.length < ticks) (this.ticks = new Float64Array(ticks)), (this.axisTicks = new Float64Array(ticks));
     if (this.fineTicks.length < fine) (this.fineTicks = new Float64Array(fine)), (this.labelYs = new Float64Array(fine)), (this.hiddenYs = new Float64Array(ticks));
     // (Its layer over everything: over its plot.)

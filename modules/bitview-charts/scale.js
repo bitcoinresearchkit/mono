@@ -8,6 +8,11 @@
 
 /** Ticks' least room between them (CSS pixels): two and a half lines of text, as the chart library marked them. */
 export const EVERY = 28;
+/**
+ * A log scale's powers of ten's least room between them (CSS pixels): half its other ticks', as its finer ones (see
+ * Pane's axis), so a short pane still names each decade it spans (0.1 to 1M on a phone's 120 pixels), not every other.
+ */
+export const EVERY_POWER = EVERY / 2;
 // (A log scale's ticks in a decade, the sparsest first, and each one's least gap (in decades): the densest with room.)
 const DECADE = [[1], [1, 3], [1, 2, 5], [1, 2, 3, 5], [1, 2, 3, 4, 5, 6, 8], [1, 2, 3, 4, 5, 6, 7, 8, 9]];
 const DECADE_GAP = DECADE.map((set) => Math.min(...set.map((v, i) => Math.log10((set[i + 1] ?? 10) / v))));
@@ -183,8 +188,9 @@ export class Scale {
   /**
    * Its ticks written into `out`, their count returned: round numbers (1, 2, 2.5 or 5 a power of ten) `every` CSS
    * pixels apart at least (two and a half lines of text: as the chart library marked them); on a log scale, its powers
-   * of ten (every few, where they'd be closer), each with as many of its 2 to 9 as have room (3; 2 and 5; 2, 3 and 5; 2
-   * to 6 and 8; all); within a decade, those or round numbers, whichever marks it more evenly. None where it's empty.
+   * of ten (EVERY_POWER pixels apart at least; every few, where they'd be closer), each with as many of its 2 to 9 as
+   * have room (3; 2 and 5; 2, 3 and 5; 2 to 6 and 8; all); within a decade, those or round numbers, whichever marks it
+   * more evenly. None where it's empty.
    * @param {Float64Array} out @param {number} [every]
    */
   ticks(out, every = EVERY) {
@@ -193,15 +199,16 @@ export class Scale {
     let count = 0;
     // (A log scale: its powers of ten, and their 2s and 5s with room; within a decade, those or round numbers a step apart
     // as a linear scale's, whichever marks it more evenly (0.6 to 5: 1, 2, 3, 5; 60K to 80K: 62K, 64K… 80K).)
-    const decades = this.mode === "log" ? Math.log10(hi / lo) : 0;
+    const decades = this.mode === "log" ? Math.log10(hi) - Math.log10(lo) : 0;
     if (decades > 0) {
       const perDecade = this.height / decades;
       let set = 0;
       while (set + 1 < DECADE.length && DECADE_GAP[set + 1] * perDecade >= every) set++;
-      // (Every few decades: from the first power of ten in view (a range of a decade or more has one), else from the one
-      // under it, its 2s and 5s in view.)
-      const steps = DECADE[set], every10 = perDecade >= every ? 1 : Math.ceil(every / perDecade);
-      for (let p = every10 > 1 ? Math.ceil(Math.log10(lo)) : Math.floor(Math.log10(lo)); p <= Math.ceil(Math.log10(hi)) && count < out.length; p += every10)
+      // (Each decade, its powers of ten EVERY_POWER pixels apart at least (`every` where that's closer: finer ticks'),
+      // from the one under the first in view, its 2s and 5s in view. Where even that's too close, every few: those a
+      // multiple of their count (1, 1K, 1M), the same whatever's in view, so they move with it.)
+      const steps = DECADE[set], least = Math.min(every, EVERY_POWER), every10 = perDecade >= least ? 1 : Math.ceil(least / perDecade);
+      for (let p = Math.ceil(Math.floor(Math.log10(lo)) / every10) * every10; p <= Math.ceil(Math.log10(hi)) && count < out.length; p += every10)
         for (let k = 0; k < steps.length; k++) {
           const v = steps[k] * 10 ** p;
           if (v >= lo && v <= hi && count < out.length) out[count++] = v;
