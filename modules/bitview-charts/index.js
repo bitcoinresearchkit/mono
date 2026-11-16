@@ -864,7 +864,7 @@ export class Chart {
   }
 
   /**
-   * The line whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn; not one hidden
+   * The series whose tag is at a point (CSS pixels from its element's corner: on an axis, as last drawn; not one hidden
    * since), or null (none while a separator's dragged).
    * @param {number} x @param {number} y
    */

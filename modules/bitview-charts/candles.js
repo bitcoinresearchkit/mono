@@ -1,7 +1,9 @@
 // @ts-check
 // Candles: four columns on the timeline (`open`, `high`, `low`, `close`, Float64Arrays; NaN in the close: none there),
 // each candle its wick from low to high and its body from open to close, in `up` where it closed at or over its open,
-// else in `down`. Zoomed out (under 3 CSS pixels a point), no candles: the close as a line, as a Line draws it.
+// else in `down`. Zoomed out (under 3 CSS pixels a point), no candles: the close as a line, as a Line draws it. Its last
+// value's tag on its axis and the line across at it are the close line's own (`tag`, `priceLine`, `format`; see lineOf),
+// in the color of the candle it reads while candles show (its border's, rising or falling), the line's else.
 
 import { Line } from "./line.js";
 import { firstFrom } from "./timeline.js";
@@ -21,6 +23,9 @@ function bodyWidth(spacing, dpr) {
   return Math.max(1, px >= 2 && px % 2 !== wick % 2 ? px - 1 : px);
 }
 
+/** The Line a series' tag, price line and crosshair dot are read from: itself, a candle series' close line; none, any other. @param {any} series @returns {Line | null} */
+export const lineOf = (series) => (series instanceof Line ? series : series instanceof Candles ? series.line : null);
+
 /** A candle's parts, as #shapes draws them. */
 const WICKS = 1, BODIES = 2, RINGS = 4, INSIDES = 8;
 
@@ -28,10 +33,12 @@ export class Candles {
   /**
    * `up` and `down`, the bodies' colors of those that rose and fell; their wicks' and borders' (`upWick`, `downWick`,
    * `upBorder`, `downBorder`), the same unless given (a hollow candle: its body the ground's, its border and wick its).
-   * `color` and `width`: the line the close is drawn as zoomed out, under BODIES_FROM pixels a point.
-   * @param {{ open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number), color?: string, width?: number }} options
+   * `color` and `width`: the line the close is drawn as zoomed out, under BODIES_FROM pixels a point; `tag`, `priceLine`,
+   * `format`: its last value's badge on the axis and its dotted line across, as a Line's (candles shown, in their own
+   * color); `marker`: the crosshair's dot on that line (none while candles show).
+   * @param {{ open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number), color?: string, width?: number, tag?: boolean, priceLine?: boolean, format?: ((v: number, step?: number) => string) | null, marker?: number }} options
    */
-  constructor({ open, high, low, close, up = "#26a69a", down = "#ef5350", upWick = null, downWick = null, upBorder = null, downBorder = null, outline = null, radius = 0, color = "#f7f8f8", width = 1.5 }) {
+  constructor({ open, high, low, close, up = "#26a69a", down = "#ef5350", upWick = null, downWick = null, upBorder = null, downBorder = null, outline = null, radius = 0, color = "#f7f8f8", width = 1.5, tag = false, priceLine = false, format = null, marker = 3 }) {
     this.up = up;
     this.down = down;
     (this.upWick = upWick), (this.downWick = downWick), (this.upBorder = upBorder), (this.downBorder = downBorder);
@@ -44,8 +51,14 @@ export class Candles {
     // (Its lows' and highs' extremes kept as a line's are: a view's read block by block.)
     this.lows = new Line();
     this.highs = new Line();
-    /** Its close drawn as a line, zoomed out: the Line also keeps the close's own extremes (see summary.js). */
-    this.line = new Line({ color, width, outline });
+    /** Its close drawn as a line, zoomed out; also what its tag, price line and crosshair dot are read from (see lineOf, #look). */
+    this.line = new Line({ color, width, outline, tag, priceLine, format, marker });
+    /** The line's crosshair dot's radius, while the line shows. */
+    this.marker = marker;
+    /** Whether candles are drawn at the zoom it was last brought to (see viewed). */
+    this.bodies = false;
+    /** Each candle's index into its tag's colors: 1 where it closed under its open (falling), else 0. @type {Uint8Array} */
+    this.fell = new Uint8Array(0);
     /** @type {Float64Array} */
     this.open = open;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
@@ -82,11 +95,14 @@ export class Candles {
     this.open = open;
     this.line.setValues(close);
     // (In a loop: without a JIT, from() with a mapping costs several times as much.)
-    const lows = new Float64Array(low.length), highs = new Float64Array(high.length);
+    const lows = new Float64Array(low.length), highs = new Float64Array(high.length), fell = new Uint8Array(close.length);
     for (let i = 0; i < lows.length; i++) lows[i] = close[i] === close[i] ? low[i] : NaN;
     for (let i = 0; i < highs.length; i++) highs[i] = close[i] === close[i] ? high[i] : NaN;
+    for (let i = 0; i < fell.length; i++) fell[i] = close[i] < open[i] ? 1 : 0;
     this.lows.setValues(lows);
     this.highs.setValues(highs);
+    this.fell = fell;
+    this.#look();
   }
 
   /** One candle set in place (a live one). @param {number} i @param {number} open @param {number} high @param {number} low @param {number} close */
@@ -94,15 +110,34 @@ export class Candles {
     this.version++;
     this.open[i] = open;
     this.line.set(i, close);
+    this.fell[i] = close < open ? 1 : 0;
     this.lows.set(i, close === close ? low : NaN);
     this.highs.set(i, close === close ? high : NaN);
   }
 
-  /** @param {{ up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number), color?: string, width?: number }} look */
-  setStyle({ up = this.up, down = this.down, upWick = this.upWick, downWick = this.downWick, upBorder = this.upBorder, downBorder = this.downBorder, outline = this.outline, radius = this.radius, color = this.line.color, width = this.line.width }) {
+  /** @param {{ up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number), color?: string, width?: number, tag?: boolean, priceLine?: boolean, format?: ((v: number, step?: number) => string) | null, marker?: number }} look */
+  setStyle({ up = this.up, down = this.down, upWick = this.upWick, downWick = this.downWick, upBorder = this.upBorder, downBorder = this.downBorder, outline = this.outline, radius = this.radius, color = this.line.color, width = this.line.width, tag = this.line.tag, priceLine = this.line.priceLine, format, marker = this.marker }) {
     this.version++;
-    (this.up = up), (this.down = down), (this.upWick = upWick), (this.downWick = downWick), (this.upBorder = upBorder), (this.downBorder = downBorder), (this.outline = outline), (this.radius = radius);
-    this.line.setStyle({ color, width, outline });
+    (this.up = up), (this.down = down), (this.upWick = upWick), (this.downWick = downWick), (this.upBorder = upBorder), (this.downBorder = downBorder), (this.outline = outline), (this.radius = radius), (this.marker = marker);
+    this.line.setStyle({ color, width, outline, tag, priceLine, format });
+    this.#look();
+  }
+
+  /** Brought up to the view before its pane draws: its line's look made again where candles turn into it, or back (see #look). @param {import("./timeline.js").Timeline} time */
+  viewed(time) {
+    const bodies = time.spacing >= BODIES_FROM;
+    if (bodies === this.bodies) return;
+    (this.bodies = bodies), this.version++;
+    this.#look();
+  }
+
+  /**
+   * What its line is read as: while candles show, each candle's own color (its border's), no dot on it (so its tag
+   * and its price line read in the color of the candle they're at); else its own color, its dot there.
+   */
+  #look() {
+    if (this.bodies) this.line.setStyle({ colors: this.fell, palette: [this.upBorder ?? this.up, this.downBorder ?? this.down], marker: 0 });
+    else this.line.setStyle({ colors: null, palette: [], marker: this.marker });
   }
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */

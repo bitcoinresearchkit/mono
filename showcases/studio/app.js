@@ -2,7 +2,7 @@
 import { BitviewClient } from "/modules/bitview-client/index.js";
 import XKCD from "/modules/xkcd-colors/index.js";
 // (Studio's chart library: bitview-charts.)
-import { createChart, onTouchesLost, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, BODIES_FROM, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
+import { createChart, onTouchesLost, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
 import { inBands, bandNames } from "/studio/bands.js";
@@ -6059,13 +6059,13 @@ const levelTags = /** @type {{ line: import("/modules/bitview-charts/levels.js")
  */
 const fadedNow = new Set();
 /**
- * A layer's series faint or not (its own, an area's edge, a candle layer's candles and close line; from `series` and
- * `closesOf`, the drawn ones unless given): every kind, heatmaps and bubbles too.
+ * A layer's series faint or not (its own, an area's edge; from `series`, the drawn ones unless given): every kind,
+ * heatmaps and bubbles too.
  * @param {string} layerId @param {boolean} faint
  */
-function fadeLayer(layerId, faint, series = drawn, closesOf = closes) {
-  const close = closesOf.get(layerId);
-  for (const own of [series.get(layerId), close?.series, close?.candles]) if (own) for (const line of [own.engine, own.edge]) if (line) line.faint = faint;
+function fadeLayer(layerId, faint, series = drawn) {
+  const own = series.get(layerId);
+  if (own) for (const line of [own.engine, own.edge]) if (line) line.faint = faint;
 }
 function spotlight(id) {
   if (id === spotlit) return;
@@ -6087,54 +6087,8 @@ function spotlight(id) {
   if (levelsFaded) for (const { levels } of levelsKept.values()) levels.changed();
   engine.invalidate(true);
 }
-/**
- * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
- * a bar has no room for a hollow body (under BODIES_FROM pixels, where the library draws its wick alone), the layer
- * shows its close as a line instead, and back. The close line also carries the layer's last-value label.
- * @type {Map<string, { candles: any, series: any, rise: string, fall: string, tinted: number }>}
- */
-const closes = new Map();
-let candlesFit = true;
 /** Each series' marks (the signals on its layer): the library's, and the pane they're on. @type {Map<any, { marks: Marks, pane: any }>} */
 const markers = new Map();
-/** What the marks were last made from: made again where candles turn into their line, or back. @type {{ doc: Chart, data: Resolved, drawn: Map<string, any> } | null} */
-let marksMade = null;
-function fitCandles() {
-  const range = shownSpan();
-  // A rebuild empties the chart for a moment: no range then, and nothing to decide.
-  if (!range) return;
-  const fit = engine.time.width / Math.max(1, range.to - range.from) >= BODIES_FROM;
-  if (fit === candlesFit) return;
-  candlesFit = fit;
-  for (const [id, close] of closes) {
-    close.candles.engine.hidden = Boolean(layerById(id)?.hidden) || !fit;
-    close.series.engine.setStyle({ stroke: !fit, marker: fit ? 0 : MARKER.radius });
-    engine.invalidate(true);
-    tintClose(id);
-  }
-  // (A signal on candles: its marks on what's seen of them now.)
-  if (marksMade?.doc.layers.some((layer) => layer.type === "signal" && layer.ref && closes.has(layer.ref))) markSignals(marksMade.doc, marksMade.data, marksMade.drawn, []);
-}
-/**
- * The close line's colors, its tag's and its price line's (see `closes`): while candles show, each candle's own,
- * rising or falling, point by point (as the candle's own tag would be, though a hollow one's body is the background),
- * so its tag is in the color of the candle it reads (the crosshair's, else the last in view) and its price line in
- * the latest's; the layer's while the line shows instead. Made again as its candles change.
- * @param {string} id
- */
-function tintClose(id) {
-  const close = closes.get(id);
-  if (!close) return;
-  const candles = close.candles.engine, line = close.series.engine, version = candlesFit ? candles.version : -1;
-  if (version === close.tinted) return;
-  close.tinted = version;
-  if (candlesFit) {
-    const n = candles.close.length, colors = new Uint8Array(n);
-    for (let i = 0; i < n; i++) colors[i] = candles.close[i] < candles.open[i] ? 1 : 0;
-    line.setStyle({ colors, palette: [close.rise, close.fall] });
-  } else line.setStyle({ colors: null, palette: [] });
-  engine.invalidate(true);
-}
 /**
  * Dots as on Bitview: their radius follows the zoom, 1px when points crowd to 3px with room around them (by pixels
  * per point, so a phone and a wide screen agree). The layer's width adds to it (1.5 is as Bitview), as far as dots
@@ -6157,8 +6111,8 @@ function fitDots() {
     if (radius !== dots.radius) dots.series.engine.setStyle({ dots: (dots.radius = radius) }), engine.invalidate(true);
   }
 }
-/** The layer a series on the chart draws, candles or their close line. */
-const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? [...closes].find(([, close]) => close.series === series)?.[0] ?? null;
+/** The layer a series on the chart draws. */
+const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? null;
 /** Whether the pointer's on a legend over the plot (the band pointed at kept). */
 let onLegend = false;
 /** The layer whose row or legend item the pointer's on (a finger's, none), and whether it's on the chart itself. */
@@ -6350,13 +6304,10 @@ async function draw(refit = false, fresh = false) {
  * @param {Chart} doc @param {Resolved} data @param {Map<string, any>} drawn @param {any[]} old
  */
 function markSignals(doc, data, drawn, old) {
-  marksMade = { doc, data, drawn };
   const marked = new Map();
   for (const layer of doc.layers) {
-    // (Candles zoomed out to their close line: on the line, the candles unseen.)
-    const close = layer.ref ? closes.get(layer.ref) : null;
     // (Shaded, no marks: its results alone, where its stretches end.)
-    const shade = layer.place === "shade", on = layer.type === "signal" && !layer.hidden && (!shade || layer.results) && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.values;
+    const shade = layer.place === "shade", on = layer.type === "signal" && !layer.hidden && (!shade || layer.results) && layer.ref ? drawn.get(layer.ref) : null, values = data.results.get(layer.id)?.values;
     // (Only where its layer has a value drawn: a mark in a gap would sit on another date.)
     const target = doc.layers.find((item) => item.id === layer.ref), reference = data.results.get(layer.ref ?? ""), own = reference?.values, log = target ? modeOf(doc, target) === 1 : false;
     if (!on || !values || !own) continue;
@@ -6419,16 +6370,15 @@ function buildChart(doc, data, refit) {
   if (drawnChart === doc.id && drawnPanes && paneIds(drawnPanes) !== paneIds(panesShape) && !reduced.matches && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
   const glidingTo = glideTarget;
   stopGlide();
-  const was = new Map(drawn), wasCloses = new Map(closes);
+  const was = new Map(drawn);
   drawn.clear();
-  closes.clear();
   dotted.clear();
   const wasPainted = new Map(paintedLayers);
   paintedLayers.clear();
   // (The layer lit, lit again once its series are drawn anew.)
   const relit = spotlit;
   spotlit = null;
-  for (const layerId of fadedNow) fadeLayer(layerId, false, was, wasCloses);
+  for (const layerId of fadedNow) fadeLayer(layerId, false, was);
   fadedNow.clear();
   levelTags.length = 0;
   // (Its timeline now: what's below reads and moves the view on its dates (the view as it was read above).)
@@ -6452,7 +6402,7 @@ function buildChart(doc, data, refit) {
   }
   built.clear();
   // The others' series go once the new ones are in (their panes kept till then, see the panes trimmed below).
-  const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series)];
+  const old = [...was].filter(([id]) => !kept.has(id)).map(([, series]) => series);
   let added = false;
   /** @type {{ layer: Layer, value: number, color: string, dash: number, tag: boolean, mode: number, pane: number, format: any }[]} */
   const across = [];
@@ -6578,15 +6528,9 @@ function buildChart(doc, data, refit) {
       series.engine.hidden = !shown;
       series.style({ up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, scaleTo: layer.scaleTo === "all" ? "all" : "view", halo: layer.outline ? css("--card") : null });
     } else if (candles) {
-      // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
-      // background's); only its line and marker hide while candles show.
-      const closeAgain = again && wasCloses.get(layer.id)?.series;
+      // (Zoomed out, the library draws its close as a line, in the layer's color, and carries its tag and price line.)
       series = standard("candles", again);
-      styleSeries(series, { ...tags, hidden: layer.hidden || !candlesFit, tag: false, priceLine: false, candles: { ...paint, radius: BAR_CORNER } });
-      const closeSeries = standard("line", closeAgain || undefined);
-      styleSeries(closeSeries, { ...tags, line: { ...stroke, color, dash: [], steps: false, curve: false, stroke: !candlesFit, marker: candlesFit ? 0 : MARKER.radius } });
-      closes.set(layer.id, { candles: series, series: closeSeries, rise: color, fall: layer.colors === 1 ? color : below, tinted: NaN });
-      tintClose(layer.id);
+      styleSeries(series, { ...tags, candles: { ...paint, color, width: stroke.width, radius: BAR_CORNER } });
     } else {
       const radius = dotRadius(layer.width), base = baseOf(layer);
       // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (see
@@ -6616,8 +6560,7 @@ function buildChart(doc, data, refit) {
     else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
     else if (!result?.values && again && before?.shown) {
       series instanceof Standard ? setColumn(series, EMPTY, false) : series instanceof Shading ? series.set(EMPTY) : series.set({ low: EMPTY, high: EMPTY });
-      const close = closes.get(layer.id);
-      if (close) setColumn(close.series, EMPTY, false), close.candles.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
+      if (series.engine instanceof Candles) series.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
     } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.opens === result.opens && layer.type !== "histogram" && before?.low === result.low) {
       const carried = painting ? wasPainted.get(layer.id) : undefined;
       if (carried) paintedLayers.set(layer.id, carried);
@@ -6661,13 +6604,12 @@ function buildChart(doc, data, refit) {
         : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
       // (Its values as a column on the timeline, the library's (none where not finite (a formula's division by zero), or
       // not over zero on a log scale: copied only then), its colors and a trend's breaks as columns too; candles' four.)
-      const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, close = closes.get(layer.id)?.series;
+      const times = layer.from && fromUnfit(doc, layer) ? [] : data.times;
       const drawable = (/** @type {number} */ value) => (value - value === 0 && (!log || value > 0) ? value : NaN);
       const values = times.length ? (log || shown.some((/** @type {number} */ value) => value === Infinity || value === -Infinity) ? shown.map(drawable) : shown) : [];
       if (candles) series.engine.setValues(candleColumns(result, shown, log, at));
       else setColumn(series, values, Boolean(stack) && (stackedLine || (layer.type === "area" && layer.fill !== "above")));
-      if (close) setColumn(close, values, false), tintClose(layer.id);
-      const traced = close ?? (candles ? null : series);
+      const traced = candles ? null : series;
       (traced?.edge ?? traced?.engine)?.setStyle({ breaks: result.breaks ?? null });
       // (Bars below their base each in its second color, the rest in its own: two colors.)
       const tint = alpha(under, 0.75 * op), from = baseOf(layer), belowBase = !look && layer.type === "histogram" && layer.colors !== 1 && values.some((/** @type {number} */ value) => value < from);
@@ -6731,7 +6673,7 @@ function buildChart(doc, data, refit) {
     const reversed = new Set(doc.panes.filter((pane) => pane.reverse).map((pane) => pane.id));
     for (const layer of [...[...doc.layers].reverse().filter((item) => !reversed.has(item.pane)), ...doc.layers.filter((item) => reversed.has(item.pane))]) {
       const pane = paneIndex.get(layer.pane) ?? 0, list = lists.get(pane) ?? lists.set(pane, { under: [], series: [], over: [] }).get(pane);
-      for (const series of [drawn.get(layer.id), closes.get(layer.id)?.series]) {
+      for (const series of [drawn.get(layer.id)]) {
         if (!series || !list) continue;
         list.series.push(series.engine);
         if (series.edge) list.series.push(series.edge);
@@ -6837,7 +6779,6 @@ function buildChart(doc, data, refit) {
   drawnTimes = data.times;
   // (The build before let go of: the chart's own closures, made here, keep this scope, and so these, alive.)
   was.clear();
-  wasCloses.clear();
   kept.clear();
   showDrawings(doc);
   if (relit) spotlight(relit);
@@ -7390,8 +7331,8 @@ function updateLegends() {
     const legend = engine.panes[chart.panes.indexOf(/** @type {Pane} */ (pane))]?.legend;
     legend?.set(/** @type {HTMLElement[]} */ ([...element.querySelectorAll(":scope > button[data-select]")]).map((button) => {
       const id = /** @type {string} */ (button.dataset.select);
-      // (The series it's read on: its own, its edge, its close's; a cloud's folded layers' too: one pointed at names it.)
-      const readOn = (/** @type {string} */ layer) => ((series, kept) => [series?.engine, series?.edge, kept?.series.engine, kept?.candles.engine])(drawn.get(layer), closes.get(layer));
+      // (The series it's read on: its own, its edge; a cloud's folded layers' too: one pointed at names it.)
+      const readOn = (/** @type {string} */ layer) => ((series) => [series?.engine, series?.edge])(drawn.get(layer));
       const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
       return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
     }), averageFor(chart, pane).name);
@@ -8406,8 +8347,8 @@ function stackBands(doc, stacked) {
   if (bands.length) engine.invalidate(true);
 }
 /**
- * A standard layer's series styled as the library takes it: its line (a line's, dots', a trend's, a candle layer's
- * close line, an area's or a baseline's edge), an area's or a baseline's band, bars, candles; shown or hidden, its
+ * A standard layer's series styled as the library takes it: its line (a line's, dots', a trend's, an area's or a
+ * baseline's edge), an area's or a baseline's band, bars, candles (their close line zoomed out); shown or hidden, its
  * value's tag and its line across where it shows, its values' writer, its outline. (Its colors date by date and its
  * breaks: see paintSeries and the build.)
  * @param {any} series @param {{ hidden: boolean, tag: boolean, priceLine: boolean, format: (value: number) => string, outline: string | null, line?: Record<string, any>, band?: Record<string, any>, bars?: Record<string, any>, candles?: Record<string, any> }} look
@@ -8418,7 +8359,7 @@ function styleSeries(series, look) {
   if (edge) edge.hidden = look.hidden;
   if (look.band) own.set(look.band), edge.setStyle({ ...tags, ...look.line });
   else if (look.bars) own.setStyle({ ...tags, ...look.bars });
-  else if (look.candles) own.setStyle({ outline: look.outline, ...look.candles });
+  else if (look.candles) own.setStyle({ ...tags, ...look.candles });
   else own.setStyle({ ...tags, ...look.line });
   engine.invalidate(true);
 }
@@ -8646,7 +8587,7 @@ let crossHeld = false;
 function chartPoint(index, pane, x, y, input, hit) {
   if (index !== index) return { input, layer: null };
   const line = hit >= 0 ? engine.panes[pane]?.series[hit] : null;
-  const layer = !line ? null : [...drawn].find(([, series]) => series.engine === line || series.edge === line)?.[0] ?? [...closes].find(([, close]) => close.series.engine === line || close.series.edge === line)?.[0] ?? null;
+  const layer = !line ? null : [...drawn].find(([, series]) => series.engine === line || series.edge === line)?.[0] ?? null;
   return { point: { x, y }, time: engine.time.times[index], logical: index, pane: pane >= 0 ? pane : undefined, input, layer };
 }
 /** @type {ChartPoint} */
@@ -8685,12 +8626,9 @@ function dropCross() {
   else engine.setCrosshair(NaN);
   crossMoved(NO_CROSS);
 }
-/**
- * The series a layer's read on, the crosshair's pointed one (its dot ringed, its legend item named): candles shown
- * as their close line, that line; an area's edge; else its own (candles: no dot, named still).
- */
+/** The series a layer's read on, the crosshair's pointed one (its dot ringed, its legend item named): an area's edge, else its own (candles: no dot while they show, named still). */
 function dotLineOf(/** @type {string} */ id) {
-  const close = closes.get(id), own = close && !candlesFit ? close.series : close ? close.candles : drawn.get(id);
+  const own = drawn.get(id);
   return own?.edge ?? own?.engine ?? null;
 }
 /** @param {ChartPoint} param */
@@ -8782,11 +8720,11 @@ function lightBubble(time, pane) {
 }
 /**
  * The layer whose last value's tag is under a point (the client's coordinates), on its axis (the library's tagAt:
- * its line, or an area's edge; a candle layer's, its close line's); its legend's item lit as a line pointed at lights it.
+ * its line or candles, or an area's edge); its legend's item lit as a line pointed at lights it.
  */
 function tagAt(/** @type {number} */ x, /** @type {number} */ y) {
   const box = engine.element.getBoundingClientRect(), line = engine.tagAt(x - box.left, y - box.top);
-  if (line) for (const [id, series] of drawn) if (((own) => line === own.engine || line === own.edge)(closes.get(id)?.series ?? series)) return id;
+  if (line) for (const [id, series] of drawn) if (line === series.engine || line === series.edge) return id;
   return null;
 }
 /** Whether the pointer's in the plot (the crosshair's): off it, on an axis, its tags are read (see tagAt). */
@@ -9501,7 +9439,6 @@ engine.onRange(() => {
   lightBubble(bubbleAt.time, bubbleAt.pane);
   viewMoved();
   placeBrush();
-  fitCandles();
   fitDots();
   valuesSoon();
   // (Mid-resize, keep the preset selected until the new width's layout settles.)
@@ -29571,7 +29508,7 @@ function movePrice(price) {
     const opens = added.length > 0 || !Number.isFinite(result.values[at]);
     const last = opens ? lastIn(result.values, 0, at) : at;
     if (last < 0 || at - last > 100 || !Number.isFinite(result.values[last])) continue;
-    const values = liveCopy(result.values), close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
+    const values = liveCopy(result.values), series = drawn.get(layer.id), own = series?.engine instanceof Candles ? series.engine : null;
     // (Its gradient's range of all its history moved by it, either way: every point's color another, see below.)
     const was = layer.byGradient && !layer.upToDate ? rangeOf(result.values).join() : "";
     values[at] = value;
@@ -29586,7 +29523,6 @@ function movePrice(price) {
       candles.highs[at] = Math.max(opens ? open : candles.highs[at], value);
       candles.lows[at] = Math.min(opens ? open : candles.lows[at], value);
       // (Its candle set in place on the library's columns (Studio's own, made at the build); a bar added, all again.)
-      const own = close?.candles.engine;
       if (own && own.close.length > at) own.set(at, open, candles.highs[at], candles.lows[at], value), engine.invalidate();
       else if (own) own.setValues(candleColumns({ ...result, values, ...candles }, values, modeOf(drawnDoc ?? chart, layer) === 1, (/** @type {number} */ v) => v)), engine.invalidate(true);
     }
@@ -29595,10 +29531,9 @@ function movePrice(price) {
     // (What's drawn is read too: a drawing snaps to the price as it is now.)
     const made = built.get(layer.id);
     if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ...candles });
-    if (series instanceof Standard) liveColumn(series, values, at, value);
+    if (series instanceof Standard && !own) liveColumn(series, values, at, value);
     // (Painted date by date: its point once every live value is in, from the colors as they are then.)
     if (paintedLayers.has(layer.id)) toPaint.push(layer.id);
-    if (close) tintClose(layer.id);
     moved = true;
   }
   // (And each layer taking its colors from one that moved, its latest point (a value, a cloud's band), where it has

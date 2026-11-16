@@ -5,7 +5,8 @@
 // panes pointed at or dragged, along it in the theme's active color.
 
 import { kept } from "./format.js";
-import { Line, FAINT } from "./line.js";
+import { FAINT } from "./line.js";
+import { lineOf } from "./candles.js";
 import { inkOn, painted } from "./color.js";
 import { pill, PILL } from "./tags.js";
 
@@ -27,9 +28,9 @@ export class Crosshair {
     this.y = NaN;
     this.pane = -1;
     /**
-     * The line pointed at, its dot drawn larger and ringed (over the others): a page's (null: none), else (undefined)
+     * The series pointed at, its dot drawn larger and ringed (over the others): a page's (null: none), else (undefined)
      * the one a pointer's on (`hit`).
-     * @type {import("./line.js").Line | null | undefined}
+     * @type {any}
      */
     this.pointed = undefined;
     /** The series a pointer's on at it (found once by the chart as it moves: see setCrosshair), or null. @type {any} */
@@ -110,8 +111,8 @@ export class Crosshair {
         g.rect(0, each.top, plot, each.height);
         g.clip();
         for (let s = 0; s < each.series.length; s++) {
-          const line = each.series[s];
-          if (!(line instanceof Line) || !line.marker || line.hidden) continue;
+          const series = each.series[s], line = lineOf(series);
+          if (!line || !line.marker || series.hidden) continue;
           const v = line.values[i], scale = each.scaleOf(s);
           // (None where its color there paints nothing: an unseen line's ring would cover what's under it.)
           if (v !== v || !painted(line.colorAt(i))) continue;
@@ -122,12 +123,12 @@ export class Crosshair {
           }
           const y = each.top + scale.y(v);
           if (!(y >= each.top && y <= each.top + each.height)) continue;
-          if (line === pointed && !line.faint) {
+          if (series === pointed && !series.faint) {
             (focus = p), (focusY = y), (focusColor = line.colorAt(i)), (focusMarker = line.marker);
             continue;
           }
           // (A faint line's as faint.)
-          g.globalAlpha = line.faint ? FAINT : 1;
+          g.globalAlpha = series.faint ? FAINT : 1;
           g.fillStyle = theme.background;
           g.beginPath();
           g.arc(x, y, line.marker + 2, 0, 2 * Math.PI);

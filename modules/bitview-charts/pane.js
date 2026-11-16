@@ -9,7 +9,7 @@ import { Scale, EVERY } from "./scale.js";
 import { Line, FAINT } from "./line.js";
 import { Band } from "./band.js";
 import { Bars } from "./bars.js";
-import { Candles } from "./candles.js";
+import { Candles, lineOf } from "./candles.js";
 import { Custom } from "./custom.js";
 import { compact, kept } from "./format.js";
 import { solid, tint, painted } from "./color.js";
@@ -170,11 +170,13 @@ export class Pane {
     this.tickCount = 0;
     // (Its tags as they're laid out: each one's line, its height, kept and grown, never made a frame.)
     this.tagLines = /** @type {Line[]} */ ([]);
+    /** The series whose lines those are (a candle series' tag is its close line's). */
+    this.tagSeries = /** @type {Series[]} */ ([]);
     this.tagAt = new Int32Array(8);
     this.tagIndex = new Int32Array(8);
     /** Its series' own tags on each side's axis (a drawing's value), as last drawn. */
     this.pageTags = [new Tags(), new Tags()];
-    /** Each side's lines' tags as last drawn: each one's line and middle, and their height. @type {{ lines: Line[], at: Float64Array, step: number }[]} */
+    /** Each side's lines' tags as last drawn: each one's series and middle, and their height. @type {{ lines: Series[], at: Float64Array, step: number }[]} */
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
     /** What each side's axis needs as last drawn (CSS pixels): its widest tick label or tag, with their room (see the chart's). */
     this.axisNeed = [0, 0];
@@ -561,7 +563,7 @@ export class Pane {
     this.drawnFrom = NaN;
   }
 
-  /** The line whose tag on its axis on `side` (0, the right; 1, the left) is at `y` (from its top), as last drawn; none, null. @param {number} side @param {number} y */
+  /** The series whose tag on its axis on `side` (0, the right; 1, the left) is at `y` (from its top), as last drawn; none, null. @param {number} side @param {number} y */
   lineAt(side, y) {
     const drawn = this.drawnTags[side];
     for (let k = drawn.lines.length - 1; k >= 0; k--) if (Math.abs(drawn.at[k] - y) <= drawn.step / 2) return drawn.lines[k];
@@ -801,7 +803,8 @@ export class Pane {
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (series.hidden || series.faint) continue;
-      if (series instanceof Line ? series.tag : series instanceof Custom && series.hooks.axisTags) return true;
+      const line = lineOf(series);
+      if (line ? line.tag : series instanceof Custom && series.hooks.axisTags) return true;
     }
     return false;
   }
@@ -931,8 +934,8 @@ export class Pane {
     g.setLineDash(DOTS);
     g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
     for (let k = 0; k < this.series.length; k++) {
-      const line = this.series[k], scale = this.scaleOf(k);
-      if (!(line instanceof Line) || !line.priceLine || line.hidden || line.faint) continue;
+      const series = this.series[k], line = lineOf(series), scale = this.scaleOf(k);
+      if (!line || !line.priceLine || series.hidden || series.faint) continue;
       const i = line.last(scale.mode === "log");
       if (i < 0) continue;
       if (scale.relative) {
@@ -979,12 +982,13 @@ export class Pane {
    */
   #placeTags(scale, time, side) {
     // (A relative scale's base and what a tag reads, by the points whose centers are in view: see #from, lastVisible.)
-    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, end = time.lastVisible;
+    const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, owners = this.tagSeries, end = time.lastVisible;
     lines.length = 0;
+    owners.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
-      const line = this.series[k];
-      if (!(line instanceof Line) || !line.tag || line.hidden || line.faint || line.overlay) continue;
+      const series = this.series[k], line = lineOf(series);
+      if (!line || !line.tag || series.hidden || series.faint || series.overlay) continue;
       // (On a relative scale, one with no base has no reading.)
       const base = relative ? line.first(from) : 1, i = line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view.)
@@ -996,6 +1000,7 @@ export class Pane {
       if (this.tagIndex.length <= lines.length) ((grown) => (grown.set(this.tagIndex), (this.tagIndex = grown)))(new Int32Array(lines.length * 2 + 8));
       this.tagIndex[lines.length] = i;
       lines.push(line);
+      owners.push(series);
     }
     const n = lines.length;
     if (!n) return 0;
@@ -1047,7 +1052,7 @@ export class Pane {
     drawn.step = step;
     for (let k = 0; k < n; k++) {
       const line = lines[order[k]], i = index[order[k]], y = at[k];
-      (drawn.lines[k] = line), (drawn.at[k] = y);
+      (drawn.lines[k] = this.tagSeries[order[k]]), (drawn.at[k] = y);
       // (In its line's color there without its alpha, as the chart library's: a faint line's tag still reads.)
       // (Its pill against the plot, as wide as its words (too tight to read: its color alone).)
       const color = solid(line.colorAt(i));
