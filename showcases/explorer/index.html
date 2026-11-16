@@ -26,6 +26,7 @@
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
     <style>
+      /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
          vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
          Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
@@ -56,6 +57,7 @@
         descent-override: 30.202881%;
         line-gap-override: 0%;
       }
+      /* /fallback fonts */
 
       @font-face {
         font-family: Inter;

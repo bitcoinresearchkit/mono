@@ -46,6 +46,7 @@
     <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
     <style>
+      /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
          vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
          Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
@@ -76,6 +77,7 @@
         descent-override: 30.202881%;
         line-gap-override: 0%;
       }
+      /* /fallback fonts */
 
       @font-face {
         font-family: Inter;

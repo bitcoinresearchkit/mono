@@ -8,7 +8,7 @@
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
 // server's too, and the touch icons at /apple-touch-icon.png and its -precomposed twin) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
 // page's head checked as a link to it previews and a search engine reads it, the sitemap (sitemap.xml) written from
-// the rows, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
+// the rows, fallback fonts kept inline in every page that uses them, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
@@ -20,7 +20,7 @@
 //                                                page's share card too if it's its picture
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -96,6 +96,58 @@ const git = Bun.spawnSync(["git", "ls-files", "*/index.html"], { cwd: HERE });
 if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().decode(git.stderr).trim()}): the apps on the front page unchecked`);
 // (Every page git knows, but one deleted and not yet committed as such.)
 const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(HERE, file)));
+// ── Metric-matched local faces, kept inline while the web fonts load ──
+
+const fallbackFonts = `/* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */`;
+const FALLBACK_OPEN = "/* fallback fonts */", FALLBACK_CLOSE = "/* /fallback fonts */";
+// (The front page, a --page draft of it, and every app's page; each block replaced whole, so a page holds exactly
+// one opening marker and one closing marker after it, or the run stops at it rather than cut what lies between.)
+for (const at of new Set([resolve(PAGE), join(HERE, "index.html"), ...pages.map((file) => join(HERE, file))])) {
+  const file = at.startsWith(HERE) ? relative(HERE, at) : at, was = at === resolve(PAGE) ? html : readFileSync(at, "utf8");
+  if (!/Inter Fallback|Lilex Fallback|\/\* \/?fallback fonts \*\//.test(was)) continue;
+  const open = was.indexOf(FALLBACK_OPEN), close = was.indexOf(FALLBACK_CLOSE);
+  if (open < 0 || close < open || was.split(FALLBACK_OPEN).length !== 2 || was.split(FALLBACK_CLOSE).length !== 2) {
+    problems.push(`${file}: needs exactly one "${FALLBACK_OPEN}" and one "${FALLBACK_CLOSE}" after it`);
+    continue;
+  }
+  const now = was.slice(0, open) + fallbackFonts + was.slice(close + FALLBACK_CLOSE.length);
+  if (now !== was) {
+    if (check) problems.push(`${file}: fallback fonts are stale: run bun showcases/home.mjs`);
+    else (writeFileSync(at, now), at === resolve(PAGE) && (html = now), console.log(`${file}: fallback fonts written`));
+  }
+}
+
 const folders = pages.map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
 // (On it: in its rows, APPS or DEV, or linked from its footer; or unlisted, in UNLISTED: served at its address,
 // with its icon, but off the front page and the sitemap, until it's ready to be listed.)
