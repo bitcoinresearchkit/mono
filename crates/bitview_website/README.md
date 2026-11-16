@@ -60,7 +60,9 @@ Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's fr
 A folder can publish `page-info.json.gz`: a gzip-compressed UTF-8 JSON object keyed by addresses relative to that
 folder (`"/"`, `"/articles/example"`, etc.). Each entry has `title`, `description`, `canonical`, `json_ld` (a JSON value)
 and `markdown`. Only entries belonging to the `index.html` actually selected by the nearest-folder rule apply.
-Missing files or entries keep the ordinary response. Invalid data or templates stop router initialization with the file's name.
+The entries list every address that index answers: any other answers 404 (`no-store`), with the folder's own
+`index.html` as the page for a browser, so its app can say what is missing there, and the plain message otherwise. A
+folder without the file keeps the ordinary response. Invalid data or templates stop router initialization with the file's name.
 
 That index provides exactly one pair of each marker, in document order:
 

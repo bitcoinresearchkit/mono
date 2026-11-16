@@ -40,6 +40,16 @@ struct Page {
     markdown: String,
 }
 
+/// What a folder's page info makes of an address its index answers.
+pub(crate) enum Listing {
+    /// The folder keeps no page info: its index as it is.
+    Unlisted,
+    /// One of the folder's addresses: its content written in, as `Accept` asks (so the response varies by it).
+    Listed,
+    /// Not one of the folder's addresses, which its page info lists in full: nothing is there.
+    Unknown,
+}
+
 #[derive(Default)]
 pub(crate) struct Pages(HashMap<PathBuf, HashMap<String, Page>>);
 
@@ -107,9 +117,9 @@ impl Pages {
         file: &mut File,
         address: &str,
         headers: &HeaderMap,
-    ) -> Result<bool> {
+    ) -> Result<Listing> {
         let Some(entries) = self.0.get(&file.path) else {
-            return Ok(false);
+            return Ok(Listing::Unlisted);
         };
         let folder = file
             .path
@@ -125,7 +135,7 @@ impl Pages {
             .strip_prefix(&prefix)
             .and_then(|address| entries.get(address))
         else {
-            return Ok(false);
+            return Ok(Listing::Unknown);
         };
         file.hash = None;
         if wants_markdown(headers) {
@@ -144,7 +154,7 @@ impl Pages {
             rendered.push_str(&html[body.1..]);
             file.contents = rendered.into();
         }
-        Ok(true)
+        Ok(Listing::Listed)
     }
 }
 

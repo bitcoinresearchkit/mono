@@ -10,7 +10,8 @@ use bitview_http::{CachePolicy, REVALIDATE};
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
-    Error, Website,
+    Error,
+    page_info::Listing,
     router::Site,
     website::{File, hash},
 };
@@ -51,7 +52,11 @@ pub async fn file_handler(
     read(site, move |site| match respond(site, &uri, &headers) {
         Err(error) if error.is_not_found() => match moved(uri.path(), uri.query()) {
             Some(to) => permanent(&to),
-            None => not_found(&site.website, &headers),
+            None => not_found(
+                wants_page(&headers)
+                    .then(|| site.website.get_file(NOT_FOUND_PAGE).ok())
+                    .flatten(),
+            ),
         },
         answer => answer.into_response(),
     })
@@ -77,15 +82,10 @@ fn moved(path: &str, query: Option<&str>) -> Option<String> {
 /// A file's version, its content hash.
 const VERSION: HeaderName = HeaderName::from_static("bitview-version");
 
-/// For an address that names nothing: the site's page for it to a browser, with 404, else the plain message (made a
+/// For an address that names nothing: a page with 404 to a browser (`wants_page`), else the plain message (made a
 /// problem document by the API server's error layer). Neither is stored: which one comes depends on `Accept`, which a
 /// CDN's cache key leaves out.
-fn not_found(website: &Website, headers: &HeaderMap) -> Response<Body> {
-    let page = if wants_page(headers) {
-        website.get_file(NOT_FOUND_PAGE).ok()
-    } else {
-        None
-    };
+fn not_found(page: Option<File>) -> Response<Body> {
     let mut response = match page {
         Some(page) => {
             let mut response = file_response(page.contents, page.content_type);
@@ -173,10 +173,17 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     {
         return Err(Error::not_found());
     }
-    let varies = site
+    let varies = match site
         .pages
         .apply(&mut found, uri.path(), request_headers)
-        .map_err(|error| Error::internal(format!("{}: {error}", uri.path())))?;
+        .map_err(|error| Error::internal(format!("{}: {error}", uri.path())))?
+    {
+        Listing::Listed => true,
+        Listing::Unlisted => false,
+        // Not one of an app's addresses, a 404 for search engines; a browser still gets the app, to say what's
+        // missing there (a renamed address, an old spelling of one).
+        Listing::Unknown => return Ok(not_found(wants_page(request_headers).then_some(found))),
+    };
     let File {
         contents,
         hash: file_hash,
