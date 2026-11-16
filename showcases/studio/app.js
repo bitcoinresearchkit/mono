@@ -2,7 +2,7 @@
 import { BitviewClient } from "/modules/bitview-client/index.js";
 import XKCD from "/modules/xkcd-colors/index.js";
 // (Studio's chart library: bitview-charts.)
-import { createChart, onTouchesLost, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
+import { createChart, press, picture as chartPicture, Line, Band, Bars, PARTIAL as PARTIAL_SHARE, Bubbles as LibraryBubbles, Candles, Marks, Levels, Shade, Custom, Scale, DARK, channels, FAINT, compact as libraryWords, stack as stackColumns, Grid, Profile, columnWidth, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
 import { inBands, bandNames } from "/studio/bands.js";
@@ -4037,11 +4037,15 @@ let handled = false;
 let handledYet = false;
 /** The pointers held down (fingers, by their ids): a hand on the page till the last is let go (said halfway, a drag held on is still one). */
 const handsHeld = new Set();
-for (const type of ["pointerdown", "wheel", "keydown"]) addEventListener(type, (event) => ((handled = handledYet = true), event instanceof PointerEvent && handsHeld.add(event.pointerId)), { capture: true, passive: true });
-/** A pointer's end (or a touch the browser forgot: see onTouchesLost). @param {PointerEvent} event */
-const handLifted = (event) => handsHeld.delete(event.pointerId);
-for (const type of /** @type {const} */ (["pointerup", "pointercancel"])) addEventListener(type, handLifted, { capture: true, passive: true });
-onTouchesLost(handLifted);
+/** What waits for every hand to be let go (see afterPress). @type {(() => void)[]} */
+const afterHands = [];
+for (const type of ["pointerdown", "wheel", "keydown"]) addEventListener(type, (event) => {
+  handled = handledYet = true;
+  if (!(event instanceof PointerEvent)) return;
+  const id = event.pointerId;
+  handsHeld.add(id);
+  press(event, { end: () => handsHeld.delete(id) && !handsHeld.size && afterHands.splice(0).forEach((run) => setTimeout(run)) });
+}, { capture: true, passive: true });
 /**
  * The linked view the open chart is drawn again to take (see followLinked), as it was when taken: its chunks and its
  * view both for it, one said meanwhile taken next; its chart's, while it's linked (by date). @type {{ view: any, at: number, id: string } | null}
@@ -4593,7 +4597,6 @@ for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
   grip.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || grip.classList.contains("dragging")) return;
     event.preventDefault();
-    const pointer = event.pointerId;
     const from = element().getBoundingClientRect().width, start = event.clientX;
     let x = start, frame = 0;
     grip.setPointerCapture(event.pointerId);
@@ -4602,22 +4605,19 @@ for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
     holdChart();
     // (At most once a frame, where the hand is then; held again if let go meanwhile (the window resized, a motion
     // over).)
-    const move = (/** @type {PointerEvent} */ moved) => {
-      if (moved.pointerId !== pointer) return;
-      x = moved.clientX;
-      frame ||= requestAnimationFrame(() => ((frame = 0), holdChart(), setWidth(which, from + sign * (x - start)), stretchNow()));
-    };
-    const end = (/** @type {PointerEvent} */ lost) => {
-      if (lost.pointerId !== pointer) return;
-      if (frame) (cancelAnimationFrame(frame), setWidth(which, from + sign * (x - start)));
-      grip.removeEventListener("pointermove", move);
-      grip.removeEventListener("lostpointercapture", end);
-      grip.classList.remove("dragging");
-      releaseSize();
-      savePrefs();
-    };
-    grip.addEventListener("pointermove", move);
-    grip.addEventListener("lostpointercapture", end);
+    press(event, {
+      captor: grip,
+      move: (moved) => {
+        x = moved.clientX;
+        frame ||= requestAnimationFrame(() => ((frame = 0), holdChart(), setWidth(which, from + sign * (x - start)), stretchNow()));
+      },
+      end: () => {
+        if (frame) (cancelAnimationFrame(frame), setWidth(which, from + sign * (x - start)));
+        grip.classList.remove("dragging");
+        releaseSize();
+        savePrefs();
+      },
+    });
   });
   grip.addEventListener("dblclick", () => (setWidth(which, null), savePrefs()));
   // (Its keys as a separator's: ← → by a step (⇧, four), Home and End to its least and its most.)
@@ -9020,8 +9020,8 @@ function fitMargins() {
 // (A separator dragged, the panes laid out at each move: their room over their lines with them, as tall as their
 // legends, not a share of the height they had (the lines moving when let go).)
 engine.onLayout(() => engine.resizing && fitMargins());
-// Pane separators resize panes (the chart library's own drag); their sizes stay with the chart, kept as a pointer's
-// let go (a moment later: the library's last move in), wherever: a release lost, the next one keeps them. Only the
+// Pane separators resize panes (the chart library's own drag); their sizes stay with the chart, kept as a press ends
+// (a moment later: the library's last move in), wherever, however (see press). Only the
 // open chart's, drawn, no look on it: the panes on screen are its.
 const keepPaneSizes = () => setTimeout(() => {
   const panes = engine.panes, laid = panesLaid.factors;
@@ -9039,8 +9039,7 @@ const keepPaneSizes = () => setTimeout(() => {
   sizePanes(chart);
   fitMargins();
 }, 0);
-addEventListener("pointerup", keepPaneSizes);
-addEventListener("pointercancel", keepPaneSizes);
+addEventListener("pointerdown", (event) => press(event, { end: keepPaneSizes }), true);
 
 /**
  * The values and changes shown again, once on the next frame however many moves ask in it (the crosshair's and the
@@ -9453,7 +9452,12 @@ let reaching = false;
 /** The pointers down on the chart (a pinch's two: pressed till both are up); of them, the fingers. */
 const pressed = new Set(), fingers = new Set();
 // (Counted as it goes down, before the chart's own handlers take it.)
-$("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId)), true);
+$("chart").addEventListener("pointerdown", (event) => {
+  const id = event.pointerId;
+  pressed.add(id);
+  if (event.pointerType === "touch") fingers.add(id);
+  press(event, { end: () => (fingers.delete(id), pressed.delete(id) && !pressed.size && released()) });
+}, true);
 // (A finger's crosshair kept where it was lifted: let go at the next touch on the plot, before a drawing's press
 // reads it, see fingerCross. A mouse's or the keys' crosshair takes its place.)
 $("chart").addEventListener("pointerdown", (event) => {
@@ -9464,12 +9468,6 @@ $("chart").addEventListener("pointerdown", (event) => {
 engine.element.addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));
 // (A press on the chart lets a ruler's measure go: the next one, or none.)
 $("chart").addEventListener("pointerdown", () => clearMeasure(), true);
-/** A pointer's end (or a touch the browser forgot: see onTouchesLost). @param {PointerEvent} event */
-const pressLifted = ({ pointerId }) => (fingers.delete(pointerId), pressed.delete(pointerId) && !pressed.size && released());
-for (const type of /** @type {const} */ (["pointerup", "pointercancel"])) addEventListener(type, pressLifted);
-onTouchesLost(pressLifted);
-// (The window let go of, a press's up may never come: none down after it.)
-addEventListener("blur", () => (fingers.clear(), pressed.size && (pressed.clear(), released()), dropBrush()));
 /**
  * The end of what a fine interval holds that the view is close to (in the chunk at that end, or half a view from
  * it, the wider), with more beyond it: -1 the older, 1 the newer, 0 neither.
@@ -9646,6 +9644,7 @@ $("navigator").addEventListener("pointerdown", (event) => {
   } else stopGlide();
   brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, pointer: event.pointerId, times: resolved?.times, width: rect.width };
   $("navigator").setPointerCapture(event.pointerId);
+  press(event, { captor: $("navigator"), end: dropBrush });
   $("brush").classList.add("dragging");
 });
 for (const [type, near] of /** @type {const} */ ([["pointerenter", true], ["pointerleave", false]])) $("navigator").addEventListener(type, () => ((navigatorNear = near), placeBrush()));
@@ -9687,7 +9686,7 @@ $("navigator").addEventListener("pointermove", (event) => {
   // An edge dragged out past the most the view shows: the other edge gives way.
   showSpan(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
 });
-/** The brush let go of: its release, or the window left (its release may never come here). */
+/** The brush let go of, its press over (see press). */
 function dropBrush() {
   if (!brushDrag) return;
   brushDrag = null;
@@ -9695,8 +9694,6 @@ function dropBrush() {
   placeBrush();
   released();
 }
-const endBrush = (/** @type {PointerEvent} */ event) => event.pointerId === brushDrag?.pointer && dropBrush();
-$("navigator").addEventListener("pointerup", endBrush);
 // Focused (tabbed to, pressed or dragged, after Go to a date), its keys move the view as its drags do: ← → a tenth of
 // it along (⇧, all of it), ↑ ↓ in and out (⇧, twice as far), Home and End to the start and to the latest.
 $("navigator").addEventListener("keydown", (event) => {
@@ -9710,10 +9707,6 @@ $("navigator").addEventListener("keydown", (event) => {
   const end = n - 1 + (rightGap() * width) / Math.max(1, engine.time.width);
   glide(event.key === "Home" ? { from: -0.5, to: width - 0.5 } : event.key === "End" ? { from: end - width, to: end } : { from: range.from + by, to: range.to + by });
 });
-$("navigator").addEventListener("pointercancel", endBrush);
-onTouchesLost(endBrush);
-// (Its capture lost without a release reaching it (hidden mid-drag, the system taking the touch): over too.)
-$("navigator").addEventListener("lostpointercapture", endBrush);
 
 /** The pane under a point of the page (its index, its box), or none. */
 function paneAt(clientY) {
@@ -11212,15 +11205,12 @@ $("belt").addEventListener("pointerdown", (event) => {
     const plot = plotBox();
     if (plot) turnBelt(upright(sideAt(at.clientX - canvas.left, at.clientY - canvas.top, plot)));
   };
-  const end = (/** @type {PointerEvent} */ at) => {
-    belt.removeEventListener("pointermove", carry);
-    belt.removeEventListener("pointerup", end);
-    belt.removeEventListener("pointercancel", end);
+  const end = (/** @type {PointerEvent | null} */ at) => {
     belt.classList.remove("held");
     belt.getAnimations({ subtree: true }).forEach((animation) => animation.finish());
     const plot = plotBox();
     // Let go: on the side it's on, where along it its middle is. (Taken away, by a touch that scrolled: back.)
-    if (plot && at.type === "pointerup") {
+    if (plot && at) {
       const thrown = (/** @type {number} */ from, /** @type {(point: { x: number, y: number }) => number} */ along) => restOf(from, speedOf(trail, along)) - from;
       const by = { x: thrown(at.clientX, (point) => point.x), y: thrown(at.clientY, (point) => point.y) };
       const now = belt.getBoundingClientRect(), side = sideAt(at.clientX + by.x - canvas.left, at.clientY + by.y - canvas.top, plot);
@@ -11231,9 +11221,7 @@ $("belt").addEventListener("pointerdown", (event) => {
     turnBelt(upright(prefs.belt.dock));
     placeBelt(true);
   };
-  belt.addEventListener("pointermove", carry);
-  belt.addEventListener("pointerup", end);
-  belt.addEventListener("pointercancel", end);
+  press(event, { captor: belt, move: carry, end });
 });
 /** The drawing under the pointer, lit; its cursor on the chart. */
 function hover(hit) {
@@ -12039,6 +12027,21 @@ function take(event) {
   gesturePointer = event.pointerId;
   gestureTouch = event.pointerType === "touch";
   $("chart").setPointerCapture(event.pointerId);
+  press(event, { on: $("chart"), captor: $("chart"), end: gestureEnded });
+}
+/**
+ * A gesture's press over (see take): the lens a finger held gone; by its release, what it drew, moved or boxed
+ * placed; else what it was drawing or moving let go of, as it was.
+ * @param {PointerEvent | null} release
+ */
+function gestureEnded(release) {
+  swallow = false;
+  if (magnifying && lensAt?.touch) lookAt(null);
+  if (!release) return stopDrawing();
+  if (placing?.held) placed(release);
+  else if (moving) moved();
+  else if (boxing) boxed();
+  pressedAt = null;
 }
 for (const type of ["mousedown", "touchstart"]) $("chart").addEventListener(type, (event) => {
   if (!swallow) return;
@@ -12054,10 +12057,8 @@ addEventListener("mousemove", (event) => (pointerAt = { x: event.clientX, y: eve
 addEventListener("mousemove", (event) => magnifying && !lensAt?.touch && event.target instanceof Node && $("chart").contains(event.target) && lookAt(closest(event, ".legend, button") ? null : { x: event.clientX, y: event.clientY, touch: false }));
 // (A finger's: the one pressing, another's moves and lifts nothing.)
 $("chart").addEventListener("pointermove", (event) => lensAt?.touch && event.pointerId === gesturePointer && lookAt({ x: event.clientX, y: event.clientY, touch: true }));
-/** The lens let go of with its pointer (or its touch the browser forgot: see onTouchesLost). @param {PointerEvent} event */
-const lensLifted = (event) => magnifying && (event.type === "pointerleave" ? event.pointerType === "mouse" && !lensAt?.touch : event.pointerType !== "mouse" && event.pointerId === gesturePointer) && lookAt(null);
-for (const type of ["pointerleave", "pointerup", "pointercancel"]) $("chart").addEventListener(type, lensLifted);
-onTouchesLost(lensLifted);
+// (A mouse's gone as it leaves; a finger's with its press, see gestureEnded.)
+$("chart").addEventListener("pointerleave", (event) => magnifying && event.pointerType === "mouse" && !lensAt?.touch && lookAt(null));
 // (A scale reset by a double-click on its axis, the pointer still: the lens after it.)
 $("chart").addEventListener("dblclick", () => lensAt && lookAt(lensAt));
 $("chart").addEventListener("wheel", () => lensAt && lookAt(lensAt), { passive: true });
@@ -12114,10 +12115,10 @@ $("chart").addEventListener("pointerdown", (event) => {
   const hit = drawingAt(event.clientX, event.clientY, reachOf(event));
   // A press on nothing pans; a click there lets the selected drawings go (at its release, unmoved; a ⇧-click that
   // missed one changes nothing).
-  if (!hit) return void (pressedAt = chosen.size && !event.shiftKey ? { x: event.clientX, y: event.clientY, pick: "" } : null);
+  if (!hit) return void (chosen.size && !event.shiftKey && pressAt(event, ""));
   // By touch, one not selected is the chart's still: a drag over it pans (a finger's wide reach on it moves nothing);
   // a tap selects it, then it's taken as a pointer takes it. (A pen points as a mouse does.)
-  if (event.pointerType === "touch" && !chosen.has(hit.drawing.id)) return void (pressedAt = { x: event.clientX, y: event.clientY, pick: hit.drawing.id });
+  if (event.pointerType === "touch" && !chosen.has(hit.drawing.id)) return void pressAt(event, hit.drawing.id);
   take(event);
   const id = hit.drawing.id;
   // ⇧: in or out of the selection.
@@ -12137,24 +12138,17 @@ $("chart").addEventListener("pointermove", (event) => {
 });
 /** Where a press on nothing was, while a drawing is selected; or a finger's on one not selected (`pick`, see above). */
 let pressedAt = /** @type {{ x: number, y: number, pick: string } | null} */ (null);
-$("chart").addEventListener("pointerup", (event) => {
-  swallow = false;
-  if (otherPointer(event)) return;
-  if (placing?.held) placed(event);
-  else if (moving) moved();
-  else if (boxing) boxed();
-  else if (pressedAt && !fingerCross.dismissing && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) < 4) chooseDrawings(pressedAt.pick ? [pressedAt.pick] : []);
-  pressedAt = null;
-});
-/** A pointer on the chart cancelled: what a gesture was drawing or moving let go of, as it was (by its own pointer's, or any while none is held). @param {PointerEvent} event */
-const gestureCancelled = (event) => {
-  swallow = false;
-  if (otherPointer(event)) return;
-  stopDrawing();
-};
-$("chart").addEventListener("pointercancel", gestureCancelled);
-// (A touch the browser forgot (see onTouchesLost) may never have been the chart's: the gesture's own only.)
-onTouchesLost((event) => event.pointerId === gesturePointer && gestureCancelled(event));
+/** Such a press: let go where it was pressed, the drawings it picks chosen (none, on nothing). @param {PointerEvent} event @param {string} pick */
+function pressAt(event, pick) {
+  pressedAt = { x: event.clientX, y: event.clientY, pick };
+  press(event, {
+    on: $("chart"),
+    end: (release) => {
+      if (release && pressedAt && !otherPointer(release) && !fingerCross.dismissing && Math.hypot(release.clientX - pressedAt.x, release.clientY - pressedAt.y) < 4) chooseDrawings(pressedAt.pick ? [pressedAt.pick] : []);
+      pressedAt = null;
+    },
+  });
+}
 $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
 // Double-click a text: typed into, where it is; a line: its label, typed where the click was (on it: typed into).
 $("chart").addEventListener("dblclick", (event) => {
@@ -15742,11 +15736,10 @@ function dragSheet(element, { grab, move, release, back, pulls }) {
     move(0);
     // (Held by what was pressed, the handle or the head: the click after a drag is its, not the sheet's own, which in
     // ⌘K is its backdrop's and would close it.)
-    /** @type {Element} */ (event.target).setPointerCapture(event.pointerId);
+    const held = /** @type {Element} */ (event.target), pointer = event.pointerId;
+    held.setPointerCapture(pointer);
+    press(event, { captor: held, move: (moved) => follow(moved.clientY), end: (release) => pull?.pointer === pointer && (release ? end(release.clientY) : ((pull = null), letGo())) });
   });
-  element.addEventListener("pointermove", (event) => event.pointerId === pull?.pointer && follow(event.clientY));
-  element.addEventListener("pointerup", (event) => event.pointerId === pull?.pointer && end(event.clientY));
-  for (const type of /** @type {const} */ (["pointercancel", "lostpointercapture"])) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), letGo()));
   // (A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events
   // go to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data)
   // leaves it out, heard there then. A finger more, while one pulls, changes nothing.)
@@ -17601,10 +17594,10 @@ function restRect(/** @type {HTMLElement} */ element) {
  * @typedef {{ item: HTMLElement, after: boolean, down?: boolean, depth?: number } | { zone: HTMLElement }} Landing `down`: before or after it is above or below it (a grid of one column); `depth`: at that level of a tree (its line indented to it)
  */
 function dragToReorder(list, how) {
-  /** @type {{ id: string, x: number, y: number, at: [number, number], pointer: number, touch: boolean, held: boolean, began: boolean, timer: number, touched: EventTarget | null } | null} */
-  let press = null;
+  /** The press on an item (its pointer's followed: see press). @type {{ id: string, x: number, y: number, at: [number, number], touch: boolean, held: boolean, began: boolean, timer: number, touched: EventTarget | null, stop: () => void } | null} */
+  let hand = null;
   /** Held (or carried) by touch, nothing scrolls under the finger. */
-  const pin = (/** @type {Event} */ event) => (press?.held || drag) && event.preventDefault();
+  const pin = (/** @type {Event} */ event) => (hand?.held || drag) && event.preventDefault();
   /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, box: DOMRect, frame: number, touch: boolean, width: number, height: number, top: number } | null} */
   let drag = null;
   /** The pill let go where it lands, till it's flown there (see settleGhost). @type {HTMLElement | null} */
@@ -17637,10 +17630,10 @@ function dragToReorder(list, how) {
   const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => (element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"), element.style.removeProperty("--drop-depth")));
   /** The gesture over: `landed`, let go by the pointer (else put back: esc, a cancel); `back`, landing nowhere. */
   const endDrag = (landed = false, back = !landed) => {
-    const unpick = Boolean(press?.began && drag && !landed);
-    if (press) clearTimeout(press.timer);
-    press?.touched?.removeEventListener("touchmove", pin);
-    press = null;
+    const unpick = Boolean(hand?.began && drag && !landed);
+    if (hand) clearTimeout(hand.timer), hand.stop();
+    hand?.touched?.removeEventListener("touchmove", pin);
+    hand = null;
     if (carrying === endDrag) carrying = null;
     if (!drag) return;
     cancelAnimationFrame(drag.frame);
@@ -17705,10 +17698,10 @@ function dragToReorder(list, how) {
     drag.frame = requestAnimationFrame(edge);
   };
   function lift(/** @type {PointerEvent} */ event) {
-    if (!press) return;
+    if (!hand) return;
     // (A drag: its press no click, even let go, cancelled, where it began: see pressStart.)
     pressStart = null;
-    const ids = how.carried?.(press.id) ?? [press.id], ghost = document.createElement("div");
+    const ids = how.carried?.(hand.id) ?? [hand.id], ghost = document.createElement("div");
     ghost.className = "drag-ghost";
     ghost.setAttribute("aria-hidden", "true");
     ghost.innerHTML = `${how.label(ids[0])}${ids.length > 1 ? `<span class="drag-count">${ids.length}</span>` : ""}`;
@@ -17720,7 +17713,7 @@ function dragToReorder(list, how) {
         break;
       }
     }
-    drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, box: scroller.getBoundingClientRect(), frame: 0, touch: press.touch, width: ghost.offsetWidth, height: ghost.offsetHeight, top: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0 };
+    drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, box: scroller.getBoundingClientRect(), frame: 0, touch: hand.touch, width: ghost.offsetWidth, height: ghost.offsetHeight, top: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0 };
     // (Its own first: the list's look as carrying, its new places shown, after.)
     how.lift?.();
     list.classList.add("carrying");
@@ -17739,44 +17732,44 @@ function dragToReorder(list, how) {
     if (event.button !== 0 || carrying) return;
     const item = /** @type {HTMLElement | null} */ (closest(event, how.item));
     if (!item || typing(event.target) || how.refuse?.(event)) return;
-    press = { id: how.idOf(item), x: event.clientX, y: event.clientY, at: [event.clientX, event.clientY], pointer: event.pointerId, touch: event.pointerType === "touch", held: false, began: false, timer: 0, touched: null };
+    hand = { id: how.idOf(item), x: event.clientX, y: event.clientY, at: [event.clientX, event.clientY], touch: event.pointerType === "touch", held: false, began: false, timer: 0, touched: null, stop: press(event, { captor: list, move, end }) };
     carrying = endDrag;
     // (A touch's moves go to what it started on, drawn anew or not: there, they're held from scrolling.)
-    if (press.touch) {
-      press.touched = event.target;
-      press.touched?.addEventListener("touchmove", pin, { passive: false });
+    if (hand.touch) {
+      hand.touched = event.target;
+      hand.touched?.addEventListener("touchmove", pin, { passive: false });
     }
     // By touch, held still: picked (where items are), and ready to be carried.
-    if (press.touch) press.timer = window.setTimeout(() => {
-      if (!press) return;
-      if (!itemNamed(press.id)) return endDrag();
-      press.held = true;
+    if (hand.touch) hand.timer = window.setTimeout(() => {
+      if (!hand) return;
+      if (!itemNamed(hand.id)) return endDrag();
+      hand.held = true;
       // (A carry from here: a drift while held still isn't one.)
-      [press.x, press.y] = press.at;
+      [hand.x, hand.y] = hand.at;
       // (Whether this hold began picking: carried off instead, it leaves none picked.)
-      press.began = !how.picking?.();
+      hand.began = !how.picking?.();
       navigator.vibrate?.(8);
-      how.pick?.(press.id);
+      how.pick?.(hand.id);
     }, 450);
   });
-  // Followed wherever the pointer goes, ended wherever it's let go (off the list, outside the page's frame).
-  window.addEventListener("pointermove", (event) => {
-    if (!press || event.pointerId !== press.pointer) return;
-    // (A mouse with no button down: its press was let go where nothing heard it.)
-    if (!press.touch && !event.buttons) return endDrag();
+  // Followed wherever the pointer goes; let go, ended wherever that is (off the list, outside the page's frame).
+  function move(/** @type {PointerEvent} */ event) {
+    if (!hand) return;
     if (drag) {
       drag.x = event.clientX;
       drag.y = event.clientY;
       return follow();
     }
-    const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
+    const moved = Math.hypot(event.clientX - hand.x, event.clientY - hand.y);
     // (By touch, moved before it's held: a scroll.)
-    press.at = [event.clientX, event.clientY];
-    if (press.touch && !press.held) return void (moved > SLOP && endDrag());
-    if ((press.touch ? moved > SLOP : moved >= 4) && !how.still?.() && itemNamed(press.id)) lift(event);
-  });
-  window.addEventListener("pointerup", (event) => {
-    if (!press || event.pointerId !== press.pointer) return;
+    hand.at = [event.clientX, event.clientY];
+    if (hand.touch && !hand.held) return void (moved > SLOP && endDrag());
+    if ((hand.touch ? moved > SLOP : moved >= 4) && !how.still?.() && itemNamed(hand.id)) lift(event);
+  }
+  /** Its release: carried, landed where it's let go; else (a cancel, its capture lost: see press) put back. @param {PointerEvent | null} event */
+  function end(event) {
+    if (!hand) return;
+    if (!event) return endDrag();
     if (drag) {
       drag.x = event.clientX;
       drag.y = event.clientY;
@@ -17784,17 +17777,14 @@ function dragToReorder(list, how) {
     // Where they land, read now (not as last marked: the list may have been drawn anew), unless now there's no place.
     const carried = drag && { ids: drag.ids, at: how.still?.() ? null : landingNow(), y: drag.y };
     // (A drag, or a hold, makes no click: it'd open, or pick again, what was pressed.)
-    if (carried || press.held) swallowClick();
-    const began = press.began;
+    if (carried || hand.held) swallowClick();
+    const began = hand.began;
     endDrag(true, !carried?.at);
     if (carried?.at) how.land(carried.ids, carried.at, carried.y);
     if (carried?.at) settleGhost(carried.ids);
     // A hold that became a drag moved it: it picked nothing (picking was on before, it stays).
     if (carried && began) how.unpick?.();
-  });
-  window.addEventListener("pointercancel", (event) => event.pointerId === press?.pointer && endDrag());
-  // (Its own capture lost, not a row's: a touch's own, let go as the list takes it, says nothing.)
-  list.addEventListener("lostpointercapture", (event) => drag && event.target === list && event.pointerId === press?.pointer && endDrag());
+  }
   // (Nothing in it is dragged the browser's way: an image, a link.)
   list.addEventListener("dragstart", (event) => event.preventDefault());
   document.addEventListener("keydown", (event) => {
@@ -17818,20 +17808,19 @@ const swallowClick = () => (swallowUntil = performance.now() + 600);
  * @param {HTMLElement} container @param {string} selector @param {(element: HTMLElement) => (() => boolean) | null} start
  */
 function onHold(container, selector, start) {
-  let timer = 0, taken = false, at = /** @type {[number, number]} */ ([0, 0]);
+  /** The hold under way let go of, unheld: a new press is the one that counts. */
+  let drop = () => {};
   container.addEventListener("pointerdown", (event) => {
-    clearTimeout(timer);
-    taken = false;
+    drop();
     const element = /** @type {HTMLElement | null} */ (event.pointerType === "touch" ? closest(event, selector) : null), held = element && start(element);
     if (!element || !held) return;
-    at = [event.clientX, event.clientY];
-    timer = window.setTimeout(() => element.isConnected && held() && ((taken = true), navigator.vibrate?.(8)), 450);
-  });
-  container.addEventListener("pointermove", (event) => Math.hypot(event.clientX - at[0], event.clientY - at[1]) > SLOP && clearTimeout(timer));
-  for (const type of ["pointerup", "pointercancel"]) container.addEventListener(type, () => {
-    clearTimeout(timer);
-    if (taken) swallowClick();
-    taken = false;
+    let taken = false;
+    const timer = window.setTimeout(() => element.isConnected && held() && ((taken = true), navigator.vibrate?.(8)), 450);
+    const stop = press(event, {
+      move: (moved) => Math.hypot(moved.clientX - event.clientX, moved.clientY - event.clientY) > SLOP && clearTimeout(timer),
+      end: () => (clearTimeout(timer), taken && swallowClick()),
+    });
+    drop = () => (clearTimeout(timer), stop());
   });
   container.addEventListener("contextmenu", (event) => TOUCH && closest(event, selector) && event.preventDefault());
 }
@@ -20123,38 +20112,30 @@ function stopAt(id, clientX) {
   return stops[clamp(Math.round(((clientX - box.left - 3) / (box.width - 6)) * (stops.length - 1)), 0, stops.length - 1)];
 }
 /**
- * A press that drags: `move` runs at the press and at every move until the release, wherever the pointer goes,
- * the body's `cursor` class holding the cursor meanwhile.
+ * A press that drags: `move` runs at the press and at every move of its pointer until it ends (see press), wherever
+ * it goes, the body's `cursor` class holding the cursor meanwhile. One at a time: while one's held, another press
+ * (a second finger) does nothing.
  */
 function track(event, element, cursor, move) {
+  if (holding) return;
   event.preventDefault();
   element.focus();
-  // (Its edits one undo step: see commit.)
+  // (Its edits one undo step, `holding` while it's held: see commit.)
   holding = ++holds;
   move(event);
   document.body.classList.add(cursor);
-  // (Its own pointer's: a second finger moves, or ends, nothing. A mouse moving with no button down, or the window
-  // left, ends it: its release went elsewhere.)
-  const pointer = event.pointerId;
-  const follow = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && (next.pointerType === "mouse" && !next.buttons ? stop() : move(next));
-  const end = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && stop();
-  const stop = () => {
-    flushPick();
-    holding = 0;
-    if (heldEdits) {
-      heldEdits = false;
-      refresh("none");
-    }
-    document.body.classList.remove(cursor);
-    removeEventListener("pointermove", follow);
-    removeEventListener("pointerup", end);
-    removeEventListener("pointercancel", end);
-    removeEventListener("blur", stop);
-  };
-  addEventListener("pointermove", follow);
-  addEventListener("pointerup", end);
-  addEventListener("pointercancel", end);
-  addEventListener("blur", stop);
+  press(event, {
+    move,
+    end: () => {
+      flushPick();
+      holding = 0;
+      if (heldEdits) {
+        heldEdits = false;
+        refresh("none");
+      }
+      document.body.classList.remove(cursor);
+    },
+  });
 }
 /**
  * A press that picks by `move`, as `track` has it; by touch (in what scrolls, a sheet), as a finger on a page means:
@@ -20162,24 +20143,17 @@ function track(event, element, cursor, move) {
  * picks nothing (a slider scrolled past keeps its value).
  */
 function pickPress(event, element, cursor, move) {
-  if (event.pointerType !== "touch") return track(event, element, cursor, move);
-  const pointer = event.pointerId;
-  const off = () => {
-    removeEventListener("pointermove", moved);
-    removeEventListener("pointerup", up);
-    removeEventListener("pointercancel", off);
-  };
-  const moved = (/** @type {PointerEvent} */ next) => {
-    const dx = next.clientX - event.clientX, dy = next.clientY - event.clientY;
-    if (next.pointerId !== pointer || Math.hypot(dx, dy) <= SLOP) return;
-    off();
-    // (Clearly across: an arc as a scroll begins, or a slant, is a scroll.)
-    if (Math.abs(dx) > 2 * Math.abs(dy)) track(next, element, cursor, move);
-  };
-  const up = (/** @type {PointerEvent} */ next) => next.pointerId === pointer && (off(), move(next));
-  addEventListener("pointermove", moved);
-  addEventListener("pointerup", up);
-  addEventListener("pointercancel", off);
+  if (event.pointerType !== "touch" || holding) return track(event, element, cursor, move);
+  const stop = press(event, {
+    move: (next) => {
+      const dx = next.clientX - event.clientX, dy = next.clientY - event.clientY;
+      if (Math.hypot(dx, dy) <= SLOP) return;
+      stop();
+      // (Clearly across: an arc as a scroll begins, or a slant, is a scroll.)
+      if (Math.abs(dx) > 2 * Math.abs(dy)) track(next, element, cursor, move);
+    },
+    end: (release) => release && move(release),
+  });
 }
 /**
  * Sliders' pointer and keys, wherever they are (the panel's, the belt's popover's): a press scrubs from stop to stop
@@ -21730,20 +21704,10 @@ function leaveFormula(/** @type {HTMLTextAreaElement} */ field, /** @type {boole
   }
   letGo(field);
 }
-let pointerDown = false;
-addEventListener("pointerdown", () => (pointerDown = true), true);
-// (Its end: let go, or the window left, where a let go may never come here. A blur heard on the window, not
-// captured, is the window's own.)
-const PRESS_ENDS = /** @type {const} */ ([["pointerup", true], ["pointercancel", true], ["blur", false]]);
-for (const [type, capture] of PRESS_ENDS) addEventListener(type, () => (pointerDown = false), capture);
-/** Now, or once the press under way is let go (its click done). @param {() => void} run */
+/** Now, or once every press under way is let go (its click done: see handsHeld). @param {() => void} run */
 function afterPress(run) {
-  if (!pointerDown) return run();
-  const done = () => {
-    for (const [type, capture] of PRESS_ENDS) removeEventListener(type, done, capture);
-    setTimeout(run);
-  };
-  for (const [type, capture] of PRESS_ENDS) addEventListener(type, done, capture);
+  if (!handsHeld.size) return run();
+  afterHands.push(run);
 }
 /**
  * An edit to one layer (or drawing), by its id; `editLayer`, to the selected one. A drawing's leaves the series as
