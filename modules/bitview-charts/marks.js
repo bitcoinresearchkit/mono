@@ -1,6 +1,6 @@
 // @ts-check
 // A series' marks (a signal's turns), drawn over its pane's series added before them: each at a point (`at`, its index),
-// above it (a candle's high), below it (its low) or on it; an arrow (`up`, `down`), a `circle` or a `square`, as tall as a
+// above it (a candle's high), below it (its low; a line's close where candles are drawn as one) or on it; an arrow (`up`, `down`), a `circle` or a `square`, as tall as a
 // point is wide (12 to 30 pixels; times its `size`, 0: none), several at one point stacked away from it, in its `color`.
 // Its words (`text`) past it, in a pill of the chart's ground edged in its color (or `textColor`), only where they have
 // room at the view's zoom: from the latest back, one whose words would run into the next one's goes without them (zoomed
@@ -23,7 +23,7 @@ const SPAN = new Float64Array(2);
 
 /**
  * @typedef {{ at: number, position: "above" | "below" | "on", shape: "up" | "down" | "circle" | "square", color: string, text?: string, textColor?: string, size?: number }} Mark
- * @typedef {{ values?: Float64Array, upper?: Float64Array, high?: Float64Array, low?: Float64Array, close?: Float64Array, hidden?: boolean, overlay?: import("./scale.js").Scale | null, first(i: number): number, extent(a: number, b: number, positive: boolean, out: Float64Array): void }} Host
+ * @typedef {{ values?: Float64Array, upper?: Float64Array, close?: Float64Array, tops?(time: import("./timeline.js").Timeline): Float64Array, feet?(time: import("./timeline.js").Timeline): Float64Array, hidden?: boolean, overlay?: import("./scale.js").Scale | null, first(i: number): number, extent(a: number, b: number, positive: boolean, out: Float64Array): void }} Host
  */
 
 export class Marks {
@@ -140,7 +140,7 @@ export class Marks {
     const series = this.series, marks = this.marks, n = marks.length;
     if (series.hidden || !n) return;
     // (Its points' heights: a candle's high and low, else its value; an area's, its top.)
-    const values = /** @type {Float64Array} */ (series.close ?? series.upper ?? series.values), highs = series.high ?? values, lows = series.low ?? values;
+    const values = /** @type {Float64Array} */ (series.close ?? series.upper ?? series.values), highs = series.tops?.(time) ?? values, lows = series.feet?.(time) ?? values;
     const unit = Math.min(Math.max(time.spacing, 12), 30), height = even(odd(unit)), margin = Math.max(odd(unit * 0.1), 3);
     g.font = theme.font;
     g.textBaseline = "middle";

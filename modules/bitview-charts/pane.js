@@ -65,7 +65,7 @@ const TAG = PILL;
  *   timeTags?(add: (x: number, text: string, color: string, ink?: string) => void): void,
  *   first(i: number): number,
  *   distance(i: number, y: number, scale: Scale, x: number, time: import("./timeline.js").Timeline): number,
- *   extent(a: number, b: number, positive: boolean, out: Float64Array): void,
+ *   extent(a: number, b: number, positive: boolean, out: Float64Array, time?: import("./timeline.js").Timeline): void,
  *   viewed?(time: import("./timeline.js").Timeline): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
  * }} Series
@@ -665,7 +665,7 @@ export class Pane {
         if (ROOM[1] > below) below = ROOM[1];
       }
       if (!relative) {
-        if (auto) series.fit ? series.fit(a, b, log, out) : series.extent(a, b, log, out);
+        if (auto) series.fit ? series.fit(a, b, log, out) : series.extent(a, b, log, out, time);
         continue;
       }
       // (A series with no base (none in view, or 0) has no reading: neither fitted nor drawn.)
@@ -674,7 +674,7 @@ export class Pane {
       if (!Object.is(base, this.drawnBases[k])) same = false;
       if (!auto || !base || base !== base) continue;
       (own[0] = Infinity), (own[1] = -Infinity);
-      series.fit ? series.fit(a, b, false, own) : series.extent(a, b, false, own);
+      series.fit ? series.fit(a, b, false, own) : series.extent(a, b, false, own, time);
       if (!(own[0] <= own[1])) continue;
       scale.setBase(base);
       const lo = own[0] * scale.m + scale.c, hi = own[1] * scale.m + scale.c;

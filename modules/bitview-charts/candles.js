@@ -1,14 +1,13 @@
 // @ts-check
 // Candles: four columns on the timeline (`open`, `high`, `low`, `close`, Float64Arrays; NaN in the close: none there),
 // each candle its wick from low to high and its body from open to close, in `up` where it closed at or over its open,
-// else in `down`. Zoomed out (under 3 CSS pixels a point), each pixel column one candle of its points (its first open,
-// its highest high and lowest low, its last close) drawn as its wick alone.
+// else in `down`. Zoomed out (under 3 CSS pixels a point), no candles: the close as a line, as a Line draws it.
 
 import { Line } from "./line.js";
-import { NOISE, firstFrom } from "./timeline.js";
+import { firstFrom } from "./timeline.js";
 import { measure } from "./recorder.js";
 
-/** The least spacing (CSS pixels a point) a candle has its body at: under it, its wick alone. */
+/** The least spacing (CSS pixels a point) candles are drawn at: under it, the close as a line. */
 export const BODIES_FROM = 3;
 
 /**
@@ -29,9 +28,10 @@ export class Candles {
   /**
    * `up` and `down`, the bodies' colors of those that rose and fell; their wicks' and borders' (`upWick`, `downWick`,
    * `upBorder`, `downBorder`), the same unless given (a hollow candle: its body the ground's, its border and wick its).
-   * @param {{ open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number) }} options
+   * `color` and `width`: the line the close is drawn as zoomed out, under BODIES_FROM pixels a point.
+   * @param {{ open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number), color?: string, width?: number }} options
    */
-  constructor({ open, high, low, close, up = "#26a69a", down = "#ef5350", upWick = null, downWick = null, upBorder = null, downBorder = null, outline = null, radius = 0 }) {
+  constructor({ open, high, low, close, up = "#26a69a", down = "#ef5350", upWick = null, downWick = null, upBorder = null, downBorder = null, outline = null, radius = 0, color = "#f7f8f8", width = 1.5 }) {
     this.up = up;
     this.down = down;
     (this.upWick = upWick), (this.downWick = downWick), (this.upBorder = upBorder), (this.downBorder = downBorder);
@@ -44,10 +44,10 @@ export class Candles {
     // (Its lows' and highs' extremes kept as a line's are: a view's read block by block.)
     this.lows = new Line();
     this.highs = new Line();
+    /** Its close drawn as a line, zoomed out: the Line also keeps the close's own extremes (see summary.js). */
+    this.line = new Line({ color, width, outline });
     /** @type {Float64Array} */
     this.open = open;
-    /** @type {Float64Array} */
-    this.close = close;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
     this.hidden = false;
     /** Drawn at a fifth of its opacity, its tags gone (another lit over it: see the pane's Series). */
@@ -58,12 +58,19 @@ export class Candles {
     this.setValues({ open, high, low, close });
   }
 
-  get high() {
-    return this.highs.values;
+  /** @returns {Float64Array} */
+  get close() {
+    return this.line.values;
   }
 
-  get low() {
-    return this.lows.values;
+  /** The heights marks stand over (a candle's highs) and under (its lows) at this zoom: the close where the line's drawn. @param {import("./timeline.js").Timeline} time */
+  tops(time) {
+    return time.spacing < BODIES_FROM ? this.close : this.highs.values;
+  }
+
+  /** @param {import("./timeline.js").Timeline} time */
+  feet(time) {
+    return time.spacing < BODIES_FROM ? this.close : this.lows.values;
   }
 
   /**
@@ -72,7 +79,8 @@ export class Candles {
    */
   setValues({ open, high, low, close }) {
     this.version++;
-    (this.open = open), (this.close = close);
+    this.open = open;
+    this.line.setValues(close);
     // (In a loop: without a JIT, from() with a mapping costs several times as much.)
     const lows = new Float64Array(low.length), highs = new Float64Array(high.length);
     for (let i = 0; i < lows.length; i++) lows[i] = close[i] === close[i] ? low[i] : NaN;
@@ -84,15 +92,17 @@ export class Candles {
   /** One candle set in place (a live one). @param {number} i @param {number} open @param {number} high @param {number} low @param {number} close */
   set(i, open, high, low, close) {
     this.version++;
-    (this.open[i] = open), (this.close[i] = close);
+    this.open[i] = open;
+    this.line.set(i, close);
     this.lows.set(i, close === close ? low : NaN);
     this.highs.set(i, close === close ? high : NaN);
   }
 
-  /** @param {{ up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number) }} look */
-  setStyle({ up = this.up, down = this.down, upWick = this.upWick, downWick = this.downWick, upBorder = this.upBorder, downBorder = this.downBorder, outline = this.outline, radius = this.radius }) {
+  /** @param {{ up?: string, down?: string, upWick?: string | null, downWick?: string | null, upBorder?: string | null, downBorder?: string | null, outline?: string | null, radius?: number | ((spacing: number) => number), color?: string, width?: number }} look */
+  setStyle({ up = this.up, down = this.down, upWick = this.upWick, downWick = this.downWick, upBorder = this.upBorder, downBorder = this.downBorder, outline = this.outline, radius = this.radius, color = this.line.color, width = this.line.width }) {
     this.version++;
     (this.up = up), (this.down = down), (this.upWick = upWick), (this.downWick = downWick), (this.upBorder = upBorder), (this.downBorder = downBorder), (this.outline = outline), (this.radius = radius);
+    this.line.setStyle({ color, width, outline });
   }
 
   /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
@@ -110,8 +120,13 @@ export class Candles {
     return measure(this, time, scale, x, y);
   }
 
-  /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
-  extent(a, b, positive, out) {
+  /**
+   * Its extent from `a` to `b`: its lows' and highs', or its closes' where the line's drawn (`time`: the view it's
+   * drawn in; none, a candle's).
+   * @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out @param {import("./timeline.js").Timeline} [time]
+   */
+  extent(a, b, positive, out, time) {
+    if (time && time.spacing < BODIES_FROM) return this.line.extent(a, b, positive, out);
     this.lows.extent(a, b, positive, out);
     this.highs.extent(a, b, positive, out);
   }
@@ -122,6 +137,7 @@ export class Candles {
    */
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.close.length) return;
+    if (time.spacing < BODIES_FROM) return this.line.draw(g, time, scale, x0, x1, dpr);
     // (Its outline first, all of them one fill; then the candles that rose, then those that fell: their wicks and
     // bodies one fill where they're one color (else the wicks, then the bodies); where a border's another color than its
     // body, the border a ring (its inside wound the other way: a hole), its inside a device pixel in, in the body's
@@ -143,8 +159,7 @@ export class Candles {
    * Its candles from x `x0` to `x1` added to the path: those that rose (`pass` 0), fell (1) or all (-1); their wicks
    * (above and below their bodies; an outline's, through them), bodies, bodies' rings (each body, its inside wound the
    * other way) or insides (a device pixel in, their top and foot on device pixels: no anti-aliasing where they meet
-   * their rings) by `part`; each `pad` pixels wider all round (an outline's). Zoomed out, a pixel column's range its
-   * wick, no body.
+   * their rings) by `part`; each `pad` pixels wider all round (an outline's).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1 @param {number} dpr @param {number} pass @param {number} pad @param {number} part
    */
@@ -152,43 +167,26 @@ export class Candles {
     const { open, close } = this, high = this.highs.values, low = this.lows.values, n = close.length, log = scale.mode === "log";
     // (A wick and a body in whole device pixels, each its half (rounded down) left of its point's pixel: centered alike,
     // their widths odd or even alike.)
-    const spacing = time.spacing, wide = spacing >= BODIES_FROM, wicks = Math.max(1, Math.round(dpr)), bodies = bodyWidth(spacing, dpr);
+    const spacing = time.spacing, wicks = Math.max(1, Math.round(dpr)), bodies = bodyWidth(spacing, dpr);
     const wick = wicks / dpr, width = bodies / dpr, wickBy = Math.floor(wicks / 2) / dpr, bodyBy = Math.floor(bodies / 2) / dpr;
     const a = Math.max(0, Math.floor(time.index(x0)) - 1), b = Math.min(n - 1, Math.ceil(time.index(x1)) + 1), corner = typeof this.radius === "function" ? this.radius(spacing) : this.radius;
-    if (wide) {
-      for (let i = a; i <= b; i++) {
-        const o = open[i], c = close[i], h = high[i], l = low[i];
-        if (!(log ? c > 0 && l > 0 : c === c && l === l && h === h && o === o) || (pass >= 0 && (c >= o ? pass : !pass))) continue;
-        // (Its body as drawn: a wick's width tall at least.)
-        const x = time.snap(time.x(i), dpr), top = scale.y(Math.max(o, c)), foot = top + Math.max(wick, scale.y(Math.min(o, c)) - top), hy = scale.y(h), ly = scale.y(l);
-        if (part & WICKS) {
-          if (pad > 0) g.rect(x - wickBy - pad, hy - pad, wick + 2 * pad, ly - hy + 2 * pad);
-          else {
-            if (top > hy) g.rect(x - wickBy, hy, wick, top - hy);
-            if (ly > foot) g.rect(x - wickBy, foot, wick, ly - foot);
-          }
+    for (let i = a; i <= b; i++) {
+      const o = open[i], c = close[i], h = high[i], l = low[i];
+      if (!(log ? c > 0 && l > 0 : c === c && l === l && h === h && o === o) || (pass >= 0 && (c >= o ? pass : !pass))) continue;
+      // (Its body as drawn: a wick's width tall at least.)
+      const x = time.snap(time.x(i), dpr), top = scale.y(Math.max(o, c)), foot = top + Math.max(wick, scale.y(Math.min(o, c)) - top), hy = scale.y(h), ly = scale.y(l);
+      if (part & WICKS) {
+        if (pad > 0) g.rect(x - wickBy - pad, hy - pad, wick + 2 * pad, ly - hy + 2 * pad);
+        else {
+          if (top > hy) g.rect(x - wickBy, hy, wick, top - hy);
+          if (ly > foot) g.rect(x - wickBy, foot, wick, ly - foot);
         }
-        const left = x - bodyBy;
-        if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0, false);
-        if (!(part & (RINGS | INSIDES))) continue;
-        const inTop = Math.round((top + wick) * dpr) / dpr, inFoot = Math.round((foot - wick) * dpr) / dpr;
-        this.#body(g, left + wick, inTop, width - 2 * wick, inFoot - inTop, corner > 0 ? corner - wick : 0, (part & RINGS) !== 0);
       }
-      return;
-    }
-    for (let x = Math.floor(x0 - pad) - 1; x <= Math.ceil(x1 + pad) + 1; x++) {
-      const from = Math.max(0, Math.ceil(time.index(x) - NOISE)), to = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
-      let o = NaN, c = NaN, h = -Infinity, l = Infinity;
-      for (let i = from; i <= to; i++) {
-        if (!(log ? close[i] > 0 && low[i] > 0 : close[i] === close[i])) continue;
-        if (o !== o) o = open[i];
-        c = close[i];
-        if (high[i] > h) h = high[i];
-        if (low[i] < l) l = low[i];
-      }
-      // (A column's one rect, drawn with its wicks.)
-      if (c !== c || (pass >= 0 && (c >= o ? pass : !pass)) || !(part & WICKS)) continue;
-      g.rect(x - pad, scale.y(h) - pad, 1 + 2 * pad, Math.max(wick, scale.y(l) - scale.y(h)) + 2 * pad);
+      const left = x - bodyBy;
+      if (part & (BODIES | RINGS)) this.#body(g, left - pad, top - pad, width + 2 * pad, foot - top + 2 * pad, corner > 0 ? corner + pad : 0, false);
+      if (!(part & (RINGS | INSIDES))) continue;
+      const inTop = Math.round((top + wick) * dpr) / dpr, inFoot = Math.round((foot - wick) * dpr) / dpr;
+      this.#body(g, left + wick, inTop, width - 2 * wick, inFoot - inTop, corner > 0 ? corner - wick : 0, (part & RINGS) !== 0);
     }
   }
 

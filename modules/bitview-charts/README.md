@@ -134,10 +134,10 @@ clears); avoid reflecting programmatic calls. A programmatic
   lines, its edges the two, colored by which one is over); `zones` (`{ value, color, fade }` low to high), an area
   filled by value, parted exactly where its line crosses a zone's value, each part fading as the whole would.
 - `Bars({ values, base, color, colors, palette, radius, partial })` (`partial`: its last bar at `PARTIAL` of its opacity), `Candles({ open, high, low, close, up, down, upWick,
-  downWick, upBorder, downBorder })` (a part's own color, else its body's: a hollow candle, its body the ground's):
+  downWick, upBorder, downBorder, color, width })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a
-  number or one by its points' spacing). Under `BODIES_FROM` pixels a point (3), candles are drawn as their wicks
-  alone (a page may show their close as a line there instead).
+  number or one by its points' spacing). Under `BODIES_FROM` pixels a point (3), no candles: the close drawn as a
+  line (a `Line`'s, in `color` and `width`; its scale fitted to the closes, marks on it), candles from there.
 - `Bubbles({ values, sizes, up, upEdge, down, downEdge, size, hide, scaleTo, halo })`: a dot a point where `values`
   put it, its area its size's share of the largest (of those in view, kept up as the view moves, or `scaleTo: "all"`),
   `size` pixels across at the largest (of every size, placed or not), those under `hide` of it left out; above zero in
