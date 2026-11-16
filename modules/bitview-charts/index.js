@@ -93,7 +93,8 @@ for (const type of ["touchstart", "touchend", "touchcancel"]) addEventListener(t
  * release), else `end(null, lost)` (let go of, no release) at its pointercancel, its capture lost by `captor`, the
  * window left, a mouse or pen moving with no button down (its release went elsewhere), or (`lost` true) the browser
  * forgetting its touch (see above: as it's proved gone, before the press that proves it). Its events are heard on the
- * window as they start out (the capture phase), before any element's listeners, so nothing stops them reaching it.
+ * window as they start out (the capture phase), before any element's listeners: only one before it on the window
+ * itself could stop them.
  * Returns its stop, `end` untold; `signal`'s abort stops it too.
  * @param {PointerEvent} down the event it starts from (its pointerdown, or the move that made it one)
  * @param {{ end: (release: PointerEvent | null, lost: boolean) => void, move?: (event: PointerEvent) => void, captor?: Element, signal?: AbortSignal }} how

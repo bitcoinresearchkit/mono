@@ -70,8 +70,8 @@ chart.show(365);                                 // the last 365 points in view
   ends, so the chart's presses and a page's own (a slider's drag, a long press, a list's reorder) end alike: `end` is
   told once, with the pointerup at a release, else with null at its pointercancel, its capture lost by `captor`, the
   window left, a mouse or pen moving with no button down, or a touch the browser forgot (below; then `lost` true);
-  `move` hears its moves. Its events are heard on the window in the capture phase, before any element's listeners:
-  nothing stops them reaching it. It returns its stop (`end` untold). It replaces `onTouchesLost`.
+  `move` hears its moves. Its events are heard on the window in the capture phase, before any element's listeners, so
+  only a listener before it on the window itself could stop them. It returns its stop (`end` untold).
 - Forgotten touches: iOS WebKit can hand a touch to a native gesture and send it neither pointerup nor pointercancel
   (WebKit bug 239014). A press on such a touch ends (with null) once it's proved gone, and a press the chart took
   meanwhile as a pinch's second finger is pressed again alone. Only the browser's proof counts: a

@@ -15044,7 +15044,8 @@ const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
 $("home").addEventListener("scroll", () => (galleryResting = false), { capture: true, passive: true });
 $("home").addEventListener("scrollend", () => ((galleryResting = true), drawGallery()), { capture: true });
-$("home").addEventListener("pointerdown", (event) => ((galleryResting = false), press(event, { end: () => ((galleryResting = true), drawGallery()) })));
+// (A press holds it till its release; one the browser cancels to scroll, till the scroll ends.)
+$("home").addEventListener("pointerdown", (event) => ((galleryResting = false), press(event, { end: (release) => release && ((galleryResting = true), drawGallery()) })));
 /** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
 const nextGallery = (tried) => {
   for (const i of galleryQueue) return galleryQueue.delete(i), i;
@@ -20122,8 +20123,8 @@ function stopAt(id, clientX) {
  * (a second finger) does nothing.
  */
 function track(event, element, cursor, move) {
-  if (holding) return;
   event.preventDefault();
+  if (holding) return;
   element.focus();
   // (Its edits one undo step, `holding` while it's held: see commit.)
   holding = ++holds;
@@ -20151,7 +20152,8 @@ function track(event, element, cursor, move) {
  * picks nothing (a slider scrolled past keeps its value).
  */
 function pickPress(event, element, cursor, move) {
-  if (event.pointerType !== "touch" || holding) return track(event, element, cursor, move);
+  if (holding) return;
+  if (event.pointerType !== "touch") return track(event, element, cursor, move);
   const stop = press(event, {
     move: (next) => {
       const dx = next.clientX - event.clientX, dy = next.clientY - event.clientY;
