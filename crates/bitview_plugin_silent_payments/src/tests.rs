@@ -103,14 +103,14 @@ fn bip158_vectors() {
 /// it's kept.
 type Candidate = (&'static [(bool, u64)], &'static [OutputType], bool);
 
-/// A transaction is kept for a Taproot output, whatever it holds, and an input that may carry a
-/// key.
+/// A transaction is kept for a Taproot output of 600 sats or more (its smaller Taproot outputs
+/// kept beside it) and an input that may carry a key.
 #[test]
 fn candidates() {
     use OutputType::{P2PKH, P2SH, P2TR, P2WPKH, P2WSH};
     let cases: [Candidate; 6] = [
         (&[(true, 600)], &[P2WPKH], true),
-        (&[(true, 1)], &[P2WPKH], true),
+        (&[(true, 599)], &[P2WPKH], false),
         (&[(true, 330), (true, 5_000)], &[P2PKH], true),
         (&[(false, 5_000)], &[P2TR], false),
         (&[(true, 5_000)], &[P2WSH], false),

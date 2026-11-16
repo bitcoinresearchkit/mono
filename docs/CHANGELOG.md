@@ -841,10 +841,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
-- Silent payments: every eligible transaction is indexed, with no 600-sat floor, and `dustLimit` on
-  `/blindbit/mainnet/tweak-index` and `/tweaks` is optional (0 by default) and takes any value, as BlindBit takes it:
-  blindbitd, which leaves it out at its documented 0, and Dana users under 600 got 400s on every call. `/info` says
-  `tweaks_full_basic: true`. The answers at 600 are unchanged. The generated clients take `dustLimit` as optional.
+- Silent payments: transactions whose Taproot outputs all hold less than 600 sats are left out of the index (30% of
+  eligible ones, 1.7 GiB): such an output costs more to spend than it holds, and wallets skip it already. `dustLimit`
+  on `/blindbit/mainnet/tweak-index` and `/tweaks` is optional and takes any value, as BlindBit takes it, and one below
+  600 answers as 600: blindbitd, which leaves it out at its documented 0, and Dana users under 600 got 400s on every
+  call. The answers at 600 and above are unchanged. The generated clients take `dustLimit` as optional. The
+  silent_payments plugin recomputes once (version 10)
 - Runes start at block 840,000, the protocol's activation: an earlier `OP_RETURN OP_13` output (28,334 of them, most
   broadcast in the days before the halving) is classified like any other payload, so the `op_return_runes_*` series
   begin there. The indexer re-imports once (version 49)

@@ -797,7 +797,7 @@ class BlindbitInfo(TypedDict):
         network: Bitcoin Core's chain name: `main`.
         height: The last indexed block.
         tweaks_only: Whether only tweaks are served: `false`, filters and UTXOs are too.
-        tweaks_full_basic: Whether the full tweak index is served without dust limits: `false`, it takes them.
+        tweaks_full_basic: Whether the full tweak index is served without dust limits: `false`, transactions whose Taproot outputs all hold less than 600 sats aren't held.
         tweaks_full_with_dust_filter: Whether the full tweak index takes a dust limit: `true`.
         tweaks_cut_through_with_dust_filter: Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust limit: `true`.
     """
@@ -7165,7 +7165,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_tweak_index(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
         """Tweak index.
 
-        The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.
+        The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
 
         Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`"""
         params: List[Tuple[str, Any]] = []

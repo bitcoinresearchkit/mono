@@ -1,3 +1,4 @@
+use bitview_query::DUST_FLOOR;
 use bitview_types::BlindbitFilterKind;
 use brk_types::{Height, Sats};
 use schemars::JsonSchema;
@@ -7,8 +8,9 @@ use serde::Deserialize;
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct DustLimitQuery {
-    /// Least value in sats of a Taproot output for its transaction to be listed; 0 (every
-    /// eligible transaction) when left out, as BlindBit takes it.
+    /// Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+    /// value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
+    /// as 600.
     #[serde(
         default,
         rename = "dustLimit",
@@ -18,8 +20,10 @@ pub struct DustLimitQuery {
 }
 
 impl DustLimitQuery {
+    /// The limit answered for: the wallet's, raised to the floor, as nothing smaller is held. A
+    /// lower one isn't refused, so that BlindBit's clients, which leave it at 0, keep working.
     pub fn limit(&self) -> Sats {
-        Sats::new(self.dust_limit)
+        Sats::new(self.dust_limit).max(DUST_FLOOR)
     }
 }
 

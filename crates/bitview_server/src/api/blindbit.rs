@@ -107,7 +107,7 @@ fn info(height: Height) -> BlindbitInfo {
         network: "main".into(),
         height,
         tweaks_only: false,
-        tweaks_full_basic: true,
+        tweaks_full_basic: false,
         tweaks_full_with_dust_filter: true,
         tweaks_cut_through_with_dust_filter: true,
     }
@@ -219,7 +219,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Tweak index")
-                        .description("The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.")
+                        .description("The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()

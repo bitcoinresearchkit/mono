@@ -111,7 +111,8 @@
  * @property {string} network - Bitcoin Core's chain name: `main`.
  * @property {Height} height - The last indexed block.
  * @property {boolean} tweaksOnly - Whether only tweaks are served: `false`, filters and UTXOs are too.
- * @property {boolean} tweaksFullBasic - Whether the full tweak index is served without dust limits: `false`, it takes them.
+ * @property {boolean} tweaksFullBasic - Whether the full tweak index is served without dust limits: `false`, transactions whose
+ *   Taproot outputs all hold less than 600 sats aren't held.
  * @property {boolean} tweaksFullWithDustFilter - Whether the full tweak index takes a dust limit: `true`.
  * @property {boolean} tweaksCutThroughWithDustFilter - Whether cut-through tweaks (of transactions with an unspent Taproot output) take a dust
  *   limit: `true`.
@@ -7906,7 +7907,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** This file's content stamp: the SHA-256 of its text with this value empty, so any other byte changes it. */
-  static HASH = "501b426d592564de36fb1a8fbe36d30361e91f1806d3481a9adf6f0da30d1df2";
+  static HASH = "5dd2fe2f910021f9832e89b5fe0e987cc35199072f7119bc07ac590a618ae7f3";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -10831,14 +10832,15 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Tweak index
    *
-   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional, 0 (every eligible transaction) by default, as BlindBit takes it.
+   * The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
    *
    * Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed; 0 (every
-   *   eligible transaction) when left out, as BlindBit takes it.
+   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
+   *   as 600.
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
    * @param {boolean} [options.cache]
@@ -10862,8 +10864,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed; 0 (every
-   *   eligible transaction) when left out, as BlindBit takes it.
+   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
+   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
+   *   as 600.
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
    * @param {boolean} [options.cache]

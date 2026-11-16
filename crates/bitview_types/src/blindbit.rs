@@ -35,7 +35,8 @@ pub struct BlindbitInfo {
     pub height: Height,
     /// Whether only tweaks are served: `false`, filters and UTXOs are too.
     pub tweaks_only: bool,
-    /// Whether the full tweak index is served without dust limits: `false`, it takes them.
+    /// Whether the full tweak index is served without dust limits: `false`, transactions whose
+    /// Taproot outputs all hold less than 600 sats aren't held.
     pub tweaks_full_basic: bool,
     /// Whether the full tweak index takes a dust limit: `true`.
     pub tweaks_full_with_dust_filter: bool,

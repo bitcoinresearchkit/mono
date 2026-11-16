@@ -1,10 +1,12 @@
 use std::{ops::Range, slice};
 
-use bitcoin::{Block, Transaction, consensus::deserialize, hashes::Hash, secp256k1::PublicKey};
+use bitcoin::{
+    Block, Transaction, TxOut, consensus::deserialize, hashes::Hash, secp256k1::PublicKey,
+};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, Tweak, TxIndex};
+use brk_types::{BlkPosition, OutputType, Sats, Tweak, TxIndex};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
@@ -15,6 +17,13 @@ use crate::{
 
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
 pub const TAPROOT_ACTIVATION: usize = 709_632;
+
+/// The least a Taproot output holds to be scanned for: below it, an output costs more to spend
+/// than it holds at ordinary fee rates, and silent payments wallets skip it already (Dana and Bull
+/// Bitcoin ask for 600). A transaction whose Taproot outputs all hold less is left out everywhere
+/// (30% of eligible ones, mostly inscription and rune postage); a kept one keeps all its Taproot
+/// outputs, whatever they hold, as a wallet matches its outputs in order.
+pub const DUST_FLOOR: Sats = Sats::new(600);
 
 /// An eligible transaction.
 pub struct Eligible {
@@ -57,14 +66,18 @@ fn may_have_key(output_type: OutputType) -> bool {
     )
 }
 
-/// Whether a transaction may be eligible, from the types its inputs spend: a Taproot output,
-/// whatever it holds (a wallet's dust limit picks at answer time), and an input BIP352 may count a
-/// key for.
+/// Whether a Taproot output may hold a payment worth scanning for.
+fn may_hold_payment(output: &TxOut) -> bool {
+    Sats::from(output.value) >= DUST_FLOOR
+}
+
+/// Whether a transaction may be eligible and is kept, from the types its inputs spend: a Taproot
+/// output that may hold a payment, and an input BIP352 may count a key for.
 pub(crate) fn is_candidate(transaction: &Transaction, input_types: &[OutputType]) -> bool {
     transaction
         .output
         .iter()
-        .any(|output| output.script_pubkey.is_p2tr())
+        .any(|output| output.script_pubkey.is_p2tr() && may_hold_payment(output))
         && input_types.iter().any(|&output_type| may_have_key(output_type))
 }
 

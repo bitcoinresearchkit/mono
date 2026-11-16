@@ -47,7 +47,8 @@ Whether cut-through tweaks (of transactions with an unspent Taproot output) take
 
 Defined in: [modules/bitview-client/index.js:109](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L109)
 
-Whether the full tweak index is served without dust limits: `false`, it takes them.
+Whether the full tweak index is served without dust limits: `false`, transactions whose
+  Taproot outputs all hold less than 600 sats aren't held.
 
 ***
 

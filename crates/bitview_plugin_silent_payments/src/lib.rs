@@ -1,5 +1,5 @@
 //! BIP352 silent payments for Bitview: every eligible transaction since Taproot's activation
-//! with its tweak, and each block's filters of new Taproot outputs and of
+//! (above a dust floor) with its tweak, and each block's filters of new Taproot outputs and of
 //! spent ones: what a light wallet scans with. Computed from the indexer's columns and Core's
 //! block files; no tweak or filter math is left for a request to do.
 
@@ -18,7 +18,7 @@ pub use dependencies::Dependencies;
 pub use filters::spent_outputs;
 pub use has::HasSilentPayments;
 pub use indexes::{FilterByteIndex, TweakIndex};
-pub use scan::TAPROOT_ACTIVATION;
+pub use scan::{DUST_FLOOR, TAPROOT_ACTIVATION};
 pub use tweak::is_on_curve;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
@@ -27,11 +27,11 @@ use brk_types::{Height, TweakX, TxIndex, Version};
 use vecdb::{AnyStoredVec, BytesVec, Database, PcoVec, Rw, StorageMode};
 
 const STORAGE: PluginStorage =
-    PluginStorage::new(PluginId::new("silent_payments"), Version::new(9));
+    PluginStorage::new(PluginId::new("silent_payments"), Version::new(10));
 pub const ID: PluginId = STORAGE.id();
 
-/// BIP352 silent payments: every eligible transaction since Taproot's activation, with its tweak,
-/// and each block's two filters. Outputs,
+/// BIP352 silent payments: every eligible transaction since Taproot's activation with a Taproot
+/// output of at least the dust floor, with its tweak, and each block's two filters. Outputs,
 /// values and spends are read from the indexer and the Outputs plugin.
 /// Hidden from the series tree: tweaks are scanning data, not series to chart.
 #[derive(Traversable, Plugin)]
