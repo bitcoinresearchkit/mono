@@ -111,10 +111,10 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Moving averages (32): https://bitview.space/studio/presets/price/moving-averages/
   - Range (3): https://bitview.space/studio/presets/price/range/
   - Technical (11): https://bitview.space/studio/presets/price/technical/
-- Valuation (73): https://bitview.space/studio/presets/valuation/
+- Valuation (213): https://bitview.space/studio/presets/valuation/
   - Compass (5): https://bitview.space/studio/presets/valuation/compass/
   - Cointime prices (7): https://bitview.space/studio/presets/valuation/cointime-prices/
-  - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
+  - Rarity meter (184): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
 - Holders (566): https://bitview.space/studio/presets/holders/
   - Compare (49): https://bitview.space/studio/presets/holders/compare/
