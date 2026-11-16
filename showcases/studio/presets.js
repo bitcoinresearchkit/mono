@@ -73,9 +73,13 @@ function percentileLabel(/** @type {number} */ p) {
   const text = String(p), last = text.at(-1), teen = /(^|\D)1\d$/.test(text);
   return `${text}${teen ? "th" : last === "1" ? "st" : last === "2" ? "nd" : last === "3" ? "rd" : "th"}`;
 }
-/** A rarity band's label: the interior ones (10th to 90th) are interpolated between the 5th and 95th boundaries, the middle one a midpoint. */
-function bandLabel(/** @type {number} */ p) {
-  return p === 50 ? "Midpoint" : p >= 10 && p <= 90 ? `Interpolated ${percentileLabel(p)}` : percentileLabel(p);
+/**
+ * A rarity band's label, as its series' id says: interpolated between the 5th and 95th boundaries (a meter's interior
+ * ones, the middle one a midpoint), else its percentile of a history (a component's, an extreme's).
+ * @param {number} p @param {string} id
+ */
+function bandLabel(p, id) {
+  return !id.includes("_interpolated_") ? percentileLabel(p) : p === 50 ? "Midpoint" : `Interpolated ${percentileLabel(p)}`;
 }
 /** A Bedrock mode's name from its key: "awake" is "Awake". */
 const modeName = (/** @type {string} */ mode) => sentence(capitalized(mode));
@@ -706,7 +710,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const component = (node, label, who, reference, color = "orange") => {
     const titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`, [base, ratio] = own(node) ? [own(node), node.ratio] : reference ?? [];
     return section(label, [
-      chart("Bands", titled("rarity bands"), ((lines) => [...lines, ...rarityTails((p) => ((i) => (i >= 0 ? letter(i) : undefined))(lines.findIndex((layer) => layer.label === bandLabel(p))), bandPercentiles(node))])([price(), ...(base ? [series(base, label, { color })] : []), ...bandLines(node, (v) => v.band)])),
+      chart("Bands", titled("rarity bands"), bandLayers([price(), ...(base ? [series(base, label, { color })] : [])], node, (v) => v.band)),
       chart("Ratios", titled("rarity ratios"), [...(ratio ? [series(ratio, "Price ratio", around(1))] : []), ...bandLines(node, (v) => v.ratio)], { log: [1] }),
     ]);
   };
@@ -746,7 +750,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k))), ps = bands.map(([k]) => percentile(k));
     // (A line on the cheap side in its band beneath's shade, on the dear side in its own: a band's color, its line's over
     // it, the rarer edge's either way, see rarityTails.)
-    return bands.map(([k, v], i) => series(pick(v), bandLabel(percentile(k)), { ...rarityLook(ps[i] < 50 ? ps[i - 1] ?? ps[i] : ps[i], ps[i] === 50), ...(shown(percentile(k)) ? {} : { hidden: true }) }));
+    return bands.map(([k, v], i) => series(pick(v), bandLabel(percentile(k), pick(v).name), { ...rarityLook(ps[i] < 50 ? ps[i - 1] ?? ps[i] : ps[i], ps[i] === 50), ...(shown(percentile(k)) ? {} : { hidden: true }) }));
   };
   /**
    * A rarity band's look by how rare its percentile is (its tail's share, 50 the median's to 0.1 the rarest's, on a log
@@ -757,6 +761,15 @@ export function studioPresets(client, facts, report = (problem) => console.error
     if (median) return { color: "gray", width: 2 };
     // (Its lines at half, as Compass's: the clouds carry the color.)
     return { ...polarLook(Math.log10(50 / Math.min(p, 100 - p)) / Math.log10(500), p < 50), width: 1, opacity: 0.5 };
+  };
+  /**
+   * A Bands chart's layers: `head` (the price, its reference), then the node's bands as lines (see bandLines) and their
+   * two sides (see rarityTails), each band's line found by its place.
+   * @param {Layer[]} head @param {any} node @param {(v: any) => any} pick
+   */
+  const bandLayers = (head, node, pick) => {
+    const ps = bandPercentiles(node);
+    return [...head, ...bandLines(node, pick), ...rarityTails((p) => letter(head.length + ps.indexOf(p)), ps)];
   };
   /** A rarity node's band percentiles. @param {any} node */
   const bandPercentiles = (node) => entries(node).map(([k]) => percentile(k)).filter(Number.isFinite);
@@ -1218,7 +1231,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ]),
       section("Rarity meter", [
         ...entries(t.rarityMeter).filter(([key]) => ["full", "local", "cycle"].includes(key)).map(([key, node]) => section(capitalized(key), [
-          chart("Bands", `Rarity meter bands, ${key}`, ((lines) => [...lines, ...rarityTails((p) => ((i) => (i >= 0 ? letter(i) : undefined))(lines.findIndex((layer) => layer.label === bandLabel(p))), bandPercentiles(node))])([price(), ...bandLines(node, (v) => v)])),
+          chart("Bands", `Rarity meter bands, ${key}`, bandLayers([price()], node, (v) => v)),
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
