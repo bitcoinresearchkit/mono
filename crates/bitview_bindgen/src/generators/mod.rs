@@ -1,5 +1,7 @@
 use std::{fmt::Write, fs, io, path::Path};
 
+use sha2::{Digest, Sha256};
+
 mod cli;
 pub(crate) mod javascript;
 mod llm;
@@ -44,6 +46,16 @@ pub(crate) fn normalize_return_type(return_type: &str) -> String {
         result = result.replace(type_name, &format!("Any{}", type_name));
     }
     result
+}
+
+/// The SHA-256 of `bytes`, as lowercase hex.
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
+    Sha256::digest(bytes)
+        .iter()
+        .fold(String::with_capacity(64), |mut hex, byte| {
+            write!(hex, "{byte:02x}").unwrap();
+            hex
+        })
 }
 
 /// Write `content` to `path`, creating its parent directories, unless the file already holds it:

@@ -7905,6 +7905,9 @@ const _SeriesTree = _s({
 class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
+  /** This file's content stamp: the SHA-256 of its text with this value empty, so any other byte changes it. */
+  static HASH = "501b426d592564de36fb1a8fbe36d30361e91f1806d3481a9adf6f0da30d1df2";
+
   INDEXES = /** @type {const} */ ([
     "minute10",
     "minute30",

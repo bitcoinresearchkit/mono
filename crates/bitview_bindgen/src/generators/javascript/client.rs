@@ -5,6 +5,10 @@ use crate::{
     camel_case_keys, format_json, generators::javascript::keep::keep_expr, name_constants,
 };
 
+/// The client's content stamp as written until the whole text is, its value empty (see `generate_javascript_client`):
+/// matched with its comment, whose `*/` no description can hold.
+pub(crate) const HASH_STAMP: &str = "  /** This file's content stamp: the SHA-256 of its text with this value empty, so any other byte changes it. */\n  static HASH = \"\";\n";
+
 /// The fixed runtime (`runtime.js`: base client, endpoints, caching and address hashing) after
 /// the server's tables it reads.
 pub(crate) fn generate_base_client(output: &mut String, schemas: &TypeSchemas) {
@@ -58,6 +62,7 @@ pub(crate) fn generate_constants(output: &mut String) {
     let constants = ClientConstants::collect();
 
     writeln!(output, "  VERSION = \"{}\";\n", constants.version).unwrap();
+    writeln!(output, "{HASH_STAMP}").unwrap();
     write_const(output, "INDEXES", &format_json(&constants.indexes));
     write_const(
         output,

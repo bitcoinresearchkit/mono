@@ -2,7 +2,7 @@ use std::{collections::BTreeSet, fmt::Write, fs, io, path::Path};
 
 use serde_json::{Value, from_str, json, to_string_pretty};
 
-use super::write_if_changed;
+use super::{sha256_hex, write_if_changed};
 use crate::{Endpoint, IndexSetPattern, TypeSchemas, VERSION, model::Model};
 
 pub(crate) mod api;
@@ -31,6 +31,15 @@ pub(crate) fn generate_javascript_client(
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
     tree::generate_main_client(&mut output, endpoints, schemas);
 
+    // (The stamp, its value written in last: the hash of the text with it empty, so whatever else changes, it does.)
+    if output.matches(client::HASH_STAMP).count() != 1 {
+        return Err(io::Error::other(
+            "the JavaScript client's HASH stamp isn't written exactly once",
+        ));
+    }
+    let hash = sha256_hex(output.as_bytes());
+    let stamp = client::HASH_STAMP.replacen("\"\"", &format!("\"{hash}\""), 1);
+    let output = output.replacen(client::HASH_STAMP, &stamp, 1);
     write_if_changed(output_path, &output)?;
 
     if let Some(parent) = output_path.parent() {

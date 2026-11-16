@@ -107,11 +107,11 @@ const sections = [...held].map(([key, count]) => {
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 const urls = ["/", ...book.sections.values(), ...book.presets];
-// The presets' source, presets.js and every module it imports (followed by their relative imports, as Bun reads them,
-// each once), hashed, each by its path from here (the same on every system): the page keys its presets' cache by it
-// (with the client's and the chain's facts), so a change to any of them makes them again, with nothing read in the page
-// to know it. (Not the client: it's made by the server's build, which never runs this; the page hashes it itself.)
-const sources = new Set([join(HERE, "presets.js")]), transpiler = new Bun.Transpiler({ loader: "js" }), sha = createHash("sha256");
+// What the presets are made from, presets.js, the facts' reader (facts.js: the page's worker makes them by it) and
+// every module they import (followed by their relative imports, as Bun reads them, each once), hashed, each by its path
+// from here (the same on every system): the page keys its presets' cache by it (with the client's own stamp, HASH, and
+// the chain's facts), so a change to any of them makes them again, with nothing read in the page to know it.
+const sources = new Set([join(HERE, "presets.js"), join(HERE, "facts.js")]), transpiler = new Bun.Transpiler({ loader: "js" }), sha = createHash("sha256");
 for (const file of sources) {
   const text = readFileSync(file, "utf8");
   sha.update(`${relative(HERE, file).replaceAll(sep, "/")}\0${text}\0`);

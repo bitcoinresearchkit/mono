@@ -7,9 +7,8 @@ use std::{
 
 use bitview_catalog::TreeNode;
 use serde_json::{Value, json, to_string_pretty};
-use sha2::{Digest, Sha256};
 
-use super::{reading_rules, write_if_changed};
+use super::{reading_rules, sha256_hex, write_if_changed};
 use crate::{
     ClientOutputPaths, Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, model::Model,
     openapi::{Info, Spec},
@@ -196,13 +195,7 @@ fn route(endpoint: &Endpoint) -> String {
 /// The site's skill index, per the agent-skills discovery RFC v0.2.0: the digest is of the
 /// served SKILL.md's bytes, its url relative to the index.
 fn render_skill_index(skill: &str) -> io::Result<String> {
-    let digest =
-        Sha256::digest(skill.as_bytes())
-            .iter()
-            .fold(String::from("sha256:"), |mut hex, byte| {
-                write!(hex, "{byte:02x}").unwrap();
-                hex
-            });
+    let digest = format!("sha256:{}", sha256_hex(skill.as_bytes()));
     pretty(&json!({
         "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
         "skills": [{
