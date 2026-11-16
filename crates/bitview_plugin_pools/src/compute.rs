@@ -13,7 +13,7 @@ use vecdb::{AnyStoredVec, AnyVec, ReadableVec, TypedVec, VecIndex, Version, Writ
 
 use crate::{
     Dependencies, Vecs,
-    pool_heights::{PoolSnapshot, TOTALS},
+    pool_heights::{Column, PoolSnapshot, TOTALS},
 };
 
 impl ComputePlugin for Vecs {
@@ -91,27 +91,37 @@ impl Vecs {
             &mining.rewards.fees.cumulative,
         );
         let locktime = &blocks.coinbase_locktime;
-        // In `Column` order.
-        let sources: [&dyn Running; TOTALS] = [
-            &coinbase.sats.height,
-            &coinbase.cents.height,
-            &fees.sats.height,
-            &fees.cents.height,
-            &blocks.empty_count.cumulative.height,
-            &locktime.bip54.cumulative.height,
-            &locktime.nonzero.cumulative.height,
-            &transactions
-                .fees
-                .ranges
-                .tx_count_by_fee_rate
-                .under_0p1_sat_vb
-                .cumulative
-                .height,
-        ];
-        let version = sources.iter().map(|source| source.version()).sum();
-        let to = sources
+        // Dynamic dispatch is once per source per chunk, not per block.
+        let source = |column| -> &dyn Running {
+            match column {
+                Column::Blocks => unreachable!("block counts are not summed from a source"),
+                Column::CoinbaseSats => &coinbase.sats.height,
+                Column::CoinbaseCents => &coinbase.cents.height,
+                Column::FeeSats => &fees.sats.height,
+                Column::FeeCents => &fees.cents.height,
+                Column::EmptyBlocks => &blocks.empty_count.cumulative.height,
+                Column::Bip54LocktimeBlocks => &locktime.bip54.cumulative.height,
+                Column::NonzeroLocktimeBlocks => &locktime.nonzero.cumulative.height,
+                Column::Under0p1SatVbTxs => {
+                    &transactions
+                        .fees
+                        .ranges
+                        .tx_count_by_fee_rate
+                        .under_0p1_sat_vb
+                        .cumulative
+                        .height
+                }
+            }
+        };
+        let version = Column::SUMMED
             .iter()
-            .fold(self.block_pool.len(), |to, source| to.min(source.len()));
+            .map(|&column| source(column).version())
+            .sum();
+        let to = Column::SUMMED
+            .iter()
+            .fold(self.block_pool.len(), |to, &column| {
+                to.min(source(column).len())
+            });
         // A shorter source re-fills from its end, so no stale total survives.
         let from = snapshot.resume_totals(version, to);
         let mut slugs = Vec::new();
@@ -121,8 +131,10 @@ impl Vecs {
             let (start, end) = (chunk.start, chunk.end);
             self.block_pool
                 .collect_range_into_at(start, end, &mut slugs);
-            for (source, column) in sources.iter().zip(&mut columns) {
-                source.block_values_into(start, end, column);
+            // The column selects the reader's slot; a missing or duplicate entry leaves one
+            // empty and indexing it below panics.
+            for column in Column::SUMMED {
+                source(column).block_values_into(start, end, &mut columns[column as usize - 1]);
             }
             let blocks = (0..end - start)
                 .map(|i| (slugs[i], std::array::from_fn(|column| columns[column][i])));

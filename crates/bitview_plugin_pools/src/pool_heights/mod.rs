@@ -8,7 +8,7 @@ use rustc_hash::FxHashMap;
 use vecdb::{AnyVec, BytesVec, ReadOnlyClone, ReadableVec, TypedVec, VecIndex, VecValue, Version};
 
 /// Which running total a lazy vec reads: the pool's block count, or its part of a chain-wide
-/// per-block series (each after `Blocks` is one of [`Totals`], in order).
+/// per-block series (each non-`Blocks` discriminant identifies a slot in [`Totals`]).
 #[derive(Clone, Copy)]
 pub enum Column {
     Blocks,
@@ -20,6 +20,19 @@ pub enum Column {
     Bip54LocktimeBlocks,
     NonzeroLocktimeBlocks,
     Under0p1SatVbTxs,
+}
+
+impl Column {
+    pub(crate) const SUMMED: [Self; TOTALS] = [
+        Self::CoinbaseSats,
+        Self::CoinbaseCents,
+        Self::FeeSats,
+        Self::FeeCents,
+        Self::EmptyBlocks,
+        Self::Bip54LocktimeBlocks,
+        Self::NonzeroLocktimeBlocks,
+        Self::Under0p1SatVbTxs,
+    ];
 }
 
 /// One block's value of each chain-wide series split by pool, or a pool's running totals of
