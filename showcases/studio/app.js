@@ -9642,25 +9642,24 @@ $("navigator").addEventListener("pointerdown", (event) => {
     start = ontoData(start) ?? start;
     glide(start);
   } else stopGlide();
-  brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, pointer: event.pointerId, times: resolved?.times, width: rect.width };
+  brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, times: resolved?.times, width: rect.width };
   $("navigator").setPointerCapture(event.pointerId);
-  press(event, { captor: $("navigator"), end: dropBrush });
+  press(event, { captor: $("navigator"), move: dragBrush, end: dropBrush });
   $("brush").classList.add("dragging");
 });
 for (const [type, near] of /** @type {const} */ ([["pointerenter", true], ["pointerleave", false]])) $("navigator").addEventListener(type, () => ((navigatorNear = near), placeBrush()));
+// (Pointed at, not dragged: the cursor says an edge can be.)
 $("navigator").addEventListener("pointermove", (event) => {
+  const range = shownSpan(), n = resolved?.times.length ?? 0;
+  if (brushDrag || !range || n < 2) return;
+  const rect = $("navigator").getBoundingClientRect(), x = event.clientX - rect.left, { left, right, grip } = brushOn(rect, n, range);
+  $("navigator").style.cursor = Math.abs(x - left) <= grip || Math.abs(x - right) <= grip ? "ew-resize" : "";
+});
+/** The brush dragged by its press's pointer (see press). @param {PointerEvent} event */
+function dragBrush(event) {
+  if (!brushDrag) return;
   const rect = $("navigator").getBoundingClientRect();
   const x = event.clientX - rect.left;
-  if (!brushDrag) {
-    const range = shownSpan();
-    const n = resolved?.times.length ?? 0;
-    if (range && n > 1) {
-      const { left, right, grip } = brushOn(rect, n, range);
-      $("navigator").style.cursor = Math.abs(x - left) <= grip || Math.abs(x - right) <= grip ? "ew-resize" : "";
-    }
-    return;
-  }
-  if (event.pointerId !== brushDrag.pointer) return;
   // (Dragged on as its jump glides: from where the view is now, the glide given up; a click's jitter, not a drag.)
   if (glideTarget) {
     if (Math.abs(x - brushDrag.x) < 3) return;
@@ -9685,7 +9684,7 @@ $("navigator").addEventListener("pointermove", (event) => {
   else to = Math.max(to + delta, from + 10);
   // An edge dragged out past the most the view shows: the other edge gives way.
   showSpan(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
-});
+}
 /** The brush let go of, its press over (see press). */
 function dropBrush() {
   if (!brushDrag) return;
@@ -12027,8 +12026,12 @@ function take(event) {
   gesturePointer = event.pointerId;
   gestureTouch = event.pointerType === "touch";
   $("chart").setPointerCapture(event.pointerId);
-  press(event, { on: $("chart"), captor: $("chart"), end: gestureEnded });
+  // (One gesture's press at a time: one abandoned (stopDrawing) before its pointer's up ends nothing that came after.)
+  stopGesture();
+  stopGesture = press(event, { captor: $("chart"), end: gestureEnded });
 }
+/** The press of the gesture under way let go of, unheard. */
+let stopGesture = () => {};
 /**
  * A gesture's press over (see take): the lens a finger held gone; by its release, what it drew, moved or boxed
  * placed; else what it was drawing or moving let go of, as it was.
@@ -12041,7 +12044,6 @@ function gestureEnded(release) {
   if (placing?.held) placed(release);
   else if (moving) moved();
   else if (boxing) boxed();
-  pressedAt = null;
 }
 for (const type of ["mousedown", "touchstart"]) $("chart").addEventListener(type, (event) => {
   if (!swallow) return;
@@ -12136,18 +12138,13 @@ $("chart").addEventListener("pointermove", (event) => {
   if (boxing) return boxTo(event);
   hover(event.buttons || tool || selectingArea ? null : drawingAt(event.clientX, event.clientY));
 });
-/** Where a press on nothing was, while a drawing is selected; or a finger's on one not selected (`pick`, see above). */
-let pressedAt = /** @type {{ x: number, y: number, pick: string } | null} */ (null);
-/** Such a press: let go where it was pressed, the drawings it picks chosen (none, on nothing). @param {PointerEvent} event @param {string} pick */
+/**
+ * A press on nothing while a drawing is selected (`pick` ""), or a finger's on one not selected (see above): let go
+ * where it was pressed, the drawings it picks chosen (none, on nothing). @param {PointerEvent} event @param {string} pick
+ */
 function pressAt(event, pick) {
-  pressedAt = { x: event.clientX, y: event.clientY, pick };
-  press(event, {
-    on: $("chart"),
-    end: (release) => {
-      if (release && pressedAt && !otherPointer(release) && !fingerCross.dismissing && Math.hypot(release.clientX - pressedAt.x, release.clientY - pressedAt.y) < 4) chooseDrawings(pressedAt.pick ? [pressedAt.pick] : []);
-      pressedAt = null;
-    },
-  });
+  const { clientX, clientY } = event;
+  press(event, { end: (release) => release && !otherPointer(release) && !fingerCross.dismissing && Math.hypot(release.clientX - clientX, release.clientY - clientY) < 4 && chooseDrawings(pick ? [pick] : []) });
 }
 $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
 // Double-click a text: typed into, where it is; a line: its label, typed where the click was (on it: typed into).
@@ -15047,8 +15044,7 @@ const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
 $("home").addEventListener("scroll", () => (galleryResting = false), { capture: true, passive: true });
 $("home").addEventListener("scrollend", () => ((galleryResting = true), drawGallery()), { capture: true });
-$("home").addEventListener("pointerdown", () => (galleryResting = false));
-$("home").addEventListener("pointerup", () => ((galleryResting = true), drawGallery()));
+$("home").addEventListener("pointerdown", (event) => ((galleryResting = false), press(event, { end: () => ((galleryResting = true), drawGallery()) })));
 /** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
 const nextGallery = (tried) => {
   for (const i of galleryQueue) return galleryQueue.delete(i), i;
@@ -15738,7 +15734,8 @@ function dragSheet(element, { grab, move, release, back, pulls }) {
     // ⌘K is its backdrop's and would close it.)
     const held = /** @type {Element} */ (event.target), pointer = event.pointerId;
     held.setPointerCapture(pointer);
-    press(event, { captor: held, move: (moved) => follow(moved.clientY), end: (release) => pull?.pointer === pointer && (release ? end(release.clientY) : ((pull = null), letGo())) });
+    const mine = () => pull?.pointer === pointer;
+    press(event, { captor: held, move: (moved) => mine() && follow(moved.clientY), end: (release) => mine() && (release ? end(release.clientY) : ((pull = null), letGo())) });
   });
   // (A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events
   // go to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data)
@@ -17839,18 +17836,26 @@ window.addEventListener("click", (event) => {
 let pressStart = /** @type {{ target: Element, x: number, y: number, box: DOMRect } | null} */ (null);
 let slidFrom = /** @type {Element | null} */ (null);
 const clickSlid = (/** @type {MouseEvent} */ { clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail }) => ((target) => ((slidFrom = null), target?.isConnected && target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail: detail || 1 }))))(slidFrom);
-window.addEventListener("pointerdown", (event) => ((slidFrom = null), (pressStart = event.isPrimary && event.button === 0 && event.target instanceof Element ? { target: event.target, x: event.clientX, y: event.clientY, box: event.target.getBoundingClientRect() } : null)), true);
-// (Moved past the slop at any point, a drag's, even one let go where it began: no click of its own.)
-window.addEventListener("pointermove", (event) => pressStart && event.isPrimary && Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > SLOP && (pressStart = null), true);
-window.addEventListener("pointerup", (event) => {
-  const was = pressStart, at = event.target;
-  pressStart = null;
-  if (!was || !event.isPrimary || !(at instanceof Node) || was.target.contains(at) || !was.target.isConnected || Math.hypot(event.clientX - was.x, event.clientY - was.y) > SLOP) return;
-  // (Slid: it's moved, not merely elsewhere than where the pointer's held by another, a grip's.)
-  const box = was.target.getBoundingClientRect();
-  if (Math.hypot(box.x - was.box.x, box.y - was.box.y) < 1) return;
-  slidFrom = was.target;
-  setTimeout(() => slidFrom === was.target && clickSlid(event));
+window.addEventListener("pointerdown", (event) => {
+  slidFrom = null;
+  pressStart = event.isPrimary && event.button === 0 && event.target instanceof Element ? { target: event.target, x: event.clientX, y: event.clientY, box: event.target.getBoundingClientRect() } : null;
+  const was = pressStart;
+  if (!was) return;
+  press(event, {
+    // (Moved past the slop at any point, a drag's, even one let go where it began: no click of its own.)
+    move: (moved) => Math.hypot(moved.clientX - was.x, moved.clientY - was.y) > SLOP && pressStart === was && (pressStart = null),
+    end: (release) => {
+      if (pressStart !== was) return;
+      pressStart = null;
+      const at = release?.target;
+      if (!release || !(at instanceof Node) || was.target.contains(at) || !was.target.isConnected || Math.hypot(release.clientX - was.x, release.clientY - was.y) > SLOP) return;
+      // (Slid: it's moved, not merely elsewhere than where the pointer's held by another, a grip's.)
+      const box = was.target.getBoundingClientRect();
+      if (Math.hypot(box.x - was.box.x, box.y - was.box.y) < 1) return;
+      slidFrom = was.target;
+      setTimeout(() => slidFrom === was.target && clickSlid(release));
+    },
+  });
 }, true);
 window.addEventListener("click", (event) => {
   if (!slidFrom || !event.isTrusted) return;
@@ -20127,13 +20132,16 @@ function track(event, element, cursor, move) {
   press(event, {
     move,
     end: () => {
-      flushPick();
-      holding = 0;
+      try {
+        flushPick();
+      } finally {
+        holding = 0;
+        document.body.classList.remove(cursor);
+      }
       if (heldEdits) {
         heldEdits = false;
         refresh("none");
       }
-      document.body.classList.remove(cursor);
     },
   });
 }
@@ -20152,7 +20160,8 @@ function pickPress(event, element, cursor, move) {
       // (Clearly across: an arc as a scroll begins, or a slant, is a scroll.)
       if (Math.abs(dx) > 2 * Math.abs(dy)) track(next, element, cursor, move);
     },
-    end: (release) => release && move(release),
+    // (A tap: picked where it's lifted, unless a drag's held meanwhile (one at a time, see track).)
+    end: (release) => release && !holding && move(release),
   });
 }
 /**

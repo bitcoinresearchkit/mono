@@ -56,25 +56,20 @@ const NEAR_FINE = 4, NEAR_TOUCH = 12, LEAST = 32;
 // iOS's too): those pressed since the last touch event are the new fingers. Anything short of that proof is left alone.
 /** The touch pointers down on the page; of them, those pressed since the last touch event. */
 const touchesDown = new Set(), touchesNew = new Set();
-/** The presses held by touch, told of each touch forgotten by its id (see press). @type {Set<(id: number) => void>} */
+/** The presses held by touch, told of each touch proved gone, by its id (see press). @type {Set<(id: number) => void>} */
 const touchOwners = new Set();
 /** Charts needing to replay presses after all lost touches have been cancelled. @type {Set<() => void>} */
 const touchRecoveries = new Set();
-/** Touches being let go of as proved gone, now (see loseTouches): a press ending meanwhile ends by one. */
-let losing = false;
 /** Touches proved gone, let go of by every owner before any press is replayed. @param {number[]} ids */
 const loseTouches = (ids) => {
   let error, failed = false;
   const attempt = (/** @type {() => void} */ action) => {
     try { action(); } catch (cause) { if (!failed) error = cause, failed = true; }
   };
-  losing = true;
-  try {
-    for (const id of ids) {
-      touchesDown.delete(id);
-      for (const owner of [...touchOwners]) attempt(() => owner(id));
-    }
-  } finally { losing = false; }
+  for (const id of ids) {
+    touchesDown.delete(id);
+    for (const owner of [...touchOwners]) attempt(() => owner(id));
+  }
   for (const recover of touchRecoveries) attempt(recover);
   touchRecoveries.clear();
   if (failed) throw error;
@@ -93,30 +88,43 @@ for (const type of ["touchstart", "touchend", "touchcancel"]) addEventListener(t
   } finally { touchesNew.clear(); }
 }, listen);
 /**
- * A press followed to its end, however it ends; every press a page holds goes through here, so none misses an end.
- * `move` hears each move of its pointer meanwhile. `end` is told once: `end(event)` at its pointerup (a release), else
- * `end(null)` (let go of, no release) at its pointercancel, its capture lost by `captor`, the window left, a mouse
- * moving with no button down (its release went elsewhere), or the browser forgetting its touch (see above: as it's
- * proved gone, before the press that proves it). Its events are heard on `on` (default the window: anywhere), in
- * their bubbling, as a listener of its own there would. Returns its stop, `end` untold; `signal`'s abort stops it too.
- * @param {PointerEvent} down its pointerdown
- * @param {{ end: (release: PointerEvent | null) => void, move?: (event: PointerEvent) => void, on?: EventTarget, captor?: Element, signal?: AbortSignal }} how
+ * A press followed to its end, however it ends: every press a page holds goes through here, so none misses an end.
+ * `move` hears each move of its pointer meanwhile. `end` is told once: `end(event, false)` at its pointerup (a
+ * release), else `end(null, lost)` (let go of, no release) at its pointercancel, its capture lost by `captor`, the
+ * window left, a mouse or pen moving with no button down (its release went elsewhere), or (`lost` true) the browser
+ * forgetting its touch (see above: as it's proved gone, before the press that proves it). Its events are heard on the
+ * window as they start out (the capture phase), before any element's listeners, so nothing stops them reaching it.
+ * Returns its stop, `end` untold; `signal`'s abort stops it too.
+ * @param {PointerEvent} down the event it starts from (its pointerdown, or the move that made it one)
+ * @param {{ end: (release: PointerEvent | null, lost: boolean) => void, move?: (event: PointerEvent) => void, captor?: Element, signal?: AbortSignal }} how
  * @returns {() => void}
  */
-export function press(down, { end, move, on = window, captor, signal }) {
-  const pointer = down.pointerId, held = new AbortController(), heard = { passive: true, signal: held.signal };
+export function press(down, { end, move, captor, signal }) {
+  const pointer = down.pointerId, held = new AbortController(), heard = { capture: true, passive: true, signal: held.signal };
   const stop = () => held.abort();
-  if (signal?.aborted) return stop(), stop;
+  const ended = (/** @type {PointerEvent | null} */ release, lost = false) => {
+    if (held.signal.aborted) return;
+    stop();
+    end(release, lost);
+  };
+  /** @param {(event: PointerEvent) => void} handle */
+  const own = (handle) => (/** @type {Event} */ event) => {
+    if (/** @type {PointerEvent} */ (event).pointerId === pointer) handle(/** @type {PointerEvent} */ (event));
+  };
+  if (signal?.aborted) {
+    stop();
+    return stop;
+  }
   signal?.addEventListener("abort", stop, { signal: held.signal });
-  const ended = (/** @type {PointerEvent | null} */ release) => held.signal.aborted || (stop(), end(release));
-  const own = (/** @type {(event: PointerEvent) => void} */ handle) => (/** @type {Event} */ event) => /** @type {PointerEvent} */ (event).pointerId === pointer && handle(/** @type {PointerEvent} */ (event));
-  on.addEventListener("pointermove", own((event) => (event.pointerType === "mouse" && !event.buttons ? ended(null) : move?.(event))), heard);
-  on.addEventListener("pointerup", own(ended), heard);
-  on.addEventListener("pointercancel", own(() => ended(null)), heard);
+  const touch = down.pointerType === "touch";
+  if (move || !touch) addEventListener("pointermove", own((event) => (!touch && !event.buttons ? ended(null) : move?.(event))), heard);
+  addEventListener("pointerup", own(ended), heard);
+  addEventListener("pointercancel", own(() => ended(null)), heard);
   captor?.addEventListener("lostpointercapture", own((event) => event.target === captor && ended(null)), heard);
-  addEventListener("blur", () => ended(null), heard);
-  if (down.pointerType === "touch") {
-    const lost = (/** @type {number} */ id) => id === pointer && ended(null);
+  // (The window's own blur: an element's doesn't bubble, nor reach a listener on the window but in the capture phase.)
+  addEventListener("blur", (event) => event.target === window && ended(null), heard);
+  if (touch) {
+    const lost = (/** @type {number} */ id) => id === pointer && ended(null, true);
     touchOwners.add(lost);
     held.signal.addEventListener("abort", () => touchOwners.delete(lost));
   }
@@ -725,7 +733,7 @@ export class Chart {
       // more during the chart's own (a second finger: a pinch), the chart's wherever it lands.)
       if (event.button || sizer >= 0 || (!down.size && event.target !== element && !this.#owns(event.target))) return;
       element.setPointerCapture(event.pointerId);
-      const id = event.pointerId, stop = press(event, { on: element, captor: element, signal, end: (release) => up(id, release) });
+      const id = event.pointerId, stop = press(event, { captor: element, signal, end: (release, lost) => ended(id, release, lost) });
       // (On a separator: it's dragged, nothing else.)
       const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
       if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.#stopGlide()), this.#clearPointer());
@@ -813,13 +821,16 @@ export class Chart {
       this.invalidate();
     }, { signal });
     element.addEventListener("pointerleave", (event) => fine(event) && !down.size && !this.resizing && ((this.separatorLit = null), this.#clearPointer()), { signal });
-    /** A press's end (see press): its release, or null. @param {number} id @param {PointerEvent | null} event */
-    const up = (id, event) => {
+    /**
+     * A press's end (see press): its release, or none (`lost`: its touch proved gone).
+     * @param {number} id @param {PointerEvent | null} event @param {boolean} lost
+     */
+    const ended = (id, event, lost) => {
       if (sizer === id) return void ((tapAt = -Infinity), stopSizing(event && fine(event) ? event.clientY - element.getBoundingClientRect().top : NaN));
       const at = down.get(id);
       if (!at || !down.delete(id)) return;
       // (Its touch proved gone: those taken beside it as a pinch's second finger pressed again alone, once every lost one's let go.)
-      if (losing) touchRecoveries.add(recover);
+      if (lost) touchRecoveries.add(recover);
       const pinched = twoFingers;
       if (!down.size) twoFingers = false;
       clearTimeout(this.holding);
