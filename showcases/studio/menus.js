@@ -9,10 +9,10 @@ import {
   INTERVAL_LABEL, INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isSeriesName, isView,
   KEY_STEPS, kindColor, kindOf, labelText, letterAt, library, LINES, listedPreviews, loadPresets, lookOfDrawing,
   makeLayer, MARK_PLACES, markable, MAX_DRAWINGS, MAX_LAYERS, MAX_PANES, MAX_STROKE, measure, menuBack, menuOwner,
-  menuPicked, menuScrim, MOTION, navigations, normalize, notice, OPACITIES, openCascade, openingView, openView, PAIRED,
-  PALETTE, PEN_COLOR, phone, plural, pointOf, putViews, RANGES, reduced, resolved, revision, ROUTED, saveView, SHAPES,
-  SHARES_IMAGES, shownView, showRange, STACKS, stepIn, storage, submenus, takeView, timeAt, toast, TOOLS, TYPES, uid,
-  UNREAD, viewsNow, WIDTHS,
+  menuPicked, menuScrim, MOTION, navigations, normalize, notice, OPACITIES, openCascade, openingView, openView, ORIGIN,
+  PAIRED, PALETTE, PEN_COLOR, phone, plural, pointOf, putViews, RANGES, reduced, resolved, revision, ROUTED, saveView,
+  SHAPES, SHARES_IMAGES, shownView, showRange, STACKS, stepIn, storage, submenus, takeView, timeAt, toast, TOOLS,
+  TYPES, uid, UNREAD, viewsNow, WIDTHS,
 } from "/studio/app.js";
 import {
   forgetSpans, inSubmenu, known, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
@@ -20,7 +20,7 @@ import {
 } from "/studio/chart.js";
 import { folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
 import { focusKey, labelOf, restoreFocus } from "/studio/inspector.js";
-import { isMade, ORIGIN, presetEdited, presetLink } from "/studio/presets-edit.js";
+import { isMade, presetEdited, presetLink } from "/studio/presets-edit.js";
 /** @import { Chart, Layer, Level } from "/studio/app.js" */
 /** @import { Action } from "/studio/command.js" */
 

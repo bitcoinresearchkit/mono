@@ -8291,6 +8291,8 @@ function missedRoute(address) {
   }
   notice(missedSaid(address));
 }
+/** Share links open this copy, whose storage belongs to its origin. */
+const ORIGIN = `${location.origin}/studio`;
 /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
 let started = false;
 // (Nothing acted on before then (no chart open yet, a link still being read): a key, a press or a click, let go of,
@@ -13405,7 +13407,7 @@ export {
   morphFrom, MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, moving, multiEdit, navigations, newDraft,
   newPaneIn, nextColor, nextHalvings, nextLetter, NO_LINE, normalize, noteUse, notice, oklchToHex, oklchToLinear,
   ONE_SCALE, oneScale, ontoData, OPACITIES, opacityOf, openCascade, openChart, openingView, openPalette, openView,
-  OUTLINE_GLYPH, OUTLINED, outreaches, ownerOf, paintNavigator, PAIRED, PAIRS, PALETTE, paletteMarksSeen,
+  ORIGIN, OUTLINE_GLYPH, OUTLINED, outreaches, ownerOf, paintNavigator, PAIRED, PAIRS, PALETTE, paletteMarksSeen,
   paletteOnField, paletteOpenings, PANE_SETTINGS, panelShown, paneShowing, pathResume, PEN_COLOR, pendingRoute, phone,
   pickPreset, picks, placedBy, placedOn, placeGallery, placeName, placing, plural, POINTED, pointedLayer,
   pointerOnChart, pointOf, POINTWISE, precise, PRECISE, prefs, presetLabels, presetMarks, presets, presetsFailed,

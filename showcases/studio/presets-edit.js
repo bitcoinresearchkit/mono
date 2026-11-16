@@ -161,8 +161,6 @@ function addressNow() {
   const i = chartPreset(chart);
   return i >= 0 ? book.presets[i] : "/";
 }
-/** Share links open this copy, whose storage belongs to its origin. */
-const ORIGIN = `${location.origin}/studio`;
 /** Search names the live Studio on every origin. */
 const CANONICAL_ORIGIN = STUDIO_ORIGIN;
 /**
@@ -877,7 +875,7 @@ const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefi
 export {
   addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset,
   fromPreset, fullOn, idsNow, isLinkHash, isMade, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
-  missedSaid, openPreset, openPresetMenu, ordersOf, ORIGIN, paneActions, paneChip, paneRows, presetActions, presetById,
+  missedSaid, openPreset, openPresetMenu, ordersOf, paneActions, paneChip, paneRows, presetActions, presetById,
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,
   prunePresets, RECOMMENDED, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleGroup, scaleMenu, setFull,

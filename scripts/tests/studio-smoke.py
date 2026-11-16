@@ -32,8 +32,6 @@ from playwright.sync_api import sync_playwright
 # server's.
 ROOT = Path(__file__).resolve().parents[2]
 PAGE = (ROOT / "showcases" / "studio" / "index.html").resolve()
-# (The app's module, where --break's source edits go.)
-APP = PAGE.parent / "app.js"
 OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve(), "/assets/": (ROOT / "showcases" / "assets").resolve()}
 mimetypes.add_type("text/javascript", ".mjs")
 STORE = "bitview-studio:v2"
@@ -101,9 +99,12 @@ def need(condition, message):
 
 
 def edit(old, new, times=1):
-    def apply(source):
-        need(source.count(old) == times, f"--break: app.js no longer has exactly {times} of {old!r} to edit")
-        return source.replace(old, new)
+    """The edit, made in whichever of Studio's modules holds `old` (the one file, `times` times there)."""
+
+    def apply(file, source):
+        holders = [module for module in PAGE.parent.glob("*.js") if old in module.read_text("utf-8")]
+        need(len(holders) == 1 and holders[0].read_text("utf-8").count(old) == times, f"--break: Studio's modules no longer have exactly {times} of {old!r} to edit, in one file")
+        return source.replace(old, new) if file == holders[0] else source
 
     return apply
 
@@ -225,8 +226,8 @@ class Run:
             # (Not in the checkout: missing, never the server's copy.)
             return route.fulfill(status=404, body="not in this checkout")
         body = file.read_bytes()
-        if "source" in ctx.broken and file == APP:
-            body = ctx.broken["source"](body.decode("utf-8"))
+        if "source" in ctx.broken and file.parent == PAGE.parent and file.suffix == ".js":
+            body = ctx.broken["source"](file, body.decode("utf-8")).encode("utf-8")
         kind = mimetypes.guess_type(file.name)[0] or "application/octet-stream"
         kind += "; charset=utf-8" if kind.startswith("text/") else ""
         return route.fulfill(status=200, body=body, headers={"content-type": kind, "cache-control": "no-store"})
