@@ -25,9 +25,10 @@ ROOT = SHOWCASES.parent
 # 0.7 units off); Inter keeps every weight (the explorer's forming-block answer is drawn at 200).
 FLOOR = {"InterVariable": None, "Lilex": "wght"}
 # Every character the pages and their modules write, by range, with Latin Extended-A: a name's letters and accents
-# kerned within one file (+8 KB on Inter's core, +4 KB on Lilex's). Combining marks are left to the rest: text keeps
-# its accents precomposed (é, not e + ◌́), and the marks would bring the ccmp-composed letters of every other Latin
-# block (Vietnamese, Latin Extended-B and Additional) into the core, +24 KB on Inter's.
+# kerned within one file (+8 KB on Inter's core, +4 KB on Lilex's). Combining marks are left to the rest: no page writes
+# its accents apart (é, not e + ◌́), and text that does still draws as before, Chromium and WebKit composing it into the
+# core's é once the rest is in; in the core, the marks would bring the ccmp-composed letters of every other Latin block
+# (Vietnamese, Latin Extended-B and Additional) with them, +24 KB on Inter's.
 CORE = [
     (0x0000, 0x017F), (0x0192, 0x0192), (0x02BB, 0x02BC), (0x02C6, 0x02C6), (0x02DA, 0x02DA), (0x02DC, 0x02DC),
     (0x0394, 0x0394), (0x03A3, 0x03A3), (0x03C3, 0x03C3), (0x2000, 0x206F), (0x20AC, 0x20AC), (0x20BF, 0x20BF),
@@ -73,9 +74,12 @@ texts = {path.relative_to(ROOT): path.read_text("utf-8") for path in TEXT}
 outside = sorted({f"{path}: {ch} U+{ord(ch):04X}" for path, text in texts.items() for ch in text if ord(ch) > 127 and not in_core(ord(ch))})
 if outside:
     raise SystemExit("Characters the pages write outside CORE (add them to it):\n  " + "\n  ".join(outside))
+# (CSS and JS spellings: font-feature-settings: 'tnum'; featureSettings: '"tnum" 1'; style.fontVariantNumeric = "…".)
+SETTINGS = r"(?:font-feature-settings|[fF]eatureSettings)\s*[:=]\s*([^;}\n]*)"
+VARIANT = r"(?:font-variant[\w-]*|fontVariant\w*)\s*[:=]\s*[\"']?([\w -]+?)(?:[\"'](?!\w)|\s*(?=[;},\n]))"
 asked = [
-    *((path, tag) for path, text in texts.items() for rule in re.findall(r"(?:font-feature-settings|featureSettings)\s*:\s*([^;]*)", text) for tag in re.findall(r'"(\w{4})"', rule)),
-    *((path, tag) for path, text in texts.items() for value in re.findall(r"font-variant[\w-]*:\s*([\w -]+);", text) for word in value.split() for tag in VARIANTS.get(word, [f"font-variant {word}"])),
+    *((path, tag) for path, text in texts.items() for rule in re.findall(SETTINGS, text) for tag in re.findall(r"[\"'](\w{4})[\"']", rule)),
+    *((path, tag) for path, text in texts.items() for value in re.findall(VARIANT, text) for word in value.split() for tag in VARIANTS.get(word, [f"font-variant {word}"])),
 ]
 outside = sorted({f"{path}: {tag}" for path, tag in asked if tag not in FEATURES})
 if outside:
