@@ -211,7 +211,8 @@
       }
 
       .eyebrow {
-        margin: 0 0 5px;
+        /* (Clear of the title's ascenders, which stand above its line box at every size.) */
+        margin: 0 0 calc(var(--title-size, 96px) / 6);
         color: var(--muted);
         /* (A sixth of the title, as it's sized.) */
         font-size: calc(var(--title-size, 96px) / 6);
@@ -896,6 +897,8 @@
           PILL_PADDING_Y * 2 +
           PILL_BORDER_WIDTH;
         const AXIS_LABEL_OFFSET = 11;
+        // (The rails lie past the tallest pill an axis carries, so a pill never covers their first line.)
+        const RAIL_OFFSET = AXIS_LABEL_OFFSET + TWO_LINE_PILL_HEIGHT + AXIS_GAP;
         const FLAT_FOOTER_GAP = 10;
         const FLAT_UI_GAP = 9;
         const STAGE_EDGE_PADDING = 12;
@@ -948,6 +951,7 @@
         const weightSelect = byId("weight");
         const projectedUi = byId("projected-ui");
         const identityElement = byId("identity");
+        const eyebrowElement = identityElement.querySelector(".eyebrow");
         const dateAxisUi = byId("date-axis-ui");
         const priceAxisUi = byId("price-axis-ui");
         const flatAxisHint = byId("flat-axis-hint");
@@ -1009,6 +1013,8 @@
           width: 0,
           height: 0,
           dpr: 1,
+          // Screen pixels per stage pixel.
+          stageScale: 1,
           // How much the scene's words are grown, so a small screen still reads them (1 where they're already big enough).
           ui: 1,
           visibleCount: 721,
@@ -2421,6 +2427,7 @@
             window.innerHeight / stageHeight,
           );
           app.style.setProperty("--stage-scale", String(scale));
+          state.stageScale = scale;
           state.ui = Math.max(1, MIN_UI_TEXT / (UI_FONT_SIZE * scale));
           app.style.setProperty("--ui", String(state.ui));
           app.classList.add("is-fit");
@@ -2808,7 +2815,7 @@
           const railsFlat = flatRails();
           const priceRail = railSize(priceAxisUi), dateRail = railSize(dateAxisUi);
           const railCorners = (middle, outward, direction, { width, depth }) => {
-            const near = along(middle, outward, ui(42));
+            const near = along(middle, outward, ui(RAIL_OFFSET));
             const far = along(near, outward, depth);
             return [along(near, direction, -width / 2), along(near, direction, width / 2), along(far, direction, -width / 2), along(far, direction, width / 2)];
           };
@@ -2965,7 +2972,10 @@
             timeOut,
           } = plotAxisGeometry(layout);
           identityElement.style.width = `${priceLength}px`;
-          identityElement.style.setProperty("--title-size", `${Math.min(96, priceLength * 0.082)}px`);
+          const titleSize = Math.min(96, priceLength * 0.082);
+          identityElement.style.setProperty("--title-size", `${titleSize}px`);
+          // (The eyebrow is a sixth of the title; where that lands under the legible floor on screen, it isn't drawn.)
+          eyebrowElement.hidden = (titleSize / 6) * state.stageScale < MIN_UI_TEXT;
           // (The rails grow by state.ui about their top middle, so they wrap, in their own units, to a share of the stage,
           // the scene fitted around them so their lines stay long and few; lying flat, to the flat view's or the stage's width.)
           const railWidth = (share) =>
@@ -3034,8 +3044,8 @@
             0.5,
             0,
           );
-          const dateUiAnchor = offsetPoint(dateAxisCenter, timeOut, ui(42));
-          const priceUiAnchor = offsetPoint(priceAxisCenter, priceOut, ui(42));
+          const dateUiAnchor = offsetPoint(dateAxisCenter, timeOut, ui(RAIL_OFFSET));
+          const priceUiAnchor = offsetPoint(priceAxisCenter, priceOut, ui(RAIL_OFFSET));
 
           identityElement.style.left = `${titleAnchor.x}px`;
           identityElement.style.top = `${titleAnchor.y}px`;
@@ -3836,7 +3846,7 @@
             pricePills.push(pillSpan(hoverPillText(selectedProfile, coordinate), atPrice(coordinate)));
           }
           if (selectedProfile && state.range) {
-            const pill = rangePill(selectedProfile);
+            const pill = rangePill(selectedProfile, layout);
             pricePills.push(pillSpan(pill.text, atPrice(pill.coordinate)));
           }
           // (The value axis's foot label runs on from the price axis's end, where the dearest price's label would be.)
@@ -4236,24 +4246,31 @@
           context.restore();
 
           const { priceAxis, priceOut } = plotAxisGeometry(layout);
-          const pill = rangePill(profile);
+          const pill = rangePill(profile, layout);
           const point = projectAtPriceAxis(layout, dateIndex, pill.coordinate);
           drawPill(context, pill.text, point.x, point.y, priceAxis, priceOut, { attachEdge: "top" });
         }
 
-        /** A held range's pill: what it holds, at its middle; the pointer's own pill near it, at whichever end is farther. */
-        function rangePill(profile) {
+        /** A held range's pill: what it holds, at its middle, or at whichever end keeps it clear of the price's and the pointer's pills. */
+        function rangePill(profile, layout) {
           const [low, high] = state.range;
           const from = terrainCoordinateOf(low), to = terrainCoordinateOf(high - PRICE_BUCKET_WIDTH);
-          const middle = (from + to) / 2, hover = state.hoverPriceCoordinate;
-          const near = hover !== null && Math.abs(hover - middle) < Math.max((to - from) / 2, 0.06);
           const amount = rangeAmount(profile, low, high);
-          return {
-            coordinate: near ? (hover > middle ? from : to) : middle,
-            text: `${formatAxisPrice(low)} – ${formatAxisPrice(high)}\n${
-              amount ? `${formatMetricAmount(amount.inside)} · ${formatPercent(amount.share * 100)}` : "—"
-            }`,
-          };
+          const text = `${formatAxisPrice(low)} – ${formatAxisPrice(high)}\n${
+            amount ? `${formatMetricAmount(amount.inside)} · ${formatPercent(amount.share * 100)}` : "—"
+          }`;
+          // (Half a pill's width, in price coordinates, with a little air.)
+          const { priceLength } = plotAxisGeometry(layout);
+          const half = (pillText) => (pillLayout(context, pillText, "center", "top").boxWidth / 2 + ui(6)) / priceLength;
+          const others = [];
+          const market = priceCoordinate(displayedPrice(profile));
+          if (market !== null) others.push({ coordinate: market, half: half(formatPrice(displayedPrice(profile))) });
+          const hover = state.hoverPriceCoordinate;
+          if (hover !== null) others.push({ coordinate: hover, half: half(hoverPillText(profile, clamp(hover, 0, 1))) });
+          const own = half(text);
+          const clear = (coordinate) => others.every((other) => Math.abs(coordinate - other.coordinate) >= own + other.half);
+          const middle = (from + to) / 2;
+          return { coordinate: [middle, from, to].find(clear) ?? middle, text };
         }
 
         function priceRibbonPoint(
