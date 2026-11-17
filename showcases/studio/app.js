@@ -62,20 +62,21 @@ import {
   galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
   isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keysCame, landingIn, leave, leftPlaces,
   legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK,
-  numbered, onceKeys, onChart, onClosed, onHold, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
+  numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
   panelSize, parentOf, pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark,
   presetMarkKey, presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf,
   presetSearch, presetTiles, presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg,
   queueYours, recommendedCards, recommendedDrawn, recommendedKey, renderChartPath, renderDoors, renderGallery,
   renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme, renderYours, reorderable,
-  restOf, restRect, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
+  restOf, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
   searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, sheetGoes,
   sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey,
-  sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, stepChart, stepFolder, stepShelf, stopCarrying,
+  sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, stepChart, stepFolder, stepShelf,
   stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf,
   unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile,
   yourQueue, yoursFound, yoursSeen, yoursShown,
 } from "/studio/grid.js";
+import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";
 import {
   addDrawn, boxTo, bubbleColumns, cellText, closeCell, drawingMenu, drawingRows, drawnSteps, dressField,
   duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCode, heatCome, heatDays, heatExtras, heatFresh,
@@ -123,6 +124,7 @@ import {
 /** @import { Node, Vector } from "/studio/formulas.js" */
 /** @import { Place, PresetNode, Preview } from "/studio/grid.js" */
 /** @import { HeatLook } from "/studio/heatmaps.js" */
+/** @import { Landing } from "/studio/gestures.js" */
 /** @import { Preset } from "/studio/presets-edit.js" */
 
 document.getElementById("page-info")?.remove();
@@ -7760,271 +7762,7 @@ function deleteChart(doc) {
   void until(() => chart !== doc, 4000).then(() => toast(text, { ...action, step }));
 }
 // ── Slides: what's reordered moves to its new place instead of jumping ────
-/**
- * Items reordered by dragging them, one way for every list (the sidebar's charts, the grid's tiles, the layers): by
- * the mouse, once it's moved a few pixels from a press; by touch, held still first (that picks the item, where items
- * are picked, as a phone's photos do), then moved: a quick swipe still scrolls. A picked item takes every picked one
- * along, in their order; another goes alone (the picks as they are). By the pointer, a pill naming it (`label`: its
- * mark and name; how many, past one); where they'd land, a line, or a target lit (`landing` undefined: off every item;
- * `sticky`, where it last would; null, nowhere), only over the list as it shows; the list scrolls at its edges; esc
- * puts them back. `still`: none moved now (a press still picks). A hold that began picking (`picking`: whether any
- * were) and then carried its item off picked nothing: `unpick` ends it.
- * @param {HTMLElement} list
- * @param {{ item: string, idOf: (item: HTMLElement) => string, carried?: (id: string) => string[],
- *   pick?: (id: string) => void, picking?: () => boolean, unpick?: () => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
- *   label: (id: string) => string, landing: (x: number, y: number, ids: string[]) => Landing | null | undefined,
- *   land: (ids: string[], at: Landing, y: number) => void, lift?: () => void, settle?: () => void }} how
- * @typedef {{ item: HTMLElement, after: boolean, down?: boolean, depth?: number } | { zone: HTMLElement }} Landing `down`: before or after it is above or below it (a grid of one column); `depth`: at that level of a tree (its line indented to it)
- */
-function dragToReorder(list, how) {
-  /** The press on an item (its pointer's followed: see press). @type {{ id: string, x: number, y: number, at: [number, number], touch: boolean, held: boolean, began: boolean, timer: number, touched: EventTarget | null, stop: () => void } | null} */
-  let hand = null;
-  /** Held (or carried) by touch, nothing scrolls under the finger. */
-  const pin = (/** @type {Event} */ event) => (hand?.held || drag) && event.preventDefault();
-  /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, box: DOMRect, frame: number, touch: boolean, width: number, height: number, top: number } | null} */
-  let drag = null;
-  /** The pill let go where it lands, till it's flown there (see settleGhost). @type {HTMLElement | null} */
-  let kept = null;
-  /**
-   * Landed, one item seen landing: the pill flies to where the first lands and goes there as they come (faded in
-   * where they are), not two of it at once (the pill fading where it was let go, the item already in its place).
-   * Once they're laid out there (the next frame).
-   */
-  const settleGhost = (/** @type {string[]} */ ids) => {
-    const ghost = kept;
-    kept = null;
-    if (!ghost) return;
-    if (reduced.matches) return ghost.remove();
-    // (Not seen in their place a frame before they come.)
-    const hidden = /** @type {HTMLElement[]} */ (ids.map(itemNamed).filter(Boolean));
-    for (const item of hidden) item.style.opacity = "0";
-    requestAnimationFrame(() => {
-      for (const item of hidden) item.style.opacity = "";
-      // (Where the first comes to rest, on the way its row slides there (see slide): the pill along with it.)
-      const items = /** @type {HTMLElement[]} */ (ids.map(itemNamed).filter(Boolean)), to = items[0] && restRect(items[0]);
-      const away = to ? `translate(${to.left + 8}px, ${to.top + (to.height - ghost.offsetHeight) / 2}px)` : `${ghost.style.transform} scale(0.96)`;
-      const timing = { duration: MOTION.panel, easing: MOTION.ease };
-      for (const item of items) item.animate({ opacity: [0, 1] }, timing);
-      ghost.animate({ transform: [ghost.style.transform, away], opacity: [1, 0] }, { ...timing, fill: "forwards" }).finished.then(() => ghost.remove(), () => ghost.remove());
-    });
-  };
-  /** The item an id names now (the list may have been drawn anew since the press). */
-  const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
-  const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => (element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"), element.style.removeProperty("--drop-depth")));
-  /** The gesture over: `landed`, let go by the pointer (else put back: esc, a cancel); `back`, landing nowhere. */
-  const endDrag = (landed = false, back = !landed) => {
-    const unpick = Boolean(hand?.began && drag && !landed);
-    if (hand) clearTimeout(hand.timer), hand.stop();
-    hand?.touched?.removeEventListener("touchmove", pin);
-    hand = null;
-    if (carrying === endDrag) carrying = null;
-    if (!drag) return;
-    cancelAnimationFrame(drag.frame);
-    // (Let go somewhere, the pill's kept for where it lands, once it's there (see settleGhost); put back (esc, let go
-    // nowhere), back to where it came from as it goes.)
-    const ghost = drag.ghost, from = back && itemNamed(drag.ids[0])?.getBoundingClientRect();
-    if (landed && !back) kept = ghost;
-    else if (reduced.matches) ghost.remove();
-    else {
-      const away = from ? `translate(${from.left + 8}px, ${from.top + (from.height - drag.height) / 2}px)` : `${ghost.style.transform} scale(0.96)`;
-      ghost.animate({ transform: [ghost.style.transform, away], opacity: [1, 0] }, { duration: from ? MOTION.small : MOTION.micro, easing: MOTION.ease, fill: "forwards" }).finished.then(() => ghost.remove(), () => ghost.remove());
-    }
-    unmark();
-    all$(".dragging", list).forEach((element) => element.classList.remove("dragging"));
-    list.classList.remove("carrying");
-    document.body.classList.remove("carrying");
-    drag = null;
-    how.settle?.();
-    if (unpick) how.unpick?.();
-  };
-  /** Where they'd land from where the pointer is: only over the list as it shows (`sticky`: off every item, where it last would). */
-  const landingNow = () => {
-    if (!drag) return null;
-    const box = drag.box, own = list.getBoundingClientRect();
-    if (drag.x < Math.max(box.left, own.left) || drag.x > Math.min(box.right, own.right) || drag.y < Math.max(box.top, own.top) || drag.y > Math.min(box.bottom, own.bottom)) return null;
-    const found = how.landing(drag.x, drag.y, drag.ids);
-    const kept = drag.at && ("item" in drag.at ? drag.at.item : "zone" in drag.at ? drag.at.zone : null);
-    return found === undefined ? (how.sticky && kept?.isConnected ? drag.at : null) : found;
-  };
-  /** Two landings the same: the same side of the same item, or the same zone (or none). */
-  const sameLanding = (/** @type {Landing | null} */ a, /** @type {Landing | null} */ b) => (!a || !b ? a === b : "item" in a && "item" in b ? a.item === b.item && a.after === b.after && a.depth === b.depth : "zone" in a && "zone" in b && a.zone === b.zone);
-  /**
-   * The pill by the pointer; the carried dimmed (once: again only if the list was drawn anew); where they'd land,
-   * marked, when that changes. (Read first, written after: nothing laid out twice a move.)
-   */
-  const follow = () => {
-    if (!drag) return;
-    const at = landingNow(), marked = drag.ids.every((id) => itemNamed(id)?.classList.contains("dragging"));
-    // (A finger's above it, centered, in sight on the screen (below it where there's no room above, under the status
-    // bar): beside it, the thumb was over it.)
-    const above = drag.y - drag.height - 36;
-    drag.ghost.style.transform = drag.touch ? `translate(${clamp(drag.x - drag.width / 2, 8, innerWidth - drag.width - 8)}px, ${above >= drag.top + 8 ? above : drag.y + 36}px)` : `translate(${drag.x + 14}px, ${drag.y + 12}px)`;
-    if (!marked) for (const element of all$(how.item, list)) element.classList.toggle("dragging", drag.ids.includes(how.idOf(element)));
-    if (marked && sameLanding(at, drag.at) && (!at || ("item" in at ? at.item : at.zone).isConnected)) return;
-    unmark();
-    drag.at = at;
-    if (at && "item" in at) {
-      at.item.classList.add(at.after ? "drop-after" : "drop-before", ...(at.down ? ["drop-down"] : []));
-      if (at.depth !== undefined) at.item.style.setProperty("--drop-depth", String(at.depth));
-    }
-    else if (at && "zone" in at) at.zone.classList.add("drop-target");
-  };
-  /** The list scrolled while the pointer's near its edge, faster the nearer. */
-  const edge = () => {
-    if (!drag) return;
-    const box = drag.box, reach = 48;
-    const by = drag.y < box.top + reach ? drag.y - box.top - reach : drag.y > box.bottom - reach ? drag.y - box.bottom + reach : 0;
-    if (by && drag.x >= box.left && drag.x <= box.right) {
-      drag.scroller.scrollTop += by / 3;
-      follow();
-    }
-    drag.frame = requestAnimationFrame(edge);
-  };
-  function lift(/** @type {PointerEvent} */ event) {
-    if (!hand) return;
-    // (A drag: its press no click, even let go, cancelled, where it began: see pressStart.)
-    pressStart = null;
-    const ids = how.carried?.(hand.id) ?? [hand.id], ghost = document.createElement("div");
-    ghost.className = "drag-ghost";
-    ghost.setAttribute("aria-hidden", "true");
-    ghost.innerHTML = `${how.label(ids[0])}${ids.length > 1 ? `<span class="drag-count">${ids.length}</span>` : ""}`;
-    document.body.append(ghost);
-    let scroller = /** @type {HTMLElement} */ (document.scrollingElement);
-    for (let node = /** @type {HTMLElement | null} */ (list); node; node = node.parentElement) {
-      if (/(auto|scroll)/.test(getComputedStyle(node).overflowY)) {
-        scroller = node;
-        break;
-      }
-    }
-    drag = { ids, ghost, x: event.clientX, y: event.clientY, at: null, scroller, box: scroller.getBoundingClientRect(), frame: 0, touch: hand.touch, width: ghost.offsetWidth, height: ghost.offsetHeight, top: parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--safe-top")) || 0 };
-    // (Its own first: the list's look as carrying, its new places shown, after.)
-    how.lift?.();
-    list.classList.add("carrying");
-    document.body.classList.add("carrying");
-    getSelection()?.removeAllRanges();
-    hideTip();
-    hideMenu();
-    list.setPointerCapture(event.pointerId);
-    follow();
-    drag.frame = requestAnimationFrame(edge);
-  }
-  // (Asked before it scrolls under a finger, or a list long enough to scroll starts to before the hold can stop it.)
-  list.addEventListener("touchmove", pin, { passive: false });
-  list.addEventListener("pointerdown", (event) => {
-    // (One gesture at a time, whatever the list: a second finger, a second press, starts none.)
-    if (event.button !== 0 || carrying) return;
-    const item = /** @type {HTMLElement | null} */ (closest(event, how.item));
-    if (!item || typing(event.target) || how.refuse?.(event)) return;
-    hand = { id: how.idOf(item), x: event.clientX, y: event.clientY, at: [event.clientX, event.clientY], touch: event.pointerType === "touch", held: false, began: false, timer: 0, touched: null, stop: press(event, { captor: list, move, end }) };
-    carrying = endDrag;
-    // (A touch's moves go to what it started on, drawn anew or not: there, they're held from scrolling.)
-    if (hand.touch) {
-      hand.touched = event.target;
-      hand.touched?.addEventListener("touchmove", pin, { passive: false });
-    }
-    // By touch, held still: picked (where items are), and ready to be carried.
-    if (hand.touch) hand.timer = window.setTimeout(() => {
-      if (!hand) return;
-      if (!itemNamed(hand.id)) return endDrag();
-      hand.held = true;
-      // (A carry from here: a drift while held still isn't one.)
-      [hand.x, hand.y] = hand.at;
-      // (Whether this hold began picking: carried off instead, it leaves none picked.)
-      hand.began = !how.picking?.();
-      navigator.vibrate?.(8);
-      how.pick?.(hand.id);
-    }, 450);
-  });
-  // Followed wherever the pointer goes; let go, ended wherever that is (off the list, outside the page's frame).
-  function move(/** @type {PointerEvent} */ event) {
-    if (!hand) return;
-    if (drag) {
-      drag.x = event.clientX;
-      drag.y = event.clientY;
-      return follow();
-    }
-    const moved = Math.hypot(event.clientX - hand.x, event.clientY - hand.y);
-    // (By touch, moved before it's held: a scroll.)
-    hand.at = [event.clientX, event.clientY];
-    if (hand.touch && !hand.held) return void (moved > SLOP && endDrag());
-    if ((hand.touch ? moved > SLOP : moved >= 4) && !how.still?.() && itemNamed(hand.id)) lift(event);
-  }
-  /** Its release: carried, landed where it's let go; else (a cancel, its capture lost: see press) put back. @param {PointerEvent | null} event */
-  function end(event) {
-    if (!hand) return;
-    if (!event) return endDrag();
-    if (drag) {
-      drag.x = event.clientX;
-      drag.y = event.clientY;
-    }
-    // Where they land, read now (not as last marked: the list may have been drawn anew), unless now there's no place.
-    const carried = drag && { ids: drag.ids, at: how.still?.() ? null : landingNow(), y: drag.y };
-    // (A drag, or a hold, makes no click: it'd open, or pick again, what was pressed.)
-    if (carried || hand.held) swallowClick();
-    const began = hand.began;
-    endDrag(true, !carried?.at);
-    if (carried?.at) how.land(carried.ids, carried.at, carried.y);
-    if (carried?.at) settleGhost(carried.ids);
-    // A hold that became a drag moved it: it picked nothing (picking was on before, it stays).
-    if (carried && began) how.unpick?.();
-  }
-  // (Nothing in it is dragged the browser's way: an image, a link.)
-  list.addEventListener("dragstart", (event) => event.preventDefault());
-  document.addEventListener("keydown", (event) => {
-    if (!drag || event.key !== "Escape") return;
-    event.preventDefault();
-    event.stopImmediatePropagation();
-    endDrag();
-  }, true);
-}
-/** The gesture going on, if one is (its letting go): one at a time, whatever the list; a chart opened, the grid, a panel closed end it. @type {(() => void) | null} */
-let carrying = null;
-/** The click a gesture makes at its end, swallowed (after a drag, a long press): a pointer's, never a key's; a new press clears it. */
-let swallowUntil = 0;
-const swallowClick = () => (swallowUntil = performance.now() + 600);
-window.addEventListener("pointerdown", () => (swallowUntil = 0), true);
-window.addEventListener("click", (event) => {
-  if (performance.now() > swallowUntil || event.detail === 0) return;
-  swallowUntil = 0;
-  event.preventDefault();
-  event.stopPropagation();
-}, true);
-/**
- * A press clicks what it pressed: a control that slid from under a still pointer while held (a fold above it, a
- * glide) is still the one clicked. The browser's click, its release elsewhere, goes to what holds both (or, in some,
- * nowhere): that one taken back, this one given, else given as the release's events are done.
- */
-let pressStart = /** @type {{ target: Element, x: number, y: number, box: DOMRect } | null} */ (null);
-let slidFrom = /** @type {Element | null} */ (null);
-const clickSlid = (/** @type {MouseEvent} */ { clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail }) => ((target) => ((slidFrom = null), target?.isConnected && target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail: detail || 1 }))))(slidFrom);
-window.addEventListener("pointerdown", (event) => {
-  slidFrom = null;
-  pressStart = event.isPrimary && event.button === 0 && event.target instanceof Element ? { target: event.target, x: event.clientX, y: event.clientY, box: event.target.getBoundingClientRect() } : null;
-  const was = pressStart;
-  if (!was) return;
-  press(event, {
-    // (Moved past the slop at any point, a drag's, even one let go where it began: no click of its own.)
-    move: (moved) => Math.hypot(moved.clientX - was.x, moved.clientY - was.y) > SLOP && pressStart === was && (pressStart = null),
-    end: (release) => {
-      if (pressStart !== was) return;
-      pressStart = null;
-      const at = release?.target;
-      if (!release || !(at instanceof Node) || was.target.contains(at) || !was.target.isConnected || Math.hypot(release.clientX - was.x, release.clientY - was.y) > SLOP) return;
-      // (Slid: it's moved, not merely elsewhere than where the pointer's held by another, a grip's.)
-      const box = was.target.getBoundingClientRect();
-      if (Math.hypot(box.x - was.box.x, box.y - was.box.y) < 1) return;
-      slidFrom = was.target;
-      setTimeout(() => slidFrom === was.target && clickSlid(release));
-    },
-  });
-}, true);
-window.addEventListener("click", (event) => {
-  if (!slidFrom || !event.isTrusted) return;
-  if (event.target === slidFrom || event.defaultPrevented) return void (slidFrom = null);
-  event.preventDefault();
-  event.stopImmediatePropagation();
-  clickSlid(event);
-}, true);
+startGestures();
 dragToReorder($("chart-list"), {
   item: "[data-chart-row], [data-folder-row]",
   // (A row's → and ⋯ pressed: theirs, not a drag.)
@@ -13413,7 +13151,7 @@ export {
   $, acrossUnfit, afterHands, ago, all$, amount, answers, applyPanel, applyTheme, aside, asThen, averageFor, AVERAGES,
   AXIS_CHARS, axisLabel, axisTicks, BACKS, bandLit, BELOW, belowOf, beltStop, blankChart, BOXES, boxing, BRUSH_MIN,
   brushDrag, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, bubbleRing, buildAsked, buildChart, byBlock, byKeys,
-  byTouch, CADENCE, canLook, canTravel, capturing, cardsSeen, carrying, catalogIndex, changesOf, chart, chartAgain,
+  byTouch, CADENCE, canLook, canTravel, capturing, cardsSeen, catalogIndex, changesOf, chart, chartAgain,
   chartById, chartHeight, chartImage, chartNow, chartSans, chartSize, CHEVRON, chooseDrawings, chosen, CHUNK, clamp,
   clearLayerPicks, clearLook, client, closedOwner, closePreview, closest, CLOUD, cloudLayers, cohortColor, cohortName,
   cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, COMPARES, composing, crossMoved, css, DASHES,
@@ -13429,7 +13167,7 @@ export {
   GRADIENT_LEAST, GRADIENT_MOST, GRADIENT_PRESETS, gradientWidth, GROUP_MARK, GROUP_OF, grouped, GROUPS, grow, growth,
   handsHeld, hashOf, HEAD_OWN, HEAT_AGES, HEAT_COHORTS, HEAT_GRADIENT, HEAT_HOLDERS, HEAT_MEASURES, HEAT_PICTURE_AGG,
   HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_ROWS, HEAT_TILE_COLUMNS, HEAT_WEIGHTS, heatAt, heatCohort, heatKnown,
-  heatLike, heldUpright, hexToOklch, hideBelt, hideDrawings, hideMenu, hideSubmenu, hideText, histories, historyFor,
+  heatLike, heldUpright, hexToOklch, hideBelt, hideDrawings, hideMenu, hideSubmenu, hideText, hideTip, histories, historyFor,
   holding, hollowOf, home, homeAt, homeScroll, homeScroller, hoverTime, humanize, humanizeKey, iconNames, ICONS,
   atWindow, chartWindow, importCharts, IN_PERCENT, indexAt, indexCatalog, inLibrary, inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL,
   INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isDeleted, isLeaf, isNamed, isOhlc,
@@ -13460,7 +13198,7 @@ export {
   showShortcuts, sideLight, sidePresets, signalShown, signedMeasure, signedSignal, SIZE_NAMES, sizeChart, sizeHeld,
   SIZES, SLIDERS, SLOP, SPAN, SPAN_DAYS, SPAN_LETTERS, spanDays, spanKey, spanParts, SPANS, spotlight, STACKED_ONLY,
   STACKS, started, STARTERS, startLabel, startTyping, stepIn, storage, stretchResult, studioVersion, submenus,
-  subSetups, swallowClick, SWATCHES, syncUndo, tabletHead, tagLit, takeUp, takeView, TEXT_SIZE, THEMES, THROUGH,
+  subSetups, SWATCHES, syncUndo, tabletHead, tagLit, takeUp, takeView, TEXT_SIZE, THEMES, THROUGH,
   thumbs, timeAt, timesAt, toast, toggleMember, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, TOOLS, TOUCH,
   touched, track, tree, TREND_FLIP, trendShort, TWO_KEPT, TWO_OR_ONE, TWO_POINTS, typeName, TYPES, typing, typingIn,
   uid, undoLast, undoLibrary, undoToast, unfitted, UNIT_NAMES, unitOf, UNREAD, UNSHARED, updatePaletteKeys,

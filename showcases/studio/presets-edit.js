@@ -25,7 +25,8 @@ import {
 } from "/studio/grid.js";
 import { goneSaid, hideLayers, keepFocus, layerById, modesFor, movers, paneMode } from "/studio/inspector.js";
 import { contentOf, exportRows, fromSketch, keepCarriedView, lookFields, renameInPlace, validate } from "/studio/menus.js";
-/** @import { Chart, Landing, Layer, Pane } from "/studio/app.js" */
+/** @import { Chart, Layer, Pane } from "/studio/app.js" */
+/** @import { Landing } from "/studio/gestures.js" */
 /** @import { Action, Page } from "/studio/command.js" */
 
 
