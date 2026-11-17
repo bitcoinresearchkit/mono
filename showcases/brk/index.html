@@ -77,7 +77,7 @@
       a {
         color: inherit;
         text-underline-offset: 0.2em;
-        text-decoration-color: var(--rule);
+        text-decoration-color: color-mix(in oklab, currentColor 45%, transparent);
 
         &:hover {
           color: var(--accent);
@@ -88,6 +88,11 @@
       :focus-visible {
         outline: 2px solid var(--focus);
         outline-offset: 3px;
+      }
+
+      /* (No paragraph ends on a lone word.) */
+      p {
+        text-wrap: pretty;
       }
 
       code {
@@ -116,13 +121,6 @@
           padding: 6px 12px;
           background: var(--card);
         }
-      }
-
-      .label {
-        color: var(--soft);
-        font: 500 12.5px/1.4 var(--mono);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
       }
 
       /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
@@ -226,12 +224,13 @@
 
         h1 {
           max-width: 16ch;
-          margin: 12px 0 0;
+          margin: 0;
           color: var(--ink);
           font-size: clamp(38px, 6.4vw, 70px);
           font-weight: 700;
-          line-height: 1.02;
-          letter-spacing: -0.04em;
+          line-height: 1.04;
+          letter-spacing: -0.028em;
+          text-wrap: balance;
         }
 
         .lede {
@@ -279,21 +278,9 @@
       }
 
       .facts {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px 22px;
-        margin: 40px 0 0;
-        padding: 0;
-        list-style: none;
-        color: var(--soft);
-        font: 13px var(--mono);
-
-        li::before {
-          content: "■ ";
-          color: var(--accent);
-          font-size: 9px;
-          vertical-align: 0.15em;
-        }
+        margin: 36px 0 0;
+        color: var(--text);
+        font-size: 14.5px;
       }
 
       /* ── The catalog: groups of tiles ── */
@@ -304,18 +291,22 @@
         padding-top: 22px;
 
         > h2 {
-          margin: 6px 0 0;
+          margin: 0;
           color: var(--ink);
           font-size: clamp(26px, 3.4vw, 34px);
           font-weight: 700;
           line-height: 1.1;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.02em;
         }
 
         > .intro {
           max-width: 62ch;
           margin: 10px 0 0;
           color: var(--soft);
+        }
+
+        > .actions + .intro {
+          margin-top: 20px;
         }
       }
 
@@ -324,6 +315,9 @@
 
         > h3 {
           margin: 0 0 12px;
+          color: var(--ink);
+          font-size: 15px;
+          font-weight: 600;
         }
       }
 
@@ -386,22 +380,8 @@
           gap: 10px;
           border-top: 1px solid var(--hair);
           padding-top: 10px;
-          color: var(--soft);
-          font: 12.5px var(--mono);
-
-          button {
-            border: 1px solid var(--rule);
-            border-radius: 6px;
-            padding: 2px 9px;
-            color: var(--soft);
-            background: var(--app);
-            font: 12px var(--sans);
-            cursor: pointer;
-
-            &:hover {
-              color: var(--ink);
-            }
-          }
+          color: var(--text);
+          font: 13px var(--mono);
         }
       }
 
@@ -457,7 +437,7 @@
         }
 
         h3 {
-          margin: 6px 0 0;
+          margin: 0;
           color: var(--ink);
           font-size: 19px;
           font-weight: 650;
@@ -476,22 +456,42 @@
         border-radius: 10px;
         padding: 16px 18px;
         font: 13.5px/1.7 var(--mono);
+
+        /* (On a phone the example's longest line fits whole.) */
+        @media (width < 480px) {
+          padding: 14px;
+          font-size: 12px;
+        }
       }
 
+      /* (The install line in the code's frame, its copy button at its end as on a crate's tile.) */
       .command {
+        display: flex;
+        align-items: center;
         margin-bottom: 10px;
-        border: 1px solid var(--rule);
-        background: var(--card);
-        color: var(--ink);
+        padding-right: 14px;
+
+        pre {
+          flex: 1;
+        }
       }
 
       /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
-      .code {
+      :is(.code, .command) {
         border-radius: 10px;
         color: #e7e9ef;
-        background: #12151c;
-        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+        background: #161a23;
+        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+      }
 
+      .code {
+        position: relative;
+
+        button[data-copy] {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+        }
 
         /* (Reached by keys to scroll it: the ring on the frame, the code's own clipped by it.) */
         &:has(pre:focus-visible) {
@@ -518,8 +518,6 @@
 
       .boundary {
         margin: 32px 0 0;
-        border-left: 2px solid var(--accent);
-        padding: 2px 0 2px 16px;
         max-width: 70ch;
 
         b {
@@ -571,6 +569,33 @@
         white-space: nowrap;
       }
 
+      button[data-copy] {
+        border: 1px solid color-mix(in oklab, var(--soft) 45%, transparent);
+        border-radius: 6px;
+        padding: 4px 10px;
+        color: var(--soft);
+        background: var(--app);
+        font: 12px var(--sans);
+        cursor: pointer;
+
+        &:hover {
+          color: var(--ink);
+        }
+      }
+
+      /* (In the code's dark frame, the button in the frame's own colours, its focus ring the dark theme's; on the
+         program, in its top corner.) */
+      :is(.command, .code) button[data-copy] {
+        color-scheme: dark;
+        border-color: rgb(255 255 255 / 0.18);
+        color: #b9beca;
+        background: transparent;
+
+        &:hover {
+          color: #e7e9ef;
+        }
+      }
+
       /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
       button[data-copy]:not([hidden]) {
         display: inline-flex;
@@ -584,9 +609,9 @@
           visibility: hidden;
         }
       }
-      /* (A finger's reach, unseen: the bar's and the foot's links, the support crates' names, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
+      /* (A finger's reach, unseen: the bar's and the foot's links, the support crates' names, a link in a section's text, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
          around them, never over a neighbour.) */
-      :is(.bar a, .button, button[data-copy], footer a, .support dt a) {
+      :is(.bar a, .button, button[data-copy], footer a, .support dt a, .intro a) {
         position: relative;
 
         /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
@@ -632,51 +657,43 @@
 
     <main id="main">
       <section class="hero shell" id="top" aria-labelledby="title">
-        <span class="label">A Rust workspace · MIT</span>
         <h1 id="title">Rust crates for Bitcoin Core data.</h1>
-        <p class="lede">Bitcoin Core RPC, its block files in chain order, the live mempool, a price read from the chain, Bitcoin's types and typed storage: each its own crate. Use one, or the parts you need; <a href="https://bitview.dev">Bitview</a> is built from all of them.</p>
+        <p class="lede">Bitcoin Core RPC, its block files in chain order, the live mempool, a price read from the chain, Bitcoin's types and typed storage: each its own crate. Use one, or the parts you need; <a href="https://bitview.dev">Bitview</a>, a self-hostable Bitcoin explorer and data server, is built from all of them.</p>
         <div class="actions">
           <a class="button primary" href="#crates">Browse the crates</a>
-          <a class="button" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg>Star on GitHub</a>
         </div>
-        <ul class="facts" aria-label="The workspace">
-          <li>10 crates on crates.io</li>
-          <li>Rust 2024 edition</li>
-          <li>One version across the workspace</li>
-          <li>No consensus code: Bitcoin Core decides</li>
-        </ul>
+        <p class="facts">10 crates on crates.io, Rust 2024 edition, MIT license.</p>
       </section>
 
       <section class="shell" id="crates" aria-labelledby="crates-title">
         <div class="part">
-          <span class="label">01 · The crates</span>
           <h2 id="crates-title">Add the part you need</h2>
           <p class="intro">Each name opens its API documentation; source, examples and longer notes are in the repository.</p>
 
           <div class="group" aria-labelledby="g-core">
-            <h3 class="label" id="g-core">Bitcoin Core data</h3>
+            <h3 id="g-core">Bitcoin Core data</h3>
             <div class="tiles">
-              <article class="tile"><a class="name" href="https://docs.rs/brk_rpc">brk_rpc</a><p>Calls Bitcoin Core's JSON-RPC with typed results, retrying while the node is out of reach and refreshing its cookie.</p><div class="add"><span>cargo add brk_rpc</span><button type="button" data-copy="cargo add brk_rpc" aria-label="Copy: cargo add brk_rpc">Copy</button></div></article>
-              <article class="tile"><a class="name" href="https://docs.rs/brk_reader">brk_reader</a><p>Streams the blocks in your node's <code>blk*.dat</code> files in canonical chain order, skipping orphans.</p><div class="add"><span>cargo add brk_reader</span><button type="button" data-copy="cargo add brk_reader" aria-label="Copy: cargo add brk_reader">Copy</button></div></article>
-              <article class="tile"><a class="name" href="https://docs.rs/brk_mempool">brk_mempool</a><p>Keeps the live mempool, its projected next blocks and fee recommendations.</p><div class="add"><span>cargo add brk_mempool</span><button type="button" data-copy="cargo add brk_mempool" aria-label="Copy: cargo add brk_mempool">Copy</button></div></article>
+              <article class="tile"><a class="name" href="https://docs.rs/brk_rpc">brk_rpc</a><p>Calls Bitcoin Core's JSON-RPC with typed results, retrying while the node is out of reach and refreshing its cookie.</p><div class="add"><span>cargo add brk_rpc</span><button type="button" data-copy aria-label="Copy: cargo add brk_rpc">Copy</button></div></article>
+              <article class="tile"><a class="name" href="https://docs.rs/brk_reader">brk_reader</a><p>Streams the blocks in your node's <code>blk*.dat</code> files in canonical chain order, skipping orphans.</p><div class="add"><span>cargo add brk_reader</span><button type="button" data-copy aria-label="Copy: cargo add brk_reader">Copy</button></div></article>
+              <article class="tile"><a class="name" href="https://docs.rs/brk_mempool">brk_mempool</a><p>Keeps the live mempool, its projected next blocks and fee recommendations.</p><div class="add"><span>cargo add brk_mempool</span><button type="button" data-copy aria-label="Copy: cargo add brk_mempool">Copy</button></div></article>
             </div>
           </div>
 
           <div class="group" aria-labelledby="g-price">
-            <h3 class="label" id="g-price">Prices and foundation</h3>
+            <h3 id="g-price">Prices and foundation</h3>
             <div class="tiles">
-              <article class="tile"><a class="name" href="https://docs.rs/brk_oracle">brk_oracle</a><p>The BTC/USD price of each block from its round-dollar outputs, from 2015 on, with exchange prices bundled for the blocks before. No feed.</p><div class="add"><span>cargo add brk_oracle</span><button type="button" data-copy="cargo add brk_oracle" aria-label="Copy: cargo add brk_oracle">Copy</button></div></article>
-              <article class="tile"><a class="name" href="https://docs.rs/brk_types">brk_types</a><p>Bitcoin's domain types and storage indexes, shared by every crate here and by Bitview.</p><div class="add"><span>cargo add brk_types</span><button type="button" data-copy="cargo add brk_types" aria-label="Copy: cargo add brk_types">Copy</button></div></article>
-              <article class="tile"><a class="name" href="https://docs.rs/brk_store">brk_store</a><p>Typed key-value stores over fjall, with version checks and batched ingestion.</p><div class="add"><span>cargo add brk_store</span><button type="button" data-copy="cargo add brk_store" aria-label="Copy: cargo add brk_store">Copy</button></div></article>
+              <article class="tile"><a class="name" href="https://docs.rs/brk_oracle">brk_oracle</a><p>The BTC/USD price of each block from its round-dollar outputs, from 2015 on, with exchange prices bundled for the blocks before. No feed.</p><div class="add"><span>cargo add brk_oracle</span><button type="button" data-copy aria-label="Copy: cargo add brk_oracle">Copy</button></div></article>
+              <article class="tile"><a class="name" href="https://docs.rs/brk_types">brk_types</a><p>Bitcoin's domain types and storage indexes, shared by every crate here and by Bitview.</p><div class="add"><span>cargo add brk_types</span><button type="button" data-copy aria-label="Copy: cargo add brk_types">Copy</button></div></article>
+              <article class="tile"><a class="name" href="https://docs.rs/brk_store">brk_store</a><p>Typed key-value stores over fjall, with version checks and batched ingestion.</p><div class="add"><span>cargo add brk_store</span><button type="button" data-copy aria-label="Copy: cargo add brk_store">Copy</button></div></article>
             </div>
           </div>
 
           <div class="group" aria-labelledby="g-support">
-            <h3 class="label" id="g-support">Support</h3>
+            <h3 id="g-support">Support</h3>
             <dl class="support">
               <div><dt><a href="https://docs.rs/brk_error">brk_error</a></dt><dd>The errors used throughout.</dd></div>
               <div><dt><a href="https://docs.rs/brk_logger">brk_logger</a></dt><dd>Tracing set up, with daily and per-level log files.</dd></div>
-              <div><dt><a href="https://docs.rs/brk_alloc">brk_alloc</a></dt><dd>mimalloc, re-exported, with eager memory collection.</dd></div>
+              <div><dt><a href="https://docs.rs/brk_alloc">brk_alloc</a></dt><dd>The mimalloc allocator, re-exported, with eager memory collection.</dd></div>
               <div><dt><a href="https://docs.rs/brk_exit">brk_exit</a></dt><dd>On Ctrl-C or <code>SIGTERM</code>, waits for guarded sections to finish, runs cleanup, then exits.</dd></div>
             </dl>
           </div>
@@ -685,25 +702,25 @@
 
       <section class="shell" id="example" aria-labelledby="example-title">
         <div class="part">
-          <span class="label">02 · An example</span>
           <h2 id="example-title">Connect to Bitcoin Core</h2>
           <div class="example">
             <div>
-              <span class="label">brk_rpc</span>
               <h3>Read the chain's height</h3>
               <p>A complete program, using <code>brk_rpc</code>'s default RPC address and cookie file. Bitcoin Core must be running with RPC enabled.</p>
             </div>
             <div>
-              <pre class="command">cargo add brk_rpc</pre>
+              <div class="command"><pre>cargo add brk_rpc</pre><button type="button" data-copy aria-label="Copy: cargo add brk_rpc">Copy</button></div>
               <div class="code"><pre><span class="k">use</span> brk_rpc::ConnectArgs;
 
 <span class="k">fn</span> main() {
     <span class="k">let</span> rpc = ConnectArgs::default()
         .client()
         .expect(<span class="s">"connect to Bitcoin Core"</span>);
-    <span class="k">let</span> height = rpc.get_last_height().expect(<span class="s">"read chain tip"</span>);
+    <span class="k">let</span> height = rpc
+        .get_last_height()
+        .expect(<span class="s">"read chain tip"</span>);
     println!(<span class="s">"{height}"</span>);
-}</pre></div>
+}</pre><button type="button" data-copy aria-label="Copy the program">Copy</button></div>
             </div>
           </div>
           <p class="boundary"><b>Where it stops.</b> Bitcoin Core validates every block and picks the active chain. BRK reads and organizes what a configured node has; it is not a consensus implementation.</p>
@@ -712,15 +729,14 @@
 
       <section class="shell" aria-labelledby="status-title">
         <div class="part">
-          <span class="label">03 · Status</span>
           <h2 id="status-title">In active development</h2>
           <p class="intro">Public APIs and storage formats may change between releases. Every crate shares one version, so related ones update together.</p>
           <div class="actions">
             <a class="button" href="https://github.com/bitcoinresearchkit/mono/releases">Releases</a>
             <a class="button" href="https://github.com/bitcoinresearchkit/mono/issues">Issues</a>
-            <a class="button" href="https://discord.gg/WACpShCB7M">Discord ↗</a>
-            <a class="button" href="https://opensats.org/projects/bitcoinresearchkit">Supported by OpenSats ↗</a>
+            <a class="button" href="https://discord.gg/WACpShCB7M">Discord</a>
           </div>
+          <p class="intro">Supported by <a href="https://opensats.org/projects/bitcoinresearchkit">OpenSats</a>.</p>
         </div>
       </section>
     </main>
@@ -740,16 +756,18 @@
       // A crate's add command, copied; where the page can't write the clipboard, no buttons: the text's there to select.
       for (const button of document.querySelectorAll("[data-copy]")) {
         button.hidden = !navigator.clipboard;
+        // (What it copies is what's written just before it: the command, or the whole program.)
+        const text = button.previousElementSibling.textContent;
         button.addEventListener("click", async () => {
           let said = "Copied";
           try {
-            await navigator.clipboard.writeText(button.dataset.copy);
+            await navigator.clipboard.writeText(text);
           } catch {
             said = "Failed";
           }
           // (The button's word short, no wider than "Copied"; the whole said aloud.)
           button.textContent = said;
-          copied.textContent = `${said === "Copied" ? "Copied" : "Copy failed"}: ${button.dataset.copy}`;
+          copied.textContent = said === "Copied" ? "Copied" : "Copy failed";
           setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
         });
       }
