@@ -37,7 +37,7 @@ async function read() {
     // (Kept alone, those made from anything else gone, with the facts they were made by; made without them (they
     // didn't come), not kept, nor anything gone: their next start asks for them again.)
     const keep = (/** @type {{ text: string, said: string, client: string }} */ result) => (result.said ? Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(result.text, { headers: { "content-type": "application/json", "x-facts": result.said, "x-client": result.client } }))]) : undefined);
-    // (Kept, by the client's stamp they were made by (the worker's, see maker): made by another, made anew. Only kept
+    // (Kept, by the client's stamp they were made by (the worker's, see presets-worker.js): made by another, made anew. Only kept
     // ones ask for the page's client here, so a first visit never loads it early, beside the app's own code.)
     if (kept && kept.headers.get("x-client") === (await import("/modules/bitview-client/index.js")).BitviewClient.HASH) {
       // (Looked at again behind, once the page has started: kept anew if the chain's facts have changed.)

@@ -20,8 +20,10 @@ script's string; never an `<a href>`) at that address: a reload asks for the pag
 by their path from the root, and a URL computed at run time goes through `import.meta.resolve` (a classic script's:
 `new URL` from its own `src`); anything else still works, revalidated on every load. A release changes every address,
 so a returning visitor downloads the files it uses once again. An earlier release's address (an open page loading
-late) answers the current file, revalidated, as only the current release is held. A `Filesystem` website, whose
-files may change while it's served, has no release.
+late) answers the current file, revalidated, as only the current release is held. Workers start at the same files'
+second address, `/w/<release>/<path>`, and import relative to it (a worker has no import map): in WebKit, a page's
+module whose address a worker has also loaded comes from the network on each reload after (Studio's
+`showcases/studio/workers.js`). A `Filesystem` website, whose files may change while it's served, has no release.
 
 ## Behind Cloudflare
 
