@@ -9,6 +9,7 @@ import { FAINT } from "./line.js";
 import { lineOf } from "./candles.js";
 import { inkOn, painted } from "./color.js";
 import { pill, PILL } from "./tags.js";
+import { layer } from "./layer.js";
 
 const DAY = 86400, MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -17,8 +18,7 @@ export class Crosshair {
   #within = /** @type {[number, number]} */ ([0, 0]);
 
   constructor() {
-    this.canvas = document.createElement("canvas");
-    this.canvas.style.cssText = "position: absolute; left: 0; top: 0; z-index: 1; display: block; pointer-events: none";
+    this.canvas = layer("position: absolute; left: 0; top: 0; z-index: 1; display: block; pointer-events: none");
     const g = this.canvas.getContext("2d");
     if (!g) throw new Error("bitview-charts: no 2D canvas");
     this.g = g;

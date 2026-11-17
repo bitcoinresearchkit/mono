@@ -27,7 +27,8 @@ chart.show(365);                                 // the last 365 points in view
   `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
   past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
-  none there, null for the library's.
+  none there, null for the library's. The canvases it lays in `element` are `aria-hidden`: the chart's name and
+  words are the page's (a heading, its legends).
   `embedded`, a chart in a page that scrolls: a finger's mostly vertical swipe scrolls the page (the browser deciding:
   `touch-action: pan-y`), a sideways one pans, a pinch zooms, a held finger's crosshair holds the page still; a finger
   takes no separator or price axis there (their drags are vertical; a mouse's still do). A pinch starts with both

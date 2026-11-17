@@ -15,6 +15,7 @@ import { compact, kept } from "./format.js";
 import { solid, tint, painted } from "./color.js";
 import { Tags, pill, PILL } from "./tags.js";
 import { Legend } from "./legend.js";
+import { layer } from "./layer.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -82,8 +83,7 @@ export class Pane {
   constructor({ share = 1, scale, left, format = compact } = {}) {
     // (Its plot's canvas, and its right axis' beside it (as its left axis' is, see placeLeft): a page can move or stretch
     // the plot alone.)
-    this.canvas = document.createElement("canvas");
-    this.canvas.style.cssText = "position: absolute; left: 0; display: block";
+    this.canvas = layer("position: absolute; left: 0; display: block");
     /**
      * A page's own element over its plot (a legend, a highlight), laid out with it, under the crosshair; it takes no
      * pointer (its children may).
@@ -95,8 +95,7 @@ export class Pane {
     const g = this.canvas.getContext("2d", { alpha: false });
     if (!g) throw new Error("bitview-charts: no 2D canvas");
     this.g = g;
-    this.axisCanvas = document.createElement("canvas");
-    this.axisCanvas.style.cssText = "position: absolute; left: 0; display: block";
+    this.axisCanvas = layer("position: absolute; left: 0; display: block");
     this.axisG = /** @type {CanvasRenderingContext2D} */ (this.axisCanvas.getContext("2d", { alpha: false }));
     /** Its part of the chart's height, against the other panes'. */
     this.share = share;
@@ -229,9 +228,8 @@ export class Pane {
       this.onLayout();
     }
     if (series.over && !this.overCanvas) {
-      this.overCanvas = document.createElement("canvas");
       // (Over the crosshair's, wherever a page puts them.)
-      this.overCanvas.style.cssText = "position: absolute; left: 0; z-index: 2; display: block; pointer-events: none";
+      this.overCanvas = layer("position: absolute; left: 0; z-index: 2; display: block; pointer-events: none");
       this.overG = this.overCanvas.getContext("2d");
       this.onLayout();
     }
@@ -503,8 +501,7 @@ export class Pane {
     this.leftWidth = width;
     if (!width) return;
     if (!this.leftCanvas) {
-      this.leftCanvas = document.createElement("canvas");
-      this.leftCanvas.style.cssText = "position: absolute; left: 0; display: block";
+      this.leftCanvas = layer("position: absolute; left: 0; display: block");
       this.leftG = this.leftCanvas.getContext("2d", { alpha: false });
     }
     const canvas = this.leftCanvas;

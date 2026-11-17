@@ -4,6 +4,7 @@
 
 import { kept } from "./format.js";
 import { Tags, pill } from "./tags.js";
+import { layer } from "./layer.js";
 
 const DAY = 86400;
 /**
@@ -59,8 +60,7 @@ export class TimeAxis {
   #roomsFormat = null;
 
   constructor() {
-    this.canvas = document.createElement("canvas");
-    this.canvas.style.cssText = "position: absolute; left: 0; display: block";
+    this.canvas = layer("position: absolute; left: 0; display: block");
     const g = this.canvas.getContext("2d", { alpha: false });
     if (!g) throw new Error("bitview-charts: no 2D canvas");
     this.g = g;

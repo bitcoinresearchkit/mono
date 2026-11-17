@@ -5188,12 +5188,6 @@ engine.element.addEventListener("pointerleave", () => !crossIn && lightTag(null)
 let keyTime = /** @type {number | null} */ (null);
 /** With a tool in hand, the value ↑ and ↓ moved the keys' point to at its date (off its layer's line); another date, on the line again. */
 let keyValue = /** @type {{ layer: string, value: number } | null} */ (null);
-// The library's canvases are pictures (the plot's words are the plot's, its legends' their buttons'): out of what's
-// read, each as the library adds it (a pane's, later).
-new MutationObserver((records) => {
-  for (const record of records) for (const node of record.addedNodes) for (const canvas of node instanceof HTMLCanvasElement ? [node] : node instanceof Element ? node.querySelectorAll("canvas") : []) canvas.setAttribute("aria-hidden", "true");
-}).observe($("chart"), { childList: true, subtree: true });
-for (const canvas of $("chart").querySelectorAll("canvas")) canvas.setAttribute("aria-hidden", "true");
 /** The keys' crosshair on a bar: in view (the view moves to it), on the chart, its values in the legends, said. */
 function keyAt(/** @type {number} */ i) {
   if (!resolved) return;
