@@ -814,6 +814,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   rows as compressed columns and the UTXO set keeps a snapshot every 500 blocks (was 1,000): together −4.8 GB on disk.
   Updating to a new block costs about 0.25 ms more, and the first start after upgrading rebuilds the spend journal and
   the history (about 2.5 minutes on a Mac mini)
+- Cointime, Coinflow and Bedrock read each block's price distribution from the stored URPD history instead of each
+  replaying the UTXO set: one producer instead of four, and a restart resumes each in about 1 ms (was 15 ms). Their
+  series are byte-identical; the first start after upgrading recomputes them (about 105 s on a Mac mini)
 - mmpl and `Mempool::tick` resolve a pending transaction's confirmed prevouts from the node's UTXO set
   (`gettxout`) instead of `getrawtransaction`: no `txindex` needed, and a node without one no longer retries every
   hole each cycle (4.3 s cycles at 60k transactions, now 95 ms; the first full load one 1.1 s cycle)
