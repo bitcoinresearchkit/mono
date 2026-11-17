@@ -2507,7 +2507,7 @@
         const confirmed = tx.status.confirmed;
         const height = tx.status.block_height;
         const time = confirmed ? tx.status.block_time : nowS();
-        const { outspends, spendPrice = confirmed ? null : (state.price ?? null), cpfp, versions = null, seen = 0, tip = state.tip, blocks, births } = more ?? {};
+        const { outspends, spendPrice = confirmed ? null : (state.price ?? null), cpfp, versions = null, seen = 0, tip = confirmed ? Math.max(state.tip, height) : state.tip, blocks, births } = more ?? {};
         const inputs = tx.vin.map((v, i) => {
           if (v.is_coinbase) return { coinbase: true, value: tx.vout.reduce((s, o) => s + o.value, 0), age: null };
           const base = { value: v.prevout.value, address: v.prevout.scriptpubkey_address, type: v.prevout.scriptpubkey_type, from: v.txid, age: null };
@@ -2892,16 +2892,16 @@
       async function viewTx(txid) {
         const v = state.view;
         const tx = await get(`/tx/${txid}`).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
-        // A confirmed one's answer at once, from its own read (and the tip): its block, amounts and fee; the rest below
+        // A confirmed one's answer at once, from its own read and the tip (never over its failure, shown already): its block, amounts and fee; the rest below
         // it as it's read. (A waiting one's answer is its place in the queue, which needs the reads. Nor over its page
         // already shown, read again for a new block.)
         const sketch = () => {
-          if (state.view !== v || !tx.status.confirmed || $("view").querySelector(`.focus [data-copy="${tx.txid}"]`)) return;
+          if (state.view !== v || v.done || !tx.status.confirmed || $("view").querySelector(`.focus [data-copy="${tx.txid}"]`)) return;
           const k = factsOf(txFacts(tx));
           $("view").innerHTML = `<div class="focus ${k.state}">${answerOf(k)}</div>`;
           v.painted();
         };
-        const [t] = tx ? await Promise.all([readTx(tx), ready.then(sketch)]) : [null];
+        const [t] = tx ? await Promise.all([readTx(tx), tipKnown.then(sketch)]) : [null];
         const k = t ? factsOf(t) : await ready.then(() => replacedOf(txid));
         if (!k) throw Object.assign(new Error("Not found"), { status: 404 });
         const moments = await momentsOf(k);
@@ -3221,6 +3221,7 @@
         } catch (e) {
           if (state.view === v) fail(e);
         } finally {
+          v.done = true;
           v.painted();
         }
       }
@@ -3336,7 +3337,8 @@
       // The view starts at once, beside the reads views count from: the tip, the queue and the price, which a view waits
       // on (ready) only where it needs them. Each read on its own: one failing leaves the others shown, and the timers
       // try it again.
-      const ready = Promise.allSettled([readTip(), readProjected(), readPrice()]);
+      const tipKnown = readTip().catch(() => {});
+      const ready = Promise.allSettled([tipKnown, readProjected(), readPrice()]);
       readDifficulty().catch(() => {});
       render();
       await ready;
