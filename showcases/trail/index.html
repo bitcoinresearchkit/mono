@@ -214,8 +214,8 @@
         /* (Clear of the title's ascenders, which stand above its line box at every size.) */
         margin: 0 0 calc(var(--title-size, 96px) / 6);
         color: var(--muted);
-        /* (A sixth of the title, as it's sized.) */
-        font-size: calc(var(--title-size, 96px) / 6);
+        /* (A sixth of the title, as it's sized, and never under the legible floor on screen.) */
+        font-size: var(--eyebrow-size, 16px);
         font-weight: 500;
         letter-spacing: 0.14em;
       }
@@ -346,7 +346,7 @@
         display: flex;
         flex-wrap: wrap;
         justify-content: center;
-        gap: 6px 22px;
+        gap: 6px 40px;
         color: var(--muted);
         font-weight: 500;
         letter-spacing: 0.08em;
@@ -481,16 +481,27 @@
         }
       }
 
-      /* (On an earlier day only: the way back to the latest.) */
+      /* (On an earlier day only: the way back to the latest, beside the toggle, so the scene isn't fitted again.) */
       .today {
-        min-height: 35px;
-        padding: 7px 10px;
+        position: relative;
+        padding: 4px 9px;
+        border: 1px solid rgb(var(--warm-accent-rgb) / 0.58);
+        border-radius: 9px;
         background: transparent;
         color: var(--foreground);
         font: inherit;
-        letter-spacing: 0.1em;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
         text-transform: inherit;
         cursor: pointer;
+
+        /* (A finger's reach, unseen: 44px tall.) */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: min(0px, calc((100% - 44px) / 2)) -2px;
+        }
 
         &[hidden] {
           display: none;
@@ -508,11 +519,17 @@
       }
 
       /* The scene's 2D or 3D: in the screen's corner, as the brand is, not scaled with the scene. */
-      .dimension-toggle {
+      .corner {
         position: fixed;
         z-index: 10;
         bottom: calc(env(safe-area-inset-bottom) + 18px);
         left: calc(env(safe-area-inset-left) + 18px);
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+
+      .dimension-toggle {
         display: flex;
         align-items: center;
         gap: 9px;
@@ -600,6 +617,8 @@
   </head>
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+    <!-- (The view's own controls, in the screen's corner: its 2D or 3D, and on an earlier day the way back to the latest.) -->
+    <div id="corner" class="corner">
     <fieldset
       id="dimension-toggle"
       class="dimension-toggle"
@@ -644,6 +663,8 @@
         </span>
       </label>
     </fieldset>
+    <button id="today" class="today" type="button" hidden>Back to today</button>
+    </div>
     <main id="app" class="app">
       <canvas
         id="terrain"
@@ -654,7 +675,7 @@
 
       <header id="projected-ui" class="topbar">
         <div id="identity" class="identity">
-          <p class="eyebrow">Bitcoin through time and space</p>
+          <p class="eyebrow">Where every bitcoin last moved, by price and day</p>
           <h1>The Satoshi Trail</h1>
         </div>
 
@@ -671,7 +692,6 @@
             <span id="terrain-key" class="key-item"></span>
             <span id="split-legend" class="key-item" hidden></span>
           </div>
-          <button id="today" class="selector today" type="button" hidden>Back to today</button>
         </div>
 
         <div id="price-axis-ui" class="axis-ui price-axis-ui">
@@ -1005,16 +1025,15 @@
           byId("dimension-2d"),
           byId("dimension-3d"),
         ];
-        const dimensionToggle = byId("dimension-toggle");
         const brandLink = document.querySelector(".brand");
         const metricSelect = byId("metric");
         const modeSelect = byId("mode");
         const weightSelect = byId("weight");
         const projectedUi = byId("projected-ui");
         const identityElement = byId("identity");
-        const eyebrowElement = identityElement.querySelector(".eyebrow");
         const dateAxisUi = byId("date-axis-ui");
         const todayButton = byId("today");
+        const corner = byId("corner");
         const priceAxisUi = byId("price-axis-ui");
         const flatAxisHint = byId("flat-axis-hint");
         const keyHints = new Map(
@@ -1879,9 +1898,15 @@
           const params = new URLSearchParams(location.search);
           const stored = readStoredSettings();
 
-          state.dimension = touchQuery.matches
-            ? touchPortraitQuery.matches ? "2d" : "3d"
-            : resolveChoice("dimension", dimensionInputs.map((input) => input.value), state.dimension, params, stored);
+          // (A link's view is kept; otherwise a touch screen's follows how it's held, flat upright, rather than the last one.)
+          const touch = touchQuery.matches;
+          state.dimension = resolveChoice(
+            "dimension",
+            dimensionInputs.map((input) => input.value),
+            touch ? (touchPortraitQuery.matches ? "2d" : "3d") : state.dimension,
+            params,
+            touch ? {} : stored,
+          );
           state.metric = resolveSetting(
             "data",
             metricSelect,
@@ -2821,7 +2846,8 @@
           const signed = state.mode !== "value";
 
           if (state.dimension === "2d") {
-            const top = 170 + ui(FLAT_NOTE_ROOM);
+            // (Room above for the title block, below the brand in the corner, and the note under it.)
+            const top = Math.max(170, (screenBoxInStage(brandLink)?.bottom ?? 0) + identityElement.offsetHeight + 18) + ui(FLAT_NOTE_ROOM);
             // (Room below for the pills, the hint and the readout, as tall as they are at this width: a small screen's wrap.)
             const bottom = ui(TWO_LINE_PILL_HEIGHT + FLAT_FOOTER_GAP + STAGE_EDGE_PADDING) + footerHeight();
             const available = Math.max(
@@ -3047,8 +3073,7 @@
           identityElement.style.width = `${priceLength}px`;
           const titleSize = Math.min(96, priceLength * 0.082);
           identityElement.style.setProperty("--title-size", `${titleSize}px`);
-          // (The eyebrow is a sixth of the title; where that lands under the legible floor on screen, it isn't drawn.)
-          eyebrowElement.hidden = (titleSize / 6) * state.stageScale < MIN_UI_TEXT;
+          identityElement.style.setProperty("--eyebrow-size", `${Math.max(titleSize / 6, MIN_UI_TEXT / state.stageScale)}px`);
           // (The rails grow by state.ui about their top middle, so they wrap, in their own units, to a share of the stage,
           // the scene fitted around them so their lines stay long and few; lying flat, to the flat view's or the stage's width.)
           const railWidth = (share) =>
@@ -3788,7 +3813,7 @@
           target.restore();
         }
 
-        function drawPlotAxes(layout, start, end) {
+        function drawPlotAxes(layout, start, end, selectedRow) {
           const axes = plotAxisGeometry(layout);
           const datePill = datePillModel(
             layout,
@@ -4057,6 +4082,14 @@
 
           if (selectedProfile && state.valueScale > 0) {
             const valueOut = priceAxis;
+            // (A value label left out where the pointer's value pill sits on it, measured up the value axis.)
+            const valueLength = Math.hypot(valueTop.x - valueBottom.x, valueTop.y - valueBottom.y) || 1;
+            const valueAxis = { x: (valueTop.x - valueBottom.x) / valueLength, y: (valueTop.y - valueBottom.y) / valueLength };
+            const valuePills = [];
+            if (selectedRow && state.hoverPriceCoordinate !== null) {
+              const { height, value } = heightAndValueAt(selectedRow, selectedProfile, clamp(state.hoverPriceCoordinate, 0, 1));
+              valuePills.push(pillSpan(formatAxisValue(value), projectAtPrice(layout, axisDateIndex, axisMaxCoordinate, height), false));
+            }
             for (const { value, height } of valueTicks(ui(UI_FONT_SIZE * 1.5) / layout.heightScale)) {
               const point = projectAtPrice(
                 layout,
@@ -4064,6 +4097,7 @@
                 axisMaxCoordinate,
                 height,
               );
+              if (covered(point, ui(UI_FONT_SIZE) / 2, valuePills, valueAxis)) continue;
               context.beginPath();
               context.moveTo(point.x, point.y);
               context.lineTo(
@@ -4118,7 +4152,7 @@
          */
         function footClearance() {
           let inset = 0, top = state.height;
-          for (const element of [brandLink, dimensionToggle]) {
+          for (const element of [brandLink, corner]) {
             const box = screenBoxInStage(element);
             if (!box || box.bottom < state.height * 0.75) continue;
             inset = Math.max(inset, box.left < state.width / 2 ? box.right : state.width - box.left);
@@ -4146,10 +4180,7 @@
             0,
             1,
           );
-          const height = heightAtCoordinate(row, coordinate);
-          const value = profile.sampledRaw
-            ? heightAtCoordinate(profile.sampledRaw, coordinate)
-            : valueAtTerrainHeight(height);
+          const { height, value } = heightAndValueAt(row, profile, coordinate);
           const axisMaxCoordinate =
             priceCoordinate(priceAxisMaximum(dateIndex)) ?? 1;
           const surfacePoint = projectAtPrice(
@@ -4219,6 +4250,12 @@
             },
           );
           context.restore();
+        }
+
+        /** The selected row's drawn height at a price, and the amount it stands for. */
+        function heightAndValueAt(row, profile, coordinate) {
+          const height = heightAtCoordinate(row, coordinate);
+          return { height, value: profile.sampledRaw ? heightAtCoordinate(profile.sampledRaw, coordinate) : valueAtTerrainHeight(height) };
         }
 
         /** The pointer's pill: its price and share, and with a split, the day's largest parts there. */
@@ -5954,7 +5991,7 @@
               selectedProfile,
             );
           }
-          drawPlotAxes(layout, start, end);
+          drawPlotAxes(layout, start, end, selected);
           drawRangeSelection(
             layout,
             selectedDateIndex,
