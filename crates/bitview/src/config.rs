@@ -26,56 +26,94 @@ use crate::{
 /// holds the same files: on a 16 GB machine 1 GiB synced ~80 s faster than 2 GiB, 512 MiB no faster.
 pub const DEFAULT_CACHE_BUDGET: usize = 1 << 30;
 
-#[derive(Debug, Default, Serialize)]
-pub struct Config {
-    bitviewdir: Option<String>,
-    serverbind: Option<IpAddr>,
-    serverport: Option<Port>,
-    website: Option<Website>,
-    cdn: Option<bool>,
-    maxweight: Option<usize>,
-    maxutxos: Option<usize>,
-    publicurl: Option<PublicUrl>,
-    cachebudget: Option<usize>,
-    bitcoindir: Option<String>,
-    blocksdir: Option<String>,
-    rpcconnect: Option<String>,
-    rpcport: Option<u16>,
-    rpccookiefile: Option<String>,
-    rpcuser: Option<String>,
-    rpcpassword: Option<String>,
+/// One setting: `key = value` in `config.toml`, `--key <VALUE>` as a flag.
+struct Setting {
+    key: &'static str,
+    /// Its value, what it does and its default, as `--help` shows them.
+    value: &'static str,
+    help: &'static str,
+    default: Option<&'static (dyn Display + Sync)>,
+    /// Parses its text into its field.
+    set: fn(&mut Config, &str) -> StdResult<(), String>,
+}
+
+/// Declares every setting once, as `key: type, value, help, default;` (rustc's `options!` is the model):
+/// `Config` holds each as an `Option` field, and `SETTINGS` lists them, in the groups and the order
+/// `--help` shows, for the flags, `config.toml` and `--help` to read.
+macro_rules! settings {
+    ($([$($key:ident: $type:ty, $value:literal, $help:literal, $default:expr;)*])*) => {
+        #[derive(Debug, Default, Serialize)]
+        pub struct Config {
+            $($($key: Option<$type>,)*)*
+        }
+
+        static SETTINGS: &[&[Setting]] = &[$(&[$(Setting {
+            key: stringify!($key),
+            value: $value,
+            help: $help,
+            default: $default,
+            set: |config, text| store(&mut config.$key, text),
+        }),*]),*];
+    };
+}
+
+fn store<T: FromStr<Err: Display>>(field: &mut Option<T>, text: &str) -> StdResult<(), String> {
+    *field = Some(text.parse().map_err(|error: T::Err| error.to_string())?);
+    Ok(())
+}
+
+settings! {
+    [
+        bitviewdir: String, "<PATH>", "Output directory", Some(&"~/.bitview");
+        serverbind: IpAddr, "<IP>", "Server bind address", Some(&DEFAULT_BIND);
+        serverport: Port, "<PORT>", "Server port", Some(&Port::DEFAULT);
+        website: Website, "<BOOL|PATH>", "Serve the showcases (true), nothing (false) or a directory", Some(&true);
+        cdn: bool, "<BOOL>", "Aggressive CDN cache, requires purge on deploy", Some(&false);
+        maxweight: usize, "<BYTES>",
+            "Server cap on series response weight in bytes; rejects /api/series/... over the limit",
+            Some(&DEFAULT_MAX_WEIGHT);
+        maxutxos: usize, "<COUNT>",
+            "Server cap on UTXOs per address; /api/address/{addr}/utxo errors past the limit",
+            Some(&DEFAULT_MAX_UTXOS);
+        publicurl: PublicUrl, "<URL>",
+            "The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity",
+            None;
+        cachebudget: usize, "<BYTES>", "Shared vector cache size in bytes", Some(&DEFAULT_CACHE_BUDGET);
+    ]
+    [
+        bitcoindir: String, "<PATH>", "Bitcoin directory", Some(&"OS default");
+        blocksdir: String, "<PATH>", "Blocks directory", Some(&"<bitcoindir>/blocks");
+    ]
+    [
+        rpcconnect: String, "<HOST>", "RPC host", Some(&"localhost");
+        rpcport: u16, "<PORT>", "RPC port", Some(&8332);
+        rpccookiefile: String, "<PATH>", "RPC cookie file; relative paths resolve inside <bitcoindir>",
+            Some(&"<bitcoindir>/.cookie");
+        rpcuser: String, "<USERNAME>", "RPC username", None;
+        rpcpassword: String, "<PASSWORD>", "RPC password", None;
+    ]
+}
+
+fn settings() -> impl Iterator<Item = &'static Setting> {
+    SETTINGS.iter().copied().flatten()
 }
 
 impl Config {
-    /// The settings `config.toml` and the flags name, in the order they are written.
-    const KEYS: [&'static str; 16] = [
-        "bitviewdir",
-        "serverbind",
-        "serverport",
-        "website",
-        "cdn",
-        "maxweight",
-        "maxutxos",
-        "publicurl",
-        "cachebudget",
-        "bitcoindir",
-        "blocksdir",
-        "rpcconnect",
-        "rpcport",
-        "rpccookiefile",
-        "rpcuser",
-        "rpcpassword",
-    ];
-
     pub fn import() -> Result<RunConfig> {
-        let (config_args, dump) = Self::parse_args()?;
+        let (flags, dump) = Self::parse_args()?;
 
         // Without a home directory there's no config.toml: the flags alone.
-        let config = match default_bitview_dir() {
+        let mut config = match default_bitview_dir() {
             Some(dir) => Self::read(&dir.join("config.toml"))?,
             None => Self::default(),
+        };
+        // Flags go over the file's settings, a flag given again over its earlier value.
+        for (setting, value) in flags {
+            // Worded as lexopt words a value its parsing rejects.
+            (setting.set)(&mut config, &value).map_err(|error| {
+                Error::Parse(format!("--{}: cannot parse argument {value:?}: {error}", setting.key))
+            })?;
         }
-        .with_overrides(config_args);
         if dump {
             config.dump()?;
             exit(0);
@@ -86,39 +124,15 @@ impl Config {
         Ok(runner)
     }
 
-    fn with_overrides(self, overrides: Self) -> Self {
-        Self {
-            bitviewdir: overrides.bitviewdir.or(self.bitviewdir),
-            serverbind: overrides.serverbind.or(self.serverbind),
-            serverport: overrides.serverport.or(self.serverport),
-            website: overrides.website.or(self.website),
-            cdn: overrides.cdn.or(self.cdn),
-            maxweight: overrides.maxweight.or(self.maxweight),
-            maxutxos: overrides.maxutxos.or(self.maxutxos),
-            publicurl: overrides.publicurl.or(self.publicurl),
-            cachebudget: overrides.cachebudget.or(self.cachebudget),
-            bitcoindir: overrides.bitcoindir.or(self.bitcoindir),
-            blocksdir: overrides.blocksdir.or(self.blocksdir),
-            rpcconnect: overrides.rpcconnect.or(self.rpcconnect),
-            rpcport: overrides.rpcport.or(self.rpcport),
-            rpccookiefile: overrides.rpccookiefile.or(self.rpccookiefile),
-            rpcuser: overrides.rpcuser.or(self.rpcuser),
-            rpcpassword: overrides.rpcpassword.or(self.rpcpassword),
-        }
-    }
-
-    /// The flags' settings, and whether `--dumpconfig` asks for the settings to be printed.
-    fn parse_args() -> Result<(Self, bool)> {
-        let mut config = Self::default();
+    /// The flags' settings as given, in order, and whether `--dumpconfig` asks for the settings to be
+    /// printed.
+    fn parse_args() -> Result<(Vec<(&'static Setting, String)>, bool)> {
+        let mut flags = Vec::new();
         let mut dump = false;
         let mut parser = Parser::from_env();
         let command = Self::command_name();
 
         while let Some(arg) = parser.next().map_err(parse_error)? {
-            let flag = match &arg {
-                Long(name) => format!("--{name}"),
-                _ => String::new(),
-            };
             match arg {
                 Short('h') | Long("help") => {
                     Self::print_help(&command);
@@ -129,65 +143,29 @@ impl Config {
                     exit(0);
                 }
                 Long("dumpconfig") => dump = true,
-                Long(name) if Self::KEYS.contains(&name) => {
-                    let key = name.to_owned();
+                Long(name) => {
+                    let Some(setting) = settings().find(|setting| setting.key == name) else {
+                        return Err(parse_error(arg.unexpected()));
+                    };
                     let value = parser.value().map_err(parse_error)?;
                     let value = value
                         .string()
-                        .map_err(|error| Error::Parse(format!("{flag}: {error}")))?;
-                    // Worded as lexopt words a value its parsing rejects.
-                    config.set(&key, &value).map_err(|error| {
-                        Error::Parse(format!("{flag}: cannot parse argument {value:?}: {error}"))
-                    })?;
+                        .map_err(|error| Error::Parse(format!("--{}: {error}", setting.key)))?;
+                    flags.push((setting, value));
                 }
                 _ => return Err(parse_error(arg.unexpected())),
             }
         }
 
-        Ok((config, dump))
+        Ok((flags, dump))
     }
 
-    /// Set KEY, one of KEYS, from its text, as its flag takes it.
-    fn set(&mut self, key: &str, value: &str) -> StdResult<(), String> {
-        fn parse<T: FromStr>(value: &str) -> StdResult<Option<T>, String>
-        where
-            T::Err: Display,
-        {
-            value
-                .parse()
-                .map(Some)
-                .map_err(|error: T::Err| error.to_string())
-        }
-        match key {
-            "bitviewdir" => self.bitviewdir = parse(value)?,
-            "serverbind" => self.serverbind = parse(value)?,
-            "serverport" => self.serverport = parse(value)?,
-            "website" => self.website = parse(value)?,
-            "cdn" => self.cdn = parse(value)?,
-            "maxweight" => self.maxweight = parse(value)?,
-            "maxutxos" => self.maxutxos = parse(value)?,
-            "publicurl" => self.publicurl = parse(value)?,
-            "cachebudget" => self.cachebudget = parse(value)?,
-            "bitcoindir" => self.bitcoindir = parse(value)?,
-            "blocksdir" => self.blocksdir = parse(value)?,
-            "rpcconnect" => self.rpcconnect = parse(value)?,
-            "rpcport" => self.rpcport = parse(value)?,
-            "rpccookiefile" => self.rpccookiefile = parse(value)?,
-            "rpcuser" => self.rpcuser = parse(value)?,
-            "rpcpassword" => self.rpcpassword = parse(value)?,
-            _ => unreachable!("{key} is not one of Config::KEYS"),
-        }
-        Ok(())
-    }
-
-    /// Read `config.toml`: a `key = value` line per setting, its value a TOML string,
-    /// integer or boolean, read then as its flag would be, with blank lines and `#` comments
-    /// around them.
+    /// Read `config.toml`: a `key = value` line per setting, its value read as its flag would be,
+    /// with blank lines and `#` comments around them.
     fn parse_toml(contents: &str) -> StdResult<Self, String> {
         let mut config = Self::default();
         let mut seen = HashSet::new();
-        let contents = contents.trim_prefix('\u{feff}');
-        for (index, line) in contents.lines().enumerate() {
+        for (index, line) in contents.trim_prefix('\u{feff}').lines().enumerate() {
             let at = |problem: String| format!("line {}: {problem}", index + 1);
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -197,27 +175,15 @@ impl Config {
                 .split_once('=')
                 .ok_or_else(|| at(format!("expected `key = value`, found `{line}`")))?;
             let key = key.trim();
-            let key = key
-                .strip_prefix('"')
-                .and_then(|key| key.strip_suffix('"'))
-                .or_else(|| {
-                    key.strip_prefix('\'')
-                        .and_then(|key| key.strip_suffix('\''))
-                })
-                .unwrap_or(key);
-            if !Self::KEYS.contains(&key) {
-                return Err(at(format!(
-                    "unknown setting `{key}`, expected one of {}",
-                    Self::KEYS.join(", ")
-                )));
-            }
+            let Some(setting) = settings().find(|setting| setting.key == key) else {
+                let keys: Vec<_> = settings().map(|setting| setting.key).collect();
+                return Err(at(format!("unknown setting `{key}`, expected one of {}", keys.join(", "))));
+            };
             if !seen.insert(key) {
                 return Err(at(format!("`{key}` is set twice")));
             }
-            let text =
-                toml_scalar(value.trim()).map_err(|problem| at(format!("{key}: {problem}")))?;
-            config
-                .set(key, &text)
+            let text = toml_value(value.trim()).map_err(|problem| at(format!("{key}: {problem}")))?;
+            (setting.set)(&mut config, &text)
                 .map_err(|error| at(format!("{key}: cannot parse {text:?}: {error}")))?;
         }
         Ok(config)
@@ -271,86 +237,18 @@ impl Config {
             "    --dumpconfig              Print the settings given, file and flags, as {} lines",
             "config.toml".bright_black()
         );
-        println!();
-        println!(
-            "    --bitviewdir {}       Output directory {}",
-            "<PATH>".bright_black(),
-            "[~/.bitview]".bright_black()
-        );
-        println!(
-            "    --serverbind {}       Server bind address {}",
-            "<IP>".bright_black(),
-            format!("[{DEFAULT_BIND}]").bright_black()
-        );
-        println!(
-            "    --serverport {}       Server port {}",
-            "<PORT>".bright_black(),
-            format!("[{}]", Port::DEFAULT).bright_black()
-        );
-        println!(
-            "    --website {}     Serve the showcases (true), nothing (false) or a directory {}",
-            "<BOOL|PATH>".bright_black(),
-            "[true]".bright_black()
-        );
-        println!(
-            "    --cdn {}              Aggressive CDN cache, requires purge on deploy {}",
-            "<BOOL>".bright_black(),
-            "[false]".bright_black()
-        );
-        println!(
-            "    --maxweight {}       Server cap on series response weight in bytes; rejects /api/series/... over the limit {}",
-            "<BYTES>".bright_black(),
-            format!("[{}]", DEFAULT_MAX_WEIGHT).bright_black()
-        );
-        println!(
-            "    --maxutxos {}        Server cap on UTXOs per address; /api/address/{{addr}}/utxo errors past the limit {}",
-            "<COUNT>".bright_black(),
-            format!("[{}]", DEFAULT_MAX_UTXOS).bright_black()
-        );
-        println!(
-            "    --publicurl {}       The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity",
-            "<URL>".bright_black(),
-        );
-        println!(
-            "    --cachebudget {}     Shared vector cache size in bytes {}",
-            "<BYTES>".bright_black(),
-            format!("[{DEFAULT_CACHE_BUDGET}]").bright_black()
-        );
-        println!();
-        println!(
-            "    --bitcoindir {}       Bitcoin directory {}",
-            "<PATH>".bright_black(),
-            "[OS default]".bright_black()
-        );
-        println!(
-            "    --blocksdir {}        Blocks directory {}",
-            "<PATH>".bright_black(),
-            "[<bitcoindir>/blocks]".bright_black()
-        );
-        println!();
-        println!(
-            "    --rpcconnect {}       RPC host {}",
-            "<HOST>".bright_black(),
-            "[localhost]".bright_black()
-        );
-        println!(
-            "    --rpcport {}          RPC port {}",
-            "<PORT>".bright_black(),
-            "[8332]".bright_black()
-        );
-        println!(
-            "    --rpccookiefile {}    RPC cookie file; relative paths resolve inside <bitcoindir> {}",
-            "<PATH>".bright_black(),
-            "[<bitcoindir>/.cookie]".bright_black()
-        );
-        println!(
-            "    --rpcuser {}      RPC username",
-            "<USERNAME>".bright_black()
-        );
-        println!(
-            "    --rpcpassword {}  RPC password",
-            "<PASSWORD>".bright_black()
-        );
+        for group in SETTINGS {
+            println!();
+            for setting in *group {
+                // Every description starts in the same column.
+                let pad = 23usize.saturating_sub(setting.key.len() + setting.value.len());
+                print!("    --{} {}{:pad$}{}", setting.key, setting.value.bright_black(), "", setting.help);
+                match setting.default {
+                    Some(default) => println!(" {}", format!("[{default}]").bright_black()),
+                    None => println!(),
+                }
+            }
+        }
         println!();
         println!("{}", "ENVIRONMENT:".bold());
         println!(
@@ -447,33 +345,31 @@ impl Config {
     }
 }
 
-/// The text of a TOML value, as its setting's parsing reads it: a string's contents, basic
-/// or literal, triple-quoted too when it closes on its line, or a boolean or integer as
-/// written, an integer without the `+` sign, `_` separators and `0x`, `0o` or `0b` prefixes
-/// TOML allows. Only a comment may follow it.
-fn toml_scalar(text: &str) -> StdResult<String, String> {
-    let (value, rest) = if let Some(text) = text.strip_prefix("\"\"\"") {
-        let end = text.find("\"\"\"").ok_or(SPANNING)?;
-        (unescape(&text[..end])?, &text[end + 3..])
-    } else if let Some(text) = text.strip_prefix("'''") {
-        let end = text.find("'''").ok_or(SPANNING)?;
-        (text[..end].to_owned(), &text[end + 3..])
-    } else if let Some(text) = text.strip_prefix('"') {
-        // The closing quote is the first one no backslash escapes.
-        let mut escaped = false;
-        let end = text
-            .char_indices()
-            .find(|&(_, c)| {
-                let closes = c == '"' && !escaped;
-                escaped = c == '\\' && !escaped;
-                closes
-            })
-            .ok_or("unterminated string")?
-            .0;
-        (unescape(&text[..end])?, &text[end + 1..])
+/// The text of a `config.toml` value, as its setting's parsing reads it: a bare word, or a string's
+/// contents, in `'…'` as written, in `"…"` with the escapes `--dumpconfig` writes. Only a comment may
+/// follow it.
+fn toml_value(text: &str) -> StdResult<String, String> {
+    let (value, rest) = if let Some(text) = text.strip_prefix('"') {
+        let mut value = String::new();
+        let mut chars = text.char_indices();
+        loop {
+            match chars.next().ok_or("unterminated string")? {
+                (end, '"') => break (value, &text[end + 1..]),
+                (_, '\\') => value.push(match chars.next().ok_or("unterminated string")?.1 {
+                    c @ ('"' | '\\') => c,
+                    'b' => '\u{8}',
+                    'f' => '\u{c}',
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    other => return Err(format!("invalid escape `\\{other}`")),
+                }),
+                (_, c) => value.push(c),
+            }
+        }
     } else if let Some(text) = text.strip_prefix('\'') {
-        let end = text.find('\'').ok_or("unterminated string")?;
-        (text[..end].to_owned(), &text[end + 1..])
+        let (value, rest) = text.split_once('\'').ok_or("unterminated string")?;
+        (value.to_owned(), rest)
     } else {
         let end = text
             .find(|c: char| c.is_whitespace() || c == '#')
@@ -481,70 +377,13 @@ fn toml_scalar(text: &str) -> StdResult<String, String> {
         if end == 0 {
             return Err("missing value".to_owned());
         }
-        (bare_value(&text[..end])?, &text[end..])
+        (text[..end].to_owned(), &text[end..])
     };
     let rest = rest.trim_start();
     if !rest.is_empty() && !rest.starts_with('#') {
         return Err(format!("unexpected `{rest}` after the value"));
     }
     Ok(value)
-}
-
-const SPANNING: &str = "strings spanning lines are not supported";
-
-/// A basic string's contents, its escapes resolved.
-fn unescape(text: &str) -> StdResult<String, String> {
-    let mut value = String::with_capacity(text.len());
-    let mut chars = text.chars();
-    while let Some(c) = chars.next() {
-        if c != '\\' {
-            value.push(c);
-            continue;
-        }
-        let escape = chars.next().ok_or("unterminated string")?;
-        match escape {
-            'b' => value.push('\u{8}'),
-            't' => value.push('\t'),
-            'n' => value.push('\n'),
-            'f' => value.push('\u{c}'),
-            'r' => value.push('\r'),
-            'e' => value.push('\u{1b}'),
-            '"' => value.push('"'),
-            '\\' => value.push('\\'),
-            'x' | 'u' | 'U' => {
-                let digits = match escape {
-                    'x' => 2,
-                    'u' => 4,
-                    _ => 8,
-                };
-                let hex: String = chars.by_ref().take(digits).collect();
-                let c = u32::from_str_radix(&hex, 16)
-                    .ok()
-                    .filter(|_| hex.len() == digits)
-                    .and_then(char::from_u32)
-                    .ok_or_else(|| format!("invalid escape `\\{escape}{hex}`"))?;
-                value.push(c);
-            }
-            other => return Err(format!("invalid escape `\\{other}`")),
-        }
-    }
-    Ok(value)
-}
-
-/// A boolean as written; an integer in decimal digits, as its setting's parsing reads it.
-fn bare_value(token: &str) -> StdResult<String, String> {
-    if !token.starts_with(|c: char| c.is_ascii_digit() || c == '+' || c == '-') {
-        return Ok(token.to_owned());
-    }
-    let number = token.trim_prefix('+').replace('_', "");
-    for (prefix, radix) in [("0x", 16), ("0o", 8), ("0b", 2)] {
-        if let Some(digits) = number.strip_prefix(prefix) {
-            return u64::from_str_radix(digits, radix)
-                .map(|n| n.to_string())
-                .map_err(|error| format!("invalid integer `{token}`: {error}"));
-        }
-    }
-    Ok(number)
 }
 
 fn parse_error(error: lexopt::Error) -> Error {
