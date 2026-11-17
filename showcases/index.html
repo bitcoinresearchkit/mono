@@ -1323,9 +1323,6 @@
           }
         }
 
-        li:has(> &:focus-visible) > & {
-          box-shadow: 0 0 0 2.5px var(--focus);
-        }
 
         /* (Pointed at: its edge lit.) */
         @media (pointer: fine) {
@@ -1344,6 +1341,14 @@
       /* A title's i, at its cover's corner: on a desk with the cover pointed at or focused, on a touch screen always. */
       .row > li {
         position: relative;
+        border-radius: var(--radius);
+
+        /* (Its cover's ring: on the slot, the page's ground, so the page's scheme colours it; the cover's own is dark
+           in either, and its ring was the dark scheme's light one on a light page. An outline: painted over the
+           cover's own edge.) */
+        &:has(> .tile:focus-visible) {
+          outline: 2.5px solid var(--focus);
+        }
       }
 
       .info {
@@ -2156,6 +2161,12 @@
               flex-wrap: wrap;
               gap: 4px 16px;
 
+              /* (For fingers, its lines as far apart as each link's reach is tall (44px over a 20px line): a reach
+                 never takes the line under's link, as the link lists' do.) */
+              @media (pointer: coarse) {
+                row-gap: 24px;
+              }
+
               a {
                 position: relative;
                 font-size: 12.5px;
@@ -2164,7 +2175,7 @@
                   &::before {
                     content: "";
                     position: absolute;
-                    inset: -14px 0;
+                    inset: -12px 0;
                   }
                 }
               }
