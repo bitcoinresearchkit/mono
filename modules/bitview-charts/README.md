@@ -20,12 +20,11 @@ chart.show(365);                                 // the last 365 points in view
 
 ## Chart
 
-- `createChart(element, { theme, axis, leftAxis, timeHeight, rightOffset, maxSpacing, dateFormat, embedded })`: `theme` is `DARK`
+- `createChart(element, { theme, axis, leftAxis, timeHeight, maxSpacing, dateFormat, embedded })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
   and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
   then as wide as its labels and tags need (`axisShown`: wider at once, never narrower by itself: `fitAxes()`, or a price axis' double-click, fits them again; every point kept where it is on the screen, the axis growing over the plot's edge);
-  `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `rightOffset`, CSS pixels left empty
-  past the last point (24); `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
+  `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
   none there, null for the library's. The canvases it lays in `element` are `aria-hidden`: the chart's name and
   words are the page's (a heading, its legends).
@@ -46,6 +45,8 @@ chart.show(365);                                 // the last 365 points in view
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
   against its first value in view, and back; NaN where it has none),
+  `time.rightOffset`, the blank after the last point in CSS pixels: 6% of the plot, 16 to 48 (`rightBlank(width)`, one rule for
+  every chart), plus `time.reserve` where a page draws a column there (a profile: `columnWidth`);
   `time.firstVisible` and `time.lastVisible` (the first and last point whose centers are in view, for date captions and
   resting readings; geometry fitting includes connecting points beyond fractional edges),
   `lastIn(values, from, to)` (exported: the last index within inclusive bounds whose value isn't NaN, -1 if none: a

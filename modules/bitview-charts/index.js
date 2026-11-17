@@ -13,12 +13,12 @@
 // Dragged, a pane pans (a finger's flick glides on, slowing as a list does, a little sooner); pinched or wheeled, it zooms about that point;
 // a trackpad's sideways scroll pans (a diagonal swipe both at once).
 
-import { Timeline, lastIn } from "./timeline.js";
+import { Timeline, lastIn, rightBlank } from "./timeline.js";
 import { Pane } from "./pane.js";
 import { TimeAxis } from "./axis.js";
 import { Crosshair } from "./crosshair.js";
 
-export { Timeline, Pane, TimeAxis, lastIn };
+export { Timeline, Pane, TimeAxis, lastIn, rightBlank };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars, PARTIAL } from "./bars.js";
@@ -152,9 +152,9 @@ export class Chart {
 
   /**
    * @param {HTMLElement} element
-   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, rightOffset?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean }} [options]
+   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean }} [options]
    */
-  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, rightOffset, maxSpacing, dateFormat, embedded = false } = {}) {
+  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, maxSpacing, dateFormat, embedded = false } = {}) {
     this.element = element;
     /**
      * In a page that scrolls: a finger's mostly vertical swipe scrolls the page, the browser deciding (`touch-action:
@@ -176,7 +176,7 @@ export class Chart {
     /** The axes fitted again at the next frame, narrower too (see fitAxes). */
     this.refit = false;
     this.timeHeight = timeHeight;
-    this.time = new Timeline({ rightOffset, maxSpacing });
+    this.time = new Timeline({ maxSpacing });
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);

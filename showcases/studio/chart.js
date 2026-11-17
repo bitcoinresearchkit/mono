@@ -2,7 +2,7 @@
 // The chart: drawing a chart's layers and panes, its readouts, keys and navigator. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
 import {
   Band, Bars, Candles, channels, columnWidth, Custom, DARK, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,
-  Profile, Scale, Shade,
+  Profile, rightBlank, Scale, Shade,
 } from "/modules/bitview-charts/index.js";
 import { OKLCH } from "/studio/palette.js";
 import { capitalized } from "/studio/words.js";
@@ -714,12 +714,15 @@ const PROFILE_BIN = 3;
 const PROFILE_DIM = 0.3;
 /** Whether a chart shows a heatmap's profile: its room then after its latest, see rightGap. @param {Chart} doc */
 const profiled = (doc) => doc.layers.some((layer) => layer.type === "profile" && !layer.hidden);
-/**
- * The room after the data's last value, in pixels, at any zoom: its line's end clear of the scale (as TradingView), a
- * share of the chart's width, a phone's narrower, a large screen's no wider than 48; with a heatmap's profile, its
- * width more, the latest day clear of it (the chart drawn: ⌘K's preview, while it shows). Any chart's (a preview's too).
- */
-const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? columnWidth(width) : 0);
+/** The room a heatmap's profile takes after the latest point, past the library's blank: its column's width, else none. */
+const reserveOf = (/** @type {number} */ width, /** @type {Chart | null | undefined} */ doc) => (doc && profiled(doc) ? columnWidth(width) : 0);
+/** The room after the latest point at any width: the library's blank, and with a profile its column more (the chart drawn: ⌘K's preview, while it shows). */
+const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => rightBlank(width) + reserveOf(width, doc);
+/** The timeline's room for the open chart's profile column at this width (the blank is its own). */
+function setReserve(/** @type {number} */ width = engine.time.width) {
+  const reserve = reserveOf(width, drawnDoc ?? chart);
+  if (reserve !== engine.time.reserve) (engine.time.reserve = reserve), engine.invalidate(true);
+}
 /** The farthest the chart zooms out: four points a pixel, still smooth to pan. */
 const MIN_BAR_SPACING = 0.25;
 /**
@@ -1394,8 +1397,8 @@ function atLatest(range, was) {
 function setGap() {
   const width = engine.time.width, gap = rightGap(width), was = engine.time.rightOffset;
   if (width) {
-    const range = shownSpan(), last = (resolved?.times.length ?? 0) - 1, base = rightGap(width, /** @type {any} */ (null)), room = gap - base;
-    if (gap !== was) (engine.time.rightOffset = gap), engine.invalidate(true);
+    const range = shownSpan(), last = (resolved?.times.length ?? 0) - 1, base = rightBlank(width), room = gap - base;
+    setReserve(width);
     // (Showing the latest (as zoom has it: its room after it as it was, or its last bar in view with less room than
     // now), its room after it as wide as it is now once a heatmap's profile comes or goes: the chart moved over for
     // it, back as it goes. Elsewhere, or with more room after it already, where it was. A look ⌘K shows (see
@@ -3144,7 +3147,7 @@ export {
   noValues, oklchOf, overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries,
   paintSig, paletteOf, PANE, paneBox, paneRect, PERCENT_FORMAT, periodAmount, periodOf, pinCross, placeBrush,
   placeFoot, placeFull, placePlotKeys, pointLabel, prefetch, presetFits, presetShown, presetSpan, presetWindow,
-  pressed, PROFILE_DIM, profiled, rangeAt, reachOut, readPoint, rescan, resolve, respot, retryInfo, reveal, rightGap,
+  pressed, PROFILE_DIM, profiled, rangeAt, reachOut, readPoint, rescan, resolve, respot, retryInfo, reveal, rightGap, setReserve,
   samePaint, sayValue, SCALE_MODES, seriesIn, seriesPane, seriesScale, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownRange, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,

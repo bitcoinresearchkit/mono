@@ -24,7 +24,7 @@ import {
   paintSig, paletteOf, PANE, paneRect, PERCENT_FORMAT, periodAmount, pinCross, placeBrush, placeFoot, placeFull,
   placePlotKeys, pointLabel, prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, reachOut, readPoint,
   rescan, resolve, respot, retryInfo, reveal, rightGap, samePaint, sayValue, SCALE_MODES, seriesPane, seriesValue,
-  seriesY, setColumn, setGap, setPresetShown, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex,
+  seriesY, setColumn, setGap, setPresetShown, setReserve, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex,
   shownSpan, showSpan, showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands,
   stale, Standard, stopGlide, stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, subAt, tagAt, unitFor,
   units, updateLegends, updateReadout, updateValues, VALUE_FORMAT, valueAt, valueSlot, valuesSoon, viewName, viewRange,
@@ -4216,7 +4216,6 @@ const engine = createChart($("chart").appendChild(Object.assign(document.createE
 engine.theme = chartTheme();
 /** The right axis' width till it's drawn (then as its labels need: the library's), where a layer's on that side. */
 const RIGHT_AXIS = engine.axis;
-engine.time.rightOffset = 48;
 engine.time.minSpacing = MIN_BAR_SPACING;
 engine.crosshair.setFormat((time) => pointLabel(time));
 /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
@@ -5620,7 +5619,7 @@ function holdView() {
   if (exporting) return;
   if (width) lastBox = box;
   if (!was || !width || !resized) return;
-  if (rightGap(width) !== engine.time.rightOffset) (engine.time.rightOffset = rightGap(width)), engine.invalidate(true);
+  setReserve(width);
   if (!resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
   const view = resizeKeeps ?? was.at;
   fitSpacing(chart, resolved.times.length, view);
@@ -11160,7 +11159,7 @@ async function chartImage(size = {}, wait = false, grown = false) {
       sizePanes(undefined, false, false);
       if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
       // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
-      if (sized) (engine.time.rightOffset = rightGap()), engine.invalidate(true);
+      if (sized) setReserve(), engine.invalidate(true);
       if (sized && logical) showSpan(logical, EXACT_RANGE);
       // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
       // picture).)

@@ -32,17 +32,24 @@ export function lastIn(values, from, to) {
   return -1;
 }
 
+/**
+ * The blank after the last point, in CSS pixels, at a plot `width`: 6% of it, from 16 to 48 (a phone's plot ~18, a
+ * large screen's no wider). The one rule for every chart: its line's end clear of the scale.
+ * @param {number} width
+ */
+export const rightBlank = (width) => Math.round(Math.min(48, Math.max(16, width * 0.06)));
+
 export class Timeline {
-  /** @param {{ rightOffset?: number, minSpacing?: number, maxSpacing?: number, minDataShare?: number }} [options] */
-  constructor({ rightOffset = 24, minSpacing = 0, maxSpacing = 60, minDataShare = 1 / 6 } = {}) {
+  /** @param {{ minSpacing?: number, maxSpacing?: number, minDataShare?: number }} [options] */
+  constructor({ minSpacing = 0, maxSpacing = 60, minDataShare = 1 / 6 } = {}) {
     /** One time a logical index, in seconds, rising. @type {Float64Array} */
     this.times = new Float64Array(0);
     this.from = 0;
     this.to = 1;
     /** The plot's width in CSS pixels. */
     this.width = 1;
-    /** CSS pixels left empty past the last point when the view shows the end. */
-    this.rightOffset = rightOffset;
+    /** CSS pixels a page keeps past the blank (room for a column drawn there), at the plot's width. */
+    this.reserve = 0;
     this.minSpacing = minSpacing;
     this.maxSpacing = maxSpacing;
     this.minDataShare = minDataShare;
@@ -85,6 +92,11 @@ export class Timeline {
 
   get length() {
     return this.times.length;
+  }
+
+  /** CSS pixels left empty past the last point when the view shows the end: `rightBlank` and the page's `reserve`. */
+  get rightOffset() {
+    return rightBlank(this.width) + this.reserve;
   }
 
   /** CSS pixels the points share with the end in view: the plot less the right offset (all of it, narrower than that). */
