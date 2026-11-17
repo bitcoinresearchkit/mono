@@ -5,7 +5,7 @@ use std::mem;
 /// it, as the cost-basis percentiles take it. `p` counts in whole parts per million, so a
 /// product that lands on an integer stays exact.
 #[inline]
-pub fn nearest_rank(len: usize, p: f64) -> usize {
+fn nearest_rank(len: usize, p: f64) -> usize {
     const PPM: u64 = 1_000_000;
     let ppm = (p * PPM as f64).round() as u64;
     ((len as u64 * ppm).div_ceil(PPM) as usize).saturating_sub(1)
@@ -22,8 +22,14 @@ pub struct ExactOrderStats {
     block_size: usize,
 }
 
+impl Default for ExactOrderStats {
+    fn default() -> Self {
+        Self::new(0)
+    }
+}
+
 impl ExactOrderStats {
-    pub fn new(expected_len: usize) -> Self {
+    fn new(expected_len: usize) -> Self {
         let block_size = (expected_len.isqrt() * 3).max(64);
         Self {
             blocks: Vec::new(),
@@ -37,7 +43,7 @@ impl ExactOrderStats {
         Self::from_sorted(values)
     }
 
-    pub fn from_sorted(values: Vec<f64>) -> Self {
+    pub(crate) fn from_sorted(values: Vec<f64>) -> Self {
         debug_assert!(
             values
                 .windows(2)

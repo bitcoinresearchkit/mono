@@ -17,7 +17,7 @@ pub use prepare::{
 pub use statistics::{
     AverageWindow, ComputeRollingMedianFromStarts, ComputeRollingStats, DistributionStats,
     ExactOrderStats, ExtremaWindow, FenwickTree, Retained, SortedWindow,
-    compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts, nearest_rank,
+    compute_rolling_distribution_from_starts, compute_rolling_extrema_from_starts,
 };
 pub use traits::{ComputedVecValue, FixedRatio, NumericValue, Quantity};
 pub use weighted::{WeightedCohortState, weighted_age_aggregates};
