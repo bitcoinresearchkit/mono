@@ -38,11 +38,6 @@ bin = "bitviewd_bench"
 reason = "workspace binary"
 
 [[production]]
-package = "bitviewd_bench_visualizer"
-bin = "bitviewd_bench_visualizer"
-reason = "workspace binary"
-
-[[production]]
 package = "bitviewd_latency"
 bin = "bitviewd_latency"
 reason = "workspace binary"
