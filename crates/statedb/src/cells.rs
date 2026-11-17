@@ -1,7 +1,8 @@
 use crate::{columns, journal::Journal, journal_reader::JournalReader, util::invalid};
 use std::{io::Result, ops::Range, path::Path};
 
-/// Blocks between checkpoints: a restore reads one and fewer than this many blocks' changes.
+/// Blocks between checkpoints: a restore reads the nearer one and at most half this many blocks'
+/// changes.
 const CHECKPOINT: usize = 250;
 
 /// Sparse u64 cells keyed by u32, after every block: each block's signed changes, and every
@@ -115,21 +116,40 @@ impl CellHistory {
         }
         Ok(())
     }
-    /// Hands `add` the cells after `end` blocks as (key, amount) additions to zeroed cells: the
-    /// checkpoint's, then each later block's changes. Returns the hash of block `end - 1`
-    /// (zeros before genesis).
-    pub fn restore(&self, end: usize, mut add: impl FnMut(u32, i64) -> Result<()>) -> Result<[u8; 32]> {
-        if end > self.len() {
+    /// Hands `add` the cells after `end` blocks as (key, amount) additions to zeroed cells, from
+    /// the nearer checkpoint within `ceiling` blocks: the one at or below `end`, then each later
+    /// block's changes, or the next one, then the changes of the blocks before it taken back,
+    /// newest first so that no cell passes below zero. Reads nothing past `ceiling`. Returns the
+    /// hash of block `end - 1` (zeros before genesis).
+    pub fn restore(
+        &self,
+        end: usize,
+        ceiling: usize,
+        mut add: impl FnMut(u32, i64) -> Result<()>,
+    ) -> Result<[u8; 32]> {
+        if end > ceiling || ceiling > self.len() {
             return Err(invalid("cells past the recorded blocks"));
         }
+        let below = end / CHECKPOINT;
+        let next = (below + 1) * CHECKPOINT;
+        let above = next <= ceiling && next - end < end - below * CHECKPOINT;
+        let at = below + usize::from(above);
         let (mut keys, mut values) = (Vec::new(), Vec::new());
-        let at = end / CHECKPOINT;
         let mut checkpoints = JournalReader::new(&self.checkpoints, at + 1);
         let mut hash = decode(checkpoints.read(at)?.1, &mut keys, &mut values)?;
         for (&key, &value) in keys.iter().zip(&values) {
             add(key, i64::try_from(value).map_err(|_| invalid("cell exceeds i64"))?)?;
         }
-        self.blocks(at * CHECKPOINT..end, |block, changes| {
+        if above {
+            let mut later = Vec::new();
+            self.blocks(end..next, |_, changes| -> Result<()> {
+                later.extend_from_slice(changes);
+                Ok(())
+            })?;
+            later.iter().rev().try_for_each(|&(key, change)| add(key, -change))?;
+            return self.hash(end);
+        }
+        self.blocks(below * CHECKPOINT..end, |block, changes| {
             hash = block;
             changes.iter().try_for_each(|&(key, change)| add(key, change))
         })?;

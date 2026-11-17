@@ -42,7 +42,7 @@ impl UrpdWalk {
         if range.len() <= SEGMENT_BLOCKS {
             let mut cells = match last {
                 Some((end, cells)) if end == range.start && history.follows(&cells, end)? => cells,
-                _ => history.at(range.start)?,
+                _ => history.at(range.start, range.end)?,
             };
             let mut worker = worker(range.clone());
             history.walk(range.clone(), &mut cells, |height, cells| {
@@ -63,7 +63,7 @@ impl UrpdWalk {
             let walked = window
                 .par_iter()
                 .map(|segment| -> Result<_> {
-                    let mut cells = history.at(segment.start)?;
+                    let mut cells = history.at(segment.start, range.end)?;
                     let mut worker = worker(segment.clone());
                     let mut results = Vec::with_capacity(segment.len());
                     history.walk(segment.clone(), &mut cells, |height, cells| {

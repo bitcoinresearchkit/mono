@@ -211,12 +211,13 @@ impl Query {
         let plugins = self.plugins();
         let history = plugins.utxo_set.urpd()?;
         let end = usize::from(height) + 1;
-        if end > history.len().min(usize::from(pin.lengths().height)) {
+        let ceiling = history.len().min(usize::from(pin.lengths().height));
+        if end > ceiling {
             return Err(Error::NotFound(
                 "Block is outside the published URPD history".into(),
             ));
         }
-        let cells = history.at(end)?;
+        let cells = history.at(end, ceiling)?;
         if cells.hash() != *hash {
             return Err(Error::Internal(
                 "URPD history does not match the published chain",

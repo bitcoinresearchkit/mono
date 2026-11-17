@@ -65,10 +65,10 @@ impl UrpdHistory {
         Version::from(self.cells.version() as u32)
     }
 
-    /// The cells after `end` blocks.
-    pub fn at(&self, end: usize) -> Result<UrpdCells> {
+    /// The cells after `end` blocks, reading nothing past `ceiling` blocks.
+    pub fn at(&self, end: usize, ceiling: usize) -> Result<UrpdCells> {
         let mut urpd = UrpdCells::default();
-        urpd.hash = self.cells.restore(end, |key, change| urpd.add(key, change))?;
+        urpd.hash = self.cells.restore(end, ceiling, |key, change| urpd.add(key, change))?;
         Ok(urpd)
     }
 
@@ -184,7 +184,7 @@ impl UrpdHistory {
     ) -> Result<Live> {
         self.cells.truncate(start)?;
         let origins = history.state_at(start)?;
-        let urpd = self.at(start)?;
+        let urpd = self.at(start, start)?;
         if urpd.hash != origins.hash() {
             return Err(Error::Internal("URPD history does not match the UTXO set history"));
         }

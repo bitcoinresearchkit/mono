@@ -635,10 +635,14 @@ fn cells() -> Result<()> {
         let reader = CellHistory::open_reader(&path)?;
         for history in [&cells, &reader] {
             assert_eq!(history.len(), committed);
-            let end = rng.below(committed + 1);
+            let ceiling = rng.below(committed + 1);
+            let end = rng.below(ceiling + 1);
             let mut restored = BTreeMap::<u32, i64>::new();
-            let hash = history.restore(end, |key, add| {
-                *restored.entry(key).or_default() += add;
+            let hash = history.restore(end, ceiling, |key, add| {
+                let held = restored.entry(key).or_default();
+                *held += add;
+                // Consumers keep cells unsigned: a restore never takes one below zero.
+                assert!(*held >= 0, "cell {key} below zero");
                 Ok(())
             })?;
             restored.retain(|_, held| *held != 0);
