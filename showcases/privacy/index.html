@@ -151,9 +151,16 @@
         counts published at <a href="https://stats.bitview.space/">stats.bitview.space</a>.
       </p>
       <p>
+        Cloudflare passes each visitor's IP address on to Bitview's servers, in the <code>X-Forwarded-For</code>
+        header, and they neither read nor log it. Cloudflare adds no cookie or script to Bitview's pages, except on a
+        check it shows a connection it judges a threat: that page runs Cloudflare's script, and passing it leaves its
+        <code>cf_clearance</code> cookie.
+      </p>
+      <p>
         Until November 17, 2026, Cloudflare also added its Web Analytics script to these pages for visitors outside the
-        EU. It recorded each page view with its address and the page it came from, which Cloudflare keeps for six
-        months. It is now turned off.
+        EU. It recorded each page view with its address and the page it came from, for Cloudflare to keep six months.
+        It was turned off and deleted on November 17, 2026. Its records could still be read right after, and
+        Cloudflare doesn't say whether deleting it drops them.
       </p>
 
       <h2 id="counts">Published traffic counts</h2>
