@@ -21,7 +21,7 @@ pub const MAX_BODY_BYTES: usize = BitcoinWeight::MAX_BLOCK.to_wu() as usize * 2;
 pub struct BroadcastPermit(OwnedSemaphorePermit);
 
 impl BroadcastPermit {
-    // One active RPC and up to three admitted requests waiting asynchronously.
+    // Submissions buffering or with the node at once, each on its own node connection.
     pub const CAPACITY: usize = 4;
 }
 

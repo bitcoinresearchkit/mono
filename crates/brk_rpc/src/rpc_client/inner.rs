@@ -24,7 +24,7 @@ const RETRY_DELAY: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct ClientInner {
-    /// Kept for [`ClientInner::asynchronous`].
+    /// Kept for [`super::Client::asynchronous`].
     #[cfg(feature = "async")]
     pub url: String,
     #[cfg(feature = "async")]
