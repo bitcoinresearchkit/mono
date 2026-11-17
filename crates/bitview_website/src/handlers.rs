@@ -225,7 +225,13 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     } else {
         REVALIDATE
     };
-    Ok(answer(found, varies, policy, request_headers))
+    let mut response = answer(found, policy, request_headers);
+    if varies {
+        response
+            .headers_mut()
+            .insert(header::VARY, HeaderValue::from_static("Accept"));
+    }
+    Ok(response)
 }
 
 /// A file at a release's address (`RELEASES`, or a worker's: `WORKERS`), by its path written the one way (no folder's
@@ -247,16 +253,11 @@ fn released(
         return Err(Error::not_found());
     }
     let policy = if current { IMMUTABLE } else { REVALIDATE };
-    Ok(answer(found, false, policy, request_headers))
+    Ok(answer(found, policy, request_headers))
 }
 
 /// A file's 200, or its 304 to a request that has it.
-fn answer(
-    found: File,
-    varies: bool,
-    policy: &'static str,
-    request_headers: &HeaderMap,
-) -> Response<Body> {
+fn answer(found: File, policy: &'static str, request_headers: &HeaderMap) -> Response<Body> {
     let File {
         contents,
         hash: file_hash,
@@ -272,15 +273,12 @@ fn answer(
     } else {
         file_response(contents, content_type)
     };
-    insert_caching(response.headers_mut(), etag, varies, policy);
+    insert_caching(response.headers_mut(), etag, policy);
     response
 }
 
 /// The validator and cache policy a file's 200 and 304 share.
-fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, varies: bool, policy: &'static str) {
-    if varies {
-        headers.insert(header::VARY, HeaderValue::from_static("Accept"));
-    }
+fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, policy: &'static str) {
     if let Some(etag) = etag {
         // Weak: a CDN compressing the file serves other bytes under the same validator.
         headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());

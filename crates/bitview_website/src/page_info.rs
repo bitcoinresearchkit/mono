@@ -11,7 +11,7 @@ use axum::http::{HeaderMap, header};
 use flate2::read::GzDecoder;
 use include_dir::Dir;
 use serde::Deserialize;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::{
     Website,
@@ -85,6 +85,19 @@ impl Pages {
         }
         let mut pages = Self::default();
         for file in files {
+            let index = file.with_file_name("index.html");
+            let template = match website.get_file(index.to_str().ok_or("Non-UTF-8 index path")?) {
+                Ok(template) => template,
+                Err(error) if !error.is_not_found() => {
+                    error!("{}: {error:?}", index.display());
+                    continue;
+                }
+                Err(_) => {
+                    return Err(
+                        format!("{}: Cannot read page-info index.html", index.display()).into(),
+                    );
+                }
+            };
             let load = || -> Result<HashMap<String, Page>> {
                 let contents = website
                     .get_file(file.to_str().ok_or("Non-UTF-8 page-info path")?)
@@ -92,10 +105,6 @@ impl Pages {
                 let mut decoded = Vec::new();
                 GzDecoder::new(contents.contents.as_ref()).read_to_end(&mut decoded)?;
                 let sources: HashMap<String, Source> = serde_json::from_slice(&decoded)?;
-                let index = file.with_file_name("index.html");
-                let template = website
-                    .get_file(index.to_str().ok_or("Non-UTF-8 index path")?)
-                    .map_err(|_| "Cannot read page-info index.html")?;
                 let html = std::str::from_utf8(&template.contents)?;
                 slots(html)?;
                 // Kept by the address as requested: the folder's own path, then the key.

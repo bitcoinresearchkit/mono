@@ -7,7 +7,7 @@ import { catalogWalk } from "./catalog-walk.js";
 
 onmessage = ({ data: dated }) => {
   try {
-    const steps = catalogWalk(new BitviewClient({ baseUrl: location.origin }).series, dated);
+    const steps = catalogWalk(new BitviewClient(location.origin).series, dated);
     let step = steps.next();
     while (!step.done) step = steps.next();
     const { index, byBlock, sharedTops } = step.value;

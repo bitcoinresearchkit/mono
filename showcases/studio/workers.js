@@ -6,6 +6,6 @@
 
 /** A module worker from its file's URL (beside the caller's: `new URL("./x.js", import.meta.url)`). @param {URL} url */
 export function startWorker(url) {
-  if (url.pathname.startsWith("/v/")) url.pathname = `/w/${url.pathname.slice(3)}`;
-  return new Worker(url, { type: "module" });
+  const root = new URL(import.meta.resolve("/")).pathname;
+  return new Worker(import.meta.resolve(`worker/${url.pathname.slice(root.length)}`), { type: "module" });
 }

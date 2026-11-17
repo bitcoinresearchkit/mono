@@ -10921,6 +10921,7 @@ async function chartImage(size = {}, wait = false, grown = false) {
       sizePanes(undefined, false, false);
       if (sized && resolved && chartShown()) fitSpacing(chart, resolved.times.length);
       // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
+      // The blank changes with width even when the profile reserve does not.
       if (sized) setReserve(), engine.invalidate(true);
       if (sized && logical) showSpan(logical, EXACT_RANGE);
       // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
