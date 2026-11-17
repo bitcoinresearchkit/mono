@@ -4475,8 +4475,10 @@ document.addEventListener("pointerout", (event) => event.relatedTarget || ((poin
 let resolved = null;
 /** How many times the open chart's data has changed here (read anew, grown, a live price moved in it). */
 let dataRevision = 0;
-/** The draw asked for last (ahead of `resolved.version` while one is loading), what it resolves (its `dataKey`) and the look it was asked for (its `lookKey`). */
-let drawVersion = 0, drawingKey = "", drawingLook = "";
+/** The draw asked for last (ahead of `resolved.version` while one is loading). */
+let drawVersion = 0;
+/** What that draw asked for: what it resolves (its `dataKey`), its look (its `lookKey`) and its interval. */
+let asking = { key: "", look: "", index: "" };
 /**
  * What's on screen, written only by the build that lands (see buildChart): the chart as built (a ⌘K look's, while one
  * shows; the live price paints its colors from it), its range the one its view was laid out from (the build's, or
@@ -4505,8 +4507,8 @@ async function draw(refit = false, fresh = false) {
   undrawn = false;
   // Drawn on the way out of the grid: the chart grows out of its card instead of wiping in.
   const fromHome = document.body.hasAttribute("data-home");
-  const doc = structuredClone(chart), was = displayed?.doc;
-  (drawingKey = dataKey(doc)), (drawingLook = lookKey(doc));
+  const doc = structuredClone(chart), was = displayed?.doc, askedIndex = asking.index;
+  asking = { key: dataKey(doc), look: lookKey(doc), index: doc.index };
   const first = was?.id !== doc.id;
   // (Grown out of its card, a chart of many layers is built once it's grown, as one whose data loads is: its build
   // mid-motion (23 bands' on a phone without its JIT, a third of a second) held the motion still. Fewer build in a
@@ -4515,18 +4517,19 @@ async function draw(refit = false, fresh = false) {
   // Each chart keeps its span at each fine interval while the view it backs is the one the chart opens on (another
   // chart opened, its view left at this interval): back at it, it's as it was left, its chunks at hand (unless the
   // memory's budget let them go). Opening on its preset instead (an interval switch, a view left at another
-  // interval or none), the preset's span is made again. The runs joined go (made again from their chunks).
-  if (first || was?.index !== doc.index) {
+  // interval or none), the preset's span is made again, once a switch: a draw at the interval already asked for (a
+  // range picked mid-switch) keeps the span showRange aimed. The runs joined go (made again from their chunks).
+  if (first || (was?.index !== doc.index && askedIndex !== doc.index)) {
     if (!first || viewKey(doc.id) === LINKED || openView(doc)?.index !== doc.index) spans.delete(spanKey(doc.id, doc.index));
     spanned.clear();
   }
   // (Counted against the span it'll draw: see above.)
-  const pending = drawSeries(doc).filter((name) => !asked(name, doc) && known.get(name)?.indexes.includes(doc.index) !== false).length;
-  const showLoading = pending > 0 && (first || !resolved);
-  $("progress").hidden = !(pending > 0 && !showLoading);
+  const unasked = drawSeries(doc).filter((name) => !asked(name, doc) && known.get(name)?.indexes.includes(doc.index) !== false).length;
+  const showLoading = unasked > 0 && (first || !resolved);
+  $("progress").hidden = !(unasked > 0 && !showLoading);
   if (showLoading) {
     // (How many, not from where: the live pill's tip says where, and an error, if it can't be reached.)
-    $("loading-text").textContent = `Loading ${grouped.format(pending)} series`;
+    $("loading-text").textContent = `Loading ${grouped.format(unasked)} series`;
     $("loading").hidden = false;
     $("navigator").classList.add("waiting");
   }
@@ -4565,7 +4568,7 @@ async function draw(refit = false, fresh = false) {
   $("navigator").classList.toggle("waiting", unreached);
   dataRevision++;
   const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
-  build(withLook(structuredClone(chart)), Object.assign(result, { key: drawingKey, version, live }), refit);
+  build(withLook(structuredClone(chart)), Object.assign(result, { key: asking.key, version, live }), refit);
   for (const wake of [...drawnWaiters]) wake();
   renderLayers();
   renderInspector();
@@ -4584,17 +4587,6 @@ async function draw(refit = false, fresh = false) {
   return true;
 }
 function buildChart(doc, data, refit) {
-  // (A build that throws claims nothing: what was on screen is still what's said to be, and the throw is loud.)
-  const prior = displayed, priorData = resolved;
-  try {
-    buildOver(prior, doc, data, refit);
-  } catch (error) {
-    (displayed = prior), (resolved = priorData);
-    throw error;
-  }
-}
-/** The build itself (see buildChart), over what was on screen before it. @param {{ doc: Chart, look: string } | null} prior */
-function buildOver(prior, doc, data, refit) {
   // (One asked for, a frame on, is this one: see buildSoon.)
   if (buildAsked) {
     if (buildAsked > 0) cancelAnimationFrame(buildAsked);
@@ -4605,7 +4597,7 @@ function buildOver(prior, doc, data, refit) {
   // (What's on screen from now: this, whatever builds it, a restyle and a ⌘K look too; what was, to keep what can be.
   // A range asked for since this chart's view was laid out (a pick, an undo, at this interval or across a switch) is
   // owed: this build lays it out, whichever draw it's from.)
-  const priorTimes = resolved?.times ?? [], same = prior?.doc.id === doc.id && prior?.doc.index === doc.index, sameView = !refit && same;
+  const prior = displayed, priorTimes = resolved?.times ?? [], same = prior?.doc.id === doc.id && prior?.doc.index === doc.index, sameView = !refit && same;
   const owed = prior?.doc.id === doc.id && prior?.doc.range !== doc.range;
   (displayed = { doc, look: lookKey(doc) }), (resolved = data);
   // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
@@ -11686,7 +11678,7 @@ function refresh(refit = false) {
  * anew. Under the Charts page, one not on screen, none on its way for it, waits till it's opened (see leaveHome's undrawn).
  */
 function redrawChart(refit = false, now = false) {
-  const asked = pending() ? drawingLook : displayed?.look;
+  const asked = pending() ? asking.look : displayed?.look;
   if (home && !chartShown() && !pending()) undrawn = true;
   if ((home && undrawn) || (!refit && asked === lookKey(chart))) {
     updateLegends();
@@ -11699,7 +11691,7 @@ function redrawChart(refit = false, now = false) {
   if (chartShown() && chart.range !== displayed?.doc.range) showRange();
 }
 /** Whether the open chart can be drawn again from the data at hand (its data the same, none other on its way). */
-const builds = () => chartShown() && resolved?.key === dataKey(chart) && drawingKey === resolved.key && drawLayers(chart).every((layer) => resolved?.drawn.has(layer.id));
+const builds = () => chartShown() && resolved?.key === dataKey(chart) && asking.key === resolved.key && drawLayers(chart).every((layer) => resolved?.drawn.has(layer.id));
 /**
  * The open chart drawn again from the data at hand once what was pressed has shown: the row, the eye, the swatch answer
  * on the next frame, the chart on the one after (a stack of many built again is a third of a second on a phone);
@@ -13172,7 +13164,7 @@ export {
   newPaneIn, nextColor, nextHalvings, nextLetter, NO_LINE, normalize, noteUse, notice, oklchToHex, oklchToLinear,
   ONE_SCALE, oneScale, ontoData, OPACITIES, opacityOf, openCascade, openChart, openingView, openPalette, openView,
   ORIGIN, OUTLINE_GLYPH, OUTLINED, outreaches, ownerOf, paintNavigator, PAIRED, PAIRS, PALETTE, paletteMarksSeen,
-  paletteOnField, paletteOpenings, PANE_SETTINGS, panelShown, paneShowing, pathResume, PEN_COLOR, pendingRoute, phone,
+  paletteOnField, paletteOpenings, PANE_SETTINGS, panelShown, paneShowing, pathResume, PEN_COLOR, pending, pendingRoute, phone,
   pickPreset, picks, placedBy, placedOn, placeGallery, placeName, placing, plural, POINTED, pointedLayer,
   pointerOnChart, pointOf, POINTWISE, precise, PRECISE, prefs, presetLabels, presetMarks, presets, presetsFailed,
   presetsMatching, pressedTile, previewCharts, previews, previousChart, PROFILE_VIEWS, profileColor, profileLit,

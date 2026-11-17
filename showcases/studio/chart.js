@@ -10,13 +10,13 @@ import {
   $, all$, amount, averageFor, AXIS_CHARS, axisTicks, bandLit, belowOf, BRUSH_MIN, brushDrag, bubbleRing, buildAsked,
   buildChart, byBlock, CADENCE, capturing, catalogIndex, changesOf, chart, chartHeight, chartSans, chartSize, CHUNK,
   clamp, client, closest, CLOUD, cloudLayers, cohortName, commit, composing, crossMoved, css, dataRevision, dateLabel,
-  chartShown, displayed, draft, drawVersion, edgesOf, EMPTY, engine, escape, exporting,
+  chartShown, displayed, draft, edgesOf, EMPTY, engine, escape, exporting,
   failing, FINE, FINE_STEP, FIRST_CHUNKS, fitMargins, footPinned, format, fromShort, fromUnfit, goneLayer, grow,
   growth, heatKnown, heatLike, hexToOklch, home, hoverTime, ICONS, indexAt, indexCatalog, INTERVAL_DAYS,
   INTERVAL_LABEL, INTERVAL_ORDER, keepStretch, KEPT_CHUNKS, keyAway, keyText, keyTime, keyValue, layerPicks, light,
   liveHeight, lookDoc, lookShown, lowerBound, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, MONTHS, morphFrom,
   MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, oklchToHex, ontoData, opacityOf, openingView, outreaches,
-  paintNavigator, panelShown, placedOn, placing, pointedLayer, pointerOnChart, precise, PRECISE, profileColor,
+  paintNavigator, panelShown, pending, placedOn, placing, pointedLayer, pointerOnChart, precise, PRECISE, profileColor,
   profileLit, rangeDays, reaching, reduced, resolved, resultText, rowSizes, selected, shownOklch, signalShown,
   signedMeasure, sizeChart, sizeHeld, SPAN, spanDays, spanKey, spanParts, spotlight, stretchResult, submenus,
   subSetups, tagLit, timeAt, timesAt, tokensNow, tool, TOUCH, TWO_KEPT, unitOf, updateRowChanges, viewMoving, viewTimes, widest,
@@ -1031,7 +1031,7 @@ const setPresetShown = (/** @type {boolean} */ shown) => {
 };
 
 /** Whether what's drawn is this chart with all its data (a build asked for, not yet: not yet, see buildSoon). */
-const settled = () => chartShown() && resolved?.version === drawVersion && !buildAsked;
+const settled = () => chartShown() && !pending() && !buildAsked;
 /**
  * What a chart's resolved values depend on: its interval, each pane's average, and what each layer reads and its
  * pane (in any order); a heatmap's holders and measure (its result's: whether Bitview has them, its unit).
