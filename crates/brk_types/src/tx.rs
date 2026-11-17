@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     CheckedSub, RawLockTime, Sats, SigOpCount, SigOps, TxIn, TxIndex, TxOut, TxStatus,
-    TxVersionRaw, Txid, VSize, Weight,
+    TxVersionRaw, Txid, VSize, Weight, bytes::push_hex,
 };
 
 /// Transaction information compatible with mempool.space API format
@@ -90,6 +90,13 @@ impl Transaction {
         Encodable::consensus_encode(&bitcoin_tx, &mut buf)
             .expect("in-memory consensus_encode is infallible");
         buf
+    }
+
+    /// [`Self::encode_bytes`] as lowercase hex.
+    pub fn encode_hex(&self) -> String {
+        let mut hex = Vec::new();
+        push_hex(&self.encode_bytes(), &mut hex);
+        String::from_utf8(hex).expect("hex is ASCII")
     }
 
     /// Virtual size in vbytes (weight / 4, rounded up)

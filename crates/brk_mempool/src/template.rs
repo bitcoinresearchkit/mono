@@ -1,6 +1,7 @@
-//! The next block's template (BIP 22), built from projected block 0 at the tip it extends and
-//! served only once Core accepts the block it describes, on a thread of its own: the cycle
-//! publishes without waiting on Core's check.
+//! The next block's template (BIP 22): projected block 0 at the tip it extends, built as the
+//! route is asked. Core isn't asked whether its block is valid, except by debug builds, which
+//! check each published block 0 and panic on one Core rejects ([`Checker`]): the dev machine's
+//! run is the check on the packer.
 
 use std::{
     sync::{Arc, Condvar, Mutex},
@@ -8,10 +9,9 @@ use std::{
     time::Instant,
 };
 
-use arc_swap::ArcSwapOption;
 use bitcoin::{
-    Amount, Block, BlockHash as BitcoinBlockHash, CompactTarget, OutPoint, ScriptBuf, Sequence,
-    Target, Transaction, TxIn, TxMerkleNode, TxOut, Witness, WitnessMerkleNode, Wtxid,
+    Amount, Block, CompactTarget, OutPoint, ScriptBuf, Sequence, Target, Transaction, TxIn,
+    TxMerkleNode, TxOut, Witness, WitnessMerkleNode, Wtxid,
     absolute::LockTime,
     block::{self, Header},
     consensus::encode::{VarInt, serialize},
@@ -27,12 +27,14 @@ use brk_types::{BlockHash, BlockTemplate, BlockTemplateTransaction, Height, Sats
 use rapidhash::RapidHashMap;
 use tracing::{debug, warn};
 
-use crate::{api::block_template::Template, snapshot::Snapshot, stores::tx_store::TxRecord};
+use crate::{snapshot::Snapshot, stores::tx_store::TxRecord};
 
 /// BIP 9 version bits with nothing signaled, as Core sets it with no deployment in progress.
 const VERSION: i32 = 0x2000_0000;
 /// The witness reserved value Core's coinbase carries (BIP 141): 32 zero bytes.
 const WITNESS_RESERVED_VALUE: [u8; 32] = [0; 32];
+/// Core's answer to a proposal that doesn't extend its tip (BIP 23): no verdict on the block.
+const NOT_ON_CORE_TIP: &str = "inconclusive-not-best-prevblk";
 
 /// What the next block's template needs of the chain at its tip, as the indexed chain holds it.
 pub struct TipFacts {
@@ -57,9 +59,10 @@ impl TipFacts {
     }
 }
 
-/// Builds and checks the template of each published snapshot's block 0 on its own thread,
-/// serving the newest Core accepted at the newest tip. Latest wins: a snapshot handed over while
-/// a check runs replaces one still waiting, so checks never queue behind the cycle.
+/// Debug builds' check on the packer: asks Core, on a thread of its own, whether each published
+/// snapshot's block 0 makes a valid block at its tip, and panics with Core's reason when it
+/// doesn't. Latest wins: a snapshot handed over while a check runs replaces one still waiting,
+/// so checks never queue behind the cycle. Release builds ask Core nothing.
 pub(crate) struct Checker {
     next: Arc<(Mutex<Option<Job>>, Condvar)>,
 }
@@ -70,14 +73,15 @@ struct Job {
 }
 
 impl Checker {
-    /// `tip_facts`: what the chain says of a tip it published. `served`: where accepted
-    /// templates go.
+    /// `tip_facts`: what the chain says of a tip it published.
     pub fn spawn(
         client: Client,
         tip_facts: impl Fn(&BlockHash) -> Option<TipFacts> + Send + 'static,
-        served: Arc<ArcSwapOption<Template>>,
     ) -> Self {
         let next = Arc::new((Mutex::new(None::<Job>), Condvar::new()));
+        if !cfg!(debug_assertions) {
+            return Self { next };
+        }
         let waiting = Arc::clone(&next);
         thread::Builder::new()
             .name("block-template".into())
@@ -101,11 +105,10 @@ impl Checker {
                     if facts.as_ref().is_none_or(|(tip, _)| *tip != job.tip) {
                         facts = tip_facts(&job.tip).map(|read| (job.tip, read));
                     }
-                    let checked = facts.as_ref().and_then(|(_, facts)| {
-                        accepted(&job.snapshot.block0, facts, &client)
-                    });
-                    if let Some(template) = checked {
-                        served.store(Some(Arc::new(template)));
+                    if facts
+                        .as_ref()
+                        .is_some_and(|(_, facts)| accepted(&job.snapshot.block0, facts, &client))
+                    {
                         accepted_for = Some((job.snapshot, job.tip));
                     }
                 }
@@ -117,53 +120,54 @@ impl Checker {
     /// Hands over `snapshot` at `tip`, replacing one not yet taken. Handed over at every
     /// publication: one Core couldn't check is tried again, one it accepted is skipped.
     pub fn check(&self, snapshot: Arc<Snapshot>, tip: BlockHash) {
+        if !cfg!(debug_assertions) {
+            return;
+        }
         let (slot, ready) = &*self.next;
         *slot.lock().expect("checker slot") = Some(Job { snapshot, tip });
         ready.notify_one();
     }
 }
 
-/// `block0`'s template at `facts`' tip if Core accepts its block, as JSON.
-fn accepted(
-    block0: &[TxRecord],
-    facts: &TipFacts,
-    client: &Client,
-) -> Option<Template> {
+/// Whether Core accepts the block of `block0`'s template at `facts`' tip. Panics with Core's
+/// reason when it rejects it; false when Core gave no verdict (its tip moved on, or the call
+/// failed).
+fn accepted(block0: &[TxRecord], facts: &TipFacts, client: &Client) -> bool {
     let started = Instant::now();
-    let (template, proposal) = build(block0, facts, Timestamp::now());
+    let template = build(block0, facts, Timestamp::now());
+    let proposal = proposal(&template, facts);
     let built = started.elapsed();
     let height = *template.height;
-    let verdict = client.propose_block(&proposal);
-    let proposed = started.elapsed() - built;
-    match verdict {
-        Ok(None) => {}
+    match client.propose_block(&proposal) {
+        Ok(None) => {
+            debug!(
+                height,
+                txs = template.transactions.len(),
+                fees = u64::from(template.coinbasevalue - template.height.subsidy()),
+                weight = template.transactions.iter().map(|tx| u64::from(tx.weight)).sum::<u64>(),
+                build_us = built.as_micros() as u64,
+                propose_us = (started.elapsed() - built).as_micros() as u64,
+                "block template: Core accepts block 0"
+            );
+            true
+        }
+        Ok(Some(reason)) if reason == NOT_ON_CORE_TIP => {
+            debug!(height, "block template: Core's tip moved before its check");
+            false
+        }
         Ok(Some(reason)) => {
-            warn!(height, reason, "block template: Core rejects its block");
-            return None;
+            panic!("block template: Core rejects block 0 at height {height}: {reason}")
         }
         Err(error) => {
             warn!(height, %error, "block template: Core's check failed");
-            return None;
+            false
         }
     }
-    let json = serde_json::to_vec(&template).expect("a template serializes");
-    debug!(
-        height,
-        txs = template.transactions.len(),
-        fees = u64::from(template.coinbasevalue - template.height.subsidy()),
-        weight = template.transactions.iter().map(|tx| u64::from(tx.weight)).sum::<u64>(),
-        build_us = built.as_micros() as u64,
-        propose_us = proposed.as_micros() as u64,
-        serialize_us = (started.elapsed() - built - proposed).as_micros() as u64,
-        "block template: accepted"
-    );
-    Some(Template::new(json, template.previousblockhash))
 }
 
 /// The template of the block after `tip` holding `block0`'s transactions in its order (every
-/// parent first), dated `now` or the earliest time the chain allows, and the block it describes
-/// ([`proposal`]).
-fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> (BlockTemplate, String) {
+/// parent first), dated `now` or the earliest time the chain allows.
+pub(crate) fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> BlockTemplate {
     let height = Height::new(*tip.height + 1);
     // Core's GetMinimumTime applies BIP94 and BIP54 on every network.
     let interval = Params::MAINNET.difficulty_adjustment_interval();
@@ -185,7 +189,7 @@ fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> (BlockTemplate,
             depends.sort_unstable();
             depends.dedup();
             BlockTemplateTransaction {
-                data: record.tx.encode_bytes().to_lower_hex_string(),
+                data: record.tx.encode_hex(),
                 txid: record.entry.txid,
                 hash: record.entry.wtxid.to_string(),
                 depends,
@@ -198,7 +202,7 @@ fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> (BlockTemplate,
     let fees: Sats = block0.iter().map(|record| record.entry.fee).sum();
     let bits = tip.next_bits();
     let commitment = witness_commitment(block0.iter().map(|record| record.entry.wtxid));
-    let template = BlockTemplate {
+    BlockTemplate {
         version: VERSION,
         rules: ["csv", "!segwit", "taproot"].map(String::from).into(),
         vbavailable: Default::default(),
@@ -218,15 +222,15 @@ fn build(block0: &[TxRecord], tip: &TipFacts, now: Timestamp) -> (BlockTemplate,
         bits: format!("{:08x}", bits.to_consensus()),
         height,
         default_witness_commitment: commitment.to_lower_hex_string(),
-    };
-    let proposal = proposal(&template, tip.header.block_hash(), bits, commitment);
-    (template, proposal)
+    }
 }
 
-/// The block `template` describes as hex, under the least coinbase a miner could add: the BIP 34
-/// height, the witness reserved value, and outputs paying `coinbasevalue` and committing to the
-/// witnesses.
-fn proposal(template: &BlockTemplate, tip: BitcoinBlockHash, bits: CompactTarget, commitment: Vec<u8>) -> String {
+/// The block `template` describes at `tip` as hex, under the least coinbase a miner could add:
+/// the BIP 34 height, the witness reserved value, and outputs paying `coinbasevalue` and carrying
+/// `default_witness_commitment`.
+fn proposal(template: &BlockTemplate, tip: &TipFacts) -> String {
+    let commitment = ScriptBuf::from_hex(&template.default_witness_commitment)
+        .expect("the template's own hex");
     let coinbase = Transaction {
         version: transaction::Version::TWO,
         lock_time: LockTime::ZERO,
@@ -241,7 +245,7 @@ fn proposal(template: &BlockTemplate, tip: BitcoinBlockHash, bits: CompactTarget
                 value: Amount::from_sat(u64::from(template.coinbasevalue)),
                 script_pubkey: ScriptBuf::from_bytes(vec![OP_TRUE.to_u8()]),
             },
-            TxOut { value: Amount::ZERO, script_pubkey: ScriptBuf::from_bytes(commitment) },
+            TxOut { value: Amount::ZERO, script_pubkey: commitment },
         ],
     };
     let txids = std::iter::once(coinbase.compute_txid())
@@ -249,10 +253,10 @@ fn proposal(template: &BlockTemplate, tip: BitcoinBlockHash, bits: CompactTarget
         .map(|txid: bitcoin::Txid| txid.to_raw_hash());
     let header = Header {
         version: block::Version::from_consensus(template.version),
-        prev_blockhash: tip,
+        prev_blockhash: tip.header.block_hash(),
         merkle_root: TxMerkleNode::from_raw_hash(merkle_tree::calculate_root(txids).expect("the coinbase's")),
         time: *template.curtime,
-        bits,
+        bits: tip.next_bits(),
         nonce: 0,
     };
     let body: usize = template.transactions.iter().map(|tx| tx.data.len()).sum();

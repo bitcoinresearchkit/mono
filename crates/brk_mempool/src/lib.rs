@@ -27,7 +27,7 @@ mod template;
 mod tests;
 
 pub use api::{
-    BlockTemplateJson, MempoolBlockSource, PendingUtxos, PendingView, PublishedEntry, PublishedTx, RbfForTx,
+    MempoolBlockSource, PendingUtxos, PendingView, PublishedEntry, PublishedTx, RbfForTx,
     RbfNode, ResolvedMempoolBlockDiff, Spends,
 };
 pub use chain_waker::ChainWaker;
@@ -82,7 +82,8 @@ pub struct Mempool {
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
     /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
-    /// Builds and checks block 0's template off the cycle, once driven ([`Self::start_with`]).
+    /// Debug builds' check of each published block 0 against Core, once driven
+    /// ([`Self::start_with`]).
     checker: Option<template::Checker>,
     /// Cycles in a row whose new blocks couldn't all be read.
     unread_cycles: u32,
@@ -103,7 +104,6 @@ impl Mempool {
             rebuilder: Rebuilder::default(),
             read_only: ReadOnlyMempool {
                 current: Arc::new(ArcSwap::from_pointee(ReadOnlyState::default())),
-                template: Arc::default(),
             },
             needs_recovery: false,
             chain: ChainWaker::default(),

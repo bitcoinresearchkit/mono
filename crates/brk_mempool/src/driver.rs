@@ -52,11 +52,7 @@ impl Mempool {
     ) where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut> + Send,
     {
-        self.checker = Some(Checker::spawn(
-            self.client.clone(),
-            tip_facts,
-            self.read_only.template.clone(),
-        ));
+        self.checker = Some(Checker::spawn(self.client.clone(), tip_facts));
         let gate = || Some(published_tip());
         let loading = Instant::now();
         loop {

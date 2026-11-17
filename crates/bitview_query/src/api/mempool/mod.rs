@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_mempool::{BlockTemplateJson, JsonBody, PendingView, ReadOnlyState, TipFacts};
+use brk_mempool::{JsonBody, PendingView, ReadOnlyState, TipFacts};
 pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
 use brk_types::{BlockHash, Height, MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
 use serde::Serialize;
@@ -210,18 +210,27 @@ impl Query {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
-    /// The newest block template Core accepted (BIP 22), with its content identity.
-    pub fn block_template_json(&self) -> Result<(BlockTemplateJson, RepresentationId)> {
-        let template = self.mempool_handle().ok_or(Error::MempoolNotAvailable)?.block_template()?;
-        let identity = RepresentationId::Content(template.hash());
-        Ok((template, identity))
+    /// The next block's template (BIP 22), built from the pool's published block 0 as it is
+    /// asked, with its content identity. `StateUpdating` before the pool's first projection, and
+    /// for the moment the pool is behind the chain's tip ([`Self::tip_facts`]).
+    pub fn block_template_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
+        let mempool = self.require_mempool()?;
+        let tip = mempool.projection_tip().ok_or_else(|| Error::updating())?;
+        let json = mempool.block_template(&self.tip_facts(&tip)?);
+        let identity = RepresentationId::content(&json);
+        Ok((json, identity))
     }
 
-    /// What the next block's template needs of the indexed chain at `tip`: its height and
+    /// What the next block's template needs of the indexed chain at its tip: its height and
     /// header, its median time past, and its difficulty epoch's first block time.
+    /// `StateUpdating` unless `tip` is the published tip: no next block extends another, which
+    /// a pool asking is about to leave (a block it hasn't followed yet, or a reorg).
     pub fn tip_facts(&self, tip: &BlockHash) -> Result<TipFacts> {
         let pin = self.pin_safe_lengths()?;
-        let height = self.height_by_hash_at(tip, &pin)?;
+        if pin.tip() != *tip {
+            return Err(Error::updating());
+        }
+        let height = Self::tip_height(&pin)?;
         let blocks = &self.indexer().vecs().blocks;
         let epoch_start = Height::new(*height / EPOCH_BLOCKS * EPOCH_BLOCKS);
         Ok(TipFacts {

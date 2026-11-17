@@ -1,16 +1,13 @@
 use std::sync::Arc;
 
-use arc_swap::{ArcSwap, ArcSwapOption};
+use arc_swap::ArcSwap;
 
-use crate::{ReadOnlyState, api::block_template::Template};
+use crate::ReadOnlyState;
 
 /// Cheap reader handle. Each load acquires one complete publication.
 #[derive(Clone)]
 pub struct ReadOnlyMempool {
     pub(crate) current: Arc<ArcSwap<ReadOnlyState>>,
-    /// The newest block template Core accepted, replaced on its own as each is checked
-    /// ([`crate::template::Checker`]).
-    pub(crate) template: Arc<ArcSwapOption<Template>>,
 }
 
 impl ReadOnlyMempool {
