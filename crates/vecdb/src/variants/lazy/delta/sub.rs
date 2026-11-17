@@ -2,8 +2,8 @@ use crate::CheckedSub;
 
 use super::DeltaOp;
 
-/// Rolling sum from cumulative: `cum[h] - cum[start - 1]`, or `T::default()` when the
-/// subtraction overflows.
+/// Rolling sum from cumulative: `cum[h] - cum[start - 1]`. A cumulative never decreases, so an
+/// underflow means wrong data: debug builds panic, release builds give `T::default()`.
 #[derive(Clone, Copy)]
 pub struct DeltaSub;
 
@@ -13,6 +13,8 @@ where
 {
     #[inline]
     fn combine(current: T, before: T, _count: usize) -> T {
-        current.checked_sub(before).unwrap_or_default()
+        let sum = current.checked_sub(before);
+        debug_assert!(sum.is_some(), "rolling sum underflow: its cumulative decreased");
+        sum.unwrap_or_default()
     }
 }
