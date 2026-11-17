@@ -48,7 +48,9 @@ const TAG = PILL;
  * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top; `faint`, drawn at a fifth of its
  * opacity, its tag and price line gone (another lit over it: after a change, the chart's invalidate(true)). Drawn with
  * the chart's theme (its ground, its font: words in a pill); `behind`, drawn behind every series whatever their order (a
- * backdrop: levels across).
+ * backdrop: levels across); `drawOver`, what it draws over everything as well, on that layer, each frame (its marks'
+ * words: never in a picture a pan moves, so they can keep to the view), each box it draws told to `drew` (the layer
+ * cleared there alone at the next frame).
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -69,6 +71,7 @@ const TAG = PILL;
  *   extent(a: number, b: number, positive: boolean, out: Float64Array, time?: import("./timeline.js").Timeline): void,
  *   viewed?(time: import("./timeline.js").Timeline): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
+ *   drawOver?(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme, drew: (x: number, y: number, width: number, height: number) => void): void,
  * }} Series
  */
 
@@ -113,10 +116,22 @@ export class Pane {
     /** @type {CanvasRenderingContext2D | null} */
     this.leftG = null;
     this.leftWidth = 0;
-    /** Its layer over everything, the crosshair too (its series `over`: see draw), made as the first comes. @type {HTMLCanvasElement | null} */
+    /** Its layer over everything, the crosshair too (its series `over`, and what any draws over: see draw), made as the first comes. @type {HTMLCanvasElement | null} */
     this.overCanvas = null;
     /** @type {CanvasRenderingContext2D | null} */
     this.overG = null;
+    /** The boxes its series drew over everything at the last frame (each left, top, width, height, CSS pixels; `overCount`
+     * of them): its layer cleared there alone at the next, not whole (in WebKit, clearing it whole was most of a pan
+     * frame's time); whole where a series `over` drew (anything, anywhere). */
+    this.overBoxes = new Float64Array(64);
+    this.overCount = 0;
+    this.overWhole = true;
+    /** One box a series drew over everything (see overBoxes): made once, given to each. @param {number} x @param {number} y @param {number} width @param {number} height */
+    this.drewOver = (x, y, width, height) => {
+      if (this.overCount * 4 >= this.overBoxes.length) ((grown) => (grown.set(this.overBoxes), (this.overBoxes = grown)))(new Float64Array(this.overBoxes.length * 2));
+      const k = this.overCount++ * 4;
+      (this.overBoxes[k] = x), (this.overBoxes[k + 1] = y), (this.overBoxes[k + 2] = width), (this.overBoxes[k + 3] = height);
+    };
     /** Told when its layout changes (its left scale come or gone, its layer over it come): the chart lays itself out again. @type {() => void} */
     this.onLayout = () => {};
     /** @type {Series[]} */
@@ -193,6 +208,8 @@ export class Pane {
     this.tagStep = 0;
     /** What drawing it whole takes (ms, the last few weighed): a zoom stretches its picture only where it's slow. */
     this.wholeCost = 0;
+    /** Its picture kept as it was at the last frame, with no series `over` on it: its layer over it kept too (see drawOver). */
+    this.still = false;
     /** @type {Theme | null} */
     this.drawnTheme = null;
     this.ticks = new Float64Array(24);
@@ -227,7 +244,7 @@ export class Pane {
       if (this.leftRange) this.left.fit(this.leftRange[0], this.leftRange[1]);
       this.onLayout();
     }
-    if (series.over && !this.overCanvas) {
+    if ((series.over || series.drawOver) && !this.overCanvas) {
       // (Over the crosshair's, wherever a page puts them.)
       this.overCanvas = layer("position: absolute; left: 0; z-index: 2; display: block; pointer-events: none");
       this.overG = this.overCanvas.getContext("2d");
@@ -460,26 +477,35 @@ export class Pane {
     const over = this.overCanvas;
     if (over) {
       const ow = Math.round(this.plot * dpr);
-      if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h);
+      if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h), (this.drawnFrom = NaN);
       Object.assign(over.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
     }
   }
 
   /**
-   * Its series `over` (marks over everything: the crosshair too) drawn on its layer over it, whole: at each frame,
-   * wherever its picture's moved.
+   * Its series `over` (marks over everything: the crosshair too), and what any draws over, drawn on its layer over it,
+   * whole: at each frame, wherever its picture's moved.
    * @param {import("./timeline.js").Timeline} time @param {number} dpr
    */
   drawOver(time, dpr) {
-    const g = this.overG;
-    if (!g || !this.overCanvas) return;
+    const g = this.overG, over = this.overCanvas;
+    if (!g || !over || this.still) return;
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, this.overCanvas.width, this.overCanvas.height);
+    if (this.overWhole) g.clearRect(0, 0, over.width, over.height);
+    else {
+      // (Each out to whole device pixels and one past, for its smoothed edges.)
+      const boxes = this.overBoxes;
+      for (let k = 0; k < this.overCount * 4; k += 4) {
+        const x = Math.floor(boxes[k] * dpr) - 1, y = Math.floor(boxes[k + 1] * dpr) - 1;
+        g.clearRect(x, y, Math.ceil((boxes[k] + boxes[k + 2]) * dpr) + 1 - x, Math.ceil((boxes[k + 1] + boxes[k + 3]) * dpr) + 1 - y);
+      }
+    }
+    (this.overCount = 0), (this.overWhole = false);
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
-      if (!series.over || series.hidden) continue;
+      if (series.hidden || !(series.over || series.drawOver)) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
         const base = series.first(from);
@@ -487,7 +513,8 @@ export class Pane {
         scale.setBase(base);
       }
       if (series.faint) g.globalAlpha = FAINT;
-      series.draw(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme));
+      if (series.over) (this.overWhole = true), series.draw(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme));
+      else series.drawOver?.(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme), this.drewOver);
       g.globalAlpha = 1;
     }
   }
@@ -702,13 +729,13 @@ export class Pane {
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
     // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
-    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, overlaid = true, shown = this.drawnHidden.length === this.series.length;
+    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, overlaid = true, shown = this.drawnHidden.length === this.series.length, own = false;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (shown && this.drawnHidden[k] !== (series.hidden ? 1 : 0)) shown = false;
       // (Brought up to the view first: what it draws may hang on it (bubbles sized to the largest in view).)
       if (!series.hidden) series.viewed?.(time);
-      if (series.over) overs += series.version;
+      if (series.over) (overs += series.version), (own ||= !series.hidden);
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
       // (An overlay's scale changed: drawn whole, as a side's is.)
       if (series.overlay && !series.overlay.unchanged) overlaid = false;
@@ -728,6 +755,9 @@ export class Pane {
       if (!by) {
         // (Its series over it changed, or the point its tags read: its axes drawn again, the plot as it is.)
         if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
+        // (What's drawn over it from the view alone kept as it is too; a series `over` (a page's own, which may follow
+        // the pointer) drawn whole each frame.)
+        this.still = !own;
         return false;
       }
       // (What stays, copied to where it goes, in device pixels; then the strip come in.)
@@ -772,6 +802,7 @@ export class Pane {
     this.drawnOvers = overs;
     if (!shown) this.drawnHidden = Uint8Array.from(this.series, (series) => (series.hidden ? 1 : 0));
     this.drawnTheme = theme;
+    this.still = false;
     for (let k = 0; k < this.series.length; k++) this.drawnBases[k] = this.bases[k];
     return moves || stretches;
   }

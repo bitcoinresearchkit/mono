@@ -189,7 +189,10 @@ clears); avoid reflecting programmatic calls. A programmatic
   crowd at the zoom: from the latest back, one whose words would run into the next ones shown on its side (above the
   series; under it), or on the other where the series crosses between them, is counted in those ("2 more" on their
   left, quieter than they are: in the theme's `text` color, kept at 5:1 or more, on a quiet tag of its `separator`
-  color laid on its ground); a pan changes none. Their room kept at the scale's ends while its series has values in
+  color laid on its ground); a pan regroups none. Its words over everything, on its pane's layer over it, drawn each
+  frame and whole within the plot: those its edge would cut moved just within it while their dot's in view, else
+  (where that runs them into other words) left out; a count that doesn't fit between the plot's edge and its pill's
+  dot left out, the pill kept on its dot. Their room kept at the scale's ends while its series has values in
   view (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
