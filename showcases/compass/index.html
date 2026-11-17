@@ -533,6 +533,12 @@
           .pan {
             flex-basis: 100%;
           }
+
+          /* (Full width, so its ends sit on the page's edges, not the row's free space on the left.) */
+          .controls {
+            flex-basis: 100%;
+            justify-content: space-between;
+          }
         }
       }
 
@@ -611,7 +617,7 @@
         gap: 6px;
         height: 24px;
         margin-top: 6px;
-        color: var(--faint);
+        color: var(--soft);
         font-size: 12.5px;
         font-weight: 500;
         text-decoration: none;
@@ -991,22 +997,28 @@
           gap: 0 .3em;
           min-height: 44px;
           min-width: 0;
-          padding: 0;
-          border: 0;
+          padding: 0 10px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
           background: none;
           color: var(--ink);
           font: 600 13px/1.5 var(--sans);
           font-variant-numeric: tabular-nums;
           text-align: left;
 
-          @media (max-width: 719px) { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: center; }
+          @media (max-width: 719px) {
+            flex-direction: column; flex-wrap: nowrap; align-items: flex-start; justify-content: center;
+          }
 
           .distribution-name { display: inline-flex; align-items: center; gap: 4px; color: var(--phase); }
           svg { width: 14px; height: 14px; flex: none; }
           .distribution-values { display: inline-flex; align-items: baseline; gap: .25em; white-space: nowrap; }
-          .distribution-count { min-width: 3ch; text-align: right; }
-          .distribution-unit { min-width: 4ch; }
-          .distribution-share { min-width: 6ch; }
+          /* (Column widths keep the digits still while the day changes; stacked on a phone they start under their name.) */
+          @media (min-width: 720px) {
+            .distribution-count { min-width: 3ch; text-align: right; }
+            .distribution-unit { min-width: 4ch; }
+            .distribution-share { min-width: 6ch; }
+          }
           &[aria-pressed="false"] {
             color: var(--faint);
             .distribution-name { color: inherit; text-decoration: line-through; }
@@ -1361,10 +1373,8 @@
         h3 {
           margin-bottom: 6px;
           color: var(--soft);
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 600;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
         }
 
         ol {
@@ -1452,7 +1462,7 @@
         }
       }
 
-      /* How it reads: three parts, each its number, a heading and its words; side by side, on rows they share, so each
+      /* How it reads: three parts, each a heading and its words; side by side, on rows they share, so each
          part's heading and words start level with the others' whichever wraps. */
       .how {
         display: grid;
@@ -1461,7 +1471,6 @@
         margin: 0;
         padding: 0;
         list-style: none;
-        counter-reset: part;
 
         @media (min-width: 900px) {
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1472,26 +1481,17 @@
           display: grid;
           align-content: start;
           gap: 10px;
-          counter-increment: part;
 
           @media (min-width: 900px) {
-            grid-row: span 3;
+            grid-row: span 2;
             grid-template-rows: subgrid;
-          }
-
-          /* (Its number, a line of its own over its heading.) */
-          &::before {
-            content: "0" counter(part);
-            color: var(--faint);
-            font: 600 12px/1 var(--sans);
-            font-variant-numeric: tabular-nums;
-            letter-spacing: 0.04em;
           }
         }
 
         h3 {
           color: var(--ink);
           font: 400 24px/1.2 var(--serif);
+          text-wrap: balance;
         }
 
         p {
@@ -1509,7 +1509,7 @@
       }
 
       .note {
-        max-width: 72ch;
+        max-width: 65ch;
         margin-top: 32px;
         color: var(--soft);
         font-size: 14px;
