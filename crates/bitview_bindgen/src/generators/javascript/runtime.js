@@ -10,6 +10,9 @@ const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
 const _runIdle = (/** @type {VoidFunction} */ fn) => (globalThis.requestIdleCallback ?? setTimeout)(fn);
 const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
+/** How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most
+ * one retried request per period, and a restarted server is taken back after it. */
+const _REFUSE_MS = 600_000;
 
 /** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
 
@@ -448,6 +451,49 @@ class BitviewClientBase {
       : (typeof memOpt === 'number' ? memOpt : _DEFAULT_MEM_CACHE_SIZE);
     /** @type {Map<string, _MemEntry<unknown>>} */
     this._memCache = new Map();
+    /** The server requests go to, if not the configured URL. @type {string | null} */
+    this._pinned = null;
+    /** Servers passed over, until when. @type {Map<string, number>} */
+    this._refused = new Map();
+  }
+
+  /**
+   * Fetch `path` from the pinned server, else the configured URL. When several servers answer
+   * one URL, each names itself in `bitview-origin` and the requests after go to it, so what one
+   * server minted (a diff's `since`) stays with it. A pinned server that fails (network, timeout,
+   * 5xx) is passed over, and the request goes through the configured URL again.
+   * @param {string} path
+   * @param {RequestInit} init
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<Response>}
+   */
+  async _fetch(path, init, signal) {
+    const pinned = this._pinned;
+    if (pinned) {
+      try {
+        const res = await fetch(`${pinned}${path}`, { ...init, signal: this._signal(signal) });
+        if (res.status < 500) return this._follow(res);
+        await res.body?.cancel();
+      } catch (e) {
+        if (signal?.aborted) throw e;
+      }
+      this._refused.set(pinned, Date.now() + _REFUSE_MS);
+      if (this._pinned === pinned) this._pinned = null;
+    }
+    return this._follow(await fetch(`${this.baseUrl}${path}`, { ...init, signal: this._signal(signal) }));
+  }
+
+  /**
+   * Pin the server the answer names, unless it's the configured URL or refused.
+   * @param {Response} res
+   */
+  _follow(res) {
+    const origin = res.headers.get('bitview-origin')?.replace(/\/+$/, '');
+    if (origin && /^https?:\/\//.test(origin)) {
+      if (origin === this.url) this._pinned = null;
+      else if (!((this._refused.get(origin) ?? 0) > Date.now())) this._pinned = origin;
+    }
+    return res;
   }
 
   /**
@@ -495,14 +541,13 @@ class BitviewClientBase {
    * @returns {Promise<Response>}
    */
   async get(path, { signal, cache = true, etag } = {}) {
-    const url = `${this.baseUrl}${path}`;
     /** @type {RequestInit} */
-    const init = { signal: this._signal(signal) };
+    const init = {};
     // Let browsers manage HTTP revalidation; explicit validators bypass their HTTP cache.
     const revalidate = cache && etag && typeof location === 'undefined';
     if (revalidate) init.headers = { 'If-None-Match': etag };
     if (!cache) init.cache = 'no-store';
-    const res = await fetch(url, init);
+    const res = await this._fetch(path, init, signal);
     if (!res.ok && !(revalidate && res.status === 304)) throw await _responseError(res);
     return res;
   }
@@ -661,9 +706,8 @@ class BitviewClientBase {
    * @returns {Promise<Response>}
    */
   async post(path, body, { signal, contentType } = {}) {
-    const url = `${this.baseUrl}${path}`;
     const headers = contentType ? { 'Content-Type': contentType } : undefined;
-    const res = await fetch(url, { method: 'POST', body, headers, signal: this._signal(signal) });
+    const res = await this._fetch(path, { method: 'POST', body, headers }, signal);
     if (!res.ok) throw await _responseError(res);
     return res;
   }

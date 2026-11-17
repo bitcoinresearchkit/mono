@@ -1752,6 +1752,9 @@ const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
 const _runIdle = (/** @type {VoidFunction} */ fn) => (globalThis.requestIdleCallback ?? setTimeout)(fn);
 const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
+/** How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most
+ * one retried request per period, and a restarted server is taken back after it. */
+const _REFUSE_MS = 600_000;
 
 /** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
 
@@ -2190,6 +2193,49 @@ class BitviewClientBase {
       : (typeof memOpt === 'number' ? memOpt : _DEFAULT_MEM_CACHE_SIZE);
     /** @type {Map<string, _MemEntry<unknown>>} */
     this._memCache = new Map();
+    /** The server requests go to, if not the configured URL. @type {string | null} */
+    this._pinned = null;
+    /** Servers passed over, until when. @type {Map<string, number>} */
+    this._refused = new Map();
+  }
+
+  /**
+   * Fetch `path` from the pinned server, else the configured URL. When several servers answer
+   * one URL, each names itself in `bitview-origin` and the requests after go to it, so what one
+   * server minted (a diff's `since`) stays with it. A pinned server that fails (network, timeout,
+   * 5xx) is passed over, and the request goes through the configured URL again.
+   * @param {string} path
+   * @param {RequestInit} init
+   * @param {AbortSignal} [signal]
+   * @returns {Promise<Response>}
+   */
+  async _fetch(path, init, signal) {
+    const pinned = this._pinned;
+    if (pinned) {
+      try {
+        const res = await fetch(`${pinned}${path}`, { ...init, signal: this._signal(signal) });
+        if (res.status < 500) return this._follow(res);
+        await res.body?.cancel();
+      } catch (e) {
+        if (signal?.aborted) throw e;
+      }
+      this._refused.set(pinned, Date.now() + _REFUSE_MS);
+      if (this._pinned === pinned) this._pinned = null;
+    }
+    return this._follow(await fetch(`${this.baseUrl}${path}`, { ...init, signal: this._signal(signal) }));
+  }
+
+  /**
+   * Pin the server the answer names, unless it's the configured URL or refused.
+   * @param {Response} res
+   */
+  _follow(res) {
+    const origin = res.headers.get('bitview-origin')?.replace(/\/+$/, '');
+    if (origin && /^https?:\/\//.test(origin)) {
+      if (origin === this.url) this._pinned = null;
+      else if (!((this._refused.get(origin) ?? 0) > Date.now())) this._pinned = origin;
+    }
+    return res;
   }
 
   /**
@@ -2237,14 +2283,13 @@ class BitviewClientBase {
    * @returns {Promise<Response>}
    */
   async get(path, { signal, cache = true, etag } = {}) {
-    const url = `${this.baseUrl}${path}`;
     /** @type {RequestInit} */
-    const init = { signal: this._signal(signal) };
+    const init = {};
     // Let browsers manage HTTP revalidation; explicit validators bypass their HTTP cache.
     const revalidate = cache && etag && typeof location === 'undefined';
     if (revalidate) init.headers = { 'If-None-Match': etag };
     if (!cache) init.cache = 'no-store';
-    const res = await fetch(url, init);
+    const res = await this._fetch(path, init, signal);
     if (!res.ok && !(revalidate && res.status === 304)) throw await _responseError(res);
     return res;
   }
@@ -2403,9 +2448,8 @@ class BitviewClientBase {
    * @returns {Promise<Response>}
    */
   async post(path, body, { signal, contentType } = {}) {
-    const url = `${this.baseUrl}${path}`;
     const headers = contentType ? { 'Content-Type': contentType } : undefined;
-    const res = await fetch(url, { method: 'POST', body, headers, signal: this._signal(signal) });
+    const res = await this._fetch(path, { method: 'POST', body, headers }, signal);
     if (!res.ok) throw await _responseError(res);
     return res;
   }
@@ -7930,7 +7974,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** This file's content stamp: the SHA-256 of its text with this value empty, so any other byte changes it. */
-  static HASH = "340da3eb9e8a72e8077c54bf1a23c5cf3691e72f9875e87aeaea1227febb9c0f";
+  static HASH = "bdc857df7e558669b5cf6e62959633c17f0eacfd992447407051c249a9c55bba";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -10413,7 +10457,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool block changes
    *
-   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
    *

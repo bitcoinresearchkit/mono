@@ -4,7 +4,8 @@ use std::{
 };
 
 use bitview_server::{
-    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
+    CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, PublicUrl,
+    ServerConfig, Website,
 };
 use brk_error::{Error, Result};
 use brk_rpc::ConnectArgs;
@@ -34,6 +35,7 @@ pub struct Config {
     cdn: Option<bool>,
     maxweight: Option<usize>,
     maxutxos: Option<usize>,
+    publicurl: Option<PublicUrl>,
     cachebudget: Option<usize>,
     bitcoindir: Option<String>,
     blocksdir: Option<String>,
@@ -46,7 +48,7 @@ pub struct Config {
 
 impl Config {
     /// The settings `config.toml` and the flags name, in the order they are written.
-    const KEYS: [&'static str; 15] = [
+    const KEYS: [&'static str; 16] = [
         "bitviewdir",
         "serverbind",
         "serverport",
@@ -54,6 +56,7 @@ impl Config {
         "cdn",
         "maxweight",
         "maxutxos",
+        "publicurl",
         "cachebudget",
         "bitcoindir",
         "blocksdir",
@@ -92,6 +95,7 @@ impl Config {
             cdn: overrides.cdn.or(self.cdn),
             maxweight: overrides.maxweight.or(self.maxweight),
             maxutxos: overrides.maxutxos.or(self.maxutxos),
+            publicurl: overrides.publicurl.or(self.publicurl),
             cachebudget: overrides.cachebudget.or(self.cachebudget),
             bitcoindir: overrides.bitcoindir.or(self.bitcoindir),
             blocksdir: overrides.blocksdir.or(self.blocksdir),
@@ -162,6 +166,7 @@ impl Config {
             "cdn" => self.cdn = parse(value)?,
             "maxweight" => self.maxweight = parse(value)?,
             "maxutxos" => self.maxutxos = parse(value)?,
+            "publicurl" => self.publicurl = parse(value)?,
             "cachebudget" => self.cachebudget = parse(value)?,
             "bitcoindir" => self.bitcoindir = parse(value)?,
             "blocksdir" => self.blocksdir = parse(value)?,
@@ -303,6 +308,10 @@ impl Config {
             format!("[{}]", DEFAULT_MAX_UTXOS).bright_black()
         );
         println!(
+            "    --publicurl {}       The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity",
+            "<URL>".bright_black(),
+        );
+        println!(
             "    --cachebudget {}     Shared vector cache size in bytes {}",
             "<BYTES>".bright_black(),
             format!("[{DEFAULT_CACHE_BUDGET}]").bright_black()
@@ -431,6 +440,7 @@ impl Config {
                 },
                 max_weight: self.maxweight.unwrap_or(DEFAULT_MAX_WEIGHT),
                 max_utxos: self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS),
+                public_url: self.publicurl.clone(),
             },
             cache_budget: self.cachebudget.unwrap_or(DEFAULT_CACHE_BUDGET),
         })

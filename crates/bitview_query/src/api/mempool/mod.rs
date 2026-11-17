@@ -245,9 +245,7 @@ impl Query {
     ) -> Result<ResolvedMempoolBlockDiff> {
         let mempool = self.require_mempool()?;
         let source = served_block(&mempool, index)?;
-        mempool
-            .resolve_mempool_block_diff(source, since)
-            .ok_or_else(|| Error::NotFound(format!("unknown since hash: {since}")))
+        Ok(mempool.resolve_mempool_block_diff(source, since))
     }
 }
 

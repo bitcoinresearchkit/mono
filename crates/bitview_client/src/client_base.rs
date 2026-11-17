@@ -1,4 +1,9 @@
-use std::{fmt::Display, time::Duration};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    sync::{Arc, Mutex},
+    time::{Duration, Instant},
+};
 
 use bitview_types::ErrorCode;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
@@ -24,11 +29,26 @@ impl Default for BitviewClientOptions {
     }
 }
 
-/// Reuses connections through `ureq::Agent`.
+/// How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most
+/// one retried request per period, and a restarted server is taken back after it.
+const REFUSE: Duration = Duration::from_secs(600);
+
+/// Reuses connections through `ureq::Agent`. When several servers answer one URL, each names
+/// itself in `bitview-origin` and the requests after go to it, so what one server minted (a
+/// diff's `since`) stays with it; one that fails (network, timeout, 5xx) is passed over and the
+/// request goes through the configured URL again. Clones share the server.
 #[derive(Debug, Clone)]
 pub struct BitviewClientBase {
     agent: Agent,
     base_url: String,
+    pin: Arc<Mutex<Pin>>,
+}
+
+/// The server requests go to, if not the configured URL, and the servers passed over until when.
+#[derive(Debug, Default)]
+struct Pin {
+    server: Option<String>,
+    refused: HashMap<String, Instant>,
 }
 
 impl BitviewClientBase {
@@ -48,11 +68,59 @@ impl BitviewClientBase {
         Self {
             agent,
             base_url: options.base_url.trim_end_matches('/').to_string(),
+            pin: Arc::default(),
         }
     }
 
-    fn url(&self, path: &str) -> String {
-        format!("{}{path}", self.base_url)
+    fn pin(&self) -> std::sync::MutexGuard<'_, Pin> {
+        self.pin.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// `send`s to the pinned server, else the configured URL. A pinned server that fails is
+    /// refused and the request sent again through the configured URL.
+    fn call(
+        &self,
+        send: impl Fn(&str) -> std::result::Result<Response<Body>, ureq::Error>,
+    ) -> std::result::Result<Response<Body>, ureq::Error> {
+        let pinned = self.pin().server.clone();
+        if let Some(server) = pinned {
+            match send(&server) {
+                Ok(response) if !response.status().is_server_error() => {
+                    return Ok(self.follow(response));
+                }
+                _ => {
+                    let mut pin = self.pin();
+                    pin.refused.insert(server.clone(), Instant::now() + REFUSE);
+                    if pin.server.as_ref() == Some(&server) {
+                        pin.server = None;
+                    }
+                }
+            }
+        }
+        send(&self.base_url).map(|response| self.follow(response))
+    }
+
+    /// Pins the server the answer names, unless it's the configured URL or refused.
+    fn follow(&self, response: Response<Body>) -> Response<Body> {
+        let origin = response
+            .headers()
+            .get("bitview-origin")
+            .and_then(|value| value.to_str().ok())
+            .map(|origin| origin.trim_end_matches('/'))
+            .filter(|origin| origin.starts_with("https://") || origin.starts_with("http://"));
+        if let Some(origin) = origin {
+            let mut pin = self.pin();
+            if origin == self.base_url {
+                pin.server = None;
+            } else if pin.refused.get(origin).is_none_or(|until| *until <= Instant::now()) {
+                pin.server = Some(origin.to_owned());
+            }
+        }
+        response
+    }
+
+    fn get(&self, path: &str) -> std::result::Result<Response<Body>, ureq::Error> {
+        self.call(|base| self.agent.get(format!("{base}{path}")).call())
     }
 
     /// Passes a successful answer through; an error status becomes a `BitviewError` with the
@@ -83,21 +151,15 @@ impl BitviewClientBase {
     }
 
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
-            body.read_json()
-        })
+        Self::read(self.get(path), |body| body.read_json())
     }
 
     pub fn get_text(&self, path: &str) -> Result<String> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
-            body.read_to_string()
-        })
+        Self::read(self.get(path), |body| body.read_to_string())
     }
 
     pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
-        Self::read(self.agent.get(&self.url(path)).call(), |body| {
-            body.read_to_vec()
-        })
+        Self::read(self.get(path), |body| body.read_to_vec())
     }
 
     /// POSTs `body` as `content_type`, reading the JSON answer.
@@ -128,10 +190,12 @@ impl BitviewClientBase {
         body: &str,
         content_type: &str,
     ) -> std::result::Result<Response<Body>, ureq::Error> {
-        self.agent
-            .post(&self.url(path))
-            .header("Content-Type", content_type)
-            .send(body)
+        self.call(|base| {
+            self.agent
+                .post(format!("{base}{path}"))
+                .header("Content-Type", content_type)
+                .send(body)
+        })
     }
 
     /// Reads a successful response's whole body: the server bounds its responses, so the

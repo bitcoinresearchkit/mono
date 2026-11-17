@@ -14,8 +14,8 @@ use std::{
 use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::{
     Extension, Router,
-    middleware::from_fn,
-    response::{IntoResponse, Redirect},
+    middleware::{from_fn, map_response},
+    response::{IntoResponse, Redirect, Response},
     routing::get,
     serve,
 };
@@ -70,7 +70,7 @@ pub use cache::CdnCacheMode;
 pub use error::Error;
 pub use port::Port;
 
-pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, ServerConfig};
+pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig};
 
 #[cfg(feature = "full-api")]
 use raw_body::RawBodyPermit;
@@ -310,6 +310,14 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         // Outside the panic catcher, so its 500 reaches browsers too; preflights hold a day.
         .layer(CorsLayer::permissive().max_age(PREFLIGHT_MAX_AGE))
         .layer(from_fn(response_time::respond));
+    // Outermost: every answer names this server, errors and preflights too.
+    let router = match config.public_url {
+        Some(PublicUrl(url)) => router.layer(map_response(move |mut response: Response| {
+            response.headers_mut().insert(bitview_http::BITVIEW_ORIGIN, url.clone());
+            async { response }
+        })),
+        None => router,
+    };
 
     let (router, openapi) = finish_openapi(router);
 

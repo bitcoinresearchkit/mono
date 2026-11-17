@@ -50,6 +50,7 @@ pub(crate) fn render_errors(plugins: &DefaultPlugins) -> Result<Snapshot> {
                 cdn_cache_mode: CdnCacheMode::default(),
                 max_weight: DEFAULT_MAX_WEIGHT,
                 max_utxos: DEFAULT_MAX_UTXOS,
+                public_url: None,
             },
         )
         .await

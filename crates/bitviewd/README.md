@@ -92,6 +92,26 @@ bitcoindir = "/path/to/.bitcoin"
 
 All fields are optional. See `bitviewd -h` for the full list.
 
+## Several servers behind one URL
+
+One server needs nothing here, and neither does a load balancer that keeps each client
+on one server (sticky sessions).
+
+Without that affinity (round robin, DNS, a CDN spreading requests over origins), give
+each server its own reachable URL and set it:
+
+```toml
+publicurl = "https://a.example.com"
+```
+
+Each answer then names its server in a `bitview-origin` header. The Bitview clients (and
+the pages they serve) send what follows to that server, so the forming block's diffs
+come from the server that holds the client's copy. Users still configure only the shared
+URL. A server that fails is skipped for ten minutes and the request goes through the
+shared URL again, so a wrong or unreachable `publicurl` costs one retried request at
+most every ten minutes. It never causes an error or a loop. Each server's own URL also
+gets its own cache, if a CDN sits in front.
+
 ## Environment variables
 
 ```bash

@@ -7,6 +7,7 @@ from functools import cached_property
 from typing import TypeVar, Generic, Any, Callable, Dict, Optional, List, Iterator, Literal, TypedDict, Union, Protocol, Tuple, TYPE_CHECKING
 from http.client import HTTPException, HTTPSConnection, HTTPConnection
 from urllib.parse import quote, urlencode, urlparse
+from time import monotonic
 from datetime import date, datetime, timedelta, timezone
 import json
 import re
@@ -1890,23 +1891,54 @@ def _segment(value: Any) -> str:
     return quote(str(value), safe='')
 
 
-class BitviewClientBase:
-    def __init__(self, base_url: str, timeout: float = 30.0):
-        parsed = urlparse(base_url)
-        self._host = parsed.netloc
-        self._prefix = parsed.path.rstrip('/')
-        self._secure = parsed.scheme == 'https'
-        self._timeout = timeout
-        self._conn: Optional[Union[HTTPSConnection, HTTPConnection]] = None
+# How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most one
+# retried request per period, and a restarted server is taken back after it.
+_REFUSE_SECONDS = 600.0
 
-    def _connect(self) -> Union[HTTPSConnection, HTTPConnection]:
-        """Get or create HTTP connection."""
-        if self._conn is None:
-            if self._secure:
-                self._conn = HTTPSConnection(self._host, timeout=self._timeout)
-            else:
-                self._conn = HTTPConnection(self._host, timeout=self._timeout)
-        return self._conn
+
+class BitviewClientBase:
+    """When several servers answer one URL, each names itself in `bitview-origin` and the requests
+    after go to it, so what one server minted (a diff's `since`) stays with it. A pinned server
+    that fails (network, timeout, 5xx) is passed over, and the request goes through the configured
+    URL again."""
+
+    def __init__(self, base_url: str, timeout: float = 30.0):
+        self._base = base_url.rstrip('/')
+        self._timeout = timeout
+        self._pinned: Optional[str] = None
+        self._refused: Dict[str, float] = {}
+        self._conn: Optional[Union[HTTPSConnection, HTTPConnection]] = None
+        self._conn_server: Optional[str] = None
+
+    def _exchange(
+        self,
+        server: str,
+        method: str,
+        path: str,
+        body: Optional[str],
+        content_type: Optional[str],
+    ) -> Tuple[int, bytes, Optional[str]]:
+        """One request to `server`, on its kept connection. A failed exchange closes the
+        connection, which `http.client` would otherwise leave mid-request for every later call.
+        A kept connection the server has since closed fails without the server being down, so
+        that failure (the peer's reset or close) is retried once on a fresh connection."""
+        parsed = urlparse(server)
+        headers = {"Content-Type": content_type} if content_type else {}
+        while True:
+            reused = self._conn is not None and self._conn_server == server
+            try:
+                if not reused:
+                    self.close()
+                    kind = HTTPSConnection if parsed.scheme == 'https' else HTTPConnection
+                    self._conn = kind(parsed.netloc, timeout=self._timeout)
+                    self._conn_server = server
+                self._conn.request(method, parsed.path + path, body=body, headers=headers)
+                res = self._conn.getresponse()
+                return res.status, res.read(), res.getheader("bitview-origin")
+            except (HTTPException, OSError) as e:
+                self.close()
+                if not (reused and isinstance(e, (ConnectionResetError, BrokenPipeError))):
+                    raise BitviewError(str(e)) from e
 
     def _request(
         self,
@@ -1915,20 +1947,35 @@ class BitviewClientBase:
         body: Optional[str] = None,
         content_type: Optional[str] = None,
     ) -> bytes:
-        """A failed exchange closes the connection, which `http.client` would otherwise leave
-        mid-request for every later call."""
-        try:
-            conn = self._connect()
-            headers = {"Content-Type": content_type} if content_type else {}
-            conn.request(method, self._prefix + path, body=body, headers=headers)
-            res = conn.getresponse()
-            data = res.read()
-        except (HTTPException, OSError) as e:
-            self.close()
-            raise BitviewError(str(e))
-        if res.status >= 400:
-            raise _response_error(res.status, data)
+        """`path` from the pinned server, else the configured URL."""
+        answer = None
+        pinned = self._pinned
+        if pinned:
+            try:
+                answer = self._exchange(pinned, method, path, body, content_type)
+            except BitviewError:
+                pass
+            if answer is None or answer[0] >= 500:
+                answer = None
+                self._refused[pinned] = monotonic() + _REFUSE_SECONDS
+                self._pinned = None
+        if answer is None:
+            answer = self._exchange(self._base, method, path, body, content_type)
+        status, data, origin = answer
+        self._follow(origin)
+        if status >= 400:
+            raise _response_error(status, data)
         return data
+
+    def _follow(self, origin: Optional[str]) -> None:
+        """Pin the server an answer names, unless it's the configured URL or refused."""
+        origin = origin.rstrip('/') if origin else None
+        if not origin or not origin.startswith(("https://", "http://")):
+            return
+        if origin == self._base:
+            self._pinned = None
+        elif self._refused.get(origin, 0.0) <= monotonic():
+            self._pinned = origin
 
     def get(self, path: str) -> bytes:
         return self._request("GET", path)
@@ -1952,6 +1999,7 @@ class BitviewClientBase:
         if self._conn:
             self._conn.close()
             self._conn = None
+            self._conn_server = None
 
     def __enter__(self) -> BitviewClientBase:
         return self
@@ -6980,7 +7028,7 @@ class BitviewClient(BitviewClientBase):
     def get_mempool_block_diff(self, index: MempoolBlockIndex, since: MempoolBlockHash) -> MempoolBlockDiff:
         """Projected mempool block changes.
 
-        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
+        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.
 
         Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')

@@ -39,6 +39,7 @@ pub(crate) fn generate_python_client(
         "from urllib.parse import quote, urlencode, urlparse"
     )
     .unwrap();
+    writeln!(output, "from time import monotonic").unwrap();
     writeln!(
         output,
         "from datetime import date, datetime, timedelta, timezone"

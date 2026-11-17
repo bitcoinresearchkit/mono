@@ -1418,10 +1418,12 @@
     <div class="card" id="card" hidden></div>
     <script type="module">
       import { logo as poolLogo } from "/assets/pools/logos.js";
-      // ---------------------------------------------------------------- Reads, all from the server serving the page.
+      import { BitviewClient } from "/modules/bitview-client/index.js";
+      // ---------------------------------------------------------------- Reads, from the server serving the page, through the
+      // client: where several servers answer it, it stays on the one that answered, so a forming block's diffs follow its copy.
+      const client = new BitviewClient({ baseUrl: location.origin, memCache: false, browserCache: false });
       const get = async (path) => {
-        const r = await fetch(`/api${path}`);
-        if (!r.ok) throw Object.assign(new Error(`${r.status} ${path}`), { status: r.status });
+        const r = await client.get(`/api${path}`);
         return r.headers.get("content-type")?.includes("json") ? r.json() : r.text();
       };
       const series = async (id, index, start, end) => (await get(`/series/${id}/${index}?start=${start}&end=${end}`)).data;
@@ -1798,9 +1800,14 @@
         nextReads++;
         const born = performance.now();
         const txs = [];
+        // A transaction the copy held keeps its arrival: a new body for it (or a diff from another server's copy) isn't new.
+        let held;
         for (const entry of diff.order)
           if (Array.isArray(entry)) txs.push(...state.next.txs.slice(entry[0], entry[0] + entry[1]));
-          else txs.push({ ...slim(entry), born });
+          else {
+            held ??= new Map(state.next.txs.map((t) => [t.txid, t.born]));
+            txs.push({ ...slim(entry), born: held.get(entry.txid) ?? born });
+          }
         state.next = { hash: diff.hash, stats: diff.stats, txs };
         if (state.view?.kind === "home") {
           map.set(state.next.txs);

@@ -18,6 +18,10 @@ use http_body::Frame;
 /// The CDN's own cache policy, ahead of `Cache-Control` for it.
 pub const CDN_CACHE_CONTROL: HeaderName = HeaderName::from_static("cdn-cache-control");
 
+/// The URL that reaches the answering server alone, when several answer one URL: clients send
+/// what follows there, so state one server minted (a diff's `since`) stays with it.
+pub const BITVIEW_ORIGIN: HeaderName = HeaderName::from_static("bitview-origin");
+
 /// Reused for a second, then asked again, never served stale: a browser's and a CDN's policy for
 /// what may change at any time (an error's verdict included, with a release; browsers are never
 /// purged).

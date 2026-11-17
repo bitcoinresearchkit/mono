@@ -235,10 +235,7 @@ fn served_blocks_publish_and_diff() {
     );
     assert_eq!(*bodies[1], to_value(c.fee).unwrap(), "c's body as it was then");
     assert_ne!(served(&state, 1).hash(), since);
-    let diff = state
-        .resolve_mempool_block_diff(served(&state, 1), since)
-        .expect("the past copy in history")
-        .build();
+    let diff = state.resolve_mempool_block_diff(served(&state, 1), since).build();
     let diff = to_value(&diff).unwrap();
     let order: Vec<Value> = diff["order"].as_array().unwrap().clone();
     assert_eq!(order[0], serde_json::json!([0, 1]), "b kept");
@@ -253,12 +250,12 @@ fn served_blocks_publish_and_diff() {
         serde_json::json!([txid(&d)]),
         "only d left"
     );
-    assert!(
-        state
-            .resolve_mempool_block_diff(served(&state, 0), since)
-            .is_none(),
-        "block 1's hash is no copy of block 0"
-    );
+    // A copy history doesn't hold diffs from nothing: every transaction new, nothing removed.
+    let from_nothing = |state: &ReadOnlyState, index| {
+        let diff = to_value(state.resolve_mempool_block_diff(served(state, index), since).build()).unwrap();
+        diff["order"].as_array().unwrap().iter().all(Value::is_object) && diff["removed"] == serde_json::json!([])
+    };
+    assert!(from_nothing(&state, 0), "block 1's hash is no copy of block 0");
 
     // Past the history's bound (block 0 unchanged, each block 1 another pair of bodies).
     for first in 100..140 {
@@ -267,12 +264,7 @@ fn served_blocks_publish_and_diff() {
             state.publish_projection(snapshot(&[&[&a], &block], 1), tip);
         }
     }
-    assert!(
-        state
-            .resolve_mempool_block_diff(served(&state, 1), since)
-            .is_none(),
-        "evicted"
-    );
+    assert!(from_nothing(&state, 1), "evicted");
 }
 
 /// Through ingestion and `Rebuilder::tick`: no block takes an unloaded parent's child; the same
@@ -1027,7 +1019,7 @@ fn block_diff_reconstructs_current_bodies() {
             let since = served(&state, 0).hash();
             state.publish_projection(snapshot(&[&current_refs], 0), BlockHash::default());
             let source = served(&state, 0);
-            let bytes = serde_json::to_vec(&state.resolve_mempool_block_diff(source.clone(), since).unwrap().build()).unwrap();
+            let bytes = serde_json::to_vec(&state.resolve_mempool_block_diff(source.clone(), since).build()).unwrap();
             let diff: Value = serde_json::from_slice(&bytes).unwrap();
             let mut rebuilt = Vec::new();
             // Equal hashes deduplicate history to its latest body array.
@@ -1052,7 +1044,7 @@ fn block_diff_reconstructs_current_bodies() {
                 // Resolve the old source against a separately built equal body array in history:
                 // same bytes through the general algorithm instead of the pointer shortcut.
                 state.publish_projection(snapshot(&[&current_refs], 0), BlockHash::default());
-                let general = state.resolve_mempool_block_diff(source, since).unwrap().build();
+                let general = state.resolve_mempool_block_diff(source, since).build();
                 assert_eq!(bytes, serde_json::to_vec(&general).unwrap());
                 assert_eq!(diff["order"], if current.is_empty() { serde_json::json!([]) } else { serde_json::json!([[0, current.len()]]) });
             }

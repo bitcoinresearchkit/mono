@@ -87,19 +87,22 @@ impl ReadOnlyState {
     }
 
     /// Capture the past side of one diff request against `source`, a block of this
-    /// publication: `None` once history no longer holds that block at `since`.
+    /// publication. A `since` history doesn't hold (aged out, minted by another server or before a
+    /// restart) diffs from an empty block: every transaction new, a valid diff from any copy.
     #[must_use]
     pub fn resolve_mempool_block_diff(
         &self,
         source: MempoolBlockSource,
         since: MempoolBlockHash,
-    ) -> Option<ResolvedMempoolBlockDiff> {
-        let past = self.historical_block(source.index, since)?;
-        Some(ResolvedMempoolBlockDiff {
+    ) -> ResolvedMempoolBlockDiff {
+        let past = self
+            .historical_block(source.index, since)
+            .unwrap_or_else(|| Arc::from([]));
+        ResolvedMempoolBlockDiff {
             since,
             past,
             source,
-        })
+        }
     }
 }
 
