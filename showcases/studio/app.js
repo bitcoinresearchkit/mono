@@ -115,8 +115,8 @@ import {
   idsNow, isLinkHash, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu, ordersOf,
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
-  presetsSettled, pristine, prunePresets, refocus, resetPreset, restampPresets, revealNearest, roomsAhead, routeOf,
-  scaleMenu, setFull, setPaneMode, setPaneReverse, setPaneStack, showAddress, slipsOf, tick, toggleHalvings, toggleLog,
+  presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
+  setPaneMode, setPaneReverse, setPaneStack, showAddress, slipsOf, tick, toggleHalvings, toggleLog,
 } from "/studio/presets-edit.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -8243,7 +8243,6 @@ function loadPresets() {
     // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
     await aFrame();
     presets = list;
-    restampPresets();
     // (Its tree: see presetTree.)
     presetTree();
     // (What a search reads (see searchNow), then their words each once, for a slip in a search (see slipsOf), and their

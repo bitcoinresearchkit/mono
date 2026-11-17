@@ -229,23 +229,6 @@ function placeAddress() {
   }
 }
 
-/**
- * Copies kept here as they were made, stamped as fingerprints were before windows could be picked (till 2026-11: at
- * the window they were made at, see contentHash), stamped anew: as made still (an old place's let go of, see
- * prunePresets; an edited one moved, see adoptPresets). Read as the presets are. Delete in 2027-11.
- */
-function restampPresets() {
-  let restamped = false;
-  for (const doc of library.presets) {
-    if (doc.base !== hashOf(contentOf({ ...doc, range: "", index: "day1" }))) continue;
-    const base = contentHash(doc);
-    if (base === doc.base) continue;
-    doc.base = base;
-    pristineSeen.delete(doc);
-    restamped = true;
-  }
-  if (restamped) save();
-}
 /** Which preset a chart of one is: its place in the presets (its sections and its own name). */
 const presetKey = (/** @type {number} */ i) => JSON.stringify(/** @type {Preset[]} */ (presets)[i].p);
 /** Each preset's place, by its key (made once they're read). */
@@ -315,7 +298,11 @@ function pristine(/** @type {Chart} */ doc) {
   if (!doc.base) return false;
   const seen = pristineSeen.get(doc);
   if (seen?.at === doc.updated) return seen.as;
-  const as = contentHash(doc) === doc.base;
+  const hash = contentHash(doc);
+  // (A stamp from before windows could be picked (till 2026-11), its content at the window it was made at: as made
+  // all the same, stamped anew, however the copy came (kept here, another tab's, a backup's). Delete in 2027-11.)
+  if (hash !== doc.base && doc.base === hashOf(contentOf({ ...doc, range: "", index: "day1" }))) doc.base = hash;
+  const as = hash === doc.base;
   pristineSeen.set(doc, { at: doc.updated, as });
   return as;
 }
@@ -404,12 +391,18 @@ const presetPlaceName = (/** @type {Chart} */ doc) => {
   }
 };
 /**
- * The preset that shows what a preset's chart whose place is gone shows (a preset renamed since, moved): of its name
- * first, else the first that does; none, -1. @param {Chart} doc
+ * Which of the presets showing what a chart whose place is gone shows is it, first to last: the one of its title (at
+ * their first window, see windowless: an amount and its share show the same series), of its place's name, any.
+ * @param {Chart} doc @returns {((i: number) => boolean)[]}
+ */
+const likeness = (doc) => ((title, name) => [(i) => windowless(freshPreset(i)).title === title, (i) => /** @type {Preset[]} */ (presets)[i].p.at(-1) === name, () => true])(windowless(doc).title, presetPlaceName(doc));
+/**
+ * The preset that shows what a preset's chart whose place is gone shows (a preset renamed since, moved), the likest
+ * (see likeness); none, -1. @param {Chart} doc
  */
 function presetShowing(doc) {
-  const set = presetShows(doc), name = presetPlaceName(doc), alike = /** @type {Preset[]} */ (presets).flatMap((_, i) => (presetShows(freshPreset(i)) === set ? [i] : []));
-  return alike.find((i) => /** @type {Preset[]} */ (presets)[i].p.at(-1) === name) ?? alike[0] ?? -1;
+  const set = presetShows(doc), alike = /** @type {Preset[]} */ (presets).flatMap((_, i) => (presetShows(freshPreset(i)) === set ? [i] : []));
+  return likeness(doc).map((like) => alike.find(like)).find((i) => i !== undefined) ?? -1;
 }
 /**
  * Presets edited here whose place is gone (the presets arranged anew since, by a newer Studio): each moved to the
@@ -435,13 +428,13 @@ function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = tru
   });
   // (Series by their paths first: renamed since, by their names now.)
   for (const doc of lost) normalize(doc);
-  // Each to a preset of its set: those of the same name first, then the rest, one each.
+  // Each to a preset of its set, the likest first (see likeness), one each.
   /** @type {Map<Chart, number>} */
-  const to = new Map();
-  for (const named of [true, false]) {
-    for (const doc of lost) {
+  const to = new Map(), likes = lost.map(likeness);
+  for (const pass of [0, 1, 2]) {
+    for (const [k, doc] of lost.entries()) {
       if (to.has(doc)) continue;
-      const set = presetShows(doc), at = holders.get(set) ?? [], i = named ? at.find((j) => /** @type {Preset[]} */ (presets)[j].p.at(-1) === presetPlaceName(doc)) : at[0];
+      const set = presetShows(doc), at = holders.get(set) ?? [], i = at.find(likes[k][pass]);
       if (i === undefined) continue;
       to.set(doc, i);
       holders.set(set, at.filter((j) => j !== i));
@@ -905,7 +898,7 @@ export {
   missedSaid, openPreset, openPresetMenu, ordersOf, paneActions, paneChip, paneRows, presetActions, presetById,
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,
-  prunePresets, RECOMMENDED, refocus, resetPreset, restampPresets, revealNearest, roomsAhead, routeOf, scaleGroup,
-  scaleMenu, setFull, setLegend, setPaneMode, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick,
-  toggleHalvings, toggleLog, vocabNow,
+  prunePresets, RECOMMENDED, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleGroup, scaleMenu, setFull,
+  setLegend, setPaneMode, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick, toggleHalvings,
+  toggleLog, vocabNow,
 };
