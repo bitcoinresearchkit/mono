@@ -825,6 +825,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   out of the page cache, points up to 249 blocks back take 8.4 ms at p90 (18.1 before) and the latest 4.0 ms (16.9).
   A URPD point restores from the nearer checkpoint, taking back up to 125 blocks (was up to 249 forward): raw points
   past a checkpoint's midpoint take 2.3 ms at p90 cold (3.6 before)
+- The UTXO set's snapshots every 500 blocks compress harder (PCO level 8): 3.86 → 3.30 GiB on a Mac mini, read
+  and decompressed as fast; writing one takes about 7 ms. The first start after upgrading lays them out
+  again (19 s on a Mac mini), after which an older version can't read them
 - mmpl and `Mempool::tick` resolve a pending transaction's confirmed prevouts from the node's UTXO set
   (`gettxout`) instead of `getrawtransaction`: no `txindex` needed, and a node without one no longer retries every
   hole each cycle (4.3 s cycles at 60k transactions, now 95 ms; the first full load one 1.1 s cycle)
