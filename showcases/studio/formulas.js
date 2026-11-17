@@ -1,5 +1,5 @@
 // @ts-check
-// What a formula is: its words, parsed, checked and computed over aligned layers. (Called from app.js, which runs its start and keeps the state several modules write.)
+// What a formula is: its words, parsed, checked and computed over aligned layers.
 import { bandNames, inBands } from "/studio/bands.js";
 import {
   $, brushDrag, chart, CHUNK, COMPARES, engine, escape, EXAMPLE, failing, FINE, fitsFrom, flowFits, flowsAt, grouped,

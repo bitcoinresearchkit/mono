@@ -1,5 +1,5 @@
 // @ts-check
-// Menus, the toolbar, sharing, importing and exporting. (Called from app.js, which runs its start and keeps the state several modules write.)
+// Menus, the toolbar, sharing, importing and exporting.
 import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
   $, all$, atWindow, AVERAGES, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, CADENCE, chart, chartImage,

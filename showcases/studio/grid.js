@@ -1,6 +1,5 @@
 // @ts-check
-// The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them. (Called from app.js, which
-// runs its start and keeps the state several modules write.)
+// The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them.
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
@@ -1922,7 +1921,8 @@ const galleryRests = () => {
 function startGalleryRest() {
   $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
   $("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
-  // (A press holds it till its release; let go of otherwise, at the next frame unless a scroll's begun by then.)
+  // (A press keeps the grid from rest till its release; let go of otherwise, at the next frame unless a scroll's
+  // begun by then: a pan's cancel can come before its scroll's first event.)
   $("home").addEventListener("pointerdown", (event) => {
     galleryResting = false;
     press(event, {

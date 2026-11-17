@@ -1,5 +1,5 @@
 // @ts-check
-// ⌘K: series search, its pages, colors looked at, go to a date. (Called from app.js, which runs its start and keeps the state several modules write.)
+// ⌘K: series search, its pages, colors looked at, go to a date.
 import { initialsRanges } from "/studio/initials.js";
 import { capitalized, holderName, inSentence, windowSaid, windowShort } from "/studio/words.js";
 import { startWorker } from "/studio/workers.js";

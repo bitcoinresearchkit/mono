@@ -1,5 +1,5 @@
 // @ts-check
-// A layer's inspector: picking layers, their settings, gradients, adding layers. (Called from app.js, which runs its start and keeps the state several modules write.)
+// A layer's inspector: picking layers, their settings, gradients, adding layers.
 import { press, stack as stackColumns } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
