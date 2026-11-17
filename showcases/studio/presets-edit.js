@@ -229,23 +229,21 @@ function placeAddress() {
 }
 
 /**
- * Copies kept here of presets once made one for each window (", 24 hours" closing their place, till 2026-11): each the
- * preset now, its window in its series (see chartWindow); two of one preset, the latest stays it, the others become
- * yours (none lost). Read as the presets are.
+ * Copies kept here as they were made, stamped as fingerprints were before windows could be picked (till 2026-11: at
+ * the window they were made at, see contentHash), stamped anew: as made still (an old place's let go of, see
+ * prunePresets; an edited one moved, see adoptPresets). Read as the presets are. Delete in 2027-11.
  */
-function formerPresets() {
-  const places = new Set(/** @type {Preset[]} */ (presets).map((preset) => JSON.stringify(preset.p)));
-  const now = (/** @type {string} */ key) => ((steps) => JSON.stringify([...steps.slice(0, -1), String(steps.at(-1)).replace(/, \d+ [a-z]+$/, "")]))(JSON.parse(key));
-  const moved = library.presets.filter((doc) => doc.preset !== undefined && !places.has(doc.preset) && places.has(now(doc.preset)));
-  if (!moved.length) return;
-  for (const doc of moved) doc.preset = now(/** @type {string} */ (doc.preset));
-  const latest = new Map(library.presets.map((doc) => [doc.preset, doc]));
-  for (const doc of library.presets) if ((latest.get(doc.preset)?.updated ?? -Infinity) < doc.updated) latest.set(doc.preset, doc);
-  const yours = library.presets.filter((doc) => latest.get(doc.preset) !== doc);
-  for (const doc of yours) delete doc.preset, delete doc.base, delete doc.made;
-  library.presets = library.presets.filter((doc) => !yours.includes(doc));
-  library.charts = [...library.charts, ...yours];
-  save();
+function restampPresets() {
+  let restamped = false;
+  for (const doc of library.presets) {
+    if (doc.base !== hashOf(contentOf({ ...doc, range: "", index: "day1" }))) continue;
+    const base = contentHash(doc);
+    if (base === doc.base) continue;
+    doc.base = base;
+    pristineSeen.delete(doc);
+    restamped = true;
+  }
+  if (restamped) save();
 }
 /** Which preset a chart of one is: its place in the presets (its sections and its own name). */
 const presetKey = (/** @type {number} */ i) => JSON.stringify(/** @type {Preset[]} */ (presets)[i].p);
@@ -266,13 +264,15 @@ const presetLook = (i) => {
 };
 /** Each preset's look as made (see presetLook): read once a preset. @type {WeakMap<Preset, { index: string, range: string, window?: string }>} */
 const madeLooks = new WeakMap();
+/** A chart at its first trailing window (see chartWindow), as its content is told: a window picked isn't an edit. @param {Chart} doc */
+const windowless = (doc) => ((w) => (w ? atWindow(structuredClone(doc), w.offered[0]) : doc))(chartWindow(doc));
 /**
  * A chart's content as a fingerprint, how it's looked at aside: its view, as a preview's is, its interval, as
  * day1 (every preset opened at day1 before its own interval, an interval changed an edit: a stamp kept from before
- * is the same), and its trailing window, as its first (see chartWindow: a window picked isn't an edit either).
+ * is the same), and its trailing window (see windowless).
  * @param {Chart} doc
  */
-const contentHash = (doc) => hashOf(contentOf(((look) => ((w) => (w ? atWindow(structuredClone(look), w.offered[0]) : look))(chartWindow(look)))({ ...doc, range: "", index: "day1" })));
+const contentHash = (doc) => hashOf(contentOf(windowless({ ...doc, range: "", index: "day1" })));
 /** A preset's chart as made now, as an edit leaves a chart (normalized: nothing for an edit to change). */
 const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
 /**
@@ -391,8 +391,8 @@ function prunePresets(/** @type {Chart | null} */ keep) {
   for (const doc of stale) presetChart(presetIndex(doc));
   save();
 }
-/** What a chart shows, its looks aside: its series and formulas, as a set; what's made from them (a cloud, a trend) an edit of it. */
-const presetShows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(doc.layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
+/** What a chart shows, its looks aside (its trailing window too, see windowless): its series and formulas, as a set; what's made from them (a cloud, a trend) an edit of it. */
+const presetShows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(windowless(doc).layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
 /** A preset's chart's place's last name, as stored: a key that isn't one, none. */
 const presetPlaceName = (/** @type {Chart} */ doc) => {
   try {
@@ -899,12 +899,12 @@ const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefi
   [".layer-adds", () => "adds", {}],
 ]);
 export {
-  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, formerPresets, freshPreset,
+  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset,
   fromPreset, fullOn, idsNow, isLinkHash, isMade, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
   missedSaid, openPreset, openPresetMenu, ordersOf, paneActions, paneChip, paneRows, presetActions, presetById,
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,
-  prunePresets, RECOMMENDED, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleGroup, scaleMenu, setFull,
-  setLegend, setPaneMode, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick, toggleHalvings,
-  toggleLog, vocabNow,
+  prunePresets, RECOMMENDED, refocus, resetPreset, restampPresets, revealNearest, roomsAhead, routeOf, scaleGroup,
+  scaleMenu, setFull, setLegend, setPaneMode, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick,
+  toggleHalvings, toggleLog, vocabNow,
 };
