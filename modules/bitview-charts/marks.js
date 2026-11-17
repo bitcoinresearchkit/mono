@@ -3,9 +3,9 @@
 // its index), above it (a candle's high), below it (its low; a line's close where candles are drawn as one) or on it: a
 // dot in its `color` (radius 3.5, times its `size`; 0: none), ringed in the chart's ground, resting on the point from
 // its side (on it: centered), several at one point stacked away from it. Its words (`text`) just past its dot (on it:
-// under it; at the timeline's ends, moved along it to stay a little within them), in the chart's one pill (a tag's): its
-// color (or `textColor`), lifted to a light one where it isn't, its hue kept and as vivid as sRGB allows there (a light
-// pill on either ground, never a dark, dull one), the words on it dark, as a tag's on a light fill. None lost where
+// under it; at the timeline's ends, moved along it to stay a little within them), in the chart's one pill (a tag's):
+// its color (or `textColor`), its words dark on it, the color lifted just as far as they need to read (see lightTint),
+// its hue kept and as vivid as sRGB allows there (each hue as near itself as its words let it be). None lost where
 // words crowd at the view's zoom: from the latest back, one whose words would run into the next ones shown on its side
 // of its series (above it; under it), or on the other side where the series crosses between them (a foot under it
 // higher than a top over it), is counted in those: "2 more" on their left, quieter than they are: in the chart's text
@@ -14,8 +14,8 @@
 // moved just within it while their dot's in view, else (where that runs them into other words) left out; a count that
 // doesn't fit between the plot's edge and its pill's dot left out, the pill kept on its dot; one whose pill's dot is
 // past the plot's right edge shown alone, just within it, while a mark it holds is in view. Added to its pane on its
-// series' side, its marks in their points' order. The room they take kept at its scale's ends while its
-// series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
+// series' side, its marks in their points' order. The room they take kept at its scale's ends while its series has
+// values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
 
 import { legible, lightTint, over } from "./color.js";
 import { pill, PILL } from "./tags.js";

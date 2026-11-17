@@ -179,22 +179,21 @@ clears); avoid reflecting programmatic calls. A programmatic
   painted (its group, its bin's rows; none out of its column, or cumulative). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
-- `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after
-  it: each `{ at, position, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
+- `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
+  each `{ at, position, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
   `"below"` it (its low) or `"on"` it: a dot in its color (radius 3.5, times `size`; 0: none), ringed in the ground,
-  resting on the point from its side (on it: centered), several at a point stacked away from it; its words just past
-  its dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill of
-  its color (or `textColor`), lifted where dark words wouldn't read on it (just past a tag's turn to dark words), its
-  hue kept, as vivid as sRGB allows there: a light pill on either ground, the words dark on it. None lost where words
-  crowd at the zoom: from the latest back, one whose words would run into the next ones shown on its side (above the
-  series; under it), or on the other where the series crosses between them, is counted in those ("2 more" on their
-  left, quieter than they are: in the theme's `text` color, kept at 5:1 or more, on a quiet tag of its `separator`
-  color laid on its ground); a pan regroups none. Its words over everything, on its pane's layer over it, drawn each
-  frame and whole within the plot: those its edge would cut moved just within it while their dot's in view, else
-  (where that runs them into other words) left out; a count that doesn't fit between the plot's edge and its pill's
-  dot left out, the pill kept on its dot; one whose pill's dot is past the plot's right edge shown alone, just within
-  it, while a mark it holds is in view. Their room kept at the scale's ends while its series has values in view
-  (`room: false`, none); `set(marks)` after a change.
+  resting on the point from its side (on it: centered), several at a point stacked away from it; its words just past its
+  dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill of its
+  color (or `textColor`), the words dark on it, the color lifted just as far as they need to read at 4.5:1 (WCAG 2's
+  floor for small words), its hue kept and as vivid as sRGB allows there. None lost where words crowd at the zoom: from
+  the latest back, one whose words would run into the next ones shown on its side (above the series; under it), or on
+  the other where the series crosses between them, is counted in those ("2 more" on their left, quieter than they are:
+  in the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color laid on its ground); a pan
+  regroups none. Its words over everything, on its pane's layer over it, drawn each frame and whole within the plot:
+  those its edge would cut moved just within it while their dot's in view, else (where that runs them into other words)
+  left out; a count that doesn't fit between the plot's edge and its pill's dot left out, the pill kept on its dot; one
+  whose pill's dot is past the plot's right edge shown alone, just within it, while a mark it holds is in view. Their
+  room kept at the scale's ends while its series has values in view (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

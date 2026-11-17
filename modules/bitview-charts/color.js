@@ -44,10 +44,9 @@ export function inkOn(color) {
 const tints = new Map();
 
 /**
- * A tag's look for a series in `color`: its fill that very color (the line's); its words white or black by the fill's
- * lightness (see whiteReads), each given back a whisper of the fill's hue in OKLCH (lightness 0.97 or 0.24, chroma
- * 0.06 at most, the fill's hue: as much as sRGB allows there). No edge: a series the ground's color is the page's
- * choice. A see-through color, none (nothing shown). Each color worked out once.
+ * A tag's look for a series in `color`: its fill that very color (the line's); its words white or dark by the fill's
+ * lightness (see whiteReads, words). No edge: a series the ground's color is the page's choice. A see-through color,
+ * none (nothing shown). Each color worked out once.
  * @param {string} color
  * @returns {{ fill: string, ink: string }}
  */
@@ -57,8 +56,8 @@ export function tint(color) {
   const seen = read(color);
   if (seen[3] === 0) look = { fill: "transparent", ink: "transparent" };
   else {
-    const fill = rgb(seen), [, a0, b0] = oklab(seen);
-    look = { fill: hex(fill), ink: hex(vivid(whiteReads(fill) ? 0.97 : 0.24, Math.atan2(b0, a0), Math.min(0.06, Math.hypot(a0, b0)))) };
+    const fill = rgb(seen);
+    look = { fill: hex(fill), ink: hex(words(fill, whiteReads(fill))) };
   }
   if (tints.size > 512) tints.clear();
   tints.set(color, look);
@@ -86,30 +85,18 @@ export function over(color, ground) {
 const legibles = new Map();
 
 /**
- * `color` as words on `ground` (opaque): itself where it reads there at 5:1 (WCAG 2's floor for small words, 4.5:1,
- * with room for a canvas's anti-aliasing), else its lightness (OKLab) moved toward white or black, whichever reads
- * better on the ground, just as far as that takes, its hue kept: words as quiet as they can be and still read. Each
- * pair worked out once.
+ * `color` as words on `ground` (opaque): itself where it reads there (see FLOOR), else its lightness (OKLab) moved
+ * toward white or black, whichever reads better on the ground, just as far as that takes, its hue kept: words as quiet
+ * as they can be and still read. Each pair worked out once.
  * @param {string} color @param {string} ground
  */
 export function legible(color, ground) {
   const key = `${color}|${ground}`;
   let out = legibles.get(key);
   if (out !== undefined) return out;
-  const seen = rgb(read(color)), back = luminance(rgb(read(ground))), [L, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0);
-  const reads = (/** @type {number[]} */ c, y = luminance(c)) => (Math.max(y, back) + 0.05) / (Math.min(y, back) + 0.05) >= 5;
-  let found = seen;
-  if (!reads(seen)) {
-    // (Between its own lightness, short of the floor, and white's or black's, past it.)
-    let lo = L, hi = 1.05 / (back + 0.05) >= (back + 0.05) / 0.05 ? 1 : 0;
-    for (let k = 0; k < 24; k++) {
-      const mid = (lo + hi) / 2;
-      if (reads(vivid(mid, hue, chroma))) hi = mid;
-      else lo = mid;
-    }
-    found = vivid(hi, hue, chroma);
-  }
-  out = hex(found);
+  const seen = rgb(read(color)), under = rgb(read(ground)), back = luminance(under), [L, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0);
+  const reads = (/** @type {number[]} */ c) => ratio(c, under) >= FLOOR;
+  out = hex(reads(seen) ? seen : toward(L, 1.05 / (back + 0.05) >= (back + 0.05) / 0.05 ? 1 : 0, hue, chroma, reads));
   if (legibles.size > 64) legibles.clear();
   legibles.set(key, out);
   return out;
@@ -121,21 +108,41 @@ function luminance(c) {
   return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
 }
 
+/** The contrast (WCAG 2's) between two colors' sRGB channels (0 to 255). @param {number[]} x @param {number[]} y */
+function ratio(x, y) {
+  const a = luminance(x), b = luminance(y);
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/** The least contrast words on the chart keep with what's under them: WCAG 2's floor for small words (12 px). */
+const FLOOR = 4.5;
+
+/**
+ * Words on `fill` (sRGB channels, 0 to 255), white or dark (`white`), each given back a whisper of the fill's hue in
+ * OKLCH (lightness 0.97 or 0.24, chroma 0.06 at most, the fill's hue: as much as sRGB allows there), as sRGB channels.
+ * @param {number[]} fill @param {boolean} white
+ */
+function words(fill, white) {
+  const [, a, b] = oklab(fill);
+  return vivid(white ? 0.97 : 0.24, Math.atan2(b, a), Math.min(0.06, Math.hypot(a, b)));
+}
+
 const lightTints = new Map();
 
 /**
- * A tag's look for words over data in `color`'s hue (see tint): its fill the color itself where dark words read on it
- * (see whiteReads), else lifted just past where they do, its hue kept and its chroma the most sRGB allows there (never
- * more than its own): the most vivid version of it under dark words, a light pill on either ground. Its opacity left
- * out (as a tag's fill). Each color worked out once.
+ * A tag's look for words over data in `color`'s hue (see tint): dark words (see words) on its fill, the color itself
+ * where they read on it (see FLOOR), else lifted (its OKLab lightness) just as far as that takes, its hue kept and its
+ * chroma the most sRGB allows there (never more than its own): each hue as near itself as its words let it be, the
+ * most vivid version of it under dark words, on either ground. Its opacity left out (as a tag's fill). Each color
+ * worked out once.
  * @param {string} color
  * @returns {{ fill: string, ink: string }}
  */
 export function lightTint(color) {
   let look = lightTints.get(color);
   if (look !== undefined) return look;
-  const seen = read(color), [L, a0, b0] = oklab(seen);
-  look = tint(hex(L < LIFT ? vivid(LIFT, Math.atan2(b0, a0), Math.hypot(a0, b0)) : rgb(seen)));
+  const seen = rgb(read(color)), [L, a0, b0] = oklab(seen), ink = words(seen, false), reads = (/** @type {number[]} */ c) => ratio(c, ink) >= FLOOR;
+  look = { fill: hex(reads(seen) ? seen : toward(L, 1, Math.atan2(b0, a0), Math.hypot(a0, b0), reads)), ink: hex(ink) };
   if (lightTints.size > 512) lightTints.clear();
   lightTints.set(color, look);
   return look;
@@ -159,9 +166,23 @@ function vivid(l, hue, most) {
   return rgb(at(lo));
 }
 
-/** The lightness (OKLab) white words read under (see whiteReads), and a light fill's for dark ones: just past it, clear of
- * its channels' rounding (under 0.002 of lightness). */
-const TURN = 0.7157, LIFT = TURN + 0.005;
+/**
+ * A color of lightness (OKLab) `L`, short of what `reads` asks, moved toward `to` (1: white; 0: black) just as far as
+ * it takes (found by halves), its hue kept and its chroma the most sRGB allows there (never more than `chroma`).
+ * @param {number} L @param {number} to @param {number} hue @param {number} chroma @param {(c: number[]) => boolean} reads
+ */
+function toward(L, to, hue, chroma, reads) {
+  let lo = L, hi = to;
+  for (let k = 0; k < 24; k++) {
+    const mid = (lo + hi) / 2;
+    if (reads(vivid(mid, hue, chroma))) hi = mid;
+    else lo = mid;
+  }
+  return vivid(hi, hue, chroma);
+}
+
+/** The lightness (OKLab) white words read under (see whiteReads). */
+const TURN = 0.7157;
 
 /**
  * Whether white words read better than black on `back` (sRGB channels, 0 to 255): by its lightness (OKLab), white under
