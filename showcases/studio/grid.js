@@ -1921,8 +1921,8 @@ const galleryRests = () => {
 function startGalleryRest() {
   $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
   $("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
-  // (A press keeps the grid from rest till its release; let go of otherwise, at the next frame unless a scroll's
-  // begun by then: a pan's cancel can come before its scroll's first event.)
+  // (A press keeps the grid from rest till its release; a press cancelled or lost, till the next frame unless a
+  // scroll's begun by then, whose end then says.)
   $("home").addEventListener("pointerdown", (event) => {
     galleryResting = false;
     press(event, {

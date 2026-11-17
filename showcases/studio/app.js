@@ -11,7 +11,7 @@ import { initialsOf, initialsWord } from "/studio/initials.js";
 import { catalogWalk } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 // (Studio's functions, by what they do, in modules of their own; what runs at its start runs from here, in order. The
-// state written from several of its sections, and its sections' own state not yet moved, is kept here.)
+// state written from several of its sections, and its own sections' state (library, toast, live, ...), is kept here.)
 import {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
   build, built, BY_BLOCK, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme, chartWidth,
