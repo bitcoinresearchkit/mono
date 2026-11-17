@@ -4,7 +4,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height};
 use vecdb::ReadableBoxedVec;
 
-use crate::{STORAGE, Vecs, metrics::Metrics};
+use crate::{STORAGE, Vecs, cost_basis::CostBasisVecs, metrics::Metrics};
 
 impl Vecs {
     pub fn import(
@@ -13,12 +13,15 @@ impl Vecs {
         prices: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 100_000)?;
-        let metrics = Metrics::import(&db, STORAGE.schema_version(), mappings, prices)?;
+        let version = STORAGE.schema_version();
+        let metrics = Metrics::import(&db, version, mappings, prices)?;
+        let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
         STORAGE.finalize_database(&db)?;
         Ok(Self {
             db,
             live: None,
             metrics,
+            cost_basis,
         })
     }
 }

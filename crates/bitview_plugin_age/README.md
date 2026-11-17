@@ -1,6 +1,7 @@
 # Age
 
-Consumes the published UTXO Set plus block prices and monotonic timestamps.
+A consumer of the one walk of the UTXO Set's history (`bitview_distribution::walk`),
+which hands it each block's changes, age crossings, price and monotonic timestamp.
 It owns disjoint age bands and fixed creation-year and epoch cohorts, including
 their supply, activity, aging out and profit/loss accounting. Derived price maps remain in memory;
 restart reconstructs them from canonical history. Append updates retain

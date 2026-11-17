@@ -7,8 +7,9 @@ An undefined anchor (the genesis block, or no priced capital yet) selects
 discount. Membership stays fixed for the output's lifetime.
 
 Run after Holders, supplying its completed all-chain capitalized-price series plus
-the published UTXO set, block prices and monotonic timestamps. The plugin consumes
-a borrowed `statedb::Reader`; it owns neither history nor the anchor series.
+the published UTXO set, and the block prices and monotonic timestamps the completed
+walk of its history holds. The plugin consumes a borrowed `statedb::Reader`; it
+owns neither history nor the anchor series, and keeps no copy of the origins.
 It owns its database, entry classifications, price maps, update and recovery.
 Restart, reorg and failed updates reconstruct from canonical history and the
 published anchor series. Only validated append updates reuse resident state.

@@ -11,14 +11,12 @@ it equals their SOPR).
 Accounting totals are collected in batches from Age's completed disjoint bands.
 Exact raw capital products are summed before computing weighted prices. They
 are consumed during calculation rather than copied into this database.
-A resident price index advances from the canonical UTXO Set and supplies
-percentiles and density for all seven filters. Shared price-index algorithms
-live in Distribution; this plugin owns its index, database and recovery.
+Percentiles, density and price extremes for all seven filters are read from the
+Profitability plugin, which computes them from the one price index.
 
-The plugin consumes read-only Age, History, price and mapping dependencies.
-Append updates retain validated state; reopen, reorg, source-version changes and
-partial accounting writes restore the canonical state. Incomplete derived ratios
-are repaired without replaying the history index.
+The plugin consumes read-only Age, Profitability and price dependencies and keeps
+no state between updates: every series derives from their completed series, so a
+reopen, a reorg or a source-version change needs no recovery of its own.
 
 No URPD distributions or address state are stored here. Detailed profitability
 bands live in the Profitability plugin. Downstream plugins, including Rarity

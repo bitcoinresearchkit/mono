@@ -12,7 +12,6 @@ bitview_primitives = { workspace = true, features = ["storage"] }
 statedb = { workspace = true }
 bitview_distribution = { workspace = true }
 bitview_vecs = { workspace = true }
-brk_exit = { workspace = true }
 bitview_compute = { workspace = true }
 bitview_plugin = { workspace = true }
 bitview_plugin_mappings = { workspace = true }

@@ -5,6 +5,7 @@ pub mod state;
 pub mod readers;
 mod realized_caps;
 pub mod replay;
+pub mod walk;
 pub use realized_caps::RealizedCaps;
 
 mod all_chain_sources;

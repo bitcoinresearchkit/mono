@@ -306,9 +306,8 @@ impl History {
         mut visit: impl FnMut(usize, Amount) -> Result<()>,
     ) -> Result<()> {
         let mut cursor = Cursor::new(state, end, spends, created)?;
-        while let Some(diff) = cursor.advance()? {
+        while let Some((diff, state)) = cursor.advance()? {
             diff.removed().for_each(|(origin, _)| removed(origin));
-            let state = cursor.state();
             visit(state.len() - 1, state.total())?;
         }
         Ok(())

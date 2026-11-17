@@ -1,10 +1,9 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
-use bitview_compute::{Inputs, save_stamped, write_chunks};
-use bitview_distribution::state::cost_basis::age_index;
+use bitview_compute::{save_stamped, write_chunks};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use bitview_traversable::Traversable;
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::{Cents, Sats, Version};
 use statedb::Amount;
 use vecdb::{AnyVec, ReadableVec};
@@ -33,21 +32,15 @@ impl ComputePlugin for Vecs {
     fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
         let live = self.live.take();
         let Dependencies {
-            history,
+            sources,
+            walk,
             from,
-            prices,
-            timestamps,
             capitalized_price,
         } = deps;
-        let mut inputs = Inputs::new(
-            Version::ONE + age_index::history_version(history),
-            [
-                prices as &dyn AnyVec,
-                timestamps as &dyn AnyVec,
-                capitalized_price as &dyn AnyVec,
-            ],
-        );
-        inputs.len = inputs.len.min(history.len());
+        let history = sources.history;
+        let mut inputs = sources.inputs(Version::ONE);
+        inputs.version = inputs.version + capitalized_price.version();
+        inputs.len = inputs.len.min(capitalized_price.len());
         let version = inputs.version;
         let range = inputs.prepare(
             self.cohorts.iter_any_stored_mut().collect::<Vec<_>>(),
@@ -58,62 +51,67 @@ impl ComputePlugin for Vecs {
         if end == 0 {
             return Ok(());
         }
+        let (prices, timestamps) = (walk.prices(), walk.timestamps());
+        if prices.len() < end || timestamps.len() < end {
+            return Err(Error::Internal("entry ahead of the walk's prices and times"));
+        }
+        // The cohorts stand where the last update left them if it ended at `start` on this chain.
         let (mut live, reuse) = match live {
-            Some(live) if live.version == version && history.resumes(&live.origins, start)? => {
+            Some(live)
+                if live.version == version
+                    && live.entries.len() == start
+                    && history.follows(start, live.hash)? =>
+            {
                 (live, true)
             }
             _ => (
                 LiveState {
-                    origins: history.state_at(start)?,
                     cohorts: ByEntry::from_fn(|_| CohortState::default()),
                     entries: Vec::new(),
-                    prices: Vec::new(),
-                    timestamps: Vec::new(),
+                    hash: [0; 32],
                     version,
                 },
                 false,
             ),
         };
-        let data_start = live.prices.len();
-        prices.read_into_at(data_start, end, &mut live.prices);
-        timestamps.read_into_at(data_start, end, &mut live.timestamps);
+        let data_start = live.entries.len();
         let anchor_start = data_start.saturating_sub(1);
         let anchors = capitalized_price.collect_range_at(anchor_start, end - 1);
-        debug_assert_eq!(live.prices.len(), end);
-        debug_assert_eq!(live.timestamps.len(), end);
         debug_assert_eq!(anchors.len(), end - 1 - anchor_start);
         live.entries.extend((data_start..end).map(|h| {
             classify(
-                live.prices[h],
+                prices[h],
                 h.checked_sub(1)
                     .map_or(Cents::NAN, |p| anchors[p - anchor_start]),
             )
         }));
         if !reuse {
-            for (h, &amount) in live.origins.amounts().iter().enumerate() {
-                live.cohorts.get_mut(live.entries[h]).increment_snapshot(
-                    &CostBasisSnapshot::from_utxo(live.prices[h], &supply(amount)),
-                );
+            let origins = history.state_at(start)?;
+            for (h, &amount) in origins.amounts().iter().enumerate() {
+                live.cohorts
+                    .get_mut(live.entries[h])
+                    .increment_snapshot(&CostBasisSnapshot::from_utxo(prices[h], &supply(amount)));
             }
             for state in live.cohorts.iter_mut() {
                 state.finish_restore();
             }
+            live.hash = origins.hash();
         }
-        let mut cursor = history.cursor(&mut live.origins)?;
+        let mut diffs = history.diffs(start)?;
         for chunk in write_chunks(range) {
             for h in chunk.clone() {
-                let price = live.prices[h];
-                let diff = cursor.advance()?.expect("validated entry history range");
+                let price = prices[h];
+                let diff = (diffs.advance()?).ok_or(Error::Internal("history short of entry"))?;
                 live.cohorts
                     .get_mut(live.entries[h])
                     .receive_utxo(&supply(diff.created), price);
                 for (origin, amount) in diff.spent() {
                     let origin = origin as usize;
-                    let age = Age::new(live.timestamps[h], live.timestamps[origin]);
+                    let age = Age::new(timestamps[h], timestamps[origin]);
                     live.cohorts.get_mut(live.entries[origin]).send_utxo(
                         &supply(amount),
                         price,
-                        live.prices[origin],
+                        prices[origin],
                         price,
                         age,
                     );
@@ -124,7 +122,7 @@ impl ComputePlugin for Vecs {
                     live.cohorts
                         .get_mut(live.entries[origin])
                         .decrement_snapshot(&CostBasisSnapshot::from_utxo(
-                            live.prices[origin],
+                            prices[origin],
                             &supply(amount),
                         ));
                 }
@@ -140,6 +138,9 @@ impl ComputePlugin for Vecs {
                 true,
                 context.exit(),
             )?;
+        }
+        if let Some(hash) = diffs.hash() {
+            live.hash = hash;
         }
         self.live = Some(live);
         Ok(())

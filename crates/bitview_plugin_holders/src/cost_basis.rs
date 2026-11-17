@@ -1,5 +1,6 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_plugin_profitability::CostBasisVecs;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -11,7 +12,6 @@ use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
 
-use super::CostBasisVecs;
 use crate::columns::Columns;
 
 /// Creation-price statistics of the cohort's unspent outputs.

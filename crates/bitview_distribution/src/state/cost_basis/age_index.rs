@@ -1,98 +1,93 @@
-use bitview_cohort::{
-    Age, AgeAggregateId, AgeRangeId, HOURS_4M, HOURS_5M, HOURS_6M, for_each_age_cutoff,
-};
+use std::array;
+
+use bitview_cohort::{Age, AgeAggregateId, AgeRangeId};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
-use brk_types::{Cents, Height, Timestamp, Version};
-use statedb::{Cursor, Reader, State};
-use vecdb::ReadableVec;
+use brk_types::{Cents, Timestamp};
 
-use super::{BucketedPrice, HeldExtremes, HeldOrigins, PriceIndex, PriceTotals};
+use super::{BucketedPrice, HeldExtremes, PriceIndex, PriceTotals};
+use crate::walk::{Block, Origins};
 
-/// Writer-owned age-filtered price index, retained only after a complete update
-/// succeeds. Canonical origins remain owned by the history. `H`: what it keeps of the
-/// origins holding coins beside it (their extremes, or nothing).
-pub struct AgeIndexLive<V, H = ()> {
-    pub origins: State,
+/// The sats and capital held at each price under four age filters (all, short-term holders,
+/// under four months, under six months), and the extremes of the origins holding coins: the
+/// state of a walk consumer, which restores it from the origins and applies each block to it.
+#[derive(Default)]
+pub struct AgeIndex {
     pub index: PriceIndex<4>,
-    pub held: H,
-    pub prices: Vec<BucketedPrice>,
-    pub timestamps: Vec<Timestamp>,
-    pub crossings: [usize; 3],
-    version: V,
+    pub held: HeldExtremes,
+    /// Each block's price with its bucket, mapped once.
+    prices: Vec<BucketedPrice>,
 }
 
-impl<V: PartialEq, H: HeldOrigins> AgeIndexLive<V, H> {
-    /// Reuses `live` if it ends at `start` under `version` and the same history,
-    /// else rebuilds it from the history state at `start`. Then extends the price
-    /// and timestamp history through `end` and returns the spot prices of
-    /// `start..end`.
-    pub fn resume(
-        live: Option<Self>,
-        version: V,
-        history: &Reader<'_>,
-        start: usize,
-        end: usize,
-        prices: &impl ReadableVec<Height, Cents>,
-        timestamps: &impl ReadableVec<Height, Timestamp>,
-    ) -> Result<(Self, Vec<Cents>)> {
-        let (mut live, reuse) = match live {
-            Some(live) if live.version == version && history.resumes(&live.origins, start)? => {
-                (live, true)
+impl AgeIndex {
+    pub fn restore(&mut self, origins: &Origins<'_>) -> Result<()> {
+        self.prices.clear();
+        self.bucket(origins.prices)?;
+        self.index.reset();
+        let amounts = origins.amounts;
+        if let Some(last) = amounts.len().checked_sub(1) {
+            let current = origins.timestamps[last];
+            for (h, amount) in amounts.iter().enumerate() {
+                if amount.sats != 0 {
+                    self.index.add_raw(
+                        self.prices[h],
+                        amount.sats as i64,
+                        filters(age(current, origins.timestamps[h])),
+                    );
+                }
             }
-            _ => (
-                Self {
-                    origins: history.state_at(start)?,
-                    index: PriceIndex::default(),
-                    held: H::default(),
-                    prices: Vec::new(),
-                    timestamps: Vec::new(),
-                    crossings: [0; 3],
-                    version,
-                },
-                false,
-            ),
-        };
-        let price_start = live.prices.len();
-        let mut spot = prices.collect_range_at(price_start, end);
-        if spot.iter().any(|p| p.is_nan()) {
+        }
+        self.index.build();
+        self.held.restore(amounts, &self.prices);
+        Ok(())
+    }
+
+    pub fn apply(&mut self, block: &Block<'_>) -> Result<()> {
+        self.bucket(block.prices)?;
+        let Self {
+            index,
+            held,
+            prices,
+        } = self;
+        // Sats leave the filters only their old age is in and join those only their new one is.
+        for moved in block.moves() {
+            let (from, to) = (
+                moved.from.map_or([false; 4], filters),
+                moved.to.map_or([false; 4], filters),
+            );
+            let mut add = |sats: i64, mask: [bool; 4]| {
+                if mask.contains(&true) {
+                    index.add(prices[moved.origin], sats, mask);
+                }
+            };
+            add(-(moved.sats as i64), array::from_fn(|i| from[i] && !to[i]));
+            add(moved.sats as i64, array::from_fn(|i| to[i] && !from[i]));
+        }
+        for (origin, _) in block.diff.removed() {
+            held.spend_from(origin);
+        }
+        held.settle(block.height, block.amounts, prices);
+        Ok(())
+    }
+
+    /// Maps the prices not yet mapped.
+    fn bucket(&mut self, prices: &[Cents]) -> Result<()> {
+        let new = &prices[self.prices.len().min(prices.len())..];
+        if new.iter().any(|price| price.is_nan()) {
             return Err(Error::NotFound("invalid age-index price history".into()));
         }
-        live.prices.extend(
-            spot.iter()
-                .map(|&price| BucketedPrice::from(CentsCompact::from(price))),
-        );
-        live.timestamps
-            .extend(timestamps.collect_range_at(live.timestamps.len(), end));
-        if live.prices.len() != end || live.timestamps.len() != end {
-            return Err(Error::NotFound(
-                "incomplete age-index price or timestamp history".into(),
-            ));
-        }
-        live.held.reserve(end);
-        if !reuse {
-            restore(
-                &mut live.index,
-                &mut live.held,
-                &live.origins,
-                &live.prices,
-                &live.timestamps,
-            );
-        }
-        Ok((live, spot.split_off(start - price_start)))
+        self.prices
+            .extend(new.iter().map(|&price| BucketedPrice::from(CentsCompact::from(price))));
+        self.held.reserve(self.prices.len());
+        Ok(())
     }
 }
 
-/// The history's spends and creations versions as one `Version`, folding in each u64's high half
-/// instead of truncating it.
-pub fn history_version(history: &Reader<'_>) -> Version {
-    let (spends, creations) = history.versions();
-    let fold = |version: u64| Version::new(version as u32) + Version::new((version >> 32) as u32);
-    fold(spends) + fold(creations)
+fn age(current: Timestamp, origin: Timestamp) -> AgeRangeId {
+    AgeRangeId::from(Age::new(current, origin))
 }
 
-fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {
-    let age = AgeRangeId::from(Age::new(current, origin));
+fn filters(age: AgeRangeId) -> [bool; 4] {
     [
         true,
         AgeAggregateId::Sth.contains(age),
@@ -101,71 +96,7 @@ fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {
     ]
 }
 
-fn restore(
-    index: &mut PriceIndex<4>,
-    held: &mut impl HeldOrigins,
-    origins: &State,
-    prices: &[BucketedPrice],
-    timestamps: &[Timestamp],
-) {
-    index.reset();
-    if let Some(last) = origins.len().checked_sub(1) {
-        let current = timestamps[last];
-        for (h, amount) in origins.amounts().iter().enumerate() {
-            if amount.sats != 0 {
-                index.add_raw(
-                    prices[h],
-                    amount.sats as i64,
-                    filters(current, timestamps[h]),
-                );
-            }
-        }
-    }
-    index.build();
-    held.restore(origins.amounts(), prices);
-}
-pub fn advance(
-    index: &mut PriceIndex<4>,
-    held: &mut impl HeldOrigins,
-    cursor: &mut Cursor<'_>,
-    prices: &[BucketedPrice],
-    timestamps: &[Timestamp],
-    crossings: &mut [usize; 3],
-) -> Result<()> {
-    let h = cursor.state().len();
-    let current = timestamps[h];
-    for_each_age_cutoff(
-        &timestamps[..h],
-        current,
-        &[HOURS_4M, HOURS_5M, HOURS_6M],
-        crossings,
-        |cutoff, origin, _| {
-            let sats = cursor.state().amounts()[origin].sats;
-            if sats != 0 {
-                let mut mask = [false; 4];
-                mask[CUTOFF_FILTERS[cutoff]] = true;
-                index.add(prices[origin], -(sats as i64), mask);
-            }
-        },
-    );
-    let diff = cursor
-        .advance()?
-        .expect("validated age-filter history range");
-    index.add(prices[h], diff.created.sats as i64, [true; 4]);
-    for (origin, amount) in diff.removed() {
-        held.spend_from(origin);
-        let origin = origin as usize;
-        index.add(
-            prices[origin],
-            -(amount.sats as i64),
-            filters(current, timestamps[origin]),
-        );
-    }
-    held.settle(h, cursor.state().amounts(), prices);
-    Ok(())
-}
-
-/// The index's filter of each age cutoff, in `for_each_age_cutoff`'s order (4, 5 and 6 months).
+/// The index's filter of each age cutoff: 4, 5 and 6 months.
 const CUTOFF_FILTERS: [usize; 3] = [2, 1, 3];
 
 /// A cohort as an age cut: its cutoff and whether it's the young side of it; all of them, none.
@@ -196,7 +127,7 @@ pub fn extremes(
     };
     let current = timestamps[last];
     let cut = |cutoff: usize| {
-        timestamps[..len].partition_point(|&t| !filters(current, t)[CUTOFF_FILTERS[cutoff]])
+        timestamps[..len].partition_point(|&t| !filters(age(current, t))[CUTOFF_FILTERS[cutoff]])
     };
     let (from, to) = match cut_of(id) {
         None => (0, len),

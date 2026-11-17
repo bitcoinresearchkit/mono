@@ -1,145 +1,165 @@
-mod context;
-mod origin_loop;
-pub(crate) mod origin_targets;
 mod price_range_max;
-pub use context::ComputeContext;
-pub(crate) use origin_loop::replay_origins;
 pub use price_range_max::PriceRangeMax;
 
-use bitview_compute::{Inputs, save_point, write_chunks};
-use bitview_distribution::state::cost_basis::age_index;
-use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_compute::save_point;
+use bitview_distribution::{
+    state::RealizedOps,
+    walk::{Block, Consumer, Origins, Sources},
+};
+use bitview_plugin::UpdateContext;
+use bitview_primitives::CoinBlocks;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Height, Version};
+use brk_types::{CentsSats, Height, Sats, Timestamp, Version};
 use rayon::prelude::*;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
+use vecdb::WritableVec;
 
-use crate::{Dependencies, Vecs, live::LiveState, state::UTXOStates};
+use crate::{
+    Vecs,
+    live::LiveState,
+    state::{UTXOStates, supply, tick_tock},
+};
 use bitview_cohort::creation_cohorts_ahead;
-use origin_targets::OriginTargets;
 use tracing::warn;
 
-const OUTPUT_CAPACITY: usize = 2_048;
+/// The plugin as a consumer of the walk: every age range's, halving epoch's and creation year's
+/// series.
+pub struct AgeConsumer<'a> {
+    vecs: &'a mut Vecs,
+    context: UpdateContext<'a>,
+    start: usize,
+    live: LiveState,
+    kept: bool,
+    /// The last block applied.
+    tip: Option<(Height, Timestamp)>,
+}
 
-impl ComputePlugin for Vecs {
-    compute_items!(Dependencies, db);
-
-    fn compute_state(&mut self, deps: Dependencies<'_>, context: UpdateContext<'_>) -> Result<()> {
+impl Vecs {
+    /// Readies the plugin for a walk over `sources`, from `from` at most: its outputs validated
+    /// and cut to where they resume, the cohort states the last walk left taken.
+    pub fn consumer<'a>(
+        &'a mut self,
+        sources: Sources<'_>,
+        from: Height,
+        context: UpdateContext<'a>,
+    ) -> Result<AgeConsumer<'a>> {
+        self.db.sync_bg_tasks()?;
         // A version reset must invalidate the resident state even if validation fails.
         let live = self.live.take();
-        let exit = context.exit();
-        let Dependencies {
-            history,
-            from,
-            mappings,
-            price: prices,
-        } = deps;
-        let spot = &prices.spot.cents.height;
-        let monotonic = &mappings.timestamp.monotonic;
-        let mut inputs = Inputs::new(
-            Version::ONE + age_index::history_version(history),
-            [spot as &dyn AnyVec, monotonic],
-        );
-        inputs.len = inputs.len.min(history.len());
-        let version = inputs.version;
-        let range = inputs.prepare(self.outputs_mut(), usize::from(from), exit)?;
-        let (start, end) = (range.start, range.end);
-        if end == 0 {
-            return Ok(());
-        }
-        let live = match live {
-            Some(live) if live.version == version && history.resumes(&live.origins, start)? => {
-                Some(live)
-            }
-            _ => None,
-        };
-        let reuse = live.is_some();
-        let LiveState {
-            mut origins,
-            mut states,
-            prices: mut price_data,
-            mut timestamps,
-            mut max,
-            ..
-        } = match live {
-            Some(live) => live,
-            None => LiveState {
-                origins: history.state_at(start)?,
+        let inputs = sources.inputs(Version::ONE);
+        let start = inputs
+            .prepare(
+                self.iter_any_stored_mut().collect::<Vec<_>>(),
+                usize::from(from),
+                context.exit(),
+            )?
+            .start;
+        let live = live.filter(|live| live.version == inputs.version);
+        Ok(AgeConsumer {
+            context,
+            start,
+            kept: live.is_some(),
+            live: live.unwrap_or_else(|| LiveState {
                 states: UTXOStates::new(),
-                prices: Vec::new(),
-                timestamps: Vec::new(),
                 max: PriceRangeMax::default(),
-                version,
-            },
-        };
-        spot.read_into_at(price_data.len(), end, &mut price_data);
-        monotonic.read_into_at(timestamps.len(), end, &mut timestamps);
-        debug_assert_eq!(price_data.len(), end);
-        debug_assert_eq!(timestamps.len(), end);
-        max.extend(&price_data);
-        let mut ctx = ComputeContext {
-            starting_height: Height::from(start),
-            last_height: Height::from(end - 1),
-            height_to_timestamp: &timestamps,
-            height_to_price: &price_data,
-            price_range_max: &max,
-        };
-        if !reuse {
-            states.restore_origins(origins.amounts(), &ctx);
+                version: inputs.version,
+            }),
+            tip: None,
+            vecs: self,
+        })
+    }
+}
+
+impl Consumer for AgeConsumer<'_> {
+    fn start(&self) -> usize {
+        self.start
+    }
+
+    fn kept(&self) -> bool {
+        self.kept
+    }
+
+    fn restore(&mut self, origins: &Origins<'_>) -> Result<()> {
+        // The price maxima too: a kept table can hold prices of blocks since replaced.
+        self.live.max = PriceRangeMax::default();
+        self.live.states = UTXOStates::new();
+        self.live.states.restore_origins(origins);
+        Ok(())
+    }
+
+    fn apply(&mut self, block: &Block<'_>) -> Result<()> {
+        let LiveState { states, max, .. } = &mut self.live;
+        // Every price of the walk at once: a no-op from its second block on.
+        max.extend(block.prices);
+        let height = Height::from(block.height);
+        let (timestamp, price) = (block.timestamp(), block.price());
+        let vecs = &mut *self.vecs;
+
+        let tick = tick_tock(states, block);
+        for ((range, &aged_out), &coindays_created) in vecs
+            .ranges
+            .iter_mut()
+            .zip(tick.aged_out.iter())
+            .zip(tick.coindays_created.iter())
+        {
+            range.push_tick(aged_out, coindays_created, price);
         }
-        let mut cursor = history.cursor(&mut origins)?;
-        for chunk in write_chunks(range) {
-            ctx.starting_height = Height::from(chunk.start);
-            ctx.last_height = Height::from(chunk.end - 1);
-            replay_origins(
-                &mut OriginTargets {
-                    ranges: &mut self.ranges,
-                    halving_epochs: &mut self.halving_epochs,
-                    vintages: &mut self.vintages,
-                    coinblocks_destroyed: &mut self.coinblocks_destroyed,
-                    all_capital: &mut self.all_capital,
-                },
-                &mut states,
-                &ctx,
-                &mut cursor,
-            )?;
-            self.save(chunk.end, chunk.end == end, exit)?;
+        states.receive_origins(supply(block.diff.created), height, timestamp, price);
+        let satblocks = states.send_origins(block, max);
+        vecs.coinblocks_destroyed.push_block(CoinBlocks::from(
+            satblocks as f64 / Sats::ONE_BTC_U128 as f64,
+        ));
+        if let Some((origin, amount)) = block.diff.correction() {
+            states.lose_origin(Height::new(origin), supply(amount), block);
         }
-        let tip = Height::from(end - 1);
-        if let Some(warning) = creation_cohorts_ahead(tip, ctx.height_to_timestamp[end - 1]) {
-            warn!("{warning}");
+
+        states.apply_pending();
+
+        // Every cohort's values once the block's spends and receives are applied, and the
+        // capital of all ranges together, summed exactly and converted to cents once.
+        let mut all_capital = CentsSats::ZERO;
+        for (range, state) in vecs.ranges.iter_mut().zip(states.age_range.iter_mut()) {
+            range.push(state, price);
+            all_capital += state.realized.cap_raw();
         }
-        self.live = Some(LiveState {
-            origins,
-            states,
-            prices: price_data,
-            timestamps,
-            max,
-            version,
-        });
+        vecs.all_capital.push(all_capital.to_cents());
+        for (epoch, state) in (vecs.halving_epochs.iter_mut()).zip(states.halving_epoch.iter_mut())
+        {
+            epoch.push(state, price);
+        }
+        for (vintage, state) in vecs.vintages.iter_mut().zip(states.vintage.iter_mut()) {
+            vintage.push(state, price);
+        }
+
+        states.reset_block();
+        self.tip = Some((height, timestamp));
+        Ok(())
+    }
+
+    /// Saves the outputs computed through `end` at their [`save_point`], in parallel
+    /// (`save_stamped` writes one at a time).
+    fn save(&mut self, end: usize) -> Result<()> {
+        let _lock = self.context.exit().lock();
+        let (stamp, with_changes) = save_point(end, true);
+        self.vecs
+            .iter_any_stored_mut()
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
+        self.vecs.db.flush();
         Ok(())
     }
 }
 
-impl Vecs {
-    /// Every output the replay writes: one dependency version, one resume height.
-    fn outputs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        let mut vecs = Vec::with_capacity(OUTPUT_CAPACITY);
-        vecs.extend(self.iter_any_stored_mut());
-        vecs
-    }
-
-    /// Saves the outputs computed through `end` at their [`save_point`], in parallel
-    /// (`save_stamped` writes one at a time); the final chunk keeps rollback changes.
-    fn save(&mut self, end: usize, final_chunk: bool, exit: &Exit) -> Result<()> {
-        let _lock = exit.lock();
-        let (stamp, with_changes) = save_point(end, final_chunk);
-        self.outputs_mut()
-            .into_par_iter()
-            .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
-        self.db.flush();
-        Ok(())
+impl AgeConsumer<'_> {
+    /// The walk completed: the plugin keeps the cohort states for the next one.
+    pub fn keep(self) {
+        if let Some((tip, timestamp)) = self.tip
+            && let Some(warning) = creation_cohorts_ahead(tip, timestamp)
+        {
+            warn!("{warning}");
+        }
+        self.vecs.live = Some(self.live);
+        self.context.compact_database(&self.vecs.db);
     }
 }

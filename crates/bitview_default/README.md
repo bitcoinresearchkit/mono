@@ -12,10 +12,12 @@ after the entire graph succeeds.
 Inputs and Outputs finish their contributions before UTXO Set updates the
 canonical origin state. UTXOs and Addresses run alongside each other and alongside
 Outputs, UTXO Set and Age: both read only the Indexer, Mappings and Price.
-Holders consumes Age’s completed disjoint accounting and canonical UTXO Set history
-for the seven overlapping age filters; Entry then classifies outputs by creation
-price against its all-chain capitalized price, and Profitability splits all,
-short-term and long-term holders into percentage profit/loss bands. Cointime and Coinflow
+One walk of the UTXO Set's history then computes everything that follows the coins
+block by block: the URPD history, Age, and Profitability, which splits all,
+short-term and long-term holders into percentage profit/loss bands and computes the
+cost bases of the seven overlapping age filters. Holders derives those filters from
+Age’s completed disjoint accounting and Profitability's cost bases; Entry then
+classifies outputs by creation price against its all-chain capitalized price. Cointime and Coinflow
 compute their scalar and URPD metrics before Bedrock consumes their completed
 sources. These models walk the URPD history the UTXO Set stores after every block,
 each with its own resumable `UrpdWalk`, and share the metric algorithms in

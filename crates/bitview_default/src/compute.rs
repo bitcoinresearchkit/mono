@@ -1,8 +1,10 @@
-use std::{sync::Arc, thread};
+use std::{sync::Arc, thread, time::Instant};
 
-use bitview_plugin::{BootstrapAction, ComputePluginSet, UpdateContext};
+use bitview_distribution::walk::Sources;
+
+use bitview_plugin::{BootstrapAction, ComputePluginSet, PluginId, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
-use bitview_plugin_age::Dependencies as AgeDependencies;
+use bitview_plugin_age::{AgeConsumer, ID as AGE_ID};
 use bitview_plugin_bedrock::Dependencies as BedrockDependencies;
 use bitview_plugin_blocks::Dependencies as BlocksDependencies;
 use bitview_plugin_coinflow::Dependencies as CoinflowDependencies;
@@ -17,12 +19,12 @@ use bitview_plugin_op_return::Dependencies as OpReturnDependencies;
 use bitview_plugin_outputs::Dependencies as OutputsDependencies;
 use bitview_plugin_pools::Dependencies as PoolsDependencies;
 use bitview_plugin_price::Dependencies as PriceDependencies;
-use bitview_plugin_profitability::Dependencies as ProfitabilityDependencies;
+use bitview_plugin_profitability::{ID as PROFITABILITY_ID, ProfitabilityConsumer};
 use bitview_plugin_rarity_meter::Dependencies as RarityMeterDependencies;
 use bitview_plugin_silent_payments::Dependencies as SilentPaymentsDependencies;
 use bitview_plugin_supply::Dependencies as SupplyDependencies;
 use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
-use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
+use bitview_plugin_utxo_set::{Dependencies as UtxoSetDependencies, UrpdConsumer};
 use bitview_plugin_utxos::Dependencies as UtxosDependencies;
 use brk_error::Result;
 use brk_types::Transaction;
@@ -30,9 +32,14 @@ use rayon::join;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
 
-use crate::{DefaultPlugins, timing::timed_compute};
+use crate::{
+    DefaultPlugins,
+    timing::{Timed, log_walk, timed_compute},
+};
 
 const REIMPORT_THRESHOLD: u32 = 10_000;
+/// The URPD history's compute, timed apart from the UTXO set plugin that holds it.
+const URPD: PluginId = PluginId::new("urpd");
 
 impl DefaultPlugins {
     fn compute_all(&mut self, context: UpdateContext<'_>) -> Result<()> {
@@ -58,8 +65,9 @@ impl DefaultPlugins {
     }
 
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
-    /// plugin's internal order. Branches beside the main chain (Outputs → UTXO set → Age → Holders
-    /// → Cointime) are scoped threads; forks that rejoin before going on are `rayon::join`s. A
+    /// plugin's internal order. Branches beside the main chain (Outputs → UTXO set → the walk of
+    /// its history, which computes the URPD history, Age and Profitability → Holders → Cointime)
+    /// are scoped threads; forks that rejoin before going on are `rayon::join`s. A
     /// branch spawns its own dependents and hands over its plugin as soon as it completes; every
     /// branch is joined before the composition commits.
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
@@ -235,43 +243,40 @@ impl DefaultPlugins {
                 UtxoSetDependencies {
                     spends: &inputs.spends,
                     creations,
-                    price,
-                    mappings,
                     from,
                     end: creations.end(),
                 },
                 context,
             )?;
 
-            let history = &self.utxo_set.reader(&inputs.spends, creations)?;
-            let urpd = &self.utxo_set.urpd()?;
-            let prices = &price.spot.cents.height.read_only_boxed_clone();
-            let timestamps = &mappings.timestamp.monotonic.read_only_boxed_clone();
+            // One walk of the history computes everything that follows the coins block by block.
+            let (history, walk, urpd) = self.utxo_set.walk(&inputs.spends, creations)?;
+            let sources = Sources {
+                history: &history,
+                prices: &price.spot.cents.height.read_only_boxed_clone(),
+                timestamps: &mappings.timestamp.monotonic.read_only_boxed_clone(),
+            };
+            let mut cells = Timed::new(URPD, || {
+                UrpdConsumer::new(urpd, sources, from, context.exit())
+            })?;
+            let mut age = Timed::new(AGE_ID, || self.age.consumer(sources, from, context))?;
+            let mut profitability = Timed::new(PROFITABILITY_ID, || {
+                self.profitability.consumer(sources, from, context)
+            })?;
+            let start = Instant::now();
+            walk.run(sources, &mut [&mut cells, &mut age, &mut profitability])?;
+            log_walk(
+                start
+                    .elapsed()
+                    .saturating_sub(cells.walked() + age.walked() + profitability.walked()),
+            );
+            cells.finish(drop);
+            age.finish(AgeConsumer::keep);
+            profitability.finish(ProfitabilityConsumer::keep);
+            let (history, walk, urpd) = (sources.history, &*walk, &*urpd);
+            let age = self.age.as_ref();
+
             thread::scope(|scope| -> Result<()> {
-                // Profitability reads only the history, prices and timestamps.
-                let profitability = scope.spawn(|| {
-                    timed_compute(
-                        &mut *self.profitability,
-                        ProfitabilityDependencies {
-                            history,
-                            from,
-                            prices,
-                            timestamps,
-                        },
-                        context,
-                    )
-                });
-                timed_compute(
-                    &mut *self.age,
-                    AgeDependencies {
-                        history,
-                        from,
-                        mappings,
-                        price,
-                    },
-                    context,
-                )?;
-                let age = self.age.as_ref();
 
                 // Coinflow reads Age, not Holders.
                 let coinflow = scope.spawn(|| -> Result<_> {
@@ -290,13 +295,7 @@ impl DefaultPlugins {
                 });
                 timed_compute(
                     &mut *self.holders,
-                    HoldersDependencies {
-                        history,
-                        from,
-                        age,
-                        mappings,
-                        price,
-                    },
+                    HoldersDependencies { from, age, price },
                     context,
                 )?;
                 let holders = self.holders.as_ref();
@@ -315,10 +314,9 @@ impl DefaultPlugins {
                     timed_compute(
                         entry,
                         EntryDependencies {
-                            history,
+                            sources,
+                            walk,
                             from,
-                            prices,
-                            timestamps,
                             capitalized_price: &capitalized_price,
                         },
                         context,
@@ -370,7 +368,7 @@ impl DefaultPlugins {
                 );
                 bedrock?;
                 rarity_meter?;
-                for branch in mining_tail.into_iter().chain([entry, profitability]) {
+                for branch in mining_tail.into_iter().chain([entry]) {
                     branch.join().unwrap()?;
                 }
                 Ok(())

@@ -29,7 +29,13 @@ impl Reader<'_> {
 
     /// Checks the prefix identity before reusing resident analytical state.
     pub(crate) fn matches(&self, state: &State) -> Result<bool> {
-        let prefix = (state.len(), state.hash());
+        self.follows(state.len(), state.hash())
+    }
+
+    /// Whether this history's first `len` blocks end in `hash`: what a consumer that keeps no
+    /// state keeps of where it stood, to resume only on the chain it stood on.
+    pub fn follows(&self, len: usize, hash: [u8; 32]) -> Result<bool> {
+        let prefix = (len, hash);
         if prefix.0 > self.end {
             return Ok(false);
         }

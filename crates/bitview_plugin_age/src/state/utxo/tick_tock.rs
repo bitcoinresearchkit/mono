@@ -1,10 +1,10 @@
-use bitview_cohort::{AgeRange, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{AgeRange, AgeRangeId};
+use bitview_distribution::walk::Block;
 use bitview_primitives::{CoinDays, CostBasisSnapshot};
-use brk_types::{ONE_DAY_IN_SEC_F64, Sats, Timestamp};
-use statedb::Amount;
+use brk_types::{ONE_DAY_IN_SEC_F64, Sats};
 
 use super::UTXOStates;
-use crate::{compute::ComputeContext, state::supply};
+use crate::state::supply;
 
 #[derive(Default)]
 pub struct TickTockResult {
@@ -13,34 +13,22 @@ pub struct TickTockResult {
 }
 
 /// Moves the origins that crossed an age boundary since the previous block into the older
-/// range. Each boundary's search position is cached and, timestamps being monotonic, only
-/// advances, so a block scans just the origins crossing it.
+/// range, as they stood before `block`.
 ///
 /// Returns the sats that aged out of each range and the coin days created in each during the
 /// preceding block interval.
-pub fn tick_tock_next_block(
-    states: &mut UTXOStates,
-    amounts: &[Amount],
-    ctx: &ComputeContext<'_>,
-    timestamp: Timestamp,
-) -> TickTockResult {
-    if amounts.is_empty() {
+pub fn tick_tock(states: &mut UTXOStates, block: &Block<'_>) -> TickTockResult {
+    let Some(previous) = block.height.checked_sub(1) else {
         return TickTockResult::default();
-    }
-
-    let timestamps = &ctx.height_to_timestamp[..amounts.len()];
-    let prev_timestamp = *timestamps.last().unwrap();
-    let elapsed = *timestamp - *prev_timestamp;
+    };
+    let timestamp = block.timestamp();
+    let elapsed = *timestamp - *block.timestamps[previous];
     if elapsed == 0 {
         return TickTockResult::default();
     }
 
     let mut aged_out = AgeRange::default();
-    let UTXOStates {
-        age_range,
-        tick_tock_cached_positions: cached,
-        ..
-    } = states;
+    let age_range = &mut states.age_range;
 
     // Every live sat creates time in its cohort at the start of the interval.
     // Boundary crossings below transfer only the post-crossing tail to the
@@ -49,27 +37,23 @@ pub fn tick_tock_next_block(
         AgeRange::from_fn(|id| u128::from(id.select(age_range).supply.value) * u128::from(elapsed));
     let expected_sat_seconds = created_sat_seconds.iter().copied().sum::<u128>();
 
-    for_each_age_crossing(
-        timestamps,
-        timestamp,
-        cached,
-        |h, younger, older, crossing_timestamp| {
-            let supply = supply(amounts[h]);
-            let tail_seconds = *timestamp - crossing_timestamp;
-            debug_assert!(tail_seconds <= elapsed);
-            move_created_tail(
-                &mut created_sat_seconds,
-                younger,
-                older,
-                supply.value,
-                tail_seconds,
-            );
-            let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[h], &supply);
-            younger.select_mut(age_range).decrement_snapshot(&snapshot);
-            older.select_mut(age_range).increment_snapshot(&snapshot);
-            *younger.select_mut(&mut aged_out) += supply.value;
-        },
-    );
+    for crossing in block.crossings {
+        let (younger, older) = (crossing.younger, crossing.older);
+        let supply = supply(crossing.amount);
+        let tail_seconds = *timestamp - crossing.at;
+        debug_assert!(tail_seconds <= elapsed);
+        move_created_tail(
+            &mut created_sat_seconds,
+            younger,
+            older,
+            supply.value,
+            tail_seconds,
+        );
+        let snapshot = CostBasisSnapshot::from_utxo(block.prices[crossing.origin], &supply);
+        younger.select_mut(age_range).decrement_snapshot(&snapshot);
+        older.select_mut(age_range).increment_snapshot(&snapshot);
+        *younger.select_mut(&mut aged_out) += supply.value;
+    }
 
     debug_assert_eq!(
         created_sat_seconds.iter().copied().sum::<u128>(),

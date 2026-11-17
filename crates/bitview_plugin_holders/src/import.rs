@@ -4,12 +4,13 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_age::Vecs as Age;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_plugin_price::Vecs as Price;
+use bitview_plugin_profitability::CostBasisVecs;
 use bitview_vecs::{LazyIndexedVec, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
-use crate::{STORAGE, Vecs, columns::Columns, cost_basis::CostBasisVecs, section::Imports};
+use crate::{STORAGE, Vecs, columns::Columns, section::Imports};
 
 impl Vecs {
     pub fn import(
@@ -19,12 +20,12 @@ impl Vecs {
         price: &Price,
         supply: &ReadableBoxedVec<Height, Sats>,
         age: &Age,
+        cost_basis: &CostBasisVecs,
     ) -> Result<Self> {
         let under_1h = &age.ranges.under_1h;
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = price.spot.cents.height.read_only_boxed_clone();
-        let cost_basis = CostBasisVecs::import(&db, version, mappings)?;
         let columns = AgeAggregate::try_from_fn(|id| Columns::import(&db, id, version))?;
         let cohorts = AgeAggregate::try_build(&Imports {
             db: &db,
@@ -33,7 +34,7 @@ impl Vecs {
             mappings,
             windows,
             spot: &spot,
-            cost_basis: &cost_basis,
+            cost_basis,
             under_1h_volume: under_1h.activity.transfer_volume.cents.cumulative_source(),
             under_1h_value_destroyed: under_1h.realized.value_destroyed.stored.cumulative_source(),
         })?;
@@ -50,10 +51,8 @@ impl Vecs {
             db,
             cohorts,
             columns,
-            cost_basis,
             all_supply: supply.read_only_boxed_clone(),
             all_market_cap,
-            live: None,
         })
     }
     pub fn all_chain_sources(&self) -> AllChainSources {

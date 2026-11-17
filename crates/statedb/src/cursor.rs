@@ -25,13 +25,13 @@ impl<'a> Cursor<'a> {
         self.state
     }
 
-    /// Applies one whole block and returns its changes; an error leaves the state unchanged.
-    /// None marks the published end.
-    pub fn advance(&mut self) -> Result<Option<BlockDiff<'_>>> {
-        let diff = self.diffs.advance()?;
-        if let Some(diff) = &diff {
-            self.state.apply(diff);
-        }
-        Ok(diff)
+    /// Applies one whole block and returns its changes with the state after it; an error leaves
+    /// the state unchanged. None marks the published end.
+    pub fn advance(&mut self) -> Result<Option<(BlockDiff<'_>, &State)>> {
+        let Some(diff) = self.diffs.advance()? else {
+            return Ok(None);
+        };
+        self.state.apply(&diff);
+        Ok(Some((diff, self.state)))
     }
 }

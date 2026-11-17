@@ -2,12 +2,15 @@ mod compute;
 mod dependencies;
 mod has;
 mod import;
+mod urpd;
 
 pub use dependencies::Dependencies;
 pub use has::HasUtxoSet;
+pub use urpd::UrpdConsumer;
 
 use std::path::PathBuf;
 
+use bitview_distribution::walk::Walk;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
@@ -38,6 +41,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     live: Live,
     history: M::WriteOnly<History>,
     urpd: M::WriteOnly<UrpdHistory>,
+    /// The one walk of the history, its state kept between updates.
+    walk: M::WriteOnly<Walk>,
     /// Remaining satoshis after each block.
     #[traversable(hidden)]
     #[traversable(lead = "Supply: all the bitcoin in unspent outputs.")]
@@ -57,12 +62,18 @@ pub struct Vecs<M: StorageMode = Rw> {
 }
 
 impl Vecs {
-    pub fn reader<'a>(
-        &'a self,
+    /// The plugin's parts of a walk of its history: the history to read, the walk's state, and
+    /// the URPD history the walk feeds (through a [`UrpdConsumer`]) and its readers then read.
+    pub fn walk<'a>(
+        &'a mut self,
         spends: &'a Spends,
         creations: &'a Creations,
-    ) -> Result<Reader<'a>> {
-        Ok(self.history.reader(spends, creations)?)
+    ) -> Result<(Reader<'a>, &'a mut Walk, &'a mut UrpdHistory)> {
+        Ok((
+            self.history.reader(spends, creations)?,
+            &mut self.walk,
+            &mut self.urpd,
+        ))
     }
 }
 

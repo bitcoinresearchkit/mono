@@ -1,21 +1,16 @@
-use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, ByHalvingEpoch, Vintage};
+use bitview_cohort::{Age, AgeRange, ByHalvingEpoch, Vintage};
+use bitview_distribution::walk::Origins;
 use bitview_primitives::CostBasisSnapshot;
 use brk_types::Height;
 use rayon::scope as RayonScope;
-use statedb::Amount;
 
 use super::UTXOCohortState;
-use crate::{
-    compute::ComputeContext,
-    state::{CoreRealizedState, RealizedState, supply},
-};
+use crate::state::{CoreRealizedState, RealizedState, supply};
 
 pub struct UTXOStates {
     pub age_range: AgeRange<UTXOCohortState<RealizedState>>,
     pub halving_epoch: ByHalvingEpoch<UTXOCohortState<CoreRealizedState>>,
     pub vintage: Vintage<UTXOCohortState<CoreRealizedState>>,
-    /// Search positions of the tick-tock age boundaries, valid for these states' origins.
-    pub tick_tock_cached_positions: [usize; AGE_RANGE_COUNT - 1],
 }
 
 impl UTXOStates {
@@ -24,20 +19,19 @@ impl UTXOStates {
             age_range: AgeRange::from_fn(|_| UTXOCohortState::default()),
             halving_epoch: ByHalvingEpoch::from_fn(|_| UTXOCohortState::default()),
             vintage: Vintage::from_fn(|_| UTXOCohortState::default()),
-            tick_tock_cached_positions: [0; AGE_RANGE_COUNT - 1],
         }
     }
 
     /// Restores freshly constructed states from the origin balances. Restoring moves no
     /// block activity, so the states stay ready for the next block.
-    pub fn restore_origins(&mut self, amounts: &[Amount], ctx: &ComputeContext<'_>) {
-        let Some(last) = amounts.len().checked_sub(1) else {
+    pub fn restore_origins(&mut self, origins: &Origins<'_>) {
+        let Some(last) = origins.amounts.len().checked_sub(1) else {
             return;
         };
-        let timestamp = ctx.height_to_timestamp[last];
-        for (h, &amount) in amounts.iter().enumerate() {
-            let origin_timestamp = ctx.height_to_timestamp[h];
-            let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[h], &supply(amount));
+        let timestamp = origins.timestamps[last];
+        for (h, &amount) in origins.amounts.iter().enumerate() {
+            let origin_timestamp = origins.timestamps[h];
+            let snapshot = CostBasisSnapshot::from_utxo(origins.prices[h], &supply(amount));
             self.age_range
                 .get_mut(Age::new(timestamp, origin_timestamp))
                 .increment_snapshot(&snapshot);

@@ -13,8 +13,10 @@ The plugin holds the project's exit guard across snapshot publication and metric
 writes. Persistence supports graceful shutdown and clean restart; process crashes
 and power loss are outside the recovery guarantee.
 
-Compute consumers receive `reader(spends, creations)`: one borrowed view that
-keeps producers and file details out of their code. Query consumers use the
+Compute consumers receive `walk(spends, creations)`: one borrowed view of the
+history that keeps producers and file details out of their code, with the state
+of the one walk of that history (`bitview_distribution::walk`) every block-by-block
+consumer shares, and the URPD history that walk writes through `UrpdConsumer`. Query consumers use the
 read-only `view()`, which reopens all three stores from the Inputs and Outputs
 paths retained at import, without borrowing writer objects from either producer.
 Global supply and UTXO count are written from the same replay that publishes

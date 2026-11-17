@@ -160,6 +160,14 @@ impl DefaultPlugins {
             Addresses::import(context, &mappings, &window_starts, &price, totals)
         })?;
 
+        // Holders derives from the cost bases Profitability computes.
+        let profitability = timed_import(PROFITABILITY_ID, || {
+            Profitability::import(
+                context,
+                &mappings,
+                &price.spot.cents.height.read_only_boxed_clone(),
+            )
+        })?;
         let holders = timed_import(HOLDERS_ID, || {
             Holders::import(
                 context,
@@ -168,11 +176,12 @@ impl DefaultPlugins {
                 &price,
                 &utxo_set.supply.read_only_boxed_clone(),
                 &age,
+                &profitability.cost_basis,
             )
         })?;
         let all_chain = holders.all_chain_sources();
 
-        let (cointime, coinflow, bedrock, entry, profitability) =
+        let (cointime, coinflow, bedrock, entry) =
             thread::scope(|scope| -> Result<_> {
                 let cointime = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINTIME_ID, || {
@@ -212,21 +221,11 @@ impl DefaultPlugins {
                         )
                     })
                 })?;
-                let profitability = large_stack_thread().spawn_scoped(scope, || {
-                    timed_import(PROFITABILITY_ID, || {
-                        Profitability::import(
-                            context,
-                            &mappings,
-                            &price.spot.cents.height.read_only_boxed_clone(),
-                        )
-                    })
-                })?;
                 Ok((
                     cointime.join().unwrap()?,
                     coinflow.join().unwrap()?,
                     bedrock.join().unwrap()?,
                     entry.join().unwrap()?,
-                    profitability.join().unwrap()?,
                 ))
             })?;
 

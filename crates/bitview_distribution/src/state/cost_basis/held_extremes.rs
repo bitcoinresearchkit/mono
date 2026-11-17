@@ -4,27 +4,6 @@ use statedb::Amount;
 
 use super::BucketedPrice;
 
-/// What the age index keeps of the origins holding coins, beside its price index, told of each as the history moves:
-/// their extremes ([`HeldExtremes`]), or nothing (`()`, for an owner that reads none of it).
-pub trait HeldOrigins: Default {
-    /// Room for `len` origins, those held kept.
-    fn reserve(&mut self, len: usize);
-    /// Every origin of `amounts` holding coins, at its price.
-    fn restore(&mut self, amounts: &[Amount], prices: &[BucketedPrice]);
-    /// An origin the block being applied spends from.
-    fn spend_from(&mut self, origin: u32);
-    /// The block at `height` applied (`amounts`, as it left them): its own origin held if it kept any, each it spent
-    /// from let go if it emptied it.
-    fn settle(&mut self, height: usize, amounts: &[Amount], prices: &[BucketedPrice]);
-}
-
-impl HeldOrigins for () {
-    fn reserve(&mut self, _: usize) {}
-    fn restore(&mut self, _: &[Amount], _: &[BucketedPrice]) {}
-    fn spend_from(&mut self, _: u32) {}
-    fn settle(&mut self, _: usize, _: &[Amount], _: &[BucketedPrice]) {}
-}
-
 /// The lowest and highest price among the origin heights still holding coins, over any run of
 /// heights (prices over `CentsCompact`'s ceiling, $42,949,672.94, held there, as the index's are). A coin's cost basis is its origin block's price and an age cohort is one run of
 /// origin heights (its youngest or its oldest), so a run's extremes are a cohort's, exactly. An
@@ -38,12 +17,14 @@ pub struct HeldExtremes {
     spent: Vec<u32>,
 }
 
-impl HeldOrigins for HeldExtremes {
-    fn reserve(&mut self, len: usize) {
+impl HeldExtremes {
+    /// Room for `len` origins, those held kept.
+    pub(crate) fn reserve(&mut self, len: usize) {
         self.tree.reserve(len);
     }
 
-    fn restore(&mut self, amounts: &[Amount], prices: &[BucketedPrice]) {
+    /// Every origin of `amounts` holding coins, at its price.
+    pub(crate) fn restore(&mut self, amounts: &[Amount], prices: &[BucketedPrice]) {
         self.tree.reset();
         for (h, amount) in amounts.iter().enumerate() {
             if amount.sats != 0 {
@@ -53,11 +34,14 @@ impl HeldOrigins for HeldExtremes {
         self.tree.build();
     }
 
-    fn spend_from(&mut self, origin: u32) {
+    /// An origin the block being applied spends from.
+    pub(crate) fn spend_from(&mut self, origin: u32) {
         self.spent.push(origin);
     }
 
-    fn settle(&mut self, height: usize, amounts: &[Amount], prices: &[BucketedPrice]) {
+    /// The block at `height` applied (`amounts`, as it left them): its own origin held if it kept
+    /// any, each it spent from let go if it emptied it.
+    pub(crate) fn settle(&mut self, height: usize, amounts: &[Amount], prices: &[BucketedPrice]) {
         if amounts[height].sats != 0 {
             self.tree.set(height, u32::from(prices[height].price()));
         }
@@ -68,9 +52,7 @@ impl HeldOrigins for HeldExtremes {
             }
         }
     }
-}
 
-impl HeldExtremes {
     /// The lowest and highest price of the origins held in `from..to`; NaN both where none is.
     pub fn range(&self, from: usize, to: usize) -> (Cents, Cents) {
         let cents = |value: u32| Cents::from(CentsCompact::from(value));

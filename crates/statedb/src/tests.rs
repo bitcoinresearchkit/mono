@@ -432,7 +432,7 @@ impl Model {
         }
         let mut height = state.len();
         let mut cursor = reader.cursor(&mut state)?;
-        while let Some(diff) = cursor.advance()? {
+        while let Some((diff, _)) = cursor.advance()? {
             self.assert_diff(&diff, chain[height]);
             height += 1;
         }

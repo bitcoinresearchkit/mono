@@ -63,7 +63,7 @@ impl CostBasisVecs {
     }
 
     #[inline(always)]
-    pub fn push(&mut self, cohort_values: AgeAggregate<CostBasisBlockData>) {
+    pub(crate) fn push(&mut self, cohort_values: AgeAggregate<CostBasisBlockData>) {
         for id in AgeAggregateId::ALL {
             let values = id.select(&cohort_values);
             let percentiles = &values.percentiles;

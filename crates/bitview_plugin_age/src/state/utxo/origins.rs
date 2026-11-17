@@ -1,31 +1,29 @@
 use bitview_cohort::Age;
+use bitview_distribution::walk::Block;
 use bitview_primitives::{CostBasisSnapshot, SupplyState};
 use brk_types::{Cents, Height, Sats, Timestamp};
 use tracing::error;
 
 use crate::{
-    compute::ComputeContext,
-    state::{SendPrecomputed, UTXOStates},
+    compute::PriceRangeMax,
+    state::{SendPrecomputed, UTXOStates, supply},
 };
 
 impl UTXOStates {
-    /// Returns satoshi-blocks destroyed while applying each spent origin.
-    pub fn send_origins(
-        &mut self,
-        height_to_sent: impl IntoIterator<Item = (Height, SupplyState)>,
-        send_height: Height,
-        ctx: &ComputeContext<'_>,
-    ) -> u128 {
+    /// Applies what `block` spent from each origin; returns the satoshi-blocks destroyed.
+    pub fn send_origins(&mut self, block: &Block<'_>, price_range_max: &PriceRangeMax) -> u128 {
         let mut satblocks = 0;
-        let send = usize::from(send_height);
-        let last_timestamp = ctx.height_to_timestamp[send];
-        let current_price = ctx.height_to_price[send];
+        let send = block.height;
+        let send_height = Height::from(send);
+        let last_timestamp = block.timestamp();
+        let current_price = block.price();
 
-        for (receive_height, sent) in height_to_sent {
-            let origin = usize::from(receive_height);
+        for (origin, sent) in block.diff.spent() {
+            let (receive_height, sent) = (Height::new(origin), supply(sent));
+            let origin = origin as usize;
             satblocks += (send - origin) as u128 * u128::from(sent.value);
-            let prev_price = ctx.height_to_price[origin];
-            let origin_timestamp = ctx.height_to_timestamp[origin];
+            let prev_price = block.prices[origin];
+            let origin_timestamp = block.timestamps[origin];
             let age = Age::new(last_timestamp, origin_timestamp);
 
             // The table holds prices over `CentsCompact`'s ceiling at it, as the cost-basis maps
@@ -33,7 +31,7 @@ impl UTXOStates {
             let peak_price = if sent.value == Sats::ZERO {
                 Cents::ZERO
             } else {
-                ctx.price_range_max
+                price_range_max
                     .range_max(receive_height, send_height)
                     .max(current_price)
             };
@@ -74,20 +72,11 @@ impl UTXOStates {
     /// Removes an output that left the set without being spent (a BIP30-overwritten coinbase):
     /// supply, realized cap and cost basis drop, with no spend, volume, coin days or realized
     /// profit and loss.
-    pub fn lose_origin(
-        &mut self,
-        receive_height: Height,
-        lost: SupplyState,
-        height: Height,
-        ctx: &ComputeContext<'_>,
-    ) {
+    pub fn lose_origin(&mut self, receive_height: Height, lost: SupplyState, block: &Block<'_>) {
         let origin = usize::from(receive_height);
-        let origin_timestamp = ctx.height_to_timestamp[origin];
-        let age = Age::new(
-            ctx.height_to_timestamp[usize::from(height)],
-            origin_timestamp,
-        );
-        let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[origin], &lost);
+        let origin_timestamp = block.timestamps[origin];
+        let age = Age::new(block.timestamp(), origin_timestamp);
+        let snapshot = CostBasisSnapshot::from_utxo(block.prices[origin], &lost);
         self.age_range.get_mut(age).decrement_snapshot(&snapshot);
         if let Some(v) = self.halving_epoch.get_mut(receive_height) {
             v.decrement_snapshot(&snapshot);

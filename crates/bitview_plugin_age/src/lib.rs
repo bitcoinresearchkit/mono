@@ -1,6 +1,5 @@
 mod accounting_sources;
 mod compute;
-mod dependencies;
 mod has;
 mod import;
 mod live;
@@ -9,7 +8,7 @@ mod rhodl;
 mod state;
 
 pub use accounting_sources::AccountingSources;
-pub use dependencies::Dependencies;
+pub use compute::AgeConsumer;
 pub use has::HasAge;
 pub use metrics::RangeVecs;
 

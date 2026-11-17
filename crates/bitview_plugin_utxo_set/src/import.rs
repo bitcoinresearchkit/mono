@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use bitview_distribution::walk::Walk;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_urpd::UrpdHistory;
@@ -35,6 +36,7 @@ impl Vecs {
             live: history.live(),
             history,
             urpd: UrpdHistory::open(&db.path().join(URPD))?,
+            walk: Walk::default(),
             spends_path,
             creations_path,
             db,

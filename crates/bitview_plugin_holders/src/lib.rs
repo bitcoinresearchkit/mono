@@ -9,7 +9,6 @@ mod compute;
 mod cost_basis;
 mod dependencies;
 mod import;
-mod live;
 mod metrics;
 mod part;
 mod realized;
@@ -28,8 +27,6 @@ use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use columns::Columns;
-use cost_basis::CostBasisVecs;
-use live::LiveState;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("holders"), Version::new(5));
 pub const ID: PluginId = STORAGE.id();
@@ -44,11 +41,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// What the block loop writes for each group, its series' sources.
     #[traversable(hidden)]
     columns: AgeAggregate<Columns<M>>,
-    #[traversable(hidden)]
-    cost_basis: Box<CostBasisVecs<M>>,
     #[traversable(skip)]
     all_supply: ReadableBoxedVec<Height, Sats>,
     #[traversable(skip)]
     all_market_cap: ReadableBoxedVec<Height, Cents>,
-    live: M::WriteOnly<Option<LiveState>>,
 }

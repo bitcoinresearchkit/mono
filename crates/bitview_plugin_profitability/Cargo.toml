@@ -18,5 +18,4 @@ bitview_traversable = { workspace = true }
 bitview_vecs = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 brk_types = { workspace = true, features = ["storage"] }
-statedb = { workspace = true }
 vecdb = { workspace = true }

@@ -7,7 +7,7 @@ use statedb::Amount;
 
 pub use bitview_distribution::state::{CoreRealizedState, RealizedOps, SendPrecomputed};
 pub use cost_basis::RealizedState;
-pub use utxo::{UTXOCohortState, UTXOStates, tick_tock_next_block};
+pub use utxo::{UTXOCohortState, UTXOStates, tick_tock};
 
 #[inline]
 pub(crate) fn supply(amount: Amount) -> SupplyState {

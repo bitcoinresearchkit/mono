@@ -1,16 +1,13 @@
 use std::{array, io, ops::Range, path::Path};
 
 use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId};
-use bitview_compute::WRITE_INTERVAL;
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
-use brk_types::{Cents, Height, Timestamp, Version};
-use statedb::{CellHistory, Reader, State};
-use vecdb::ReadableVec;
+use brk_types::{Cents, Height, Version};
+use statedb::CellHistory;
 
 use crate::{
     COST_BASIS_PRICE_DIGITS, ProjectedBucket,
-    block_changes::block_changes,
     price_place::{PRICE_PLACES, place_price, price_place},
     projection::Projection,
 };
@@ -24,16 +21,15 @@ const FORMAT: Version = Version::ONE;
 pub struct UrpdHistory {
     cells: CellHistory,
     live: Option<Live>,
+    /// The block being pushed's cell changes.
+    changes: Vec<(u32, i64)>,
 }
 
 /// Where the producer stands after its blocks, kept between updates.
 struct Live {
-    origins: State,
     urpd: UrpdCells,
     /// Each origin's price place.
     places: Vec<u32>,
-    timestamps: Vec<Timestamp>,
-    crossings: [usize; AGE_RANGE_COUNT - 1],
 }
 
 impl UrpdHistory {
@@ -41,6 +37,7 @@ impl UrpdHistory {
         Ok(Self {
             cells: CellHistory::open(path)?,
             live: None,
+            changes: Vec::new(),
         })
     }
 
@@ -48,6 +45,7 @@ impl UrpdHistory {
         Ok(Self {
             cells: CellHistory::open_reader(path)?,
             live: None,
+            changes: Vec::new(),
         })
     }
 
@@ -97,104 +95,91 @@ impl UrpdHistory {
         })
     }
 
-    /// Records blocks `start..` through the end of `history` (earlier ones are kept), from its
-    /// origins and each block's price and timestamp.
-    pub fn advance(
+    /// Readies the record to take blocks from `from` at most, made from sources of these
+    /// versions: a changed version starts the cells over. Returns the block it resumes at.
+    /// Under the exit lock, as [`Self::restore`] and [`Self::commit`]: each can publish.
+    pub fn begin(
         &mut self,
-        start: usize,
-        history: &Reader<'_>,
-        prices: &impl ReadableVec<Height, Cents>,
-        timestamps: &impl ReadableVec<Height, Timestamp>,
-    ) -> Result<()> {
-        let end = history.len();
-        if end > prices.len() || end > timestamps.len() {
-            return Err(Error::Internal("incomplete URPD history sources"));
-        }
-        let (spends, creations) = history.versions();
+        from: usize,
+        prices: Version,
+        timestamps: Version,
+        (spends, creations): (u64, u64),
+    ) -> Result<usize> {
         let version = u64::from(u32::from(
             FORMAT
-                + prices.version()
-                + timestamps.version()
+                + prices
+                + timestamps
                 + Version::from(spends as u32)
                 + Version::from(creations as u32),
         ));
-        let live = self.live.take();
-        // A changed version starts the cells over, and the live origins then resume nothing.
+        // A changed version starts the cells over, and the live cells then resume nothing.
+        if self.cells.version() != version {
+            self.live = None;
+        }
         self.cells.validate_version(version)?;
-        let start = start.min(self.cells.len());
-        let mut live = match live {
-            Some(live) if self.cells.len() == start && history.resumes(&live.origins, start)? => live,
-            _ => self.restore(start, history, prices, timestamps)?,
-        };
-        if start == end {
-            self.live = Some(live);
-            return Ok(());
+        Ok(from.min(self.cells.len()))
+    }
+
+    /// Whether the producer still stands where its last recorded block left it.
+    pub fn kept(&self) -> bool {
+        self.live.is_some()
+    }
+
+    /// The producer's position after `start` blocks (the recorded ones past it dropped), the
+    /// last one's hash `hash`: the cells from their own record, each block's place from `prices`.
+    pub fn restore(&mut self, start: usize, hash: [u8; 32], prices: &[Cents]) -> Result<()> {
+        self.live = None;
+        self.cells.truncate(start)?;
+        let urpd = self.at(start, start)?;
+        if urpd.hash != hash {
+            return Err(Error::Internal("URPD history does not match the UTXO set history"));
         }
-        let places = round(&prices.collect_range_at(live.places.len(), end))?;
-        live.places.extend(places);
-        live.timestamps
-            .extend(timestamps.collect_range_at(live.timestamps.len(), end));
-        let Live {
-            origins,
+        self.live = Some(Live {
             urpd,
-            places,
-            timestamps,
-            crossings,
-        } = &mut live;
-        let mut changes = Vec::new();
-        let mut cursor = history.cursor(origins)?;
-        for height in start..end {
-            changes.clear();
-            block_changes(&mut cursor, timestamps, crossings, |age, origin, sats| {
-                changes.push(((age.index() * PRICE_PLACES) as u32 + places[origin], sats));
-            })?;
-            // One change per cell, by key, none zero.
-            changes.sort_unstable_by_key(|&(key, _)| key);
-            changes.dedup_by(|(key, sats), (kept, total)| {
-                let same = key == kept;
-                if same {
-                    *total += *sats;
-                }
-                same
-            });
-            changes.retain(|&(_, sats)| sats != 0);
-            for &(key, sats) in &changes {
-                urpd.add(key, sats)?;
-            }
-            urpd.hash = cursor.state().hash();
-            self.cells.push(urpd.hash, &changes, || urpd.nonzero())?;
-            if (height + 1).is_multiple_of(WRITE_INTERVAL) {
-                self.cells.commit()?;
-            }
-        }
-        drop(cursor);
-        self.cells.commit()?;
-        self.live = Some(live);
+            places: round(prices)?,
+        });
         Ok(())
     }
 
-    /// The producer's position after `start` blocks (the recorded ones past it dropped): the
-    /// origins from the history, the cells from their own record.
-    fn restore(
+    /// Records the next block, its hash `hash`, from `changes`: (age, origin, signed sats) in
+    /// any order. `prices` covers every origin a change names.
+    pub fn push(
         &mut self,
-        start: usize,
-        history: &Reader<'_>,
-        prices: &impl ReadableVec<Height, Cents>,
-        timestamps: &impl ReadableVec<Height, Timestamp>,
-    ) -> Result<Live> {
-        self.cells.truncate(start)?;
-        let origins = history.state_at(start)?;
-        let urpd = self.at(start, start)?;
-        if urpd.hash != origins.hash() {
-            return Err(Error::Internal("URPD history does not match the UTXO set history"));
+        hash: [u8; 32],
+        prices: &[Cents],
+        changes: impl IntoIterator<Item = (AgeRangeId, usize, i64)>,
+    ) -> Result<()> {
+        let Live { urpd, places } = (self.live.as_mut())
+            .ok_or(Error::Internal("URPD history pushed to before its restore"))?;
+        if places.len() < prices.len() {
+            places.extend(round(&prices[places.len()..])?);
         }
-        Ok(Live {
-            origins,
-            urpd,
-            places: round(&prices.collect_range_at(0, start))?,
-            timestamps: timestamps.collect_range_at(0, start),
-            crossings: [0; AGE_RANGE_COUNT - 1],
-        })
+        let cells = &mut self.changes;
+        cells.clear();
+        cells.extend(changes.into_iter().map(|(age, origin, sats)| {
+            ((age.index() * PRICE_PLACES) as u32 + places[origin], sats)
+        }));
+        // One change per cell, by key, none zero.
+        cells.sort_unstable_by_key(|&(key, _)| key);
+        cells.dedup_by(|(key, sats), (kept, total)| {
+            let same = key == kept;
+            if same {
+                *total += *sats;
+            }
+            same
+        });
+        cells.retain(|&(_, sats)| sats != 0);
+        for &(key, sats) in cells.iter() {
+            urpd.add(key, sats)?;
+        }
+        urpd.hash = hash;
+        self.cells.push(urpd.hash, cells, || urpd.nonzero())?;
+        Ok(())
+    }
+
+    /// Commits the blocks pushed since the last commit.
+    pub fn commit(&mut self) -> Result<()> {
+        Ok(self.cells.commit()?)
     }
 }
 

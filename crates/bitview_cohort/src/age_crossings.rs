@@ -2,37 +2,15 @@ use brk_types::{ONE_HOUR_IN_SEC, Timestamp};
 
 use crate::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRangeId};
 
-/// Visit origins crossing each age boundary, youngest first. The caller supplies
-/// the previous state's monotonic timestamps and resets positions after a rewind.
+/// Visits the origins crossing each age boundary, youngest boundary first, as (origin, younger
+/// range, older range, crossing time). The caller supplies the previous state's monotonic
+/// timestamps, keeps the boundaries' search positions between blocks and resets them after a
+/// rewind.
 pub fn for_each_age_crossing(
     timestamps: &[Timestamp],
     current: Timestamp,
     positions: &mut [usize; AGE_RANGE_COUNT - 1],
     mut visit: impl FnMut(usize, AgeRangeId, AgeRangeId, u32),
-) {
-    for_each_age_cutoff(
-        timestamps,
-        current,
-        &AGE_BOUNDARIES,
-        positions,
-        |i, origin, timestamp| {
-            visit(
-                origin,
-                AgeRangeId::ALL[i],
-                AgeRangeId::ALL[i + 1],
-                timestamp,
-            );
-        },
-    );
-}
-
-/// Visit only the requested cutoffs, retaining boundary search positions between blocks.
-pub fn for_each_age_cutoff<const N: usize>(
-    timestamps: &[Timestamp],
-    current: Timestamp,
-    hours: &[usize; N],
-    positions: &mut [usize; N],
-    mut visit: impl FnMut(usize, usize, u32),
 ) {
     let Some(previous) = timestamps.last() else {
         return;
@@ -40,7 +18,7 @@ pub fn for_each_age_cutoff<const N: usize>(
     if current <= *previous {
         return;
     }
-    for (i, &hours) in hours.iter().enumerate() {
+    for (i, &hours) in AGE_BOUNDARIES.iter().enumerate() {
         let duration = hours as u32 * ONE_HOUR_IN_SEC;
         let lower = i64::from(**previous) - i64::from(duration);
         let upper = i64::from(*current) - i64::from(duration);
@@ -54,7 +32,12 @@ pub fn for_each_age_cutoff<const N: usize>(
         }
         let mut end = start;
         while end < timestamps.len() && i64::from(*timestamps[end]) <= upper {
-            visit(i, end, *timestamps[end] + duration);
+            visit(
+                end,
+                AgeRangeId::ALL[i],
+                AgeRangeId::ALL[i + 1],
+                *timestamps[end] + duration,
+            );
             end += 1;
         }
         positions[i] = end;
