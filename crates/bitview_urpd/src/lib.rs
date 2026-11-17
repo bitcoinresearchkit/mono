@@ -1,4 +1,5 @@
 //! URPD reconstruction and derived metrics from the canonical UTXO set history.
+mod block_changes;
 mod density_band;
 mod metrics;
 mod price_place;

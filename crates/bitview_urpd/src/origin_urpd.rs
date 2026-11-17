@@ -1,6 +1,6 @@
 use std::array;
 
-use bitview_cohort::{AGE_BOUNDARIES, AGE_RANGE_COUNT, Age, AgeRange, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRange, AgeRangeId};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Timestamp};
@@ -8,6 +8,7 @@ use statedb::{Cursor, State};
 
 use crate::{
     COST_BASIS_PRICE_DIGITS, ProjectedBucket,
+    block_changes::block_changes,
     price_place::{PRICE_PLACES, price_place},
     projection::Projection,
 };
@@ -154,47 +155,25 @@ impl OriginUrpd {
         timestamps: &[Timestamp],
     ) -> Result<()> {
         // The replay checked its sources cover the range and pushed this block's price.
-        let h = cursor.state().len();
-        let current = timestamps[h];
-        debug_assert!(h < self.origin_buckets.len(), "missing origin price");
-        for_each_age_crossing(
-            &timestamps[..h],
-            current,
-            &mut self.crossings,
-            |origin, younger, older, _| {
-                let sats = cursor.state().amounts()[origin].sats;
-                if sats != 0 {
-                    let slot = self.origin_buckets[origin] as usize;
-                    self.amounts[younger.index()][slot] -= sats;
-                    self.amounts[older.index()][slot] += sats;
-                    if self.amounts[younger.index()][slot] == 0 {
-                        self.occupied[slot] &= !(1 << younger.index());
-                    }
-                    self.occupied[slot] |= 1 << older.index();
-                }
-            },
-        );
-        let diff = cursor
-            .advance()?
-            .expect("history covers the replayed range");
-        let slot = self.origin_buckets[h] as usize;
-        self.amounts[AgeRangeId::Under1H.index()][slot] += diff.created.sats;
-        if diff.created.sats != 0 {
-            self.occupied[slot] |= 1 << AgeRangeId::Under1H.index();
-        }
-        for (origin, amount) in diff.removed() {
-            if amount.sats == 0 {
-                continue;
+        debug_assert!(cursor.state().len() < self.origin_buckets.len(), "missing origin price");
+        let Self {
+            amounts,
+            occupied,
+            origin_buckets,
+            crossings,
+            ..
+        } = self;
+        block_changes(cursor, timestamps, crossings, |age, origin, sats| {
+            let slot = origin_buckets[origin] as usize;
+            let cell = &mut amounts[age.index()][slot];
+            debug_assert!(cell.checked_add_signed(sats).is_some(), "URPD cell out of range");
+            *cell = cell.wrapping_add_signed(sats);
+            if *cell == 0 {
+                occupied[slot] &= !(1 << age.index());
+            } else {
+                occupied[slot] |= 1 << age.index();
             }
-            let origin = origin as usize;
-            let age = AgeRangeId::from(Age::new(current, timestamps[origin]));
-            let slot = self.origin_buckets[origin] as usize;
-            self.amounts[age.index()][slot] -= amount.sats;
-            if self.amounts[age.index()][slot] == 0 {
-                self.occupied[slot] &= !(1 << age.index());
-            }
-        }
-        Ok(())
+        })
     }
     /// Project all requested weights together, visiting each bucket's ages once.
     /// Weighted entries retain input order; missing weights produce zero. Rounding

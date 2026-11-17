@@ -29,7 +29,7 @@ pub(crate) fn take<T: Number>(bytes: &[u8], at: &mut usize, column: &mut [T]) ->
         .get(*at + 4..*at + 4 + len)
         .ok_or_else(|| invalid("truncated column"))?;
     let progress = simple_decompress_into(stream, column).map_err(|_| invalid("corrupt column"))?;
-    if progress.n_processed != column.len() {
+    if progress.n_processed != column.len() || !progress.finished {
         return Err(invalid("column length mismatch"));
     }
     *at += 4 + len;

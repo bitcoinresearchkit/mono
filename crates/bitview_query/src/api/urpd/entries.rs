@@ -19,7 +19,7 @@ impl UrpdHeader {
     /// unique and sorted by price from its projection, so nothing is rehashed or re-sorted.
     pub fn build(self, entries: impl IntoIterator<Item = (CentsCompact, Sats)>) -> Urpd {
         let close = self.close;
-        // `OriginUrpd::new` rejects unpriced blocks, the close's included.
+        // The URPD history rejects unpriced blocks, the close's included.
         debug_assert!(!close.is_nan(), "URPD close is priced");
         // Every bucket's market value, at most all money's, must fit the signed cents range.
         debug_assert!(

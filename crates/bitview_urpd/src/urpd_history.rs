@@ -1,6 +1,6 @@
 use std::{array, io, path::Path};
 
-use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId};
 use bitview_compute::WRITE_INTERVAL;
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
@@ -10,6 +10,7 @@ use vecdb::ReadableVec;
 
 use crate::{
     COST_BASIS_PRICE_DIGITS, ProjectedBucket,
+    block_changes::block_changes,
     price_place::{PRICE_PLACES, place_price, price_place},
     projection::Projection,
 };
@@ -33,7 +34,6 @@ struct Live {
     places: Vec<u32>,
     timestamps: Vec<Timestamp>,
     crossings: [usize; AGE_RANGE_COUNT - 1],
-    version: u64,
 }
 
 impl UrpdHistory {
@@ -58,6 +58,11 @@ impl UrpdHistory {
 
     pub fn is_empty(&self) -> bool {
         self.cells.is_empty()
+    }
+
+    /// The summed versions of what the cells mean and are made from.
+    pub fn version(&self) -> Version {
+        Version::from(self.cells.version() as u32)
     }
 
     /// The cells after `end` blocks.
@@ -89,23 +94,18 @@ impl UrpdHistory {
                 + Version::from(creations as u32),
         ));
         let live = self.live.take();
+        // A changed version starts the cells over, and the live origins then resume nothing.
         self.cells.validate_version(version)?;
         let start = start.min(self.cells.len());
         let mut live = match live {
-            Some(live)
-                if live.version == version
-                    && self.cells.len() == start
-                    && history.resumes(&live.origins, start)? =>
-            {
-                live
-            }
-            _ => self.restore(start, history, prices, timestamps, version)?,
+            Some(live) if self.cells.len() == start && history.resumes(&live.origins, start)? => live,
+            _ => self.restore(start, history, prices, timestamps)?,
         };
         if start == end {
             self.live = Some(live);
             return Ok(());
         }
-        let places = round(&prices.collect_range_at(live.places.len(), end));
+        let places = round(&prices.collect_range_at(live.places.len(), end))?;
         live.places.extend(places);
         live.timestamps
             .extend(timestamps.collect_range_at(live.timestamps.len(), end));
@@ -115,30 +115,14 @@ impl UrpdHistory {
             places,
             timestamps,
             crossings,
-            ..
         } = &mut live;
         let mut changes = Vec::new();
         let mut cursor = history.cursor(origins)?;
         for height in start..end {
             changes.clear();
-            let current = timestamps[height];
-            let mut change = |age: AgeRangeId, origin: usize, sats: i64| {
-                if sats != 0 {
-                    changes.push(((age.index() * PRICE_PLACES) as u32 + places[origin], sats));
-                }
-            };
-            for_each_age_crossing(&timestamps[..height], current, crossings, |origin, younger, older, _| {
-                let sats = cursor.state().amounts()[origin].sats as i64;
-                change(younger, origin, -sats);
-                change(older, origin, sats);
-            });
-            let diff = cursor.advance()?.expect("history covers the range");
-            change(AgeRangeId::Under1H, height, diff.created.sats as i64);
-            for (origin, amount) in diff.removed() {
-                let origin = origin as usize;
-                let age = AgeRangeId::from(Age::new(current, timestamps[origin]));
-                change(age, origin, -(amount.sats as i64));
-            }
+            block_changes(&mut cursor, timestamps, crossings, |age, origin, sats| {
+                changes.push(((age.index() * PRICE_PLACES) as u32 + places[origin], sats));
+            })?;
             // One change per cell, by key, none zero.
             changes.sort_unstable_by_key(|&(key, _)| key);
             changes.dedup_by(|(key, sats), (kept, total)| {
@@ -172,7 +156,6 @@ impl UrpdHistory {
         history: &Reader<'_>,
         prices: &impl ReadableVec<Height, Cents>,
         timestamps: &impl ReadableVec<Height, Timestamp>,
-        version: u64,
     ) -> Result<Live> {
         self.cells.truncate(start)?;
         let origins = history.state_at(start)?;
@@ -183,21 +166,23 @@ impl UrpdHistory {
         Ok(Live {
             origins,
             urpd,
-            places: round(&prices.collect_range_at(0, start)),
+            places: round(&prices.collect_range_at(0, start))?,
             timestamps: timestamps.collect_range_at(0, start),
             crossings: [0; AGE_RANGE_COUNT - 1],
-            version,
         })
     }
 }
 
 /// Each price's place once rounded.
-fn round(prices: &[Cents]) -> Vec<u32> {
+fn round(prices: &[Cents]) -> Result<Vec<u32>> {
     prices
         .iter()
         .map(|&price| {
-            price_place(CentsCompact::from(price).round_to_significant(COST_BASIS_PRICE_DIGITS))
-                as u32
+            if price.is_nan() {
+                return Err(Error::Internal("unpriced block in the URPD history"));
+            }
+            let rounded = CentsCompact::from(price).round_to_significant(COST_BASIS_PRICE_DIGITS);
+            Ok(price_place(rounded) as u32)
         })
         .collect()
 }

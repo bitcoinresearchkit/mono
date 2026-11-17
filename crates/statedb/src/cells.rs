@@ -20,27 +20,27 @@ impl CellHistory {
         let mut this = Self::new(
             Journal::open(&path.join("changes"))?,
             Journal::open(&path.join("checkpoints"))?,
-        )?;
-        // Checkpoints commit before the changes they follow: a soft quit between leaves one over.
-        let covered = (this.checkpoints.len() * CHECKPOINT).saturating_sub(1);
-        this.truncate(this.len().min(covered))?;
+        );
+        // Checkpoints are written and published first: a soft quit can leave some past the
+        // changes, never fewer than they need.
+        this.truncate(this.len())?;
         this.genesis()?;
         Ok(this)
     }
     pub fn open_reader(path: &Path) -> Result<Self> {
-        Self::new(
+        Ok(Self::new(
             Journal::open_reader(&path.join("changes"))?,
             Journal::open_reader(&path.join("checkpoints"))?,
-        )
+        ))
     }
-    fn new(changes: Journal, checkpoints: Journal) -> Result<Self> {
-        Ok(Self {
+    fn new(changes: Journal, checkpoints: Journal) -> Self {
+        Self {
             changes,
             checkpoints,
             buffer: Vec::new(),
             keys: Vec::new(),
             values: Vec::new(),
-        })
+        }
     }
     /// The blocks recorded.
     pub fn len(&self) -> usize {
@@ -66,11 +66,13 @@ impl CellHistory {
         }
         Ok(())
     }
-    /// Keeps the first `len` blocks.
+    /// Keeps the first `len` blocks, all published.
     pub fn truncate(&mut self, len: usize) -> Result<()> {
         if len > self.len() {
             return Err(invalid("cell truncate past the end"));
         }
+        // A journal truncate publishes what it keeps: the checkpoints go first, as in a commit.
+        self.commit()?;
         self.changes.truncate(len)?;
         self.checkpoints
             .truncate((len / CHECKPOINT + 1).min(self.checkpoints.len()))
@@ -83,13 +85,13 @@ impl CellHistory {
         changes: &[(u32, i64)],
         cells: impl FnOnce() -> I,
     ) -> Result<()> {
-        self.record(hash, changes.iter().map(|&(key, change)| (key, zigzag(change))))?;
-        self.changes.push(&self.buffer)?;
-        if self.len().is_multiple_of(CHECKPOINT) {
+        debug_assert_eq!(self.checkpoints.len(), self.len() / CHECKPOINT + 1);
+        if (self.len() + 1).is_multiple_of(CHECKPOINT) {
             self.record(hash, cells())?;
             self.checkpoints.push(&self.buffer)?;
         }
-        Ok(())
+        self.record(hash, changes.iter().map(|&(key, change)| (key, zigzag(change))))?;
+        self.changes.push(&self.buffer)
     }
     pub fn commit(&mut self) -> Result<()> {
         self.checkpoints.commit()?;

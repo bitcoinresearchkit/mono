@@ -148,7 +148,7 @@ impl Query {
             .collect_one(height)
             .data()?;
         Ok(ResolvedUrpd {
-            version: self.urpd_version(ages, weight),
+            version: self.urpd_version(ages, weight)?,
             pin: pin.into_inner(),
             cohort,
             ages,
@@ -160,20 +160,12 @@ impl Query {
         })
     }
 
-    /// The summed versions of the sources a block's distribution reads: prices, timestamps and
-    /// the UTXO set history.
-    fn urpd_sources_version(&self) -> Version {
+    /// The summed versions of the sources a distribution reads: its block's URPD cells (which
+    /// cover the header's prices and timestamps), and for a weighted one the cohort's supplies
+    /// and weights.
+    fn urpd_version(&self, ages: &[AgeRangeId], weight: UrpdWeight) -> Result<Version> {
         let plugins = self.plugins();
-        plugins.price.spot.cents.height.version()
-            + plugins.mappings.timestamp.monotonic.version()
-            + plugins.utxo_set.supply.version()
-    }
-
-    /// The summed versions of the sources a distribution reads: its block's, and for a weighted
-    /// one the cohort's supplies and weights.
-    fn urpd_version(&self, ages: &[AgeRangeId], weight: UrpdWeight) -> Version {
-        let plugins = self.plugins();
-        let base = self.urpd_sources_version();
+        let base = plugins.utxo_set.urpd()?.version();
         let weights = |age: &AgeRangeId| match weight {
             UrpdWeight::None => Version::ZERO,
             UrpdWeight::Wakefulness => age
@@ -184,9 +176,9 @@ impl Query {
                 .version(),
         };
         if weight == UrpdWeight::None {
-            return base;
+            return Ok(base);
         }
-        base + ages
+        Ok(base + ages
             .iter()
             .map(|age| {
                 let supply = &age
@@ -198,7 +190,7 @@ impl Query {
                     .height;
                 supply.version() + weights(age)
             })
-            .sum::<Version>()
+            .sum::<Version>())
     }
 
     /// Projects the distribution `resolved` selected from its block's URPD cells, under its pin.
