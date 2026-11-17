@@ -12,7 +12,8 @@
 // color, kept legible, on a quiet tag of its separator color (zoomed in, they part; a pan regroups none). Its words
 // drawn over everything, each frame (on its pane's layer over it), whole within the plot: those its edge would cut
 // moved just within it while their dot's in view, else (where that runs them into other words) left out; a count that
-// doesn't fit between the plot's edge and its pill's dot left out, the pill kept on its dot. Added to its pane on its
+// doesn't fit between the plot's edge and its pill's dot left out, the pill kept on its dot; one whose pill's dot is
+// past the plot's right edge shown alone, just within it, while a mark it holds is in view. Added to its pane on its
 // series' side, its marks in their points' order. The room they take kept at its scale's ends while its
 // series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
 
@@ -50,6 +51,9 @@ export class Marks {
     /** Those marks in their points' order: `shown` from `shownFrom` to its marks' count. */
     this.shown = new Int32Array(0);
     this.shownFrom = 0;
+    /** Each shown mark's first mark held (the earliest), and the first one shown after it on the other side (-1: none). */
+    this.first = new Int32Array(0);
+    this.after = new Int32Array(0);
     this.saidAt = NaN;
     this.saidEnd = NaN;
     this.saidFont = "";
@@ -160,7 +164,10 @@ export class Marks {
     if (spacing === this.saidAt && end === this.saidEnd && g.font === this.saidFont && version === this.saidVersion) return;
     (this.saidAt = spacing), (this.saidEnd = end), (this.saidFont = g.font), (this.saidVersion = version);
     const marks = this.marks, n = marks.length;
-    if (this.said.length < n) (this.said = new Uint32Array(n * 2)), (this.offsets = new Float64Array(n * 2)), (this.shown = new Int32Array(n * 2));
+    if (this.said.length < n) {
+      (this.said = new Uint32Array(n * 2)), (this.offsets = new Float64Array(n * 2)), (this.shown = new Int32Array(n * 2));
+      (this.first = new Int32Array(n * 2)), (this.after = new Int32Array(n * 2));
+    }
     if (HEIGHT.length < n) HEIGHT = new Float64Array(n * 2);
     if (g.font !== this.measuredFont) {
       if (this.widths.length < n) this.widths = new Float64Array(n * 2);
@@ -183,9 +190,10 @@ export class Marks {
       if (into >= 0) {
         const shown = SHOWN[into], count = said[shown]++, x = marks[shown].at * spacing + offsets[shown] - (widths[shown] + PAD) / 2;
         LEFT[into] = Math.min(LEFT[into], x - SEP - this.#moreWidth(g, count) - PAD);
+        this.first[shown] = k;
         continue;
       }
-      (said[k] = 1), (offsets[k] = mid - at), (SHOWN[side] = k), (LEFT[side] = Math.min(LEFT[side], mid - half)), (this.shown[--this.shownFrom] = k);
+      (said[k] = 1), (offsets[k] = mid - at), (this.after[k] = SHOWN[other]), (SHOWN[side] = k), (LEFT[side] = Math.min(LEFT[side], mid - half)), (this.shown[--this.shownFrom] = k);
     }
   }
 
@@ -254,9 +262,10 @@ export class Marks {
    * tag of its separator color as laid on its ground (it may hold any kind of mark): a line it crosses covered, not cut
    * off. Only those with their dot in the plot, each whole within it: where its edge would cut them, moved just within
    * it, unless that runs them into other words (then left out); a count that doesn't fit between the plot's left edge
-   * and its pill's dot left out, so the pill stays on its dot. Each pill a sprite drawn once (see sprites), copied
-   * each frame onto whole device pixels: drawn anew each frame, a dense chart's words took twice as long or more (0.065
-   * ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
+   * and its pill's dot left out, so the pill stays on its dot; one whose pill's dot is past the plot's right edge, while
+   * a mark it holds has its dot in the plot, shown alone just within the edge. Each pill a sprite drawn once (see
+   * sprites), copied each frame onto whole device pixels: drawn anew each frame, a dense chart's words took twice as long
+   * or more (0.065 ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} _x0 @param {number} plot @param {number} dpr @param {{ background: string, font: string, separator: string, text: string }} theme
    * @param {(x: number, y: number, width: number, height: number) => void} drew Told each one's box (count and pill).
@@ -267,10 +276,9 @@ export class Marks {
     const values = /** @type {Float64Array} */ (series.close ?? series.upper ?? series.values), highs = series.tops?.(time) ?? values, lows = series.feet?.(time) ?? values;
     g.font = theme.font;
     this.#say(g, time, highs, lows, values);
-    // (Each shown one with its dot in the plot (the first found by halves): its words as drawn, whose, their left (its
-    // count's) and right, and their middle's height.)
+    // (Each shown one with its dot in the plot (the first found by halves).)
     const said = this.said, widths = this.widths, shown = this.shown;
-    if (GROUPS.length < (n - this.shownFrom) * 4) GROUPS = new Float64Array((n - this.shownFrom) * 4);
+    if (GROUPS.length < (n - this.shownFrom + 2) * 5) GROUPS = new Float64Array((n - this.shownFrom + 2) * 5);
     let j = this.shownFrom, groups = 0;
     for (let hi = n; j < hi; ) {
       const m = (j + hi) >> 1;
@@ -282,30 +290,36 @@ export class Marks {
       if (x > plot) break;
       this.#at(k, scale, highs, lows, values);
       if (AT[1] !== AT[1]) continue;
-      const right = x + this.offsets[k] + (widths[k] + PAD) / 2;
-      (GROUPS[groups * 4] = k), (GROUPS[groups * 4 + 1] = right - widths[k] - PAD - (held ? SEP + this.#moreWidth(g, held) + PAD : 0));
-      (GROUPS[groups * 4 + 2] = right), (GROUPS[groups * 4 + 3] = AT[1]), groups++;
+      const right = x + this.offsets[k] + (widths[k] + PAD) / 2, words = right - widths[k] - PAD;
+      group(groups++, k, held ? words - SEP - this.#moreWidth(g, held) - PAD : words, words, right, AT[1]);
     }
     for (let s = 0; s < groups; s++) {
-      const k = GROUPS[s * 4], right = GROUPS[s * 4 + 2], y = GROUPS[s * 4 + 3], words = right - widths[k] - PAD;
+      const k = GROUPS[s * 5], words = GROUPS[s * 5 + 2], right = GROUPS[s * 5 + 3], y = GROUPS[s * 5 + 4];
       // (Its count, on its pill's left, left out where it doesn't fit between the plot's edge and the pill's dot: moved
       // within the plot, it would take the pill off its dot.)
-      if (words - GROUPS[s * 4 + 1] > time.x(marks[k].at)) GROUPS[s * 4 + 1] = words;
-      const left = GROUPS[s * 4 + 1], by = left < CLEAR ? CLEAR - left : right > plot - CLEAR ? plot - CLEAR - right : 0;
+      if (words - GROUPS[s * 5 + 1] > time.x(marks[k].at)) GROUPS[s * 5 + 1] = words;
+      const left = GROUPS[s * 5 + 1], by = left < CLEAR ? CLEAR - left : right > plot - CLEAR ? plot - CLEAR - right : 0;
       if (!by) continue;
-      // (Moved within the plot only where no other words (in a row of their height) come within CLEAR of them there.)
-      let clear = true;
-      for (let t = 0; clear && t < groups; t++) clear = t === s || GROUPS[t * 4] < 0 || Math.abs(GROUPS[t * 4 + 3] - y) >= PILL || left + by >= GROUPS[t * 4 + 2] + CLEAR || right + by + CLEAR <= GROUPS[t * 4 + 1];
-      if (clear) (GROUPS[s * 4 + 1] = left + by), (GROUPS[s * 4 + 2] = right + by);
-      else GROUPS[s * 4] = -1;
+      // (Moved within the plot only where no other words come within CLEAR of them there.)
+      if (clearOf(s, left + by, right + by, y, groups)) group(s, k, left + by, words + by, right + by, y);
+      else GROUPS[s * 5] = -1;
+    }
+    // (A count whose pill's dot is past the plot's right edge, while a mark it holds has its dot in the plot: alone, where
+    // it would be or just within the edge, unless other words come within CLEAR of it there. Only the first shown past
+    // the edge on each side of the series can hold one in view: one shown later holds none from before that one.)
+    for (let t = 0, h = j < n ? shown[j] : -1; t < 2 && h >= 0; t++, h = this.after[h]) {
+      if (said[h] < 2 || time.x(marks[this.first[h]].at) > plot) continue;
+      this.#at(h, scale, highs, lows, values);
+      const right = Math.min(time.x(marks[h].at) + this.offsets[h] - (widths[h] + PAD) / 2 - SEP, plot - CLEAR), left = right - this.#moreWidth(g, said[h] - 1) - PAD;
+      if (AT[1] === AT[1] && clearOf(-1, left, right, AT[1], groups)) group(groups++, h, left, right, right, AT[1]);
     }
     if (theme !== this.spritesTheme || dpr !== this.spritesDpr) (this.spritesTheme = theme), (this.spritesDpr = dpr), (this.sprites = []), (this.moreSprites = []);
     const countFill = over(theme.separator, theme.background), countInk = legible(theme.text, countFill);
     for (let s = 0; s < groups; s++) {
-      const k = GROUPS[s * 4], left = GROUPS[s * 4 + 1], right = GROUPS[s * 4 + 2], top = GROUPS[s * 4 + 3] - PILL / 2;
+      const k = GROUPS[s * 5], left = GROUPS[s * 5 + 1], words = GROUPS[s * 5 + 2], right = GROUPS[s * 5 + 3], top = GROUPS[s * 5 + 4] - PILL / 2;
       if (k < 0) continue;
-      const look = /** @type {{ fill: string, ink: string }} */ (this.looks[k]), held = said[k] - 1, words = right - widths[k] - PAD;
-      place(g, (this.sprites[k] ??= sprite(/** @type {string} */ (marks[k].text), look.fill, look.ink, widths[k] + PAD, theme.font, dpr)), words, top, dpr);
+      const look = /** @type {{ fill: string, ink: string }} */ (this.looks[k]), held = said[k] - 1;
+      if (words < right) place(g, (this.sprites[k] ??= sprite(/** @type {string} */ (marks[k].text), look.fill, look.ink, widths[k] + PAD, theme.font, dpr)), words, top, dpr);
       if (left < words) place(g, (this.moreSprites[held] ??= sprite(MORE[held], countFill, countInk, this.#moreWidth(g, held) + PAD, theme.font, dpr)), left, top, dpr);
       drew(left, top, right - left, PILL);
     }
@@ -336,10 +350,23 @@ function dotOf(mark) {
   return r ? 2 * (r + RING) : 0;
 }
 
-/** Where a mark sits (see #at), and the words a frame draws (each whose, their left and right, and their middle's y):
- * made once (grown). */
+/** The `s`-th words a frame draws: whose (-1: left out), its count's left, its pill's left and right (a count alone: its
+ * own right, twice), and their middle's y.
+ * @param {number} s @param {number} k @param {number} left @param {number} words @param {number} right @param {number} y */
+function group(s, k, left, words, right, y) {
+  (GROUPS[s * 5] = k), (GROUPS[s * 5 + 1] = left), (GROUPS[s * 5 + 2] = words), (GROUPS[s * 5 + 3] = right), (GROUPS[s * 5 + 4] = y);
+}
+
+/** Whether words from `left` to `right`, their middle at `y`, come within CLEAR of none of the first `groups` drawn (but
+ * the `s`-th), in a row of their height. @param {number} s @param {number} left @param {number} right @param {number} y @param {number} groups */
+function clearOf(s, left, right, y, groups) {
+  for (let t = 0; t < groups; t++) if (t !== s && GROUPS[t * 5] >= 0 && Math.abs(GROUPS[t * 5 + 4] - y) < PILL && left < GROUPS[t * 5 + 3] + CLEAR && right + CLEAR > GROUPS[t * 5 + 1]) return false;
+  return true;
+}
+
+/** Where a mark sits (see #at), and the words a frame draws (see group): made once (grown). */
 const AT = new Float64Array(2);
-let GROUPS = new Float64Array(64);
+let GROUPS = new Float64Array(80);
 /** #say's state on each side of a series (made once). */
 const LEFT = new Float64Array(2), SHOWN = new Int32Array(2);
 /** The heights #say reads its marks at, each its own (made once, grown). */

@@ -192,8 +192,9 @@ clears); avoid reflecting programmatic calls. A programmatic
   color laid on its ground); a pan regroups none. Its words over everything, on its pane's layer over it, drawn each
   frame and whole within the plot: those its edge would cut moved just within it while their dot's in view, else
   (where that runs them into other words) left out; a count that doesn't fit between the plot's edge and its pill's
-  dot left out, the pill kept on its dot. Their room kept at the scale's ends while its series has values in
-  view (`room: false`, none); `set(marks)` after a change.
+  dot left out, the pill kept on its dot; one whose pill's dot is past the plot's right edge shown alone, just within
+  it, while a mark it holds is in view. Their room kept at the scale's ends while its series has values in view
+  (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.
