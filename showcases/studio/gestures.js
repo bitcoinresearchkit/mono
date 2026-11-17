@@ -1,5 +1,6 @@
 // @ts-check
-// How a press resolves, one way for every list and control: a click, a hold, a drag that reorders; the click a gesture swallows; the click given to a control that slid from under a still pointer.
+// How a press resolves, one way for every list and control: a click, a hold, a drag that reorders; the click a gesture
+// swallows; the click given to a control that slid from under a still pointer.
 import { press } from "/modules/bitview-charts/index.js";
 import { all$, clamp, closest, hideMenu, hideTip, MOTION, reduced, SLOP, TOUCH, typing } from "/studio/app.js";
 

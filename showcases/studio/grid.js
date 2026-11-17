@@ -1,5 +1,6 @@
 // @ts-check
-// The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
+// The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them. (Called from app.js, which
+// runs its start and keeps most of Studio's state; the gallery's rest is kept here.)
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
@@ -1909,9 +1910,9 @@ const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entr
 }, { root: homeScroller, rootMargin: `0px 0px ${Math.round(height)}px 0px` });
 /** A tile waiting to be drawn, watched in view and a screen ahead. @param {Element} frame */
 const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
-let galleryResting = true;
 // (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
+let galleryResting = true;
 let galleryScrolling = false;
 const galleryRests = () => {
   galleryResting = true;

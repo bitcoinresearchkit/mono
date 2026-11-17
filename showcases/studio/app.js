@@ -10,7 +10,8 @@ import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { catalogWalk } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
-// (Studio's functions, by what they do, in modules of their own; its state and what runs at its start stay here, in order.)
+// (Studio's functions, by what they do, in modules of their own; what runs at its start runs from here, in order, and
+// the state not yet given to the module that writes it stays here.)
 import {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
   build, built, BY_BLOCK, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme, chartWidth,
@@ -7741,7 +7742,7 @@ function deleteChart(doc) {
   const step = libraryStep(text, action.run, action.undone);
   void until(() => chart !== doc, 4000).then(() => toast(text, { ...action, step }));
 }
-// ── Slides: what's reordered moves to its new place instead of jumping ────
+// ── Lists reordered by dragging, and the sidebar's list by keys ───────────
 startGestures();
 dragToReorder($("chart-list"), {
   item: "[data-chart-row], [data-folder-row]",
