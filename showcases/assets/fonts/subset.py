@@ -20,10 +20,10 @@ from fontTools.ttLib import TTFont
 HERE = Path(__file__).parent
 SHOWCASES = HERE.parents[1]
 ROOT = SHOWCASES.parent
-# Each font, and the axis it no longer varies on under its default, as no page draws there: Lilex under 400 (Studio's
-# starts at 500), -12 KB on its core, its deltas over 400 kept as they are (fontTools' instancer would round them, up to
-# 0.7 units off); Inter keeps every weight (the explorer's forming-block answer is drawn at 200).
-FLOOR = {"InterVariable": None, "Lilex": "wght"}
+# Each font, and the axis it no longer varies on under its default, as no page draws there: both under 400 (Studio's
+# Lilex starts at 500), -23 KB on Inter's core and -12 KB on Lilex's, their deltas over 400 kept as they are (fontTools'
+# instancer would round them, up to 0.7 units off).
+FLOOR = {"InterVariable": "wght", "Lilex": "wght"}
 # Every character the pages and their modules write, by range, with Latin Extended-A: a name's letters and accents
 # kerned within one file (+8 KB on Inter's core, +4 KB on Lilex's). Combining marks are left to the rest: no page writes
 # its accents apart (é, not e + ◌́), and text that does still draws as before, Chromium and WebKit composing it into the
