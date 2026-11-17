@@ -87,7 +87,7 @@ const fn status_color(status: u64) -> AnsiColors {
 }
 
 /// An event as the log files show it after its level: its message and fields, or an access line's
-/// status, uri and latency.
+/// status, method, uri and latency.
 pub fn text(event: &Event<'_>) -> String {
     let mut visitor = FieldVisitor::<false>::default();
     event.record(&mut visitor);
@@ -107,7 +107,7 @@ struct FieldVisitor<const ANSI: bool> {
 }
 
 impl<const ANSI: bool> FieldVisitor<ANSI> {
-    /// Access events (with `status`) print `status [uri] [latency] [fields]`; others print
+    /// Access events (with `status`) print `status [method] [uri] [latency] [fields]`; others print
     /// `message — fields`, with method/uri/latency appended as plain fields.
     fn write_to(self, w: &mut impl Write) -> Result {
         if let Some(status) = self.status {
@@ -116,8 +116,8 @@ impl<const ANSI: bool> FieldVisitor<ANSI> {
             } else {
                 write!(w, "{status}")?;
             }
-            if let Some(uri) = self.uri {
-                write!(w, " {uri}")?;
+            for part in [self.method, self.uri].into_iter().flatten() {
+                write!(w, " {part}")?;
             }
             if let Some(latency) = self.latency {
                 if ANSI {

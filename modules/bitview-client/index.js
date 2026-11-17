@@ -787,7 +787,7 @@
  * @property {number} seq - Its place in this process's log, from 0 with no gaps.
  * @property {number} unixMs - When it was logged, in Unix milliseconds.
  * @property {LogLevel} level
- * @property {string} text - What the log files show after the level: a request's status, path and duration, or a message and its fields.
+ * @property {string} text - What the log files show after the level: a request's status, method, path and duration, or a message and its fields.
  */
 /**
  * The server's last log lines, oldest first.
@@ -7160,7 +7160,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "8ee9308df57356c3fd06ad5de3979ea28253e5a5c6d6e9223b86f79e7be58720";
+  static HASH = "db398122990d43e1e8d495dd7fddfcdde153fb659ad2344040e9274b896f8d63";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -8042,7 +8042,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Logs
    *
-   * The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
+   * The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
    *
    * Endpoint: `GET /api/server/logs`
    *

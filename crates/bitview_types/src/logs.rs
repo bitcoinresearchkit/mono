@@ -21,7 +21,7 @@ pub struct LogLine {
     /// When it was logged, in Unix milliseconds.
     pub unix_ms: i64,
     pub level: LogLevel,
-    /// What the log files show after the level: a request's status, path and duration, or a message and its fields.
+    /// What the log files show after the level: a request's status, method, path and duration, or a message and its fields.
     pub text: String,
 }
 

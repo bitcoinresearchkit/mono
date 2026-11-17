@@ -106,7 +106,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .mcp_ignore()
                 .summary("Logs")
                 .description(
-                    "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) \
+                    "The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) \
                     and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. \
                     A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the \
                     server restarted (and its answer has every kept line). Answers are cached for a second.",

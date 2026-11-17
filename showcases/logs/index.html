@@ -1149,11 +1149,11 @@
       <aside class="detail" id="detail" aria-label="The line's details"></aside>
     </div>
 
-    <footer>Everything this server logs, every request with its status, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a></footer>
+    <footer>Everything this server logs, every request with its status, method, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a></footer>
 
     <script>
       // ── The shapes of the log's own lines ──
-      const REQUEST = /^(\d{3}) (\S+)(?: (\S+))?$/;
+      const REQUEST = /^(\d{3}) ([A-Z]+) (\S+)(?: (\S+))?$/;
       const BLOCK = /^Updated to block (\d+) \S+ in ([\d.]+(?:ns|µs|ms|s))$/;
       const DURATION = /^([\d.]+)(ns|µs|ms|s)$/;
       const MS = { ns: 1e-6, "µs": 1e-3, ms: 1, s: 1000 };
@@ -1205,10 +1205,11 @@
           ...line,
           kind,
           status: r ? Number(r[1]) : null,
-          path: r ? r[2] : null,
-          took: r ? (r[3] ?? null) : null,
-          ms: r ? toMs(r[3]) : null,
-          route: r ? routeOf(r[2]) : null,
+          method: r ? r[2] : null,
+          path: r ? r[3] : null,
+          took: r ? (r[4] ?? null) : null,
+          ms: r ? toMs(r[4]) : null,
+          route: r ? routeOf(r[3]) : null,
           block: b ? Number(b[1]) : null,
           blockTook: b ? b[2] : null,
         };
@@ -1501,7 +1502,7 @@
         close.addEventListener("click", unselect);
         add("p", { className: "when", textContent: moment(l.unix_ms) });
         if (l.status) {
-          fill(add("dl", {}), [["Status", String(l.status), `s${String(l.status)[0]}`], ["Duration", short(l.took)], ["Route", l.route], ["Line", `#${num(l.seq)}`]]);
+          fill(add("dl", {}), [["Status", String(l.status), `s${String(l.status)[0]}`], ["Method", l.method], ["Duration", short(l.took)], ["Route", l.route], ["Line", `#${num(l.seq)}`]]);
           add("h3", { textContent: "This route, last ten minutes" });
           fill(add("dl", { id: "route-facts" }), routeFacts(l.route));
           const only = add("button", { type: "button", className: "act", textContent: view.routes.has(l.route) ? "Show every route" : "Show only this route" });

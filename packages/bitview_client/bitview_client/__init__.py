@@ -605,7 +605,7 @@ class LogLine(TypedDict):
     Attributes:
         seq: Its place in this process's log, from 0 with no gaps.
         unix_ms: When it was logged, in Unix milliseconds.
-        text: What the log files show after the level: a request's status, path and duration, or a message and its fields.
+        text: What the log files show after the level: a request's status, method, path and duration, or a message and its fields.
     """
     seq: int
     unix_ms: int
@@ -6273,7 +6273,7 @@ class BitviewClient(BitviewClientBase):
     def get_logs(self, *, after: Optional[str] = None) -> Logs:
         """Logs.
 
-        The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
+        The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
 
         Endpoint: `GET /api/server/logs`"""
         params: List[Tuple[str, Any]] = []
