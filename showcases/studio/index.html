@@ -2927,13 +2927,13 @@
       .interval.btn {
         justify-content: flex-start;
         width: 74px;
+        padding: 0 8px;
+        font-variant-numeric: tabular-nums;
 
         /* (A window's words are shorter: "30d".) */
         &#window {
           width: 64px;
         }
-        padding: 0 8px;
-        font-variant-numeric: tabular-nums;
 
         &:hover:where(.can-hover *):not(:disabled) {
           background: var(--field);

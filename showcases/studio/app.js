@@ -5,7 +5,7 @@ import XKCD from "/modules/xkcd-colors/index.js";
 import { createChart, press, picture as chartPicture, Candles, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { AGES, HOLDERS, capitalized, dimensionBand, holderName, windowAdjective, windowDays, windowNamed, windowSaid, windowShort } from "/studio/words.js";
+import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { catalogWalk } from "/studio/catalog-walk.js";
@@ -1949,50 +1949,67 @@ function followPool(layer) {
 }
 
 // ── Windows ───────────────────────────────────────────────────────────────
-/** A catalog step that is a trailing window (`_24h`, `_1m`, `_200d`), as the client keys them. */
-const WINDOW_STEP = /^_\d+[hdwmy]$/;
 /**
  * A series' trailing window, by its place in the catalog (its last window step: never by its name, which puts it
- * anywhere, `market_cap_delta_1y_percent`), and the series at each window beside it; none, null.
+ * anywhere, `market_cap_delta_1y_percent`), and the series at each window beside it, in the catalog's order
+ * (shortest first); none, null.
  * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
  */
 function seriesWindow(name) {
-  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex((step) => WINDOW_STEP.test(step)) : -1;
+  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex(isWindowKey) : -1;
   if (!steps || i < 0) return null;
-  const at = new Map(Object.keys(nodeAt(steps.slice(0, i)) ?? {}).filter((key) => WINDOW_STEP.test(key)).flatMap((key) => ((other) => (other ? [[key, other]] : []))(nameAt([...steps.slice(0, i), key, ...steps.slice(i + 1)].join(".")))));
+  const at = new Map(Object.keys(nodeAt(steps.slice(0, i)) ?? {}).filter(isWindowKey).flatMap((key) => ((other) => (other ? [[key, other]] : []))(nameAt([...steps.slice(0, i), key, ...steps.slice(i + 1)].join(".")))));
   return { window: steps[i], at };
 }
 /** The series a chart's layers read (their own, their formulas'). @param {Chart} doc */
 const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [layer.series] : []), ...(layer.formula ? seriesNamed(layer.formula) : [])]);
 /**
- * A chart's trailing window: the one every windowed series in it is over, and the windows they all have, shortest
- * first; none (no windowed series, two windows, one alone), null. The catalog read first where a name may hold a
- * window (indexed at once, if it isn't yet: a chart opens over the right series).
- * @param {Chart} doc @returns {{ window: string, offered: string[] } | null}
+ * @typedef {{ window: string, offered: string[], at: Map<string, Map<string, string>> }} ChartWindow a chart's
+ * window, the windows it offers, shortest first, and each of its windowed series at each of them
+ */
+/** Each set of series' window (see chartWindow), by their names: found once (a switch asks it of a chart several times). @type {Map<string, ChartWindow | null>} */
+const windowsFound = new Map();
+/**
+ * A chart's trailing window: the one every windowed series in it is over, and the windows they all have; none (no
+ * windowed series, two windows, one alone), null. The catalog read first (indexed at once, if it isn't yet: a chart
+ * opens over the right series), but for a chart no name of which holds a window's key: each windowed name the client
+ * has holds its window's, `_<key>` before a `_` or at its end, so no walk to learn a chart has none.
+ * @param {Chart} doc @returns {ChartWindow | null}
  */
 function chartWindow(doc) {
-  const names = seriesOf(doc);
-  if (!names.some((name) => /_\d+[hdwmy](?:_|$)/.test(name))) return null;
-  indexCatalog();
-  let window = "", offered = /** @type {string[] | null} */ (null);
-  for (const name of names) {
-    const found = seriesWindow(name);
-    if (!found) continue;
-    if (window && found.window !== window) return null;
-    window = found.window;
-    offered = (offered ?? [...found.at.keys()]).filter((key) => found.at.has(key));
+  const names = seriesOf(doc), key = names.join(" ");
+  let found = windowsFound.get(key);
+  if (found !== undefined) return found;
+  found = null;
+  if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`)))) {
+    indexCatalog();
+    let window = "", offered = /** @type {string[] | null} */ (null);
+    const at = new Map();
+    for (const name of names) {
+      const its = seriesWindow(name);
+      if (!its) continue;
+      if (window && its.window !== window) {
+        offered = null;
+        break;
+      }
+      window = its.window;
+      at.set(name, its.at);
+      offered = (offered ?? [...its.at.keys()]).filter((other) => its.at.has(other));
+    }
+    if (offered && offered.length > 1) found = { window, offered, at };
   }
-  return window && offered && offered.length > 1 ? { window, offered: offered.sort((a, b) => windowDays(a) - windowDays(b)) } : null;
+  windowsFound.set(key, found);
+  return found;
 }
 /**
  * A chart over another window (see chartWindow): each series at it, by its place (its path learned again), and the
- * window as its title and labels say it (see said) said anew. A chart
- * with no window, or one it doesn't offer, as it is. @param {Chart} doc @param {string} to
+ * window as its title and labels say it (see said) said anew. A chart with no window, or one it doesn't offer, as it
+ * is. @param {Chart} doc @param {string} to
  */
 function atWindow(doc, to) {
   const now = chartWindow(doc);
   if (!now || now.window === to || !now.offered.includes(to)) return doc;
-  const swap = (/** @type {string} */ name) => seriesWindow(name)?.at.get(to) ?? name;
+  const swap = (/** @type {string} */ name) => now.at.get(name)?.get(to) ?? name;
   // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
   // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
   // band's "1 day to under 1 week old".)

@@ -5,6 +5,7 @@ import {
   presetDataset, presetInfo, sectionInfo, STUDIO_DESCRIPTION, STUDIO_ORIGIN, STUDIO_TITLE, studioApplication,
 } from "/studio/page-info.js";
 import { addressSteps } from "/studio/addresses.js";
+import { windowNamed } from "/studio/words.js";
 import {
   $, all$, applyPanel, asThen, atWindow, averageFor, AVERAGES, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
   drawingsHidden, editChart, edits, escape, folderMark, folderNow, hashOf, histories, home, homeAt, ICONS, inSlices,
@@ -145,8 +146,8 @@ const addressesSoon = (deadline) => {
  * @param {string} pathname @returns {{ path: string[] } | { preset: number, window?: string } | null}
  */
 const routeOf = (pathname) => {
-  const book = addresses(), at = pathname.slice(BASE.length), [, stem, span] = /^(.*)-(\d+-[a-z]+)$/.exec(at) ?? [];
-  return book?.at.get(at) ?? ((former) => (former && "preset" in former ? { ...former, window: span.replace("-", " ") } : null))(stem ? book?.at.get(stem) : undefined) ?? null;
+  const book = addresses(), at = pathname.slice(BASE.length), parts = at.split("-"), former = book?.at.get(parts.slice(0, -2).join("-")), span = parts.slice(-2).join(" ");
+  return book?.at.get(at) ?? (former && "preset" in former && windowNamed(span, chartWindow(freshPreset(former.preset))?.offered ?? []) ? { ...former, window: span } : null);
 };
 /** An address that names nothing, said, whatever it holds (a % that isn't one, as written). @param {string} address */
 const missedSaid = (address) => `Nothing of the presets' at ${((text) => {
