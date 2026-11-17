@@ -821,6 +821,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   from the set's integers (2.7 ms for 11.8 MB, was 16.9 through `serde_json`), and the set restores from the nearer
   snapshot, taking back the blocks past the point when the next one is closer (at most 250 blocks, was 499). URPD
   points use the same writer (raw cold p90 3.2 ms, was 4.0). Bodies are byte-identical, and nothing more is stored
+- `/api/utxo-set` near the tip copies the updater's set in memory instead of reading the tip from disk: with the tip
+  out of the page cache, points up to 249 blocks back take 8.4 ms at p90 (18.1 before) and the latest 4.0 ms (16.9).
+  A URPD point restores from the nearer checkpoint, taking back up to 125 blocks (was up to 249 forward): raw points
+  past a checkpoint's midpoint take 2.3 ms at p90 cold (3.6 before)
 - mmpl and `Mempool::tick` resolve a pending transaction's confirmed prevouts from the node's UTXO set
   (`gettxout`) instead of `getrawtransaction`: no `txindex` needed, and a node without one no longer retries every
   hole each cycle (4.3 s cycles at 60k transactions, now 95 ms; the first full load one 1.1 s cycle)
