@@ -6,14 +6,14 @@ use axum::{
     http::{HeaderMap, HeaderName, HeaderValue, Response, StatusCode, Uri, header},
     response::{IntoResponse, Redirect},
 };
-use bitview_http::{CachePolicy, REVALIDATE};
+use bitview_http::{CachePolicy, IMMUTABLE, REVALIDATE};
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
     Error,
     page_info::Listing,
     router::Site,
-    website::{File, hash},
+    website::{File, RELEASES, hash},
 };
 
 /// Addresses served elsewhere on the site, each old folder (a path from the root) with where its addresses go now: a
@@ -171,6 +171,13 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     if !is_one_address(uri.path()) || path == NOT_FOUND_PAGE {
         return Err(Error::not_found());
     }
+    if let Some(release) = site.website.release()
+        && let Some((asked, path)) = path
+            .strip_prefix(RELEASES)
+            .and_then(|rest| rest.split_once('/'))
+    {
+        return released(site, path, asked == release, uri, request_headers);
+    }
     let mut found = site.website.get_file(path)?;
     let file = &found.path;
     let content_type = found.content_type;
@@ -211,6 +218,44 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
             });
         }
     };
+    let policy = if varies {
+        // Shared caches may ignore Vary: Accept. Browsers can still revalidate each representation.
+        "private, max-age=0, must-revalidate"
+    } else {
+        REVALIDATE
+    };
+    Ok(answer(found, varies, policy, request_headers))
+}
+
+/// A file at a release's address (`RELEASES`), by its path written the one way (no folder's page, no slash after a
+/// file's name, no page: those have one address, outside any release). The current release's
+/// never changes, so it's held for good; another's (asked by a page from before a release) is the current file,
+/// revalidated, as only the current release is served.
+fn released(
+    site: &Site,
+    path: &str,
+    current: bool,
+    uri: &Uri,
+    request_headers: &HeaderMap,
+) -> Result<Response<Body>, Error> {
+    let found = site.website.get_file(path)?;
+    if found.path.to_str() != Some(path)
+        || found.content_type == "text/html"
+        || uri.query().is_some()
+    {
+        return Err(Error::not_found());
+    }
+    let policy = if current { IMMUTABLE } else { REVALIDATE };
+    Ok(answer(found, false, policy, request_headers))
+}
+
+/// A file's 200, or its 304 to a request that has it.
+fn answer(
+    found: File,
+    varies: bool,
+    policy: &'static str,
+    request_headers: &HeaderMap,
+) -> Response<Body> {
     let File {
         contents,
         hash: file_hash,
@@ -221,18 +266,17 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     let etag = (!cfg!(debug_assertions))
         .then(|| file_hash.map_or_else(|| Cow::Owned(hash(&contents)), Cow::Borrowed));
     let etag = etag.as_deref();
-    if bitview_http::if_none_match(request_headers, etag.map(str::as_bytes)) {
-        let mut response = bitview_http::not_modified();
-        insert_caching(response.headers_mut(), etag, varies);
-        return Ok(response);
-    }
-    let mut response = file_response(contents, content_type);
-    insert_caching(response.headers_mut(), etag, varies);
-    Ok(response)
+    let mut response = if bitview_http::if_none_match(request_headers, etag.map(str::as_bytes)) {
+        bitview_http::not_modified()
+    } else {
+        file_response(contents, content_type)
+    };
+    insert_caching(response.headers_mut(), etag, varies, policy);
+    response
 }
 
-/// The validator and cache policy a file's 200 and 304 share: every file revalidates.
-fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, varies: bool) {
+/// The validator and cache policy a file's 200 and 304 share.
+fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, varies: bool, policy: &'static str) {
     if varies {
         headers.insert(header::VARY, HeaderValue::from_static("Accept"));
     }
@@ -243,15 +287,7 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, varies: bool) {
         // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
         headers.insert(VERSION, etag.parse().unwrap());
     }
-    // Shared caches may ignore Vary: Accept. Browsers can still revalidate each representation.
-    headers.insert(
-        header::CACHE_CONTROL,
-        HeaderValue::from_static(if varies {
-            "private, max-age=0, must-revalidate"
-        } else {
-            REVALIDATE
-        }),
-    );
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(policy));
 }
 
 /// Whether the path as sent is written the one way: no escape, no empty, `.` or `..` segment, which

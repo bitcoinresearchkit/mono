@@ -262,7 +262,7 @@ const aboutOf = (/** @type {string} */ name) => new Promise((resolve) => {
 });
 /** The same engine without a worker, built only when workers cannot run. */
 let pageFinder = /** @type {ReturnType<typeof seriesSearch> | null} */ (null);
-const finderUrls = () => ({ quickmatch: new URL("/modules/quickmatch-js/src/index.js", location.origin).href, initials: new URL("/studio/initials.js", location.origin).href, catalog: `${client.baseUrl}/api/series` });
+const finderUrls = () => ({ quickmatch: import.meta.resolve("/modules/quickmatch-js/src/index.js"), initials: import.meta.resolve("/studio/initials.js"), catalog: `${client.baseUrl}/api/series` });
 function pageSearch() {
   const urls = finderUrls();
   return (pageFinder ??= seriesSearch(urls.quickmatch, urls.catalog, INTERVAL_ORDER, normalizeQuery, urls.initials).catch((error) => { pageFinder = null; throw error; }));

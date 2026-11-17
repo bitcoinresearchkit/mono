@@ -2333,7 +2333,7 @@
       // @ts-check
       import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const banner = (/** @type {string} */ id) => `/assets/home/banners/${id}.jpg`, poster = (/** @type {string} */ id) => `/assets/home/covers/${id}.jpg`;
+      const banner = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/banners/${id}.jpg`), poster = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/covers/${id}.jpg`);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const mouse = matchMedia("(pointer: fine)");
       /** An element: its tag, its properties, its children. @template {keyof HTMLElementTagNameMap} K */

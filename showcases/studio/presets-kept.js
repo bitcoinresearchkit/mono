@@ -5,7 +5,7 @@
 
 /** @import { Presets } from "./presets.js" */
 
-const [presetsUrl, clientUrl, factsUrl] = ["/studio/presets.js", "/modules/bitview-client/index.js", "/studio/facts.js"].map((path) => new URL(path, location.origin).href);
+const [presetsUrl, clientUrl, factsUrl] = ["/studio/presets.js", "/modules/bitview-client/index.js", "/studio/facts.js"].map((path) => import.meta.resolve(path));
 
 /** The read the page started with, till it's asked for (see presetsKept): failed before that, let go of (asked, read anew). @type {Promise<Presets> | null} */
 let started = read();
@@ -32,7 +32,7 @@ export function presetsKept() {
 async function read() {
   try {
     if (typeof caches === "undefined") return JSON.parse((await made()).text);
-    const [store, hash] = await Promise.all([caches.open("bitview-studio:presets"), fetch("/studio/presets.hash").then((response) => (response.ok ? response.text() : Promise.reject(new Error(`/studio/presets.hash: ${response.status}`))))]);
+    const [store, hash] = await Promise.all([caches.open("bitview-studio:presets"), fetch(import.meta.resolve("/studio/presets.hash")).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`/studio/presets.hash: ${response.status}`))))]);
     const key = new URL(`presets-${hash.trim()}.json`, location.origin).href, kept = await store.match(key);
     // (Kept alone, those made from anything else gone, with the facts they were made by; made without them (they
     // didn't come), not kept, nor anything gone: their next start asks for them again.)

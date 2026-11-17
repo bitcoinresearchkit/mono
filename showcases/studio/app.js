@@ -2509,7 +2509,7 @@ const indexCatalog = (() => {
     };
     whenIdle(step, { timeout: 3000 });
   };
-  const clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
+  const clientUrl = import.meta.resolve("/modules/bitview-client/index.js");
   const source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
   try {
     const worker = new Worker(source, { type: "module" }), done = () => (worker.terminate(), URL.revokeObjectURL(source));

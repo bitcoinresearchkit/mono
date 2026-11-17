@@ -12,6 +12,17 @@ plain message too (behind the API server, its JSON problem document). Release bu
 `Bitview-Version` header, which an open page reads to tell when a newer version of it is served
 (`showcases/assets/version`).
 
+The embedded site is served under one release, a hash of every file's path, content type and content: each file is
+also at `/v/<release>/<path>`, cached for good (`immutable`), while pages stay revalidated. A page as served starts
+its head with an import map sending every module it loads (static, dynamic, relative or absolute) to the release's
+address, and names the site's files it lists by path from the root (`src`, `srcset`, `url()`, a `<link>`'s `href`, a
+script's string; never an `<a href>`) at that address: a reload asks for the page alone. So pages name the site's files
+by their path from the root, and a URL computed at run time goes through `import.meta.resolve` (a classic script's:
+`new URL` from its own `src`); anything else still works, revalidated on every load. A release changes every address,
+so a returning visitor downloads the files it uses once again. An earlier release's address (an open page loading
+late) answers the current file, revalidated, as only the current release is held. A `Filesystem` website, whose
+files may change while it's served, has no release.
+
 ## Behind Cloudflare
 
 Cloudflare drops pages' ETag whenever one of its features that process HTML is on for the zone, whether or not it

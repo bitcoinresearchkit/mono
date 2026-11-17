@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    fmt::Write,
     fmt::{Formatter, Result as FmtResult},
     fs,
     io::ErrorKind,
@@ -19,11 +20,20 @@ use crate::Error;
 
 pub(crate) static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
 
-/// Embedded files' content hashes by path, computed once on first use.
-static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
+/// The embedded site as served, made once on first use: each file's bytes and content hash, its pages with the
+/// release's addresses written in (`versioned`), and the release itself, one hash of every file's path and hash.
+struct Served {
+    release: String,
+    files: HashMap<&'static Path, (Bytes, String)>,
+}
 
-/// A file to serve, with the content type its name declares. Embedded content carries its hash
-/// (release only), computed once.
+static SERVED: OnceLock<Served> = OnceLock::new();
+
+/// The folder whose next segment names a release (`/v/<release>/<path>`): the file at `<path>` as that release serves
+/// it, which never changes, so it's cached for good.
+pub(crate) const RELEASES: &str = "v/";
+
+/// A file to serve, with the content type its name declares. Embedded content carries its hash, computed once.
 pub(crate) struct File {
     /// The file found (a folder's `index.html` for its address).
     pub(crate) path: PathBuf,
@@ -43,10 +53,11 @@ impl File {
     }
 
     fn embedded(file: &'static EmbeddedFile<'static>) -> Self {
+        let (contents, hash) = &served().files[file.path()];
         Self {
             path: file.path().to_owned(),
-            contents: Bytes::from_static(file.contents()),
-            hash: (!cfg!(debug_assertions)).then(|| embedded_hash(file)),
+            contents: contents.clone(),
+            hash: Some(hash),
             content_type: content_type(file.path()),
         }
     }
@@ -110,6 +121,14 @@ impl Website {
             }
             Self::Filesystem(p) => Some(p),
         }
+    }
+
+    /// The release the site's files are served under (`RELEASES`): the embedded site's alone, as a folder's files may
+    /// change while it's served.
+    pub(crate) fn release(&self) -> Option<&'static str> {
+        self.filesystem_path()
+            .is_none()
+            .then(|| served().release.as_str())
     }
 
     /// The file `path` names, else the `index.html` of the folder it names (`""` is the root's). A path
@@ -178,21 +197,91 @@ impl Website {
     }
 }
 
-fn embedded_hash(file: &EmbeddedFile<'static>) -> &'static str {
-    fn collect(dir: &'static Dir<'static>, hashes: &mut HashMap<&'static Path, String>) {
-        for file in dir.files() {
-            hashes.insert(file.path(), hash(file.contents()));
+fn served() -> &'static Served {
+    SERVED.get_or_init(|| {
+        fn collect(dir: &'static Dir<'static>, files: &mut Vec<&'static EmbeddedFile<'static>>) {
+            files.extend(dir.files());
+            for dir in dir.dirs() {
+                collect(dir, files);
+            }
         }
-        for dir in dir.dirs() {
-            collect(dir, hashes);
+        let mut files = Vec::new();
+        collect(&EMBEDDED, &mut files);
+        files.sort_unstable_by_key(|file| file.path());
+        let hashes: Vec<String> = files.iter().map(|file| hash(file.contents())).collect();
+        // (The content type too: how a file is served is part of what the release holds for good.)
+        let mut every = String::new();
+        for (file, file_hash) in files.iter().zip(&hashes) {
+            let (path, kind) = (file.path().display(), content_type(file.path()));
+            writeln!(every, "{path}\0{kind}\0{file_hash}").unwrap();
+        }
+        let release = hash(every.as_bytes());
+        let is_file = |path: &str| !path.ends_with(".html") && EMBEDDED.get_file(path).is_some();
+        let files = files
+            .into_iter()
+            .zip(hashes)
+            .map(|(file, file_hash)| {
+                let served = match (
+                    content_type(file.path()),
+                    std::str::from_utf8(file.contents()),
+                ) {
+                    ("text/html", Ok(html)) => {
+                        let page = versioned(html, &release, is_file).unwrap_or_else(|| {
+                            panic!("{}: a page without <head>", file.path().display())
+                        });
+                        let page_hash = hash(page.as_bytes());
+                        (Bytes::from(page), page_hash)
+                    }
+                    _ => (Bytes::from_static(file.contents()), file_hash),
+                };
+                (file.path(), served)
+            })
+            .collect();
+        Served { release, files }
+    })
+}
+
+/// A page as a release serves it: its import map first in its head, sending every module the page loads (static,
+/// dynamic, relative or absolute; addresses already a release's excepted) to the release's address, and each of the
+/// site's files it names by its path from the root (in `src`, `srcset`, `url()`, a `<link>`'s `href`, a script's
+/// string) written at the release's address. A link's (`<a href>`) stays where readers go. `None` without `<head>`.
+fn versioned(html: &str, release: &str, is_file: impl Fn(&str) -> bool) -> Option<String> {
+    let prefix = format!("/{RELEASES}{release}");
+    let mut page = String::with_capacity(html.len() + 4096);
+    let mut last = 0;
+    for (at, _) in html.match_indices('/') {
+        let before = &html[..at];
+        if !(before.ends_with(['"', '\'', '(']) || before.ends_with(", ")) {
+            continue;
+        }
+        let rest = &html[at + 1..];
+        let path = &rest[..rest
+            .find(|c: char| matches!(c, '"' | '\'' | ')' | ',' | '?' | '#') || c.is_whitespace())
+            .unwrap_or(rest.len())];
+        if is_file(path) && !is_link(before) {
+            page.push_str(&html[last..at]);
+            page.push_str(&prefix);
+            last = at;
         }
     }
-    let hashes = EMBEDDED_HASHES.get_or_init(|| {
-        let mut hashes = HashMap::new();
-        collect(&EMBEDDED, &mut hashes);
-        hashes
-    });
-    &hashes[file.path()]
+    page.push_str(&html[last..]);
+    let head = page.find("<head>")? + "<head>".len();
+    page.insert_str(
+        head,
+        &format!(
+            r#"<script type="importmap">{{"imports":{{"/":"{prefix}/","/{RELEASES}":"/{RELEASES}"}}}}</script>"#
+        ),
+    );
+    Some(page)
+}
+
+/// Whether the attribute value that `before` ends opening is a link's (`<a href="`).
+fn is_link(before: &str) -> bool {
+    before
+        .strip_suffix(['"', '\''])
+        .and_then(|before| before.strip_suffix("href="))
+        .and_then(|before| before.rfind('<').map(|tag| &before[tag + 1..]))
+        .is_some_and(|tag| tag.split_whitespace().next() == Some("a"))
 }
 
 impl FromStr for Website {

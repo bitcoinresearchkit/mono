@@ -21,8 +21,10 @@
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
   const standalone = /** @type {any} */ (navigator).standalone;
+  // The site's files beside this one's, at its address (a release's, `/v/<release>/`, as the page names it).
+  const asset = (/** @type {string} */ path) => new URL(`../${path}`, /** @type {HTMLScriptElement} */ (script).src).href;
   // (A newer version of the page, said: its own file, every showcase's from here.)
-  document.head.append(Object.assign(document.createElement("script"), { src: "/assets/version/version.js" }));
+  document.head.append(Object.assign(document.createElement("script"), { src: asset("version/version.js") }));
   // (Its app: the showcase's folder, wherever in it the page is (a Studio link's chart, a preset's address).)
   const app = script?.dataset.app, name = app ? `Bitview ${app}` : "Bitview", short = app ?? name;
   const folder = app ? location.pathname.replace(/^(\/[^/]+).*$/, "$1/") : "/", start = `${location.origin}${folder}`;
@@ -35,7 +37,7 @@
   // Its icon: Bitview's cube in the app's colour, a file (assets/favicon/apps/, each made from app-icon.svg in its page's
   // `data-color` by showcases/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
   // left with the manifest's orange alone. The manifest made once the page is read, its description the page's own.
-  const icon = `${location.origin}/assets/favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`;
+  const icon = asset(`favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`);
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));
   link("apple-touch-icon", icon);
   document.addEventListener("DOMContentLoaded", () => {
@@ -167,7 +169,7 @@
     resolve(undefined);
   })));
   // The cube, the logo's, in the launch's orange, decoded before it's shown (shown undecoded, a frame of nothing).
-  const cube = fetch("/assets/logo/logo.svg").then((response) => response.text()).then(async (text) => {
+  const cube = fetch(asset("logo/logo.svg")).then((response) => response.text()).then(async (text) => {
     const url = `url("data:image/svg+xml,${encodeURIComponent(text.replace(/fill="[^"]*"/, `fill="${ORANGE}"`))}")`, image = new Image();
     image.src = url.slice(5, -2);
     await image.decode();

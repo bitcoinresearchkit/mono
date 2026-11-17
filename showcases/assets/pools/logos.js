@@ -23,5 +23,5 @@ export const LIGHT = new Set([
  */
 export const logo = (slug, light) => {
   const file = LOGOS.has(slug) ? slug : "default";
-  return `/assets/pools/${file}${light && LIGHT.has(file) ? ".light" : ""}.svg`;
+  return import.meta.resolve(`/assets/pools/${file}${light && LIGHT.has(file) ? ".light" : ""}.svg`);
 };
