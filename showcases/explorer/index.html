@@ -1715,7 +1715,6 @@
         // What's open is read again: a block's confirmations, a transaction's status, an address's balance.
         memo.clear();
         readProjected().catch(() => {});
-        if (state.next) await loadNext().catch(() => {});
         await render();
         // Only a block on top of the one shown flies: a replacement, or more than one at once, just appears.
         if (latest[0].previousblockhash === was.hash && latest[0].height === was.tip + 1) fly(shot, latest[0]);
@@ -1773,31 +1772,22 @@
           return drawWeek();
         }
       });
-      // The next block's transactions in their light shape, then only what changed. Only the latest read is kept.
+      // The next block's transactions in their light shape, then only what changed.
       const slim = (t) => ({ txid: t.txid, vsize: t.vsize, rate: t.fee / t.vsize, fee: t.fee, born: 0 });
-      let nextReads = 0;
-      function loadNext() {
-        const n = ++nextReads;
-        return get("/mempool-blocks/0").then((b) => {
-          if (n === nextReads) state.next = { hash: b.hash, stats: b.stats, txs: b.transactions.map(slim) };
-        });
-      }
-      // First read only where it's shown or asked (the home's map, a waiting transaction's place): a few hundred KB, never
-      // for a page that doesn't show it. Once read, it's followed.
-      const readNext = alone(async () => state.next ?? loadNext());
-      const followNext = alone(async () => {
-        if (!state.next) return;
-        const n = nextReads;
-        let diff;
-        try {
-          diff = await get(`/mempool-blocks/0/diff/${state.next.hash}`);
-        } catch {
-          await loadNext();
-          return state.view?.kind === "home" && render();
+      // Read only where it's shown or asked (the home's map, a waiting transaction's place): a few hundred KB, never for a
+      // page that doesn't show it. Followed while shown, brought up to date by a diff when shown again: a copy the
+      // server no longer holds (an old one, another server's) comes back whole, so neither a new block nor a server
+      // change needs a reload. A failed read keeps the copy for the next tick. One read at a time, so a diff always
+      // applies to the copy it was asked against.
+      const showsNext = () => state.view?.kind === "home" || state.view?.facts?.state === "waiting";
+      const readNext = alone(async () => {
+        if (!state.next) {
+          const b = await get("/mempool-blocks/0");
+          state.next = { hash: b.hash, stats: b.stats, txs: b.transactions.map(slim) };
+          return;
         }
-        // A diff applies only to the copy it was asked against (a new block may have replaced it meanwhile).
-        if (n !== nextReads || diff.since !== state.next.hash || diff.hash === state.next.hash) return;
-        nextReads++;
+        const diff = await get(`/mempool-blocks/0/diff/${state.next.hash}`);
+        if (diff.hash === state.next.hash) return;
         const born = performance.now();
         const txs = [];
         // A transaction the copy held keeps its arrival: a new body for it (or a diff from another server's copy) isn't new.
@@ -1834,8 +1824,8 @@
       // past week.
       async function viewHome() {
         const v = state.view;
-        // Its transactions, the first time: read beside the strip's, drawn (the map and the strip's square) once in.
-        const next = state.next ? null : readNext();
+        // Its transactions, read (or brought up to date) beside the strip's, drawn (the map and the strip's square) once in.
+        const next = readNext();
         const chain = await chainAround({ kind: "next" });
         if (state.view !== v) return;
         $("view").innerHTML = `${chainView(chain)}
@@ -1856,8 +1846,8 @@
           </section>`;
         paintChain(chain);
         map.mount($("map"), (i, t) => go(url.tx(t.txid)));
-        if (!next) map.set(state.next.txs);
-        else next.then(() => state.view === v && (map.set(state.next.txs), drawHome())).catch(() => {});
+        if (state.next) map.set(state.next.txs);
+        next.then(() => state.view === v && (map.set(state.next.txs), drawHome())).catch(() => {});
         drawForming();
         readWeek().catch(() => {});
       }
@@ -2067,7 +2057,8 @@
       }
       // The forming block's square, from what's in it now.
       function formingSquare(size) {
-        if (!state.next) return bandsOf(state.projected[0], size);
+        // A copy followed only while shown: elsewhere it may be old, so the projection stands in.
+        if (!state.next || !showsNext()) return bandsOf(state.projected[0], size);
         const c = document.createElement("canvas");
         c.width = c.height = Math.round(size * Math.max(2, devicePixelRatio));
         if (state.next.txs.length) paintTxs(c, state.next.txs);
@@ -3260,7 +3251,7 @@
       render();
       await ready;
       state.booted = true;
-      setInterval(followNext, 4000);
+      setInterval(() => showsNext() && readNext().catch(() => {}), 4000);
       setInterval(() => readTip().catch(() => {}), 10000);
       setInterval(() => readProjected().catch(() => {}), 10000);
       setInterval(() => readPrice().catch(() => {}), 30000);
