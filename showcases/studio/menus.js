@@ -1,6 +1,6 @@
 // @ts-check
 // Menus, the toolbar, sharing, importing and exporting. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
-import { capitalized, windowNamed, windowSaid, windowShort } from "/studio/words.js";
+import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
   $, all$, atWindow, AVERAGES, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, CADENCE, chart, chartImage,
   chartWindow, CHEVRON, clamp, closest, commit, css, DASHES, DEFAULT_MEASURE, DEFAULT_RANGE, defaultOpacity, drawKeys, drawnChart,
