@@ -1888,17 +1888,11 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  */
 const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 
-const MAX_LAYERS = 40, MAX_PANES = 12, MAX_LEVELS = 12;
+const MAX_PANES = 12, MAX_LEVELS = 12;
 /** Layers enough that a chart's build takes more than a frame or two on a phone without its JIT (six daily series, some 36,000 points: ~100 ms): see draw. */
 const MANY_LAYERS = 6;
 /** A formula's length at most: typed, as read from a link or a file. */
 const FORMULA_MAX = 2000;
-/** Whether a chart has room for another layer; says so when it doesn't. @param {Chart} doc */
-function roomFor(doc) {
-  if (doc.layers.length < MAX_LAYERS) return true;
-  notice(`A chart holds up to ${MAX_LAYERS} layers`);
-  return false;
-}
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
@@ -9616,7 +9610,6 @@ function comparePeriods(id, which, over = false) {
   if (!layer) return;
   const periods = periodsOf(layer, which, over), what = which === "cycles" ? "halving cycles" : "years";
   if (!periods.length) return void notice(overShort(which));
-  if (chart.layers.length + periods.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers: its ${periods.length} ${what} need ${periods.length}`);
   if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the ${what} need one of their own`);
   const unfit = unfitHere([periods[0].formula]);
   if (unfit) return void notice(unfit);
@@ -9703,8 +9696,6 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   paletteOpenings++;
   // (Resumed only where it was browsing: adding, replacing or a formula start again.)
   const spot = resume && putAway?.browsing && (putAway.anywhere || (putAway.chart === chart.id && putAway.home === home)) ? putAway.state : null;
-  // (Adding to a chart with no room: said now, not once a series is picked.)
-  if (add && !roomFor(chart)) return;
   putAway = null;
   countSaidFor = "";
   hideMenu();
@@ -13429,7 +13420,7 @@ export {
   layoutOwed, leaveHome, leftView, leftWith, LENS_SAYS, lensAt, letterAt, letterChip, letterOf, library, libraryEdits,
   libraryStep, light, limit, LINE_STYLE, LINED, LINES, linkView, listedPreviews, listOwed, listStop, LIVE, liveHeight,
   livePrice, loadPresets, lookDoc, lookOfDrawing, lookShown, lowerBound, MAC, magnifying, makeLayer, MARK_KINDS,
-  MARK_PLACES, markable, markBody, MARKER, markFor, markPicks, marksOf, MAX_DRAWINGS, MAX_LAYERS, MAX_LEVELS,
+  MARK_PLACES, markable, markBody, MARKER, markFor, markPicks, marksOf, MAX_DRAWINGS, MAX_LEVELS,
   MAX_PANES, MAX_STROKE, maxChroma, measure, measured, measureOf, measurer, measureUnit, measuring, memberable,
   membersOf, menuBack, menuOf, menuOwner, menuPicked, menuScrim, minedHalvings, MODES, modesOf, MONTHS, monthYear,
   morphFrom, MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, moving, multiEdit, navigations, newDraft,
@@ -13443,7 +13434,7 @@ export {
   proseHtml, putViews, quick, QUICK, quickHide, quickShow, quickWorks, rangeDays, RANGES, reaching, readOnly,
   readPresetList, recent, recentCharts, recover, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout,
   remember, removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape, reshaped,
-  resolved, resultText, retryPresets, revision, roomFor, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon,
+  resolved, resultText, retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon,
   saveView, say, scrollsY, secondColor, sectionMark, select, selected, selectingArea, seriesCount, seriesLooked,
   setSingleKeys, shapeGlyph, SHAPES, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE, SHELF_STEPS, shelfRows,
   shelfScrolls, showGuide, showList, showLook, showMenu, shownDrawings, shownOklch, shownView, showPalette, showRange,

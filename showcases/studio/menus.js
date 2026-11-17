@@ -8,7 +8,7 @@ import {
   grouped, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideMenu, hideSubmenu, ICONS, indexAt,
   INTERVAL_LABEL, INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isSeriesName, isView,
   KEY_STEPS, kindColor, kindOf, labelText, letterAt, library, LINES, listedPreviews, loadPresets, lookOfDrawing,
-  makeLayer, MARK_PLACES, markable, MAX_DRAWINGS, MAX_LAYERS, MAX_PANES, MAX_STROKE, measure, menuBack, menuOwner,
+  makeLayer, MARK_PLACES, markable, MAX_DRAWINGS, MAX_PANES, MAX_STROKE, measure, menuBack, menuOwner,
   menuPicked, menuScrim, MOTION, navigations, normalize, notice, OPACITIES, openCascade, openingView, openView, ORIGIN,
   PAIRED, PALETTE, PEN_COLOR, phone, plural, pointOf, putViews, RANGES, reduced, resolved, revision, ROUTED, saveView,
   SHAPES, SHARES_IMAGES, shownView, showRange, STACKS, stepIn, storage, submenus, takeView, timeAt, toast, TOOLS,
@@ -765,7 +765,7 @@ async function fromLink(encoded, base32 = false) {
  */
 function fromSketch(/** @type {any} */ input) {
   if (!input || typeof input !== "object" || !Array.isArray(input.layers)) throw new Error("it lists no layers");
-  const layers = input.layers.filter((/** @type {any} */ layer) => layer && typeof layer === "object").slice(0, MAX_LAYERS);
+  const layers = input.layers.filter((/** @type {any} */ layer) => layer && typeof layer === "object");
   const number = (/** @type {any} */ value) => (Number.isInteger(value) ? value : typeof value === "string" && /^\d{1,3}$/.test(value) ? Number(value) : null);
   // (As many panes as given, or as the layers' numbers ask, whichever's more.)
   const asked = Math.max(1, ...layers.map((/** @type {any} */ layer) => number(layer.pane) ?? 1)), listed = Array.isArray(input.panes) ? input.panes : [];
@@ -892,7 +892,7 @@ function validate(input, keepIds = false) {
   const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
   /** Each layer's id as read, to its own: its drawings follow it. */
   const layerIds = new Map();
-  for (const layer of input.layers.slice(0, MAX_LAYERS)) {
+  for (const layer of input.layers) {
     if (!layer || typeof layer !== "object") continue;
     // Made from layers: as a link writes it ("cloud", "trend"), or as a file keeps it ("from", and its type).
     const made = Array.isArray(layer.trend) ? "trend" : Array.isArray(layer.cloud) ? "cloud" : Array.isArray(layer.from) && (layer.type === "cloud" || layer.type === "trend") ? layer.type : null;
@@ -905,7 +905,7 @@ function validate(input, keepIds = false) {
     const profiled = !made && !heat && (Array.isArray(layer.profile) || cohort(layer.profile));
     /** @type {Record<string, any>} */
     const spec = {
-      ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cumulative === true ? { cumulative: true } : {}), ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== DEFAULT_MEASURE && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
+      ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cumulative === true ? { cumulative: true } : {}), ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== DEFAULT_MEASURE && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)) } : typeof layer.series === "string"
         ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
         : { formula: formulaNow(String(layer.formula ?? "").slice(0, FORMULA_MAX)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
       ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
