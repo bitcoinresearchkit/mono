@@ -22,7 +22,9 @@ chart.show(365);                                 // the last 365 points in view
 
 - `createChart(element, { theme, axis, leftAxis, timeHeight, maxSpacing, dateFormat, embedded })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
-  and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
+  and across, `badge`, `separator`; its `font`, every word on the chart in one face and one size: axes, tags, marks,
+  the crosshair's, its legends', as `--bc-font` on `element`; `DARK` and `LIGHT`: `12px system-ui, sans-serif`);
+  `axis`, whether there's an axis at the right (0, none) and its width till drawn:
   then as wide as its labels and tags need (`axisShown`: wider at once, never narrower by itself: `fitAxes()`, or a price axis' double-click, fits them again; every point kept where it is on the screen, the axis growing over the plot's edge);
   `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
@@ -117,7 +119,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   not: a tag, a row of its own, the pointer moved onto the legend), else the one the crosshair's pointer is on. Hidden ones
   left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
   over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-count`; `data-chip`,
-  `data-named`, an item's `data-pointed`).
+  `data-named`, an item's `data-pointed`), in the theme's `font`.
 
 ## Series
 

@@ -9,7 +9,7 @@ import { hexToOklch, oklchToHex } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
   averageFor, bandLit, BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex,
-  changesOf, chart, chartHeight, chartSans, chartSize, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
+  changesOf, chart, chartHeight, chartSans, chartSize, CHART_TEXT, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
   chartShown, displayed, draft, EMPTY, engine, exporting, fitMargins, footPinned, fromShort, fromUnfit, goneLayer, grow,
   heatKnown, home, hoverTime, indexAt, indexCatalog, keepStretch, keyAway, keyTime, keyValue, layerPicks, light,
   liveHeight, lookDoc, lookShown, morphFrom, mostBars, MOTION, motionsSized, ontoData, openingView, paintNavigator,
@@ -771,7 +771,7 @@ function nameAxis() {
  */
 function axisWidth() {
   const context = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-  context.font = `11px ${chartSans}`;
+  context.font = `${CHART_TEXT}px ${chartSans}`;
   return Math.ceil((Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(`−${PRECISE}%`).width) + 16) / 4) * 4;
 }
 /** The chart's colors, the theme's (set again when it changes). */
@@ -780,7 +780,7 @@ function axisWidth() {
  * shows it (see chartGround).
  */
 function chartTheme() {
-  return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), active: css("--accent"), font: `11px ${chartSans}` };
+  return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), active: css("--accent"), font: `${CHART_TEXT}px ${chartSans}` };
 }
 /**
  * The ground under the chart as it shows: its box's and its ancestors' backgrounds up to the first that isn't
