@@ -5,7 +5,6 @@ use axum::{
     response::Response,
 };
 use bitview_types::{HeightOrDate, Urpd, UrpdCohort};
-use serde_json::to_vec;
 
 use super::AppState;
 use crate::{
@@ -46,7 +45,7 @@ async fn serve_urpd(
                     .stable_if(resolved.is_settled(), cdn_cache_mode);
                 Ok((resolved, params))
             },
-            |q, resolved| Ok(to_vec(&q.urpd_resolved(resolved)?)?.into()),
+            |q, resolved| Ok(q.urpd_resolved(resolved)?.into()),
         )
         .await?)
 }

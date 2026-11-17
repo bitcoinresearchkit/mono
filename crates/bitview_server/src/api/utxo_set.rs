@@ -4,8 +4,6 @@ use bitview_primitives::BlockHashPrefix;
 use bitview_query::{Query, Result as QueryResult, UtxoSetPoint};
 use bitview_types::{HeightOrDate, UtxoSet, UtxoSetDiff};
 use brk_types::Version;
-use serde::Serialize;
-use serde_json::to_vec;
 
 use super::AppState;
 use crate::{
@@ -21,12 +19,12 @@ use crate::{
 const VERSION: Version = Version::ONE;
 
 impl AppState {
-    /// The point resolves and validates first; the set is rebuilt only for a body.
-    async fn respond_utxo_set<T: Serialize + 'static>(
+    /// The point resolves and validates first; the body is built only when needed.
+    async fn respond_utxo_set(
         &self,
         headers: HeaderMap,
         point: Option<HeightOrDate>,
-        build: fn(&Query, &UtxoSetPoint) -> QueryResult<T>,
+        build: fn(&Query, &UtxoSetPoint) -> QueryResult<Vec<u8>>,
     ) -> Result<Response> {
         let cdn_cache_mode = self.cdn_cache_mode;
         Ok(self
@@ -46,7 +44,7 @@ impl AppState {
                             .stable_if(point.is_settled(), cdn_cache_mode);
                     Ok((point, params))
                 },
-                move |q, point| Ok(to_vec(&build(q, &point)?)?.into()),
+                move |q, point| Ok(build(q, &point)?.into()),
             )
             .await?)
     }

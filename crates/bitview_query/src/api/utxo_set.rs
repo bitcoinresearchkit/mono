@@ -3,8 +3,10 @@ use std::collections::BTreeMap;
 use bitview_primitives::{Date, Day1};
 use bitview_types::{UtxoChanges, UtxoOrigins, UtxoSet, UtxoSetDiff};
 use brk_types::{Bitcoin, BlockHash, Height, Sats};
+use statedb::State;
 use vecdb::ReadableVec;
 
+use super::json;
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
 fn btc(sats: u64) -> Bitcoin {
@@ -29,6 +31,38 @@ impl UtxoSetPoint {
     /// Whether the URL pins the point below the reorg window: appends never change it.
     pub fn is_settled(&self) -> bool {
         self.settled
+    }
+
+    /// `state`, the set after the point, as the JSON of `UtxoSet`, written straight from its
+    /// amounts.
+    fn set_json(&self, state: &State) -> Result<Vec<u8>> {
+        let (amounts, total) = (state.amounts(), state.total());
+        let mut body = Vec::with_capacity(256 + 16 * amounts.len());
+        json::open(&mut body, self.last, &self.hash, &self.date)?;
+        json::key(&mut body, "count");
+        json::append(&mut body, total.count, json::int);
+        json::key(&mut body, "supply");
+        json::append(&mut body, total.sats, json::decimal::<8>);
+        body.extend_from_slice(b",\"origins\":{\"count\":");
+        json::append_array(&mut body, amounts, |out, amount| json::int(out, 0, amount.count));
+        json::key(&mut body, "supply");
+        json::append_array(&mut body, amounts, |out, amount| json::decimal::<8>(out, 0, amount.sats));
+        body.extend_from_slice(b"}}");
+        debug_assert!(
+            body == serde_json::to_vec(&UtxoSet {
+                height: self.last,
+                hash: self.hash,
+                date: self.date,
+                count: total.count,
+                supply: btc(total.sats),
+                origins: UtxoOrigins {
+                    count: amounts.iter().map(|amount| amount.count).collect(),
+                    supply: amounts.iter().map(|amount| btc(amount.sats)).collect(),
+                },
+            })?,
+            "the UTXO set body is its schema's JSON"
+        );
+        Ok(body)
     }
 
     /// The point's exclusive end, once a reader of `history` blocks covers it.
@@ -73,8 +107,8 @@ impl Query {
         )
     }
 
-    /// The set after block `point.last`.
-    pub fn utxo_set(&self, point: &UtxoSetPoint) -> Result<UtxoSet> {
+    /// The set after block `point.last`, as the JSON of `UtxoSet`.
+    pub fn utxo_set(&self, point: &UtxoSetPoint) -> Result<Vec<u8>> {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
@@ -83,23 +117,12 @@ impl Query {
         if state.hash() != *point.hash {
             return Err(Error::updating());
         }
-        let amounts = state.amounts();
-        let total = state.total();
-        Ok(UtxoSet {
-            height: point.last,
-            hash: point.hash,
-            date: point.date,
-            count: total.count,
-            supply: btc(total.sats),
-            origins: UtxoOrigins {
-                count: amounts.iter().map(|amount| amount.count).collect(),
-                supply: amounts.iter().map(|amount| btc(amount.sats)).collect(),
-            },
-        })
+        point.set_json(&state)
     }
 
-    /// What blocks `point.first` through `point.last` changed, read from their journals alone.
-    pub fn utxo_set_diff(&self, point: &UtxoSetPoint) -> Result<UtxoSetDiff> {
+    /// What blocks `point.first` through `point.last` changed, read from their journals alone, as
+    /// the JSON of `UtxoSetDiff`.
+    pub fn utxo_set_diff(&self, point: &UtxoSetPoint) -> Result<Vec<u8>> {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
         let reader = view.reader(usize::from(pin.lengths().height))?;
@@ -128,14 +151,14 @@ impl Query {
             removed.count.push(count);
             removed.supply.push(btc(sats));
         }
-        Ok(UtxoSetDiff {
+        Ok(serde_json::to_vec(&UtxoSetDiff {
             first: point.first,
             last: point.last,
             hash: point.hash,
             date: point.date,
             created,
             spent: removed,
-        })
+        })?)
     }
 
     /// Blocks published both by the chain and by the UTXO set's history.

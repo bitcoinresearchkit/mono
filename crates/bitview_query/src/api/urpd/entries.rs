@@ -3,6 +3,16 @@ use bitview_primitives::{CentsCompact, Date};
 use bitview_types::{Urpd, UrpdAggregation, UrpdBuckets, UrpdCohort, UrpdWeight};
 use brk_types::{Bitcoin, BlockHash, Cents, CentsSats, CentsSigned, Dollars, Height, Sats};
 
+use crate::{Result, api::json};
+
+/// One bucket in cents and sats.
+struct Bucket {
+    price: u64,
+    supply: u64,
+    realized_cap: u64,
+    unrealized_pnl: i64,
+}
+
 /// What a URPD response echoes about the distribution [`Self::build`] buckets.
 pub(super) struct UrpdHeader {
     pub(super) cohort: UrpdCohort,
@@ -15,9 +25,10 @@ pub(super) struct UrpdHeader {
 }
 
 impl UrpdHeader {
-    /// Aggregates the distribution's entries into response buckets in one pass: they arrive
-    /// unique and sorted by price from its projection, so nothing is rehashed or re-sorted.
-    pub fn build(self, entries: impl IntoIterator<Item = (CentsCompact, Sats)>) -> Urpd {
+    /// Aggregates the distribution's entries into buckets in one pass and writes them as the
+    /// JSON of `Urpd`: they arrive unique and sorted by price from its projection, so nothing is
+    /// rehashed or re-sorted.
+    pub fn build(self, entries: impl IntoIterator<Item = (CentsCompact, Sats)>) -> Result<Vec<u8>> {
         let close = self.close;
         // The URPD history rejects unpriced blocks, the close's included.
         debug_assert!(!close.is_nan(), "URPD close is priced");
@@ -27,7 +38,7 @@ impl UrpdHeader {
                 <= i64::MAX as u128,
             "URPD market value exceeds signed price range"
         );
-        let mut buckets = UrpdBuckets::default();
+        let mut buckets = Vec::new();
         let mut total = 0_u64;
         let mut current: Option<(Cents, Sats, CentsSats)> = None;
         let mut finish = |(price, supply, capital): (Cents, Sats, CentsSats)| {
@@ -38,12 +49,12 @@ impl UrpdHeader {
             } else {
                 -i128::from((capital - market).to_cents().inner())
             };
-            buckets.price.push(Dollars::from(price));
-            buckets.supply.push(Bitcoin::from(supply));
-            buckets.realized_cap.push(Dollars::from(capital.to_cents()));
-            buckets
-                .unrealized_pnl
-                .push(Dollars::from(CentsSigned::from(unrealized_pnl)));
+            buckets.push(Bucket {
+                price: price.inner(),
+                supply: u64::from(supply),
+                realized_cap: capital.to_cents().inner(),
+                unrealized_pnl: i64::from(CentsSigned::from(unrealized_pnl)),
+            });
         };
         for (price, supply) in entries {
             // Weights are within [0, 1]: a weighted mass never exceeds the raw one.
@@ -72,16 +83,51 @@ impl UrpdHeader {
         if let Some(last) = current {
             finish(last);
         }
-        Urpd {
-            height: self.height,
-            hash: self.hash,
-            date: self.date,
-            cohort: self.cohort,
-            weight: self.weight,
-            aggregation: self.aggregation,
-            close: Dollars::from(close),
-            supply: Bitcoin::from(Sats::new(total)),
-            buckets,
-        }
+        let mut body = Vec::with_capacity(512 + 48 * buckets.len());
+        json::open(&mut body, self.height, &self.hash, &self.date)?;
+        json::field(&mut body, "cohort", &self.cohort)?;
+        json::field(&mut body, "weight", &self.weight)?;
+        json::field(&mut body, "aggregation", &self.aggregation)?;
+        json::key(&mut body, "close");
+        json::append(&mut body, close.inner(), json::decimal::<2>);
+        json::key(&mut body, "supply");
+        json::append(&mut body, total, json::decimal::<8>);
+        body.extend_from_slice(b",\"buckets\":{\"price\":");
+        json::append_array(&mut body, &buckets, |out, b| json::decimal::<2>(out, 0, b.price));
+        json::key(&mut body, "supply");
+        json::append_array(&mut body, &buckets, |out, b| json::decimal::<8>(out, 0, b.supply));
+        json::key(&mut body, "realized_cap");
+        json::append_array(&mut body, &buckets, |out, b| {
+            json::decimal::<2>(out, 0, b.realized_cap)
+        });
+        json::key(&mut body, "unrealized_pnl");
+        json::append_array(&mut body, &buckets, |out, b| {
+            json::signed_decimal::<2>(out, 0, b.unrealized_pnl)
+        });
+        body.extend_from_slice(b"}}");
+        debug_assert!(
+            body == serde_json::to_vec(&Urpd {
+                height: self.height,
+                hash: self.hash,
+                date: self.date,
+                cohort: self.cohort,
+                weight: self.weight,
+                aggregation: self.aggregation,
+                close: Dollars::from(close),
+                supply: Bitcoin::from(Sats::new(total)),
+                buckets: UrpdBuckets {
+                    price: buckets.iter().map(|b| Dollars::from(Cents::new(b.price))).collect(),
+                    supply: buckets.iter().map(|b| Bitcoin::from(Sats::new(b.supply))).collect(),
+                    realized_cap: (buckets.iter())
+                        .map(|b| Dollars::from(Cents::new(b.realized_cap)))
+                        .collect(),
+                    unrealized_pnl: (buckets.iter())
+                        .map(|b| Dollars::from(CentsSigned::new(b.unrealized_pnl)))
+                        .collect(),
+                },
+            })?,
+            "the URPD body is its schema's JSON"
+        );
+        Ok(body)
     }
 }

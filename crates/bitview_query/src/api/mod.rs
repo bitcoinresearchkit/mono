@@ -2,6 +2,7 @@ mod addr;
 mod block;
 mod calendar;
 mod cpfp;
+mod json;
 mod mempool;
 mod mining;
 pub(crate) mod oracle;

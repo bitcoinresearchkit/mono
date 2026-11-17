@@ -1,7 +1,7 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Date, Day1};
-use bitview_types::{Urpd, UrpdAggregation, UrpdCohort, UrpdWeight};
+use bitview_types::{UrpdAggregation, UrpdCohort, UrpdWeight};
 use brk_types::{BlockHash, Height, Sats, Version};
 use vecdb::{AnyVec, ReadableVec};
 
@@ -193,8 +193,9 @@ impl Query {
             .sum::<Version>())
     }
 
-    /// Projects the distribution `resolved` selected from its block's URPD cells, under its pin.
-    pub fn urpd_resolved(&self, resolved: ResolvedUrpd) -> Result<Urpd> {
+    /// Projects the distribution `resolved` selected from its block's URPD cells, under its pin,
+    /// as the JSON of `Urpd`.
+    pub fn urpd_resolved(&self, resolved: ResolvedUrpd) -> Result<Vec<u8>> {
         let ResolvedUrpd {
             pin,
             cohort,
@@ -230,13 +231,13 @@ impl Query {
             aggregation,
             close: plugins.price.spot.cents.height.collect_one(height).data()?,
         };
-        Ok(if weight == UrpdWeight::None {
+        if weight == UrpdWeight::None {
             header.build(cells.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
         } else {
             header.build(cells.project(&[Some(&weights)], [ages]).filter_map(|b| {
                 let sats = b.weighted[0][0];
                 (sats != Sats::ZERO).then_some((b.price, sats))
             }))
-        })
+        }
     }
 }

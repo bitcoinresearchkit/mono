@@ -31,6 +31,7 @@ full-api = [
     "dep:brk_oracle",
     "dep:parking_lot",
     "dep:smallvec",
+    "dep:statedb",
 ]
 # The generic series API: any composition with the mappings plugin can serve it.
 series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
@@ -75,6 +76,7 @@ rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 smallvec = { workspace = true, optional = true }
+statedb = { workspace = true, optional = true }
 tokio = { workspace = true, features = ["sync", "time", "rt"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
