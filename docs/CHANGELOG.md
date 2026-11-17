@@ -817,6 +817,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - Cointime, Coinflow and Bedrock read each block's price distribution from the stored URPD history instead of each
   replaying the UTXO set: one producer instead of four, and a restart resumes each in about 1 ms (was 15 ms). Their
   series are byte-identical; the first start after upgrading recomputes them (about 105 s on a Mac mini)
+- `/api/utxo-set/{point}` takes 9.7 ms at p90 cold (24 ms before; 7.3 warm, was 22): the body is written straight
+  from the set's integers (2.7 ms for 11.8 MB, was 16.9 through `serde_json`), and the set restores from the nearer
+  snapshot, taking back the blocks past the point when the next one is closer (at most 250 blocks, was 499). URPD
+  points use the same writer (raw cold p90 3.2 ms, was 4.0). Bodies are byte-identical, and nothing more is stored
 - mmpl and `Mempool::tick` resolve a pending transaction's confirmed prevouts from the node's UTXO set
   (`gettxout`) instead of `getrawtransaction`: no `txindex` needed, and a node without one no longer retries every
   hole each cycle (4.3 s cycles at 60k transactions, now 95 ms; the first full load one 1.1 s cycle)
