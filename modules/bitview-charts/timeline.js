@@ -14,6 +14,12 @@
 export const NOISE = 1e-9;
 /** An endpoint within NOISE of a whole point, that point. @param {number} x */
 const snap = (x) => (Math.abs(x - Math.round(x)) < NOISE ? Math.round(x) : x);
+/**
+ * Whether two of the view's lengths (its spacing, a point's x) are one but for the float noise a pan leaves in them (it
+ * moves `from` and `to` alike, their difference rounded anew): within NOISE of each other, relatively. A pan, not a
+ * zoom: a picture moved, words grouped as they were. @param {number} a @param {number} b
+ */
+export const alike = (a, b) => Math.abs(a - b) <= Math.abs(a) * NOISE;
 
 /** A column's first value at or after index `i` (a relative scale's base: a series' first in view), or NaN: none. @param {Float64Array} values @param {number} i */
 export function firstFrom(values, i) {

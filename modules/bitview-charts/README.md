@@ -180,20 +180,25 @@ clears); avoid reflecting programmatic calls. A programmatic
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
 - `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
-  each `{ at, position, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
-  `"below"` it (its low) or `"on"` it: a dot in its color (radius 3.5, times `size`; 0: none), ringed in the ground,
-  resting on the point from its side (on it: centered), several at a point stacked away from it; its words just past its
-  dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill of its
-  color (or `textColor`), the words dark on it, the color lifted just as far as they need to read at 4.5:1 (WCAG 2's
-  floor for small words), its hue kept and as vivid as sRGB allows there. None lost where words crowd at the zoom: from
-  the latest back, one whose words would run into the next ones shown on its side (above the series; under it), or on
-  the other where the series crosses between them, is counted in those ("2 more" on their left, quieter than they are:
-  in the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color laid on its ground); a pan
-  regroups none. Its words over everything, on its pane's layer over it, drawn each frame and whole within the plot:
-  those its edge would cut moved just within it while their dot's in view, else (where that runs them into other words)
-  left out; a count that doesn't fit between the plot's edge and its pill's dot left out, the pill kept on its dot; one
-  whose pill's dot is past the plot's right edge shown alone, just within it, while a mark it holds is in view. Their
-  room kept at the scale's ends while its series has values in view (`room: false`, none); `set(marks)` after a change.
+  each `{ at, position, color, text, textColor, size, priority }` at a point (its index), `"above"` it (a candle's
+  high), `"below"` it (its low) or `"on"` it: a dot in its color (radius 3.5, times `size`; 0: none), ringed in the
+  ground, resting on the point from its side (on it: centered), several at a point stacked away from it; its words just
+  past its dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill
+  of its color (or `textColor`), the words dark on it, the color lifted just as far as they need to read at 4.5:1 (WCAG
+  2's floor for small words), its hue kept and as vivid as sRGB allows there. None lost where words crowd at the zoom:
+  in the order of their `priority` (a move's size, say: the biggest first; at one, the latest first), one whose words
+  would run into those of one shown before it on its side (above the series; under it), or on the other where the series
+  crosses between them, is counted in the nearest of those ("2 more" on its left, room kept there where words later in
+  that order would run into its own; quieter than they are: in the theme's `text` color, kept at 4.5:1 or more, on a
+  quiet tag of its `separator` color laid on its ground). The order is the data's: a pan regroups none, only a change of
+  spacing does (a zoom, or the plot resized, as a wider price axis does). Its words over everything, on its pane's layer
+  over it, drawn each frame, whole within the plot and clear of its other dots and of the words placed before them (in
+  their order, the counts alone last): where its edge would cut them or they'd cover a dot, moved to the nearest spot
+  that's clear (along their row or out from the series) where they're still nearer their own dot than any other, else a
+  pill tried without its count, else left out; a count that doesn't fit between the plot's left edge and its pill's dot
+  left out, the pill kept on its dot; one whose pill's dot is past an edge of the plot shown alone, where the words of
+  the one it holds nearest that edge would be, while a mark it holds is in view. Their room kept at the scale's ends
+  while its series has values in view (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

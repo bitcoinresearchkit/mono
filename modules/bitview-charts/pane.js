@@ -16,6 +16,7 @@ import { solid, tint, painted } from "./color.js";
 import { Tags, pill, PILL } from "./tags.js";
 import { Legend } from "./legend.js";
 import { layer } from "./layer.js";
+import { alike } from "./timeline.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -743,7 +744,7 @@ export class Pane {
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
     if (versions !== this.drawnVersions || overs !== this.drawnOvers || !shown || !overlaid || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
     const same = !whole && overlaid && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
-    const moves = same && (!fixed || !shift) && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
+    const moves = same && (!fixed || !shift) && alike(spacing, this.drawnSpacing) && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
     // sharp picture kept as the zoom began, stretched to the new spacing while it's within half to twice it. Drawn whole
     // where that's quick: sharp all along.)

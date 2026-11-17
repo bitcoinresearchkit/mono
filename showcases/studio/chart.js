@@ -1078,8 +1078,9 @@ function markSignals(doc, data, drawn, old) {
     const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), down = alpha(ink(belowOf(layer)), op);
     const list = marked.get(on)?.list ?? marked.set(on, { list: [], pane: doc.panes.findIndex((pane) => pane.id === target?.pane), side: target?.side === "left" ? "left" : "right", room: doc.panes.find((pane) => pane.id === target?.pane)?.stack !== "percent" }).get(on).list;
     for (const change of changesOf(values)) {
-      // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark.)
-      const i = change.at, result = layer.results ? stretchResult(change, reference) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down };
+      // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark;
+      // where words crowd, the biggest move's kept: its layer's change over the stretch, as a log scale draws it.)
+      const i = change.at, result = layer.results ? stretchResult(change, reference) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down, priority: Math.abs(Math.log1p(result * change.was)) };
       if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
       if (change.to > 0 && !shade) list.push({ at: i, position, color, ...text });
       else if (change.to < 0 && !shade) list.push({ at: i, position: downPosition, color: down, ...text });
