@@ -1,15 +1,16 @@
-# Splits each of the pages' text fonts in two, each with every axis, feature and glyph its characters reach: a core
-# file for what the pages write (Latin with its accents, punctuation, arrows, math, the keys' and boxes' symbols), and
-# the rest, which a browser fetches only for a character of its own (a name or a note in another script). Writes each
-# file's unicode-range into every page's @font-face rule that names it, so the pages' text renders as before and a
-# page's first visit fetches about half the bytes; stops, naming the file and character, if the pages' sources (TEXT, as
-# written: escapes, live data and typed text aren't seen) hold one outside CORE. What a split can't keep: kerning or a
-# mark's place between a core and a rest character (a Greek word with Σ, a Cyrillic letter with an accent); all of
-# Greek in the core would keep Greek words whole for +20 KB on Inter's core and +5 KB on Lilex's.
+# Splits each of the pages' text fonts in two, each with the axes the pages draw at, the features they reach and every
+# glyph those reach from its characters: a core file for what the pages write (Latin with its accents, punctuation,
+# arrows, math, the keys' and boxes' symbols), and the rest, which a browser fetches only for a character of its own (a
+# name or a note in another script). Writes each file's unicode-range into every page's @font-face rule that names it,
+# so the pages' text renders as before and a page's first visit fetches about a third of the bytes; stops, naming the
+# file, if the pages' sources (TEXT, as written: escapes, live data and typed text aren't seen) hold a character outside
+# CORE or ask for a feature outside FEATURES. What a split can't keep: kerning or a mark's place between a core and a
+# rest character (a Greek word with Σ, a Cyrillic letter with an accent, a combining mark typed apart from its letter);
+# all of Greek in the core would keep Greek words whole for +20 KB on Inter's core and +5 KB on Lilex's.
 #
 #   uvx --from 'fonttools[woff]==4.68.0' python showcases/assets/fonts/subset.py
 #
-# Run again when a source font (NOTICE.md says where each comes from), CORE or a page's text changes.
+# Run again when a source font (NOTICE.md says where each comes from), CORE, FEATURES, FLOOR or a page's text changes.
 import re
 from pathlib import Path
 
@@ -19,15 +20,25 @@ from fontTools.ttLib import TTFont
 HERE = Path(__file__).parent
 SHOWCASES = HERE.parents[1]
 ROOT = SHOWCASES.parent
-FONTS = ["InterVariable", "Lilex"]
-# Every character the pages and their modules write, by range, with Latin Extended-A and every combining mark: a name's
-# letters and their accents kerned and placed within one file (+37 KB on Inter's core, +7 KB on Lilex's).
+# Each font, and the axis it no longer varies on under its default, as no page draws there: Lilex under 400 (Studio's
+# starts at 500), -12 KB on its core, its deltas over 400 kept as they are (fontTools' instancer would round them, up to
+# 0.7 units off); Inter keeps every weight (the explorer's forming-block answer is drawn at 200).
+FLOOR = {"InterVariable": None, "Lilex": "wght"}
+# Every character the pages and their modules write, by range, with Latin Extended-A: a name's letters and accents
+# kerned within one file (+8 KB on Inter's core, +4 KB on Lilex's). Combining marks are left to the rest: text keeps
+# its accents precomposed (é, not e + ◌́), and the marks would bring the ccmp-composed letters of every other Latin
+# block (Vietnamese, Latin Extended-B and Additional) into the core, +24 KB on Inter's.
 CORE = [
     (0x0000, 0x017F), (0x0192, 0x0192), (0x02BB, 0x02BC), (0x02C6, 0x02C6), (0x02DA, 0x02DA), (0x02DC, 0x02DC),
-    (0x0300, 0x036F), (0x0394, 0x0394), (0x03A3, 0x03A3), (0x03C3, 0x03C3), (0x2000, 0x206F), (0x20AC, 0x20AC),
-    (0x20BF, 0x20BF), (0x2122, 0x2122), (0x2190, 0x23FF), (0x2500, 0x25FF), (0x2713, 0x2715), (0xFE0E, 0xFE0F),
-    (0xFEFF, 0xFEFF), (0xFFFD, 0xFFFD),
+    (0x0394, 0x0394), (0x03A3, 0x03A3), (0x03C3, 0x03C3), (0x2000, 0x206F), (0x20AC, 0x20AC), (0x20BF, 0x20BF),
+    (0x2122, 0x2122), (0x2190, 0x23FF), (0x2500, 0x25FF), (0x2713, 0x2715), (0xFE0E, 0xFE0F), (0xFEFF, 0xFEFF),
+    (0xFFFD, 0xFFFD),
 ]
+# The OpenType features kept: those browsers apply by default (fontTools' list: kerning, contextual alternates, marks,
+# local forms...) and those the pages ask for, by font-feature-settings or a font-variant value (VARIANTS); the
+# other alternates (Inter's cv01-cv13, ss02-ss08, case, sups, dlig...) are 29 KB of Inter's core, 5 KB of Lilex's.
+FEATURES = [*subset.Options().layout_features, "tnum", "cv11", "ss01"]
+VARIANTS = {"normal": [], "tabular-nums": ["tnum"]}
 # Where the pages' words come from: their own files, and the modules that write text on them (series names, chart
 # labels, colour names; the rest of modules/ draws none: search, QR codes, the API reference's own fonts).
 TEXT = [
@@ -58,29 +69,35 @@ def runs(cps):
     return out
 
 
-outside = sorted({f"{path.relative_to(ROOT)}: {ch} U+{ord(ch):04X}" for path in TEXT for ch in path.read_text("utf-8") if ord(ch) > 127 and not in_core(ord(ch))})
+texts = {path.relative_to(ROOT): path.read_text("utf-8") for path in TEXT}
+outside = sorted({f"{path}: {ch} U+{ord(ch):04X}" for path, text in texts.items() for ch in text if ord(ch) > 127 and not in_core(ord(ch))})
 if outside:
     raise SystemExit("Characters the pages write outside CORE (add them to it):\n  " + "\n  ".join(outside))
+asked = [
+    *((path, tag) for path, text in texts.items() for rule in re.findall(r"(?:font-feature-settings|featureSettings)\s*:\s*([^;]*)", text) for tag in re.findall(r'"(\w{4})"', rule)),
+    *((path, tag) for path, text in texts.items() for value in re.findall(r"font-variant[\w-]*:\s*([\w -]+);", text) for word in value.split() for tag in VARIANTS.get(word, [f"font-variant {word}"])),
+]
+outside = sorted({f"{path}: {tag}" for path, tag in asked if tag not in FEATURES})
+if outside:
+    raise SystemExit("Features the pages ask for outside FEATURES (add them to it, a font-variant value to VARIANTS):\n  " + "\n  ".join(outside))
 
 ranges = {}
-for name in FONTS:
+for name, floor in FLOOR.items():
     source = HERE / f"{name}.woff2"
     cmap = TTFont(source).getBestCmap()
     parts = {"core": [cp for cp in cmap if in_core(cp)], "rest": [cp for cp in cmap if not in_core(cp)]}
     ranges[f"{name}.core.woff2"], ranges[f"{name}.rest.woff2"] = css(CORE), css(runs(parts["rest"]))
     for part, cps in parts.items():
-        options = subset.Options()
-        options.layout_features = ["*"]
-        options.layout_scripts = ["*"]
-        options.name_IDs = ["*"]
-        options.name_languages = ["*"]
-        options.name_legacy = True
-        options.notdef_outline = True
-        options.legacy_kern = True
         font = TTFont(source, recalcTimestamp=False)  # (the same bytes on every run)
-        subsetter = subset.Subsetter(options)
+        subsetter = subset.Subsetter(subset.Options(layout_features=FEATURES, notdef_outline=True))
         subsetter.populate(unicodes=cps)
         subsetter.subset(font)
+        if floor:
+            axis = next(axis for axis in font["fvar"].axes if axis.axisTag == floor)
+            axis.minValue = axis.defaultValue
+            font["fvar"].instances = [i for i in font["fvar"].instances if i.coordinates[floor] >= axis.defaultValue]
+            for variations in font["gvar"].variations.values():
+                variations[:] = [v for v in variations if v.axes.get(floor, (0, 0, 0))[1] >= 0]
         target = HERE / f"{name}.{part}.woff2"
         font.flavor = "woff2"
         font.save(target)
