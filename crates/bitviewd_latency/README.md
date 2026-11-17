@@ -31,10 +31,10 @@ regenerating the API catalog. No extra fields are added to server logs.
 
 ## Interpretation
 
-- Supports the current `brk_logger` plain-text access format. Non-access lines and
-  malformed access-shaped records are counted separately. Unsupported older
-  formats may appear as non-access lines; inspect coverage before interpreting results.
-- HTTP methods are omitted by the logger, so methods cannot be separated.
+- Request lines are read by `brk_logger::RequestLine`, beside the code that writes them. A line whose
+  text starts with a status is a request's: one that can't be read is counted as malformed, never
+  dropped silently; every other line is counted as non-access.
+- An endpoint is a method and a route. Lines written before 2026-11-17 carry no method and group apart.
 - File logging caps events at 100/second/level. Filtering and rate limiting mean
   these are captured-traffic statistics, not guaranteed whole-traffic percentiles.
 - Historical 304/400 debug events may be absent from info-level logs.

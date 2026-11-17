@@ -1,48 +1,35 @@
-use brk_logger::LEVEL_NAMES;
+use brk_logger::{MalformedRequestLine, RequestLine};
 use jiff::civil::DateTime;
 
 pub struct Record {
     pub timestamp: DateTime,
     pub status: u16,
+    pub method: Option<String>,
     pub uri: String,
     pub nanos: u64,
 }
 
 impl Record {
-    // Current brk_logger::Formatter file output. Non-access lines are ignored;
-    // access-shaped lines with invalid timestamps/durations are reported separately.
-    pub fn parse(line: &str) -> Result<Option<Self>, ()> {
-        let Some((prefix, message)) = line.split_once(" - ") else {
+    /// `Ok(None)` for a line that isn't a request's; `Err` for a request's line that can't be read.
+    pub fn parse(line: &str) -> Result<Option<Self>, MalformedRequestLine> {
+        let Some(request) = RequestLine::parse(line)? else {
             return Ok(None);
         };
-        let mut fields = message.split_whitespace();
-        let Some(level) = fields.next() else {
-            return Ok(None);
-        };
-        if !LEVEL_NAMES.contains(&level) {
-            return Ok(None);
-        }
-        let Some(status) = fields.next().and_then(|s| s.parse::<u16>().ok()) else {
-            return Ok(None);
-        };
-        if !(100..600).contains(&status) {
-            return Ok(None);
-        }
-        let uri = fields.next().ok_or(())?;
-        if !uri.starts_with('/') {
-            return Ok(None);
-        }
-        let nanos = duration(fields.next().ok_or(())?).ok_or(())?;
-        if fields.next().is_some() {
-            return Err(());
-        }
-        let timestamp = prefix.parse().map_err(|_| ())?;
         Ok(Some(Self {
-            timestamp,
-            status,
-            uri: uri.to_string(),
-            nanos,
+            timestamp: request.time.parse().map_err(|_| MalformedRequestLine)?,
+            status: request.status,
+            method: request.method.map(str::to_string),
+            uri: request.uri.to_string(),
+            nanos: duration(request.latency).ok_or(MalformedRequestLine)?,
         }))
+    }
+
+    /// `path` (this request's URI or its route) after the method, when the line has one.
+    pub fn with_method(&self, path: &str) -> String {
+        match &self.method {
+            Some(method) => format!("{method} {path}"),
+            None => path.to_string(),
+        }
     }
 }
 

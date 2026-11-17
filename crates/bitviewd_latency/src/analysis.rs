@@ -1,4 +1,5 @@
 use crate::{Result, group::Group, record::Record, routes};
+use brk_logger::MalformedRequestLine;
 use jiff::civil::DateTime;
 use std::{
     collections::BTreeMap,
@@ -38,7 +39,7 @@ impl Analysis {
                         analysis.ignored += 1;
                         continue;
                     }
-                    Err(()) => {
+                    Err(MalformedRequestLine) => {
                         analysis.malformed += 1;
                         continue;
                     }
@@ -55,14 +56,14 @@ impl Analysis {
                 );
                 analysis.count += 1;
                 analysis.errors += usize::from(record.status >= 400);
-                let endpoint = routes::endpoint(&record.uri, &catalog);
-                let matched = catalog.contains(&endpoint);
+                let route = routes::endpoint(&record.uri, &catalog);
+                let matched = catalog.contains(&route);
                 if !matched {
                     analysis.unmatched += 1;
                 }
                 let group = analysis
                     .groups
-                    .entry((endpoint.to_string(), record.status))
+                    .entry((record.with_method(route), record.status))
                     .or_default();
                 group.matched = matched;
                 group.push(record);

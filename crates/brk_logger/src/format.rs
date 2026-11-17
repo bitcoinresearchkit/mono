@@ -1,4 +1,7 @@
-use std::fmt::{Debug, Display, Result, Write};
+use std::{
+    fmt::{Debug, Display, Result, Write},
+    result::Result as StdResult,
+};
 
 use jiff::{Timestamp, tz};
 use owo_colors::{AnsiColors, OwoColorize};
@@ -10,6 +13,8 @@ use tracing_subscriber::{
     fmt::{FmtContext, FormatEvent, FormatFields, format::Writer},
     registry::LookupSpan,
 };
+
+use crate::rate_limit::LEVEL_NAMES;
 
 // Don't remove: set to true to print each event's target, to find the source of unwanted logs.
 const WITH_TARGET: bool = false;
@@ -109,6 +114,7 @@ struct FieldVisitor<const ANSI: bool> {
 impl<const ANSI: bool> FieldVisitor<ANSI> {
     /// Access events (with `status`) print `status [method] [uri] [latency] [fields]`; others print
     /// `message — fields`, with method/uri/latency appended as plain fields.
+    /// [`RequestLine::parse`] reads the access form back: the two change together.
     fn write_to(self, w: &mut impl Write) -> Result {
         if let Some(status) = self.status {
             if ANSI {
@@ -156,6 +162,43 @@ impl<const ANSI: bool> FieldVisitor<ANSI> {
             self.fields.push(' ');
         }
         let _ = write!(self.fields, "{name}={value}");
+    }
+}
+
+/// A request's line in a log file, `<time> - <level> <status> [<method>] <uri> <latency> [<name>=<value>…]`:
+/// what [`Formatter`] and [`FieldVisitor::write_to`] write, uncoloured, for the server's request events.
+pub struct RequestLine<'a> {
+    /// `YYYY-MM-DD HH:MM:SS`, in the logger's local time.
+    pub time: &'a str,
+    pub status: u16,
+    /// `None` on lines written before requests logged their method (2026-11-17).
+    pub method: Option<&'a str>,
+    pub uri: &'a str,
+    /// A `Duration` as `{:?}` prints it.
+    pub latency: &'a str,
+}
+
+/// A line that starts as a request's (a status after the level) and doesn't go on as one.
+pub struct MalformedRequestLine;
+
+impl<'a> RequestLine<'a> {
+    /// `Ok(None)` for every other line of the log: only a request's text starts with a status.
+    pub fn parse(line: &'a str) -> StdResult<Option<Self>, MalformedRequestLine> {
+        let Some((time, text)) = line.split_once(" - ") else {
+            return Ok(None);
+        };
+        let mut words = text.split_ascii_whitespace();
+        if !words.next().is_some_and(|level| LEVEL_NAMES.contains(&level)) {
+            return Ok(None);
+        }
+        let status = words.next().and_then(|word| word.parse().ok());
+        let Some(status) = status.filter(|status| (100..600).contains(status)) else {
+            return Ok(None);
+        };
+        let mut word = || words.next().ok_or(MalformedRequestLine);
+        let first = word()?;
+        let (method, uri) = if first.starts_with('/') { (None, first) } else { (Some(first), word()?) };
+        Ok(Some(Self { time, status, method, uri, latency: word()? }))
     }
 }
 

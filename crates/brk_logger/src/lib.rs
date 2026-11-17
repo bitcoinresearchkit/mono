@@ -3,10 +3,11 @@
 use std::{backtrace::Backtrace, env, io, panic, path::Path};
 
 use format::Formatter;
+pub use format::{MalformedRequestLine, RequestLine};
 use hook::HookLayer;
 use rate_limit::RateLimitedFile;
 use retention::delete_old_daily;
-pub use rate_limit::{LEVEL_NAMES, log_file_date};
+pub use rate_limit::log_file_date;
 use tail::TailLayer;
 pub use tail::{Line, Recent, recent, started};
 use tracing::{Event, error, field};

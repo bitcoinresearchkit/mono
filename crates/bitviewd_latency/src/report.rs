@@ -62,7 +62,7 @@ pub fn render(analysis: &Analysis) -> Result<String> {
             "Captured range: **{first} to {last}**, in the logger's local time.\n"
         )?;
     }
-    out.push_str("This measures server response preparation, excluding complete body transfer and network latency. File logging is capped at 100 events/second/level; dropped or filtered events cannot be recovered. HTTP methods are absent from this log format. Historical 304/400 requests may be missing at info level. Percentiles describe captured traffic, not a controlled benchmark.\n\n");
+    out.push_str("This measures server response preparation, excluding complete body transfer and network latency. File logging is capped at 100 events/second/level; dropped or filtered events cannot be recovered. Requests logged before 2026-11-17 carry no method and group apart from the same route's later ones. Historical 304/400 requests may be missing at info level. Percentiles describe captured traffic, not a controlled benchmark.\n\n");
     writeln!(
         out,
         "{unmatched} requests did not match the compiled API catalog; their paths are kept verbatim (query strings removed). Catalog changes can affect historical grouping.\n"
@@ -75,7 +75,7 @@ pub fn render(analysis: &Analysis) -> Result<String> {
             "Errors (4xx + 5xx): **{errors} / {count} ({:.2}%)**.\n",
             100. * errors as f64 / count as f64
         )?;
-        out.push_str("Percentiles use exact nearest-rank samples. Groups with fewer than 100 samples are marked †; their P99 is especially sensitive to individual requests. P99.9 is omitted below 1,000 samples and marked ‡ (low sample confidence) below 10,000. Endpoint error % is (4xx + 5xx) / all captured requests for that endpoint, including 304s; it repeats across status rows. Total time sums overlapping request durations; it is not CPU time. Each HTTP status code has one table of up to 20 endpoints sorted by P95, plus a histogram and slow examples. Paths marked [unmatched] are absent from the API catalog.\n\n");
+        out.push_str("Percentiles use exact nearest-rank samples. Groups with fewer than 100 samples are marked †; their P99 is especially sensitive to individual requests. P99.9 is omitted below 1,000 samples and marked ‡ (low sample confidence) below 10,000. Endpoint error % is (4xx + 5xx) / all captured requests for that endpoint, including 304s; it repeats across status rows. Total time sums overlapping request durations; it is not CPU time. Each HTTP status code has one table of up to 20 endpoints (a method and a route) sorted by P95, plus a histogram and slow examples. Paths marked [unmatched] are absent from the API catalog.\n\n");
         if unmatched > 0 {
             let mut unknown: BTreeMap<&str, usize> = BTreeMap::new();
             for ((endpoint, _), group) in groups {
@@ -85,7 +85,7 @@ pub fn render(analysis: &Analysis) -> Result<String> {
             }
             let mut unknown: Vec<_> = unknown.into_iter().collect();
             unknown.sort_by_key(|(path, count)| (Reverse(*count), *path));
-            out.push_str("## Most frequent unmatched paths\n\nCounts combine all statuses. These may be website paths, removed endpoints or invalid requests.\n\n| Path | Requests |\n|---|---:|\n");
+            out.push_str("## Most frequent unmatched paths\n\nCounts combine all statuses. These may be website paths, removed endpoints or invalid requests.\n\n| Request | Requests |\n|---|---:|\n");
             for (path, count) in unknown.into_iter().take(20) {
                 writeln!(out, "| {} | {count} |", cell(path))?;
             }
@@ -123,7 +123,7 @@ pub fn render(analysis: &Analysis) -> Result<String> {
                     100. * n as f64 / status_count as f64
                 )?;
             }
-            out.push_str("\n### Slow request examples\n\nUp to three per endpoint/status group, ranked by duration within this status.\n\n| Timestamp | Status | Duration ms | Request URI |\n|---|---:|---:|---|\n");
+            out.push_str("\n### Slow request examples\n\nUp to three per endpoint/status group, ranked by duration within this status.\n\n| Timestamp | Status | Duration ms | Request |\n|---|---:|---:|---|\n");
             let mut examples: Vec<_> = status_groups.iter().flat_map(|(_, g)| &g.slowest).collect();
             examples.sort_by_key(|r| Reverse(r.nanos));
             for record in examples.into_iter().take(20) {
@@ -133,7 +133,7 @@ pub fn render(analysis: &Analysis) -> Result<String> {
                     record.timestamp,
                     record.status,
                     record.nanos as f64 / 1e6,
-                    cell(&record.uri)
+                    cell(&record.with_method(&record.uri))
                 )?;
             }
         }

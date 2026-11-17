@@ -16,6 +16,8 @@ The last 1,000 lines stay in memory: `recent` returns them, or those after a giv
 has a `seq` counting the process's lines from 0, so a reader asking again gets each line once, and
 a jump in `seq` shows lines that left memory before it asked.
 
+`RequestLine::parse` reads a request's line back from a log file: the layout is written and read here.
+
 ## Environment variables
 
 - `LOG` - log level (default: `info` in release, `debug` in dev). Example: `LOG=debug bitviewd`
