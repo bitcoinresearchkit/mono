@@ -8,6 +8,8 @@ import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
+import { catalogWalk } from "/studio/catalog-walk.js";
+import { startWorker } from "/studio/workers.js";
 // (Studio's functions, by what they do, in modules of their own; its state and what runs at its start stay here, in order.)
 import {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
@@ -2425,50 +2427,6 @@ function inSlices(deadline, step, again) {
   while (!step()) if (performance.now() >= until) return void whenIdle(again);
 }
 /**
- * The catalog walked, a node a step (a generator: the page goes on at its own pace): its names to their dotted paths
- * as the client has them (a name in several places, its first), those by block only (by date in none of them), and
- * those under more than one top folder (a folder's place among them isn't theirs: see catalogTops). On its own, its
- * source made a worker's (see indexCatalog): its leaves told as isLeaf tells them, read as `aside` reads them.
- * @param {any} tree @param {readonly string[]} dated
- * @returns {Generator<void, { index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string> }>}
- */
-function* catalogWalk(tree, dated) {
-  const index = new Map(), byBlock = new Set(), sharedTops = new Set(), stack = [[tree, ""]];
-  while (stack.length) {
-    const [node, path] = /** @type {[any, string]} */ (stack.pop());
-    if (node && typeof node.name === "string" && typeof node.indexes === "function") {
-      // (A name in several places, each with its own intervals (an interval's first height, under each): by date if
-      // any of them is.)
-      const byDate = dated.some((id) => node.indexes().includes(id));
-      if (index.has(node.name)) {
-        if (byDate) byBlock.delete(node.name);
-        if (index.get(node.name).split(".")[0] !== path.split(".")[0]) sharedTops.add(node.name);
-      } else {
-        index.set(node.name, path);
-        if (!byDate) byBlock.add(node.name);
-      }
-    } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([Reflect.get(node, key, {}), path ? `${path}.${key}` : key]);
-    yield;
-  }
-  return { index, byBlock, sharedTops };
-}
-/**
- * The catalog walked in a worker (see indexCatalog): its whole source, its arguments written in (the walk's own
- * source among them). Posts what it found as JSON (read back at once: 3 ms of a phone's thread, not the walk's 180).
- * @param {string} clientUrl @param {string} baseUrl @param {typeof catalogWalk} walk @param {readonly string[]} dated
- */
-async function catalogMaker(clientUrl, baseUrl, walk, dated) {
-  try {
-    const { BitviewClient } = await import(clientUrl), steps = walk(new BitviewClient({ baseUrl }).series, dated);
-    let step = steps.next();
-    while (!step.done) step = steps.next();
-    const { index, byBlock, sharedTops } = step.value;
-    postMessage({ text: JSON.stringify([[...index], [...byBlock], [...sharedTops]]) });
-  } catch (error) {
-    postMessage({ error: String(error) });
-  }
-}
-/**
  * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
  * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
  * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
@@ -2509,10 +2467,8 @@ const indexCatalog = (() => {
     };
     whenIdle(step, { timeout: 3000 });
   };
-  const clientUrl = import.meta.resolve("/modules/bitview-client/index.js");
-  const source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
   try {
-    const worker = new Worker(source, { type: "module" }), done = () => (worker.terminate(), URL.revokeObjectURL(source));
+    const worker = startWorker(new URL("./catalog-worker.js", import.meta.url)), done = () => worker.terminate();
     // (Its answer unread (an error, one that can't be delivered or read): walked here, as without one.)
     worker.onmessage = ({ data }) => {
       done();
@@ -2524,8 +2480,8 @@ const indexCatalog = (() => {
       found ? take(found) : here();
     };
     worker.onerror = worker.onmessageerror = () => (done(), here());
+    worker.postMessage(INTERVAL_ORDER);
   } catch {
-    URL.revokeObjectURL(source);
     here();
   }
   return () => run(() => true);

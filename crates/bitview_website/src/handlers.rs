@@ -13,7 +13,7 @@ use crate::{
     Error,
     page_info::Listing,
     router::Site,
-    website::{File, RELEASES, hash},
+    website::{File, RELEASES, WORKERS, hash},
 };
 
 /// Addresses served elsewhere on the site, each old folder (a path from the root) with where its addresses go now: a
@@ -172,8 +172,9 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
         return Err(Error::not_found());
     }
     if let Some(release) = site.website.release()
-        && let Some((asked, path)) = path
-            .strip_prefix(RELEASES)
+        && let Some((asked, path)) = [RELEASES, WORKERS]
+            .into_iter()
+            .find_map(|folder| path.strip_prefix(folder))
             .and_then(|rest| rest.split_once('/'))
     {
         return released(site, path, asked == release, uri, request_headers);
@@ -227,8 +228,8 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     Ok(answer(found, varies, policy, request_headers))
 }
 
-/// A file at a release's address (`RELEASES`), by its path written the one way (no folder's page, no slash after a
-/// file's name, no page: those have one address, outside any release). The current release's
+/// A file at a release's address (`RELEASES`, or a worker's: `WORKERS`), by its path written the one way (no folder's
+/// page, no slash after a file's name, no page: those have one address, outside any release). The current release's
 /// never changes, so it's held for good; another's (asked by a page from before a release) is the current file,
 /// revalidated, as only the current release is served.
 fn released(

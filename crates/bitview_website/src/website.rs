@@ -33,6 +33,11 @@ static SERVED: OnceLock<Served> = OnceLock::new();
 /// it, which never changes, so it's cached for good.
 pub(crate) const RELEASES: &str = "v/";
 
+/// The same files at a second address (`/w/<release>/<path>`), for workers: in WebKit, a page's module whose address a
+/// worker has also loaded comes from the network on each reload after, so a worker's modules have addresses of their
+/// own (`showcases/studio/workers.js`).
+pub(crate) const WORKERS: &str = "w/";
+
 /// A file to serve, with the content type its name declares. Embedded content carries its hash, computed once.
 pub(crate) struct File {
     /// The file found (a folder's `index.html` for its address).

@@ -2,6 +2,7 @@
 // ⌘K: series search, its pages, colors looked at, go to a date. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
 import { initialsRanges } from "/studio/initials.js";
 import { capitalized, holderName, inSentence } from "/studio/words.js";
+import { startWorker } from "/studio/workers.js";
 import {
   $, acrossUnfit, ago, answers, aside, averageFor, BACKS, belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE,
   BUBBLE_SIZES, byBlock, byKeys, CADENCE, canLook, canTravel, catalogIndex, changesOf, chart, chartById,
@@ -69,170 +70,6 @@ import {
 
 
 /**
- * A query's words as the server normalizes them (crates/bitview_query/src/vecs/normalize.rs): words of letters, digits
- * and < > = + %, decimals kept, lowercase. Self-contained: the search's worker is handed it as it is.
- * @param {string} text
- */
-function normalizeQuery(text) {
-  return (text.match(/(?:[A-Za-z0-9<>=+%]|(?<=[0-9])\.(?=[0-9]))+/g) ?? []).join(" ").toLowerCase();
-}
-/**
- * Studio's series search: the server's QuickMatch word matching, with consecutive initials before typos. Whole
- * words and prefixes lead initials; a description several series share ranks
- * them by how few other words their names carry. Series only by block (none of `dated`, the intervals Studio charts) come last, their day's (a 24h sum, an
- * average) in their place. It runs in a worker started from this function's own source: the catalog's names and
- * descriptions are indexed once, off the page, and each query is answered in milliseconds.
- * @param {string} quickmatch the module's URL @param {string} catalog the catalog's URL @param {string[]} dated
- * @param {typeof normalizeQuery} normalize (handed over as its source) @param {string} initialsUrl the shared initials module's URL
- */
-async function seriesSearch(quickmatch, catalog, dated, normalize, initialsUrl) {
-  const { QuickMatch, QuickMatchConfig } = /** @type {typeof import("/modules/quickmatch-js/src/index.js")} */ (await import(quickmatch));
-  const { initialsOf, initialsWord } = /** @type {typeof import("/studio/initials.js")} */ (await import(initialsUrl));
-  const byBytes = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-  const index = (async () => {
-    const response = await fetch(catalog, { signal: AbortSignal.timeout(30_000) });
-    if (!response.ok) throw new Error(`The catalog answered ${response.status}`);
-    /** @type {Map<string, string>} */
-    const described = new Map();
-    /** What the API says of each series (its description, intervals, type, accumulation), as its info answers it. @type {Map<string, { description: string, indexes: string[], type: string, accumulation: string }>} */
-    const about = new Map();
-    /** @type {Set<string>} */
-    const byBlock = new Set();
-    const stack = [await response.json()];
-    while (stack.length) {
-      const node = stack.pop();
-      if (typeof node?.name === "string" && Array.isArray(node.indexes)) {
-        // (A name the catalog lists in several places, each with its own intervals (an interval's first height,
-        // under each): all of them, as its info has them.)
-        const had = about.get(node.name);
-        if (had) {
-          had.indexes = [...new Set([...had.indexes, ...node.indexes])];
-          continue;
-        }
-        // (A text (a date, a hash, an address) or an object isn't a value to chart: not searched for (one added says so).)
-        const text = node.type === "string" || node.type === "object";
-        if (!text) described.set(node.name, typeof node.description === "string" ? node.description : "");
-        // (Its type as the API's info says it, "Dollars", "Sats": the catalog's kind; its "type" is the JSON one.)
-        about.set(node.name, { description: typeof node.description === "string" ? node.description : "", indexes: node.indexes, type: typeof node.kind === "string" ? node.kind : "", accumulation: node.accumulation });
-      } else if (node && typeof node === "object") for (const child of Object.values(node)) stack.push(child);
-    }
-    for (const [name, { indexes }] of about) if (!dated.some((id) => indexes.includes(id))) byBlock.add(name);
-    // In the server's orders: names by length then text, descriptions by text.
-    const names = [...described.keys()].sort((a, b) => a.length - b.length || byBytes(a, b));
-    const ids = new Map(names.map((name, id) => [name, id]));
-    /** @type {Map<string, number[]>} */
-    const byDescription = new Map();
-    names.forEach((name, id) => {
-      const text = normalize(described.get(name) ?? "");
-      if (text) (byDescription.get(text) ?? byDescription.set(text, []).get(text))?.push(id);
-    });
-    const descriptions = [...byDescription.keys()].sort(byBytes), nameInitials = names.map((name) => initialsOf([name])), descriptionInitials = descriptions.map((text) => initialsOf([text]));
-    const grouped = (/** @type {string[]} */ initials) => {
-      const groups = /** @type {Map<string, number[]>} */ (new Map());
-      initials.forEach((text, id) => (groups.get(text) ?? groups.set(text, []).get(text))?.push(id));
-      return groups;
-    };
-    return {
-      names,
-      about,
-      descriptions,
-      nameInitials,
-      byNameInitials: grouped(nameInitials),
-      descriptionInitials,
-      byDescriptionInitials: grouped(descriptionInitials),
-      wordCounts: names.map((name) => name.split("_").length),
-      seriesOf: descriptions.map((text) => /** @type {number[]} */ (byDescription.get(text))),
-      matcher: new QuickMatch(names),
-      descriptionMatcher: new QuickMatch(descriptions),
-      blocked: names.map((name) => byBlock.has(name)),
-      // A series by block, by its day: its own over 24 hours, their sum, their average (before a unit it ends in).
-      daily: names.map((name) => (byBlock.has(name) ? ((unit) => ["24h", "sum_24h", "avg_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|btc)$/.exec(name)).map((other) => ids.get(other) ?? -1).find((id) => id >= 0 && !byBlock.has(names[id])) ?? -1 : -1)),
-    };
-  })();
-  /** @param {Awaited<typeof index>} found @param {string} query @param {number} max @returns {string[]} */
-  function search(found, query, max) {
-    const limit = Math.min(max, found.names.length);
-    if (!limit) return [];
-    const words = normalize(query);
-    if (!words) return [];
-    /** @type {number[]} */
-    const result = [], last = [];
-    const seen = new Set();
-    /** @param {Iterable<number>} ids */
-    const append = (ids) => {
-      for (const id of ids) {
-        if (result.length === limit) break;
-        if (seen.has(id)) continue;
-        seen.add(id);
-        if (!found.blocked[id]) result.push(id);
-        else {
-          if (last.length < limit) last.push(id);
-          const day = found.daily[id];
-          if (day >= 0 && !seen.has(day)) (seen.add(day), result.push(day));
-        }
-      }
-    };
-    // (Stage by stage: a name's whole words before its starts and slips.)
-    const run = stages(found, words, limit);
-    for (let stage = 0; stage < run.length; stage++) if (result.length < limit) append(run[stage]());
-    return [...result, ...last].slice(0, limit).map((id) => found.names[id]);
-  }
-  /**
-   * Word matches first (whole words, then prefixes, in names and descriptions), then initials, then typos.
-   * Each stage runs only while there's room. @param {Awaited<typeof index>} found
-   * @param {string} query @param {number} limit @returns {(() => number[])[]}
-   */
-  function stages({ names, descriptions, nameInitials, byNameInitials, descriptionInitials, byDescriptionInitials, wordCounts, seriesOf, matcher, descriptionMatcher }, query, limit) {
-    // (More than fit: those by block give way to those by date.)
-    const room = Math.min(names.length, limit * 3), config = new QuickMatchConfig().withLimit(room).withUnionFallback(false);
-    /** Series by matching description, those whose names carry fewer other words first. @param {[number, number][]} matches @param {Map<number, number>} nameWords */
-    const ranked = (matches, nameWords) => matches
-      .flatMap(([description], rank) => seriesOf[description].map((id) => [id, rank, nameWords.get(id) ?? 0, wordCounts[id]]))
-      .sort((a, b) => b[2] * a[3] - a[2] * b[3] || names[a[0]].length - names[b[0]].length || a[1] - b[1] || byBytes(names[a[0]], names[b[0]]))
-      .slice(0, room)
-      .map(([id]) => id);
-    const descriptionConfig = new QuickMatchConfig().withLimit(seriesOf.length).withUnionFallback(false);
-    /** @type {Map<number, number> | null} */
-    let nameWords = null;
-    const words = () => (nameWords ??= new Map(matcher.matchesExactWithIdsAndMatchedWords(query, new QuickMatchConfig().withLimit(names.length))));
-    // (The words as the matcher splits them, once each: a name matching all of them, by word, is a whole match.)
-    const count = new Set(query.split(/[_\-\s:/]+/).filter(Boolean)).size;
-    /** @type {[number, number][] | null} */
-    let fuzzy = null;
-    const slips = () => (fuzzy ??= matcher.matchesWithIdsAndMatchedWords(query, config));
-    let descriptionSlips = /** @type {[number, number][] | null} */ (null);
-    const described = () => (descriptionSlips ??= descriptionMatcher.matchesWithIdsAndMatchedWords(query, descriptionConfig));
-    const typed = query.split(/[_\-\s:/]+/).filter(Boolean), initialWords = typed.map((word) => initialsWord(word) ? word : "\0");
-    const initialMatches = (/** @type {string[]} */ texts, /** @type {string[]} */ initials, /** @type {Map<string, number[]>} */ groups) => {
-      const candidates = /** @type {Set<number>} */ (new Set());
-      for (const word of typed) {
-        if (!initialsWord(word)) continue;
-        for (const [letters, ids] of groups) if (letters.includes(word)) for (const id of ids) candidates.add(id);
-      }
-      const found = /** @type {[number, number][]} */ ([]);
-      for (const i of candidates) {
-        let held = true;
-        for (let k = 0; k < typed.length; k++) if (!texts[i].includes(typed[k]) && !initials[i].includes(initialWords[k])) { held = false; break; }
-        if (held) found.push([i, count]);
-      }
-      return found.sort((a, b) => a[0] - b[0]);
-    };
-    return [
-      () => matcher.matchesExactWithIdsAndMatchedWords(query, config).map(([id]) => id),
-      () => initialsWord(query) ? byNameInitials.get(query) ?? [] : [],
-      () => slips().filter(([, matched]) => matched >= count).map(([id]) => id),
-      () => ranked(descriptionMatcher.matchesExactWithIdsAndMatchedWords(query, descriptionConfig), words()),
-      () => ranked(described().filter(([, matched]) => matched >= count), words()),
-      () => [...initialMatches(names, nameInitials, byNameInitials).map(([id]) => id), ...ranked(initialMatches(descriptions, descriptionInitials, byDescriptionInitials), words())],
-      () => slips().filter(([, matched]) => matched < count).map(([id]) => id),
-      () => ranked(described().filter(([, matched]) => matched < count), words()),
-    ];
-  }
-  const found = await index;
-  return (/** @type {{ query?: string, limit?: number, about?: string }} */ { query = "", limit = 0, about }) => about !== undefined ? { about: found.about.get(about) ?? null } : { names: search(found, query, limit) };
-}
-
-/**
  * The search's worker: questions wait for its index to be built. Without workers the same engine runs on the page.
  * One question is with it at a time, the others wait their turn, and one given up (typing went on) leaves the line:
  * the latest is never stuck behind stale ones.
@@ -261,36 +98,29 @@ const aboutOf = (/** @type {string} */ name) => new Promise((resolve) => {
   askNext();
 });
 /** The same engine without a worker, built only when workers cannot run. */
-let pageFinder = /** @type {ReturnType<typeof seriesSearch> | null} */ (null);
-const finderUrls = () => ({ quickmatch: import.meta.resolve("/modules/quickmatch-js/src/index.js"), initials: import.meta.resolve("/studio/initials.js"), catalog: `${client.baseUrl}/api/series` });
+let pageFinder = /** @type {ReturnType<typeof import("/studio/series-search.js").seriesSearch> | null} */ (null);
+/** What the search is built from, on the page or in its worker: the catalog's URL and the intervals Studio charts. */
+const finderFrom = () => ({ catalog: `${client.baseUrl}/api/series`, dated: INTERVAL_ORDER });
 function pageSearch() {
-  const urls = finderUrls();
-  return (pageFinder ??= seriesSearch(urls.quickmatch, urls.catalog, INTERVAL_ORDER, normalizeQuery, urls.initials).catch((error) => { pageFinder = null; throw error; }));
+  const { catalog, dated } = finderFrom();
+  return (pageFinder ??= import("/studio/series-search.js").then(({ seriesSearch }) => seriesSearch(catalog, dated)).catch((error) => { pageFinder = null; throw error; }));
 }
 function startFinder() {
   if (finder.started) return;
   finder.started = true;
   if (typeof Worker !== "function") return;
-  const urls = finderUrls();
-  const source = URL.createObjectURL(new Blob([`
-          const engine = (${seriesSearch})(${JSON.stringify(urls.quickmatch)}, ${JSON.stringify(urls.catalog)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery}, ${JSON.stringify(urls.initials)});
-          engine.then(() => postMessage({ ready: true }), (error) => postMessage({ broken: String(error) }));
-          onmessage = async ({ data }) => {
-            try { postMessage((await engine)(data)); }
-            catch (error) { postMessage({ failed: String(error) }); }
-          };
-        `], { type: "text/javascript" }));
   // (Workers turned off for the page: the page's engine answers; its start never fails with it.)
   let worker;
   try {
-    worker = finder.worker = new Worker(source, { type: "module" });
+    worker = finder.worker = startWorker(new URL("./search-worker.js", import.meta.url));
   } catch {
-    return void URL.revokeObjectURL(source);
+    return;
   }
+  // (Its first message builds the engine; questions sent after it wait for that.)
+  worker.postMessage(finderFrom());
   // A worker that fails hands its questions to the same engine on the page.
   const stop = () => {
     worker.terminate();
-    URL.revokeObjectURL(source);
     const waiting = [finder.asking, ...finder.line.splice(0).map((question) => question.reply)];
     Object.assign(finder, { ready: false, worker: null, asking: null });
     for (const reply of waiting) reply?.(null);
@@ -298,10 +128,7 @@ function startFinder() {
   worker.onerror = stop;
   worker.onmessage = ({ data }) => {
     if (!data || data.broken !== undefined) return stop();
-    if (data.ready) {
-      finder.ready = true;
-      return URL.revokeObjectURL(source);
-    }
+    if (data.ready) return void (finder.ready = true);
     const reply = finder.asking;
     finder.asking = null;
     reply?.(data);

@@ -3,9 +3,9 @@
 // so they're made in a worker while the app's own code still downloads, and a preset's address opens without
 // waiting for them after it.
 
-/** @import { Presets } from "./presets.js" */
+import { startWorker } from "/studio/workers.js";
 
-const [presetsUrl, clientUrl, factsUrl] = ["/studio/presets.js", "/modules/bitview-client/index.js", "/studio/facts.js"].map((path) => import.meta.resolve(path));
+/** @import { Presets } from "./presets.js" */
 
 /** The read the page started with, till it's asked for (see presetsKept): failed before that, let go of (asked, read anew). @type {Promise<Presets> | null} */
 let started = read();
@@ -39,7 +39,7 @@ async function read() {
     const keep = (/** @type {{ text: string, said: string, client: string }} */ result) => (result.said ? Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(result.text, { headers: { "content-type": "application/json", "x-facts": result.said, "x-client": result.client } }))]) : undefined);
     // (Kept, by the client's stamp they were made by (the worker's, see maker): made by another, made anew. Only kept
     // ones ask for the page's client here, so a first visit never loads it early, beside the app's own code.)
-    if (kept && kept.headers.get("x-client") === (await import(clientUrl)).BitviewClient.HASH) {
+    if (kept && kept.headers.get("x-client") === (await import("/modules/bitview-client/index.js")).BitviewClient.HASH) {
       // (Looked at again behind, once the page has started: kept anew if the chain's facts have changed.)
       setTimeout(() => made(kept.headers.get("x-facts") ?? "").then((result) => result && keep(result)).catch(() => {}), 5000);
       return JSON.parse(await kept.text());
@@ -48,49 +48,24 @@ async function read() {
     void keep(result)?.catch(() => {});
     return JSON.parse(result.text);
   } catch {
-    const [{ studioPresets }, { BitviewClient }, { chainFacts }] = await Promise.all([import(presetsUrl), import(clientUrl), import(factsUrl)]);
+    const [{ studioPresets }, { BitviewClient }, { chainFacts }] = await Promise.all([import("/studio/presets.js"), import("/modules/bitview-client/index.js"), import("/studio/facts.js")]);
     return studioPresets(new BitviewClient({ baseUrl: location.origin }), await chainFacts(location.origin).catch(() => undefined));
   }
 }
 
 /**
- * Made in a worker, by the chain's facts it reads: as JSON, and those facts as text (see factsKey; none, ""). Given
- * the facts kept ones were made by (`kept`), made only if the chain's now are others: else undefined; given none,
- * always some. With the stamp (HASH) of the client they were made by.
+ * Made in a worker (presets-worker.js), by the chain's facts it reads: as JSON, and those facts as text (see factsKey;
+ * none, ""). Given the facts kept ones were made by (`kept`), made only if the chain's now are others: else undefined;
+ * given none, always some. With the stamp (HASH) of the client they were made by.
  * @overload @returns {Promise<{ text: string, said: string, client: string }>}
  * @overload @param {string} kept @returns {Promise<{ text: string, said: string, client: string } | undefined>}
  * @param {string | null} [kept]
  */
 function made(kept = null) {
   return new Promise((resolve, reject) => {
-    const source = URL.createObjectURL(new Blob([`(${maker})(...${JSON.stringify([presetsUrl, clientUrl, factsUrl, location.origin, kept])});`], { type: "text/javascript" }));
-    let worker;
-    try {
-      worker = new Worker(source, { type: "module" });
-    } catch (error) {
-      URL.revokeObjectURL(source);
-      return reject(error);
-    }
-    const done = () => (worker.terminate(), URL.revokeObjectURL(source));
+    const worker = startWorker(new URL("./presets-worker.js", import.meta.url)), done = () => worker.terminate();
     worker.onmessage = ({ data }) => (done(), data.error ? reject(new Error(data.error)) : resolve(data.text === undefined ? undefined : data));
     worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
+    worker.postMessage(kept);
   });
-}
-
-/**
- * The presets, made in a worker (see made): its whole source, its arguments written in. Reads the chain's facts (none,
- * if they don't come) as its modules load; given kept presets' facts (`kept`, as text: see factsKey), posts nothing
- * made if the facts are none or the same. Else posts them as JSON, their facts as text and the client's stamp.
- * @param {string} presetsUrl @param {string} clientUrl @param {string} factsUrl @param {string} origin @param {string | null} kept
- */
-async function maker(presetsUrl, clientUrl, factsUrl, origin, kept) {
-  try {
-    const factsModule = import(factsUrl), facts = factsModule.then(({ chainFacts }) => chainFacts(origin)).catch(() => undefined);
-    const [{ studioPresets }, { BitviewClient }, { factsKey }, come] = await Promise.all([import(presetsUrl), import(clientUrl), factsModule, facts]);
-    const said = factsKey(come);
-    if (kept !== null && (!said || said === kept)) return postMessage({});
-    postMessage({ text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), come)), said, client: BitviewClient.HASH });
-  } catch (error) {
-    postMessage({ error: String(error) });
-  }
 }
