@@ -1,9 +1,9 @@
 // @ts-check
 // Menus, the toolbar, sharing, importing and exporting. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
-import { capitalized } from "/studio/words.js";
+import { capitalized, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import {
-  $, all$, AVERAGES, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, CADENCE, chart, chartImage,
-  CHEVRON, clamp, closest, commit, css, DASHES, DEFAULT_MEASURE, DEFAULT_RANGE, defaultOpacity, drawKeys, drawnChart,
+  $, all$, atWindow, AVERAGES, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, CADENCE, chart, chartImage,
+  chartWindow, CHEVRON, clamp, closest, commit, css, DASHES, DEFAULT_MEASURE, DEFAULT_RANGE, defaultOpacity, drawKeys, drawnChart,
   EDGES, engine, escape, FINE, firstForm, firstLook, flowsAt, FORMATS, FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST,
   grouped, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideMenu, hideSubmenu, ICONS, indexAt,
   INTERVAL_LABEL, INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isSeriesName, isView,
@@ -410,6 +410,19 @@ function switchInterval(/** @type {string} */ index) {
   saveView();
   commit((doc) => (doc.index = index), { look: true });
 }
+/** Another trailing window for the open chart (see chartWindow): its series at it, a way of looking (not an edit), its view kept. @param {string} key */
+function switchWindow(key) {
+  saveView();
+  commit((doc) => void atWindow(doc, key), { look: true });
+}
+/** The window's button: the open chart's, if it has one (see chartWindow); else none. */
+function renderWindow() {
+  const found = chart.layers.length ? chartWindow(chart) : null;
+  $("window").hidden = !found;
+  if (!found) return;
+  $("window").innerHTML = `${ICONS.hourglass}${windowShort(found.window)}${CHEVRON}`;
+  $("window").setAttribute("aria-label", `${windowSaid(found.window)} window`);
+}
 /** The interval's button. */
 function renderInterval() {
   $("interval").innerHTML = `${ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
@@ -545,13 +558,14 @@ function twinOf(doc) {
 const dateText = (/** @type {number} */ time) => ((iso) => (iso.endsWith("T00:00:00Z") ? iso.slice(0, 10) : iso))(new Date(time * 1000).toISOString().replace(/\.\d+Z$/, "Z"));
 /**
  * How a link says to look at its chart, each a field of its own after its address or its chart, in the words of
- * Studio's own controls: `range` or the dates `from` and `to`, and `interval`, in any case. What it doesn't know,
- * as if it weren't there.
- * @param {URLSearchParams} params
+ * Studio's own controls: `range` or the dates `from` and `to`, `interval`, and a preset's `window` ("24h", read
+ * against the windows it offers where it's taken: see takeLinkLook), in any case. What it doesn't know, as if it
+ * weren't there; `said`, the window an old address says (see routeOf), where its link doesn't.
+ * @param {URLSearchParams} params @param {string} [said]
  */
-function linkLookOf(params) {
-  const range = params.get("range")?.toLowerCase(), interval = params.get("interval")?.toLowerCase() ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) };
-  return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_OF_FIELD, interval) ? { index: INTERVAL_OF_FIELD[interval] } : {}), ...(datedView("day1", view) ? { view } : {}) };
+function linkLookOf(params, said = undefined) {
+  const range = params.get("range")?.toLowerCase(), interval = params.get("interval")?.toLowerCase() ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) }, window = params.get("window") ?? said;
+  return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_OF_FIELD, interval) ? { index: INTERVAL_OF_FIELD[interval] } : {}), ...(datedView("day1", view) ? { view } : {}), ...(window ? { window } : {}) };
 }
 /** A view by its dates, as Studio keeps one, at an interval (`from` alone, up to now; one date both, that point alone); dates it can't read or in the wrong order, null. @param {string} index @param {any} view */
 function datedView(index, view) {
@@ -631,14 +645,15 @@ function linkDates(doc) {
  */
 // (Within half again the room after the latest (a drag's slack: one let go of past it is a view of its own).)
 const endsAtLatest = (doc) => ((view) => doc === chart && Boolean(view?.latest) && (view.latest[1] * engine.time.width) / (view.latest[1] - view.latest[0]) <= rightGap() * 1.5)(carriedView(doc));
-/** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out. @param {Chart} doc @param {{ index: string, range: string }} made */
+/** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out (its window, only a preset's: a chart's link holds its series). @param {Chart} doc @param {{ index: string, range: string, window?: string }} made */
 function lookFields(doc, made) {
   const dates = linkDates(doc);
   // (A time in a date's field to the minute: "2026-11-08T14:30". A view at the latest, up to it, as it comes: no end.
   // Values as the buttons show them: "1W", "Max".)
   const field = (/** @type {string} */ text) => text.replace(/:00Z$/, "");
   const look = [...(doc.range !== made.range ? [`range=${RANGES.find(([id]) => id === doc.range)?.[1] ?? doc.range}`] : []), ...(dates ? [`from=${field(dates.from)}`, ...(endsAtLatest(doc) ? [] : [`to=${field(dates.to)}`])] : [])];
-  return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : [])].join("&");
+  const window = made.window && chartWindow(doc)?.window;
+  return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : []), ...(window && window !== made.window ? [`window=${windowShort(window)}`] : [])].join("&");
 }
 /**
  * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
@@ -1290,7 +1305,7 @@ export {
   exportData, exportRows, fadeOut, fading, fieldOpener, FIELDS, fillMenu, fitted, fitTitle, fixedOrigin, fromLink,
   fromSketch, HOVER, keepCarriedView, leaveTitle, letGo, linkLookOf, linksOf, lookFields, measureLegends, menuGoBack,
   menuHidden, menuModal, NO_INTERVAL, onRail, openedImages, ownerNow, placeFixed, placeMenu, portable, qrCode, railed,
-  readChart, renameInPlace, renderInterval, renderRanges, sameChart, scrolled, setApart, setRange, settleMenu,
+  readChart, renameInPlace, renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setRange, settleMenu,
   shareLink, shownAs, showSubmenu, slideFrom, stepInterval, subRows, supportedIntervals, switchInterval, titleReads,
   TOO_SMALL, toSketch, twinOf, typedFrom, unexpand, UNREADABLE, validate, viewDates, walkMenu,
 };

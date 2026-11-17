@@ -6,7 +6,7 @@ import {
 } from "/studio/page-info.js";
 import { addressSteps } from "/studio/addresses.js";
 import {
-  $, all$, applyPanel, asThen, averageFor, AVERAGES, chart, chartAgain, commit, discard, dismissPalette,
+  $, all$, applyPanel, asThen, atWindow, averageFor, AVERAGES, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
   drawingsHidden, editChart, edits, escape, folderMark, folderNow, hashOf, histories, home, homeAt, ICONS, inSlices,
   INTERVAL_LABEL, isDeleted, isNamed, isPreview, keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, menuOf,
   MODES, monthYear, newDraft, newPaneIn, nextHalvings, normalize, notice, openChart, panelShown, pendingRoute,
@@ -140,9 +140,14 @@ const addressesSoon = (deadline) => {
 };
 /**
  * What an address opens: a preset, a place of the presets'; none, nothing of theirs. As written: its server sends the
- * other spellings of one (the slash the other way, an old /chart/ one) to it.
+ * other spellings of one (the slash the other way, an old /chart/ one) to it. A preset's once made one for each window
+ * (…/realized-profit-share-24-hours), the preset at that window (its address then written as it is now, see presetLink).
+ * @param {string} pathname @returns {{ path: string[] } | { preset: number, window?: string } | null}
  */
-const routeOf = (/** @type {string} */ pathname) => addresses()?.at.get(pathname.slice(BASE.length)) ?? null;
+const routeOf = (pathname) => {
+  const book = addresses(), at = pathname.slice(BASE.length), [, stem, span] = /^(.*)-(\d+-[a-z]+)$/.exec(at) ?? [];
+  return book?.at.get(at) ?? ((former) => (former && "preset" in former ? { ...former, window: span.replace("-", " ") } : null))(stem ? book?.at.get(stem) : undefined) ?? null;
+};
 /** An address that names nothing, said, whatever it holds (a % that isn't one, as written). @param {string} address */
 const missedSaid = (address) => `Nothing of the presets' at ${((text) => {
   try {
@@ -182,7 +187,8 @@ function placeAddress() {
   if (document.body.hasAttribute("data-picture") || !started) return;
   const address = addressNow(), i = home ? -1 : chartPreset(chart), path = home && "path" in homeAt ? homeAt.path : null;
   const inside = path && presets ? ((items) => [...items.flatMap((item) => (typeof item === "number" ? [] : [item.name])), ...items.flatMap((item) => (typeof item === "number" ? [/** @type {Preset[]} */ (presets)[item].t] : []))])(presetNodeAt(path)?.items ?? []) : [];
-  const info = i >= 0 && presets ? presetInfo(presets[i], presetLabels)
+  // (A preset's words, its title as the chart says it: at another window, that window's, see atWindow.)
+  const info = i >= 0 && presets ? presetInfo({ ...presets[i], t: chart.title || presets[i].t }, presetLabels)
     : path && presets ? sectionInfo(path, presetLabels, inside)
     : { title: home && "top" in homeAt ? STUDIO_TITLE : `${home ? homeName() : titleOf(chart)} · Bitview Studio`, description: STUDIO_DESCRIPTION };
   const canonical = `${CANONICAL_ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
@@ -222,6 +228,25 @@ function placeAddress() {
   }
 }
 
+/**
+ * Copies kept here of presets once made one for each window (", 24 hours" closing their place, till 2026-11): each the
+ * preset now, its window in its series (see chartWindow); two of one preset, the latest stays it, the others become
+ * yours (none lost). Read as the presets are.
+ */
+function formerPresets() {
+  const places = new Set(/** @type {Preset[]} */ (presets).map((preset) => JSON.stringify(preset.p)));
+  const now = (/** @type {string} */ key) => ((steps) => JSON.stringify([...steps.slice(0, -1), String(steps.at(-1)).replace(/, \d+ [a-z]+$/, "")]))(JSON.parse(key));
+  const moved = library.presets.filter((doc) => doc.preset !== undefined && !places.has(doc.preset) && places.has(now(doc.preset)));
+  if (!moved.length) return;
+  for (const doc of moved) doc.preset = now(/** @type {string} */ (doc.preset));
+  const latest = new Map(library.presets.map((doc) => [doc.preset, doc]));
+  for (const doc of library.presets) if ((latest.get(doc.preset)?.updated ?? -Infinity) < doc.updated) latest.set(doc.preset, doc);
+  const yours = library.presets.filter((doc) => latest.get(doc.preset) !== doc);
+  for (const doc of yours) delete doc.preset, delete doc.base, delete doc.made;
+  library.presets = library.presets.filter((doc) => !yours.includes(doc));
+  library.charts = [...library.charts, ...yours];
+  save();
+}
 /** Which preset a chart of one is: its place in the presets (its sections and its own name). */
 const presetKey = (/** @type {number} */ i) => JSON.stringify(/** @type {Preset[]} */ (presets)[i].p);
 /** Each preset's place, by its key (made once they're read). */
@@ -233,20 +258,21 @@ const presetIndex = (/** @type {Chart} */ doc) => {
 };
 /** A preset as edited here, if it is. */
 const editedPreset = (/** @type {number} */ i) => (presets ? library.presets.find((doc) => doc.preset === presetKey(i)) : undefined);
-/** What a preset opens with, how it's looked at: its own interval (day1 unless it says) and its range. @param {number} i */
+/** What a preset opens with, how it's looked at: its own interval (day1 unless it says), its range and its trailing window, if it has one. @param {number} i */
 const presetLook = (i) => {
   const preset = /** @type {Preset[]} */ (presets)[i];
-  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range }))(freshPreset(i)));
-  return /** @type {{ index: string, range: string }} */ (madeLooks.get(preset));
+  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window }))(freshPreset(i)));
+  return /** @type {{ index: string, range: string, window?: string }} */ (madeLooks.get(preset));
 };
-/** Each preset's look as made (see presetLook): read once a preset. @type {WeakMap<Preset, { index: string, range: string }>} */
+/** Each preset's look as made (see presetLook): read once a preset. @type {WeakMap<Preset, { index: string, range: string, window?: string }>} */
 const madeLooks = new WeakMap();
 /**
- * A chart's content as a fingerprint, how it's looked at aside: its window, as a preview's is, and its interval, as
+ * A chart's content as a fingerprint, how it's looked at aside: its view, as a preview's is, its interval, as
  * day1 (every preset opened at day1 before its own interval, an interval changed an edit: a stamp kept from before
- * is the same). @param {Chart} doc
+ * is the same), and its trailing window, as its first (see chartWindow: a window picked isn't an edit either).
+ * @param {Chart} doc
  */
-const contentHash = (doc) => hashOf(contentOf({ ...doc, range: "", index: "day1" }));
+const contentHash = (doc) => hashOf(contentOf(((look) => ((w) => (w ? atWindow(structuredClone(look), w.offered[0]) : look))(chartWindow(look)))({ ...doc, range: "", index: "day1" })));
 /** A preset's chart as made now, as an edit leaves a chart (normalized: nothing for an edit to change). */
 const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
 /**
@@ -873,7 +899,7 @@ const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefi
   [".layer-adds", () => "adds", {}],
 ]);
 export {
-  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset,
+  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, formerPresets, freshPreset,
   fromPreset, fullOn, idsNow, isLinkHash, isMade, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
   missedSaid, openPreset, openPresetMenu, ordersOf, paneActions, paneChip, paneRows, presetActions, presetById,
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,

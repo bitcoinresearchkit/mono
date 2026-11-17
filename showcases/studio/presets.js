@@ -223,10 +223,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /** A name with words after it, its place's and as shown ("Supply" "Supply, all time"). @param {Name} name @param {string} words @param {string} [said] */
   const extended = (name, words, said = words) => shownAs(placeOf(name) + words, shownOf(name) + said);
   /**
-   * A name over one window, its place keeping it as its key spells it (", 1 month"), shown as said (", 30 days"); no
-   * name, the window's own ("1 month", "30 days"). @param {Name | null} name @param {string} key
+   * A window as a name, its place as its key spells it ("1 month"), shown as said ("30 days"): a chart that is one
+   * window of a named indicator (a 200-day average). A chart over one window is named without it: its window is how
+   * it's looked at (the page offers the others, see chartWindow), said in its title. @param {string} key
    */
-  const windowed = (name, key) => (name === null ? shownAs(spanLabel(key), windowSaid(key)) : extended(name, `, ${spanLabel(key)}`, `, ${windowSaid(key)}`));
+  const windowed = (key) => shownAs(spanLabel(key), windowSaid(key));
 
   // ── Layers and charts ─────────────────────────────────────────────────────
 
@@ -248,7 +249,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
    * Over a heatmap or a cloud, the price is outlined: edged in the chart's background, read on what's under it.
    * `window`: the one window all its layers are over (`_1m`), said in its title after its measure, before the colon
-   * (see windowSaid); a place that keeps it is named so by its maker (see windowed).
+   * (see windowSaid); never in its place (see windowed).
    * @type {ChartBuilder}
    */
   const chart = (name, title, layers, options = {}) => {
@@ -367,12 +368,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
   ];
   /**
    * A whole's parts compared: their amounts stacked, then their shares of it, as areas (`[name, title]` each chart's;
-   * `window`, both's: their places keep it, see windowed). @param {[Name, string]} amounts @param {[Name, string]} shares
+   * `window`, both's, said in their titles). @param {[Name, string]} amounts @param {[Name, string]} shares
    * @param {Layer[]} layers @param {string} [window] @returns {ChartNode[]}
    */
   const parts = ([name, title], [shareName, shareTitle], layers, window = undefined) => {
-    const areas = layers.map((layer) => ({ ...layer, type: "area" })), placed = (/** @type {Name} */ n) => (window ? windowed(n, window) : n);
-    return [chart(placed(name), title, areas, { stack: { 1: "stack" }, window }), chart(placed(shareName), shareTitle, areas, { stack: { 1: "percent" }, window })];
+    const areas = layers.map((layer) => ({ ...layer, type: "area" }));
+    return [chart(name, title, areas, { stack: { 1: "stack" }, window }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window })];
   };
   /**
    * A count's title, from what it counts, as said inside a sentence ("coinjoin transactions": "Number of coinjoin
@@ -857,8 +858,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
-     * then as their shares of it ("Supply", "Supply share"). Titled by its name as shown (see compared); `window`: the one it's over (see chart: its place keeps it,
-     * see windowed); `whole`: it's a share of the group's own whole, which names the group.
+     * then as their shares of it ("Supply", "Supply share"). Titled by its name as shown (see compared); `window`: the one it's over (see chart);
+     * `whole`: it's a share of the group's own whole, which names the group.
      * @param {Name} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, shares?: boolean, level?: number, absolute?: (c: any) => any, absoluteLog?: boolean, whole?: boolean, window?: string }} [o]
      * @returns {ChartNode[]}
      */
@@ -871,22 +872,24 @@ export function studioPresets(client, facts, report = (problem) => console.error
         const known = options.known?.[placeOf(name)];
         return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window).slice(0, o.shares === false ? 1 : 2);
       }
-      const placed = window ? windowed(name, window) : name;
-      if (o.price) return [chart(placed, title, [price(), ...layers], { window })];
-      return [chart(placed, title, layers, { window, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];
+      if (o.price) return [chart(name, title, [price(), ...layers], { window })];
+      return [chart(name, title, layers, { window, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];
     };
     // (All coins' URPD (weighted as the members'): the whole the members split, or sit in; theirs, where they split it.)
     const whole = options.urpd ? HOLDERS.all.urpd : undefined;
     const groups = members.flatMap(([key]) => (key === "all" ? [] : [options.urpd?.(key)]).filter((id) => typeof id === "string"));
     const splits = Boolean(options.disjoint || options.profile);
-    /** Only partitions get a flow-share comparison: never normalize overlapping cutoffs to a false 100%. @param {string} where */
-    const shareComparisons = (where) => !splits ? [] : FLOW_SHARES.flatMap(({ flow, places: [, place], log, section: at, pick }) => at !== where ? [] : FLOW_WINDOWS.flatMap(([window]) => {
-      const total = pick(t.holders.all, window), parts = members.filter(([key, c]) => key !== "all" && byDate(pick(c, window)));
-      if (!byDate(total) || parts.length < 2) return [];
+    /**
+     * Only partitions get a flow-share comparison: never normalize overlapping cutoffs to a false 100%. Over the month,
+     * as every flow opens (the page offers its other windows, see chartWindow). @param {string} where
+     */
+    const shareComparisons = (where) => !splits ? [] : FLOW_SHARES.flatMap(({ flow, places: [, place], log, section: at, pick }) => {
+      const window = "_1m", total = pick(t.holders.all, window), parts = members.filter(([key, c]) => key !== "all" && byDate(pick(c, window)));
+      if (at !== where || !byDate(total) || parts.length < 2) return [];
       const layers = parts.map(([key, c]) => series(flowShare(pick(c, window), total), shownOf(nameOf(key).name), { color: colors[members.findIndex(([k]) => k === key)], type: "area" }));
       const said = `Share of all ${flow}`;
-      return [...compare(capitalized(flow), (c) => pick(c, window), { additive: true, shares: false, log, window }), chart(windowed(shownAs(place, said), window), compared(said), layers, { stack: { 1: "stack" }, window })];
-    }));
+      return [...compare(capitalized(flow), (c) => pick(c, window), { additive: true, shares: false, log, window }), chart(shownAs(place, said), compared(said), layers, { stack: { 1: "stack" }, window })];
+    });
     /** Its members' shares of their whole, `pick`: all coins' (or capital), else the group's, `of` (which names the group). @param {string} what @param {(c: any) => any} pick */
     const shares = (what, pick) => compare(options.of ? shownAs(`Share of all ${what}`, `Share of ${options.of.name} ${what}`) : `Share of all ${what}`, pick, { whole: Boolean(options.of) });
     const comparisons = [
@@ -1133,7 +1136,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length));
     return section(kind, [
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
-      ...list.map(([key, value], i) => chart(windowed(null, key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
+      ...list.map(([key, value], i) => chart(windowed(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
         price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }),
         // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)
         value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price ratio", { pane: 2, ...around(1) }),
@@ -1159,8 +1162,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3), ...(span === "4y" ? {} : { hidden: true }) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray", hidden: true }]),
         // (Each its own, as in the two above: up to a year as a percent, over years as a growth multiple, on a log scale.)
         ...windowsOf(m.returns).map(([key, value]) => (/y$/.test(key) && key !== "_1y"
-          ? chart(windowed(null, key), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
-          : chart(windowed(null, key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
+          ? chart(windowed(key), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
+          : chart(windowed(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
@@ -1291,7 +1294,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ...addressCharts(t.addresses),
       section("By type", [
         section("Compare", [
-          .../** @type {[string, string, (a: any) => any, string?][]} */ ([["Funded", "Funded address count by type", (a) => own(a.funded)], ["Total", "Total address count by type", (a) => a.total], ["New", "Number of new addresses by type", (a) => a.new.sum._1m, "_1m"], ["Active per block", "Average number of active addresses per block by type", (a) => a.activity.active.avg._1m, "_1m"]]).map(([name, title, pick, window]) => chart(window ? windowed(name, window) : name, title, entries(t.addresses.types).map(([key, a], i, all) => series(pick(a), client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, { color: ramp(all.length)[i] })), { log: [1], window })),
+          .../** @type {[string, string, (a: any) => any, string?][]} */ ([["Funded", "Funded address count by type", (a) => own(a.funded)], ["Total", "Total address count by type", (a) => a.total], ["New", "Number of new addresses by type", (a) => a.new.sum._1m, "_1m"], ["Active per block", "Average number of active addresses per block by type", (a) => a.activity.active.avg._1m, "_1m"]]).map(([name, title, pick, window]) => chart(name, title, entries(t.addresses.types).map(([key, a], i, all) => series(pick(a), client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, { color: ramp(all.length)[i] })), { log: [1], window })),
         ]),
         ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, client.SPENDABLE_TYPE_NAMES[key]?.short ?? key))),
       ]),
@@ -1463,15 +1466,15 @@ export function studioPresets(client, facts, report = (problem) => console.error
         section("Protocols", [
           section("Compare", [
             ...parts(["Outputs", "Number of OP_RETURN outputs by protocol"], ["Output share", "Share of OP_RETURN outputs by protocol"], entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.outputCount.sum._1m, protocolName(key), { color: ramp(all.length)[i] })), "_1m"),
-            chart(windowed("Transaction share", "_1m"), "Share of transactions by OP_RETURN protocol", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.txShare._1m, protocolName(key), { color: ramp(all.length)[i] })), { absolute: entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.txCount.sum._1m, protocolName(key), { color: ramp(all.length)[i] })), window: "_1m" }),
+            chart("Transaction share", "Share of transactions by OP_RETURN protocol", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.txShare._1m, protocolName(key), { color: ramp(all.length)[i] })), { absolute: entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.txCount.sum._1m, protocolName(key), { color: ramp(all.length)[i] })), window: "_1m" }),
           ]),
           ...entries(t.opReturn.protocols).map(([key, node]) => section(protocolName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${protocolName(key)}`))),
         ]),
         section("Policies", [
           // (They overlap, oversized and several outputs both beyond the standard before v30: lines.)
           section("Compare", [
-            chart(windowed("Transaction share", "_1m"), "Share of transactions by OP_RETURN policy", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.txShare._1m, policyName(key), { color: ramp(all.length)[i] })), { absolute: entries(t.opReturn.policies).map(([key, node], i, all) => series(node.txCount.sum._1m, policyName(key), { color: ramp(all.length)[i] })), window: "_1m" }),
-            chart(windowed("Data", "_1m"), "OP_RETURN data by policy", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.dataBytes.sum._1m, policyName(key), { color: ramp(all.length)[i] })), { log: [1], window: "_1m" }),
+            chart("Transaction share", "Share of transactions by OP_RETURN policy", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.txShare._1m, policyName(key), { color: ramp(all.length)[i] })), { absolute: entries(t.opReturn.policies).map(([key, node], i, all) => series(node.txCount.sum._1m, policyName(key), { color: ramp(all.length)[i] })), window: "_1m" }),
+            chart("Data", "OP_RETURN data by policy", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.dataBytes.sum._1m, policyName(key), { color: ramp(all.length)[i] })), { log: [1], window: "_1m" }),
           ]),
           ...entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`))),
         ]),
@@ -1633,7 +1636,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     return [
       section("Compare", [
         ...parts([What, `Number of ${what} by type`], [`${What.slice(0, -1)} share`, `Share of ${what} by type`], list.map(([key, node], i) => series(node.count.sum._1m, typeName(key), { color: colors[i] })), "_1m"),
-        chart(windowed("Transaction share", "_1m"), `Share of transactions ${doing} each ${what.slice(0, -1)} type`, list.map(([key, node], i) => series(node.txShare._1m, typeName(key), { color: colors[i] })), { absolute: list.map(([key, node], i) => series(node.txCount.sum._1m, typeName(key), { color: colors[i] })), window: "_1m" }),
+        chart("Transaction share", `Share of transactions ${doing} each ${what.slice(0, -1)} type`, list.map(([key, node], i) => series(node.txShare._1m, typeName(key), { color: colors[i] })), { absolute: list.map(([key, node], i) => series(node.txCount.sum._1m, typeName(key), { color: colors[i] })), window: "_1m" }),
         ...(values.length ? parts(["Value", `Value sent to ${what} by type`], ["Value share", `Share of value sent to ${what} by type`], values, "_1m") : []),
       ]),
       ...list.filter(([key]) => !apart.includes(key)).map(([key, node]) => section(typeName(key), [
@@ -1892,14 +1895,14 @@ export function studioPresets(client, facts, report = (problem) => console.error
     return [
       section("Compare", [
         // (The others together, what the rest leaves: the whole accounted for.)
-        chart(windowed("Share", "_1m"), "Mining pools' share of blocks", [
+        chart("Share", "Mining pools' share of blocks", [
           ...major.map(([, node, name], i) => series(node.blockShare._1m, name, { color: colors[i], type: "area" })),
           { formula: `100 - (${major.map(([, node]) => node.blockShare._1m.name).join(" + ")})`, label: "Other pools", format: "percent", color: "gray", type: "area" },
         ], { stack: { 1: "stack" }, absolute: [
           ...major.map(([, node, name], i) => series(node.blockCount.sum._1m, name, { color: colors[i], type: "area" })),
           { formula: `${blocks.count.sum._1m.name} - (${major.map(([, node]) => node.blockCount.sum._1m.name).join(" + ")})`, label: "Other pools", format: "number", color: "gray", type: "area" },
         ], window: "_1m" }),
-        chart(windowed("Hash rate", "_1m"), "Mining pools' hash rate", major.map(([, node, name], i) => series(node.hashrate._1m, name, { color: colors[i] })), { log: [1], window: "_1m" }),
+        chart("Hash rate", "Mining pools' hash rate", major.map(([, node, name], i) => series(node.hashrate._1m, name, { color: colors[i] })), { log: [1], window: "_1m" }),
       ]),
       // (The day's largest pools together, by the blocks they found that day, each pool apart and with each group of
       // pools (those sharing one's block templates) as one: compared, then each count of them, both ways.)

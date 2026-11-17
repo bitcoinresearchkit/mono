@@ -5,7 +5,7 @@ import XKCD from "/modules/xkcd-colors/index.js";
 import { createChart, press, picture as chartPicture, Candles, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { AGES, HOLDERS, capitalized, dimensionBand, holderName } from "/studio/words.js";
+import { AGES, HOLDERS, capitalized, dimensionBand, holderName, windowAdjective, windowDays, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { catalogWalk } from "/studio/catalog-walk.js";
@@ -106,12 +106,12 @@ import {
   dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fillMenu, fitted, fitTitle,
   fixedOrigin, fromLink, HOVER, keepCarriedView, leaveTitle, letGo, linkLookOf, linksOf, measureLegends, menuGoBack,
   menuHidden, menuModal, NO_INTERVAL, onRail, openedImages, ownerNow, placeFixed, placeMenu, portable, qrCode, railed,
-  readChart, renderInterval, renderRanges, sameChart, scrolled, setApart, setRange, settleMenu, shareLink, shownAs,
+  readChart, renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setRange, settleMenu, shareLink, shownAs,
   showSubmenu, slideFrom, stepInterval, subRows, supportedIntervals, switchInterval, titleReads, TOO_SMALL, toSketch,
   twinOf, typedFrom, unexpand, UNREADABLE, validate, viewDates, walkMenu,
 } from "/studio/menus.js";
 import {
-  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset, fullOn,
+  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, formerPresets, freshPreset, fullOn,
   idsNow, isLinkHash, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu, ordersOf,
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
@@ -1952,6 +1952,71 @@ function followPool(layer) {
   const names = new Map([...seriesNamed(layer.formula)].flatMap((name) => (poolSeries(name) === name ? [] : [[name, poolSeries(name)]])));
   layer.formula = renamed(layer.formula, names);
   if (layer.paths) layer.paths = Object.fromEntries(Object.entries(layer.paths).map(([name, path]) => [poolSeries(name), poolPath(path)]));
+}
+
+// ── Windows ───────────────────────────────────────────────────────────────
+/** A catalog step that is a trailing window (`_24h`, `_1m`, `_200d`), as the client keys them. */
+const WINDOW_STEP = /^_\d+[hdwmy]$/;
+/**
+ * A series' trailing window, by its place in the catalog (its last window step: never by its name, which puts it
+ * anywhere, `market_cap_delta_1y_percent`), and the series at each window beside it; none, null.
+ * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
+ */
+function seriesWindow(name) {
+  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex((step) => WINDOW_STEP.test(step)) : -1;
+  if (!steps || i < 0) return null;
+  const at = new Map(Object.keys(nodeAt(steps.slice(0, i)) ?? {}).filter((key) => WINDOW_STEP.test(key)).flatMap((key) => ((other) => (other ? [[key, other]] : []))(nameAt([...steps.slice(0, i), key, ...steps.slice(i + 1)].join(".")))));
+  return { window: steps[i], at };
+}
+/** The series a chart's layers read (their own, their formulas'). @param {Chart} doc */
+const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [layer.series] : []), ...(layer.formula ? seriesNamed(layer.formula) : [])]);
+/**
+ * A chart's trailing window: the one every windowed series in it is over, and the windows they all have, shortest
+ * first; none (no windowed series, two windows, one alone), null. The catalog read first where a name may hold a
+ * window (indexed at once, if it isn't yet: a chart opens over the right series).
+ * @param {Chart} doc @returns {{ window: string, offered: string[] } | null}
+ */
+function chartWindow(doc) {
+  const names = seriesOf(doc);
+  if (!names.some((name) => /_\d+[hdwmy](?:_|$)/.test(name))) return null;
+  indexCatalog();
+  let window = "", offered = /** @type {string[] | null} */ (null);
+  for (const name of names) {
+    const found = seriesWindow(name);
+    if (!found) continue;
+    if (window && found.window !== window) return null;
+    window = found.window;
+    offered = (offered ?? [...found.at.keys()]).filter((key) => found.at.has(key));
+  }
+  return window && offered && offered.length > 1 ? { window, offered: offered.sort((a, b) => windowDays(a) - windowDays(b)) } : null;
+}
+/**
+ * A chart over another window (see chartWindow): each series at it, by its place (its path learned again), and the
+ * window as its title and labels say it (see said) said anew. A chart
+ * with no window, or one it doesn't offer, as it is. @param {Chart} doc @param {string} to
+ */
+function atWindow(doc, to) {
+  const now = chartWindow(doc);
+  if (!now || now.window === to || !now.offered.includes(to)) return doc;
+  const swap = (/** @type {string} */ name) => seriesWindow(name)?.at.get(to) ?? name;
+  // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
+  // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
+  // band's "1 day to under 1 week old".)
+  const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`), windowSaid(to)).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
+  for (const layer of doc.layers) {
+    if (layer.series) {
+      layer.series = swap(layer.series);
+      delete layer.path;
+    }
+    if (layer.formula) {
+      layer.formula = renamed(layer.formula, new Map(seriesNamed(layer.formula).map((name) => [name, swap(name)])));
+      delete layer.paths;
+    }
+    if (layer.label) layer.label = said(layer.label);
+  }
+  doc.title = said(doc.title);
+  normalize(doc);
+  return doc;
 }
 
 /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
@@ -5058,7 +5123,7 @@ glideRows(/** @type {HTMLElement} */ (document.querySelector(".side-foot")), ".n
 glideRows(/** @type {HTMLElement} */ ($("undo").parentElement), ".head-actions > .cap");
 glideRows(/** @type {HTMLElement} */ (document.querySelector(".home-undo")), ".cap");
 glideRows($("inspector"), ".layer-actions > .nav-item");
-glideRows($("stage-foot"), "#interval, #ranges > button");
+glideRows($("stage-foot"), "#interval, #window, #ranges > button");
 glideRows(/** @type {HTMLElement} */ (document.querySelector(".palette-foot")), ".foot-action");
 glideRows($("layer-list"), ".layer-row");
 glideRows($("belt"), ".belt :is(.cap, .btn)");
@@ -7270,7 +7335,7 @@ addEventListener("popstate", (event) => {
   const route = ROUTED ? routeOf(location.pathname) : null, routed = route && "preset" in route ? route.preset : -1;
   if (routed >= 0 && !home && chartPreset(chart) === routed && `${location.pathname}${location.hash}` === `${BASE}${presetLink(chart)}`) return void showAddress();
   const preset = typeof event.state?.chart === "string" ? presetById(event.state.chart) : -1;
-  const doc = routed >= 0 ? presetByAddress(routed) : chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : undefined);
+  const doc = routed >= 0 ? presetByAddress(routed, route && "window" in route ? route.window : undefined) : chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : undefined);
   if (!doc) {
     // (A preview closed since: said, and how it comes back.)
     const closed = closedPreviews.get(event.state?.chart);
@@ -8167,6 +8232,7 @@ function loadPresets() {
     // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
     await aFrame();
     presets = list;
+    formerPresets();
     // (Its tree: see presetTree.)
     presetTree();
     // (What a search reads (see searchNow), then their words each once, for a slip in a search (see slipsOf), and their
@@ -8202,7 +8268,7 @@ function loadPresets() {
       pendingRoute = "";
       const { route: _, ...state } = history.state ?? {};
       if (here) history.replaceState(state, "");
-      if (here && route) "preset" in route ? go(presetByAddress(route.preset)) : goTo({ path: route.path });
+      if (here && route) "preset" in route ? go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
       else if (here) missedRoute(asked);
       else if (!route) notice(missedSaid(asked));
     }
@@ -8258,11 +8324,12 @@ let pendingRoute = "";
 // ── The presets, edited where they are ─────────────────────────────────────
 /**
  * A preset opened at its address (a visit, not a step back): what the address says of how to look at it, else as it
- * opens, whatever view was left on it here (whoever follows a link sees what it says). Edited here: the preset as
- * made all the same, as a preview, yours untouched and a tap away. @param {number} i
+ * opens, whatever view was left on it here (whoever follows a link sees what it says); `window`, an old address's
+ * (see routeOf), unless its link says one. Edited here: the preset as
+ * made all the same, as a preview, yours untouched and a tap away. @param {number} i @param {string} [window]
  */
-function presetByAddress(i) {
-  const look = linkLookOf(new URLSearchParams(location.hash.slice(1))), had = editedPreset(i);
+function presetByAddress(i, window = undefined) {
+  const look = linkLookOf(new URLSearchParams(location.hash.slice(1)), window), had = editedPreset(i);
   if (had && presetEdited(had)) {
     const made = freshPreset(i);
     takeLinkLook(made, look, presetLook(i));
@@ -10718,6 +10785,10 @@ $("menu").addEventListener("keydown", (event) => {
 document.addEventListener("pointerdown", (event) => {
   if (!$("menu").hidden && event.target !== menuScrim && !event.composedPath().includes($("menu")) && !submenus.some((sub) => event.composedPath().includes(sub)) && closest(event, "button") !== ownerNow()) hideMenu();
 });
+$("window").addEventListener("click", (event) => {
+  const found = chartWindow(chart);
+  if (found) showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(4, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">Each value is its series over the ${windowSaid(found.window).replace(/^1 /, "")} before it.</div>`, ({ window }) => switchWindow(window));
+});
 $("interval").addEventListener("click", (event) => {
   const supported = supportedIntervals();
   showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
@@ -11854,6 +11925,7 @@ function refresh(redraw = true, refit = false) {
   fitTitle();
   syncUndo();
   renderInterval();
+  renderWindow();
   renderRanges();
   $("empty").hidden = chart.layers.length > 0;
   if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
@@ -12754,10 +12826,13 @@ const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run
 /**
  * A chart as a link's fields say to look at it, over what it holds; what they don't say, as `made` opens (none: as it
  * is). A range or dates said, or as made, no view left on it from before.
- * @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look @param {{ index: string, range: string }} [made]
+ * @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look @param {{ index: string, range: string, window?: string }} [made]
  */
 function takeLinkLook(doc, look, made) {
   doc.range = look.range ?? made?.range ?? doc.range;
+  // (A window it doesn't offer, as if it weren't said.)
+  const offered = chartWindow(doc)?.offered ?? [], window = (look.window && windowNamed(look.window, offered)) || made?.window;
+  if (window) atWindow(doc, window);
   // (An interval the picker wouldn't offer (a layer's ceiling, a formula's needs, a series' intervals: see
   // supportedIntervals), as if it weren't said.)
   doc.index = (look.index && supportedIntervals(doc)(look.index) ? look.index : undefined) ?? made?.index ?? doc.index;
@@ -13279,7 +13354,7 @@ async function start() {
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
   if (asked) await loadPresets().catch(() => {});
   const routed = asked ? routeOf(asked) : null;
-  chart = (routed && "preset" in routed ? presetByAddress(routed.preset) : resumed) || chart;
+  chart = (routed && "preset" in routed ? presetByAddress(routed.preset, routed.window) : resumed) || chart;
   // (The empty chart a first visit makes in place of none, not wanted under a preset: let go of.)
   if (first && routed && "preset" in routed) {
     const draft = previewCharts.findIndex((doc) => drafts.has(doc));
@@ -13346,7 +13421,7 @@ export {
   HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_ROWS, HEAT_TILE_COLUMNS, HEAT_WEIGHTS, heatAt, heatCohort, heatKnown,
   heatLike, heldUpright, hexToOklch, hideBelt, hideDrawings, hideMenu, hideSubmenu, hideText, histories, historyFor,
   holding, hollowOf, home, homeAt, homeScroll, homeScroller, hoverTime, humanize, humanizeKey, iconNames, ICONS,
-  importCharts, IN_PERCENT, indexAt, indexCatalog, inLibrary, inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL,
+  atWindow, chartWindow, importCharts, IN_PERCENT, indexAt, indexCatalog, inLibrary, inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL,
   INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isDeleted, isLeaf, isNamed, isOhlc,
   isPreview, isSeriesName, isView, isYours, keepChart, keepDrawing, KEEPS_UNIT, keepSidePresets, keepsLeaving,
   keepStretch, kept, KEPT_CHUNKS, keptAsEdited, KEY_STEPS, keyAway, keycaps, keysNow, keyText, keyTime, keyValue,
