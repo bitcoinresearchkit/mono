@@ -92,6 +92,11 @@ impl<'de> Deserialize<'de> for RangeIndex {
             if secs < 0 || secs > u32::MAX as i64 {
                 return Err(Error::custom(format!("timestamp out of range: {s}")));
             }
+            // The one spelling of an instant, as answers print it: no offset, lowercase or
+            // trailing zeros, each of which would be another cache entry for the same answer.
+            if ts.to_string() != s {
+                return Err(Error::custom(format!("timestamp `{s}` is spelled `{ts}`")));
+            }
             return Ok(Self::Timestamp(ts));
         }
         Err(Error::custom(format!(
