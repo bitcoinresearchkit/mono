@@ -4,12 +4,12 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::PartsPerMillionSigned64;
-use bitview_urpd::ReplayInputs;
+use bitview_urpd::UrpdHistory;
 use bitview_vecs::{LazyPercentPerBlock, LazyRollingSumAmountFromHeight};
 
 #[derive(Clone, Copy)]
 pub struct Dependencies<'a> {
-    pub urpd: ReplayInputs<'a>,
+    pub urpd: &'a UrpdHistory,
     pub indexer: &'a Indexer,
     pub mappings: &'a MappingsVecs,
     pub price: &'a PriceVecs,

@@ -2,10 +2,9 @@ use std::ops::{AddAssign, Range, SubAssign};
 
 use bitview_compute::{WRITE_INTERVAL, write_chunks, write_locked};
 use bitview_traversable::Traversable;
-use bitview_urpd::ReplayInputs;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{BLOCKS_PER_HALVING, Cents, CentsSats, Sats};
+use brk_types::{BLOCKS_PER_HALVING, Cents, CentsSats, Height, Sats};
 use rayon::{current_num_threads, prelude::*};
 use statedb::Reader;
 use vecdb::ReadableVec;
@@ -93,7 +92,8 @@ impl EntrySupply {
         &mut self,
         range: &Range<usize>,
         modes: &Modes<ModeVecs>,
-        inputs: ReplayInputs<'_>,
+        history: &Reader<'_>,
+        prices: &dyn ReadableVec<Height, Cents>,
     ) -> Result<()> {
         let index = |height: usize| height.max(FLOOR_SUPPLY_START) - FLOOR_SUPPLY_START;
         self.prices.truncate(index(range.start));
@@ -104,7 +104,7 @@ impl EntrySupply {
             range.end.max(FLOOR_SUPPLY_START),
         );
         self.prices
-            .extend(inputs.prices.collect_range_dyn(from, end));
+            .extend(prices.collect_range_dyn(from, end));
         self.bands.resize(index(end), Modes::default());
         // One mode's floors at a time bounds the memory a long rebuild takes.
         for &mode in ModeId::ALL {
@@ -124,7 +124,7 @@ impl EntrySupply {
         if self.held_end != range.start {
             self.held = Modes::default();
             if range.start > FLOOR_SUPPLY_START {
-                let state = inputs.history.state_at(range.start)?;
+                let state = history.state_at(range.start)?;
                 let amounts = &state.amounts()[FLOOR_SUPPLY_START..range.start];
                 for ((amount, &price), bands) in amounts.iter().zip(&self.prices).zip(&self.bands) {
                     for held in held_in(&mut self.held, bands) {

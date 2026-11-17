@@ -1,4 +1,4 @@
-use std::{array, io, path::Path};
+use std::{array, io, ops::Range, path::Path};
 
 use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId};
 use bitview_compute::WRITE_INTERVAL;
@@ -70,6 +70,31 @@ impl UrpdHistory {
         let mut urpd = UrpdCells::default();
         urpd.hash = self.cells.restore(end, |key, change| urpd.add(key, change))?;
         Ok(urpd)
+    }
+
+    /// Whether `cells`, after `end` blocks, follow the recorded chain.
+    pub(crate) fn follows(&self, cells: &UrpdCells, end: usize) -> Result<bool> {
+        Ok(end <= self.len() && self.cells.hash(end)? == cells.hash)
+    }
+
+    /// Moves `urpd`, the cells after `range.start` blocks, through each block of `range`,
+    /// handing `each` the block's height and the cells after it.
+    pub(crate) fn walk(
+        &self,
+        range: Range<usize>,
+        urpd: &mut UrpdCells,
+        mut each: impl FnMut(Height, &UrpdCells) -> Result<()>,
+    ) -> Result<()> {
+        let mut height = range.start;
+        self.cells.blocks(range, |hash, changes| {
+            for &(key, change) in changes {
+                urpd.add(key, change)?;
+            }
+            urpd.hash = hash;
+            each(Height::from(height), urpd)?;
+            height += 1;
+            Ok(())
+        })
     }
 
     /// Records blocks `start..` through the end of `history` (earlier ones are kept), from its
@@ -192,6 +217,9 @@ fn round(prices: &[Cents]) -> Result<Vec<u32>> {
 pub struct UrpdCells {
     amounts: [Vec<u64>; AGE_RANGE_COUNT],
     occupied: Vec<u32>,
+    /// Past the highest place ever occupied: prices above it have never held sats, so a
+    /// projection stops there (about 37,000 of the 64,000 places at today's prices).
+    top: usize,
     hash: [u8; 32],
 }
 
@@ -200,6 +228,7 @@ impl Default for UrpdCells {
         Self {
             amounts: array::from_fn(|_| vec![0; PRICE_PLACES]),
             occupied: vec![0; PRICE_PLACES],
+            top: 0,
             hash: [0; 32],
         }
     }
@@ -222,6 +251,7 @@ impl UrpdCells {
             self.occupied[place] &= !(1 << age);
         } else {
             self.occupied[place] |= 1 << age;
+            self.top = self.top.max(place + 1);
         }
         Ok(())
     }
@@ -237,14 +267,16 @@ impl UrpdCells {
         })
     }
 
-    /// Projects all requested weights together, as [`crate::OriginUrpd::project`] does.
+    /// Projects all requested weights together, visiting each occupied price's ages once, in
+    /// price order. Weighted entries keep the weights' order, a missing weight gives zero, and
+    /// rounding happens after combining every age at a price.
     pub fn project<'a, const N: usize, const C: usize>(
         &'a self,
         weights: &[Option<&AgeRange<f64>>; N],
         cohorts: [&[AgeRangeId]; C],
     ) -> impl Iterator<Item = ProjectedBucket<N, C>> + 'a + use<'a, N, C> {
         let projection = Projection::new(weights, cohorts);
-        (self.occupied.iter().enumerate())
+        (self.occupied[..self.top].iter().enumerate())
             .filter(|&(_, &ages)| ages != 0)
             .filter_map(move |(place, &ages)| {
                 projection.bucket(place_price(place), &self.amounts, place, ages)

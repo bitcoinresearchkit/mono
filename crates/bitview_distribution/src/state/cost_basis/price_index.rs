@@ -110,7 +110,7 @@ impl From<CentsCompact> for BucketedPrice {
     fn from(price: CentsCompact) -> Self {
         Self {
             price,
-            // Round in the compact domain, as OriginUrpd does at the finite ceiling.
+            // Round in the compact domain, as the URPD history does at the finite ceiling.
             bucket: rounded_cents_to_bucket(price.round_to_significant(DIGITS).into()) as u32,
         }
     }

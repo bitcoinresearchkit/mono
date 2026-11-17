@@ -13,44 +13,46 @@ use super::{
     CostBasisVecs,
     metric_buckets::{CohortBlock, MetricBuckets},
 };
-use crate::{COMPUTE_VERSION, Replay, ReplayInputs};
+use crate::{COMPUTE_VERSION, UrpdHistory, UrpdWalk};
 
 const COHORTS: usize = AgeAggregateId::ALL.len();
 
-/// Replays the weighted URPD over `recompute_from..` and pushes every cohort's cost basis,
+/// Walks the weighted URPD over `recompute_from..` and pushes every cohort's cost basis,
 /// `cohorts` in `AgeAggregateId::ALL` order, then stores `spot` divided by each mean price.
 #[allow(clippy::too_many_arguments)]
 pub fn compute_cost_basis<W: VecValue>(
-    replay: &mut Replay,
+    walk: &mut UrpdWalk,
     mut cohorts: [&mut CostBasisVecs; COHORTS],
     version: Version,
     recompute_from: usize,
-    inputs: ReplayInputs<'_>,
+    urpd: &UrpdHistory,
     weights: &AgeRange<&(impl ReadableVec<Height, W> + Sync)>,
     supplies: &AgeRange<&(impl ReadableVec<Height, Sats> + Sync)>,
-    spot: &impl ReadableVec<Height, Cents>,
+    spot: &(impl ReadableVec<Height, Cents> + Sync),
     exit: &Exit,
 ) -> Result<()>
 where
     f64: From<W>,
 {
-    let rows = Inputs::new(
-        version + COMPUTE_VERSION,
-        iter::once(inputs.prices as &dyn AnyVec)
+    let mut inputs = Inputs::new(
+        version + COMPUTE_VERSION + urpd.version(),
+        iter::once(spot as &dyn AnyVec)
             .chain(weights.iter().map(|v| *v as &dyn AnyVec))
             .chain(supplies.iter().map(|v| *v as &dyn AnyVec)),
-    )
-    .prepare(
+    );
+    inputs.len = inputs.len.min(urpd.len());
+    let rows = inputs.prepare(
         stored_vecs_mut(&mut cohorts).collect::<Vec<_>>(),
         recompute_from,
         exit,
     )?;
     let end = rows.end;
     let age_ranges: [_; COHORTS] = array::from_fn(|i| AgeAggregateId::ALL[i].age_range_ids());
-    replay.map(
+    walk.map(
         rows,
-        inputs,
+        urpd,
         |blocks| Worker {
+            spot: spot.bounded_cursor_at(blocks.start, blocks.end),
             supplies: AgeRange::from_fn(|age| {
                 age.select(supplies)
                     .bounded_cursor_at(blocks.start, blocks.end)
@@ -61,7 +63,8 @@ where
             }),
             buckets: MetricBuckets::default(),
         },
-        |worker, height, close, source| {
+        |worker, height, cells| {
+            let close = worker.spot.get(usize::from(height)).expect("validated spot range");
             let supplies = AgeRange::try_from_fn(|age| {
                 age.select_mut(&mut worker.supplies)
                     .get(usize::from(height))
@@ -76,7 +79,7 @@ where
             };
             worker
                 .buckets
-                .update(source.project(&[Some(&weights)], age_ranges), close);
+                .update(cells.project(&[Some(&weights)], age_ranges), close);
             Ok(Some(worker.buckets.block()))
         },
         |height, block| {
@@ -122,7 +125,8 @@ fn stored_vecs_mut<'a>(
 }
 
 /// One segment's cursors and bucket buffer.
-struct Worker<S, W> {
+struct Worker<P, S, W> {
+    spot: P,
     supplies: AgeRange<S>,
     weights: AgeRange<W>,
     buckets: MetricBuckets,

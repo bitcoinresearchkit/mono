@@ -12,7 +12,7 @@ pub use has::HasCoinflow;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use bitview_urpd::Replay;
+use bitview_urpd::UrpdWalk;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -27,7 +27,7 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    urpd_replay: M::WriteOnly<Replay>,
+    urpd_walk: M::WriteOnly<UrpdWalk>,
 
     /// Coinflow estimates how likely UTXOs of each age are to be spent, using
     /// observed age-specific spending rates and a fitted declining tail for

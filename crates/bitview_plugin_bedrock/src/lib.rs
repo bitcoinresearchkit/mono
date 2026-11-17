@@ -22,7 +22,7 @@ pub use dependencies::Dependencies;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use bitview_urpd::Replay;
+use bitview_urpd::UrpdWalk;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -49,7 +49,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     calibration: M::WriteOnly<Option<Calibration>>,
-    replay: M::WriteOnly<Replay>,
+    walk: M::WriteOnly<UrpdWalk>,
     entry_supply: M::WriteOnly<EntrySupply>,
 
     #[traversable(flatten)]

@@ -79,7 +79,7 @@ impl Vecs {
             db,
             modes,
             calibration: None,
-            replay: Default::default(),
+            walk: Default::default(),
             entry_supply: Default::default(),
         };
         STORAGE.finalize_database(&this.db)?;

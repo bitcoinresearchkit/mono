@@ -23,7 +23,7 @@ impl Vecs {
         let aggregate = AggregateVecs::import(&db, version, mappings, &spot_price)?;
         let this = Self {
             db,
-            urpd_replay: Default::default(),
+            urpd_walk: Default::default(),
             age_ranges,
             aggregate,
         };

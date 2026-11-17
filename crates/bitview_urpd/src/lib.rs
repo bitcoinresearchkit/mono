@@ -19,14 +19,7 @@ pub use density_band::DensityBand;
 pub use metrics::{CostBasisVecs, compute_cost_basis};
 pub use projected_bucket::ProjectedBucket;
 
-mod origin_urpd;
-pub use origin_urpd::OriginUrpd;
-
 mod urpd_history;
+mod urpd_walk;
 pub use urpd_history::{UrpdCells, UrpdHistory};
-
-mod replay;
-mod replay_inputs;
-mod replay_state;
-pub use replay::Replay;
-pub use replay_inputs::ReplayInputs;
+pub use urpd_walk::UrpdWalk;

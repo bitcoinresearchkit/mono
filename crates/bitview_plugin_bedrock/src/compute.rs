@@ -7,10 +7,11 @@ use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
-use bitview_urpd::{COMPUTE_VERSION as URPD_COMPUTE_VERSION, ReplayInputs};
+use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
 use brk_error::Result;
-use brk_types::Version;
+use brk_types::{Cents, Height, Version};
 use log::info;
+use statedb::Reader;
 use vecdb::{AnyVec, ReadableVec};
 
 use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeVecs, Vecs};
@@ -25,6 +26,8 @@ impl ComputePlugin for Vecs {
     ) -> Result<()> {
         let Dependencies {
             urpd,
+            history,
+            price,
             indexer,
             age,
             holders,
@@ -32,6 +35,7 @@ impl ComputePlugin for Vecs {
             coinflow,
         } = dependencies;
 
+        let prices = &price.spot.cents.height;
         let cointime_wakefulness = cointime.age_ranges.urpd_weight_sources();
         let age_supplies = age.age_supplies();
         let coinflow_mobility = coinflow.age_ranges.urpd_weight_sources();
@@ -39,9 +43,9 @@ impl ComputePlugin for Vecs {
         let cointime_loss_share = cointime.all_awake_supply_in_loss_share();
         let coinflow_loss_share = coinflow.all_mobile_supply_in_loss_share();
         let mut inputs = Inputs::new(
-            urpd.timestamps.version() + URPD_COMPUTE_VERSION,
+            urpd.version() + URPD_COMPUTE_VERSION,
             [
-                urpd.prices as &dyn AnyVec,
+                prices as &dyn AnyVec,
                 age.all_supply(),
                 raw_loss_share,
                 cointime_loss_share,
@@ -52,12 +56,12 @@ impl ComputePlugin for Vecs {
             .chain(cointime_wakefulness.iter().map(|vec| *vec as &dyn AnyVec))
             .chain(coinflow_mobility.iter().map(|vec| *vec as &dyn AnyVec)),
         );
-        inputs.len = inputs.len.min(urpd.timestamps.len());
+        inputs.len = inputs.len.min(urpd.len());
         let source_version = inputs.version;
         let range = inputs.prepare(
             self.modes
                 .iter_mut()
-                .flat_map(ModeVecs::replay_stored_mut)
+                .flat_map(ModeVecs::walk_stored_mut)
                 .collect::<Vec<_>>(),
             usize::from(indexer.compute_start().height),
             context.exit(),
@@ -84,7 +88,7 @@ impl ComputePlugin for Vecs {
                 )
             });
         // Thresholds follow the stored loss shares alone, so one sequential pass fixes them
-        // and the URPD evaluation can replay in parallel.
+        // and the URPD evaluation can walk in parallel.
         let thresholds = {
             let mut raw = raw_loss_share.bounded_cursor_at(start, end);
             let mut cointime = cointime_loss_share.bounded_cursor_at(start, end);
@@ -103,8 +107,8 @@ impl ComputePlugin for Vecs {
                 .collect::<Vec<_>>()
         };
         let mut last_progress = Instant::now();
-        let mut replay = mem::take(&mut self.replay);
-        replay.map(
+        let mut walk = mem::take(&mut self.walk);
+        walk.map(
             start..end,
             urpd,
             |blocks| {
@@ -123,7 +127,7 @@ impl ComputePlugin for Vecs {
                     scratch: Vec::new(),
                 }
             },
-            |worker, height, _, source| {
+            |worker, height, cells| {
                 let index = usize::from(height);
                 let thresholds = &thresholds[index - start];
                 let mut result = BlockResult::from_thresholds(thresholds);
@@ -138,7 +142,7 @@ impl ComputePlugin for Vecs {
                     let cf_weights =
                         collect_cohort_weights(height, &mut worker.coinflow, &supplies);
                     result.evaluate(
-                        source,
+                        cells,
                         &[ct_weights.as_ref(), cf_weights.as_ref()],
                         &mut worker.scratch,
                     );
@@ -163,7 +167,7 @@ impl ComputePlugin for Vecs {
                 }
                 if end_block.is_multiple_of(WRITE_INTERVAL) || end_block == end {
                     write_locked(
-                        self.modes.iter_mut().flat_map(ModeVecs::replay_stored_mut),
+                        self.modes.iter_mut().flat_map(ModeVecs::walk_stored_mut),
                         context.exit(),
                     )?;
                 }
@@ -171,18 +175,19 @@ impl ComputePlugin for Vecs {
             },
         )?;
         self.calibration = Some(calibration);
-        self.replay = replay;
-        self.compute_entry_supply(start, urpd, context)
+        self.walk = walk;
+        self.compute_entry_supply(start, history, prices, context)
     }
 }
 
 impl Vecs {
-    /// The floor bands' holdings, from the floors the replay stored: their own group, so each
+    /// The floor bands' holdings, from the floors the walk stored: their own group, so each
     /// resumes from where it was written.
     fn compute_entry_supply(
         &mut self,
         max_from: usize,
-        urpd: ReplayInputs<'_>,
+        history: &Reader<'_>,
+        prices: &dyn ReadableVec<Height, Cents>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let floors = Inputs::new(
@@ -191,7 +196,7 @@ impl Vecs {
                 .iter()
                 .flat_map(|vecs| vecs.prices_stored.floor.iter())
                 .map(|vec| vec as &dyn AnyVec)
-                .chain([urpd.prices as &dyn AnyVec]),
+                .chain([prices as &dyn AnyVec]),
         );
         let range = floors.prepare(
             self.modes
@@ -202,8 +207,8 @@ impl Vecs {
             context.exit(),
         )?;
         let mut entry_supply = mem::take(&mut self.entry_supply);
-        entry_supply.resume(&range, &self.modes, urpd)?;
-        entry_supply.compute(range, urpd.history, &mut self.modes, context.exit())?;
+        entry_supply.resume(&range, &self.modes, history, prices)?;
+        entry_supply.compute(range, history, &mut self.modes, context.exit())?;
         self.entry_supply = entry_supply;
         Ok(())
     }

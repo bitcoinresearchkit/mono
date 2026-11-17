@@ -1,5 +1,5 @@
 use crate::{columns, journal::Journal, journal_reader::JournalReader, util::invalid};
-use std::{io::Result, path::Path};
+use std::{io::Result, ops::Range, path::Path};
 
 /// Blocks between checkpoints: a restore reads one and fewer than this many blocks' changes.
 const CHECKPOINT: usize = 250;
@@ -129,14 +129,43 @@ impl CellHistory {
         for (&key, &value) in keys.iter().zip(&values) {
             add(key, i64::try_from(value).map_err(|_| invalid("cell exceeds i64"))?)?;
         }
-        let mut changes = JournalReader::new(&self.changes, end);
-        for height in at * CHECKPOINT..end {
-            hash = decode(changes.read(height)?.1, &mut keys, &mut values)?;
-            for (&key, &change) in keys.iter().zip(&values) {
-                add(key, unzigzag(change))?;
-            }
-        }
+        self.blocks(at * CHECKPOINT..end, |block, changes| {
+            hash = block;
+            changes.iter().try_for_each(|&(key, change)| add(key, change))
+        })?;
         Ok(hash)
+    }
+    /// Hands `block` each block of `range` in order: its hash and its changes by key.
+    pub fn blocks<E: From<std::io::Error>>(
+        &self,
+        range: Range<usize>,
+        mut block: impl FnMut([u8; 32], &[(u32, i64)]) -> std::result::Result<(), E>,
+    ) -> std::result::Result<(), E> {
+        if range.end > self.len() {
+            return Err(invalid("cells past the recorded blocks").into());
+        }
+        let (mut keys, mut values, mut changes) = (Vec::new(), Vec::new(), Vec::new());
+        let mut reader = JournalReader::new(&self.changes, range.end);
+        for height in range {
+            let hash = decode(reader.read(height)?.1, &mut keys, &mut values)?;
+            changes.clear();
+            changes.extend(keys.iter().zip(&values).map(|(&key, &change)| (key, unzigzag(change))));
+            block(hash, &changes)?;
+        }
+        Ok(())
+    }
+    /// The hash of block `end - 1` (zeros before genesis): which chain the cells after `end`
+    /// blocks follow.
+    pub fn hash(&self, end: usize) -> Result<[u8; 32]> {
+        match end.checked_sub(1) {
+            None => Ok([0; 32]),
+            Some(last) if last < self.len() => {
+                let mut reader = JournalReader::new(&self.changes, end);
+                let record = reader.read(last)?.1;
+                Ok(record.get(..32).ok_or_else(|| invalid("truncated cell record"))?.try_into().unwrap())
+            }
+            Some(_) => Err(invalid("cells past the recorded blocks")),
+        }
     }
 }
 

@@ -57,7 +57,7 @@ impl Vecs {
 
         let this = Self {
             db,
-            urpd_replay: Default::default(),
+            urpd_walk: Default::default(),
             activity,
             age_ranges,
             aggregate,

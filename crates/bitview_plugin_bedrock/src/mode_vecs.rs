@@ -32,8 +32,8 @@ pub struct ModeVecs<M: StorageMode = Rw> {
 }
 
 impl ModeVecs {
-    /// The vecs the replay stores: the thresholds and the prices.
-    pub(crate) fn replay_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+    /// The vecs the walk stores: the thresholds and the prices.
+    pub(crate) fn walk_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
         self.supply_in_loss_share_threshold_stored
             .iter_any_stored_mut()
             .chain(self.prices_stored.iter_any_stored_mut())

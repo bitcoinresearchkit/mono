@@ -18,7 +18,7 @@ pub use has::HasCointime;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_traversable::Traversable;
-use bitview_urpd::Replay;
+use bitview_urpd::UrpdWalk;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -40,7 +40,7 @@ pub const ID: PluginId = STORAGE.id();
 pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
-    urpd_replay: M::WriteOnly<Replay>,
+    urpd_walk: M::WriteOnly<UrpdWalk>,
 
     /// Cointime measures how long bitcoin remains unspent. One coinblock is one
     /// BTC held for one block interval; spending destroys the coinblocks that

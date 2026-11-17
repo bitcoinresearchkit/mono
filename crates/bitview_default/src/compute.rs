@@ -24,7 +24,6 @@ use bitview_plugin_supply::Dependencies as SupplyDependencies;
 use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
 use bitview_plugin_utxo_set::Dependencies as UtxoSetDependencies;
 use bitview_plugin_utxos::Dependencies as UtxosDependencies;
-use bitview_urpd::ReplayInputs;
 use brk_error::Result;
 use brk_types::Transaction;
 use rayon::join;
@@ -245,11 +244,7 @@ impl DefaultPlugins {
             )?;
 
             let history = &self.utxo_set.reader(&inputs.spends, creations)?;
-            let urpd = ReplayInputs {
-                history,
-                prices: &price.spot.cents.height,
-                timestamps: &mappings.timestamp.monotonic,
-            };
+            let urpd = &self.utxo_set.urpd()?;
             let prices = &price.spot.cents.height.read_only_boxed_clone();
             let timestamps = &mappings.timestamp.monotonic.read_only_boxed_clone();
             thread::scope(|scope| -> Result<()> {
@@ -354,6 +349,8 @@ impl DefaultPlugins {
                             &mut *self.bedrock,
                             BedrockDependencies {
                                 urpd,
+                                history,
+                                price,
                                 indexer,
                                 age,
                                 holders,
