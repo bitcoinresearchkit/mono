@@ -1800,8 +1800,7 @@ function afterPress(run) {
   afterHands.push(run);
 }
 /**
- * An edit to one layer (or drawing), by its id; `editLayer`, to the selected one. A drawing's leaves the series as
- * they are: only the drawings are drawn again.
+ * An edit to one layer (or drawing), by its id; `editLayer`, to the selected one.
  * @param {string} id @param {(item: any, doc: Chart) => void} edit @param {Parameters<typeof commit>[1]} [options]
  */
 function editById(id, edit, options = undefined) {
@@ -1809,7 +1808,7 @@ function editById(id, edit, options = undefined) {
   commit((doc) => {
     const item = drawing ? doc.drawings?.find((other) => other.id === id) : doc.layers.find((other) => other.id === id);
     if (item) edit(item, doc);
-  }, drawing ? { redraw: "none", ...options } : options);
+  }, options);
 }
 /** An edit to the layers in hand (see inHand): the selected one's, or each picked one's, edited together, in one step. */
 const editLayer = (/** @type {(item: any, doc: Chart) => void} */ edit, /** @type {Parameters<typeof commit>[1]} */ options = undefined) =>

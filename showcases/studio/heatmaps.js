@@ -903,7 +903,7 @@ function flipDrawings(/** @type {string[]} */ ids, /** @type {boolean} */ across
       }
     }
   }
-  if (flipped.size) commit((doc) => doc.drawings?.forEach((item) => flipped.has(item.id) && (item.points = flipped.get(item.id))), { redraw: "none" });
+  if (flipped.size) commit((doc) => doc.drawings?.forEach((item) => flipped.has(item.id) && (item.points = flipped.get(item.id))));
 }
 /** Whether flipping drawings changes how they show (`across`, left for right): one line across, down, a box or a text, never. */
 const flips = (/** @type {Drawing[]} */ drawings, /** @type {boolean} */ across) => drawings.length > 1 ? drawings.some((drawing) => drawing.kind !== (across ? "hline" : "vline")) : ["trend", "path", "brush"].includes(drawings[0]?.kind ?? "");
@@ -943,7 +943,7 @@ function nudgeDrawings(/** @type {string} */ key, far = false, end = false, repe
     const series = drawn.get(item.layer);
     if (!ids.includes(item.id) || !series || (end && !POINTED.has(item.kind))) return;
     item.points = end ? [...item.points.slice(0, -1), movedBy({ ...item, points: item.points.slice(-1) }, series, line, dx, dy)[0]] : movedBy(item, series, line, dx, dy);
-  }), { coalesce: `${end ? "resize" : "nudge"}:${ids.join(",")}`, redraw: "none" });
+  }), { coalesce: `${end ? "resize" : "nudge"}:${ids.join(",")}` });
 }
 /** Drawings into the chart (one undo), selected. @param {Drawing[]} drawings */
 function addDrawings(drawings) {
@@ -952,7 +952,7 @@ function addDrawings(drawings) {
     repaintDrawings();
     return notice(`A chart holds up to ${MAX_DRAWINGS} drawings`);
   }
-  commit((doc) => (doc.drawings ??= []).push(...drawings), { redraw: "none" });
+  commit((doc) => (doc.drawings ??= []).push(...drawings));
   // (Selected, unless a tool's kept in hand: the next one's drawn.)
   if (!toolKept) chooseDrawings(drawings.map((drawing) => drawing.id));
 }
@@ -960,7 +960,7 @@ const addDrawing = (/** @type {Drawing} */ drawing) => addDrawings([drawing]);
 function removeDrawings(/** @type {string[]} */ ids) {
   const gone = /** @type {Drawing[]} */ (ids.map(drawingById).filter(Boolean));
   if (!gone.length) return;
-  commit((doc) => (doc.drawings = doc.drawings?.filter((item) => !ids.includes(item.id))), { redraw: "none" });
+  commit((doc) => (doc.drawings = doc.drawings?.filter((item) => !ids.includes(item.id))));
   undoToast(gone.length > 1 ? `Removed ${plural(gone.length, "drawing")}` : `Removed the ${TOOLS[gone[0].kind].noun}`);
 }
 const removeDrawing = (/** @type {string} */ id) => removeDrawings([id]);
@@ -1015,7 +1015,7 @@ function inBox(/** @type {Drawing} */ drawing, points, box, size) {
 function clearDrawings() {
   const n = chart.drawings?.length ?? 0;
   if (!n) return;
-  commit((doc) => delete doc.drawings, { redraw: "none" });
+  commit((doc) => delete doc.drawings);
   undoToast(`Removed ${plural(n, "drawing")}`);
 }
 

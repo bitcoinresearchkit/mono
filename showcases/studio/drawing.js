@@ -4,7 +4,7 @@ import { Custom, FAINT } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
   $, all$, amount, BACKS, beltStop, BOXES, boxing, capturing, chart, chosen, clamp, commit, css, dateLabel, draft,
-  drawingsHidden, drawnIndex, drawnTimes, drawVersion, duration, ENDS, engine, escape, FINE, glyphSvg, growth,
+  drawingsHidden, drawVersion, duration, ENDS, engine, escape, FINE, glyphSvg, growth,
   hexToOklch, hideBelt, home, ICONS, indexAt, keyText, labelTyping, LENS_SAYS, LINES, lookOfDrawing, lowerBound, MAC,
   magnifying, MAX_DRAWINGS, measurer, measuring, minedHalvings, MOTION, moving, nextHalvings, oklchToHex, opacityOf,
   phone, placedOn, placing, POINTED, pointOf, precise, prefs, reduced, renderBelt, reshaped, resolved, revision, SANS,
@@ -13,7 +13,7 @@ import {
 } from "/studio/app.js";
 import {
   alpha, built, colorsAt, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats, oklchOf,
-  paintedLayers, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownSpan, unitFor, viewName,
+  paintedLayers, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownIndex, shownSpan, unitFor, viewName,
 } from "/studio/chart.js";
 import { nearestFinite, paneAt } from "/studio/formulas.js";
 import { layerById, slider } from "/studio/inspector.js";
@@ -51,15 +51,15 @@ function newDrawing(kind, layer, points) {
 
 /** A time on the interval's calendar, in bars from its first (within a bar, the share of it gone). */
 function calendarAt(time) {
-  const i = indexAt(drawnIndex, time), from = timeAt(drawnIndex, i);
-  return i + (time - from) / (timeAt(drawnIndex, i + 1) - from);
+  const index = shownIndex(), i = indexAt(index, time), from = timeAt(index, i);
+  return i + (time - from) / (timeAt(index, i + 1) - from);
 }
 /**
  * A time's place across the chart, in bars, as its points have theirs: between two, the share of the way; past either
  * end of the data, by the calendar, so a drawing holds in the room past the latest (and before the first) too.
  */
 function barOf(time) {
-  const times = drawnTimes, n = times.length;
+  const times = resolved?.times ?? [], n = times.length;
   if (time >= times[0] && time <= times[n - 1]) {
     const i = lowerBound(times, time);
     return times[i] === time ? i : i - 1 + (time - times[i - 1]) / (times[i] - times[i - 1]);
@@ -69,19 +69,19 @@ function barOf(time) {
 }
 /** The time at a place across the chart, in bars: `barOf`, read back. */
 function timeOfBar(bar) {
-  const times = drawnTimes, n = times.length;
+  const times = resolved?.times ?? [], n = times.length;
   if (bar >= 0 && bar <= n - 1) {
     const i = Math.floor(bar), share = bar - i;
     return share ? times[i] + share * (times[i + 1] - times[i]) : times[i];
   }
   // (Before the calendar's first bar, its first's length on back, as calendarAt reads it.)
-  const edge = bar > n - 1 ? n - 1 : 0, at = calendarAt(times[edge]) + bar - edge, i = Math.max(0, Math.floor(at)), from = timeAt(drawnIndex, i);
-  return from + (at - i) * (timeAt(drawnIndex, i + 1) - from);
+  const edge = bar > n - 1 ? n - 1 : 0, at = calendarAt(times[edge]) + bar - edge, i = Math.max(0, Math.floor(at)), index = shownIndex(), from = timeAt(index, i);
+  return from + (at - i) * (timeAt(index, i + 1) - from);
 }
 /** The time axis as a line: bar 0's x, and a bar's width (the library's x is a bar's index, scaled and moved). */
 function timeLine() {
   const at = engine.time.x(0), next = engine.time.x(1);
-  return drawnTimes.length && next > at ? { at, step: next - at } : null;
+  return resolved?.times.length && next > at ? { at, step: next - at } : null;
 }
 /**
  * A trend's segments' ends in view, in pixels: each one's first point (none before it, or a switch just before) and
@@ -121,7 +121,8 @@ function onScreen(drawing, series, line) {
 const placedBars = new WeakMap();
 function pointBars(points) {
   let kept = placedBars.get(points);
-  if (kept?.times !== drawnTimes || kept.index !== drawnIndex) placedBars.set(points, (kept = { times: drawnTimes, index: drawnIndex, bars: [] }));
+  const times = resolved?.times, index = shownIndex();
+  if (kept?.times !== times || kept.index !== index) placedBars.set(points, (kept = { times, index, bars: [] }));
   for (let i = kept.bars.length; i < points.length; i++) kept.bars.push(barOf(points[i][0]));
   return kept.bars;
 }
@@ -724,7 +725,7 @@ class Sketch {
   dateTags() {
     if (!this.fresh().shown.length) return NONE;
     if (this.timeTags) return this.timeTags;
-    return (this.timeTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && POINTED.has(drawing.kind) ? [0, points.length - 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(drawnIndex)), colorOfDrawing(drawing)))));
+    return (this.timeTags = this.shown.flatMap(({ drawing, points }) => (drawing.kind === "vline" ? [0] : told(drawing) && POINTED.has(drawing.kind) ? [0, points.length - 1] : []).map((i) => axisTag(points[i].x, dateLabel(Math.round(drawing.points[i][0]), FINE.has(shownIndex())), colorOfDrawing(drawing)))));
   }
   draw(context, size) {
     this.size = size;
@@ -1030,7 +1031,7 @@ function setLook(/** @type {string} */ part, value, coalesce = "", keepMenu = fa
   if (tool) return renderBelt();
   const ids = [...chosen].filter((id) => hasLook(drawingById(id)?.kind, part));
   if (!ids.length) return;
-  commit((doc) => doc.drawings?.forEach((drawing) => ids.includes(drawing.id) && apply(drawing)), { redraw: "none", keepMenu, ...(coalesce ? { coalesce: `${coalesce}:${ids.join()}` } : {}) });
+  commit((doc) => doc.drawings?.forEach((drawing) => ids.includes(drawing.id) && apply(drawing)), { keepMenu, ...(coalesce ? { coalesce: `${coalesce}:${ids.join()}` } : {}) });
 }
 /** Where the belt's popovers open: toward the chart, away from the edge it's docked on (each the same way). */
 const beltSide = () => ({ bottom: "above", top: "below", left: "right", right: "left" })[$("belt").dataset.dock ?? ""] ?? "";
@@ -1105,7 +1106,7 @@ function pointFrom(at, layer, { free = false, pull = false } = {}) {
 }
 /** The value nearest a height at a bar among a pane's shown layers' as drawn (a candle's four; stacked, its total), within reach. */
 function nearestValue(bar, y, pane) {
-  if (bar < 0 || bar >= drawnTimes.length) return null;
+  if (bar < 0 || bar >= (resolved?.times.length ?? 0)) return null;
   let best = null;
   for (const layer of chart.layers) {
     const made = built.get(layer.id), series = drawn.get(layer.id);
