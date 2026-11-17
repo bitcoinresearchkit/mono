@@ -1562,8 +1562,9 @@
          * at their own heights, from the top down, at least a fifth of the axis apart (none crowding 0, nor the axis's
          * title at its top); in a change
          * view, mirrored below it. (Labeled by the value itself: back from its height, a million comes out a hair under.)
+         * Farther apart, and from 0, where `minGap` (a label's height, in heights at the scale drawn) asks it.
          */
-        function valueTicks() {
+        function valueTicks(minGap = 0) {
           const top = state.valueScale, ticks = [{ value: 0, height: 0 }];
           if (!(top > 0)) return ticks;
           let last = Infinity;
@@ -1572,7 +1573,7 @@
               const value = mantissa * 10 ** power;
               if (value > top) continue;
               const height = heightFromRelativeValue(value / top);
-              if (height >= 0.1 && height <= 0.92 && last - height >= 0.2) ticks.push({ value, height: (last = height) });
+              if (height >= Math.max(0.1, minGap) && height <= 0.92 && last - height >= Math.max(0.2, minGap)) ticks.push({ value, height: (last = height) });
             }
           }
           return state.mode === "value" ? ticks : [...ticks, ...ticks.filter(({ value }) => value > 0).map(({ value, height }) => ({ value: -value, height: -height }))];
@@ -2020,7 +2021,7 @@
           if (!state.split) return legend.replaceChildren();
           if (state.split.length === 2) {
             legend.replaceChildren(...state.split.map(({ label, color }) => {
-              const item = document.createElement("span");
+              const item = Object.assign(document.createElement("span"), { className: "key-item" });
               const swatch = document.createElement("i");
               swatch.style.setProperty("--swatch", color);
               item.append(swatch, label);
@@ -3180,7 +3181,7 @@
           return `${priceLabel}\n${
             percent === null
               ? "—"
-              : `${Math.round(percent)}%`
+              : `${Math.round(percent)}% BELOW`
           }`;
         }
 
@@ -3839,16 +3840,18 @@
           const selectedClose = displayedPrice(selectedProfile);
           const selectedPrice = priceCoordinate(selectedClose);
           const atPrice = (coordinate) => projectAtPriceAxis(layout, axisDateIndex, coordinate);
-          const pricePills = [];
-          if (selectedPrice !== null) pricePills.push(pillSpan(formatPrice(selectedClose), atPrice(selectedPrice)));
+          // (The pointer's and the range's pills, drawn over the price's.)
+          const overPills = [];
           if (selectedProfile && state.hoverPriceCoordinate !== null) {
             const coordinate = clamp(state.hoverPriceCoordinate, 0, 1);
-            pricePills.push(pillSpan(hoverPillText(selectedProfile, coordinate), atPrice(coordinate)));
+            overPills.push(pillSpan(hoverPillText(selectedProfile, coordinate), atPrice(coordinate)));
           }
           if (selectedProfile && state.range) {
             const pill = rangePill(selectedProfile, layout);
-            pricePills.push(pillSpan(pill.text, atPrice(pill.coordinate)));
+            overPills.push(pillSpan(pill.text, atPrice(pill.coordinate)));
           }
+          const marketPill = selectedPrice === null ? null : pillSpan(formatPrice(selectedClose), atPrice(selectedPrice));
+          const pricePills = marketPill ? [marketPill, ...overPills] : [...overPills];
           // (The value axis's foot label runs on from the price axis's end, where the dearest price's label would be.)
           const valueFoot = valueTicks()[0];
           if (selectedProfile && valueFoot) {
@@ -3906,19 +3909,10 @@
               priceHandle.y + priceOut.y * floorHandleLength,
             );
             context.stroke();
-            // (The price alone: its share in profit is the readout's, exact, not this pill's bucketed one.)
-            drawPill(
-              context,
-              formatPrice(selectedClose),
-              priceHandle.x,
-              priceHandle.y,
-              priceAxis,
-              priceOut,
-              {
-                background: PRICE_RED,
-                attachEdge: "top",
-              },
-            );
+            // (The price alone: its share in profit is the readout's, exact, not this pill's bucketed one. Left out, as a
+            // label is, under the pointer's or the range's pill, which reads the same price there.)
+            if (!covered(marketPill.point, marketPill.half, overPills, priceAxis))
+              drawPill(context, formatPrice(selectedClose), priceHandle.x, priceHandle.y, priceAxis, priceOut, { background: PRICE_RED, attachEdge: "top" });
           }
 
           const startYear = Number(state.dates[start].slice(0, 4));
@@ -3985,7 +3979,7 @@
 
           if (selectedProfile && state.valueScale > 0) {
             const valueOut = priceAxis;
-            for (const { value, height } of valueTicks()) {
+            for (const { value, height } of valueTicks(ui(UI_FONT_SIZE * 1.5) / layout.heightScale)) {
               const point = projectAtPrice(
                 layout,
                 axisDateIndex,
