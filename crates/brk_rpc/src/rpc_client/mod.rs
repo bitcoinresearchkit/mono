@@ -45,7 +45,7 @@ pub struct Client(Arc<ClientInner>);
 impl Client {
     #[cfg(feature = "async")]
     pub fn asynchronous(&self) -> Result<AsyncClient> {
-        self.0.asynchronous()
+        AsyncClient::new(&self.0.url, self.0.auth.clone())
     }
     pub fn new(url: &str, auth: Auth) -> Result<Self> {
         Ok(Self(Arc::new(ClientInner::new(url, auth)?)))

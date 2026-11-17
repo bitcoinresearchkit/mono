@@ -1,7 +1,9 @@
 # brk_rpc
 
 Bitcoin Core RPC clients: a thread-safe blocking `Client`, cheap to clone, and with the `async`
-feature an `AsyncClient` for height reads and transaction submission.
+feature an `AsyncClient` for height reads and transaction submission. The async client keeps no
+connection: each call opens its own, so a submission, which is never replayed, can't meet one the
+node closed while it sat idle (`-rpcservertimeout`, 30 s by default).
 
 ## Usage
 
