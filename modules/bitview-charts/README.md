@@ -127,7 +127,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   `colors` (a `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a
   `Uint8Array`, 1 at a point) stops the line after it; `tag`, its value on the axis: its last in view (the crosshair's own tag says the pointer's; written by
   `format`, else as its side writes values, given its axis's step there; a side's tags laid top to bottom, each at its
-  line or just under the one over it, the last cut off at the foot, one where lines read the same, none for a line out of the pane); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
+  line or just under the one over it, the last cut off at the foot, one where lines read the same, none for a line out of the pane); `priceLine`, a dotted line across at it (drawn with it: the series added after it, their marks too, over it); `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);

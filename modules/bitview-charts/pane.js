@@ -941,41 +941,34 @@ export class Pane {
     g.stroke();
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
-      if (this.series[k].hidden || this.series[k].over) continue;
+      const series = this.series[k];
+      if (series.hidden || series.over) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
-        const base = this.series[k].first(from);
+        const base = series.first(from);
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
-      if (this.series[k].faint) g.globalAlpha = FAINT;
-      this.series[k].draw(g, time, scale, x0, x1, dpr, theme);
+      if (series.faint) g.globalAlpha = FAINT;
+      series.draw(g, time, scale, x0, x1, dpr, theme);
       g.globalAlpha = 1;
-    }
-    // (Price lines: across at a line's last value, dotted, in its color there; its dots where they'd be on the timeline,
-    // so a picture moved by a pan has them where a whole draw does.)
-    g.setLineDash(DOTS);
-    g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
-    for (let k = 0; k < this.series.length; k++) {
-      const series = this.series[k], line = lineOf(series), scale = this.scaleOf(k);
-      if (!line || !line.priceLine || series.hidden || series.faint) continue;
-      const i = line.last(scale.mode === "log");
-      if (i < 0) continue;
-      if (scale.relative) {
-        const base = line.first(from);
-        if (!base || base !== base) continue;
-        scale.setBase(base);
-      }
+      // (Its price line with it, under the series after it (their lines, their marks' words): across at its line's last
+      // value, dotted, in its color there; its dots where they'd be on the timeline, so a picture moved by a pan has them
+      // where a whole draw does.)
+      const line = lineOf(series), i = line?.priceLine && !series.faint ? line.last(scale.mode === "log") : -1;
+      if (!line || i < 0) continue;
       const y = Math.round(scale.y(line.values[i]) * dpr) / dpr + 0.5 / dpr;
+      g.setLineDash(DOTS);
+      g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
       g.strokeStyle = line.colorAt(i);
       g.lineWidth = 1;
       g.beginPath();
       g.moveTo(x0, y);
       g.lineTo(x1, y);
       g.stroke();
+      g.setLineDash(SOLID);
+      g.lineDashOffset = 0;
     }
-    g.setLineDash(SOLID);
-    g.lineDashOffset = 0;
     if (this.separated) this.#separator(g, theme, dpr, x0, x1);
     g.restore();
   }
