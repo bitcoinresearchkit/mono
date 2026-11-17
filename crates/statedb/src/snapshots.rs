@@ -10,7 +10,8 @@ use std::{
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
 };
-const MAGIC: &[u8; 8] = b"STAPAGE4";
+/// The index of snapshots packed at `snapshot::PACKED_LEVEL`.
+const MAGIC: &[u8; 8] = b"STAPAGE5";
 const INDEX_HEADER: usize = 9;
 const ROW: usize = 12;
 const TIP: &str = "tip";
@@ -115,8 +116,11 @@ impl Snapshots {
             ErrorKind::NotFound if writable => Ok(Vec::new()),
             _ => Err(error),
         })?;
-        if bytes.is_empty() && writable {
-            if data.metadata()?.len() != 0 {
+        // Snapshots packed at PCO level 3 are dropped like a new store's: the length check below
+        // truncates `data`, and the next advance lays them out again at the current level.
+        let level_3 = bytes.starts_with(b"STAPAGE4");
+        if writable && (bytes.is_empty() || level_3) {
+            if !level_3 && data.metadata()?.len() != 0 {
                 return Err(invalid("missing snapshot page index"));
             }
             bytes = [MAGIC.as_slice(), &[0]].concat();

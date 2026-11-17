@@ -6,7 +6,8 @@ use pco::{
 };
 use std::io::Result;
 
-/// The PCO settings of every packed column: snapshots, spend rows and cell records.
+/// The PCO settings of every packed column: spend rows, cell records and retained snapshots (these
+/// at `snapshot::PACKED_LEVEL`).
 pub(crate) fn config() -> ChunkConfig {
     ChunkConfig::default()
         .with_compression_level(3)

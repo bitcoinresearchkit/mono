@@ -89,7 +89,7 @@ arithmetic and state invariants are debug assertions.
 | Creation | Block hash (32 bytes), new sats/count (two u64), optional overwrite: origin u32, sats/count u64 |
 | Producer index | Exclusive payload end u64: 8 bytes per block |
 | Commit | `ORIGIN03`, version, start height (always 0), record count, data end: 40 bytes |
-| Snapshot page index | `STAPAGE4`, one latest-retention byte, then height u32 and exclusive payload end u64 per page |
+| Snapshot page index | `STAPAGE5` (snapshots at PCO level 8), one latest-retention byte, then height u32 and exclusive payload end u64 per page |
 | Periodic snapshot | `STATEP04`, exclusive height, block hash, two producer versions, compressed sats length; payload |
 | Tip directory | `STATEV05`, exclusive height, block hash, two producer versions, page file generation; then a slot u32 per 256 heights |
 | Tip page file | Slots of 256 raw `{ sats: u64, count: u64 }` amounts (a final page may be shorter) |
