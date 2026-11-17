@@ -1123,7 +1123,7 @@
       }
 
       /* (A row of a group lit by its glide (see glideRows): its ground the glide's, pointed at; pressed, chosen, on, its own.) */
-      :is(.side-foot > .nav-item, .head-actions > .cap, .home-undo > .cap, #interval, #ranges > button, .palette-foot .foot-action, .layer-row, .layer-actions > .nav-item, .belt :is(.cap, .btn)):hover:where(.can-hover *):not(:active, [aria-pressed="true"], [aria-checked="true"], [aria-current], .selected, .picked, .lit) {
+      :is(.side-foot > .nav-item, .head-actions > .cap, .home-undo > .cap, #interval, #window, #ranges > button, .palette-foot .foot-action, .layer-row, .layer-actions > .nav-item, .belt :is(.cap, .btn)):hover:where(.can-hover *):not(:active, [aria-pressed="true"], [aria-checked="true"], [aria-current], .selected, .picked, .lit) {
         background: none;
       }
 
@@ -2929,6 +2929,11 @@
         width: 74px;
         padding: 0 8px;
         font-variant-numeric: tabular-nums;
+
+        /* (A window's words are shorter: "30d".) */
+        &#window {
+          width: 64px;
+        }
 
         &:hover:where(.can-hover *):not(:disabled) {
           background: var(--field);
@@ -7506,7 +7511,8 @@
 
         .menu-row {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          /* (Three a row, unless a row says (--cols: a window's four short words, in one).) */
+          grid-template-columns: repeat(var(--cols, 3), 1fr);
           gap: 3px;
           padding: 2px 6px 6px;
 
@@ -10955,7 +10961,7 @@
           <h2>Opening a chart from a link</h2>
           <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
-          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), and "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&amp;interval=1W. A chart's link takes the same after its chart.</p>
+          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), and, for a preset over a trailing window, "window" (24h, 1w, 30d or 1y), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&amp;interval=1W. A chart's link takes the same after its chart.</p>
           <h2>A chart</h2>
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
@@ -11096,6 +11102,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>
             <footer id="stage-foot" class="stage-foot">
               <button id="interval" class="btn interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
+              <!-- (A chart whose series are over one trailing window, its others: see chartWindow.) -->
+              <button id="window" class="btn interval" type="button" aria-haspopup="menu" data-tip="Window: what each value sums or averages" hidden></button>
               <div id="ranges" class="tabs" role="group" aria-label="Visible range"></div>
               <div id="navigator" class="navigator" role="group" tabindex="0" aria-label="Overview of all history: ← → to move, ↑ ↓ to zoom, ⇧ for bigger steps" data-tip="Drag to pan, drag an edge to zoom, click to jump (or use the arrow keys)">
                 <div class="navigator-clip"><canvas id="overview" aria-hidden="true"></canvas></div>

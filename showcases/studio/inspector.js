@@ -11,11 +11,11 @@ import {
   handsHeld, HEAT_GRADIENT, heatLike, hexToOklch, holding, hollowOf, home, humanize, iconNames, ICONS, indexCatalog,
   inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isOhlc, isSeriesName, kept, keyText, kindLook,
   layerPicks, layersBatch, layersColors, letterChip, limit, LINE_STYLE, LINED, lowerBound, makeLayer, markable,
-  markFor, markPicks, MAX_LAYERS, MAX_LEVELS, MAX_PANES, maxChroma, memberable, membersOf, menuOf, minedHalvings,
+  markFor, markPicks, MAX_LEVELS, MAX_PANES, maxChroma, memberable, membersOf, menuOf, minedHalvings,
   modesOf, MOTION, multiEdit, newPaneIn, nextColor, nextLetter, NO_LINE, notice, oklchToHex, oklchToLinear, ONE_SCALE,
   oneScale, openPalette, OUTLINED, ownerOf, PAIRS, paneShowing, phone, placedBy, placedOn, plural, profileColor,
   recent, reduced, refFor, refsFor, remember, removedNames, renderBelt, renderInspector, renderLayers, reshape,
-  resolved, roomFor, secondColor, select, selected, seriesCount, seriesLooked, shapeGlyph, SHAPES, showList, showMenu,
+  resolved, secondColor, select, selected, seriesCount, seriesLooked, shapeGlyph, SHAPES, showList, showMenu,
   shownOklch, signedSignal, SLIDERS, SLOP, spanDays, SPANS, STACKED_ONLY, STARTERS, SWATCHES, toast, toggleMember,
   track, tree, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, TYPES, uid, undoToast, UNIT_NAMES, unitOf, VALUES, viewport,
   VIVID_ROWS, vividGrid, vividWork, whenIdle, widest, WIDTHS, windowPoints,
@@ -204,9 +204,6 @@ function renderLayersBar() {
   toggle.innerHTML = `${hide ? ICONS.eyeOff : ICONS.eye}<span class="label">${hide ? "Hide" : "Show"}</span>`;
   toggle.setAttribute("aria-label", hide ? "Hide" : "Show");
   toggle.dataset.tip = hide ? "Hide" : "Show";
-  const full = chart.layers.length + layers.length > MAX_LAYERS, duplicate = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="duplicate"]'));
-  duplicate.setAttribute("aria-disabled", String(full));
-  duplicate.dataset.tip = full ? `A chart holds up to ${MAX_LAYERS} layers` : "Duplicate";
   // (A cloud of two or more, on one scale: else a tap says why.)
   const cloud = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="cloud"]')), bases = layers.filter((layer) => !layer.from && layer.type !== "signal"), apart = bases.length >= 2 && fromShort({ type: "cloud", from: bases.map((layer) => layer.id) });
   cloud.setAttribute("aria-disabled", String(bases.length < 2 || Boolean(apart)));
@@ -295,7 +292,7 @@ function layersActions() {
   const bases = layers.filter((layer) => !layer.from && layer.type !== "signal"), ids = bases.map((layer) => layer.id);
   return [
     { key: "hide", icon: hide ? ICONS.eyeOff : ICONS.eye, label: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), kbd: "H", run: () => layersBatch("hide") },
-    { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, text: "Each copy under its original.", kbd: "⌘D", ...(chart.layers.length + layers.length > MAX_LAYERS ? { disabled: `A chart holds up to ${MAX_LAYERS} layers` } : {}), run: () => layersBatch("duplicate") },
+    { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, text: "Each copy under its original.", kbd: "⌘D", run: () => layersBatch("duplicate") },
     { key: "move", icon: ICONS.pane, label: "Move to pane", text: "One of the others, or a new one.", page: () => choicePage("Move to pane", () => paneChoices(layers.map((layer) => layer.id))) },
     { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", text: "A fill between each pair of neighbors, in the upper one's color.", ...(bases.length < 2 ? { disabled: "Needs two or more layers that aren't clouds, trends or signals" } : fromShort({ type: "cloud", from: ids }) ? { disabled: ONE_SCALE } : {}), run: () => layersBatch("cloud") },
     { key: "trend", icon: ICONS.riding, label: "A trend between them", text: "Follows the lowest until a price touches it, then the highest until the price touches that, and so on.", ...(bases.length < 2 ? { disabled: "Needs two or more layers that aren't clouds, trends or signals" } : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: ids }))), run: () => layersBatch("trend") },
@@ -2075,7 +2072,7 @@ function layerActions(id, where) {
     ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
     ...(layer.type !== "signal" && othersInPane(layer) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show it alone in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
     // (Its right-click beside others picked: its copy alone, the picks as they are.)
-    { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds up to ${MAX_LAYERS} layers` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
+    { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
     // (A cloud or a trend goes where its layers go, a signal where its layer goes.)
     ...(menu && !follows(layer) ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
     // (Its data, as the chart has it, at its interval: any layer's, a formula's too; a series', where it comes from.)
@@ -2097,7 +2094,6 @@ function duplicateLayer(/** @type {string} */ id) {
 function duplicateLayers(ids) {
   const originals = chart.layers.filter((layer) => ids.includes(layer.id));
   if (!originals.length) return [];
-  if (chart.layers.length + originals.length > MAX_LAYERS) return (notice(`A chart holds up to ${MAX_LAYERS} layers`), []);
   const copies = /** @type {string[]} */ ([]);
   commit((doc) => {
     for (const layer of originals) {
@@ -2116,14 +2112,13 @@ function duplicateLayers(ids) {
 /** A series into this chart: with its unit's pane, else a new one; or a new pane, or `pane`, by choice. */
 async function addSeries(name, { newPane = false, pane: into = /** @type {string | null} */ (null), bubbles = false } = {}) {
   const target = chart;
-  if (!roomFor(target)) return;
   retryInfo(name);
   // (Its path too, kept with its name in the same edit: see normalize.)
   indexCatalog();
   const meta = await info(name).catch(() => null);
   await presetsSettled();
   // (Another chart opened meanwhile, it's not added; the same one made anew (a preset refreshed), it is.)
-  if (chart?.id !== target?.id || !roomFor(chart)) return;
+  if (chart?.id !== target?.id) return;
   if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into, bubbles }));
   const unit = meta ? unitOf(meta.type) : units.get(name) ?? "number";
   units.set(name, unit);
@@ -2157,7 +2152,6 @@ async function addSeries(name, { newPane = false, pane: into = /** @type {string
  * an example, selected, so ↵ takes it and typing replaces it.
  */
 function addFormula(/** @type {string | null | undefined} */ into = null) {
-  if (!roomFor(chart)) return;
   const letters = chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter);
   openPalette({ formula: true, into, query: letters.length ? "" : EXAMPLE });
 }
@@ -2165,12 +2159,10 @@ function addFormula(/** @type {string | null | undefined} */ into = null) {
 function addSignal() {
   const on = markable(chart)[0];
   if (!on) return notice("Add a layer first: a signal marks one");
-  if (!roomFor(chart)) return;
   openPalette({ formula: true, signal: true, query: `${on.letter} > sma(${on.letter}, 200d)` });
 }
 /** A signal as a layer: marked on `on`, else the layer it reads (see markFor; another picked in its panel), selected. */
 function addSignalLayer(/** @type {string} */ formula, /** @type {string | undefined} */ on = undefined) {
-  if (!roomFor(chart)) return;
   /** @type {Layer | undefined} */
   let added;
   commit((doc) => {
@@ -2185,7 +2177,6 @@ function addSignalLayer(/** @type {string} */ formula, /** @type {string | undef
 const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && Boolean(chart.panes.at(-1)?.stack);
 /** A formula as a layer, selected: in `pane` (on `side`, its layer's it's made from), else in a new one (at the most panes, the last). */
 function addFormulaLayer(formula, pane = /** @type {string | null} */ (null), side = /** @type {string | null} */ (null)) {
-  if (!roomFor(chart)) return;
   if (stackedOnly(pane)) return void notice(STACKED_ONLY);
   /** @type {Layer | undefined} */
   let added;
@@ -2254,7 +2245,6 @@ function addFrom(/** @type {"cloud" | "trend"} */ type, /** @type {string[]} */ 
   const members = fromOf(chart, ids, type);
   const short = type === "cloud" && membersOf(chart, ids, true).length < 2 ? "Pick what it's between" : fromShort({ type, from: members });
   if (short) return void notice(short === ONE_SCALE ? `A ${type} reads its layers as one: put them in one pane, on one side` : short === TREND_FLIP ? "A trend flips when another layer touches it: add one (a price)" : type === "cloud" ? "A cloud is between two layers or more" : "A trend is on one of two layers or more");
-  if (!roomFor(chart)) return;
   /** @type {Layer | undefined} */
   let added;
   commit((doc) => {
@@ -2283,7 +2273,6 @@ function addFrom(/** @type {"cloud" | "trend"} */ type, /** @type {string[]} */ 
  * @param {string} cohort @param {string[]} [profile]
  */
 function addHeatmap(cohort, profile = undefined) {
-  if (!roomFor(chart)) return;
   /** @type {Layer | undefined} */
   let added;
   commit((doc) => {
@@ -2295,8 +2284,7 @@ function addHeatmap(cohort, profile = undefined) {
     const dollars = (/** @type {string | undefined} */ id) => drawable(id) && doc.layers.some((layer) => layer.pane === id && inDollars(layer)) && !doc.panes.find((item) => item.id === id)?.stack;
     const chosen = doc.layers.find((layer) => layer.id === selected)?.pane, first = doc.panes[0].id;
     const pane = doc.panes.find((item) => item.id === palette.into)?.id ?? (chosen && (empty(chosen) || dollars(chosen)) ? chosen : doc.panes.find((item) => dollars(item.id))?.id ?? (empty(first) ? first : doc.panes.length < MAX_PANES ? ((made) => ((made.mode = 1), made.id))(newPaneIn(doc)) : doc.panes.find((item) => drawable(item.id))?.id ?? first));
-    // (The price with it only where there's room for both: the heatmap alone at the chart's last layer.)
-    if (!doc.layers.some((layer) => layer.pane === pane) && doc.layers.length + 2 <= MAX_LAYERS) doc.layers.push(makeLayer({ series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, pane }, doc));
+    if (!doc.layers.some((layer) => layer.pane === pane)) doc.layers.push(makeLayer({ series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, pane }, doc));
     // (On the axis its dollars are read on, where the pane has one.)
     const beside = doc.layers.filter((layer) => layer.pane === pane), side = (beside.find(inDollars) ?? beside[0])?.side ?? "right";
     added = makeLayer(profile ? { type: "profile", profile, pane, side } : { type: "heatmap", heatmap: cohort, pane, side }, doc);
@@ -2397,7 +2385,6 @@ function derive(/** @type {string} */ id, /** @type {string} */ starter) {
   if (starter === "own") return ((stacked) => openPalette({ formula: true, into: stacked ? null : source.pane, query: source.letter, side: stacked ? null : source.side }))(onStack(source));
   const formulas = (STARTERS.find((item) => item.id === starter)?.formulas ?? []).map((text) => text.replaceAll("X", source.letter));
   if (!formulas.length) return;
-  if (chart.layers.length + formulas.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers`);
   // (Over a stack, it would add to it: a pane of its own then too.)
   const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !onStack(source);
   // (One that needs a pane of its own, at the most panes: not put in the last one, a stack's maybe.)

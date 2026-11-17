@@ -1,7 +1,7 @@
 // @ts-check
 // ⌘K: series search, its pages, colors looked at, go to a date. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
 import { initialsRanges } from "/studio/initials.js";
-import { capitalized, holderName, inSentence } from "/studio/words.js";
+import { capitalized, holderName, inSentence, windowSaid, windowShort } from "/studio/words.js";
 import { startWorker } from "/studio/workers.js";
 import {
   $, acrossUnfit, ago, answers, aside, averageFor, BACKS, belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE,
@@ -23,7 +23,7 @@ import {
   sharedTops, SHARES_IMAGES, SHEET_SHARE, showGuide, showLook, showMenu, showPalette, showShortcuts, signalShown,
   SIZE_NAMES, SIZES, STACKED_ONLY, STACKS, startTyping, stretchResult, studioVersion, SWATCHES, tabletHead, takeUp,
   TEXT_SIZE, THEMES, THROUGH, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, TOOLS, TOUCH, tree,
-  trendShort, typeName, TYPES, undoLast, UNIT_NAMES, unitOf, updatePaletteKeys, used, VALUES, viewport,
+  trendShort, typeName, TYPES, undoLast, UNIT_NAMES, unitOf, updatePaletteKeys, used, VALUES, viewport, chartWindow,
 } from "/studio/app.js";
 import {
   baseOf, BY_BLOCK, byColor, colorsAt, cssColor, dailyOf, defaultSize, drawnWaiters, failure, fineDrawn, foldedPanes,
@@ -56,7 +56,7 @@ import {
 } from "/studio/inspector.js";
 import {
   anythingKept, downloadAll, exportAs, exportRows, fadeOut, NO_INTERVAL, renameInPlace, setRange, supportedIntervals,
-  switchInterval,
+  switchInterval, switchWindow,
 } from "/studio/menus.js";
 import {
   copyPreset, fullOn, legendAction, LEGENDS, ordersOf, paneChip, paneRows, presetActions, presetEdited, presetIndex,
@@ -412,6 +412,7 @@ function commands() {
     ...THEMES.map(([id, name, icon, text]) => ({ title: `Theme: ${name}`, text, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
     ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
     ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
+    ...((found) => (found?.offered ?? []).map((key) => ({ follows: windowShort(key), title: `Window: ${windowSaid(key)}`, text: `Each value its series over the ${windowSaid(key).replace(/^1 /, "")} before it.`, icon: "hourglass", ...(key === found?.window ? { current: true } : { run: () => switchWindow(key) }) })))(empty ? null : chartWindow(chart)),
     ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
     ...(empty ? [] : [
       { title: beltUp() ? "Hide the drawing tools" : "Show the drawing tools", text: beltUp() ? "They show again while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: () => (beltUp() ? hideBelt() : showBelt()) },
@@ -1751,6 +1752,8 @@ function intervalPage() {
   const supported = supportedIntervals();
   return choicePage("Interval", () => INTERVAL_ORDER.map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: chart.index === id, ...(supported(id) ? { run: () => switchInterval(id) } : { disabled: NO_INTERVAL }) })));
 }
+/** ⌘K's page of the open chart's windows (see chartWindow). @returns {Page} */
+const windowPage = () => choicePage("Window", () => ((found) => (found?.offered ?? []).map((key) => ({ key, icon: ICONS.hourglass, label: capitalized(windowSaid(key)), aside: windowShort(key), current: found?.window === key, run: () => switchWindow(key) })))(chartWindow(chart)));
 /** The ways to add a layer, as ⌘K's rows (under `group`): a series, a formula, a cloud, bubbles, a signal, a trend, a heatmap. */
 const addRows = (/** @type {string} */ group) => [
   { key: "add-series", icon: ICONS.plus, label: "Add a layer", kbd: "A", verb: "Add", leads: true, stay: true, run: () => openPalette({ add: true }) },
@@ -1779,6 +1782,7 @@ function chartPage() {
       { key: "title", icon: ICONS.pencil, label: "Title", aside: titleOf(chart), group: "Chart", page: () => renameChartPage(chart) },
       ...(any ? [
         { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
+        ...((found) => (found ? [{ key: "window", icon: ICONS.hourglass, label: "Window", aside: capitalized(windowSaid(found.window)), group: "Chart", page: windowPage }] : []))(chartWindow(chart)),
         { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
         { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalized(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalized(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
         legendAction("Chart"),

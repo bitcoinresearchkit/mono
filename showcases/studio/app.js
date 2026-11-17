@@ -5,7 +5,7 @@ import XKCD from "/modules/xkcd-colors/index.js";
 import { createChart, press, picture as chartPicture, Candles, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { AGES, HOLDERS, capitalized, dimensionBand, holderName } from "/studio/words.js";
+import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { catalogWalk } from "/studio/catalog-walk.js";
@@ -106,7 +106,7 @@ import {
   dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fillMenu, fitted, fitTitle,
   fixedOrigin, fromLink, HOVER, keepCarriedView, leaveTitle, letGo, linkLookOf, linksOf, measureLegends, menuGoBack,
   menuHidden, menuModal, NO_INTERVAL, onRail, openedImages, ownerNow, placeFixed, placeMenu, portable, qrCode, railed,
-  readChart, renderInterval, renderRanges, sameChart, scrolled, setApart, setRange, settleMenu, shareLink, shownAs,
+  readChart, renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setRange, settleMenu, shareLink, shownAs,
   showSubmenu, slideFrom, stepInterval, subRows, supportedIntervals, switchInterval, titleReads, TOO_SMALL, toSketch,
   twinOf, typedFrom, unexpand, UNREADABLE, validate, viewDates, walkMenu,
 } from "/studio/menus.js";
@@ -1888,17 +1888,11 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  */
 const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 
-const MAX_LAYERS = 40, MAX_PANES = 12, MAX_LEVELS = 12;
+const MAX_PANES = 12, MAX_LEVELS = 12;
 /** Layers enough that a chart's build takes more than a frame or two on a phone without its JIT (six daily series, some 36,000 points: ~100 ms): see draw. */
 const MANY_LAYERS = 6;
 /** A formula's length at most: typed, as read from a link or a file. */
 const FORMULA_MAX = 2000;
-/** Whether a chart has room for another layer; says so when it doesn't. @param {Chart} doc */
-function roomFor(doc) {
-  if (doc.layers.length < MAX_LAYERS) return true;
-  notice(`A chart holds up to ${MAX_LAYERS} layers`);
-  return false;
-}
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
@@ -1952,6 +1946,88 @@ function followPool(layer) {
   const names = new Map([...seriesNamed(layer.formula)].flatMap((name) => (poolSeries(name) === name ? [] : [[name, poolSeries(name)]])));
   layer.formula = renamed(layer.formula, names);
   if (layer.paths) layer.paths = Object.fromEntries(Object.entries(layer.paths).map(([name, path]) => [poolSeries(name), poolPath(path)]));
+}
+
+// ── Windows ───────────────────────────────────────────────────────────────
+/**
+ * A series' trailing window, by its place in the catalog (its last window step: never by its name, which puts it
+ * anywhere, `market_cap_delta_1y_percent`), and the series at each window beside it, in the catalog's order
+ * (shortest first); none, null.
+ * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
+ */
+function seriesWindow(name) {
+  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex(isWindowKey) : -1;
+  if (!steps || i < 0) return null;
+  const at = new Map(Object.keys(nodeAt(steps.slice(0, i)) ?? {}).filter(isWindowKey).flatMap((key) => ((other) => (other ? [[key, other]] : []))(nameAt([...steps.slice(0, i), key, ...steps.slice(i + 1)].join(".")))));
+  return { window: steps[i], at };
+}
+/** The series a chart's layers read (their own, their formulas'). @param {Chart} doc */
+const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [layer.series] : []), ...(layer.formula ? seriesNamed(layer.formula) : [])]);
+/**
+ * @typedef {{ window: string, offered: string[], at: Map<string, Map<string, string>> }} ChartWindow a chart's
+ * window, the windows it offers, shortest first, and each of its windowed series at each of them
+ */
+/** Each set of series' window (see chartWindow), by their names: found once (a switch asks it of a chart several times). @type {Map<string, ChartWindow | null>} */
+const windowsFound = new Map();
+/**
+ * A chart's trailing window: the one every windowed series in it is over, and the windows they all have; none (no
+ * windowed series, two windows, one alone), null. The catalog read first (indexed at once, if it isn't yet: a chart
+ * opens over the right series), but for a chart no name of which holds a window's key: each windowed name the client
+ * has holds its window's, `_<key>` before a `_` or at its end, so no walk to learn a chart has none.
+ * @param {Chart} doc @returns {ChartWindow | null}
+ */
+function chartWindow(doc) {
+  const names = seriesOf(doc), key = names.join(" ");
+  let found = windowsFound.get(key);
+  if (found !== undefined) return found;
+  found = null;
+  if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`)))) {
+    indexCatalog();
+    let window = "", offered = /** @type {string[] | null} */ (null);
+    const at = new Map();
+    for (const name of names) {
+      const its = seriesWindow(name);
+      if (!its) continue;
+      if (window && its.window !== window) {
+        offered = null;
+        break;
+      }
+      window = its.window;
+      at.set(name, its.at);
+      offered = (offered ?? [...its.at.keys()]).filter((other) => its.at.has(other));
+    }
+    if (offered && offered.length > 1) found = { window, offered, at };
+  }
+  windowsFound.set(key, found);
+  return found;
+}
+/**
+ * A chart over another window (see chartWindow): each series at it, by its place (its path learned again), and the
+ * window as its title and labels say it (see said) said anew. A chart with no window, or one it doesn't offer, as it
+ * is. @param {Chart} doc @param {string} to
+ */
+function atWindow(doc, to) {
+  const now = chartWindow(doc);
+  if (!now || now.window === to || !now.offered.includes(to)) return doc;
+  const swap = (/** @type {string} */ name) => now.at.get(name)?.get(to) ?? name;
+  // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
+  // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
+  // band's "1 day to under 1 week old".)
+  const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`), windowSaid(to)).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
+  for (const layer of doc.layers) {
+    if (layer.series) {
+      layer.series = swap(layer.series);
+      delete layer.path;
+    }
+    if (layer.formula) {
+      layer.formula = renamed(layer.formula, new Map(seriesNamed(layer.formula).map((name) => [name, swap(name)])));
+      delete layer.paths;
+    }
+    if (layer.label) layer.label = said(layer.label);
+  }
+  doc.title = said(doc.title);
+  normalize(doc);
+  return doc;
 }
 
 /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
@@ -5058,7 +5134,7 @@ glideRows(/** @type {HTMLElement} */ (document.querySelector(".side-foot")), ".n
 glideRows(/** @type {HTMLElement} */ ($("undo").parentElement), ".head-actions > .cap");
 glideRows(/** @type {HTMLElement} */ (document.querySelector(".home-undo")), ".cap");
 glideRows($("inspector"), ".layer-actions > .nav-item");
-glideRows($("stage-foot"), "#interval, #ranges > button");
+glideRows($("stage-foot"), "#interval, #window, #ranges > button");
 glideRows(/** @type {HTMLElement} */ (document.querySelector(".palette-foot")), ".foot-action");
 glideRows($("layer-list"), ".layer-row");
 glideRows($("belt"), ".belt :is(.cap, .btn)");
@@ -7270,7 +7346,7 @@ addEventListener("popstate", (event) => {
   const route = ROUTED ? routeOf(location.pathname) : null, routed = route && "preset" in route ? route.preset : -1;
   if (routed >= 0 && !home && chartPreset(chart) === routed && `${location.pathname}${location.hash}` === `${BASE}${presetLink(chart)}`) return void showAddress();
   const preset = typeof event.state?.chart === "string" ? presetById(event.state.chart) : -1;
-  const doc = routed >= 0 ? presetByAddress(routed) : chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : undefined);
+  const doc = routed >= 0 ? presetByAddress(routed, route && "window" in route ? route.window : undefined) : chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : undefined);
   if (!doc) {
     // (A preview closed since: said, and how it comes back.)
     const closed = closedPreviews.get(event.state?.chart);
@@ -8202,7 +8278,7 @@ function loadPresets() {
       pendingRoute = "";
       const { route: _, ...state } = history.state ?? {};
       if (here) history.replaceState(state, "");
-      if (here && route) "preset" in route ? go(presetByAddress(route.preset)) : goTo({ path: route.path });
+      if (here && route) "preset" in route ? go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
       else if (here) missedRoute(asked);
       else if (!route) notice(missedSaid(asked));
     }
@@ -8258,11 +8334,12 @@ let pendingRoute = "";
 // ── The presets, edited where they are ─────────────────────────────────────
 /**
  * A preset opened at its address (a visit, not a step back): what the address says of how to look at it, else as it
- * opens, whatever view was left on it here (whoever follows a link sees what it says). Edited here: the preset as
- * made all the same, as a preview, yours untouched and a tap away. @param {number} i
+ * opens, whatever view was left on it here (whoever follows a link sees what it says); `window`, an old address's
+ * (see routeOf), unless its link says one. Edited here: the preset as
+ * made all the same, as a preview, yours untouched and a tap away. @param {number} i @param {string} [window]
  */
-function presetByAddress(i) {
-  const look = linkLookOf(new URLSearchParams(location.hash.slice(1))), had = editedPreset(i);
+function presetByAddress(i, window = undefined) {
+  const look = linkLookOf(new URLSearchParams(location.hash.slice(1)), window), had = editedPreset(i);
   if (had && presetEdited(had)) {
     const made = freshPreset(i);
     takeLinkLook(made, look, presetLook(i));
@@ -9549,7 +9626,6 @@ function comparePeriods(id, which, over = false) {
   if (!layer) return;
   const periods = periodsOf(layer, which, over), what = which === "cycles" ? "halving cycles" : "years";
   if (!periods.length) return void notice(overShort(which));
-  if (chart.layers.length + periods.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers: its ${periods.length} ${what} need ${periods.length}`);
   if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the ${what} need one of their own`);
   const unfit = unfitHere([periods[0].formula]);
   if (unfit) return void notice(unfit);
@@ -9636,8 +9712,6 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   paletteOpenings++;
   // (Resumed only where it was browsing: adding, replacing or a formula start again.)
   const spot = resume && putAway?.browsing && (putAway.anywhere || (putAway.chart === chart.id && putAway.home === home)) ? putAway.state : null;
-  // (Adding to a chart with no room: said now, not once a series is picked.)
-  if (add && !roomFor(chart)) return;
   putAway = null;
   countSaidFor = "";
   hideMenu();
@@ -10717,6 +10791,10 @@ $("menu").addEventListener("keydown", (event) => {
 // a slider is at each step.)
 document.addEventListener("pointerdown", (event) => {
   if (!$("menu").hidden && event.target !== menuScrim && !event.composedPath().includes($("menu")) && !submenus.some((sub) => event.composedPath().includes(sub)) && closest(event, "button") !== ownerNow()) hideMenu();
+});
+$("window").addEventListener("click", (event) => {
+  const found = chartWindow(chart);
+  if (found) showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(4, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">Each value is its series over the ${windowSaid(found.window).replace(/^1 /, "")} before it.</div>`, ({ window }) => switchWindow(window));
 });
 $("interval").addEventListener("click", (event) => {
   const supported = supportedIntervals();
@@ -11854,6 +11932,7 @@ function refresh(redraw = true, refit = false) {
   fitTitle();
   syncUndo();
   renderInterval();
+  renderWindow();
   renderRanges();
   $("empty").hidden = chart.layers.length > 0;
   if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
@@ -12286,7 +12365,8 @@ document.addEventListener("keydown", (event) => {
     const item = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-chart-row], [data-home-card]") ?? null);
     const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
     if (!doc || isPreview(doc)) return;
-    if (key === "d") return inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : void duplicateCharts([doc]);
+    // (Once a press: held, the key repeats, and each copy's picks would be copied again for as long as it's held.)
+    if (key === "d") return void (event.repeat || (inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : duplicateCharts([doc])));
     // (One of the picks: they all go; one alone, alone. An Undo brings them back.)
     return inGrid ? batch("delete", null, picked.has(id) ? null : [id]) : deleteChart(doc);
   }
@@ -12306,6 +12386,8 @@ document.addEventListener("keydown", (event) => {
   // (⌘D alone: ⌘⇧D, ⌘⌥D are no one's here.)
   if (mod && !event.shiftKey && !event.altKey && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
     event.preventDefault();
+    // (Once a press, as a chart's above.)
+    if (event.repeat) return;
     return chosen.size ? duplicateDrawings([...chosen]) : layerPicks.size ? layersBatch("duplicate") : duplicateLayer(selected);
   }
   // ⌘A picks every layer while some are picked, or from the panel (on the chart, every drawing).
@@ -12754,10 +12836,13 @@ const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run
 /**
  * A chart as a link's fields say to look at it, over what it holds; what they don't say, as `made` opens (none: as it
  * is). A range or dates said, or as made, no view left on it from before.
- * @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look @param {{ index: string, range: string }} [made]
+ * @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look @param {{ index: string, range: string, window?: string }} [made]
  */
 function takeLinkLook(doc, look, made) {
   doc.range = look.range ?? made?.range ?? doc.range;
+  // (A window it doesn't offer, as if it weren't said.)
+  const offered = chartWindow(doc)?.offered ?? [], window = (look.window && windowNamed(look.window, offered)) || made?.window;
+  if (window) atWindow(doc, window);
   // (An interval the picker wouldn't offer (a layer's ceiling, a formula's needs, a series' intervals: see
   // supportedIntervals), as if it weren't said.)
   doc.index = (look.index && supportedIntervals(doc)(look.index) ? look.index : undefined) ?? made?.index ?? doc.index;
@@ -13279,7 +13364,7 @@ async function start() {
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
   if (asked) await loadPresets().catch(() => {});
   const routed = asked ? routeOf(asked) : null;
-  chart = (routed && "preset" in routed ? presetByAddress(routed.preset) : resumed) || chart;
+  chart = (routed && "preset" in routed ? presetByAddress(routed.preset, routed.window) : resumed) || chart;
   // (The empty chart a first visit makes in place of none, not wanted under a preset: let go of.)
   if (first && routed && "preset" in routed) {
     const draft = previewCharts.findIndex((doc) => drafts.has(doc));
@@ -13346,7 +13431,7 @@ export {
   HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_ROWS, HEAT_TILE_COLUMNS, HEAT_WEIGHTS, heatAt, heatCohort, heatKnown,
   heatLike, heldUpright, hexToOklch, hideBelt, hideDrawings, hideMenu, hideSubmenu, hideText, histories, historyFor,
   holding, hollowOf, home, homeAt, homeScroll, homeScroller, hoverTime, humanize, humanizeKey, iconNames, ICONS,
-  importCharts, IN_PERCENT, indexAt, indexCatalog, inLibrary, inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL,
+  atWindow, chartWindow, importCharts, IN_PERCENT, indexAt, indexCatalog, inLibrary, inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL,
   INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isDeleted, isLeaf, isNamed, isOhlc,
   isPreview, isSeriesName, isView, isYours, keepChart, keepDrawing, KEEPS_UNIT, keepSidePresets, keepsLeaving,
   keepStretch, kept, KEPT_CHUNKS, keptAsEdited, KEY_STEPS, keyAway, keycaps, keysNow, keyText, keyTime, keyValue,
@@ -13354,7 +13439,7 @@ export {
   layoutOwed, leaveHome, leftView, leftWith, LENS_SAYS, lensAt, letterAt, letterChip, letterOf, library, libraryEdits,
   libraryStep, light, limit, LINE_STYLE, LINED, LINES, linkView, listedPreviews, listOwed, listStop, LIVE, liveHeight,
   livePrice, loadPresets, lookDoc, lookOfDrawing, lookShown, lowerBound, MAC, magnifying, makeLayer, MARK_KINDS,
-  MARK_PLACES, markable, markBody, MARKER, markFor, markPicks, marksOf, MAX_DRAWINGS, MAX_LAYERS, MAX_LEVELS,
+  MARK_PLACES, markable, markBody, MARKER, markFor, markPicks, marksOf, MAX_DRAWINGS, MAX_LEVELS,
   MAX_PANES, MAX_STROKE, maxChroma, measure, measured, measureOf, measurer, measureUnit, measuring, memberable,
   membersOf, menuBack, menuOf, menuOwner, menuPicked, menuScrim, minedHalvings, MODES, modesOf, MONTHS, monthYear,
   morphFrom, MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, moving, multiEdit, navigations, newDraft,
@@ -13368,7 +13453,7 @@ export {
   proseHtml, putViews, quick, QUICK, quickHide, quickShow, quickWorks, rangeDays, RANGES, reaching, readOnly,
   readPresetList, recent, recentCharts, recover, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout,
   remember, removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape, reshaped,
-  resolved, resultText, retryPresets, revision, roomFor, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon,
+  resolved, resultText, retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon,
   saveView, say, scrollsY, secondColor, sectionMark, select, selected, selectingArea, seriesCount, seriesLooked,
   setSingleKeys, shapeGlyph, SHAPES, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE, SHELF_STEPS, shelfRows,
   shelfScrolls, showGuide, showList, showLook, showMenu, shownDrawings, shownOklch, shownView, showPalette, showRange,
