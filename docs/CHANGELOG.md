@@ -807,6 +807,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- `/api/urpd/{cohort}/{point}` reads the block's distribution from a stored URPD history (each block's changes, every
+  cell checkpointed each 250 blocks) instead of rebuilding the UTXO set at that block and a price grid: a cold point
+  read takes at most 4.4 ms at p90 (raw, any era; 12-32 ms before), and 256 distinct points at 64 at once all answer
+  (p90 63 ms; queued misses ended in a 504 before). Bodies are byte-identical. The spend journal stores each block's
+  rows as compressed columns and the UTXO set keeps a snapshot every 500 blocks (was 1,000): together −4.8 GB on disk.
+  Updating to a new block costs about 0.25 ms more, and the first start after upgrading rebuilds the spend journal and
+  the history (about 2.5 minutes on a Mac mini)
 - mmpl and `Mempool::tick` resolve a pending transaction's confirmed prevouts from the node's UTXO set
   (`gettxout`) instead of `getrawtransaction`: no `txindex` needed, and a node without one no longer retries every
   hole each cycle (4.3 s cycles at 60k transactions, now 95 ms; the first full load one 1.1 s cycle)
