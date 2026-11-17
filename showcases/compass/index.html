@@ -276,13 +276,19 @@
         h1 {
           height: 1.05em;
           margin-top: 2px;
-          overflow: hidden;
+          /* (Cut sideways only, for its ellipsis: up and down, its words and its name's focus ring show whole.) */
+          overflow-x: clip;
           color: var(--state, var(--ink));
           font: 400 clamp(52px, min(11vw, 12svh), 112px) / 1 var(--serif);
           letter-spacing: -0.01em;
           white-space: nowrap;
           text-overflow: ellipsis;
           transition: color 0.2s;
+
+          /* (The mood a box the line's height, not the face's taller one: its focus ring hugs the word.) */
+          #name {
+            display: inline-block;
+          }
 
           /* (The move it is beside the mood, small and plain, on its baseline, in its colour a little quieter.) */
           small {
