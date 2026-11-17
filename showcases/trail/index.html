@@ -62,6 +62,7 @@
         --warm-accent-rgb: 245 229 190;
         --interaction-orange: #ffa000;
         --ui-font-size: 16px;
+        --ui: 1;
       }
 
       * {
@@ -171,23 +172,9 @@
         transform-origin: top left;
       }
 
-      #source-credit {
-        position: absolute;
-        z-index: 2;
-        width: max-content;
-        font-size: var(--ui-font-size);
-        font-weight: 500;
-        line-height: 17px;
-        letter-spacing: 0.065em;
-        white-space: nowrap;
-        opacity: 0.72;
-        pointer-events: auto;
-        transform-origin: top center;
-      }
-
       .axis-hint {
-        width: max-content;
         margin: 0;
+        text-wrap: balance;
         /* (Quiet beside the terrain, still read: 4.5:1 and more on the ground.) */
         color: rgb(var(--foreground-rgb) / 0.5);
         font-weight: 500;
@@ -209,49 +196,25 @@
         z-index: 2;
         display: none;
         font-size: var(--ui-font-size);
-        white-space: nowrap;
+        text-align: center;
+        transform-origin: top center;
+        scale: var(--ui);
       }
 
-      .topbar.is-2d .flat-axis-hint {
+      .topbar.is-flat-rails .flat-axis-hint {
         display: block;
       }
 
-      .topbar.is-2d #date-axis-ui,
-      .topbar.is-2d #price-axis-hint {
+      .topbar.is-flat-rails #date-axis-hint,
+      .topbar.is-flat-rails #price-axis-hint {
         display: none;
-      }
-
-      .topbar.is-2d #source-credit {
-        right: 28px;
-      }
-
-      /* (A portrait phone turns the stage, so its right edge is the screen's bottom, where the 2D/3D toggle stays: the credit
-         ends above it. On the screen that's the toggle's height and a gap, so in the stage it's that over the stage's scale.) */
-      @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
-        .topbar.is-2d #source-credit {
-          right: calc(28px + (34px + env(safe-area-inset-bottom)) / var(--stage-scale));
-        }
-      }
-
-      #source-credit .credit-copy {
-        opacity: 0.66;
-      }
-
-      #source-credit a {
-        color: inherit;
-        text-decoration: none;
-      }
-
-      #source-credit a:hover,
-      #source-credit a:focus-visible {
-        text-decoration: underline;
-        text-underline-offset: 3px;
       }
 
       .eyebrow {
         margin: 0 0 5px;
         color: var(--muted);
-        font-size: var(--ui-font-size);
+        /* (A sixth of the title, as it's sized.) */
+        font-size: calc(var(--title-size, 96px) / 6);
         font-weight: 500;
         letter-spacing: 0.14em;
       }
@@ -261,7 +224,8 @@
         font-family:
           "Instrument", Charter, "Bitstream Charter", "Sitka Text", Cambria,
           serif;
-        font-size: 96px;
+        /* (At most 96px; less where the price axis it lies along is short, so it stays behind the oldest ridges.) */
+        font-size: var(--title-size, 96px);
         font-weight: 400;
         line-height: 1;
         letter-spacing: -0.025em;
@@ -278,17 +242,34 @@
         font-size: var(--ui-font-size);
         text-align: center;
         transform-origin: top center;
+        /* (Grown on a small screen, wrapping to its axis: see state.ui.) */
+        scale: var(--ui);
       }
 
-      .price-axis-ui {
+      .axis-ui {
         gap: 12px;
+      }
+
+      /* (Each hint says what this device does: keys and a pointer, or a finger.) */
+      @media (hover: hover) and (pointer: fine) {
+        .for-touch {
+          display: none;
+        }
+      }
+
+      @media not ((hover: hover) and (pointer: fine)) {
+        .for-keys {
+          display: none;
+        }
       }
 
       .profitability,
       .profitability-split {
         display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 14px;
+        justify-content: center;
+        gap: 4px 14px;
         white-space: nowrap;
       }
 
@@ -353,38 +334,46 @@
 
       .selectors {
         display: flex;
+        flex-wrap: wrap;
         align-items: flex-end;
-        gap: 14px;
+        justify-content: center;
+        gap: 10px 14px;
       }
 
-      /* The day's split, its key: a swatch a part (or, by age, one gradient from youngest to oldest). */
-      .split-legend {
+      /* The key: a ramp or a swatch a colour, its words beside it. */
+      .key {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 6px 22px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
+      .key-item {
         display: flex;
         align-items: center;
-        gap: 10px;
-        color: var(--muted);
-        font-size: 11px;
-        letter-spacing: 0.08em;
-        pointer-events: none;
+        gap: 8px;
 
         &[hidden] {
           display: none;
         }
 
         i {
-          display: inline-block;
-          width: 10px;
-          height: 10px;
-          margin-right: 6px;
+          width: 11px;
+          height: 11px;
           border-radius: 2px;
-          vertical-align: -1px;
           background: var(--swatch);
         }
 
         .ramp {
-          width: 96px;
-          height: 8px;
-          border-radius: 4px;
+          width: 112px;
+          height: 9px;
+          border-radius: 2px;
           background: linear-gradient(90deg, var(--ramp));
         }
 
@@ -453,8 +442,8 @@
           &::before {
             content: "";
             position: absolute;
-            inset: min(0px, calc((100% - 44px / var(--stage-scale)) / 2))
-              calc(-1px / var(--stage-scale));
+            inset: min(0px, calc((100% - 44px / var(--stage-scale) / var(--ui)) / 2))
+              calc(-1px / var(--stage-scale) / var(--ui));
           }
 
           /* (The select itself above that reach, so a press on it is the select's own; the reach around it stays the label's.) */
@@ -491,8 +480,7 @@
         position: relative;
         cursor: pointer;
 
-        /* (A finger's reach, unseen: 44px tall; as wide as it is, already a finger's, so it never reaches the scene's
-           credit, which a turned 2D scene puts just beside it.) */
+        /* (A finger's reach, unseen: 44px tall; as wide as it is, already a finger's.) */
         &::before {
           content: "";
           position: absolute;
@@ -622,21 +610,27 @@
           <h1>The Satoshi Trail</h1>
         </div>
 
+        <!-- (Two rails along the floor: by the dates, how to move through them and what the colours say; by the prices,
+             how to read them, what they add up to and what's drawn.) -->
         <div id="date-axis-ui" class="axis-ui date-axis-ui">
           <p id="date-axis-hint" class="axis-hint">
-            Drag date through time ·
-            <span class="key-hint" data-key="ArrowUp">↑</span>
-            <span class="key-hint" data-key="ArrowDown">↓</span>
-            move date
+            Drag date through time<span class="for-keys">
+            · <span class="key-hint" data-key="ArrowUp">↑</span>
+            <span class="key-hint" data-key="ArrowDown">↓</span></span>
           </p>
+          <!-- What the colours say: the terrain's shade, and a split's parts. -->
+          <div id="key" class="key">
+            <span id="terrain-key" class="key-item"></span>
+            <span id="split-legend" class="key-item" hidden></span>
+          </div>
         </div>
 
         <div id="price-axis-ui" class="axis-ui price-axis-ui">
           <p id="price-axis-hint" class="axis-hint">
-            Hover or touch to explore price ·
+            <span class="for-keys">Hover to explore price ·
             <span class="key-hint" data-key="ArrowLeft">←</span>
             <span class="key-hint" data-key="ArrowRight">→</span>
-            move price
+            · Drag for a range</span><span class="for-touch">Hold, then drag for a range</span>
           </p>
           <div
             id="summary"
@@ -746,25 +740,18 @@
                 </optgroup>
               </select>
             </label>
-            <div id="split-legend" class="split-legend" hidden></div>
           </div>
         </div>
 
         <p id="flat-axis-hint" class="axis-hint flat-axis-hint">
           Drag date through time ·
-          <span class="key-hint" data-key="ArrowUp">↑</span>
-          <span class="key-hint" data-key="ArrowDown">↓</span>
-          move date · Hover or touch to explore price ·
+          <span class="for-keys"><span class="key-hint" data-key="ArrowUp">↑</span>
+          <span class="key-hint" data-key="ArrowDown">↓</span> · Hover to explore price ·
           <span class="key-hint" data-key="ArrowLeft">←</span>
           <span class="key-hint" data-key="ArrowRight">→</span>
-          move price
+          · Drag for a range</span><span class="for-touch">Touch to explore price · Hold, then drag for a range</span>
         </p>
 
-        <div id="source-credit">
-          <span class="credit-copy">Powered by</span>
-          <a href="https://bitview.dev" target="_blank" rel="noreferrer"
-            >Bitview</a>
-        </div>
       </header>
 
     </main>
@@ -894,7 +881,12 @@
           .trim();
         const MONO_FONT =
           '"Lilex", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace';
+        // The scene's words, in stage pixels at a scale of 1; never under MIN_UI_TEXT screen pixels, so on a small screen
+        // they (and the room around them) grow by state.ui, and the terrain gives up that room.
         const UI_FONT_SIZE = 16;
+        const MIN_UI_TEXT = 9.5;
+        /** A length beside the scene's words, grown with them. */
+        const ui = (px) => px * state.ui;
         const AXIS_GAP = 8;
         const PILL_PADDING_X = 6;
         const PILL_PADDING_Y = 4;
@@ -950,6 +942,7 @@
           byId("dimension-3d"),
         ];
         const dimensionToggle = byId("dimension-toggle");
+        const brandLink = document.querySelector(".brand");
         const metricSelect = byId("metric");
         const modeSelect = byId("mode");
         const weightSelect = byId("weight");
@@ -957,9 +950,7 @@
         const identityElement = byId("identity");
         const dateAxisUi = byId("date-axis-ui");
         const priceAxisUi = byId("price-axis-ui");
-        const selectors = byId("selectors");
         const flatAxisHint = byId("flat-axis-hint");
-        const sourceCredit = byId("source-credit");
         const keyHints = new Map(
           Array.from(ARROW_KEYS, (key) => [
             key,
@@ -1018,6 +1009,8 @@
           width: 0,
           height: 0,
           dpr: 1,
+          // How much the scene's words are grown, so a small screen still reads them (1 where they're already big enough).
+          ui: 1,
           visibleCount: 721,
           halfWindow: 360,
           binCount: 120,
@@ -1604,17 +1597,23 @@
           }
         }
 
+        /**
+         * Whether the rails lie flat at the stage's foot rather than along the floor: under the flat view, and where the
+         * words must grow by more than a fifth (a phone), as along the floor they'd wrap into blocks that leave the
+         * terrain half its size.
+         */
+        function flatRails() {
+          return state.dimension === "2d" || state.ui > 1.2;
+        }
+
         function syncProjectionTransforms() {
           const flat = state.dimension === "2d";
+          const railsFlat = flatRails();
           state.projectedUiKey = "";
-          const transform = flat ? "none" : pricePlaneTransform;
-          identityElement.style.transform = transform;
-          priceAxisUi.style.transform = transform;
-          dateAxisUi.style.transform =
-            flat ? "none" : datePlaneTransform;
-          sourceCredit.style.transform =
-            flat ? "none" : datePlaneTransform;
-          projectedUi.classList.toggle("is-2d", flat);
+          identityElement.style.transform = flat ? "none" : pricePlaneTransform;
+          priceAxisUi.style.transform = railsFlat ? "none" : pricePlaneTransform;
+          dateAxisUi.style.transform = railsFlat ? "none" : datePlaneTransform;
+          projectedUi.classList.toggle("is-flat-rails", railsFlat);
           canvas.setAttribute(
             "aria-label",
             flat
@@ -1623,7 +1622,7 @@
           );
           canvas.setAttribute(
             "aria-describedby",
-            flat
+            railsFlat
               ? "flat-axis-hint"
               : "date-axis-hint price-axis-hint",
           );
@@ -1962,23 +1961,41 @@
         }
 
         /**
+         * A coin's age as a colour, 0 the youngest to 1 the oldest: hot to cold, amber through red, magenta and violet
+         * to blue and ice, clear of the terrain's greens and browns. Brightest at both ends and a little darker between,
+         * so neighbours differ in lightness as well as hue.
+         */
+        function ageColor(age) {
+          const lightness = 0.86 - 0.4 * age * (1 - age) - 0.06 * age;
+          const chroma = 0.17 - 0.07 * age * age;
+          return `oklch(${lightness.toFixed(3)} ${chroma.toFixed(3)} ${((435 - 235 * age) % 360).toFixed(1)})`;
+        }
+
+        /** A palette (stops of [at, r, g, b]) as CSS gradient stops, in the terrain's own display colours. */
+        function paletteStops(stops, reversed = false) {
+          return stops
+            .map(([at, ...channels]) => `${displayRgbColor(channels)} ${((reversed ? 1 - at : at) * 100).toFixed(1)}%`)
+            .sort((a, b) => parseFloat(a.split(" ").at(-1)) - parseFloat(b.split(" ").at(-1)))
+            .join(", ");
+        }
+
+        /**
          * A split's parts, in order (by age, youngest first), each its cohort, name and color; by the cohort choice
          * (none: not a split). The ages are the cohort list's own bands.
          */
         function splitParts(choice) {
           if (choice === "split:term") {
             return [
-              { cohort: "sth", label: "SHORT-TERM", color: "#f2a33a" },
-              { cohort: "lth", label: "LONG-TERM", color: "#5aa9e6" },
+              { cohort: "sth", label: "SHORT-TERM", color: ageColor(0.12) },
+              { cohort: "lth", label: "LONG-TERM", color: ageColor(0.82) },
             ];
           }
           if (choice !== "split:age") return null;
           const bands = [...cohortSelect.querySelectorAll('optgroup[label="AGE BANDS"] option')];
-          // (Youngest amber to oldest blue, by way of red and violet: clear of the terrain's greens and browns.)
           return bands.map((option, index) => ({
             cohort: option.value,
             label: option.textContent,
-            color: `oklch(72% 0.16 ${Math.round((420 - (index / (bands.length - 1)) * 170) % 360)})`,
+            color: ageColor(index / (bands.length - 1)),
           }));
         }
 
@@ -2005,9 +2022,29 @@
             }));
             return;
           }
+          // (Every age a step of its own colour, as the slice draws them.)
+          const step = 100 / state.split.length;
           const ramp = Object.assign(document.createElement("span"), { className: "ramp" });
-          ramp.style.setProperty("--ramp", state.split.map(({ color }) => color).join(", "));
-          legend.replaceChildren(state.split[0].label, ramp, state.split.at(-1).label);
+          ramp.style.setProperty(
+            "--ramp",
+            state.split.map(({ color }, index) => `${color} ${(index * step).toFixed(2)}% ${((index + 1) * step).toFixed(2)}%`).join(", "),
+          );
+          legend.replaceChildren(`AGE ${state.split[0].label}`, ramp, state.split.at(-1).label);
+        }
+
+        /** The terrain's key: its shade against the day's tallest, or in a change view, its falls as water and rises as land. */
+        function syncTerrainKey() {
+          const key = byId("terrain-key"), mode = state.mode === "value" ? "value" : "change";
+          if (key.dataset.mode === mode) return;
+          key.dataset.mode = mode;
+          const ramp = (stops) => {
+            const element = Object.assign(document.createElement("span"), { className: "ramp" });
+            element.style.setProperty("--ramp", stops);
+            return element;
+          };
+          if (mode === "value") key.replaceChildren("LITTLE", ramp(paletteStops(palette)), "THE DAY’S MOST");
+          else key.replaceChildren("FELL", ramp(paletteStops(waterPalette, true)), ramp(paletteStops(palette)), "ROSE");
+          state.projectedUiKey = "";
         }
 
         /**
@@ -2015,6 +2052,7 @@
          * menu's together choices offered there only.
          */
         function syncSplit() {
+          syncTerrainKey();
           const shown = Boolean(state.split) && state.mode === "value", legend = byId("split-legend");
           if (legend.hidden === shown) {
             legend.hidden = !shown;
@@ -2383,10 +2421,13 @@
             window.innerHeight / stageHeight,
           );
           app.style.setProperty("--stage-scale", String(scale));
+          state.ui = Math.max(1, MIN_UI_TEXT / (UI_FONT_SIZE * scale));
+          app.style.setProperty("--ui", String(state.ui));
           app.classList.add("is-fit");
         }
 
         function resize() {
+          const previousUi = state.ui;
           fitStage();
           const width = Math.max(1, Math.round(canvas.clientWidth));
           const height = Math.max(1, Math.round(canvas.clientHeight));
@@ -2409,13 +2450,15 @@
           if (
             width === state.width &&
             height === state.height &&
-            dpr === state.dpr
+            dpr === state.dpr &&
+            state.ui === previousUi
           ) {
             // (The canvas is as it was, but the screen around it isn't: a turned phone moves the toggle the 2D readout keeps clear of.)
             scheduleRender();
             return;
           }
 
+          if (state.ui !== previousUi) syncProjectionTransforms();
           state.width = width;
           state.height = height;
           state.dpr = dpr;
@@ -2650,7 +2693,7 @@
 
         function measureMonoText(lines) {
           context.save();
-          context.font = `500 ${UI_FONT_SIZE}px ${MONO_FONT}`;
+          context.font = `500 ${ui(UI_FONT_SIZE)}px ${MONO_FONT}`;
           const width = maxTextWidth(context, lines);
           context.restore();
           return width;
@@ -2664,6 +2707,7 @@
             state.metric,
             state.mode,
             state.valueScale,
+            state.ui,
           ].join(":");
           if (state.flatGuttersCache?.key === key) {
             return state.flatGuttersCache.value;
@@ -2671,8 +2715,8 @@
           const dateWidth = measureMonoText(dateLabel.split("\n"));
           const left = Math.ceil(
             dateWidth +
-              PILL_PADDING_X * 2 +
-              STAGE_EDGE_PADDING,
+              ui(PILL_PADDING_X) * 2 +
+              ui(STAGE_EDGE_PADDING),
           );
 
           const valueLabels = [valueAxisTitle()];
@@ -2682,23 +2726,30 @@
           const right = Math.ceil(
             measureMonoText(valueLabels) +
               Math.max(
-                AXIS_LABEL_OFFSET,
-                PILL_PADDING_X * 2,
+                ui(AXIS_LABEL_OFFSET),
+                ui(PILL_PADDING_X) * 2,
               ) +
-              STAGE_EDGE_PADDING,
+              ui(STAGE_EDGE_PADDING),
           );
           const value = { left, right };
           state.flatGuttersCache = { key, value };
           return value;
         }
 
+        /** The flat rails' height at the stage's foot, by their last measure: the hint, the readout, the key. */
+        function footerHeight() {
+          return ui(
+            flatAxisHint.offsetHeight + FLAT_UI_GAP + priceAxisUi.offsetHeight + FLAT_UI_GAP + dateAxisUi.offsetHeight,
+          );
+        }
+
         function geometry() {
           const signed = state.mode !== "value";
-          const horizontalMargin = UI_FONT_SIZE * 10;
 
           if (state.dimension === "2d") {
             const top = 170;
-            const bottom = 180;
+            // (Room below for the pills, the hint and the readout, as tall as they are at this width: a small screen's wrap.)
+            const bottom = ui(TWO_LINE_PILL_HEIGHT + FLAT_FOOTER_GAP + STAGE_EDGE_PADDING) + footerHeight();
             const available = Math.max(
               240,
               state.height - top - bottom,
@@ -2725,9 +2776,6 @@
             };
           }
 
-          const top = 94;
-          const bottom = 72;
-          const available = Math.max(240, state.height - top - bottom);
           let timeSpan = Math.max(1, state.halfWindow);
           let pastExtent = 1;
           let futureExtent = 1;
@@ -2743,42 +2791,83 @@
             pastExtent = -startOffset / timeSpan;
             futureExtent = endOffset / timeSpan;
           }
-
-          const heightScale =
-            available * (signed ? 0.19 : 0.38);
-          const footprint = Math.max(
-            120,
-            state.width - horizontalMargin * 2,
-          );
-          const totalTimeExtent = Math.max(
-            0.001,
-            pastExtent + futureExtent,
-          );
+          const totalTimeExtent = Math.max(0.001, pastExtent + futureExtent);
           const timeShare = 0.37;
+          // (The tallest peak, against the floor's width: a change view's half each way.)
+          const peak = signed ? 0.108 : 0.217;
+          const slope = ISO_SLOPE;
+          const priceDirection = { x: ISO_AXIS_X, y: -ISO_AXIS_Y };
+          const timeDirection = { x: ISO_AXIS_X, y: ISO_AXIS_Y };
+          const timeOutward = { x: -ISO_AXIS_X, y: ISO_AXIS_Y };
+          const along = (point, direction, distance) => ({
+            x: point.x + direction.x * distance,
+            y: point.y + direction.y * distance,
+          });
+          // (A rail as it lies, by its last measure: its four corners, from its axis's middle outward.)
+          const railSize = (element) => ({ width: ui(element.offsetWidth), depth: ui(element.offsetHeight) });
+          const railsFlat = flatRails();
+          const priceRail = railSize(priceAxisUi), dateRail = railSize(dateAxisUi);
+          const railCorners = (middle, outward, direction, { width, depth }) => {
+            const near = along(middle, outward, ui(42));
+            const far = along(near, outward, depth);
+            return [along(near, direction, -width / 2), along(near, direction, width / 2), along(far, direction, -width / 2), along(far, direction, width / 2)];
+          };
+          const valueLabels = measureMonoText([valueAxisTitle(), ...valueTicks().map(({ value }) => formatAxisValue(value))]);
+          // Everything the scene lays out, by the floor's width f, from the front corner of its price axis: the floor,
+          // the oldest days' ridges, the value axis and its labels, and both rails.
+          const scene = (f) => {
+            const priceWidth = f * (1 - timeShare), depthX = (f * timeShare) / totalTimeExtent;
+            const at = (price, relative, up = 0) => ({
+              x: price * priceWidth + relative * depthX,
+              y: (relative * depthX - price * priceWidth) * slope - up,
+            });
+            return [
+              at(0, -pastExtent), at(1, -pastExtent), at(0, futureExtent), at(1, futureExtent),
+              at(0, -pastExtent, f * peak),
+              along(at(1, 0, f * peak + ui(UI_FONT_SIZE * 2)), priceDirection, valueLabels + ui(AXIS_LABEL_OFFSET)),
+              // (Flat rails lie below the scene instead; the date pill and the year labels need their room then.)
+              ...(railsFlat
+                ? [along(at(0, 0), timeOutward, ui(42 + TWO_LINE_PILL_HEIGHT))]
+                : [
+                    ...railCorners(at(0.5, futureExtent), timeDirection, priceDirection, priceRail),
+                    ...railCorners(at(0, (futureExtent - pastExtent) / 2), timeOutward, timeDirection, dateRail),
+                  ]),
+            ];
+          };
+          const bounds = (points) => {
+            const xs = points.map(({ x }) => x), ys = points.map(({ y }) => y);
+            const minX = Math.min(...xs), minY = Math.min(...ys);
+            return { minX, minY, width: Math.max(...xs) - minX, height: Math.max(...ys) - minY };
+          };
+          // The widest floor whose scene fits the stage inside its edge room (kept clear of the brand and the toggle in the
+          // corners), found by halving; then the scene centred.
+          const room = ui(36);
+          const roomWidth = state.width - room * 2;
+          const roomHeight = state.height - room * 2 - (railsFlat ? footerHeight() + ui(FLAT_UI_GAP) : 0);
+          let narrow = 120, wide = state.width * 2;
+          for (let step = 0; step < 24; step++) {
+            const middle = (narrow + wide) / 2, { width, height } = bounds(scene(middle));
+            if (width <= roomWidth && height <= roomHeight) narrow = middle;
+            else wide = middle;
+          }
+          const footprint = narrow;
+          const fitted = bounds(scene(footprint));
+          const left = room + (roomWidth - fitted.width) / 2 - fitted.minX;
+          const baseY = room + (roomHeight - fitted.height) / 2 - fitted.minY;
           const timeFootprint = footprint * timeShare;
           const depthX = timeFootprint / totalTimeExtent;
-          const depthY = depthX * ISO_SLOPE;
           const priceWidth = footprint - timeFootprint;
-          const priceRise = priceWidth * ISO_SLOPE;
-          const left =
-            horizontalMargin +
-            pastExtent * depthX;
-          const maxYOffset =
-            futureExtent * depthY;
 
           return {
-            top,
-            depthY,
+            top: baseY + fitted.minY,
+            depthY: depthX * slope,
             timeSpan,
             left,
             width: priceWidth,
-            priceY: -priceRise,
+            priceY: -priceWidth * slope,
             timeX: depthX,
-            baseY:
-              state.height -
-              bottom -
-              maxYOffset,
-            heightScale,
+            baseY,
+            heightScale: footprint * peak,
           };
         }
 
@@ -2854,6 +2943,7 @@
           }
           const key = [
             state.dimension,
+            state.ui,
             state.dates[start],
             state.dates[end],
             layout.left,
@@ -2875,52 +2965,46 @@
             timeOut,
           } = plotAxisGeometry(layout);
           identityElement.style.width = `${priceLength}px`;
+          identityElement.style.setProperty("--title-size", `${Math.min(96, priceLength * 0.082)}px`);
+          // (The rails grow by state.ui about their top middle, so they wrap, in their own units, to a share of the stage,
+          // the scene fitted around them so their lines stay long and few; lying flat, to the flat view's or the stage's width.)
+          const railWidth = (share) =>
+            `${(state.dimension === "2d" ? layout.width : flatRails() ? state.width - 2 * Math.max(ui(36), footInset()) : state.width * share) / state.ui}px`;
+          priceAxisUi.style.maxWidth = railWidth(0.7);
+          dateAxisUi.style.maxWidth = railWidth(0.4);
+          flatAxisHint.style.maxWidth = railWidth(1);
           const anchorRail = (element, point) => {
             element.style.left = `${point.x - element.offsetWidth * 0.5}px`;
             element.style.top = `${point.y}px`;
           };
 
-          if (state.dimension === "2d") {
-            const centerX = layout.left + layout.width * 0.5;
+          if (flatRails()) {
+            // (Under the flat view's pills, or at the stage's foot under a fitted terrain: the hint, the readout, the key.)
+            const centerX = state.dimension === "2d" ? layout.left + layout.width * 0.5 : state.width * 0.5;
             const footerTop =
-              layout.floorY +
-              TWO_LINE_PILL_HEIGHT +
-              FLAT_FOOTER_GAP;
+              state.dimension === "2d"
+                ? layout.floorY + ui(TWO_LINE_PILL_HEIGHT + FLAT_FOOTER_GAP)
+                : state.height - ui(36) - footerHeight();
+            anchorRail(flatAxisHint, { x: centerX, y: footerTop });
+            const priceUiTop = footerTop + ui(flatAxisHint.offsetHeight + FLAT_UI_GAP);
+            anchorRail(priceAxisUi, { x: centerX, y: priceUiTop });
+            anchorRail(dateAxisUi, { x: centerX, y: priceUiTop + ui(priceAxisUi.offsetHeight + FLAT_UI_GAP) });
+          }
+          if (state.dimension === "2d") {
             identityElement.style.left = `${layout.left}px`;
             identityElement.style.top = `${
               layout.top - identityElement.offsetHeight - 18
             }px`;
-            flatAxisHint.style.left = `${
-              state.width * 0.5 - flatAxisHint.offsetWidth * 0.5
-            }px`;
-            flatAxisHint.style.top = `${footerTop}px`;
-            const priceUiTop =
-              footerTop +
-              flatAxisHint.offsetHeight +
-              FLAT_UI_GAP;
-            anchorRail(priceAxisUi, {
-              x: centerX,
-              y: priceUiTop,
-            });
-            const selectorCenterY =
-              priceUiTop +
-              selectors.offsetTop +
-              selectors.offsetHeight * 0.5;
-            sourceCredit.style.left = "";
-            sourceCredit.style.top = `${
-              selectorCenterY - sourceCredit.offsetHeight * 0.5
-            }px`;
-            sourceCredit.style.bottom = "auto";
             state.projectedUiKey = key;
             return;
           }
 
-          sourceCredit.style.bottom = "";
 
+          // (Toward the dearer end, behind where the oldest days stand lowest, so their ridges don't cover its first letters.)
           const terrainTitleCenter = projectAtPrice(
             layout,
             start,
-            0.5,
+            0.6,
             0,
           );
           const titleBottomCenter = offsetPoint(
@@ -2950,17 +3034,15 @@
             0.5,
             0,
           );
-          const dateUiAnchor = offsetPoint(dateAxisCenter, timeOut, 42);
-          const priceUiAnchor = offsetPoint(priceAxisCenter, priceOut, 42);
+          const dateUiAnchor = offsetPoint(dateAxisCenter, timeOut, ui(42));
+          const priceUiAnchor = offsetPoint(priceAxisCenter, priceOut, ui(42));
 
           identityElement.style.left = `${titleAnchor.x}px`;
           identityElement.style.top = `${titleAnchor.y}px`;
-          anchorRail(dateAxisUi, dateUiAnchor);
-          anchorRail(priceAxisUi, priceUiAnchor);
-          anchorRail(
-            sourceCredit,
-            offsetPoint(dateUiAnchor, timeOut, 34),
-          );
+          if (!flatRails()) {
+            anchorRail(dateAxisUi, dateUiAnchor);
+            anchorRail(priceAxisUi, priceUiAnchor);
+          }
           state.projectedUiKey = key;
         }
 
@@ -3082,18 +3164,9 @@
           return (cumulative[index] / total) * 100;
         }
 
-        function pricePillLabel(
-          profile,
-          coordinate,
-          priceLabel = formatAxisPrice(
-            priceAtTerrainCoordinate(coordinate),
-          ),
-          atMarketPrice = false,
-        ) {
-          const percent =
-            atMarketPrice && state.metric === "unrealized_pnl"
-              ? 0
-              : cumulativeMetricPercent(profile, coordinate);
+        function pricePillLabel(profile, coordinate) {
+          const priceLabel = formatAxisPrice(priceAtTerrainCoordinate(coordinate));
+          const percent = cumulativeMetricPercent(profile, coordinate);
           return `${priceLabel}\n${
             percent === null
               ? "—"
@@ -3323,7 +3396,7 @@
               priceOut: { x: 0, y: 1 },
               priceGapOut: { x: 0, y: 1 },
               timeOut: { x: -1, y: 0 },
-              gap: AXIS_GAP,
+              gap: ui(AXIS_GAP),
             };
           }
           const timeLength = Math.hypot(
@@ -3350,7 +3423,7 @@
               x: -priceAxis.x,
               y: -priceAxis.y,
             },
-            gap: AXIS_GAP,
+            gap: ui(AXIS_GAP),
           };
         }
 
@@ -3482,21 +3555,21 @@
         function pillLayout(target, text, align, attachEdge) {
           const lines = String(text).split("\n");
           target.save();
-          target.font = `500 ${UI_FONT_SIZE}px ${MONO_FONT}`;
+          target.font = `500 ${ui(UI_FONT_SIZE)}px ${MONO_FONT}`;
           const textWidth = maxTextWidth(target, lines);
           target.restore();
 
-          const boxWidth = textWidth + PILL_PADDING_X * 2;
+          const boxWidth = textWidth + ui(PILL_PADDING_X) * 2;
           const boxHeight =
-            lines.length * UI_FONT_SIZE + PILL_PADDING_Y * 2;
+            lines.length * ui(UI_FONT_SIZE) + ui(PILL_PADDING_Y) * 2;
           const boxX =
             align === "left"
-              ? -PILL_PADDING_X
+              ? -ui(PILL_PADDING_X)
               : align === "right"
-                ? -textWidth - PILL_PADDING_X
+                ? -textWidth - ui(PILL_PADDING_X)
                 : -boxWidth * 0.5;
           const textX = align === "center" ? boxX + boxWidth * 0.5 : 0;
-          const halfBorder = PILL_BORDER_WIDTH * 0.5;
+          const halfBorder = ui(PILL_BORDER_WIDTH) * 0.5;
           let offsetX = 0;
           let offsetY = 0;
           if (attachEdge === "top") {
@@ -3538,12 +3611,12 @@
             (baseline.x * deltaY - baseline.y * deltaX) /
             determinant;
           const pill = pillLayout(target, text, align, attachEdge);
-          const halfBorder = PILL_BORDER_WIDTH * 0.5;
+          const halfBorder = ui(PILL_BORDER_WIDTH) * 0.5;
           const left = pill.offsetX + pill.boxX - halfBorder;
-          const right = left + pill.boxWidth + PILL_BORDER_WIDTH;
+          const right = left + pill.boxWidth + ui(PILL_BORDER_WIDTH);
           const top =
             pill.offsetY - pill.boxHeight * 0.5 - halfBorder;
-          const bottom = top + pill.boxHeight + PILL_BORDER_WIDTH;
+          const bottom = top + pill.boxHeight + ui(PILL_BORDER_WIDTH);
           return (
             localX >= left - hitSlop &&
             localX <= right + hitSlop &&
@@ -3585,7 +3658,7 @@
             attachEdge,
           },
         ) {
-          const fontSize = UI_FONT_SIZE;
+          const fontSize = ui(UI_FONT_SIZE);
           const lineHeight = fontSize;
           const pill = pillLayout(target, text, align, attachEdge);
 
@@ -3614,7 +3687,7 @@
           );
           target.fill();
           target.strokeStyle = BLACK;
-          target.lineWidth = PILL_BORDER_WIDTH;
+          target.lineWidth = ui(PILL_BORDER_WIDTH);
           target.stroke();
           target.fillStyle = INK_COLOR;
           for (let index = 0; index < pill.lines.length; index++) {
@@ -3728,7 +3801,7 @@
           context.strokeStyle = AXIS_COLOR;
           context.fillStyle = WHITE;
           context.lineWidth = 0.7;
-          context.font = `500 ${UI_FONT_SIZE}px ${MONO_FONT}`;
+          context.font = `500 ${ui(UI_FONT_SIZE)}px ${MONO_FONT}`;
           context.textBaseline = "middle";
 
           context.beginPath();
@@ -3740,7 +3813,43 @@
           context.lineTo(valueTop.x, valueTop.y);
           context.stroke();
 
-          const priceStep = 10_000;
+          // (Ticks every $10K, or as few more as their labels need to stand apart: a small screen's grown words.)
+          const labelRoom = (label) => maxTextWidth(context, [label]) + ui(12);
+          const priceSpan =
+            (axes.priceLength * 10_000) / Math.max(PRICE_BUCKET_WIDTH, state.maxPrice - MIN_TERRAIN_PRICE);
+          const priceStep =
+            10_000 * ([1, 2, 5, 10].find((step) => priceSpan * step >= labelRoom(formatAxisPrice(axisMaxPrice))) ?? 10);
+          // (A label left out where a pill sits on it, measured along the label's own axis: the pill says more.)
+          const pillSpan = (text, point, alongWidth = true) => {
+            const pill = pillLayout(context, text, "center", "top");
+            return { point, half: (alongWidth ? pill.boxWidth : pill.boxHeight) / 2 + ui(6) };
+          };
+          const covered = (point, half, pills, axis) =>
+            pills.some((pill) => Math.abs((point.x - pill.point.x) * axis.x + (point.y - pill.point.y) * axis.y) < half + pill.half);
+          const selectedClose = displayedPrice(selectedProfile);
+          const selectedPrice = priceCoordinate(selectedClose);
+          const atPrice = (coordinate) => projectAtPriceAxis(layout, axisDateIndex, coordinate);
+          const pricePills = [];
+          if (selectedPrice !== null) pricePills.push(pillSpan(formatPrice(selectedClose), atPrice(selectedPrice)));
+          if (selectedProfile && state.hoverPriceCoordinate !== null) {
+            const coordinate = clamp(state.hoverPriceCoordinate, 0, 1);
+            pricePills.push(pillSpan(hoverPillText(selectedProfile, coordinate), atPrice(coordinate)));
+          }
+          if (selectedProfile && state.range) {
+            const pill = rangePill(selectedProfile);
+            pricePills.push(pillSpan(pill.text, atPrice(pill.coordinate)));
+          }
+          // (The value axis's foot label runs on from the price axis's end, where the dearest price's label would be.)
+          const valueFoot = valueTicks()[0];
+          if (selectedProfile && valueFoot) {
+            const half = maxTextWidth(context, [formatAxisValue(valueFoot.value)]) / 2;
+            pricePills.push({ point: offsetPoint(atPrice(axisMaxCoordinate), priceAxis, ui(AXIS_LABEL_OFFSET) + half), half });
+          }
+          // (The flat view's date pill sits in the corner, left of its anchor, over the cheapest price's label.)
+          if (state.dimension === "2d") {
+            const pill = pillSpan(datePill.text, datePill.anchor);
+            pricePills.push({ ...pill, point: { x: datePill.anchor.x - pill.half, y: datePill.anchor.y } });
+          }
           for (
             let price = MIN_TERRAIN_PRICE;
             price <= axisMaxPrice;
@@ -3763,8 +3872,10 @@
               point.y + priceOut.y * floorTickLength,
             );
             context.stroke();
+            const label = formatAxisPrice(price);
+            if (covered(point, maxTextWidth(context, [label]) / 2, pricePills, priceAxis)) continue;
             drawFloorLabel(
-              formatAxisPrice(price),
+              label,
               point.x + priceOut.x * floorLabelOffset,
               point.y + priceOut.y * floorLabelOffset,
               priceAxis,
@@ -3772,8 +3883,6 @@
             );
           }
 
-          const selectedClose = displayedPrice(selectedProfile);
-          const selectedPrice = priceCoordinate(selectedClose);
           if (selectedPrice !== null) {
             const priceHandle = projectAtPriceAxis(
               layout,
@@ -3787,14 +3896,10 @@
               priceHandle.y + priceOut.y * floorHandleLength,
             );
             context.stroke();
+            // (The price alone: its share in profit is the readout's, exact, not this pill's bucketed one.)
             drawPill(
               context,
-              pricePillLabel(
-                selectedProfile,
-                selectedPrice,
-                formatPrice(selectedClose),
-                true,
-              ),
+              formatPrice(selectedClose),
               priceHandle.x,
               priceHandle.y,
               priceAxis,
@@ -3808,11 +3913,21 @@
 
           const startYear = Number(state.dates[start].slice(0, 4));
           const endYear = Number(state.dates[end].slice(0, 4));
+          // (Every year, or every other, as their labels need: along the axis in 3D, stacked by their height in 2D.)
+          const yearSpan =
+            Math.hypot(nowMin.x - pastMin.x, nowMin.y - pastMin.y) /
+            Math.max(1, (state.dateTimes[end] - state.dateTimes[start]) / (365.25 * DAY_MS));
+          const yearRoom = state.dimension === "2d" ? ui(UI_FONT_SIZE + 6) : labelRoom(String(endYear));
+          const yearStep = [1, 2, 4].find((step) => yearSpan * step >= yearRoom) ?? 4;
+          const flat = state.dimension === "2d";
+          const datePills = [pillSpan(datePill.text, datePill.anchor, !flat)];
+          const yearAxis = flat ? { x: 0, y: 1 } : timeAxis;
           for (
             let year = startYear;
             year <= endYear;
             year++
           ) {
+            if ((endYear - year) % yearStep) continue;
             const dateIndex = nearestDateIndex(
               `${year}-01-01`,
               start,
@@ -3831,6 +3946,8 @@
               point.y + timeOut.y * floorTickLength,
             );
             context.stroke();
+            const yearHalf = flat ? ui(UI_FONT_SIZE) / 2 : maxTextWidth(context, [String(year)]) / 2;
+            if (covered(point, yearHalf, datePills, yearAxis)) continue;
             drawDateLabel(
               String(year),
               point.x + timeOut.x * (floorLabelOffset - 1),
@@ -3883,33 +4000,53 @@
               valueTop.x + valueOut.x * 11,
               valueTop.y +
                 valueOut.y * 11 -
-                UI_FONT_SIZE -
+                ui(UI_FONT_SIZE) -
                 4,
             );
           }
           context.restore();
         }
 
-        /** Where a turned (portrait touch) 2D stage puts the screen's fixed 2D/3D toggle, in the stage's own coordinates; null elsewhere. */
-        function toggleBoxInStage() {
-          if (state.dimension !== "2d" || !portraitStageQuery.matches) {
-            return null;
-          }
-          const toggle = dimensionToggle.getBoundingClientRect();
+        /** Where an element fixed on the screen (the brand, the 2D/3D toggle) falls in the stage's own coordinates, turned or not. */
+        function screenBoxInStage(element) {
+          const box = element.getBoundingClientRect();
           const stage = app.getBoundingClientRect();
-          if (!toggle.width || !toggle.height) return null;
-          // (The stage is turned a quarter clockwise about its centre: the screen's down is the stage's right, its right the stage's up.)
-          const scale =
-            Number(app.style.getPropertyValue("--stage-scale")) || 1;
+          if (!box.width || !box.height) return null;
+          const scale = Number(app.style.getPropertyValue("--stage-scale")) || 1;
           const gap = 4;
           const centerX = stage.left + stage.width / 2;
           const centerY = stage.top + stage.height / 2;
+          if (!portraitStageQuery.matches) {
+            return {
+              left: app.clientWidth / 2 + (box.left - gap - centerX) / scale,
+              right: app.clientWidth / 2 + (box.right + gap - centerX) / scale,
+              top: app.clientHeight / 2 + (box.top - gap - centerY) / scale,
+              bottom: app.clientHeight / 2 + (box.bottom + gap - centerY) / scale,
+            };
+          }
+          // (The stage is turned a quarter clockwise about its centre: the screen's down is the stage's right, its right the stage's up.)
           return {
-            left: app.clientWidth / 2 + (toggle.top - gap - centerY) / scale,
-            right: app.clientWidth / 2 + (toggle.bottom + gap - centerY) / scale,
-            top: app.clientHeight / 2 - (toggle.right + gap - centerX) / scale,
-            bottom: app.clientHeight / 2 - (toggle.left - gap - centerX) / scale,
+            left: app.clientWidth / 2 + (box.top - gap - centerY) / scale,
+            right: app.clientWidth / 2 + (box.bottom + gap - centerY) / scale,
+            top: app.clientHeight / 2 - (box.right + gap - centerX) / scale,
+            bottom: app.clientHeight / 2 - (box.left - gap - centerX) / scale,
           };
+        }
+
+        /** Where a turned 2D stage puts the screen's 2D/3D toggle, which its value pill keeps clear of; null elsewhere. */
+        function toggleBoxInStage() {
+          return state.dimension === "2d" && portraitStageQuery.matches ? screenBoxInStage(dimensionToggle) : null;
+        }
+
+        /** How far in from each side the stage's foot is taken by the brand or the toggle, in the screen's corners. */
+        function footInset() {
+          let inset = 0;
+          for (const element of [brandLink, dimensionToggle]) {
+            const box = screenBoxInStage(element);
+            if (!box || box.bottom < state.height * 0.75) continue;
+            inset = Math.max(inset, box.left < state.width / 2 ? box.right : state.width - box.left);
+          }
+          return inset;
         }
 
         /** The y a left-attached value pill at this point is drawn at: along the value axis, to end short of the toggle's edge. */
@@ -3917,9 +4054,9 @@
           const toggle = toggleBoxInStage();
           if (!toggle) return point.y;
           const pill = pillLayout(context, text, "left", "left");
-          const halfBorder = PILL_BORDER_WIDTH * 0.5;
+          const halfBorder = ui(PILL_BORDER_WIDTH) * 0.5;
           const left = point.x + pill.offsetX + pill.boxX - halfBorder;
-          const right = left + pill.boxWidth + PILL_BORDER_WIDTH;
+          const right = left + pill.boxWidth + ui(PILL_BORDER_WIDTH);
           const half = pill.boxHeight * 0.5 + halfBorder;
           if (
             right <= toggle.left ||
@@ -4001,17 +4138,9 @@
 
           drawOutlinedDot(context, surfacePoint, 4, accent, 1.5);
 
-          const splitProfiles =
-            state.mode === "value" ? ensureSplit(state.selectedIndex) : null;
-          const parts = splitProfiles
-            ? splitSharesAt(splitProfiles, nearestPriceIndex(coordinate))
-                .slice(0, 2)
-                .map(({ part, share }) => `${part.label} ${Math.round(share * 100)}%`)
-                .join(" · ")
-            : "";
           drawPill(
             context,
-            `${pricePillLabel(profile, coordinate)}${parts ? `\n${parts}` : ""}`,
+            hoverPillText(profile, coordinate),
             pricePoint.x,
             pricePoint.y,
             priceAxis,
@@ -4032,6 +4161,19 @@
             },
           );
           context.restore();
+        }
+
+        /** The pointer's pill: its price and share, and with a split, the day's largest parts there. */
+        function hoverPillText(profile, coordinate) {
+          const splitProfiles =
+            state.mode === "value" ? ensureSplit(state.selectedIndex) : null;
+          const parts = splitProfiles
+            ? splitSharesAt(splitProfiles, nearestPriceIndex(coordinate))
+                .slice(0, 2)
+                .map(({ part, share }) => `${part.label} ${Math.round(share * 100)}%`)
+                .join(" · ")
+            : "";
+          return `${pricePillLabel(profile, coordinate)}${parts ? `\n${parts}` : ""}`;
         }
 
         /** The selected date's metric between two prices, and its share of the whole (P&L: both sides, as sizes). */
@@ -4094,22 +4236,24 @@
           context.restore();
 
           const { priceAxis, priceOut } = plotAxisGeometry(layout);
-          // (Its label at its middle; the pointer's own near it, at whichever end is farther from the pointer.)
+          const pill = rangePill(profile);
+          const point = projectAtPriceAxis(layout, dateIndex, pill.coordinate);
+          drawPill(context, pill.text, point.x, point.y, priceAxis, priceOut, { attachEdge: "top" });
+        }
+
+        /** A held range's pill: what it holds, at its middle; the pointer's own pill near it, at whichever end is farther. */
+        function rangePill(profile) {
+          const [low, high] = state.range;
+          const from = terrainCoordinateOf(low), to = terrainCoordinateOf(high - PRICE_BUCKET_WIDTH);
           const middle = (from + to) / 2, hover = state.hoverPriceCoordinate;
           const near = hover !== null && Math.abs(hover - middle) < Math.max((to - from) / 2, 0.06);
-          const point = projectAtPriceAxis(layout, dateIndex, near ? (hover > middle ? from : to) : middle);
           const amount = rangeAmount(profile, low, high);
-          drawPill(
-            context,
-            `${formatAxisPrice(low)} – ${formatAxisPrice(high)}\n${
+          return {
+            coordinate: near ? (hover > middle ? from : to) : middle,
+            text: `${formatAxisPrice(low)} – ${formatAxisPrice(high)}\n${
               amount ? `${formatMetricAmount(amount.inside)} · ${formatPercent(amount.share * 100)}` : "—"
             }`,
-            point.x,
-            point.y,
-            priceAxis,
-            priceOut,
-            { attachEdge: "top" },
-          );
+          };
         }
 
         function priceRibbonPoint(
