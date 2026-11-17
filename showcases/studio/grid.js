@@ -9,7 +9,7 @@ import {
   chartAgain, chartById, chartNow, clamp, closedOwner, cloudLayers, composing, css, DASHES, dashOf,
   deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks,
   drawYours, edgesOf, emptyYours, engine, escape, FINE, FOLDER_ICONS, folderAgain, folderMark, folderNow, format,
-  fromUnfit, galleryAhead, galleryPlace, galleryResting, galleryShown, galleryTilesAhead, galleryTilesSeen, goTo,
+  fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, goTo,
   GROUP_MARK, GROUP_OF, grouped, GROUPS, hashOf, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS,
   HEAT_TILE_COLUMNS, heatKnown, heatLike, heldUpright, hideMenu, home, homeAt, homeScroll, homeScroller, ICONS,
   importCharts, inLibrary, inSlices, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isColor, isPreview, isYours,
@@ -1909,6 +1909,30 @@ const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entr
 }, { root: homeScroller, rootMargin: `0px 0px ${Math.round(height)}px 0px` });
 /** A tile waiting to be drawn, watched in view and a screen ahead. @param {Element} frame */
 const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
+let galleryResting = true;
+// (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
+// finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
+let galleryScrolling = false;
+const galleryRests = () => {
+  galleryResting = true;
+  drawGallery();
+};
+/** Home's listeners that tell whether the grid's at rest, added where app.js's start comes to them. */
+function startGalleryRest() {
+  $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
+  $("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
+  // (A press holds it till its release. Let go of otherwise (a cancel, a lost touch, the window left), at the next
+  // frame unless a scroll's begun by then: a pan's pointer is cancelled as its scroll starts, whose end says it's over.)
+  $("home").addEventListener("pointerdown", (event) => {
+    galleryResting = false;
+    press(event, {
+      end: (release) => {
+        if (release) galleryRests();
+        else requestAnimationFrame(() => galleryScrolling || galleryRests());
+      },
+    });
+  });
+}
 /** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
 const nextGallery = (tried) => {
   for (const i of galleryQueue) return galleryQueue.delete(i), i;
@@ -3836,7 +3860,7 @@ export {
   restOf, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
   searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, setTheme,
   sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
-  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, stepChart, stepFolder, stepShelf,
+  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, stepChart, stepFolder, stepShelf,
   stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection,
   treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards,
   writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,

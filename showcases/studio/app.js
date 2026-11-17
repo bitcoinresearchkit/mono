@@ -71,7 +71,7 @@ import {
   restOf, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
   searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, sheetGoes,
   sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey,
-  sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, stepChart, stepFolder, stepShelf,
+  sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, stepChart, stepFolder, stepShelf,
   stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf,
   unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile,
   yourQueue, yoursFound, yoursSeen, yoursShown,
@@ -7028,7 +7028,6 @@ const galleryTilesSeen = new IntersectionObserver((entries) => {
 // (Ahead: the tiles a screen below the view, drawn while the grid's at rest (its scroll ended, no finger on it), after
 // those in view, one at a time: a scroll finds them drawn. A touch or a scroll stops the next.)
 const galleryAhead = /** @type {Set<Element>} */ (new Set()), homeScroller = /** @type {HTMLElement} */ ($("home").querySelector(".home-scroll"));
-let galleryResting = true;
 let galleryTilesAhead = aheadOf(homeScroller.clientHeight || innerHeight), aheadHeight = homeScroller.clientHeight;
 new ResizeObserver(() => {
   const height = homeScroller.clientHeight;
@@ -7039,26 +7038,7 @@ new ResizeObserver(() => {
   galleryTilesAhead = aheadOf(height);
   for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesAhead.observe(frame);
 }).observe(homeScroller);
-// (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
-// finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
-let galleryScrolling = false;
-const galleryRests = () => {
-  galleryResting = true;
-  drawGallery();
-};
-$("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
-$("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
-// (A press holds it till its release. Let go of otherwise (a cancel, a lost touch, the window left), at the next
-// frame unless a scroll's begun by then: a pan's pointer is cancelled as its scroll starts, whose end says it's over.)
-$("home").addEventListener("pointerdown", (event) => {
-  galleryResting = false;
-  press(event, {
-    end: (release) => {
-      if (release) galleryRests();
-      else requestAnimationFrame(() => galleryScrolling || galleryRests());
-    },
-  });
-});
+startGalleryRest();
 const drawGallery = serial(async () => {
   const tried = /** @type {Set<number>} */ (new Set());
   for (let i = nextGallery(tried); i >= 0; i = nextGallery(tried)) {
@@ -13162,7 +13142,7 @@ export {
   emptyYours, ENDS, engine, escape, EXAMPLE, exporting, failing, fieldUnit, FINE, FINE_STEP, FIRST_CHUNKS, firstForm,
   firstLook, fitMargins, fitsFrom, fittable, flowFits, flowsAt, FOLDER_ICONS, folderAgain, folderMark, folderNow,
   follows, footPinned, format, FORMAT_GROUPS, formatName, FORMATS, FORMULA_MAX, formulaFit, formulaLine, fromLetters,
-  fromOf, fromShort, fromSpan, fromUnfit, galleryAhead, galleryPlace, galleryResting, galleryShown, galleryTilesAhead,
+  fromOf, fromShort, fromSpan, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead,
   galleryTilesSeen, gamma, gesturePointer, glyph, glyphSvg, goesWith, goneLayer, goTo, goToDate, goToTime,
   GRADIENT_LEAST, GRADIENT_MOST, GRADIENT_PRESETS, gradientWidth, GROUP_MARK, GROUP_OF, grouped, GROUPS, grow, growth,
   handsHeld, hashOf, HEAD_OWN, HEAT_AGES, HEAT_COHORTS, HEAT_GRADIENT, HEAT_HOLDERS, HEAT_MEASURES, HEAT_PICTURE_AGG,
