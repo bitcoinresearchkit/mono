@@ -13,7 +13,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_http::CachePolicy;
-use bitview_query::{BlindbitBlock, Query, Result as QueryResult};
+use bitview_query::{BlindbitBlock, BlindbitOutputs, Query, Result as QueryResult};
 use bitview_types::{
     BlindbitBlockHash, BlindbitBlockHeight, BlindbitFilter, BlindbitInfo, BlindbitSpentIndex,
     BlindbitUtxo,
@@ -36,25 +36,19 @@ use crate::{
 /// The routes' prefix: BlindBit's paths, under the public oracle's mount point.
 const PREFIX: &str = "/blindbit/mainnet";
 
-/// How long a per-block answer stays true.
-#[derive(Clone, Copy)]
-enum Lifetime {
-    /// As long as the block: it changes only if a reorg replaces the block.
-    Block,
-    /// Until one of the Taproot outputs it's about is spent, those of the block's eligible
-    /// transactions holding at least this: it says what's spent as of the tip.
-    Spends(Sats),
+fn block_tag(route: &str, height: Height, block: &BlindbitBlock) -> String {
+    format!("blindbit-v1-{route}-{height}-{}", block.hash())
 }
 
 impl AppState {
-    /// A per-block route: `route` names its cache tags (with what else selects the answer), and
+    /// A per-block route whose answer lasts as long as the block (it changes only if a reorg
+    /// replaces the block): `route` names its cache tags (with what else selects the answer), and
     /// `build` reads it.
     async fn respond_blindbit<T: Serialize + 'static>(
         &self,
         headers: HeaderMap,
         height: Height,
         route: String,
-        lifetime: Lifetime,
         build: impl FnOnce(&Query, &BlindbitBlock) -> QueryResult<T> + Clone + Send + 'static,
     ) -> Result<Response> {
         let cdn_cache_mode = self.cdn_cache_mode;
@@ -64,19 +58,39 @@ impl AppState {
                 "application/json",
                 move |q| {
                     let block = q.blindbit_block(height)?;
-                    let tag = format!("blindbit-v1-{route}-{height}-{}", block.hash());
-                    let params = match lifetime {
-                        Lifetime::Block => CacheParams::revalidate(tag)
-                            .stable_if(block.is_settled(), cdn_cache_mode),
-                        Lifetime::Spends(least) => {
-                            let spends = q.blindbit_spends(&block, least)?;
-                            CacheParams::live(format!("{tag}-{}", spends.key()))
-                                .stable_if(spends.is_final(), cdn_cache_mode)
-                        }
-                    };
+                    let params = CacheParams::revalidate(block_tag(&route, height, &block))
+                        .stable_if(block.is_settled(), cdn_cache_mode);
                     Ok((block, params))
                 },
                 move |q, block| Ok(to_vec(&build(q, &block)?)?.into()),
+            )
+            .await)
+    }
+
+    /// A per-block route that says what's spent as of the tip, of the Taproot outputs of the
+    /// block's eligible transactions holding at least `least`: its answer lasts until one of them
+    /// is spent. The tag and `build` read the same selection of them.
+    async fn respond_blindbit_spends<T: Serialize + 'static>(
+        &self,
+        headers: HeaderMap,
+        height: Height,
+        route: String,
+        least: Sats,
+        build: impl FnOnce(&Query, &BlindbitOutputs) -> QueryResult<T> + Clone + Send + 'static,
+    ) -> Result<Response> {
+        let cdn_cache_mode = self.cdn_cache_mode;
+        Ok(self
+            .respond_read(
+                headers,
+                "application/json",
+                move |q| {
+                    let outputs = q.blindbit_outputs(q.blindbit_block(height)?, least)?;
+                    let tag = block_tag(&route, height, outputs.block());
+                    let params = CacheParams::live(format!("{tag}-{}", outputs.key()))
+                        .stable_if(outputs.is_final(), cdn_cache_mode);
+                    Ok((outputs, params))
+                },
+                move |q, outputs| Ok(to_vec(&build(q, &outputs)?)?.into()),
             )
             .await)
     }
@@ -179,7 +193,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             "block-hash".into(),
-                            Lifetime::Block,
                             |_, block| Ok(BlindbitBlockHash { block_hash: *block.hash() }),
                         )
                         .await
@@ -209,7 +222,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             format!("tweak-index-{dust_limit}"),
-                            Lifetime::Block,
                             move |q, block| q.blindbit_tweak_index(block, dust_limit),
                         )
                         .await
@@ -235,12 +247,12 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        RequestState(state): RequestState| {
                     let dust_limit = query.limit();
                     state
-                        .respond_blindbit(
+                        .respond_blindbit_spends(
                             headers,
                             path.height,
                             format!("tweaks-{dust_limit}"),
-                            Lifetime::Spends(dust_limit),
-                            move |q, block| q.blindbit_tweaks(block, dust_limit),
+                            dust_limit,
+                            |q, outputs| q.blindbit_tweaks(outputs),
                         )
                         .await
                 },
@@ -269,7 +281,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             format!("filter-{kind}"),
-                            Lifetime::Block,
                             move |q, block| q.blindbit_filter(block, kind),
                         )
                         .await
@@ -298,7 +309,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                             headers,
                             path.height,
                             "spent-index".into(),
-                            Lifetime::Block,
                             |q, block| q.blindbit_spent_index(block),
                         )
                         .await
@@ -323,12 +333,12 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState| {
                     state
-                        .respond_blindbit(
+                        .respond_blindbit_spends(
                             headers,
                             path.height,
                             "utxos".into(),
-                            Lifetime::Spends(bitview_query::DUST_FLOOR),
-                            |q, block| q.blindbit_utxos(block),
+                            Sats::ZERO,
+                            |q, outputs| q.blindbit_utxos(outputs),
                         )
                         .await
                 },

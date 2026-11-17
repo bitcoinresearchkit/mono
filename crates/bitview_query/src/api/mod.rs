@@ -21,7 +21,7 @@ pub use cpfp::ResolvedCpfp;
 pub use mempool::{MempoolBlockSource, MempoolTxids, ResolvedMempoolBlockDiff, ResolvedRbf};
 pub use mining::ResolvedPoolBlocks;
 pub use price::ResolvedHistoricalPrice;
-pub use silent_payments::{BlindbitBlock, BlindbitSpends};
+pub use silent_payments::{BlindbitBlock, BlindbitOutputs};
 pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};
 pub use urpd::ResolvedUrpd;
 pub use utxo_set::UtxoSetPoint;

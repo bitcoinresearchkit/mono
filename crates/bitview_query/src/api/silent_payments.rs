@@ -21,13 +21,28 @@ pub struct BlindbitBlock {
     pin: ReadPin,
 }
 
-/// What a cut-through answer depends on: how far the outputs it's about are spent.
-pub struct BlindbitSpends {
+/// The Taproot outputs an answer that says what's spent (`tweaks`, `utxos`) is about, read once
+/// under the block's pin: those of its eligible transactions holding at least `least`. The
+/// answer's validator and its body both come from [`Self::of`], so neither covers an output the
+/// other leaves out.
+pub struct BlindbitOutputs {
+    block: BlindbitBlock,
+    rows: Range<usize>,
+    /// The rows' transactions.
+    tx_indexes: Vec<TxIndex>,
+    outputs: BlockOutputs,
+    /// The input spending each of the block's outputs as of the block's publication, if any.
+    spends: Vec<Option<TxInIndex>>,
+    least: Sats,
     key: String,
     is_final: bool,
 }
 
-impl BlindbitSpends {
+impl BlindbitOutputs {
+    pub fn block(&self) -> &BlindbitBlock {
+        &self.block
+    }
+
     /// Names the answer's state exactly: the hash of the block holding the latest spend of one of
     /// those outputs, which commits to every earlier spend too.
     pub fn key(&self) -> &str {
@@ -38,6 +53,13 @@ impl BlindbitSpends {
     /// reorg window, and none of those outputs is left to spend.
     pub fn is_final(&self) -> bool {
         self.is_final
+    }
+
+    /// The transaction's outputs among them: their position in it and their index in the block's.
+    fn of(&self, tx: TxIndex) -> impl Iterator<Item = (Vout, usize)> + '_ {
+        self.outputs
+            .taproot(tx)
+            .filter(|&(_, output)| self.outputs.values[output] >= self.least)
     }
 }
 
@@ -53,6 +75,7 @@ impl BlindbitBlock {
 }
 
 /// A block's outputs, read once: each transaction's, with their types and values.
+#[derive(Default)]
 struct BlockOutputs {
     txs: Range<usize>,
     /// Each transaction's first output, then the block's end, from the block's first output.
@@ -132,50 +155,45 @@ impl Query {
         Ok(BlindbitBlock { height, hash, pin })
     }
 
-    /// How far the Taproot outputs an answer is about, those of the block's eligible transactions
-    /// holding at least `least`, no less than the dust floor, are spent as of its publication: a
-    /// later spend always has a higher input index, so the highest finds the block that names the
-    /// state.
-    pub fn blindbit_spends(&self, block: &BlindbitBlock, least: Sats) -> Result<BlindbitSpends> {
-        debug_assert!(least >= DUST_FLOOR, "limit {least}");
-        let rows = self.blindbit_rows(block)?;
-        if rows.is_empty() {
-            return Ok(BlindbitSpends {
-                key: "none".into(),
-                is_final: block.is_settled(),
-            });
-        }
-        let tx_indexes = self.blindbit_tx_indexes(rows)?;
-        let outputs = self.blindbit_outputs(block)?;
-        let spends = self.blindbit_output_spends(block, &outputs)?;
+    /// The Taproot outputs of the block's eligible transactions holding at least `least` (zero:
+    /// every one), and how far they are spent as of the block's publication: a later spend always
+    /// has a higher input index, so the highest finds the block that names the state.
+    pub fn blindbit_outputs(&self, block: BlindbitBlock, least: Sats) -> Result<BlindbitOutputs> {
+        let rows = self.blindbit_rows(&block)?;
+        let (tx_indexes, outputs, spends) = if rows.is_empty() {
+            Default::default()
+        } else {
+            let outputs = self.blindbit_block_outputs(&block)?;
+            let spends = self.blindbit_output_spends(&block, &outputs)?;
+            (self.blindbit_tx_indexes(rows.clone())?, outputs, spends)
+        };
+        let mut selected = BlindbitOutputs {
+            block,
+            rows,
+            tx_indexes,
+            outputs,
+            spends,
+            least,
+            key: "none".into(),
+            is_final: false,
+        };
         let (mut latest, mut any_unspent) = (None, false);
-        for tx in tx_indexes {
-            for (_, output) in outputs.taproot(tx) {
-                if outputs.values[output] < least {
-                    continue;
-                }
-                match spends[output] {
-                    Some(spend) => latest = latest.max(Some(spend)),
-                    None => any_unspent = true,
-                }
+        for (_, output) in selected.tx_indexes.iter().flat_map(|&tx| selected.of(tx)) {
+            match selected.spends[output] {
+                Some(spend) => latest = latest.max(Some(spend)),
+                None => any_unspent = true,
             }
         }
-        let Some(latest) = latest else {
-            return Ok(BlindbitSpends {
-                key: "none".into(),
-                is_final: block.is_settled() && !any_unspent,
-            });
-        };
-        let vecs = self.indexer().vecs();
-        let spending_tx = vecs.inputs.tx_index.collect_one(latest).data()?;
-        let tx_heights = self.plugins().mappings.tx_heights.load();
-        let spent_at: Height = tx_heights.cursor().get(spending_tx).data()?;
-        Ok(BlindbitSpends {
-            key: vecs.blocks.blockhash.collect_one(spent_at).data()?.to_string(),
-            is_final: block.is_settled()
-                && !any_unspent
-                && block.pin.lengths().is_settled(spent_at),
-        })
+        selected.is_final = selected.block.is_settled() && !any_unspent;
+        if let Some(latest) = latest {
+            let vecs = self.indexer().vecs();
+            let spending_tx = vecs.inputs.tx_index.collect_one(latest).data()?;
+            let tx_heights = self.plugins().mappings.tx_heights.load();
+            let spent_at: Height = tx_heights.cursor().get(spending_tx).data()?;
+            selected.key = vecs.blocks.blockhash.collect_one(spent_at).data()?.to_string();
+            selected.is_final &= selected.block.pin.lengths().is_settled(spent_at);
+        }
+        Ok(selected)
     }
 
     /// The tweaks of the block's eligible transactions with a Taproot output holding at least
@@ -191,28 +209,22 @@ impl Query {
         if dust_limit == DUST_FLOOR || rows.is_empty() {
             return self.blindbit_tweaks_where(rows, |_| true);
         }
-        let outputs = self.blindbit_outputs(block)?;
-        self.blindbit_tweaks_where(rows, |tx| {
+        let tx_indexes = self.blindbit_tx_indexes(rows.clone())?;
+        let outputs = self.blindbit_block_outputs(block)?;
+        self.blindbit_tweaks_where(rows, |row| {
             outputs
-                .taproot(tx)
+                .taproot(tx_indexes[row])
                 .any(|(_, output)| outputs.values[output] >= dust_limit)
         })
     }
 
-    /// Cut-through: the tweaks of the block's eligible transactions with an unspent Taproot output
-    /// holding at least `dust_limit`, no less than the dust floor, as of the block's publication.
-    pub fn blindbit_tweaks(&self, block: &BlindbitBlock, dust_limit: Sats) -> Result<Vec<Tweak>> {
-        debug_assert!(dust_limit >= DUST_FLOOR, "limit {dust_limit}");
-        let rows = self.blindbit_rows(block)?;
-        if rows.is_empty() {
-            return Ok(Vec::new());
-        }
-        let outputs = self.blindbit_outputs(block)?;
-        let spends = self.blindbit_output_spends(block, &outputs)?;
-        self.blindbit_tweaks_where(rows, |tx| {
+    /// Cut-through: the tweaks of the transactions with one of `outputs` unspent, as of the
+    /// block's publication.
+    pub fn blindbit_tweaks(&self, outputs: &BlindbitOutputs) -> Result<Vec<Tweak>> {
+        self.blindbit_tweaks_where(outputs.rows.clone(), |row| {
             outputs
-                .taproot(tx)
-                .any(|(_, output)| spends[output].is_none() && outputs.values[output] >= dust_limit)
+                .of(outputs.tx_indexes[row])
+                .any(|(_, output)| outputs.spends[output].is_none())
         })
     }
 
@@ -287,15 +299,13 @@ impl Query {
         })
     }
 
-    /// The Taproot outputs of the block's eligible transactions, spent or not as of the block's
-    /// publication, but those whose key is off the curve.
-    pub fn blindbit_utxos(&self, block: &BlindbitBlock) -> Result<Vec<BlindbitUtxo>> {
-        let tx_indexes = self.blindbit_tx_indexes(self.blindbit_rows(block)?)?;
-        if tx_indexes.is_empty() {
+    /// `selected`, each spent or not as of the block's publication, but those whose key is off the
+    /// curve.
+    pub fn blindbit_utxos(&self, selected: &BlindbitOutputs) -> Result<Vec<BlindbitUtxo>> {
+        if selected.tx_indexes.is_empty() {
             return Ok(Vec::new());
         }
-        let outputs = self.blindbit_outputs(block)?;
-        let spends = self.blindbit_output_spends(block, &outputs)?;
+        let (block, outputs) = (&selected.block, &selected.outputs);
         let check_keys = self
             .plugins()
             .silent_payments
@@ -319,9 +329,9 @@ impl Query {
         let mut utxos = Vec::new();
         // A single reader keeps the immutable published keys mapped throughout the request.
         let keys = vecs.addrs.p2tr.bytes.reader();
-        for tx in tx_indexes {
+        for &tx in &selected.tx_indexes {
             let txid = txids[tx.to_usize() - outputs.txs.start];
-            for (vout, output) in outputs.taproot(tx) {
+            for (vout, output) in selected.of(tx) {
                 let key = keys.try_get_at(usize::from(type_indexes[output])).data()?;
                 if check_keys && !is_on_curve(&key[..]) {
                     continue;
@@ -334,7 +344,7 @@ impl Query {
                     block_height: block.height,
                     block_hash: block.hash,
                     timestamp,
-                    spent: spends[output].is_some(),
+                    spent: selected.spends[output].is_some(),
                 });
             }
         }
@@ -362,14 +372,13 @@ impl Query {
         Ok(tx_indexes)
     }
 
-    /// The tweaks of the rows whose transaction `keep` keeps, in block order.
+    /// The tweaks of the rows `keep` keeps, each named by its position among them, in block order.
     fn blindbit_tweaks_where(
         &self,
         rows: Range<usize>,
-        mut keep: impl FnMut(TxIndex) -> bool,
+        mut keep: impl FnMut(usize) -> bool,
     ) -> Result<Vec<Tweak>> {
         let silent_payments = self.plugins().silent_payments;
-        let tx_indexes = self.blindbit_tx_indexes(rows.clone())?;
         let parities = silent_payments
             .tweak_parity
             .collect_range_at(rows.start, rows.end);
@@ -379,10 +388,11 @@ impl Query {
         if [parities.len(), xs.len()] != [rows.len(); 2] {
             return Err(Error::Internal("Tweak rows missing"));
         }
-        Ok(tx_indexes
+        Ok(parities
             .into_iter()
-            .zip(parities.into_iter().zip(xs))
-            .filter(|(tx, _)| keep(*tx))
+            .zip(xs)
+            .enumerate()
+            .filter(|(row, _)| keep(*row))
             .map(|(_, (parity, x))| {
                 let mut tweak = [parity; 33];
                 tweak[1..].copy_from_slice(&*x);
@@ -392,7 +402,7 @@ impl Query {
     }
 
     /// The block's outputs, by transaction.
-    fn blindbit_outputs(&self, block: &BlindbitBlock) -> Result<BlockOutputs> {
+    fn blindbit_block_outputs(&self, block: &BlindbitBlock) -> Result<BlockOutputs> {
         let vecs = self.indexer().vecs();
         let height = block.height.to_usize();
         let lengths = block.pin.lengths();
