@@ -1151,7 +1151,7 @@
         });
         const line = all.map((r, k) => `${k ? "L" : "M"}${x(k)},${yM(r.peak_memory?.bytes ?? 0)}`).join("");
         svg += `<path d="${line}" fill="none" stroke="var(--compare)" stroke-width="2" stroke-dasharray="4 3"/>` + all.map((r, k) => `<circle cx="${x(k)}" cy="${yM(r.peak_memory?.bytes ?? 0)}" r="3.5" fill="var(--compare)"/>`).join("");
-        el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}">${svg}</svg>`;
+        el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}" aria-labelledby="history-title">${svg}</svg>`;
       }
       $("history").addEventListener("click", (e) => {
         const label = e.target.closest("[data-label]")?.dataset.label;
@@ -1234,7 +1234,7 @@
         const shades = { indexing: "var(--cycle-indexing)", compute: "var(--cycle-compute)", "catch-up": "var(--cycle-catch-up)" };
         $("phases").innerHTML = [...new Set(r.cycles.map((c) => c.name))].map((n) => `<span><i style="--c: ${shades[n]}"></i>${n} ${duration(phase(r, n))}</span>`).join("");
         const tmax = Math.max(r.duration_s, o?.duration_s ?? 0);
-        $("charts").innerHTML = CHARTS.map((c, k) => `<div><h3>${c.title}</h3><div class="chart" data-k="${k}"></div><div class="legend" data-k="${k}"></div></div>`).join("");
+        $("charts").innerHTML = CHARTS.map((c, k) => `<div><h3 id="chart-title-${k}">${c.title}</h3><div class="chart" data-k="${k}"></div><div class="legend" data-k="${k}"></div></div>`).join("");
         for (const el of $("charts").querySelectorAll(".chart")) {
           const c = CHARTS[Number(el.dataset.k)], w = el.clientWidth || 500, h = 170, pad = { l: 52, r: 8, t: 8, b: 22 };
           const mine = c.get(r), theirs = o ? c.get(o) : [];
@@ -1251,7 +1251,7 @@
           theirs.forEach(([, p], i) => (svg += `<path class="series" d="${path(p)}" stroke="var(--compare)" stroke-dasharray="4 3" opacity="${i ? 0.6 : 1}"/>`));
           mine.forEach(([, p], i) => (svg += `<path class="series" d="${path(p)}" stroke="${COLORS[i]}"/>`));
           svg += `<line class="cross" y1="${pad.t}" y2="${h - pad.b}" visibility="hidden"/>`;
-          el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}">${svg}</svg>`;
+          el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}" aria-labelledby="chart-title-${el.dataset.k}">${svg}</svg>`;
           el._frame = { x, pad, w, tmax, mine, theirs, c, ends: [r.duration_s, o?.duration_s] };
         }
         readAt(null);
