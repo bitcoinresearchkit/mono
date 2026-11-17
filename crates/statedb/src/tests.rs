@@ -1,7 +1,7 @@
-//! One model-based end-to-end test: both producers, the history and its readers, against a plain
-//! in-memory chain replayed from genesis.
+//! Model-based end-to-end tests: both producers, the history and its readers, against a plain
+//! in-memory chain replayed from genesis; the cell history against a plain map per block.
 use crate::{
-    Amount, BlockDiff, Creations, History, SNAPSHOT_INTERVAL, Spends, State, View,
+    Amount, BlockDiff, CellHistory, Creations, History, SNAPSHOT_INTERVAL, Spends, State, View,
     snapshots::Snapshots,
 };
 use std::{
@@ -399,7 +399,10 @@ impl Model {
             (diff.hash, diff.created, diff.correction()),
             (block.hash, block.created, block.correction)
         );
-        assert!(diff.spent().eq(block.spent.iter().copied()));
+        // Spends come back by origin, whatever order the producer pushed them in.
+        let mut spent = block.spent.clone();
+        spent.sort_unstable_by_key(|&(origin, _)| origin);
+        assert!(diff.spent().eq(spent));
     }
     /// Every read path against the model: the history's reader (tips, `prev` during a reorg,
     /// retained snapshots, replays), a resident state's cursor, raw diffs, and the open views.
@@ -566,5 +569,81 @@ fn older_layouts_fail() -> Result<()> {
     fs::write(snapshots.join("tip"), [b"STATEV05".as_slice(), &[0; 64]].concat())?;
     History::open(&path)?;
     assert!(!snapshots.join("tip").exists(), "a tip without pages");
+    Ok(())
+}
+
+/// The cell history against a map per block: pushes across checkpoints, commits, rewinds, soft
+/// quits and version changes, read back at random heights by the writer and by a reader.
+#[test]
+fn cells() -> Result<()> {
+    let dir = Dir(std::env::temp_dir().join(format!("statedb-cells-{}", std::process::id())));
+    let path = dir.0.clone();
+    let _ = fs::remove_dir_all(&path);
+    let mut rng = Rng::default();
+    let mut cells = CellHistory::open(&path)?;
+    assert!(CellHistory::open(&path).is_err(), "second writer");
+    // The cells after each block (the first: before genesis) and the block hashes.
+    let mut states = vec![BTreeMap::<u32, u64>::new()];
+    let mut hashes = vec![[0; 32]];
+    let mut committed = 0;
+    for step in 1..=400u64 {
+        for _ in 0..rng.below(40) {
+            let mut state = states.last().unwrap().clone();
+            let mut changes = BTreeMap::<u32, i64>::new();
+            for _ in 0..rng.below(6) {
+                let key = rng.below(64) as u32;
+                let held = state.entry(key).or_default();
+                let change = if *held > 0 && rng.chance(50) {
+                    -(rng.below(*held as usize + 1) as i64)
+                } else {
+                    (rng.next() >> 40) as i64
+                };
+                *held = held.checked_add_signed(change).unwrap();
+                *changes.entry(key).or_default() += change;
+            }
+            state.retain(|_, held| *held != 0);
+            changes.retain(|_, change| *change != 0);
+            let changes: Vec<_> = changes.into_iter().collect();
+            let hash = [rng.next() as u8; 32];
+            cells.push(hash, &changes, || state.iter().map(|(&key, &held)| (key, held)))?;
+            states.push(state);
+            hashes.push(hash);
+        }
+        match rng.below(10) {
+            // A soft quit: the next writer discards what wasn't committed.
+            0 => {
+                drop(cells);
+                cells = CellHistory::open(&path)?;
+            }
+            1 => {
+                committed = rng.below(cells.len() + 1);
+                cells.truncate(committed)?;
+            }
+            2 => {
+                cells.validate_version(step)?;
+                committed = 0;
+            }
+            _ => {
+                cells.commit()?;
+                committed = cells.len();
+            }
+        }
+        states.truncate(committed + 1);
+        hashes.truncate(committed + 1);
+        assert_eq!(cells.len(), committed);
+        let reader = CellHistory::open_reader(&path)?;
+        for history in [&cells, &reader] {
+            assert_eq!(history.len(), committed);
+            let end = rng.below(committed + 1);
+            let mut restored = BTreeMap::<u32, i64>::new();
+            let hash = history.restore(end, |key, add| {
+                *restored.entry(key).or_default() += add;
+                Ok(())
+            })?;
+            restored.retain(|_, held| *held != 0);
+            assert_eq!(hash, hashes[end]);
+            assert!(restored.into_iter().map(|(key, held)| (key, held as u64)).eq(states[end].clone()));
+        }
+    }
     Ok(())
 }

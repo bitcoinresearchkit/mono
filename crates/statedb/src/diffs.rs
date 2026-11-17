@@ -1,4 +1,4 @@
-use crate::{BlockDiff, Creations, Spends, journal_reader::JournalReader, util::invalid};
+use crate::{BlockDiff, Creations, Spends, journal_reader::JournalReader, spends::Rows, util::invalid};
 use std::io::Result;
 
 /// Sequential block diffs over one validated prefix, with bounded read windows and no state:
@@ -10,6 +10,8 @@ pub struct Diffs<'a> {
     end: usize,
     /// The last block's hash, which the next block must continue (unchecked before the first).
     hash: Option<[u8; 32]>,
+    /// The current block's decoded spend rows.
+    rows: Rows,
 }
 
 impl<'a> Diffs<'a> {
@@ -29,6 +31,7 @@ impl<'a> Diffs<'a> {
             height,
             end,
             hash,
+            rows: Rows::default(),
         })
     }
 
@@ -51,7 +54,10 @@ impl<'a> Diffs<'a> {
         {
             return Err(invalid("replay state does not match producer chain"));
         }
-        let diff = BlockDiff::decode(height, spent, self.creations.read(height)?.1)?;
+        let (hash, total, n) = Spends::decode(spent, &mut self.rows)?;
+        let (origins, counts, sats) = &self.rows;
+        let rows = (&origins[..n], &counts[..n], &sats[..n]);
+        let diff = BlockDiff::new(height, (hash, total), rows, self.creations.read(height)?.1)?;
         self.height += 1;
         self.hash = Some(diff.hash);
         Ok(Some(diff))

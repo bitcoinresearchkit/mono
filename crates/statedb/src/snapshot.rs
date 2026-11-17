@@ -1,8 +1,5 @@
-use crate::{Amount, State, util::invalid};
-use pco::{
-    ChunkConfig, DeltaSpec, ModeSpec,
-    standalone::{simple_compress, simple_decompress_into},
-};
+use crate::{Amount, State, columns::config, util::invalid};
+use pco::standalone::{simple_compress, simple_decompress_into};
 use std::{fs::File, io::Result, os::unix::fs::FileExt};
 use zerocopy::IntoBytes;
 /// A retained checkpoint: both columns pco-compressed, appended to the retained data.
@@ -63,10 +60,7 @@ pub(crate) fn write_packed(
     state: &State,
     versions: (u64, u64),
 ) -> Result<u64> {
-    let config = ChunkConfig::default()
-        .with_compression_level(3)
-        .with_mode_spec(ModeSpec::Classic)
-        .with_delta_spec(DeltaSpec::NoOp);
+    let config = config();
     // One column buffer: sats, then refilled with counts.
     let mut column: Vec<_> = state.amounts().iter().map(|v| v.sats).collect();
     let sats = simple_compress(&column, &config).map_err(|_| invalid("sats compression failed"))?;

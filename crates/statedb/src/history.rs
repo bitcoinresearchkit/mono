@@ -8,7 +8,7 @@ use std::{fs, io::Result, path::Path};
 
 /// Blocks between full snapshots: a restore loads the nearest one and replays fewer than this many
 /// diffs. A history laid out at another interval lays its snapshots out again on its next advance.
-pub const SNAPSHOT_INTERVAL: usize = 1000;
+pub const SNAPSHOT_INTERVAL: usize = 500;
 
 /// Owns full snapshots. Spends and creations remain their sole, separately produced diff columns.
 pub struct History {

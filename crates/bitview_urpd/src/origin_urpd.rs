@@ -6,30 +6,15 @@ use brk_error::{Error, Result};
 use brk_types::{Cents, Timestamp};
 use statedb::{Cursor, State};
 
-use crate::{COST_BASIS_PRICE_DIGITS, ProjectedBucket, projection::Projection};
+use crate::{
+    COST_BASIS_PRICE_DIGITS, ProjectedBucket,
+    price_place::{PRICE_PLACES, price_place},
+    projection::Projection,
+};
 
-/// Prices below this many cents aren't rounded.
-const EXACT_PRICES: u32 = 10u32.pow(COST_BASIS_PRICE_DIGITS);
-/// The rounded prices a decade above those holds.
-const PRICES_PER_DECADE: u32 = EXACT_PRICES - EXACT_PRICES / 10;
-/// Every price rounding can produce, a place each.
-const PRICE_PLACES: usize = (EXACT_PRICES + PRICES_PER_DECADE * (u32::MAX.ilog10() + 1 - COST_BASIS_PRICE_DIGITS)) as usize;
-
-/// A rounded price's place among all the prices rounding can produce, in ascending price order.
-#[inline]
-fn price_place(rounded: CentsCompact) -> usize {
-    let cents = rounded.inner();
-    if cents < EXACT_PRICES {
-        return cents as usize;
-    }
-    let decade = cents.ilog10() - COST_BASIS_PRICE_DIGITS;
-    let leading = cents / 10u32.pow(decade + 1);
-    (EXACT_PRICES + PRICES_PER_DECADE * decade + leading - EXACT_PRICES / 10) as usize
-}
-
-/// A price/age view of reconstructed history. Queries build it for one block;
-/// sequential consumers retain it and apply diffs without rebuilding it. Origin
-/// amounts remain owned by statedb; this stores only their price/age grouping.
+/// A price/age view of reconstructed history. Sequential consumers retain it and
+/// apply diffs without rebuilding it. Origin amounts remain owned by statedb; this
+/// stores only their price/age grouping.
 pub struct OriginUrpd {
     prices: Vec<(CentsCompact, u32)>,
     /// Supply per age range, one column over the price slots: neighbouring slots share their

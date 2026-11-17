@@ -26,7 +26,6 @@ full-api = [
     "dep:bitview_plugin_silent_payments",
     "dep:bitview_plugin_transactions",
     "dep:bitview_plugin_utxo_set",
-    "dep:bitview_urpd",
     "dep:bitview_vecs",
     "dep:brk_cpfp",
     "dep:brk_oracle",
@@ -57,7 +56,6 @@ bitview_plugin_transactions = { workspace = true, optional = true }
 bitview_plugin_utxo_set = { workspace = true, optional = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_types = { workspace = true }
-bitview_urpd = { workspace = true, optional = true }
 bitview_vecs = { workspace = true, optional = true }
 bitview_catalog = { workspace = true, optional = true }
 brk_cpfp = { workspace = true, optional = true }

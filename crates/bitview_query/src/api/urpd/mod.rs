@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Date, Day1};
 use bitview_types::{Urpd, UrpdAggregation, UrpdCohort, UrpdWeight};
-use bitview_urpd::OriginUrpd;
-use brk_types::{BlockHash, Cents, Height, Sats, Version};
+use brk_types::{BlockHash, Height, Sats, Version};
 use vecdb::{AnyVec, ReadableVec};
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
@@ -14,23 +11,9 @@ mod entries;
 
 use entries::UrpdHeader;
 
-// Two slots keep a day and the tip together; each grid was ~11 MB at the 2026-11 tip.
-const GRID_SLOTS: usize = 2;
-
-/// The price × age grid of a block, which every cohort,
-/// aggregation and weight of that block projects.
-pub(crate) struct UrpdGrid {
-    hash: BlockHash,
-    /// The summed versions of its sources.
-    version: Version,
-    source: OriginUrpd,
-    date: Date,
-    close: Cents,
-}
-
 /// A URPD request resolved under one pin to the block it answers for: its identity, without
-/// the distribution, which [`Query::urpd_resolved`] projects from its block's grid under the
-/// same pin.
+/// the distribution, which [`Query::urpd_resolved`] projects from its block's URPD cells under
+/// the same pin.
 pub struct ResolvedUrpd {
     pin: SafeLengths,
     cohort: UrpdCohort,
@@ -177,20 +160,20 @@ impl Query {
         })
     }
 
-    /// The summed versions of the sources a block's grid reads: prices, timestamps and the UTXO
-    /// set history.
-    fn urpd_grid_version(&self) -> Version {
+    /// The summed versions of the sources a block's distribution reads: prices, timestamps and
+    /// the UTXO set history.
+    fn urpd_sources_version(&self) -> Version {
         let plugins = self.plugins();
         plugins.price.spot.cents.height.version()
             + plugins.mappings.timestamp.monotonic.version()
             + plugins.utxo_set.supply.version()
     }
 
-    /// The summed versions of the sources a distribution reads: its grid's, and for a weighted one
-    /// the cohort's supplies and weights.
+    /// The summed versions of the sources a distribution reads: its block's, and for a weighted
+    /// one the cohort's supplies and weights.
     fn urpd_version(&self, ages: &[AgeRangeId], weight: UrpdWeight) -> Version {
         let plugins = self.plugins();
-        let base = self.urpd_grid_version();
+        let base = self.urpd_sources_version();
         let weights = |age: &AgeRangeId| match weight {
             UrpdWeight::None => Version::ZERO,
             UrpdWeight::Wakefulness => age
@@ -218,7 +201,7 @@ impl Query {
             .sum::<Version>()
     }
 
-    /// Projects the distribution `resolved` selected from its block's grid, under its pin.
+    /// Projects the distribution `resolved` selected from its block's URPD cells, under its pin.
     pub fn urpd_resolved(&self, resolved: ResolvedUrpd) -> Result<Urpd> {
         let ResolvedUrpd {
             pin,
@@ -232,94 +215,36 @@ impl Query {
         } = resolved;
         let pin = self.read_pin(pin);
         let weights = self.urpd_weights(ages, height, weight)?;
-        let version = self.urpd_grid_version();
-        let cached = {
-            let mut grids = self.0.urpd_grid.lock();
-            grids
-                .iter()
-                .position(|grid| grid.hash == hash && grid.version == version)
-                .map(|i| {
-                    let grid = grids.remove(i).unwrap();
-                    grids.push_back(Arc::clone(&grid));
-                    grid
-                })
-        };
-        let grid = match cached {
-            Some(grid) => grid,
-            // Built unlocked so different blocks build at once; concurrent misses on one block
-            // each build it, as many as the route admits.
-            _ => {
-                let grid = Arc::new(self.urpd_grid(&pin, height, hash, version)?);
-                let mut grids = self.0.urpd_grid.lock();
-                // Another request may have built the same grid while the lock was released.
-                if let Some(i) = grids
-                    .iter()
-                    .position(|g| g.hash == hash && g.version == version)
-                {
-                    grids.remove(i);
-                }
-                if grids.len() == GRID_SLOTS {
-                    grids.pop_front();
-                }
-                grids.push_back(Arc::clone(&grid));
-                grid
-            }
-        };
+        let plugins = self.plugins();
+        let history = plugins.utxo_set.urpd()?;
+        let end = usize::from(height) + 1;
+        if end > history.len().min(usize::from(pin.lengths().height)) {
+            return Err(Error::NotFound(
+                "Block is outside the published URPD history".into(),
+            ));
+        }
+        let cells = history.at(end)?;
+        if cells.hash() != *hash {
+            return Err(Error::Internal(
+                "URPD history does not match the published chain",
+            ));
+        }
         let header = UrpdHeader {
             cohort,
             height,
             hash,
-            date: grid.date,
+            date: Date::from(plugins.mappings.timestamp.monotonic.collect_one(height).data()?),
             weight,
             aggregation,
-            close: grid.close,
+            close: plugins.price.spot.cents.height.collect_one(height).data()?,
         };
-        let source = &grid.source;
         Ok(if weight == UrpdWeight::None {
-            header.build(source.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
+            header.build(cells.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
         } else {
-            header.build(source.project(&[Some(&weights)], [ages]).filter_map(|b| {
+            header.build(cells.project(&[Some(&weights)], [ages]).filter_map(|b| {
                 let sats = b.weighted[0][0];
                 (sats != Sats::ZERO).then_some((b.price, sats))
             }))
-        })
-    }
-
-    /// Reconstructs the grid of the block at `height`, which `hash` names, under `pin`.
-    fn urpd_grid(
-        &self,
-        pin: &ReadPin,
-        height: Height,
-        hash: BlockHash,
-        version: Version,
-    ) -> Result<UrpdGrid> {
-        let end = usize::from(height) + 1;
-        let plugins = self.plugins();
-        let view = plugins.utxo_set.view()?;
-        let reader = view.reader(usize::from(pin.lengths().height))?;
-        if end > reader.len() {
-            return Err(Error::NotFound(
-                "Block is outside the published UTXO set".into(),
-            ));
-        }
-        let state = reader.state_at(end)?;
-        if state.hash() != *hash {
-            return Err(Error::Internal(
-                "UTXO set history does not match the published chain",
-            ));
-        }
-        let prices = plugins.price.spot.cents.height.collect_range_at(0, end);
-        let timestamps = plugins
-            .mappings
-            .timestamp
-            .monotonic
-            .collect_range_at(0, end);
-        Ok(UrpdGrid {
-            hash,
-            version,
-            source: OriginUrpd::new(&state, &prices, &timestamps)?,
-            date: Date::from(timestamps[end - 1]),
-            close: prices[end - 1],
         })
     }
 }

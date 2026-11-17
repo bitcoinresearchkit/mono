@@ -236,6 +236,8 @@ impl DefaultPlugins {
                 UtxoSetDependencies {
                     spends: &inputs.spends,
                     creations,
+                    price,
+                    mappings,
                     from,
                     end: creations.end(),
                 },

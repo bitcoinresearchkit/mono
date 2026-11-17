@@ -2,13 +2,14 @@ use std::path::PathBuf;
 
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as Mappings;
+use bitview_urpd::UrpdHistory;
 use bitview_vecs::{LazyPerBlock, PerBlock, import_cached};
 use brk_error::Result;
 use brk_types::Version;
 use statedb::History;
 use vecdb::Convert;
 
-use crate::{STORAGE, Vecs};
+use crate::{STORAGE, URPD, Vecs};
 
 impl Vecs {
     pub fn import(
@@ -31,6 +32,7 @@ impl Vecs {
             circulating_supply,
             count: PerBlock::import(&db, "utxo_count", version + Version::ONE, mappings)?,
             history: History::open(db.path())?,
+            urpd: UrpdHistory::open(&db.path().join(URPD))?,
             spends_path,
             creations_path,
             db,

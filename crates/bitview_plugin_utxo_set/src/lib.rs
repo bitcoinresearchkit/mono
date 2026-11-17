@@ -11,6 +11,7 @@ use std::path::PathBuf;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
+use bitview_urpd::UrpdHistory;
 use bitview_vecs::{CachedSeries, LazyPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::{Bitcoin, Height, Sats, Version};
@@ -19,6 +20,8 @@ use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxo_set"), Version::ONE);
 pub const ID: PluginId = STORAGE.id();
+/// The URPD history's directory in the plugin's.
+const URPD: &str = "urpd";
 
 /// Publishes the UTXO set's complete history and its global totals after both producers finish.
 #[derive(Traversable, Plugin)]
@@ -31,6 +34,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     creations_path: PathBuf,
     history: M::WriteOnly<History>,
+    urpd: M::WriteOnly<UrpdHistory>,
     /// Remaining satoshis after each block.
     #[traversable(hidden)]
     #[traversable(lead = "Supply: all the bitcoin in unspent outputs.")]
@@ -67,5 +71,11 @@ impl<M: StorageMode> Vecs<M> {
             &self.spends_path,
             &self.creations_path,
         )?)
+    }
+
+    /// Open the published URPD history; its appends never change what a reader reads below
+    /// its ceiling.
+    pub fn urpd(&self) -> Result<UrpdHistory> {
+        UrpdHistory::open_reader(&self.db.path().join(URPD))
     }
 }

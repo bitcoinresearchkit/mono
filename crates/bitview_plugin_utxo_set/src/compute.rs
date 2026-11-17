@@ -18,6 +18,8 @@ impl ComputePlugin for Vecs {
         let Dependencies {
             spends,
             creations,
+            price,
+            mappings,
             from,
             end,
         } = dependencies;
@@ -41,6 +43,12 @@ impl ComputePlugin for Vecs {
                 self.count.height.push(Count::from(amount.count));
                 Ok(())
             })?;
+        self.urpd.advance(
+            start,
+            &self.history.reader(spends, creations)?,
+            &price.spot.cents.height,
+            &mappings.timestamp.monotonic,
+        )?;
         self.supply.write()?;
         self.count.height.write()?;
         self.db.flush();

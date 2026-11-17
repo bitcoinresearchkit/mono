@@ -25,7 +25,7 @@ use crate::{Error, OptionData, QueryPluginSet, Result, plugins::QueryPlugins};
 #[cfg(feature = "full-api")]
 use crate::{
     PublicationCache, ReadPin,
-    api::{StaleBlocks, UrpdGrid, oracle::OracleChunks},
+    api::{StaleBlocks, oracle::OracleChunks},
 };
 #[cfg(feature = "series")]
 use crate::{SeriesRegistry, pin::PublishedBounds};
@@ -46,9 +46,6 @@ pub(crate) struct QueryInner<'a> {
     pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks<OraclePayments>>,
     #[cfg(feature = "full-api")]
     pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
-    /// Recently used URPD grids, oldest first.
-    #[cfg(feature = "full-api")]
-    pub(crate) urpd_grid: parking_lot::Mutex<std::collections::VecDeque<Arc<UrpdGrid>>>,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(feature = "series")]
     pub(crate) bounds: ArcSwapOption<PublishedBounds>,
@@ -99,8 +96,6 @@ impl Query {
                 payment_chunks: Default::default(),
                 #[cfg(feature = "full-api")]
                 stale_blocks: Default::default(),
-                #[cfg(feature = "full-api")]
-                urpd_grid: Default::default(),
                 #[cfg(feature = "series")]
                 bounds: ArcSwapOption::empty(),
             }),

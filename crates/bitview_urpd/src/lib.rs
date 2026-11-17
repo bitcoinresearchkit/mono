@@ -1,6 +1,7 @@
 //! URPD reconstruction and derived metrics from the canonical UTXO set history.
 mod density_band;
 mod metrics;
+mod price_place;
 mod projected_bucket;
 mod projection;
 
@@ -19,6 +20,9 @@ pub use projected_bucket::ProjectedBucket;
 
 mod origin_urpd;
 pub use origin_urpd::OriginUrpd;
+
+mod urpd_history;
+pub use urpd_history::{UrpdCells, UrpdHistory};
 
 mod replay;
 mod replay_inputs;
