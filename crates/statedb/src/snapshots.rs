@@ -262,7 +262,7 @@ impl Snapshots {
         after: usize,
         end: usize,
         versions: (u64, u64),
-    ) -> impl Iterator<Item = Result<Option<Snapshot>>> + '_ {
+    ) -> impl DoubleEndedIterator<Item = Result<Option<Snapshot>>> + '_ {
         debug_assert!(after <= end);
         let to = self.entries.partition_point(|&(h, _, _)| h <= end);
         let from = self.entries.partition_point(|&(h, _, _)| h <= after);

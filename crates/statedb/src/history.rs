@@ -1,5 +1,5 @@
 use crate::{
-    Amount, Creations, Cursor, Reader, Spends, State,
+    Amount, Creations, Cursor, Diffs, Reader, Spends, State,
     snapshot::{PAGE, Snapshot},
     snapshots::Snapshots,
     util::invalid,
@@ -97,34 +97,32 @@ impl History {
     fn matches(snapshot: &Snapshot, spends: &Spends, creations: &Creations) -> Result<bool> {
         continues(snapshot.len, snapshot.hash(), spends, creations)
     }
+    /// The state of the first `end` blocks, from the nearest snapshot within `limit` blocks: one
+    /// at or below `end` replays the blocks up to it, one above takes the blocks past it back.
     /// `tips` are the validated tips of `tips_within`, newest first.
     pub(crate) fn restore(
         &self,
         end: usize,
+        limit: usize,
         spends: &Spends,
         created: &Creations,
         tips: &[Snapshot],
     ) -> Result<State> {
-        debug_assert!(end <= spends.end().min(created.end()));
-        // The newest matching snapshot, tip or retained, leaves the least to replay.
-        let newest = tips.iter().find(|tip| tip.len <= end);
-        let mut retained = None;
-        for snapshot in self.snapshots.between(
-            newest.map_or(0, |tip| tip.len),
-            end,
-            (spends.version(), created.version()),
-        ) {
-            if let Some(snapshot) = snapshot?
-                && Self::matches(&snapshot, spends, created)?
-            {
-                retained = Some(snapshot);
-                break;
-            }
+        debug_assert!(end <= limit && limit <= spends.end().min(created.end()));
+        let versions = (spends.version(), created.version());
+        let tip = tips.iter().find(|tip| tip.len <= end);
+        let floor = tip.map_or(0, |tip| tip.len);
+        let retained =
+            Self::first_matching(self.snapshots.between(floor, end, versions), spends, created)?;
+        let below = retained.as_ref().or(tip);
+        let replay = end - below.map_or(0, |snapshot| snapshot.len);
+        // One above serves only when strictly nearer.
+        let bound = limit.min(end + replay.saturating_sub(1));
+        if let Some(mut state) = self.state_above(end, bound, spends, created, tips)? {
+            Self::undo(&mut state, end, spends, created)?;
+            return Ok(state);
         }
-        let mut state = retained
-            .as_ref()
-            .or(newest)
-            .map_or(Ok(State::default()), Snapshot::state)?;
+        let mut state = below.map_or(Ok(State::default()), Snapshot::state)?;
         if state.len() < end {
             Self::replay(&mut state, end, spends, created, |_| {}, |_, _| Ok(()))?;
         }
@@ -157,7 +155,7 @@ impl History {
             Some((state, _)) => (state, true),
             None => {
                 let tips = self.tips_within(spends, created, from)?;
-                (self.restore(from, spends, created, &tips)?, false)
+                (self.restore(from, from, spends, created, &tips)?, false)
             }
         };
         if from == end
@@ -208,6 +206,58 @@ impl History {
     #[cfg(test)]
     pub(crate) fn snapshot_heights(&self) -> Vec<usize> {
         self.snapshots.heights()
+    }
+    /// The state of the nearest snapshot past `end` through `bound`, tip or retained.
+    fn state_above(
+        &self,
+        end: usize,
+        bound: usize,
+        spends: &Spends,
+        created: &Creations,
+        tips: &[Snapshot],
+    ) -> Result<Option<State>> {
+        if bound <= end {
+            return Ok(None);
+        }
+        let tip = tips.iter().rev().find(|tip| tip.len > end && tip.len <= bound);
+        let upto = tip.map_or(bound, |tip| tip.len);
+        // `between` runs newest first.
+        let above = self.snapshots.between(end, upto, (spends.version(), created.version()));
+        let retained = Self::first_matching(above.rev(), spends, created)?;
+        retained.as_ref().or(tip).map(Snapshot::state).transpose()
+    }
+    /// The first of `snapshots` on the producers' chain.
+    fn first_matching(
+        snapshots: impl Iterator<Item = Result<Option<Snapshot>>>,
+        spends: &Spends,
+        created: &Creations,
+    ) -> Result<Option<Snapshot>> {
+        for snapshot in snapshots {
+            if let Some(snapshot) = snapshot?
+                && Self::matches(&snapshot, spends, created)?
+            {
+                return Ok(Some(snapshot));
+            }
+        }
+        Ok(None)
+    }
+    /// Takes `state`, a snapshot of the producer chain, back to its first `end` blocks: the later
+    /// blocks' origins leave, and what they removed from the earlier ones returns.
+    fn undo(state: &mut State, end: usize, spends: &Spends, created: &Creations) -> Result<()> {
+        let (len, hash) = (state.len(), state.hash());
+        let parent = spends.hash(end - 1)?;
+        if created.hash(end - 1)? != parent {
+            return Err(invalid("origin producer chain mismatch"));
+        }
+        state.truncate(end, parent);
+        let mut diffs = Diffs::new(end, Some(parent), len, spends, created)?;
+        while let Some(diff) = diffs.advance()? {
+            state.unremove(&diff);
+        }
+        if diffs.hash() != Some(hash) {
+            return Err(invalid("snapshot does not continue the producer chain"));
+        }
+        Ok(())
     }
     /// Replays `state`, which continues the producer chain, through `end`.
     fn replay(

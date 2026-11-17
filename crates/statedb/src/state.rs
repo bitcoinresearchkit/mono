@@ -37,6 +37,24 @@ impl State {
     pub fn total(&self) -> Amount {
         self.total
     }
+    /// Drops the origins from `end` on: the first `end` blocks' state, once `unremove` gives back
+    /// what the later blocks removed from them.
+    pub(crate) fn truncate(&mut self, end: usize, hash: [u8; 32]) {
+        for dropped in self.amounts.drain(end..) {
+            self.total = self.total - dropped;
+        }
+        self.hash = hash;
+    }
+    /// Gives back what a block past the state's end removed from its origins: those past the end
+    /// left with `truncate`.
+    pub(crate) fn unremove(&mut self, diff: &BlockDiff) {
+        for (origin, removed) in diff.removed() {
+            if let Some(current) = self.amounts.get_mut(origin as usize) {
+                *current = *current + removed;
+                self.total = self.total + removed;
+            }
+        }
+    }
     /// Applies one block of the validated producer chain: its rows were checked when produced.
     pub(crate) fn apply(&mut self, diff: &BlockDiff) {
         debug_assert_eq!(

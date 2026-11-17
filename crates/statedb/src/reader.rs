@@ -57,7 +57,7 @@ impl Reader<'_> {
             return Err(invalid("height exceeds published origin history"));
         }
         self.history
-            .restore(end, self.spends, self.creations, &self.tips)
+            .restore(end, self.end, self.spends, self.creations, &self.tips)
     }
 
     pub fn cursor<'a>(&'a self, state: &'a mut State) -> Result<Cursor<'a>> {
