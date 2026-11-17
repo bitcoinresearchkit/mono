@@ -90,7 +90,7 @@
         color-scheme: light dark;
         --app: light-dark(#fbfaf7, #0e0f11);
         --pane: light-dark(#ffffff, #141519);
-        --well: light-dark(#f3f1ec, #1b1d22);
+        --well: light-dark(#efece5, #1b1d22);
         --ink: light-dark(#17181b, #eceae5);
         --soft: light-dark(#53565e, #a9acb4);
         --faint: light-dark(#6a6d75, #8c9099);
@@ -101,6 +101,7 @@
         --pick: light-dark(#fbe9dc, #33221a);
         --gone: light-dark(#a3261f, #ff8f87);
         --sans: Inter, "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --measure: 540px; /* prose lines stay near 70 characters */
         --mono: Lilex, "Lilex Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
       }
 
@@ -130,6 +131,10 @@
         font: 14px/1.5 var(--sans);
         font-feature-settings: "cv11", "ss01";
         -webkit-font-smoothing: antialiased;
+      }
+
+      p {
+        text-wrap: pretty;
       }
 
       button,
@@ -307,7 +312,6 @@
           &:focus {
             border-color: var(--accent);
             background: var(--pane);
-            box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
           }
         }
       }
@@ -366,8 +370,10 @@
         }
       }
 
+      /* (Room for the two lines a lead runs to at the measure, so the one-line "Reading…" before it moves nothing.) */
       .lead {
-        max-width: 720px;
+        max-width: var(--measure);
+        min-height: 2lh;
         margin: 14px 0 0;
         color: var(--soft);
         font-size: 15px;
@@ -424,8 +430,8 @@
       .answer {
         margin: 24px 0 0;
         padding: 14px 16px;
-        border-left: 3px solid var(--accent);
-        border-radius: 0 8px 8px 0;
+        max-width: var(--measure);
+        border-radius: 9px;
         background: var(--pick);
 
         p {
@@ -459,6 +465,11 @@
         grid-template-columns: 190px minmax(0, 1fr);
         gap: 48px;
         margin-top: 40px;
+
+        /* (A lone section needs no contents beside it.) */
+        &:has(> nav[hidden]) {
+          grid-template-columns: minmax(0, 1fr);
+        }
 
         @media (width < 960px) {
           display: block;
@@ -518,7 +529,7 @@
         }
 
         > p {
-          max-width: 680px;
+          max-width: var(--measure);
           margin: 4px 0 0;
           color: var(--soft);
 
@@ -536,11 +547,8 @@
 
         h3 {
           margin: 22px 0 6px;
-          color: var(--faint);
-          font-size: 12px;
-          font-weight: 600;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
+          font-size: 16px;
+          font-weight: 650;
 
           @media (width < 640px) {
             margin-top: 18px;
@@ -564,16 +572,25 @@
         }
       }
 
-      /* (A note's own, beneath it.) */
-      .subs {
+      /* (A dash hangs outside each nested note, as its marker: a wrapped id stays under its own text and the dash never
+         lands alone on a line above a long id.) */
+      .subs,
+      .notes {
         margin: 4px 0 0;
-        padding: 0 0 0 14px;
         color: var(--soft);
-        list-style: none;
+        list-style: "– ";
 
-        li::before {
-          content: "– ";
+        li::marker {
           color: var(--faint);
+        }
+      }
+
+      /* (A note's own, beneath it; its pairs apart from each other.) */
+      .subs {
+        padding: 0 0 0 2em;
+
+        li + li {
+          margin-top: 10px;
         }
       }
 
@@ -628,13 +645,14 @@
         /* (A note in words: at the measure of the page's other prose, its rule still the column's width; its ids and
            paths each on a well, as the members' are.) */
         > li.prose {
-          padding-right: max(0px, calc(100% - 46em));
+          max-width: var(--measure);
           font-size: 15px;
+          line-height: 1.55;
 
           code {
             padding: 0 3px;
             border-radius: 4px;
-            background: color-mix(in oklab, var(--well) 70%, transparent);
+            background: var(--well);
             box-decoration-break: clone;
             -webkit-box-decoration-break: clone;
           }
@@ -698,15 +716,8 @@
       }
 
       .notes {
-        margin: 4px 0 0 52px;
-        padding: 0;
-        color: var(--soft);
-        list-style: none;
-
-        li::before {
-          content: "– ";
-          color: var(--faint);
-        }
+        margin-left: 52px;
+        padding: 0 0 0 1.1em;
       }
 
       /* (Ids gone, one by one: in columns.) */
@@ -850,7 +861,7 @@
         for (const list of lists) {
           if (list.group === undefined) group = undefined;
           else if (list.group !== group?.dataset.group) {
-            group = make("h3", escape(list.group));
+            group = make("h3", escape(list.group.replace(/(?<= )[A-Z](?=[a-z])/g, (c) => c.toLowerCase())));
             group.dataset.group = list.group;
             section.append(group);
           }
@@ -1009,6 +1020,7 @@
         sections.length = 0;
         $("sections").replaceChildren();
         $("nav").replaceChildren();
+        $("nav").hidden = !tab.api && tab.notes.length < 2;
         $("figures").replaceChildren();
         $("lead").innerHTML = leadOf(tab);
         addNotes(tab);
