@@ -5,10 +5,11 @@ const HEX: &[u8; 16] = b"0123456789abcdef";
 /// Appends `bytes` as lowercase hex.
 #[inline]
 pub(crate) fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
-    buf.reserve(bytes.len() * 2);
-    for &byte in bytes {
-        buf.push(HEX[usize::from(byte >> 4)]);
-        buf.push(HEX[usize::from(byte & 0x0f)]);
+    let start = buf.len();
+    buf.resize(start + bytes.len() * 2, 0);
+    // Written in pairs into space made once: a `push` per digit checks the capacity each time.
+    for (pair, &byte) in buf[start..].as_chunks_mut::<2>().0.iter_mut().zip(bytes) {
+        *pair = [HEX[usize::from(byte >> 4)], HEX[usize::from(byte & 0x0f)]];
     }
 }
 

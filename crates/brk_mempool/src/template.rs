@@ -17,13 +17,14 @@ use bitcoin::{
     consensus::encode::{VarInt, serialize},
     hashes::Hash,
     hex::DisplayHex,
-    merkle_tree,
     opcodes::OP_TRUE,
     params::Params,
     transaction,
 };
 use brk_rpc::Client;
-use brk_types::{BlockHash, BlockTemplate, BlockTemplateTransaction, Height, Sats, Timestamp, Txid};
+use brk_types::{
+    BlockHash, BlockTemplate, BlockTemplateTransaction, Height, Sats, Timestamp, Txid, merkle_root,
+};
 use rapidhash::RapidHashMap;
 use tracing::{debug, warn};
 
@@ -250,11 +251,12 @@ fn proposal(template: &BlockTemplate, tip: &TipFacts) -> String {
     };
     let txids = std::iter::once(coinbase.compute_txid())
         .chain(template.transactions.iter().map(|tx| tx.txid.into()))
-        .map(|txid: bitcoin::Txid| txid.to_raw_hash());
+        .map(|txid: bitcoin::Txid| txid.to_byte_array())
+        .collect();
     let header = Header {
         version: block::Version::from_consensus(template.version),
         prev_blockhash: tip.header.block_hash(),
-        merkle_root: TxMerkleNode::from_raw_hash(merkle_tree::calculate_root(txids).expect("the coinbase's")),
+        merkle_root: TxMerkleNode::from_byte_array(merkle_root(txids).expect("the coinbase's")),
         time: *template.curtime,
         bits: tip.next_bits(),
         nonce: 0,
@@ -271,8 +273,8 @@ fn proposal(template: &BlockTemplate, tip: &TipFacts) -> String {
 /// The coinbase output script committing to `wtxids` (the coinbase's own counted as zeros) and
 /// the witness reserved value (BIP 141): `OP_RETURN` pushing `aa21a9ed` and the commitment.
 fn witness_commitment(wtxids: impl Iterator<Item = Wtxid>) -> Vec<u8> {
-    let hashes = std::iter::once(Wtxid::all_zeros()).chain(wtxids).map(|wtxid| wtxid.to_raw_hash());
-    let root = WitnessMerkleNode::from_raw_hash(merkle_tree::calculate_root(hashes).expect("the coinbase's"));
+    let hashes = std::iter::once(Wtxid::all_zeros()).chain(wtxids).map(|wtxid| wtxid.to_byte_array()).collect();
+    let root = WitnessMerkleNode::from_byte_array(merkle_root(hashes).expect("the coinbase's"));
     let commitment = Block::compute_witness_commitment(&root, &WITNESS_RESERVED_VALUE);
     let mut script = vec![0x6a, 0x24, 0xaa, 0x21, 0xa9, 0xed];
     script.extend_from_slice(&commitment.to_byte_array());
