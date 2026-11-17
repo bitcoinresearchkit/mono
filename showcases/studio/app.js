@@ -356,6 +356,10 @@ phone.addEventListener("change", () => ((rowSizes = readRowSizes()), chart && re
 phone.addEventListener("change", () => renderCharts());
 /** What of the page shows (a keyboard over it, iOS's, shortens it; every browser Studio runs in has one). */
 const viewport = /** @type {VisualViewport} */ (window.visualViewport);
+// (Never scrolled above its top. WebKit can leave it there, an installed app turned on an iPhone Duo's inner screen
+// keeping the upright status bar's room (iOS 27.2): what's drawn and what's touched then part by that much, a tap
+// landing on what's above it. Put back, the page is what WebKit leaves it, every tap where it lands.)
+addEventListener("scroll", () => scrollY < 0 && scrollTo(0, 0));
 /** A phone held upright (its sheet at half height first). */
 const heldUpright = matchMedia("not all and (max-height: 500px) and (min-width: 568px)");
 /** Whether a phone's sheet is whole (the page behind it dimmed, out of reach): upright, dragged up; on its side, a column beside the chart, never. */
