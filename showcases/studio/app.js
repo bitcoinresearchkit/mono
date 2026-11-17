@@ -12349,7 +12349,8 @@ document.addEventListener("keydown", (event) => {
     const item = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-chart-row], [data-home-card]") ?? null);
     const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
     if (!doc || isPreview(doc)) return;
-    if (key === "d") return inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : void duplicateCharts([doc]);
+    // (Once a press: held, the key repeats, and each copy's picks would be copied again for as long as it's held.)
+    if (key === "d") return void (event.repeat || (inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : duplicateCharts([doc])));
     // (One of the picks: they all go; one alone, alone. An Undo brings them back.)
     return inGrid ? batch("delete", null, picked.has(id) ? null : [id]) : deleteChart(doc);
   }
@@ -12369,6 +12370,8 @@ document.addEventListener("keydown", (event) => {
   // (⌘D alone: ⌘⇧D, ⌘⌥D are no one's here.)
   if (mod && !event.shiftKey && !event.altKey && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
     event.preventDefault();
+    // (Once a press, as a chart's above.)
+    if (event.repeat) return;
     return chosen.size ? duplicateDrawings([...chosen]) : layerPicks.size ? layersBatch("duplicate") : duplicateLayer(selected);
   }
   // ⌘A picks every layer while some are picked, or from the panel (on the chart, every drawing).
