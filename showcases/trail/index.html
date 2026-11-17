@@ -87,7 +87,7 @@
         font: inherit;
       }
 
-      /* The way back to Bitview, as every showcase has it: in the screen's corner, over the scene (not turned with it). */
+      /* The way back to Bitview, as every showcase has it: in the screen's corner, over the scene (not scaled with it). */
       .brand {
         position: fixed;
         z-index: 10;
@@ -110,7 +110,6 @@
 
       .app {
         --stage-scale: 1;
-        --stage-rotation: 0deg;
         /* Fixed: the unscaled 1920×1080 stage must not widen a mobile layout viewport. */
         position: fixed;
         top: 50%;
@@ -119,17 +118,18 @@
         height: 1080px;
         isolation: isolate;
         visibility: hidden;
-        transform: translate(-50%, -50%) rotate(var(--stage-rotation))
-          scale(var(--stage-scale));
+        transform: translate(-50%, -50%) scale(var(--stage-scale));
       }
 
       .app.is-fit {
         visibility: visible;
       }
 
+      /* (A portrait touch screen gets an upright portrait stage, where the flat view is the default: see touchPortraitQuery.) */
       @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
         .app {
-          --stage-rotation: 90deg;
+          width: 1080px;
+          height: 1920px;
         }
       }
 
@@ -348,7 +348,6 @@
         justify-content: center;
         gap: 6px 22px;
         color: var(--muted);
-        font-size: 14px;
         font-weight: 500;
         letter-spacing: 0.08em;
         white-space: nowrap;
@@ -364,6 +363,13 @@
           display: none;
         }
 
+        /* (A split's legend: its title, then its parts, which wrap below it where the line is short.) */
+        &#split-legend {
+          flex-wrap: wrap;
+          justify-content: center;
+          row-gap: 6px;
+        }
+
         i {
           width: 11px;
           height: 11px;
@@ -376,6 +382,27 @@
           height: 9px;
           border-radius: 2px;
           background: linear-gradient(90deg, var(--ramp));
+        }
+
+        /* (Every age a cell of its own colour, some of their first edges named below.) */
+        .age-ramp {
+          display: flex;
+          margin-bottom: 1.3em;
+
+          i {
+            position: relative;
+            width: 16px;
+            height: 9px;
+            border-radius: 0;
+          }
+
+          i[data-edge]::after {
+            content: attr(data-edge);
+            position: absolute;
+            top: 13px;
+            left: 0;
+            translate: -50% 0;
+          }
         }
 
         /* (The day's parts couldn't be read: said where they'd be named.) */
@@ -454,12 +481,33 @@
         }
       }
 
+      /* (On an earlier day only: the way back to the latest.) */
+      .today {
+        min-height: 35px;
+        padding: 7px 10px;
+        background: transparent;
+        color: var(--foreground);
+        font: inherit;
+        letter-spacing: 0.1em;
+        text-transform: inherit;
+        cursor: pointer;
+
+        &[hidden] {
+          display: none;
+        }
+
+        &:focus-visible {
+          outline: 2px solid var(--interaction-orange);
+          outline-offset: 2px;
+        }
+      }
+
       .selector:has(select:focus-visible) {
         outline: 2px solid var(--interaction-orange);
         outline-offset: 2px;
       }
 
-      /* The scene's 2D or 3D: in the screen's corner, as the brand is, not turned or scaled with the scene. */
+      /* The scene's 2D or 3D: in the screen's corner, as the brand is, not scaled with the scene. */
       .dimension-toggle {
         position: fixed;
         z-index: 10;
@@ -552,7 +600,6 @@
   </head>
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-    <!-- (In the screen's corner, as the brand: upright on a phone too, where the scene is turned.) -->
     <fieldset
       id="dimension-toggle"
       class="dimension-toggle"
@@ -624,6 +671,7 @@
             <span id="terrain-key" class="key-item"></span>
             <span id="split-legend" class="key-item" hidden></span>
           </div>
+          <button id="today" class="selector today" type="button" hidden>Back to today</button>
         </div>
 
         <div id="price-axis-ui" class="axis-ui price-axis-ui">
@@ -676,17 +724,17 @@
 
           <div id="selectors" class="selectors">
             <label class="selector">
-              <span>Data</span>
-              <select id="metric" aria-label="Terrain data">
+              <span>Measure</span>
+              <select id="metric" aria-label="Measure">
                 <option value="supply">SUPPLY</option>
                 <option value="realized_cap">CAPITAL</option>
                 <option value="unrealized_pnl">UNREALIZED P&amp;L</option>
               </select>
             </label>
             <label class="selector">
-              <span>View</span>
-              <select id="mode" aria-label="Terrain view">
-                <option value="value">VALUE</option>
+              <span>Show</span>
+              <select id="mode" aria-label="Show">
+                <option value="value">AMOUNT</option>
                 <option value="1w">1W CHANGE</option>
                 <option value="1m">1M CHANGE</option>
                 <option value="3m">3M CHANGE</option>
@@ -697,41 +745,41 @@
               </select>
             </label>
             <label class="selector">
-              <span>Weight</span>
-              <select id="weight" aria-label="Supply weighting">
-                <option value="none">NONE</option>
-                <option value="wakefulness">WAKEFULNESS</option>
-                <option value="mobility">MOBILITY</option>
+              <span>Count</span>
+              <select id="weight" aria-label="Count">
+                <option value="none">EVERY COIN</option>
+                <option value="wakefulness" title="Each coin by how much of its holding time it has spent">AWAKE COINS</option>
+                <option value="mobility" title="Each coin by how likely it is ever to move">MOBILE COINS</option>
               </select>
             </label>
             <label class="selector">
               <span>Cohort</span>
               <select id="cohort" aria-label="Cohort">
-                <option value="all">ALL UTXOS</option>
+                <option value="all">ALL COINS</option>
                 <option value="sth">SHORT-TERM</option>
                 <option value="lth">LONG-TERM</option>
                 <optgroup label="AGE BANDS">
                   <option value="age_under_1h">≤1H</option>
                   <option value="age_1h_to_1d">1H–1D</option>
-                  <option value="age_1d_to_1w">1D–1W</option>
+                  <option value="age_1d_to_1w" data-edge="1D">1D–1W</option>
                   <option value="age_1w_to_1m">1W–1M</option>
-                  <option value="age_1m_to_2m">1–2M</option>
+                  <option value="age_1m_to_2m" data-edge="1M">1–2M</option>
                   <option value="age_2m_to_3m">2–3M</option>
                   <option value="age_3m_to_4m">3–4M</option>
                   <option value="age_4m_to_5m">4–5M</option>
                   <option value="age_5m_to_6m">5–6M</option>
-                  <option value="age_6m_to_9m">6–9M</option>
+                  <option value="age_6m_to_9m" data-edge="6M">6–9M</option>
                   <option value="age_9m_to_1y">9M–1Y</option>
-                  <option value="age_1y_to_18m">1Y–18M</option>
+                  <option value="age_1y_to_18m" data-edge="1Y">1Y–18M</option>
                   <option value="age_18m_to_2y">18M–2Y</option>
-                  <option value="age_2y_to_3y">2–3Y</option>
+                  <option value="age_2y_to_3y" data-edge="2Y">2–3Y</option>
                   <option value="age_3y_to_4y">3–4Y</option>
                   <option value="age_4y_to_5y">4–5Y</option>
-                  <option value="age_5y_to_6y">5–6Y</option>
+                  <option value="age_5y_to_6y" data-edge="5Y">5–6Y</option>
                   <option value="age_6y_to_7y">6–7Y</option>
                   <option value="age_7y_to_8y">7–8Y</option>
                   <option value="age_8y_to_10y">8–10Y</option>
-                  <option value="age_10y_to_12y">10–12Y</option>
+                  <option value="age_10y_to_12y" data-edge="10Y">10–12Y</option>
                   <option value="age_12y_to_15y">12–15Y</option>
                   <option value="age_over_15y">15Y+</option>
                 </optgroup>
@@ -865,6 +913,8 @@
         const BLACK_90 = displayRgbColor(BLACK_CHANNELS, 0.9);
         const BLACK_92 = displayRgbColor(BLACK_CHANNELS, 0.92);
         const WHITE = displayRgbColor(WHITE_CHANNELS);
+        // (A note beside an axis: quieter than its labels, as the hints are.)
+        const NOTE_COLOR = displayRgbColor(WHITE_CHANNELS, 0.67);
         const PRICE_RED = displayRgbColor(PRICE_RED_CHANNELS);
         const PRICE_RED_52 = displayRgbColor(PRICE_RED_CHANNELS, 0.52);
         const HISTORY_COLOR_MULTIPLIER_2D = 0.5;
@@ -888,6 +938,10 @@
         const MIN_UI_TEXT = 9.5;
         /** A length beside the scene's words, grown with them. */
         const ui = (px) => px * state.ui;
+        /** A screen small enough that the scene's words are grown well past their size (a phone). */
+        const smallScreen = () => state.ui > 1.2;
+        // (What the pointer's share is a share of, by the measure shown.)
+        const METRIC_NOUNS = { supply: "BTC", realized_cap: "CAPITAL", unrealized_pnl: "P&L" };
         const AXIS_GAP = 8;
         const PILL_PADDING_X = 6;
         const PILL_PADDING_Y = 4;
@@ -897,10 +951,17 @@
           PILL_PADDING_Y * 2 +
           PILL_BORDER_WIDTH;
         const AXIS_LABEL_OFFSET = 11;
+        // (A pill hung off an axis keeps this far from it: see pillLayout.)
+        const PILL_AXIS_GAP = 4;
         // (The rails lie past the tallest pill an axis carries, so a pill never covers their first line.)
-        const RAIL_OFFSET = AXIS_LABEL_OFFSET + TWO_LINE_PILL_HEIGHT + AXIS_GAP;
+        const RAIL_OFFSET = PILL_AXIS_GAP + TWO_LINE_PILL_HEIGHT + AXIS_GAP + AXIS_LABEL_OFFSET;
         const FLAT_FOOTER_GAP = 10;
         const FLAT_UI_GAP = 9;
+        // (The flat view's line between the title and the plot, saying what its two vertical scales are.)
+        const FLAT_NOTE_ROOM = UI_FONT_SIZE * 2.75;
+        const VALUE_AXIS_NOTE = "COMPRESSED SCALE";
+        // (Flat rails beside a 3D scene: the column's share of the stage's width.)
+        const RAIL_COLUMN_SHARE = 0.34;
         const STAGE_EDGE_PADDING = 12;
         // Source palettes; the former global treatment is applied to final RGB.
         const palette = [
@@ -953,6 +1014,7 @@
         const identityElement = byId("identity");
         const eyebrowElement = identityElement.querySelector(".eyebrow");
         const dateAxisUi = byId("date-axis-ui");
+        const todayButton = byId("today");
         const priceAxisUi = byId("price-axis-ui");
         const flatAxisHint = byId("flat-axis-hint");
         const keyHints = new Map(
@@ -988,7 +1050,9 @@
         const hoverQuery = window.matchMedia(
           "(hover: hover) and (pointer: fine)",
         );
-        const portraitStageQuery = window.matchMedia(
+        // (On a touch screen the way it's held picks the view: upright, the flat one; turned on its side, the 3D one.)
+        const touchQuery = window.matchMedia("(hover: none) and (pointer: coarse)");
+        const touchPortraitQuery = window.matchMedia(
           "(hover: none) and (pointer: coarse) and (orientation: portrait)",
         );
 
@@ -1610,7 +1674,12 @@
          * terrain half its size.
          */
         function flatRails() {
-          return state.dimension === "2d" || state.ui > 1.2;
+          return state.dimension === "2d" || smallScreen();
+        }
+
+        /** Flat rails beside a 3D scene, in a column at the stage's right, where the stage is wider than tall (a phone on its side). */
+        function railsBeside() {
+          return state.dimension === "3d" && smallScreen() && state.width > state.height;
         }
 
         function syncProjectionTransforms() {
@@ -1810,13 +1879,9 @@
           const params = new URLSearchParams(location.search);
           const stored = readStoredSettings();
 
-          state.dimension = resolveChoice(
-            "dimension",
-            dimensionInputs.map((input) => input.value),
-            state.dimension,
-            params,
-            stored,
-          );
+          state.dimension = touchQuery.matches
+            ? touchPortraitQuery.matches ? "2d" : "3d"
+            : resolveChoice("dimension", dimensionInputs.map((input) => input.value), state.dimension, params, stored);
           state.metric = resolveSetting(
             "data",
             metricSelect,
@@ -2002,6 +2067,7 @@
           return bands.map((option, index) => ({
             cohort: option.value,
             label: option.textContent,
+            edge: option.dataset.edge,
             color: ageColor(index / (bands.length - 1)),
           }));
         }
@@ -2029,14 +2095,17 @@
             }));
             return;
           }
-          // (Every age a step of its own colour, as the slice draws them.)
-          const step = 100 / state.split.length;
-          const ramp = Object.assign(document.createElement("span"), { className: "ramp" });
-          ramp.style.setProperty(
-            "--ramp",
-            state.split.map(({ color }, index) => `${color} ${(index * step).toFixed(2)}% ${((index + 1) * step).toFixed(2)}%`).join(", "),
-          );
-          legend.replaceChildren(`SELECTED DAY BY AGE ${state.split[0].label}`, ramp, state.split.at(-1).label);
+          // (Every age a cell of its own colour, as the slice draws them, some of their first edges named.)
+          const ramp = Object.assign(document.createElement("span"), { className: "age-ramp" });
+          ramp.append(...state.split.map(({ color, edge }) => {
+            const cell = document.createElement("i");
+            cell.style.setProperty("--swatch", color);
+            if (edge) cell.dataset.edge = edge;
+            return cell;
+          }));
+          const ages = Object.assign(document.createElement("span"), { className: "key-item" });
+          ages.append(state.split[0].label, ramp, state.split.at(-1).label);
+          legend.replaceChildren("SELECTED DAY BY AGE", ages);
         }
 
         /** The terrain's key: its shade against the day's tallest, or in a change view, its falls as water and rises as land. */
@@ -2418,11 +2487,8 @@
         }
 
         function fitStage() {
-          const rotated = portraitStageQuery.matches;
-          const logicalWidth = Math.max(1, app.clientWidth);
-          const logicalHeight = Math.max(1, app.clientHeight);
-          const stageWidth = rotated ? logicalHeight : logicalWidth;
-          const stageHeight = rotated ? logicalWidth : logicalHeight;
+          const stageWidth = Math.max(1, app.clientWidth);
+          const stageHeight = Math.max(1, app.clientHeight);
           const scale = Math.min(
             window.innerWidth / stageWidth,
             window.innerHeight / stageHeight,
@@ -2461,7 +2527,7 @@
             dpr === state.dpr &&
             state.ui === previousUi
           ) {
-            // (The canvas is as it was, but the screen around it isn't: a turned phone moves the toggle the 2D readout keeps clear of.)
+            // (The canvas is as it was, but the screen around it isn't: the brand and the toggle the rails keep clear of.)
             scheduleRender();
             return;
           }
@@ -2744,18 +2810,18 @@
           return value;
         }
 
-        /** The flat rails' height at the stage's foot, by their last measure: the hint, the readout, the key. */
+        /** The flat rails' height at the stage's foot, by their last measure (the hint, the readout, the key), and the corners' room below them. */
         function footerHeight() {
           return ui(
             flatAxisHint.offsetHeight + FLAT_UI_GAP + priceAxisUi.offsetHeight + FLAT_UI_GAP + dateAxisUi.offsetHeight,
-          );
+          ) + footClearance().lift;
         }
 
         function geometry() {
           const signed = state.mode !== "value";
 
           if (state.dimension === "2d") {
-            const top = 170;
+            const top = 170 + ui(FLAT_NOTE_ROOM);
             // (Room below for the pills, the hint and the readout, as tall as they are at this width: a small screen's wrap.)
             const bottom = ui(TWO_LINE_PILL_HEIGHT + FLAT_FOOTER_GAP + STAGE_EDGE_PADDING) + footerHeight();
             const available = Math.max(
@@ -2820,7 +2886,7 @@
             const far = along(near, outward, depth);
             return [along(near, direction, -width / 2), along(near, direction, width / 2), along(far, direction, -width / 2), along(far, direction, width / 2)];
           };
-          const valueLabels = measureMonoText([valueAxisTitle(), ...valueTicks().map(({ value }) => formatAxisValue(value))]);
+          const valueLabels = measureMonoText([valueAxisTitle(), VALUE_AXIS_NOTE, ...valueTicks().map(({ value }) => formatAxisValue(value))]);
           // Everything the scene lays out, by the floor's width f, from the front corner of its price axis: the floor,
           // the oldest days' ridges, the value axis and its labels, and both rails.
           const scene = (f) => {
@@ -2832,7 +2898,7 @@
             return [
               at(0, -pastExtent), at(1, -pastExtent), at(0, futureExtent), at(1, futureExtent),
               at(0, -pastExtent, f * peak),
-              along(at(1, 0, f * peak + ui(UI_FONT_SIZE * 2)), priceDirection, valueLabels + ui(AXIS_LABEL_OFFSET)),
+              along(at(1, 0, f * peak + ui(UI_FONT_SIZE * 3) + 8), priceDirection, valueLabels + ui(AXIS_LABEL_OFFSET)),
               // (Flat rails lie below the scene instead; the date pill and the year labels need their room then.)
               ...(railsFlat
                 ? [along(at(0, 0), timeOutward, ui(42 + TWO_LINE_PILL_HEIGHT))]
@@ -2850,8 +2916,9 @@
           // The widest floor whose scene fits the stage inside its edge room (kept clear of the brand and the toggle in the
           // corners), found by halving; then the scene centred.
           const room = ui(36);
-          const roomWidth = state.width - room * 2;
-          const roomHeight = state.height - room * 2 - (railsFlat ? footerHeight() + ui(FLAT_UI_GAP) : 0);
+          const beside = railsBeside();
+          const roomWidth = state.width - room * 2 - (beside ? state.width * RAIL_COLUMN_SHARE + room : 0);
+          const roomHeight = state.height - room * 2 - (railsFlat && !beside ? footerHeight() + ui(FLAT_UI_GAP) : 0);
           let narrow = 120, wide = state.width * 2;
           for (let step = 0; step < 24; step++) {
             const middle = (narrow + wide) / 2, { width, height } = bounds(scene(middle));
@@ -2945,6 +3012,11 @@
         }
 
         function syncProjectedUi(layout, start, end) {
+          const earlier = Boolean(state.dates.length) && state.dates[state.selectedIndex] !== latestAvailableDate();
+          if (todayButton.hidden === earlier) {
+            todayButton.hidden = !earlier;
+            state.projectedUiKey = "";
+          }
           // (Its first figures shown with its place: the one frame.)
           if (state.summaryData || state.summaryStatus === "error") {
             summaryElement.classList.add("is-loaded");
@@ -2980,7 +3052,7 @@
           // (The rails grow by state.ui about their top middle, so they wrap, in their own units, to a share of the stage,
           // the scene fitted around them so their lines stay long and few; lying flat, to the flat view's or the stage's width.)
           const railWidth = (share) =>
-            `${(state.dimension === "2d" ? layout.width : flatRails() ? state.width - 2 * Math.max(ui(36), footInset()) : state.width * share) / state.ui}px`;
+            `${(railsBeside() ? state.width * RAIL_COLUMN_SHARE : flatRails() ? Math.min(state.dimension === "2d" ? layout.width : Infinity, state.width - 2 * Math.max(ui(36), footClearance().inset)) : state.width * share) / state.ui}px`;
           priceAxisUi.style.maxWidth = railWidth(0.7);
           dateAxisUi.style.maxWidth = railWidth(0.4);
           flatAxisHint.style.maxWidth = railWidth(1);
@@ -2990,12 +3062,16 @@
           };
 
           if (flatRails()) {
-            // (Under the flat view's pills, or at the stage's foot under a fitted terrain: the hint, the readout, the key.)
-            const centerX = state.dimension === "2d" ? layout.left + layout.width * 0.5 : state.width * 0.5;
+            // (Under the flat view's pills, at the stage's foot under a fitted terrain, or beside it, in a column at the
+            // middle of its height: the hint, the readout, the key.)
+            const beside = railsBeside();
+            const centerX = state.dimension === "2d"
+              ? layout.left + layout.width * 0.5
+              : beside ? state.width * (1 - RAIL_COLUMN_SHARE / 2) - ui(36) : state.width * 0.5;
             const footerTop =
               state.dimension === "2d"
                 ? layout.floorY + ui(TWO_LINE_PILL_HEIGHT + FLAT_FOOTER_GAP)
-                : state.height - ui(36) - footerHeight();
+                : beside ? (state.height - footerHeight()) / 2 : state.height - ui(36) - footerHeight();
             anchorRail(flatAxisHint, { x: centerX, y: footerTop });
             const priceUiTop = footerTop + ui(flatAxisHint.offsetHeight + FLAT_UI_GAP);
             anchorRail(priceAxisUi, { x: centerX, y: priceUiTop });
@@ -3004,7 +3080,7 @@
           if (state.dimension === "2d") {
             identityElement.style.left = `${layout.left}px`;
             identityElement.style.top = `${
-              layout.top - identityElement.offsetHeight - 18
+              layout.top - ui(FLAT_NOTE_ROOM) - identityElement.offsetHeight - 18
             }px`;
             state.projectedUiKey = key;
             return;
@@ -3181,7 +3257,7 @@
           return `${priceLabel}\n${
             percent === null
               ? "—"
-              : `${Math.round(percent)}% BELOW`
+              : `${Math.round(percent)}% ${smallScreen() ? "" : `OF ${METRIC_NOUNS[state.metric]} `}BELOW`
           }`;
         }
 
@@ -3584,7 +3660,8 @@
           let offsetX = 0;
           let offsetY = 0;
           if (attachEdge === "top") {
-            offsetY = boxHeight * 0.5 + halfBorder;
+            // (Hung a little off its axis, so the selected day's line along it stays seen.)
+            offsetY = boxHeight * 0.5 + halfBorder + ui(PILL_AXIS_GAP);
           } else if (attachEdge === "left") {
             offsetX = -boxX + halfBorder;
           } else if (attachEdge === "right") {
@@ -3755,7 +3832,8 @@
             state.mode === "value" ? 0 : -1,
           );
           const pastMin = projectAtTimeAxis(layout, start, start, end);
-          const nowMin = projectAtTimeAxis(layout, end, start, end);
+          // (The date axis ends at the selected day, where the terrain does: an earlier day shows no floor past it.)
+          const nowMin = projectAtTimeAxis(layout, axisEnd, start, end);
           const drawFloorLabel = (
             text,
             x,
@@ -3829,7 +3907,7 @@
           const priceSpan =
             (axes.priceLength * 10_000) / Math.max(PRICE_BUCKET_WIDTH, state.maxPrice - MIN_TERRAIN_PRICE);
           const priceStep =
-            10_000 * ([1, 2, 5, 10].find((step) => priceSpan * step >= labelRoom(formatAxisPrice(axisMaxPrice))) ?? 10);
+            10_000 * ([1, 2, 2.5, 5, 10].find((step) => priceSpan * step >= labelRoom(formatAxisPrice(axisMaxPrice))) ?? 10);
           // (A label left out where a pill sits on it, measured along the label's own axis: the pill says more.)
           const pillSpan = (text, point, alongWidth = true) => {
             const pill = pillLayout(context, text, "center", "top");
@@ -3920,11 +3998,11 @@
           }
 
           const startYear = Number(state.dates[start].slice(0, 4));
-          const endYear = Number(state.dates[end].slice(0, 4));
+          const endYear = Number(state.dates[axisEnd].slice(0, 4));
           // (Every year, or every other, as their labels need: along the axis in 3D, stacked by their height in 2D.)
           const yearSpan =
             Math.hypot(nowMin.x - pastMin.x, nowMin.y - pastMin.y) /
-            Math.max(1, (state.dateTimes[end] - state.dateTimes[start]) / (365.25 * DAY_MS));
+            Math.max(1, (state.dateTimes[axisEnd] - state.dateTimes[start]) / (365.25 * DAY_MS));
           const yearRoom = state.dimension === "2d" ? ui(UI_FONT_SIZE + 6) : labelRoom(String(endYear));
           const yearStep = [1, 2, 4].find((step) => yearSpan * step >= yearRoom) ?? 4;
           const flat = state.dimension === "2d";
@@ -3936,11 +4014,7 @@
             year++
           ) {
             if ((endYear - year) % yearStep) continue;
-            const dateIndex = nearestDateIndex(
-              `${year}-01-01`,
-              start,
-              end,
-            );
+            const dateIndex = nearestDateIndex(`${year}-01-01`, start, axisEnd);
             const point = projectAtTimeAxis(
               layout,
               dateIndex,
@@ -4011,70 +4085,46 @@
                 ui(UI_FONT_SIZE) -
                 4,
             );
+            // (Heights are compressed, so a tall ridge isn't read as proportionally more; flat, the rows need saying too.)
+            context.fillStyle = NOTE_COLOR;
+            if (state.dimension === "2d") {
+              context.textAlign = "center";
+              context.fillText("ONE ROW A DAY · HEIGHT ON THE RIGHT, COMPRESSED", layout.left + layout.width / 2, layout.top - ui(UI_FONT_SIZE * 2) - 6);
+            } else {
+              drawValueLabel(VALUE_AXIS_NOTE, valueTop.x + valueOut.x * 11, valueTop.y + valueOut.y * 11 - ui(UI_FONT_SIZE) * 2 - 8);
+            }
           }
           context.restore();
         }
 
-        /** Where an element fixed on the screen (the brand, the 2D/3D toggle) falls in the stage's own coordinates, turned or not. */
+        /** Where an element fixed on the screen (the brand, the 2D/3D toggle) falls in the stage's own coordinates. */
         function screenBoxInStage(element) {
           const box = element.getBoundingClientRect();
           const stage = app.getBoundingClientRect();
           if (!box.width || !box.height) return null;
-          const scale = Number(app.style.getPropertyValue("--stage-scale")) || 1;
+          const scale = state.stageScale;
           const gap = 4;
-          const centerX = stage.left + stage.width / 2;
-          const centerY = stage.top + stage.height / 2;
-          if (!portraitStageQuery.matches) {
-            return {
-              left: app.clientWidth / 2 + (box.left - gap - centerX) / scale,
-              right: app.clientWidth / 2 + (box.right + gap - centerX) / scale,
-              top: app.clientHeight / 2 + (box.top - gap - centerY) / scale,
-              bottom: app.clientHeight / 2 + (box.bottom + gap - centerY) / scale,
-            };
-          }
-          // (The stage is turned a quarter clockwise about its centre: the screen's down is the stage's right, its right the stage's up.)
           return {
-            left: app.clientWidth / 2 + (box.top - gap - centerY) / scale,
-            right: app.clientWidth / 2 + (box.bottom + gap - centerY) / scale,
-            top: app.clientHeight / 2 - (box.right + gap - centerX) / scale,
-            bottom: app.clientHeight / 2 - (box.left - gap - centerX) / scale,
+            left: (box.left - gap - stage.left) / scale,
+            right: (box.right + gap - stage.left) / scale,
+            top: (box.top - gap - stage.top) / scale,
+            bottom: (box.bottom + gap - stage.top) / scale,
           };
         }
 
-        /** Where a turned 2D stage puts the screen's 2D/3D toggle, which its value pill keeps clear of; null elsewhere. */
-        function toggleBoxInStage() {
-          return state.dimension === "2d" && portraitStageQuery.matches ? screenBoxInStage(dimensionToggle) : null;
-        }
-
-        /** How far in from each side the stage's foot is taken by the brand or the toggle, in the screen's corners. */
-        function footInset() {
-          let inset = 0;
+        /**
+         * How the stage's foot keeps clear of the brand and the toggle in the screen's corners: its lines narrowed
+         * beside them, or, where that would leave them under half the stage's width (a portrait screen), lifted above them.
+         */
+        function footClearance() {
+          let inset = 0, top = state.height;
           for (const element of [brandLink, dimensionToggle]) {
             const box = screenBoxInStage(element);
             if (!box || box.bottom < state.height * 0.75) continue;
             inset = Math.max(inset, box.left < state.width / 2 ? box.right : state.width - box.left);
+            top = Math.min(top, box.top);
           }
-          return inset;
-        }
-
-        /** The y a left-attached value pill at this point is drawn at: along the value axis, to end short of the toggle's edge. */
-        function clearOfToggle(text, point) {
-          const toggle = toggleBoxInStage();
-          if (!toggle) return point.y;
-          const pill = pillLayout(context, text, "left", "left");
-          const halfBorder = ui(PILL_BORDER_WIDTH) * 0.5;
-          const left = point.x + pill.offsetX + pill.boxX - halfBorder;
-          const right = left + pill.boxWidth + ui(PILL_BORDER_WIDTH);
-          const half = pill.boxHeight * 0.5 + halfBorder;
-          if (
-            right <= toggle.left ||
-            left >= toggle.right ||
-            point.y + half <= toggle.top ||
-            point.y - half >= toggle.bottom
-          ) {
-            return point.y;
-          }
-          return toggle.top - half;
+          return inset <= state.width / 4 ? { inset, lift: 0 } : { inset: 0, lift: state.height - top };
         }
 
         function drawHoverCursor(
@@ -4160,7 +4210,7 @@
             context,
             valueText,
             valuePoint.x,
-            clearOfToggle(valueText, valuePoint),
+            valuePoint.y,
             valueLabelAxis,
             valueLabelDown,
             {
@@ -4480,8 +4530,9 @@
           row,
           offsetX,
           offsetY,
+          bins = row.length,
         ) {
-          for (let binIndex = 0; binIndex < row.length; binIndex++) {
+          for (let binIndex = 0; binIndex < bins; binIndex++) {
             const leftX = layout.priceEdgeX[binIndex] + offsetX;
             const rightX =
               layout.priceEdgeX[binIndex + 1] + offsetX;
@@ -5699,13 +5750,9 @@
           context.lineCap = "round";
           context.lineJoin = "round";
           context.beginPath();
-          traceProfilePath(
-            context,
-            layout,
-            row,
-            offsetX,
-            offsetY,
-          );
+          // (To the day's own price axis, the dearest price yet then: not along the empty floor past it.)
+          const axisCoordinate = priceCoordinate(priceAxisMaximum(dateIndex)) ?? 1;
+          traceProfilePath(context, layout, row, offsetX, offsetY, Math.min(row.length, Math.ceil(axisCoordinate * row.length)));
 
           context.globalAlpha = allReference ? 0.82 : 1;
           strokeOutlinedPath(
@@ -5827,7 +5874,7 @@
               historyEnd,
             );
           } else {
-            drawTerrainFootprint(context, layout, start, end);
+            drawTerrainFootprint(context, layout, start, historyEnd);
             if (
               back &&
               historyStart !== state.selectedIndex
@@ -7321,18 +7368,24 @@
           resetHover();
         });
 
-        for (const input of dimensionInputs) {
-          input.addEventListener("change", () => {
-            if (!input.checked || input.value === state.dimension) return;
-            clearHoverState();
-            state.dimension = input.value;
-            syncProjectionTransforms();
-            invalidateTerrainChunks();
-            persistSettings();
-            scheduleRender();
-            scheduleWindowLoad(0);
-          });
+        /** The scene shown flat or in 3D, from the toggle or the way a touch screen is held. */
+        function setDimension(dimension) {
+          if (dimension === state.dimension) return;
+          clearHoverState();
+          state.dimension = dimension;
+          for (const input of dimensionInputs) input.checked = input.value === dimension;
+          syncProjectionTransforms();
+          invalidateTerrainChunks();
+          persistSettings();
+          scheduleRender();
+          scheduleWindowLoad(0);
         }
+
+        for (const input of dimensionInputs) {
+          input.addEventListener("change", () => input.checked && setDimension(input.value));
+        }
+
+        todayButton.addEventListener("click", () => void navigateToDate(latestAvailableDate(), 1));
 
         cohortSelect.addEventListener("change", () => {
           const preserveDate = state.dates[state.selectedIndex];
@@ -7398,7 +7451,10 @@
         window.visualViewport?.addEventListener("resize", resize, {
           passive: true,
         });
-        portraitStageQuery.addEventListener("change", resize);
+        touchPortraitQuery.addEventListener("change", () => {
+          resize();
+          if (touchQuery.matches) setDimension(touchPortraitQuery.matches ? "2d" : "3d");
+        });
         window.addEventListener("online", resumeUpdates);
         window.addEventListener("offline", () => {
           stopLiveUpdates();
