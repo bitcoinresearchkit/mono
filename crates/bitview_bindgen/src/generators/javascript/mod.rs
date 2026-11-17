@@ -25,8 +25,11 @@ pub(crate) fn generate_javascript_client(
     writeln!(output, "// Auto-generated Bitview JavaScript client").unwrap();
     writeln!(output, "// Do not edit manually\n").unwrap();
 
+    let mut core = String::new();
+    client::generate_core(&mut core, schemas);
+
     types::generate_type_definitions(&mut output, schemas);
-    client::generate_base_client(&mut output, schemas);
+    client::generate_core_imports(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
     tree::generate_main_client(&mut output, endpoints, schemas);
@@ -37,9 +40,10 @@ pub(crate) fn generate_javascript_client(
             "the JavaScript client's HASH stamp isn't written exactly once",
         ));
     }
-    let hash = sha256_hex(output.as_bytes());
+    let hash = sha256_hex(format!("{core}{output}").as_bytes());
     let stamp = client::HASH_STAMP.replacen("\"\"", &format!("\"{hash}\""), 1);
     let output = output.replacen(client::HASH_STAMP, &stamp, 1);
+    write_if_changed(&output_path.with_file_name(client::CORE_FILE), &core)?;
     write_if_changed(output_path, &output)?;
 
     if let Some(parent) = output_path.parent() {

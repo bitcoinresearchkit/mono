@@ -13,6 +13,8 @@
     }
   },
   "files": [
+    "core.js",
+    "core.d.ts",
     "index.js",
     "index.d.ts"
   ],

@@ -25,6 +25,7 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="modulepreload" href="/modules/bitview-client/core.js" />
     <link rel="modulepreload" href="/assets/pools/logos.js" />
     <style>
       /* fallback fonts */
@@ -1418,10 +1419,10 @@
     <div class="card" id="card" hidden></div>
     <script type="module">
       import { logo as poolLogo } from "/assets/pools/logos.js";
-      import { BitviewClient } from "/modules/bitview-client/index.js";
+      import { BitviewClientBase } from "/modules/bitview-client/core.js";
       // ---------------------------------------------------------------- Reads, from the server serving the page, through the
       // client: where several servers answer it, it stays on the one that answered, so a forming block's diffs follow its copy.
-      const client = new BitviewClient({ baseUrl: location.origin, memCache: false, browserCache: false });
+      const client = new BitviewClientBase({ baseUrl: location.origin, memCache: false, browserCache: false });
       const get = async (path) => {
         const r = await client.get(`/api${path}`);
         return r.headers.get("content-type")?.includes("json") ? r.json() : r.text();

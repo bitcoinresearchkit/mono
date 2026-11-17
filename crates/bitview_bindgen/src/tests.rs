@@ -2,7 +2,7 @@ use serde_json::{Value, json};
 
 use crate::{
     Ty, TypeSchemas, extract_endpoints,
-    generators::javascript::{api::generate_api_methods, client::generate_base_client, keep::keep_expr},
+    generators::javascript::{api::generate_api_methods, client::generate_core, keep::keep_expr},
     parse_openapi_json,
 };
 
@@ -84,7 +84,7 @@ fn javascript_methods_forward_their_keep_rules() {
     let (spec, schemas) = parse_openapi_json(&spec.to_string()).unwrap();
     let endpoints = extract_endpoints(&spec, &schemas).unwrap();
     let mut output = String::new();
-    generate_base_client(&mut output, &schemas);
+    generate_core(&mut output, &schemas);
     generate_api_methods(&mut output, &endpoints, &schemas);
     let method = |name: &str| {
         let start = output.find(&format!("async {name}(")).expect(name);

@@ -5,22 +5,20 @@ use crate::{
     camel_case_keys, format_json, generators::javascript::keep::keep_expr, name_constants,
 };
 
-/// The client's content stamp as written until the whole text is, its value empty (see `generate_javascript_client`):
-/// matched with its comment, whose `*/` no description can hold.
-pub(crate) const HASH_STAMP: &str = "  /** This file's content stamp: the SHA-256 of its text with this value empty, so any other byte changes it. */\n  static HASH = \"\";\n";
+/// The core module's file name, beside `index.js`, which imports it.
+pub(crate) const CORE_FILE: &str = "core.js";
 
-/// The fixed runtime (`runtime.js`: base client, endpoints, caching and address hashing) after
-/// the server's tables it reads.
-pub(crate) fn generate_base_client(output: &mut String, schemas: &TypeSchemas) {
+/// The client's content stamp as written until both files' whole text is, its value empty (see `generate_javascript_client`):
+/// matched with its comment, whose `*/` no description can hold.
+pub(crate) const HASH_STAMP: &str = "  /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */\n  static HASH = \"\";\n";
+
+/// The client's core module (`core.js`): the fixed runtime (`runtime.js`: base client, pinning,
+/// endpoints, caching and address hashing) after the server's tables it reads. A page that only
+/// makes requests imports it alone; `index.js` imports it under the generated API.
+pub(crate) fn generate_core(output: &mut String, schemas: &TypeSchemas) {
     let series_keep = keep_expr(&Ty::Ref("SeriesData".to_owned()), schemas)
         .unwrap_or_else(|| "undefined".to_owned());
-    let calendars = calendars();
-    let date_indexes = calendars
-        .iter()
-        .map(|(index, _)| format!("'{index}'"))
-        .collect::<Vec<_>>()
-        .join("|");
-    let calendars: String = calendars
+    let calendars: String = calendars()
         .iter()
         .map(|(index, (unit, size, phase))| {
             format!("  ['{index}', ['{unit}', {size}, {phase}]],\n")
@@ -31,7 +29,8 @@ pub(crate) fn generate_base_client(output: &mut String, schemas: &TypeSchemas) {
         .collect();
     write!(
         output,
-        r#"/** @typedef {{{date_indexes}}} DateIndex */
+        r#"// Auto-generated Bitview JavaScript client core
+// Do not edit manually
 
 /**
  * Each date-based index's buckets as [unit, size, phase]: bucket i starts i * size - phase units
@@ -55,6 +54,24 @@ const _SERIES_KEEP = {series_keep};
     )
     .unwrap();
     output.push_str(include_str!("runtime.js"));
+}
+
+/// The runtime's types, beside the generated ones so `index.js` exports them all (`core.js`
+/// imports what it uses), then the core's names the generated API uses: every name it exports.
+pub(crate) fn generate_core_imports(output: &mut String) {
+    let date_indexes = calendars()
+        .iter()
+        .map(|(index, _)| format!("'{index}'"))
+        .collect::<Vec<_>>()
+        .join("|");
+    writeln!(output, "/** @typedef {{{date_indexes}}} DateIndex */\n").unwrap();
+    output.push_str(include_str!("runtime_types.js"));
+    let runtime = include_str!("runtime.js");
+    let exports = runtime
+        .rsplit_once("\nexport { ")
+        .and_then(|(_, list)| list.strip_suffix(" };\n"))
+        .expect("runtime.js ends with its one `export { ... };` line");
+    writeln!(output, "\nimport {{ {exports} }} from './{CORE_FILE}';\n").unwrap();
 }
 
 /// The client's constant fields and date conversion methods.

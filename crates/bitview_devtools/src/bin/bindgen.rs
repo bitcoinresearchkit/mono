@@ -33,6 +33,7 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "crates/bitview_mcp/server.json",
     "crates/bitview_client/src/generated.rs",
     "crates/bitview_cli/src/generated.rs",
+    "modules/bitview-client/core.js",
     "modules/bitview-client/index.js",
     PACKAGE_JSON,
     SUPPORT_PAGE,

@@ -16,8 +16,9 @@ is required.
 npm install bitview-client
 ```
 
-You can also copy the `index.js` file into a project. The published client is a
-single ES module with no runtime dependencies.
+You can also copy `index.js` and `core.js` (which it imports) into a project. The
+published client has no runtime dependencies. A page that only makes requests
+(`get`, `post`) can import `core.js` alone, for its `BitviewClientBase`.
 
 ## Quick start
 

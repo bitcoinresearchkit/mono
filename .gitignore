@@ -55,4 +55,4 @@ expand.rs
 # Cloudflare CLI (cf) account cache, written wherever it runs
 .cloudflare
 # Generated at publish (scripts/js-publish.sh) from the JSDoc.
-modules/bitview-client/index.d.ts
+modules/bitview-client/*.d.ts
