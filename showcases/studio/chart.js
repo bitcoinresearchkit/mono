@@ -19,7 +19,7 @@ import {
   paintNavigator, panelShown, placedOn, placing, pointedLayer, pointerOnChart, precise, PRECISE, profileColor,
   profileLit, rangeDays, reaching, reduced, resolved, resultText, rowSizes, selected, shownOklch, signalShown,
   signedMeasure, sizeChart, sizeHeld, SPAN, spanDays, spanKey, spanParts, spotlight, stretchResult, submenus,
-  subSetups, tagLit, timeAt, timesAt, tool, TOUCH, TWO_KEPT, unitOf, updateRowChanges, viewMoving, viewTimes, widest,
+  subSetups, tagLit, timeAt, timesAt, tokensNow, tool, TOUCH, TWO_KEPT, unitOf, updateRowChanges, viewMoving, viewTimes, widest,
   WIDEST_VALUES, windowTooLong, within,
 } from "/studio/app.js";
 import { aboutOf, latestSaid } from "/studio/command.js";
@@ -1038,11 +1038,12 @@ const settled = () => chartShown() && resolved?.version === drawVersion && !buil
  */
 const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map(({ id, average }) => [id, average ?? ""]).sort(), doc.layers.map((layer) => [layer.id, layer.pane, layer.letter, layer.series, layer.formula, layer.from ? layer.type : null, layer.from ?? null, layer.ref ?? null, heatLike(layer) ? [layer.heatmap ?? "all", layer.profile ?? null, measureOf(layer)] : null]).sort()]);
 /**
- * What a chart's build draws from, the theme too (see redrawChart): all of it but its title and names, its range (a
- * view: see showRange), its drawings, its panes' sizes (each shown without one), and the library's own (where it came
- * from, its folder, whether it began blank, when it was edited).
+ * What a chart's build draws from, the theme's tokens too (what they're read for: a contrast change redraws it, see
+ * redrawChart): all of it but its title and names, its range (a view: see showRange), its drawings, its panes' sizes
+ * (each shown without one), and the library's own (where it came from, its folder, whether it began blank, when it
+ * was edited).
  */
-const lookKey = (/** @type {Chart} */ doc) => JSON.stringify([light, { ...doc, title: 0, range: 0, drawings: 0, made: 0, updated: 0, folder: 0, preset: 0, base: 0, blank: 0, panes: doc.panes.map(({ size, ...pane }) => pane), layers: doc.layers.map(({ label, underName, levels, ...layer }) => ({ ...layer, levels: levels?.map(({ name, ...level }) => level) })) }]);
+const lookKey = (/** @type {Chart} */ doc) => JSON.stringify([tokensNow(), { ...doc, title: 0, range: 0, drawings: 0, made: 0, updated: 0, folder: 0, preset: 0, base: 0, blank: 0, panes: doc.panes.map(({ size, ...pane }) => pane), layers: doc.layers.map(({ label, underName, levels, ...layer }) => ({ ...layer, levels: levels?.map(({ name, ...level }) => level) })) }]);
 
 /**
  * The signals' marks, each on its layer's series, where it turns up or down (and with its results, where a stretch

@@ -4364,7 +4364,7 @@ let footPinned = false;
  */
 function keepStretch(was) {
   if (!resolved || !chartShown()) return;
-  fitSpacing(chart, resolved.times.length, was ?? shownSpan());
+  fitSpacing(chart, resolved.times.length, was ?? undefined);
   if (was) showSpan(was, EXACT_RANGE);
   engine.render(true);
   // (Its box's new width and view, for the next resize: see holdView.)
@@ -4479,13 +4479,15 @@ let dataRevision = 0;
 let drawVersion = 0, drawingKey = "", drawingLook = "";
 /**
  * What's on screen, written only by the build that lands (see buildChart): the chart as built (a ⌘K look's, while one
- * shows; the live price paints its colors from it), its `lookKey`, and the range its view was laid out from (a build's,
- * or showRange's once it has moved the view there). Null: nothing, or the open chart to be drawn as if opened anew.
- * Its data is `resolved`. @type {{ doc: Chart, look: string, range: string } | null}
+ * shows; the live price paints its colors from it), its range the one its view was laid out from (the build's, or
+ * showRange's once it has moved the view there; none while one asked for waits for its draw), and its `lookKey`. Null: nothing, or the open chart to be drawn as if
+ * opened anew. Its data is `resolved`. @type {{ doc: Chart, look: string } | null}
  */
 let displayed = null;
 /** Whether the open chart is the one on screen. */
 const chartShown = () => Boolean(chart && displayed && displayed.doc.id === chart.id);
+/** Whether a draw is on its way (the data on screen another's than the one asked for last). */
+const pending = () => drawVersion > (resolved?.version ?? 0);
 /** A build asked for (see buildSoon): its frame's request (-1: run at once, a hidden tab's), and whether it fits the view anew. */
 let buildAsked = 0, buildRefit = false;
 
@@ -4582,6 +4584,17 @@ async function draw(refit = false, fresh = false) {
   return true;
 }
 function buildChart(doc, data, refit) {
+  // (A build that throws claims nothing: what was on screen is still what's said to be, and the throw is loud.)
+  const prior = displayed, priorData = resolved;
+  try {
+    buildOver(prior, doc, data, refit);
+  } catch (error) {
+    (displayed = prior), (resolved = priorData);
+    throw error;
+  }
+}
+/** The build itself (see buildChart), over what was on screen before it. @param {{ doc: Chart, look: string } | null} prior */
+function buildOver(prior, doc, data, refit) {
   // (One asked for, a frame on, is this one: see buildSoon.)
   if (buildAsked) {
     if (buildAsked > 0) cancelAnimationFrame(buildAsked);
@@ -4589,10 +4602,12 @@ function buildChart(doc, data, refit) {
     // (Who waited for it, woken once this one's done: see settle.)
     queueMicrotask(() => { for (const wake of [...drawnWaiters]) wake(); });
   }
-  // (What's on screen from now: this, whatever builds it, a restyle and a ⌘K look too. What was, to keep what can be.)
-  // (Its view kept where it can be, the range it was laid out from with it: a range asked for since is showRange's.)
-  const prior = displayed, priorTimes = resolved?.times ?? [], same = prior?.doc.id === doc.id && prior?.doc.index === doc.index, sameView = !refit && same;
-  (displayed = { doc, look: lookKey(doc), range: sameView ? /** @type {NonNullable<typeof prior>} */ (prior).range : doc.range }), (resolved = data);
+  // (What's on screen from now: this, whatever builds it, a restyle and a ⌘K look too; what was, to keep what can be.
+  // A range asked for since this chart's view was laid out (a pick, an undo, at this interval or across a switch) is
+  // owed: this build lays it out, whichever draw it's from.)
+  const priorTimes = resolved?.times ?? [], same = prior?.doc.id === doc.id && prior?.doc.index === doc.index, sameView = !refit && same;
+  const owed = prior?.doc.id === doc.id && prior?.doc.range !== doc.range;
+  (displayed = { doc, look: lookKey(doc) }), (resolved = data);
   // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
   if (!same) crossSet ? dropCross() : keyAway();
   const visible = sameView ? shownDates() : null;
@@ -4975,7 +4990,7 @@ function buildChart(doc, data, refit) {
   // that room is a width's, another tab's may be another): that range itself, as a range shows, at the latest as it
   // comes.)
   const onRange = Boolean(left?.latest && left.index === doc.index && data.times.length > 1) && ((preset, last, latest) => Math.abs(latest[0] - (preset.from - last)) < 1 && Math.abs(latest[1] - (preset.to - last)) <= Math.max(1, (preset.to - last) / 4))(presetWindow(doc, data), data.times.length - 1, /** @type {[number, number]} */ (left?.latest));
-  const back = left && !onRange && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
+  const back = left && !onRange && !owed && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
   // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
   // library's own, on a first draw), and the change of their width held against it: the library holds the bars where
   // they are on screen as an axis widens.)
@@ -4986,12 +5001,11 @@ function buildChart(doc, data, refit) {
     showSpan(target, EXACT_RANGE);
     setPresetShown(false);
     if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
-  } else if (!visible || presetShown || onRange || linkOpen) {
+  } else if (!visible || presetShown || onRange || linkOpen || owed) {
     applyRange(doc, data);
     engine.render(true);
     applyRange(doc, data);
     setPresetShown(true);
-    displayed.range = doc.range;
     if (onRange || linkOpen) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
   }
   else if (shift && (glidingTo ?? logical)) {
@@ -10514,16 +10528,20 @@ $("interval").addEventListener("click", (event) => {
  */
 function showRange() {
   autoScale();
-  if (!resolved || !chartShown() || shownIndex() !== chart.index) return;
-  // At a fine interval, a preset shows the latest, over the chunks it covers and those held when they join them.
+  if (!resolved || !chartShown()) return;
+  // At a fine interval, a preset shows the latest, over the chunks it covers and those held when they join them: those
+  // it lacks drawn first (mid-switch too, the new interval's), the range then laid out by the build that lands.
   const span = spanOf(chart);
   if (span) {
     const wanted = presetSpan(chart.index, chart.range);
     const from = Math.max(span.to + 1 >= wanted.from ? Math.min(span.from, wanted.from) : wanted.from, wanted.to - MOST_CHUNKS + 1);
-    if (from !== span.from || !span.live) return void (Object.assign(span, { ...wanted, from }), draw().then((drew) => drew && showRange()));
+    if (from !== span.from || !span.live) Object.assign(span, { ...wanted, from }), draw();
   }
+  // (A draw on its way (its chunks', a switch's, a block's): its build lays it out, over the data it brings, not a glide
+  // now over the data it replaces. Owed till then, the same range asked again too: the view laid out from none.)
+  if (pending()) return void (/** @type {NonNullable<typeof displayed>} */ (displayed).doc.range = "");
   applyRange(chart, resolved, true);
-  /** @type {NonNullable<typeof displayed>} */ (displayed).range = chart.range;
+  /** @type {NonNullable<typeof displayed>} */ (displayed).doc.range = chart.range;
 }
 // (A double-click or a double tap on the time axis: the chart's range shown again, as its button does: the view back
 // to it, at the latest.)
@@ -11668,8 +11686,8 @@ function refresh(refit = false) {
  * anew. Under the Charts page, one not on screen, none on its way for it, waits till it's opened (see leaveHome's undrawn).
  */
 function redrawChart(refit = false, now = false) {
-  const pending = drawVersion > (resolved?.version ?? 0), asked = pending ? drawingLook : displayed?.look;
-  if (home && !chartShown() && !pending) undrawn = true;
+  const asked = pending() ? drawingLook : displayed?.look;
+  if (home && !chartShown() && !pending()) undrawn = true;
   if ((home && undrawn) || (!refit && asked === lookKey(chart))) {
     updateLegends();
     if (chartShown()) sizePanes();
@@ -11678,7 +11696,7 @@ function redrawChart(refit = false, now = false) {
   } else if (builds()) now ? build(withLook(structuredClone(chart)), /** @type {Resolved} */ (resolved), refit) : buildSoon(refit);
   else draw(refit);
   // (Its range another since its view was laid out from one (an undo, another tab's): shown, as a pick of it is.)
-  if (chartShown() && chart.range !== displayed?.range) showRange();
+  if (chartShown() && chart.range !== displayed?.doc.range) showRange();
 }
 /** Whether the open chart can be drawn again from the data at hand (its data the same, none other on its way). */
 const builds = () => chartShown() && resolved?.key === dataKey(chart) && drawingKey === resolved.key && drawLayers(chart).every((layer) => resolved?.drawn.has(layer.id));
@@ -13169,7 +13187,7 @@ export {
   SIZES, SLIDERS, SLOP, SPAN, SPAN_DAYS, SPAN_LETTERS, spanDays, spanKey, spanParts, SPANS, spotlight, STACKED_ONLY,
   STACKS, started, STARTERS, startLabel, startTyping, stepIn, storage, stretchResult, studioVersion, submenus,
   subSetups, SWATCHES, syncUndo, tabletHead, tagLit, takeUp, takeView, TEXT_SIZE, THEMES, THROUGH,
-  thumbs, timeAt, timesAt, toast, toggleMember, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, TOOLS, TOUCH,
+  thumbs, timeAt, timesAt, toast, toggleMember, togglePanel, toggleSidebar, tokensMedia, tokensNow, tool, toolKept, TOOLS, TOUCH,
   touched, track, tree, TREND_FLIP, trendShort, TWO_KEPT, TWO_OR_ONE, TWO_POINTS, typeName, TYPES, typing, typingIn,
   uid, undoLast, undoLibrary, undoToast, unfitted, UNIT_NAMES, unitOf, UNREAD, UNSHARED, updatePaletteKeys,
   updateRowChanges, used, VALUES, viewed, VIEWED, viewMoving, viewOn, viewport, viewsNow, viewTimes, VIVID_ROWS,
