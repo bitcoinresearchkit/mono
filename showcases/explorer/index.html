@@ -25,6 +25,7 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="modulepreload" href="/assets/pools/logos.js" />
     <style>
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
@@ -1693,6 +1694,7 @@
         const [projected, mempool] = await Promise.all([get("/v1/fees/mempool-blocks"), get("/mempool")]);
         state.projected = projected;
         state.mempool = mempool;
+        if (!state.booted) return;
         drawHome().catch(() => {});
         if (state.view?.kind === "block" && /^next-\d+$/.test(state.view.ref)) viewQueued(Number(state.view.ref.slice(5)), true).catch(() => {});
         recheckTx().catch(() => {});
@@ -1711,7 +1713,7 @@
         // What's open is read again: a block's confirmations, a transaction's status, an address's balance.
         memo.clear();
         readProjected().catch(() => {});
-        await loadNext().catch(() => {});
+        if (state.next) await loadNext().catch(() => {});
         await render();
         // Only a block on top of the one shown flies: a replacement, or more than one at once, just appears.
         if (latest[0].previousblockhash === was.hash && latest[0].height === was.tip + 1) fly(shot, latest[0]);
@@ -1752,6 +1754,7 @@
       }
       async function readDifficulty() {
         state.difficulty = await get("/v1/difficulty-adjustment");
+        drawForming();
       }
       // Each block's cheapest effective fee rate over the past week (1,008 blocks), read again with each new block.
       // Each block's cheapest effective fee rate and its time, a few more blocks than a week holds, read for each tip
@@ -1777,6 +1780,9 @@
           if (n === nextReads) state.next = { hash: b.hash, stats: b.stats, txs: b.transactions.map(slim) };
         });
       }
+      // First read only where it's shown or asked (the home's map, a waiting transaction's place): a few hundred KB, never
+      // for a page that doesn't show it. Once read, it's followed.
+      const readNext = alone(async () => state.next ?? loadNext());
       const followNext = alone(async () => {
         if (!state.next) return;
         const n = nextReads;
@@ -1821,6 +1827,8 @@
       // past week.
       async function viewHome() {
         const v = state.view;
+        // Its transactions, the first time: read beside the strip's, drawn (the map and the strip's square) once in.
+        const next = state.next ? null : readNext();
         const chain = await chainAround({ kind: "next" });
         if (state.view !== v) return;
         $("view").innerHTML = `${chainView(chain)}
@@ -1841,7 +1849,8 @@
           </section>`;
         paintChain(chain);
         map.mount($("map"), (i, t) => go(url.tx(t.txid)));
-        if (state.next) map.set(state.next.txs);
+        if (!next) map.set(state.next.txs);
+        else next.then(() => state.view === v && (map.set(state.next.txs), drawHome())).catch(() => {});
         drawForming();
         readWeek().catch(() => {});
       }
@@ -1984,6 +1993,7 @@
       const SIDE = 6; // blocks shown each side of the open one
       // Places along the chain: a mined block by its height, the forming one tip + 1, the i-th to come tip + 1 + i.
       async function chainAround(open) {
+        await ready;
         const end = state.tip + state.projected.length; // the last place to come
         const at = open.kind === "mined" ? open.h : open.kind === "next" ? state.tip + 1 : state.tip + 1 + open.i;
         const lo = Math.max(0, Math.min(at - SIDE, end - 2 * SIDE));
@@ -2050,9 +2060,10 @@
       }
       // The forming block's square, from what's in it now.
       function formingSquare(size) {
+        if (!state.next) return bandsOf(state.projected[0], size);
         const c = document.createElement("canvas");
         c.width = c.height = Math.round(size * Math.max(2, devicePixelRatio));
-        if (state.next?.txs.length) paintTxs(c, state.next.txs);
+        if (state.next.txs.length) paintTxs(c, state.next.txs);
         return c;
       }
 
@@ -2260,6 +2271,7 @@
       const wide = (html) => html.replace("<div>", `<div class="wide">`);
 
       async function viewQueued(n, again = false) {
+        await ready;
         const b = state.projected[n];
         if (!b) return go(BASE, true);
         const v = state.view;
@@ -2401,26 +2413,39 @@
       const ageColor = (s) => (s === null ? "var(--faint)" : AGES[ageIndex(s)][2]);
       const BIRTHS = 60; // inputs whose births are read one by one; past that, only their amounts
 
+      // All a transaction's page shows, read in one go as soon as the transaction is in: its spends, its price, its
+      // versions, the blocks confirming it (or, waiting, the template it may be in) and each coin's birth and price then.
       async function readTx(txid) {
         const tx = await get(`/tx/${txid}`);
         const confirmed = tx.status.confirmed;
+        const height = tx.status.block_height;
         const time = confirmed ? tx.status.block_time : nowS();
-        const [outspends, spendPrice, cpfp] = await Promise.all([
+        const birthOf = async (v) => {
+          const b = await once(`status ${v.txid}`, () => get(`/tx/${v.txid}/status`));
+          return b.confirmed ? { height: b.block_height, time: b.block_time, price: await priceAt(b.block_height) } : null;
+        };
+        // (The tip the confirmations count to, and their blocks are read at: one, as a new block may come meanwhile, or
+        // have come before the tip read saw it.)
+        const tipRead = ready.then(() => (confirmed ? Math.max(state.tip, height) : state.tip));
+        const [outspends, spendPrice, cpfp, versions, seen, tip, blocks, births] = await Promise.all([
           get(`/tx/${txid}/outspends`),
-          confirmed ? priceAt(tx.status.block_height) : state.price ?? get("/oracle/price").then(Number),
+          confirmed ? priceAt(height) : ready.then(() => state.price ?? get("/oracle/price").then(Number)),
           confirmed ? null : get(`/v1/cpfp/${txid}`).catch(() => null),
+          versionsOf(txid),
+          confirmed ? 0 : get(`/v1/transaction-times?txId[]=${txid}`).then(([s]) => s, () => 0),
+          tipRead,
+          // Its block and those after it up to the one settling it, from a page of blocks (the newest first).
+          confirmed ? tipRead.then((tip) => get(`/v1/blocks/${Math.min(tip, height + SETTLE - 1)}`)) : readNext().then(() => null, () => null),
+          Promise.all(tx.vin.slice(0, BIRTHS).map((v) => (v.is_coinbase ? null : birthOf(v)))),
         ]);
-        const inputs = await Promise.all(
-          tx.vin.map(async (v, i) => {
-            if (v.is_coinbase) return { coinbase: true, value: tx.vout.reduce((s, o) => s + o.value, 0), age: null };
-            const base = { value: v.prevout.value, address: v.prevout.scriptpubkey_address, type: v.prevout.scriptpubkey_type, from: v.txid, age: null };
-            if (i >= BIRTHS) return base;
-            const birth = await once(`status ${v.txid}`, () => get(`/tx/${v.txid}/status`));
-            if (!birth.confirmed) return { ...base, age: 0, pnl: 0, unconfirmed: true };
-            const price = await priceAt(birth.block_height);
-            return { ...base, height: birth.block_height, age: time - birth.block_time, price, pnl: (v.prevout.value / 1e8) * (spendPrice - price) };
-          }),
-        );
+        const inputs = tx.vin.map((v, i) => {
+          if (v.is_coinbase) return { coinbase: true, value: tx.vout.reduce((s, o) => s + o.value, 0), age: null };
+          const base = { value: v.prevout.value, address: v.prevout.scriptpubkey_address, type: v.prevout.scriptpubkey_type, from: v.txid, age: null };
+          if (i >= BIRTHS) return base;
+          const b = births[i];
+          if (!b) return { ...base, age: 0, pnl: 0, unconfirmed: true };
+          return { ...base, height: b.height, age: time - b.time, price: b.price, pnl: (v.prevout.value / 1e8) * (spendPrice - b.price) };
+        });
         const outputs = tx.vout.map((o, i) => ({
           value: o.value,
           address: o.scriptpubkey_address,
@@ -2440,6 +2465,10 @@
           // The vB its effective rate is over: its own, its waiting parents' and the child paying for it.
           package: vsize + (cpfp?.ancestors ?? []).reduce((s, a) => s + a.weight / 4, 0) + (cpfp?.bestDescendant ? cpfp.bestDescendant.weight / 4 : 0),
           price: spendPrice,
+          versions,
+          seen,
+          tip,
+          blocks: blocks?.filter((b) => b.height >= height).reverse(),
           inputs,
           outputs,
           value: inputs.reduce((s, c) => s + c.value, 0),
@@ -2504,10 +2533,10 @@
       }
 
       // What the page says of a transaction: where it is, when, and what it paid, moved and realized.
-      async function factsOf(t) {
+      function factsOf(t) {
         const txid = t.tx.txid;
         const usdAt = (sats, price) => (price ? (sats / 1e8) * price : null);
-        const [vs, [seen]] = await Promise.all([versionsOf(txid), t.confirmed ? [0] : get(`/v1/transaction-times?txId[]=${txid}`).catch(() => [0])]);
+        const vs = t.versions;
         const k = { txid, effective: t.effective, paid: t.tx.fee, paidUsd: usdAt(t.tx.fee, t.price), value: t.value, valueUsd: usdAt(t.value, t.price), coinbase: !!t.inputs[0].coinbase };
         k.coins = `${plural(t.inputs.length, "coin")} in, ${int(t.outputs.length)} out`;
         k.signals = t.tx.vin.some((v) => v.sequence < 0xfffffffe);
@@ -2529,7 +2558,7 @@
         }
         if (!t.confirmed) {
           k.state = "waiting";
-          k.sent = k.first?.time ?? (seen || null);
+          k.sent = k.first?.time ?? (t.seen || null);
           // Its place: the next block if the template holds it, else behind all that pays more, a block a million vB.
           k.inNext = !!state.next?.txs.some((x) => x.txid === txid);
           k.ahead = k.inNext ? 0 : aheadOf(t.effective);
@@ -2553,10 +2582,11 @@
               : `Around ${clockTime(k.eta)}, if nothing paying more comes first.`;
           return k;
         }
-        const block = await get(`/v1/block/${t.tx.status.block_hash}`);
+        const block = t.blocks[0];
+        k.blocks = t.blocks;
         k.height = t.height;
         k.time = t.time;
-        k.conf = state.tip - t.height + 1;
+        k.conf = t.tip - t.height + 1;
         k.state = k.conf >= SETTLE ? "settled" : "confirmed";
         k.sent = k.first?.time ?? null;
         k.settleEta = k.conf < SETTLE ? nowS() + (SETTLE - k.conf) * 600 : null;
@@ -2656,12 +2686,8 @@
           );
         } else {
           const h = k.height;
-          const top = Math.min(state.tip, h + SETTLE - 1);
-          const [mined, sent] = await Promise.all([
-            get(`/v1/blocks/${top}`).then((x) => x.filter((b) => b.height >= h && b.height <= top).reverse()),
-            k.versions ? withStrips(versionMoments(k.versions), h - 1) : [],
-          ]);
-          rows.push(...sent);
+          const mined = k.blocks;
+          if (k.versions) rows.push(...(await withStrips(versionMoments(k.versions), h - 1)));
           const its = mined[0];
           rows.push(moment(its.timestamp, "block", `In block ${int(h)}`, `1st confirmation${minerOf(its) ? ` · ${minerOf(its)}` : ""}`, { b: its, hit: true }));
           const after = mined.slice(1, SETTLE - 1);
@@ -2792,7 +2818,7 @@
       async function viewTx(txid) {
         const v = state.view;
         const t = await readTx(txid).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
-        const k = t ? await factsOf(t) : await replacedOf(txid);
+        const k = t ? factsOf(t) : await ready.then(() => replacedOf(txid));
         if (!k) throw Object.assign(new Error("Not found"), { status: 404 });
         const moments = await momentsOf(k);
         if (state.view !== v) return;
@@ -3148,7 +3174,10 @@
       // What's searched resolves to a link; only the latest search, while nothing else was opened since, goes there.
       let searches = 0;
       async function resolve(q) {
-        if (/^\d{1,7}$/.test(q)) return Number(q) <= state.tip ? url.block(Number(q)) : { miss: `No block ${int(+q)} yet.` };
+        if (/^\d{1,7}$/.test(q)) {
+          await ready;
+          return Number(q) <= state.tip ? url.block(Number(q)) : { miss: `No block ${int(+q)} yet.` };
+        }
         if (/^[0-9a-f]{64}$/i.test(q)) {
           const id = q.toLowerCase();
           // (A block's status, like a transaction's, answers for any id: the block itself is asked for.)
@@ -3216,9 +3245,13 @@
       lightScheme.addEventListener("change", () => (thumbs.clear(), render()));
 
       // ---------------------------------------------------------------- Start.
-      // Each read on its own: one failing leaves the others shown, and the timers try it again.
-      await Promise.allSettled([readTip(), readProjected(), readPrice(), loadNext(), readDifficulty()]);
+      // The view starts at once, beside the reads views count from: the tip, the queue and the price, which a view waits
+      // on (ready) only where it needs them. Each read on its own: one failing leaves the others shown, and the timers
+      // try it again.
+      const ready = Promise.allSettled([readTip(), readProjected(), readPrice()]);
+      readDifficulty().catch(() => {});
       render();
+      await ready;
       state.booted = true;
       setInterval(followNext, 4000);
       setInterval(() => readTip().catch(() => {}), 10000);
