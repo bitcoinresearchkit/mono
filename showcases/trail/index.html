@@ -2020,7 +2020,7 @@
           state.projectedUiKey = "";
           if (!state.split) return legend.replaceChildren();
           if (state.split.length === 2) {
-            legend.replaceChildren(...state.split.map(({ label, color }) => {
+            legend.replaceChildren("SELECTED DAY", ...state.split.map(({ label, color }) => {
               const item = Object.assign(document.createElement("span"), { className: "key-item" });
               const swatch = document.createElement("i");
               swatch.style.setProperty("--swatch", color);
@@ -2036,7 +2036,7 @@
             "--ramp",
             state.split.map(({ color }, index) => `${color} ${(index * step).toFixed(2)}% ${((index + 1) * step).toFixed(2)}%`).join(", "),
           );
-          legend.replaceChildren(`AGE ${state.split[0].label}`, ramp, state.split.at(-1).label);
+          legend.replaceChildren(`SELECTED DAY BY AGE ${state.split[0].label}`, ramp, state.split.at(-1).label);
         }
 
         /** The terrain's key: its shade against the day's tallest, or in a change view, its falls as water and rises as land. */
@@ -3365,14 +3365,14 @@
         function valueAxisTitle() {
           if (state.mode !== "value") {
             return state.metric === "supply"
-              ? "Δ BTC / $1K"
-              : "Δ USD / $1K";
+              ? "Δ BTC PER $1K"
+              : "Δ USD PER $1K";
           }
           return state.metric === "supply"
-            ? "BTC / $1K"
+            ? "BTC PER $1K"
             : state.metric === "unrealized_pnl"
-              ? "ABS. USD / $1K"
-              : "USD / $1K";
+              ? "ABS. USD PER $1K"
+              : "USD PER $1K";
         }
 
         function valueAtTerrainHeight(height) {
@@ -3862,6 +3862,10 @@
           if (state.dimension === "2d") {
             const pill = pillSpan(datePill.text, datePill.anchor);
             pricePills.push({ ...pill, point: { x: datePill.anchor.x - pill.half, y: datePill.anchor.y } });
+          } else {
+            // (In 3D it hangs off the price axis's cheap end, the selected day's, over the first price's label.)
+            const { boxHeight } = pillLayout(context, datePill.text, "center", "top");
+            pricePills.push({ point: offsetPoint(frontMin, priceAxis, -boxHeight / 2), half: boxHeight / 2 + ui(6) });
           }
           for (
             let price = MIN_TERRAIN_PRICE;
