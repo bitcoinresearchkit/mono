@@ -1054,6 +1054,10 @@
         font-size: 14px;
         line-height: 1.55;
         text-wrap: pretty;
+        /* (Held for a note still to come, as tall as one most often is.) */
+        &.held {
+          min-height: 3.1em;
+        }
       }
       .lead-figs {
         display: grid;
@@ -1453,21 +1457,56 @@
       };
       const priceAt = (h) => once(`price ${h}`, async () => (await series("price", "height", h, h + 1))[0]);
       // A mined block's transactions, as its map draws them: each one's size and effective fee rate. Kept, as a
-      // mined block's never change (a reorg's replacement has another hash, and so another key).
+      // mined block's never change (a reorg's replacement has another hash, and so another key). Those asked for at
+      // once (a strip's) are read together: each run of consecutive heights from its first block's first index (the
+      // next ones' follow from the counts), its transactions in as few reads as the server's cap allows.
+      const SPAN = 40000; // numbers a series read may ask for: the server's cap is 320,000 bytes, 8 a number
       const blockTxs = new Map();
+      let asked = null;
       const txsOf = (b) => {
-        if (!blockTxs.has(b.id))
-          blockTxs.set(
-            b.id,
-            (async () => {
-              const [start] = await series("first_tx_index", "height", b.height, b.height + 1);
-              const end = start + b.tx_count;
-              const [rates, sizes] = await Promise.all([series("tx_effective_fee_rate", "tx_index", start, end), series("tx_vsize", "tx_index", start, end)]);
-              return { start, txs: sizes.map((s, i) => ({ vsize: s, rate: rates[i], coinbase: i === 0 })) };
-            })().catch((e) => (blockTxs.delete(b.id), Promise.reject(e))),
-          );
+        if (!blockTxs.has(b.id)) {
+          if (!asked) {
+            asked = [];
+            queueMicrotask(() => {
+              const list = asked;
+              asked = null;
+              readBlockTxs(list);
+            });
+          }
+          blockTxs.set(b.id, new Promise((resolve, reject) => asked.push({ b, resolve, reject })).catch((e) => (blockTxs.delete(b.id), Promise.reject(e))));
+        }
         return blockTxs.get(b.id);
       };
+      function readBlockTxs(list) {
+        list.sort((x, y) => x.b.height - y.b.height);
+        const runs = [];
+        for (const x of list) {
+          if (x.b.height === runs.at(-1)?.at(-1).b.height + 1) runs.at(-1).push(x);
+          else runs.push([x]);
+        }
+        for (const run of runs)
+          (async () => {
+            let [at] = await series("first_tx_index", "height", run[0].b.height, run[0].b.height + 1);
+            const reads = [];
+            for (const x of run) {
+              x.start = at;
+              at += x.b.tx_count;
+              if (reads.length && at - reads.at(-1)[0].start <= SPAN) reads.at(-1).push(x);
+              else reads.push([x]);
+            }
+            await Promise.all(
+              reads.map(async (read) => {
+                const start = read[0].start;
+                const end = read.at(-1).start + read.at(-1).b.tx_count;
+                const [rates, sizes] = await Promise.all([series("tx_effective_fee_rate", "tx_index", start, end), series("tx_vsize", "tx_index", start, end)]);
+                for (const x of read) {
+                  const o = x.start - start;
+                  x.resolve({ start: x.start, txs: sizes.slice(o, o + x.b.tx_count).map((s, i) => ({ vsize: s, rate: rates[o + i], coinbase: i === 0 })) });
+                }
+              }),
+            );
+          })().catch((e) => run.forEach((x) => x.reject(e)));
+      }
 
       // ---------------------------------------------------------------- How numbers are written.
       const nf = (max, min = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: max, minimumFractionDigits: min });
@@ -1728,9 +1767,9 @@
         recheckTx().catch(() => {});
       });
       // The chain's tip by its hash, so a block replaced at the same height is seen too; its height from the same read.
+      // (At the start, the latest blocks at once, the tip their newest: one round trip less before a view can count.)
       const readTip = alone(async () => {
-        const hash = await get("/blocks/tip/hash");
-        if (hash === state.tipHash) return;
+        if (state.tipHash !== undefined && (await get("/blocks/tip/hash")) === state.tipHash) return;
         const was = { hash: state.tipHash, tip: state.tip };
         const shot = state.tipHash === undefined ? null : snapshot();
         const latest = await get("/v1/blocks");
@@ -2438,11 +2477,10 @@
 
       // All a transaction's page shows, read in one go as soon as the transaction is in: its spends, its price, its
       // versions, the blocks confirming it (or, waiting, the template it may be in) and each coin's birth and price then.
-      async function readTx(txid) {
-        const tx = await get(`/tx/${txid}`);
+      async function readTx(tx) {
+        const txid = tx.txid;
         const confirmed = tx.status.confirmed;
         const height = tx.status.block_height;
-        const time = confirmed ? tx.status.block_time : nowS();
         const birthOf = async (v) => {
           const b = await once(`status ${v.txid}`, () => get(`/tx/${v.txid}/status`));
           return b.confirmed ? { height: b.block_height, time: b.block_time, price: await priceAt(b.block_height) } : null;
@@ -2461,10 +2499,19 @@
           confirmed ? tipRead.then((tip) => get(`/v1/blocks/${Math.min(tip, height + SETTLE - 1)}`)) : readNext().then(() => null, () => null),
           Promise.all(tx.vin.slice(0, BIRTHS).map((v) => (v.is_coinbase ? null : birthOf(v)))),
         ]);
+        return txFacts(tx, { outspends, spendPrice, cpfp, versions, seen, tip, blocks, births });
+      }
+      // A transaction's facts with all its reads, or (more absent) from its own answer alone, a sketch: its amounts, fee
+      // and block, at the tip known, priced only while waiting (at today's price).
+      function txFacts(tx, more) {
+        const confirmed = tx.status.confirmed;
+        const height = tx.status.block_height;
+        const time = confirmed ? tx.status.block_time : nowS();
+        const { outspends, spendPrice = confirmed ? null : (state.price ?? null), cpfp, versions = null, seen = 0, tip = state.tip, blocks, births } = more ?? {};
         const inputs = tx.vin.map((v, i) => {
           if (v.is_coinbase) return { coinbase: true, value: tx.vout.reduce((s, o) => s + o.value, 0), age: null };
           const base = { value: v.prevout.value, address: v.prevout.scriptpubkey_address, type: v.prevout.scriptpubkey_type, from: v.txid, age: null };
-          if (i >= BIRTHS) return base;
+          if (!births || i >= BIRTHS) return base;
           const b = births[i];
           if (!b) return { ...base, age: 0, pnl: 0, unconfirmed: true };
           return { ...base, height: b.height, age: time - b.time, price: b.price, pnl: (v.prevout.value / 1e8) * (spendPrice - b.price) };
@@ -2473,7 +2520,7 @@
           value: o.value,
           address: o.scriptpubkey_address,
           type: o.scriptpubkey_type,
-          spentBy: outspends[i].spent ? outspends[i].txid : null,
+          spentBy: outspends?.[i].spent ? outspends[i].txid : null,
         }));
         const vsize = Math.ceil(tx.weight / 4);
         const counted = inputs.filter((c) => c.pnl !== undefined);
@@ -2498,6 +2545,7 @@
           profit: counted.reduce((s, c) => s + Math.max(0, c.pnl), 0),
           loss: counted.reduce((s, c) => s + Math.max(0, -c.pnl), 0),
           partial: counted.length < inputs.filter((c) => !c.coinbase).length,
+          sketch: !more,
         };
       }
 
@@ -2560,7 +2608,7 @@
         const txid = t.tx.txid;
         const usdAt = (sats, price) => (price ? (sats / 1e8) * price : null);
         const vs = t.versions;
-        const k = { txid, effective: t.effective, paid: t.tx.fee, paidUsd: usdAt(t.tx.fee, t.price), value: t.value, valueUsd: usdAt(t.value, t.price), coinbase: !!t.inputs[0].coinbase };
+        const k = { txid, sketch: t.sketch, effective: t.effective, paid: t.tx.fee, paidUsd: usdAt(t.tx.fee, t.price), value: t.value, valueUsd: usdAt(t.value, t.price), coinbase: !!t.inputs[0].coinbase };
         k.coins = `${plural(t.inputs.length, "coin")} in, ${int(t.outputs.length)} out`;
         k.signals = t.tx.vin.some((v) => v.sequence < 0xfffffffe);
         if (vs?.all.length > 1) {
@@ -2605,7 +2653,7 @@
               : `Around ${clockTime(k.eta)}, if nothing paying more comes first.`;
           return k;
         }
-        const block = t.blocks[0];
+        const block = t.blocks?.[0];
         k.blocks = t.blocks;
         k.height = t.height;
         k.time = t.time;
@@ -2613,7 +2661,8 @@
         k.state = k.conf >= SETTLE ? "settled" : "confirmed";
         k.sent = k.first?.time ?? null;
         k.settleEta = k.conf < SETTLE ? nowS() + (SETTLE - k.conf) * 600 : null;
-        const floor = block.extras.feeRange[0];
+        // (A sketch has no block yet to measure it against: its note is held empty.)
+        const floor = block?.extras.feeRange[0];
         const times = floor > 0 && !k.coinbase ? t.effective / floor : null;
         const floorSats = Math.ceil(floor * t.vsize);
         k.title = k.state === "settled" ? "Settled" : "Confirmed";
@@ -2623,11 +2672,13 @@
             : `In block ${int(k.height)}, ${ago(k.time)}: ${k.conf} of the ${SETTLE} confirmations most services wait for.`;
         k.say = k.coinbase
           ? "New coins: the miner's reward, with no fee."
-          : times === null
-            ? `It paid ${btc(k.paid)}\u00a0BTC in fees.`
-            : times < 1.05
-              ? `It paid ${rate(t.effective)}, the least of any transaction in its block${block.weight < 3.6e6 ? ", which had room to spare" : ""}.`
-              : `It paid ${rate(t.effective)}, ${nf(times < 10 ? 1 : 0).format(times)} times the ${rate(floor)} the cheapest in its block paid: ${t.price ? cost(usdAt(floorSats, t.price)) : `${int(floorSats)} sats`} would have done.`;
+          : !block
+            ? ""
+            : times === null
+              ? `It paid ${btc(k.paid)}\u00a0BTC in fees.`
+              : times < 1.05
+                ? `It paid ${rate(t.effective)}, the least of any transaction in its block${block.weight < 3.6e6 ? ", which had room to spare" : ""}.`
+                : `It paid ${rate(t.effective)}, ${nf(times < 10 ? 1 : 0).format(times)} times the ${rate(floor)} the cheapest in its block paid: ${t.price ? cost(usdAt(floorSats, t.price)) : `${int(floorSats)} sats`} would have done.`;
         return k;
       }
 
@@ -2749,7 +2800,7 @@
         const none = k.realized !== undefined && Math.abs(k.realized) < 0.005;
         const bump = k.bumpUsd === null ? `${int(k.bump)} sats` : k.bumpUsd < 0.005 ? "Under $0.01" : usd(k.bumpUsd);
         const realized =
-          k.state === "replaced" || k.coinbase
+          k.state === "replaced" || k.coinbase || k.sketch
             ? ""
             : k.created === undefined
               ? fig("Realized", "—", "no price this early")
@@ -2763,7 +2814,7 @@
             <h2 class="lead-title">${k.title}</h2>
             <p class="lead-lede">${k.lede}</p>
             ${W && !k.inNext ? `<p class="lead-act"><b>${bump} more gets it into the next block.</b>Its sender can raise the fee, or its receiver can spend it with a fee that covers both.</p>` : ""}
-            ${W ? `<p class="lead-note">Not final until it's in a block: ${k.signals ? "it signals that its sender may replace it" : "its sender can still replace it"}.</p>` : `<p class="lead-note">${k.say}</p>`}
+            ${W ? `<p class="lead-note">Not final until it's in a block: ${k.signals ? "it signals that its sender may replace it" : "its sender can still replace it"}.</p>` : `<p class="lead-note${k.say ? "" : " held"}">${k.say}</p>`}
             <dl class="lead-figs">
               ${fig("Moved", btcU(k.value), k.state === "replaced" ? "" : k.valueUsd !== null ? usd(k.valueUsd) : k.coins)}
               ${k.coinbase ? "" : fig(W ? "Pays" : "Paid", money(k.paidUsd, k.paid), `${int(k.paid)} sats · ${rate(k.effective)}`)}
@@ -2840,7 +2891,17 @@
       }
       async function viewTx(txid) {
         const v = state.view;
-        const t = await readTx(txid).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+        const tx = await get(`/tx/${txid}`).catch((e) => (e.status === 404 ? null : Promise.reject(e)));
+        // A confirmed one's answer at once, from its own read (and the tip): its block, amounts and fee; the rest below
+        // it as it's read. (A waiting one's answer is its place in the queue, which needs the reads. Nor over its page
+        // already shown, read again for a new block.)
+        const sketch = () => {
+          if (state.view !== v || !tx.status.confirmed || $("view").querySelector(`.focus [data-copy="${tx.txid}"]`)) return;
+          const k = factsOf(txFacts(tx));
+          $("view").innerHTML = `<div class="focus ${k.state}">${answerOf(k)}</div>`;
+          v.painted();
+        };
+        const [t] = tx ? await Promise.all([readTx(tx), ready.then(sketch)]) : [null];
         const k = t ? factsOf(t) : await ready.then(() => replacedOf(txid));
         if (!k) throw Object.assign(new Error("Not found"), { status: 404 });
         const moments = await momentsOf(k);
@@ -3130,7 +3191,12 @@
       async function render() {
         flight?.cancel();
         const v = (state.view = parse());
+        // Dimmed while it's read past a moment, until it's painted (a view may paint first with what it has).
         const slow = setTimeout(() => state.view === v && $("view").classList.add("busy"), 250);
+        v.painted = () => {
+          clearTimeout(slow);
+          if (state.view === v) $("view").classList.remove("busy");
+        };
         $("card").hidden = true;
         document.title = `${
           v.kind === "home" || v.kind === "missing"
@@ -3155,8 +3221,7 @@
         } catch (e) {
           if (state.view === v) fail(e);
         } finally {
-          clearTimeout(slow);
-          if (state.view === v) $("view").classList.remove("busy");
+          v.painted();
         }
       }
       let navigations = 0;
