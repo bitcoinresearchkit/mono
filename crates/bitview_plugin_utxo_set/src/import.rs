@@ -27,11 +27,13 @@ impl Vecs {
             &supply,
             mappings,
         );
+        let history = History::open(db.path())?;
         let this = Self {
             supply,
             circulating_supply,
             count: PerBlock::import(&db, "utxo_count", version + Version::ONE, mappings)?,
-            history: History::open(db.path())?,
+            live: history.live(),
+            history,
             urpd: UrpdHistory::open(&db.path().join(URPD))?,
             spends_path,
             creations_path,

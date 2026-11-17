@@ -1,6 +1,6 @@
 use std::{io::Result, path::Path};
 
-use crate::{Creations, History, Reader, Spends};
+use crate::{Creations, History, Live, Reader, Spends};
 
 /// Read-only files of the published history. Snapshot writes never change what an open view reads;
 /// the caller keeps producers from rewinding below the ceiling it reads at. No writer locks,
@@ -12,9 +12,15 @@ pub struct View {
 }
 
 impl View {
-    pub fn open(history_path: &Path, spends_path: &Path, creations_path: &Path) -> Result<Self> {
+    /// `live` is the producer's ([`History::live`]): reads near the tip copy it.
+    pub fn open(
+        history_path: &Path,
+        spends_path: &Path,
+        creations_path: &Path,
+        live: Live,
+    ) -> Result<Self> {
         Ok(Self {
-            history: History::open_reader(history_path)?,
+            history: History::open_reader(history_path, live)?,
             spends: Spends::open_reader(spends_path)?,
             creations: Creations::open_reader(creations_path)?,
         })

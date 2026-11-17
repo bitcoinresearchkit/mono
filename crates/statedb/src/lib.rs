@@ -28,7 +28,7 @@ pub use cells::CellHistory;
 pub use creations::Creations;
 pub use cursor::Cursor;
 pub use diffs::Diffs;
-pub use history::{History, SNAPSHOT_INTERVAL};
+pub use history::{History, Live, SNAPSHOT_INTERVAL};
 pub use reader::Reader;
 pub use spends::Spends;
 pub use state::State;

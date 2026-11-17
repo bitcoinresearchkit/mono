@@ -15,7 +15,7 @@ use bitview_urpd::UrpdHistory;
 use bitview_vecs::{CachedSeries, LazyPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::{Bitcoin, Height, Sats, Version};
-use statedb::{Creations, History, Reader, Spends, View};
+use statedb::{Creations, History, Live, Reader, Spends, View};
 use vecdb::{Database, Rw, StorageMode};
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("utxo_set"), Version::ONE);
@@ -33,6 +33,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     spends_path: PathBuf,
     #[traversable(skip)]
     creations_path: PathBuf,
+    /// The history's live state, shared with the read-only clone's views.
+    #[traversable(skip)]
+    live: Live,
     history: M::WriteOnly<History>,
     urpd: M::WriteOnly<UrpdHistory>,
     /// Remaining satoshis after each block.
@@ -70,6 +73,7 @@ impl<M: StorageMode> Vecs<M> {
             self.db.path(),
             &self.spends_path,
             &self.creations_path,
+            self.live.clone(),
         )?)
     }
 

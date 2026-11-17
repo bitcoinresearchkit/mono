@@ -111,9 +111,12 @@ impl Query {
     pub fn utxo_set(&self, point: &UtxoSetPoint) -> Result<Vec<u8>> {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
-        let reader = view.reader(usize::from(pin.lengths().height))?;
-        let end = point.end_within(reader.len())?;
-        let state = reader.state_at(end)?;
+        // The reader goes before the body is written: it may share the updater's live state,
+        // which the next block then would have to copy.
+        let state = {
+            let reader = view.reader(usize::from(pin.lengths().height))?;
+            reader.state_at(point.end_within(reader.len())?)?
+        };
         if state.hash() != *point.hash {
             return Err(Error::updating());
         }

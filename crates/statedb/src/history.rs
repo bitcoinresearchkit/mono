@@ -4,30 +4,58 @@ use crate::{
     snapshots::Snapshots,
     util::invalid,
 };
-use std::{fs, io::Result, path::Path};
+use std::{
+    fs,
+    io::Result,
+    path::Path,
+    sync::{Arc, Mutex},
+};
 
 /// Blocks between full snapshots: a restore loads the nearest one and replays fewer than this many
 /// diffs. A history laid out at another interval lays its snapshots out again on its next advance.
 pub const SNAPSHOT_INTERVAL: usize = 500;
 
+/// The producer's state after its last advance and the versions it was made from, shared with
+/// the views of its history: a read near the tip copies it instead of reading the tip snapshot.
+/// The producer takes it while it advances, so it never copies the state for a block.
+#[derive(Clone, Default)]
+pub struct Live(Arc<Mutex<Option<Versioned>>>);
+/// A state and the producers' versions it was made from.
+type Versioned = (Arc<State>, (u64, u64));
+impl Live {
+    fn take(&self) -> Option<Versioned> {
+        self.0.lock().unwrap().take()
+    }
+    fn get(&self) -> Option<Versioned> {
+        self.0.lock().unwrap().clone()
+    }
+    fn set(&self, state: State, versions: (u64, u64)) {
+        *self.0.lock().unwrap() = Some((Arc::new(state), versions));
+    }
+}
+
 /// Owns full snapshots. Spends and creations remain their sole, separately produced diff columns.
 pub struct History {
     snapshots: Snapshots,
-    live: Option<(State, (u64, u64))>,
+    live: Live,
 }
 impl History {
     pub fn open(path: &Path) -> Result<Self> {
         fs::create_dir_all(path)?;
         Ok(Self {
             snapshots: Snapshots::open(&path.join("snapshots"), true)?,
-            live: None,
+            live: Live::default(),
         })
     }
-    pub(crate) fn open_reader(path: &Path) -> Result<Self> {
+    pub(crate) fn open_reader(path: &Path, live: Live) -> Result<Self> {
         Ok(Self {
             snapshots: Snapshots::open(&path.join("snapshots"), false)?,
-            live: None,
+            live,
         })
+    }
+    /// The producer's state, for the views of this history.
+    pub fn live(&self) -> Live {
+        self.live.clone()
     }
     /// A reader of the published history: as far as its newest snapshot the producers carry.
     pub fn reader<'a>(
@@ -76,7 +104,8 @@ impl History {
         })
     }
     /// The tip snapshots the producers carry within `limit`, newest first: a rewind in progress
-    /// can leave a newer one behind.
+    /// can leave a newer one behind. The live state stands in for those it is as new as: copying
+    /// it and taking a block or two back beats reading one from disk.
     fn tips_within(
         &self,
         spends: &Spends,
@@ -91,6 +120,14 @@ impl History {
             if tip.len <= limit && Self::matches(&tip, spends, creations)? {
                 tips.push(tip);
             }
+        }
+        if let Some((state, versions)) = self.live.get()
+            && versions == (spends.version(), creations.version())
+            && state.len() <= limit
+            && continues(state.len(), state.hash(), spends, creations)?
+        {
+            tips.retain(|tip| tip.len > state.len());
+            tips.push(Snapshot::live(state, versions));
         }
         Ok(tips)
     }
@@ -152,7 +189,7 @@ impl History {
                 && continues(from, state.hash(), spends, created).is_ok_and(|ok| ok)
         });
         let (mut state, warm) = match warm {
-            Some((state, _)) => (state, true),
+            Some((state, _)) => (Arc::unwrap_or_clone(state), true),
             None => {
                 let tips = self.tips_within(spends, created, from)?;
                 (self.restore(from, from, spends, created, &tips)?, false)
@@ -165,7 +202,7 @@ impl History {
                     .latest(versions)?
                     .is_some_and(|s| s.len == end && s.hash() == state.hash()))
         {
-            self.live = Some((state, versions));
+            self.live.set(state, versions);
             return Ok(());
         }
         let base = (from, state.hash());
@@ -195,7 +232,7 @@ impl History {
             )?;
         }
         self.snapshots.publish(&state, versions, base, &changed)?;
-        self.live = Some((state, versions));
+        self.live.set(state, versions);
         Ok(())
     }
     /// Drops the snapshots past `len`, as a history laid out at another interval lacks some.

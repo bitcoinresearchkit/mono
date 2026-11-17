@@ -1,6 +1,6 @@
 use crate::{Amount, State, columns::config, util::invalid};
 use pco::standalone::{simple_compress, simple_decompress_into};
-use std::{fs::File, io::Result, os::unix::fs::FileExt};
+use std::{fs::File, io::Result, os::unix::fs::FileExt, sync::Arc};
 use zerocopy::IntoBytes;
 /// A retained checkpoint: both columns pco-compressed, appended to the retained data.
 const PACKED: &[u8; 8] = b"STATEP04";
@@ -114,6 +114,8 @@ enum Body {
     },
     /// A tip's directory and the page file it points into, as opened together.
     Paged { dir: File, pages: File },
+    /// The producer's state in memory.
+    Live(Arc<State>),
 }
 /// Opening a snapshot reads its identity; reconstruction reads its payload once.
 pub(crate) struct Snapshot {
@@ -159,6 +161,14 @@ impl Snapshot {
         };
         Self::new(header, versions, body)
     }
+    /// The producer's state, as the tip it equals.
+    pub fn live(state: Arc<State>, versions: (u64, u64)) -> Self {
+        Self {
+            header: header(PAGED, &state, versions, 0),
+            len: state.len(),
+            body: Body::Live(state),
+        }
+    }
     fn new(header: [u8; HEADER], versions: (u64, u64), body: Body) -> Result<Option<Self>> {
         if self::versions(&header) != versions {
             return Ok(None);
@@ -171,6 +181,7 @@ impl Snapshot {
     }
     pub fn state(&self) -> Result<State> {
         let amounts = match &self.body {
+            Body::Live(state) => return Ok(State::clone(state)),
             Body::Paged { dir, pages } => {
                 let slots = read_slots(dir, self.len)?;
                 let page_len = |page: usize| PAGE.min(self.len - page * PAGE);

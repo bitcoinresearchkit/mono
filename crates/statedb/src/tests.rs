@@ -533,6 +533,7 @@ fn model() -> Result<()> {
                 &root.join("utxo_set"),
                 &root.join("inputs"),
                 &root.join("outputs"),
+                s.history.live(),
             )?;
             m.views.push((view, ceiling));
         }
