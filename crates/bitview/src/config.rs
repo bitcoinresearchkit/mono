@@ -29,31 +29,37 @@ pub const DEFAULT_CACHE_BUDGET: usize = 1 << 30;
 /// One setting: `key = value` in `config.toml`, `--key <VALUE>` as a flag.
 struct Setting {
     key: &'static str,
-    /// Its value, what it does and its default, as `--help` shows them.
-    value: &'static str,
-    help: &'static str,
-    default: Option<&'static (dyn Display + Sync)>,
     /// Parses its text into its field.
     set: fn(&mut Config, &str) -> StdResult<(), String>,
 }
 
-/// Declares every setting once, as `key: type, value, help, default;` (rustc's `options!` is the model):
-/// `Config` holds each as an `Option` field, and `SETTINGS` lists them, in the groups and the order
-/// `--help` shows, for the flags, `config.toml` and `--help` to read.
+/// Declares every setting once, as `key: type, value, help[, default];` (rustc's `options!` is the model):
+/// `Config` holds each as an `Option` field, `SETTINGS` is what the flags and `config.toml` set them
+/// through, and `print_settings` writes their lines of `--help`, a blank line before each group.
 macro_rules! settings {
-    ($([$($key:ident: $type:ty, $value:literal, $help:literal, $default:expr;)*])*) => {
+    ($([$($key:ident: $type:ty, $value:literal, $help:literal $(, $default:expr)?;)*])*) => {
         #[derive(Debug, Default, Serialize)]
         pub struct Config {
             $($($key: Option<$type>,)*)*
         }
 
-        static SETTINGS: &[&[Setting]] = &[$(&[$(Setting {
+        static SETTINGS: &[Setting] = &[$($(Setting {
             key: stringify!($key),
-            value: $value,
-            help: $help,
-            default: $default,
             set: |config, text| store(&mut config.$key, text),
-        }),*]),*];
+        },)*)*];
+
+        fn print_settings() {
+            $(
+                println!();
+                $(
+                    // Every description starts in the same column.
+                    let pad = 23usize.saturating_sub(stringify!($key).len() + $value.len());
+                    print!("    --{} {}{:pad$}{}", stringify!($key), $value.bright_black(), "", $help);
+                    $(print!(" {}", format!("[{}]", $default).bright_black());)?
+                    println!();
+                )*
+            )*
+        }
     };
 }
 
@@ -64,38 +70,37 @@ fn store<T: FromStr<Err: Display>>(field: &mut Option<T>, text: &str) -> StdResu
 
 settings! {
     [
-        bitviewdir: String, "<PATH>", "Output directory", Some(&"~/.bitview");
-        serverbind: IpAddr, "<IP>", "Server bind address", Some(&DEFAULT_BIND);
-        serverport: Port, "<PORT>", "Server port", Some(&Port::DEFAULT);
-        website: Website, "<BOOL|PATH>", "Serve the showcases (true), nothing (false) or a directory", Some(&true);
-        cdn: bool, "<BOOL>", "Aggressive CDN cache, requires purge on deploy", Some(&false);
+        bitviewdir: String, "<PATH>", "Output directory", "~/.bitview";
+        serverbind: IpAddr, "<IP>", "Server bind address", DEFAULT_BIND;
+        serverport: Port, "<PORT>", "Server port", Port::DEFAULT;
+        website: Website, "<BOOL|PATH>", "Serve the showcases (true), nothing (false) or a directory", true;
+        cdn: bool, "<BOOL>", "Aggressive CDN cache, requires purge on deploy", false;
         maxweight: usize, "<BYTES>",
             "Server cap on series response weight in bytes; rejects /api/series/... over the limit",
-            Some(&DEFAULT_MAX_WEIGHT);
+            DEFAULT_MAX_WEIGHT;
         maxutxos: usize, "<COUNT>",
             "Server cap on UTXOs per address; /api/address/{addr}/utxo errors past the limit",
-            Some(&DEFAULT_MAX_UTXOS);
+            DEFAULT_MAX_UTXOS;
         publicurl: PublicUrl, "<URL>",
-            "The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity",
-            None;
-        cachebudget: usize, "<BYTES>", "Shared vector cache size in bytes", Some(&DEFAULT_CACHE_BUDGET);
+            "The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity";
+        cachebudget: usize, "<BYTES>", "Shared vector cache size in bytes", DEFAULT_CACHE_BUDGET;
     ]
     [
-        bitcoindir: String, "<PATH>", "Bitcoin directory", Some(&"OS default");
-        blocksdir: String, "<PATH>", "Blocks directory", Some(&"<bitcoindir>/blocks");
+        bitcoindir: String, "<PATH>", "Bitcoin directory", "OS default";
+        blocksdir: String, "<PATH>", "Blocks directory", "<bitcoindir>/blocks";
     ]
     [
-        rpcconnect: String, "<HOST>", "RPC host", Some(&"localhost");
-        rpcport: u16, "<PORT>", "RPC port", Some(&8332);
+        rpcconnect: String, "<HOST>", "RPC host", "localhost";
+        rpcport: u16, "<PORT>", "RPC port", 8332;
         rpccookiefile: String, "<PATH>", "RPC cookie file; relative paths resolve inside <bitcoindir>",
-            Some(&"<bitcoindir>/.cookie");
-        rpcuser: String, "<USERNAME>", "RPC username", None;
-        rpcpassword: String, "<PASSWORD>", "RPC password", None;
+            "<bitcoindir>/.cookie";
+        rpcuser: String, "<USERNAME>", "RPC username";
+        rpcpassword: String, "<PASSWORD>", "RPC password";
     ]
 }
 
-fn settings() -> impl Iterator<Item = &'static Setting> {
-    SETTINGS.iter().copied().flatten()
+fn setting(key: &str) -> Option<&'static Setting> {
+    SETTINGS.iter().find(|setting| setting.key == key)
 }
 
 impl Config {
@@ -144,7 +149,7 @@ impl Config {
                 }
                 Long("dumpconfig") => dump = true,
                 Long(name) => {
-                    let Some(setting) = settings().find(|setting| setting.key == name) else {
+                    let Some(setting) = setting(name) else {
                         return Err(parse_error(arg.unexpected()));
                     };
                     let value = parser.value().map_err(parse_error)?;
@@ -175,8 +180,8 @@ impl Config {
                 .split_once('=')
                 .ok_or_else(|| at(format!("expected `key = value`, found `{line}`")))?;
             let key = key.trim();
-            let Some(setting) = settings().find(|setting| setting.key == key) else {
-                let keys: Vec<_> = settings().map(|setting| setting.key).collect();
+            let Some(setting) = setting(key) else {
+                let keys: Vec<_> = SETTINGS.iter().map(|setting| setting.key).collect();
                 return Err(at(format!("unknown setting `{key}`, expected one of {}", keys.join(", "))));
             };
             if !seen.insert(key) {
@@ -237,18 +242,7 @@ impl Config {
             "    --dumpconfig              Print the settings given, file and flags, as {} lines",
             "config.toml".bright_black()
         );
-        for group in SETTINGS {
-            println!();
-            for setting in *group {
-                // Every description starts in the same column.
-                let pad = 23usize.saturating_sub(setting.key.len() + setting.value.len());
-                print!("    --{} {}{:pad$}{}", setting.key, setting.value.bright_black(), "", setting.help);
-                match setting.default {
-                    Some(default) => println!(" {}", format!("[{default}]").bright_black()),
-                    None => println!(),
-                }
-            }
-        }
+        print_settings();
         println!();
         println!("{}", "ENVIRONMENT:".bold());
         println!(
