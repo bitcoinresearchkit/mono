@@ -47,7 +47,7 @@
 
 /** @import { Facts } from "./facts.js" */
 import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
-import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
+import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 
 /** @param {any} n */
@@ -289,7 +289,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   };
 
   /** A node's windows (`_24h`… and any other spans), in order. @param {any} node */
-  const windowsOf = (node) => entries(node).filter(([key, value]) => /^_\d+[hdwmy]$/.test(key) && (isLeaf(value) || value.btc));
+  const windowsOf = (node) => entries(node).filter(([key, value]) => isWindowKey(key) && (isLeaf(value) || value.btc));
   /**
    * A measure over windows as layers: each window's series (`pick` takes it from the window's node), the month shown
    * (or those in `show`, none if it's empty), the others hidden; each labeled `what` and its window. Read `around` a
