@@ -11,7 +11,7 @@ import { initialsOf, initialsWord } from "/studio/initials.js";
 import { catalogWalk } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 // (Studio's functions, by what they do, in modules of their own; what runs at its start runs from here, in order, and
-// the state not yet given to the module that writes it stays here.)
+// the state its own sections write, or several modules do, is kept here.)
 import {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
   build, built, BY_BLOCK, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme, chartWidth,
@@ -7026,7 +7026,7 @@ const galleryTilesSeen = new IntersectionObserver((entries) => {
   for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
   drawGallery();
 });
-// (Ahead: the tiles a screen below the view, drawn while the grid's at rest (its scroll ended, no finger on it), after
+// (Ahead: the tiles a screen below the view, drawn while the grid's at rest (`galleryResting`, grid.js), after
 // those in view, one at a time: a scroll finds them drawn. A touch or a scroll stops the next.)
 const galleryAhead = /** @type {Set<Element>} */ (new Set()), homeScroller = /** @type {HTMLElement} */ ($("home").querySelector(".home-scroll"));
 let galleryTilesAhead = aheadOf(homeScroller.clientHeight || innerHeight), aheadHeight = homeScroller.clientHeight;
@@ -7742,7 +7742,7 @@ function deleteChart(doc) {
   const step = libraryStep(text, action.run, action.undone);
   void until(() => chart !== doc, 4000).then(() => toast(text, { ...action, step }));
 }
-// ── Lists reordered by dragging, and the sidebar's list by keys ───────────
+// ── Presses on every list and control, lists reordered by dragging, the sidebar's list by keys ──
 startGestures();
 dragToReorder($("chart-list"), {
   item: "[data-chart-row], [data-folder-row]",
@@ -7895,6 +7895,7 @@ $("chart-list").addEventListener("keydown", (event) => {
   /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${id}"]`))?.focus();
 });
 
+// ── The open chart's buttons, the chart list's fit, the cards to start from ──
 $("keep").addEventListener("click", () => keepChart());
 $("preset-copy").addEventListener("click", () => copyPreset(presetIndex(chart)));
 $("preset-reset").addEventListener("click", () => resetPreset(chart));

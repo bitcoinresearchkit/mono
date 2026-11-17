@@ -1,5 +1,5 @@
 // @ts-check
-// The presets: every one, its address, edited where it is. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
+// The presets: every one, its address, edited where it is. (Called from app.js, which runs its start and keeps the state several modules write.)
 import { initialsWord } from "/studio/initials.js";
 import {
   presetDataset, presetInfo, sectionInfo, STUDIO_DESCRIPTION, STUDIO_ORIGIN, STUDIO_TITLE, studioApplication,
