@@ -96,6 +96,8 @@
         --soft: #666670;
         --faint: #b3b3bb;
         --line: rgb(14 14 16 / 0.08);
+        /* A field's or button's edge at 3:1 against the page, in both schemes. */
+        --edge: color-mix(in srgb, var(--ink) 45%, transparent);
         --hair: rgb(14 14 16 / 0.05);
         --tank: #f0f0f1;
         --well: #ffffff;
@@ -168,11 +170,14 @@
       .soft {
         color: var(--soft);
       }
+      /* fill too: the flow's labels are SVG text. */
       .gain {
         color: var(--profit);
+        fill: var(--profit);
       }
       .lost {
         color: var(--loss);
+        fill: var(--loss);
       }
       .unit {
         color: var(--soft);
@@ -184,13 +189,24 @@
         outline-offset: 2px;
         border-radius: 6px;
       }
-      /* A label over its figure: small, spaced capitals. */
+      /* A label over its figure: small, in sentence case. */
       .label {
         color: var(--soft);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      /* A link in a line of prose, quietly underlined (the strip, the map, the search and the nav are not prose). */
+      .tt-w b a,
+      small a,
+      .wait a {
+        text-decoration: underline;
+        text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+        text-underline-offset: 0.2em;
+      }
+      .tt-w b a:hover,
+      small a:hover,
+      .wait a:hover {
+        text-decoration-color: currentColor;
       }
 
       /* The bar: the brand, the search, the price. */
@@ -204,8 +220,7 @@
         gap: 20px;
         height: 60px;
         padding: 0 max(var(--gutter), env(safe-area-inset-right)) 0 max(var(--gutter), env(safe-area-inset-left));
-        background: color-mix(in srgb, var(--bg) 85%, transparent);
-        backdrop-filter: blur(20px) saturate(1.5);
+        background: var(--bg);
         border-bottom: 1px solid var(--hair);
       }
       .brand {
@@ -242,6 +257,7 @@
           border: 0;
           border-radius: 10px;
           background: var(--tank);
+          box-shadow: inset 0 0 0 1px var(--edge);
           color: var(--ink);
           font: 13px var(--mono);
           outline: none;
@@ -253,7 +269,7 @@
         }
         input:focus {
           background: var(--well);
-          box-shadow: 0 0 0 1px var(--line), 0 6px 24px -8px rgb(0 0 0 / 0.25);
+          box-shadow: 0 0 0 1px var(--edge), 0 6px 24px -8px rgb(0 0 0 / 0.25);
         }
         input::-webkit-search-cancel-button {
           display: none;
@@ -539,15 +555,13 @@
         border: 0;
         border-radius: 16px;
         background: var(--tank);
-        color: var(--soft);
+        box-shadow: inset 0 0 0 1px var(--edge);
+        color: var(--ink);
         cursor: pointer;
         svg {
           width: 15px;
           height: 15px;
         }
-      }
-      .step:hover:not(:disabled) {
-        color: var(--ink);
       }
       .step:disabled {
         opacity: 0.3;
@@ -1008,7 +1022,10 @@
         font-size: 52px;
         font-weight: 650;
         letter-spacing: -0.035em;
-        line-height: 1.04;
+        line-height: 1.1;
+        &:first-child {
+          margin-top: 0;
+        }
       }
       .lead-lede {
         margin-top: 14px;
@@ -1036,6 +1053,7 @@
         color: var(--soft);
         font-size: 14px;
         line-height: 1.55;
+        text-wrap: pretty;
       }
       .lead-figs {
         display: grid;
@@ -1457,7 +1475,7 @@
       const btc = (sats) => nf(8).format(sats / 1e8);
       const usd = (n) => {
         const a = Math.abs(n);
-        const s = n < 0 ? "−" : "";
+        const s = n <= -0.005 ? "−" : "";
         if (a >= 1e9) return `${s}$${nf(2).format(a / 1e9)}B`;
         if (a >= 1e6) return `${s}$${nf(2).format(a / 1e6)}M`;
         if (a >= 1e4) return `${s}$${nf(1).format(a / 1e3)}K`;
@@ -1466,17 +1484,18 @@
       };
       // A small sum in dollars, never rounded to nothing: under a cent is "under $0.01".
       const cost = (n) => (n < 0.005 ? "under $0.01" : usd(n));
-      const signed = (n) => (n >= 0 ? `+${usd(n)}` : usd(n));
+      const signed = (n) => (n >= 0.005 ? `+${usd(n)}` : usd(n));
       // A price, in whole dollars as written: $78,404.
       const dollars = (n) => (n < 100 ? `$${nf(2, 2).format(n)}` : `$${int(n)}`);
       const plural = (n, word) => `${int(n)} ${word}${n === 1 ? "" : "s"}`;
       const nth = (n) => `${int(n)}${n % 100 > 10 && n % 100 < 14 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
-      const tone = (n) => (n >= 0 ? "gain" : "lost");
+      // A sum that rounds to $0.00 is neither.
+      const tone = (n) => (n >= 0.005 ? "gain" : n <= -0.005 ? "lost" : "");
       // A fee rate to the thousandth under 1 sat/vB, where the cheapest rates differ (0.106 against 0.115), and
       // coarser above.
       const rateNum = (r) => nf(r < 1 ? 3 : r < 10 ? 2 : r < 100 ? 1 : 0).format(r);
-      const unit = (u) => ` <span class="unit">${u}</span>`;
-      const rate = (r) => `${rateNum(r)} sat/vB`;
+      const unit = (u) => `\u00a0<span class="unit">${u}</span>`;
+      const rate = (r) => `${rateNum(r)}\u00a0sat/vB`;
       const rateU = (r) => `${rateNum(r)}${unit("sat/vB")}`;
       const btcU = (sats) => `${btc(sats)}${unit("BTC")}`;
       // A rate rounded up to the places it's written in: what pays at least as much.
@@ -1571,10 +1590,16 @@
       const ramp = () => RAMP[lightScheme.matches ? "light" : "dark"];
       const place = (r) => (Math.log(Math.max(r, LOW)) - Math.log(LOW)) / (Math.log(HIGH) - Math.log(LOW));
       const feeColor = (r) => ramp()[Math.max(0, Math.min(255, Math.round(place(r) * 255)))];
+      // The same hues for a thin line, its lightness held where it reads at 3:1 on the page.
+      const LINE = {
+        dark: steps(RAMPS.dark.map(([t, L, ...c]) => [t, Math.max(L, 0.64), ...c])),
+        light: steps(RAMPS.light.map(([t, L, ...c]) => [t, Math.min(L, 0.6), ...c])),
+      };
+      const lineColor = (r) => LINE[lightScheme.matches ? "light" : "dark"][Math.max(0, Math.min(255, Math.round(place(r) * 255)))];
       const scaleKey = () =>
         `<span class="scale"><span>0.1</span><i style="background:linear-gradient(to right,${ramp()
           .filter((_, k) => k % 32 === 0 || k === 255)
-          .join(",")})"></i><span>200+ sat/vB</span></span>`;
+          .join(",")})"></i><span>200+\u00a0sat/vB</span></span>`;
 
       // ---------------------------------------------------------------- What kind each transaction is, for the map's other lens.
       // Each one's first kind in this order (a coinjoin that writes data is a coinjoin), its colour its own.
@@ -1842,7 +1867,7 @@
               <figcaption class="caption"><span id="next-caption">&nbsp;</span>${scaleKey()}</figcaption></figure>
           </div>
           <section class="lower" aria-label="What it took to get in, each hour of the past week">
-            <div class="sechead"><h2>The past week</h2><p>what it took to get in, each hour</p></div>
+            <div class="sechead"><h2>The past week</h2></div>
             <figure class="week"><svg id="week" role="img" aria-label="Each hour's cheapest way into a block over the past week, against what gets in now"></svg><figcaption id="week-say">&nbsp;</figcaption></figure>
           </section>`;
         paintChain(chain);
@@ -1900,10 +1925,10 @@
         midnight.setHours(0, 0, 0, 0);
         for (let m = midnight.getTime() / 1000; m > t0; m -= 86400) {
           parts.push(`<line x1="${x(m)}" x2="${x(m)}" y1="0" y2="${H}" style="stroke:var(--hair)"/>`);
-          if (x(m) + 34 < W) parts.push(`<text x="${x(m) + 6}" y="${H + 16}">${new Date(m * 1000).toLocaleDateString("en-US", { weekday: "short" })}</text>`);
+          if (x(m) + 30 < W) parts.push(`<text x="${x(m) + 6}" y="${H + 16}">${new Date(m * 1000).toLocaleDateString("en-US", { weekday: "short" })}</text>`);
         }
         parts.push(`<path d="${line} L${x(points.at(-1)[0])},${H} L${x(points[0][0])},${H} Z" style="fill:${feeColor(now)}" opacity="0.12"/>`);
-        parts.push(`<path d="${line}" fill="none" style="stroke:${feeColor(now)}" stroke-width="1.25" stroke-linejoin="round"/>`);
+        parts.push(`<path d="${line}" fill="none" style="stroke:${lineColor(now)}" stroke-width="1.5" stroke-linejoin="round"/>`);
         parts.push(`<line x1="0" x2="${W}" y1="${y(now)}" y2="${y(now)}" style="stroke:var(--ink)" stroke-dasharray="2 3" opacity="0.6"/>`);
         parts.push(`<circle cx="${W}" cy="${y(now)}" r="3.5" style="fill:var(--now)"/>`);
         svg.innerHTML = parts.join("");
@@ -1911,8 +1936,8 @@
         const dearer = values.filter((r) => r > now).length / values.length;
         const cheaper = values.filter((r) => r < now).length / values.length;
         const pct = (f) => `${nf(0).format(f * 100)}%`;
-        $("week-say").innerHTML = `What it took to get in, each hour of the past week: <b>${rateNum(Math.min(...values))}</b> to <b>${rate(Math.max(...values))}</b>.${
-          dearer > cheaper ? ` Now is cheaper than ${pct(dearer)} of them.` : cheaper > dearer ? ` Now is dearer than ${pct(cheaper)} of them.` : ""
+        $("week-say").innerHTML = `Each hour's cheapest way in: <b>${rateNum(Math.min(...values))}</b> to <b>${rate(Math.max(...values))}</b>.${
+          dearer > cheaper ? ` Now is cheaper than ${pct(dearer)} of those hours.` : cheaper > dearer ? ` Now is dearer than ${pct(cheaper)} of those hours.` : ""
         }`;
       }
       // The forming block's answer: what gets you in, what waiting longer saves, what's in it so far and waiting.
@@ -1933,7 +1958,7 @@
         $("alts").innerHTML =
           fig("Within 30 minutes", rateU(within(3)), paymentCost(within(3))) +
           fig("Within an hour", rateU(within(6)), paymentCost(within(6))) +
-          (s ? fig("In it so far", `${int(s.nTx)}${unit("txs")}`, `${btc(s.totalFees)} BTC in fees${state.price ? `, ${usd((s.totalFees / 1e8) * state.price)}` : ""}`) : fig("In it so far", "&nbsp;")) +
+          (s ? fig("In it so far", `${int(s.nTx)}${unit("txs")}`, `${btc(s.totalFees)}\u00a0BTC in fees${state.price ? `, ${usd((s.totalFees / 1e8) * state.price)}` : ""}`) : fig("In it so far", "&nbsp;")) +
           fig("Waiting", `${int(m.count)}${unit("txs")}`, `${nf(1).format(m.vsize / 1e6)} blocks of them`);
         // Where the chain stands: its next difficulty adjustment and halving.
         const d = state.difficulty;
@@ -2280,8 +2305,7 @@
         $("view").innerHTML = `${chainView(chain)}
           <div class="focus ahead">
             <div class="lead">
-              <p class="lead-kicker"><span class="chip">To come</span></p>
-              <h2 class="lead-title">The ${nth(n + 1)} block to come</h2>
+                            <h2 class="lead-title">The ${nth(n + 1)} block to come</h2>
               <p class="lead-lede">In about ${span((n + 1) * 600)}, if the mempool stays as it is.</p>
               <dl class="lead-figs">
                 ${fig("To get in", rateU(ceilRate(entry(b))), `${paymentCost(entry(b))} a payment`)}
@@ -2326,7 +2350,7 @@
         $("view").innerHTML = `${chainView(chain)}
           <div class="focus">
             <div class="lead">
-              <p class="lead-kicker"><span class="chip">Mined</span>${copyPill(b.id)}</p>
+              <p class="lead-kicker">${copyPill(b.id)}</p>
               <div class="lead-head"><h2 class="lead-title">Block ${int(h)}</h2>${neighbours(h)}</div>
               <p class="lead-lede">Mined by <b>${poolMark(x.pool?.slug)}${poolName(x.pool)}</b> at ${clockTime(b.timestamp)} on ${day(b.timestamp)}, <span data-ago="${b.timestamp}">${ago(b.timestamp)}</span>. ${plural(state.tip - h + 1, "confirmation")}.</p>
               <p class="lead-note">${
@@ -2337,7 +2361,7 @@
                     : `${plural(b.tx_count - 1, "transaction")} besides the coinbase paid from ${rateNum(x.feeRange[0])} to ${rate(x.feeRange.at(-1))}, half of them more than ${rate(x.medianFee)}.`
               }</p>
               <dl class="lead-figs">
-                ${fig("Fees", btcU(x.totalFees), `${price ? `${usd((x.totalFees / 1e8) * price)} · ` : ""}reward ${btc(x.reward)} BTC`)}
+                ${fig("Fees", btcU(x.totalFees), `${price ? `${usd((x.totalFees / 1e8) * price)} · ` : ""}reward ${btc(x.reward)}\u00a0BTC`)}
                 ${fig("Size", bytes(b.size), weight(b.weight))}
                 ${wide(
                   destroyed || profit || loss
@@ -2600,7 +2624,7 @@
         k.say = k.coinbase
           ? "New coins: the miner's reward, with no fee."
           : times === null
-            ? `It paid ${btc(k.paid)} BTC in fees.`
+            ? `It paid ${btc(k.paid)}\u00a0BTC in fees.`
             : times < 1.05
               ? `It paid ${rate(t.effective)}, the least of any transaction in its block${block.weight < 3.6e6 ? ", which had room to spare" : ""}.`
               : `It paid ${rate(t.effective)}, ${nf(times < 10 ? 1 : 0).format(times)} times the ${rate(floor)} the cheapest in its block paid: ${t.price ? cost(usdAt(floorSats, t.price)) : `${int(floorSats)} sats`} would have done.`;
@@ -2721,7 +2745,7 @@
       const STATE = { waiting: "Waiting", confirmed: "Confirmed", settled: "Settled", replaced: "Replaced" };
       function answerOf(k) {
         const W = k.state === "waiting";
-        const money = (u, sats) => (u !== null ? cost(u) : `${btc(sats)} BTC`);
+        const money = (u, sats) => (u !== null ? cost(u) : `${btc(sats)}\u00a0BTC`);
         const none = k.realized !== undefined && Math.abs(k.realized) < 0.005;
         const bump = k.bumpUsd === null ? `${int(k.bump)} sats` : k.bumpUsd < 0.005 ? "Under $0.01" : usd(k.bumpUsd);
         const realized =
@@ -2792,7 +2816,7 @@
         const ages = [...new Set(t.inputs.filter((c) => c.age !== null && !c.coinbase).map((c) => ageIndex(c.age)))].sort((a, b) => a - b);
         return `
           <section class="tt-coins">
-            <div class="sechead"><h2>Where its coins went</h2><p>${ages.length ? `held for ${ages.map((i) => AGES[i][0]).join(", ")}` : ""}</p></div>
+            <div class="sechead"><h2>Where its coins went</h2><p>${ages.length ? `its coins held for ${ages.map((i) => AGES[i][0]).join(", ")}` : ""}</p></div>
             <figure><div class="flow" id="flow"><svg id="flow-svg" role="img" aria-label="The coins in, by how long they had been held, and the coins out"></svg></div>
               <figcaption class="caption"><span class="keys">${ages.map((i) => `<span><i style="background:${AGES[i][2]}"></i>${AGES[i][0]}</span>`).join("")}</span></figcaption></figure>
           </section>
@@ -2945,7 +2969,7 @@
             : c.rest
               ? `and ${int(c.rest)} more`
               : c.pnl !== undefined && !c.unconfirmed
-                ? `<tspan style="fill:var(--${c.pnl >= 0 ? "profit" : "loss"})">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
+                ? `<tspan class="${tone(c.pnl)}">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
                 : esc(short(c.address ?? c.type, 5));
           parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? url.tx(c.from) : null, `${up},${down}`));
         }
@@ -3009,15 +3033,15 @@
           at: tx.status.confirmed ? tx.status.block_time : nowS(),
           mark: "dot",
           dir: n > 0 ? "in" : n < 0 ? "out" : "",
-          title: `<a href="${url.tx(tx.txid)}">${n > 0 ? `Received ${btc(n)} BTC` : n < 0 ? `Sent ${btc(-n)} BTC` : "Moved its own coins"}</a>`,
-          note: tx.status.confirmed ? `block ${int(tx.status.block_height)} · then held ${btc(then)} BTC` : "waiting to confirm",
+          title: `<a href="${url.tx(tx.txid)}">${n > 0 ? `Received ${btc(n)}\u00a0BTC` : n < 0 ? `Sent ${btc(-n)}\u00a0BTC` : "Moved its own coins"}</a>`,
+          note: tx.status.confirmed ? `block ${int(tx.status.block_height)} · then held ${btc(then)}\u00a0BTC` : "waiting to confirm",
           wait: !tx.status.confirmed,
         });
         const earlier = c.tx_count - mined.length;
         const rows = [
-          ...(earlier > 0 ? [{ kind: "strip", n: earlier, say: `${plural(earlier, "earlier transaction")}`, sub: `${btc(c.funded_txo_sum)} BTC received in all, ${btc(c.spent_txo_sum)} BTC sent` }] : []),
+          ...(earlier > 0 ? [{ kind: "strip", n: earlier, say: `${plural(earlier, "earlier transaction")}`, sub: `${btc(c.funded_txo_sum)}\u00a0BTC received in all, ${btc(c.spent_txo_sum)}\u00a0BTC sent` }] : []),
           ...mined.map((tx, i) => moment(tx, net(tx), afters[i])),
-          { kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)} BTC`, note: `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` },
+          { kind: "moment", at: nowS(), mark: "now", title: `Now, holding ${btc(balance)}\u00a0BTC`, note: `${listed ? `${plural(utxos.length, "coin")}, ` : ""}worth ${usd((balance / 1e8) * price)}` },
           ...waiting.map((tx) => moment(tx, net(tx), 0)),
         ];
         // Its coins, the oldest first, each with how long it has been held.
@@ -3025,11 +3049,11 @@
         $("view").innerHTML = `
           <div class="focus address">
             <div class="lead">
-              <p class="lead-kicker"><span class="chip">Address</span>${a.address_type ? `<span class="chip">${esc(a.address_type)}</span>` : ""}${copyPill(address)}</p>
+              <p class="lead-kicker">${a.address_type ? `<span class="chip">${esc(a.address_type)}</span>` : ""}${copyPill(address)}</p>
               <p class="lead-addr">${esc(address)}</p>
-              <h2 class="lead-title">${balance ? `Holds ${btc(balance)} BTC` : "Holds nothing"}</h2>
-              <p class="lead-lede">${balance ? `Worth ${usd((balance / 1e8) * price)}. ` : ""}Received ${btc(c.funded_txo_sum)} BTC and sent ${btc(c.spent_txo_sum)} BTC over ${plural(c.tx_count, "transaction")}.</p>
-              ${pending ? `<p class="lead-note"><b>${pending > 0 ? "+" : "−"}${btc(Math.abs(pending))} BTC</b> waiting to confirm.</p>` : ""}
+              <h2 class="lead-title">${balance ? `Holds ${btc(balance)}\u00a0BTC` : "Holds nothing"}</h2>
+              <p class="lead-lede">${balance ? `Worth ${usd((balance / 1e8) * price)}. ` : ""}Received ${btc(c.funded_txo_sum)}\u00a0BTC and sent ${btc(c.spent_txo_sum)}\u00a0BTC over ${plural(c.tx_count, "transaction")}.</p>
+              ${pending ? `<p class="lead-note"><b>${pending > 0 ? "+" : "−"}${btc(Math.abs(pending))}\u00a0BTC</b> waiting to confirm.</p>` : ""}
               <dl class="lead-figs">
                 ${held ? fig("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
                 ${held ? fig("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
