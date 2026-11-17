@@ -159,7 +159,11 @@ export class Band {
     const before = w >= 0 && (log ? lows[w] > 0 && highs[w] > 0 : lows[w] === lows[w] && highs[w] === highs[w]);
     const after = u < n && (log ? lows[u] > 0 && highs[u] > 0 : lows[u] === lows[u] && highs[u] === highs[u]);
     const x0 = before ? time.x(i - 2) : x1, y0 = before ? scale.y(edge[i - 2]) : y1, x3 = after ? time.x(i + 1) : x2, y3 = after ? scale.y(edge[i + 1]) : y2;
-    (b[out] = x1 + (x2 - x0) / 6), (b[out + 1] = y1 + (y2 - y0) / 6), (b[out + 2] = x2 - (x3 - x1) / 6), (b[out + 3] = y2 - (y3 - y1) / 6);
+    // (Written here, as in Line's #bend, not by a shared helper: its call costs ~160 ns a segment without a JIT.)
+    b[out] = x1 + (x2 - x0) / 6;
+    b[out + 1] = y1 + (y2 - y0) / 6;
+    b[out + 2] = x2 - (x3 - x1) / 6;
+    b[out + 3] = y2 - (y3 - y1) / 6;
   }
 
   /** Its next gap from each point (the length: none). @param {boolean} log */

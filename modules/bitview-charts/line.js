@@ -422,7 +422,11 @@ export class Line {
     const values = this.values, breaks = this.breaks, log = scale.mode === "log", w = values[i - 2], u = values[i + 1];
     const before = i >= 2 && (log ? w > 0 : w === w) && !(breaks && breaks[i - 2] === 1), after = i + 1 < values.length && (log ? u > 0 : u === u) && !(breaks && breaks[i] === 1);
     const x0 = before ? time.x(i - 2) : x1, y0 = before ? scale.y(w) : y1, x3 = after ? time.x(i + 1) : x2, y3 = after ? scale.y(u) : y2;
-    (BEND[0] = x1 + (x2 - x0) / 6), (BEND[1] = y1 + (y2 - y0) / 6), (BEND[2] = x2 - (x3 - x1) / 6), (BEND[3] = y2 - (y3 - y1) / 6);
+    // (Written here, as in Band's #bend, not by a shared helper: its call costs ~160 ns a segment without a JIT.)
+    BEND[0] = x1 + (x2 - x0) / 6;
+    BEND[1] = y1 + (y2 - y0) / 6;
+    BEND[2] = x2 - (x3 - x1) / 6;
+    BEND[3] = y2 - (y3 - y1) / 6;
   }
 
   /**
