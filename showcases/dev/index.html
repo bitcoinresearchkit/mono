@@ -76,6 +76,7 @@
         background: var(--app);
         font: 16px/1.6 var(--sans);
         -webkit-font-smoothing: antialiased;
+        text-wrap: pretty;
       }
 
       a {
@@ -123,12 +124,10 @@
         }
       }
 
-      /* A label: small, spaced, in the monospace. */
+      /* A label: small, in the body face. */
       .label {
-        color: var(--faint);
-        font: 500 11.5px/1.4 var(--mono);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        color: var(--soft);
+        font: 500 13px/1.4 var(--sans);
       }
 
       /* ── The bar ── */
@@ -227,12 +226,12 @@
 
         h1 {
           max-width: 14ch;
-          margin: 12px 0 0;
+          margin: 0;
           color: var(--ink);
           font-size: clamp(40px, 7vw, 76px);
           font-weight: 700;
           line-height: 1;
-          letter-spacing: -0.045em;
+          letter-spacing: -0.025em;
         }
 
         .lede {
@@ -341,10 +340,8 @@
         }
 
         dt {
-          color: var(--faint);
-          font: 500 11.5px var(--mono);
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
+          color: var(--soft);
+          font: 500 13px var(--sans);
         }
 
         dd {
@@ -353,7 +350,7 @@
           font-size: clamp(28px, 4vw, 40px);
           font-weight: 650;
           line-height: 1;
-          letter-spacing: -0.035em;
+          letter-spacing: -0.025em;
           font-variant-numeric: tabular-nums;
           white-space: nowrap;
 
@@ -391,17 +388,20 @@
         }
 
         h2 {
-          margin: 8px 0 0;
+          margin: 0;
           color: var(--ink);
           font-size: clamp(26px, 3.4vw, 34px);
           font-weight: 700;
           line-height: 1.1;
-          letter-spacing: -0.03em;
+          letter-spacing: -0.025em;
+          text-wrap: balance;
         }
 
         .intro {
           margin: 12px 0 0;
           color: var(--soft);
+          /* Plain wrap: pretty leaves an uneven rag in this narrow column. */
+          text-wrap: wrap;
         }
       }
 
@@ -411,14 +411,14 @@
         overflow-x: auto;
         margin: 0;
         border-radius: 10px;
+        border: 1px solid var(--rule);
         padding: 18px 20px;
-        color: #e9e7e1;
-        background: #161614;
-        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+        color: var(--ink);
+        background: var(--card);
         font: 13px/1.75 var(--mono);
 
         .prompt {
-          color: #ff8a3d;
+          color: var(--accent);
           user-select: none;
         }
 
@@ -446,11 +446,12 @@
 
         button {
           border: 1px solid var(--rule);
-          border-radius: 6px;
-          padding: 3px 10px;
+          border-radius: 8px;
+          padding: 0 12px;
+          height: 32px;
           color: var(--soft);
           background: var(--card);
-          font: 12px var(--sans);
+          font: 13px var(--sans);
           cursor: pointer;
 
           &:hover {
@@ -490,10 +491,12 @@
 
       .note {
         margin: 18px 0 0;
-        border-left: 2px solid var(--accent);
-        padding: 2px 0 2px 14px;
-        color: var(--soft);
+        color: var(--text);
         font-size: 14.5px;
+
+        b {
+          color: var(--ink);
+        }
       }
 
       /* What it serves: four, each with what it looks like where there's a picture. */
@@ -560,11 +563,25 @@
         list-style: none;
 
         li {
-          border-left: 2px solid var(--rule);
-          padding: 6px 0 10px 14px;
+          position: relative;
+          border-left: 1px solid var(--rule);
+          padding: 6px 0 10px 18px;
 
-          &.accent {
-            border-left-color: var(--accent);
+          &::before {
+            content: "";
+            position: absolute;
+            left: -4px;
+            top: 13px;
+            width: 7px;
+            height: 7px;
+            border: 1px solid var(--soft);
+            border-radius: 50%;
+            background: var(--app);
+          }
+
+          &.accent::before {
+            border-color: var(--accent);
+            background: var(--accent);
           }
         }
 
@@ -606,12 +623,12 @@
 
         .name {
           fill: var(--ink);
-          font: 600 14px var(--sans);
+          font: 600 15px var(--sans);
         }
 
         .what {
           fill: var(--soft);
-          font: 12px var(--sans);
+          font: 14px var(--sans);
         }
 
         .wire {
@@ -622,9 +639,12 @@
         }
 
         .tag {
-          fill: var(--faint);
-          font: 500 10.5px var(--mono);
-          letter-spacing: 0.08em;
+          fill: var(--soft);
+          font: 500 14px var(--sans);
+        }
+
+        .group {
+          stroke: var(--rule);
         }
       }
 
@@ -712,6 +732,7 @@
         display: inline-flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
 
         &::after {
           content: "Copied";
@@ -768,15 +789,14 @@
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <a href="#run">Run it</a>
         <a class="optional" href="#serves">What it serves</a>
-        <a class="optional" href="#built">How it's built</a>
+        <a class="optional" href="#built">How it’s built</a>
         <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
       </nav>
     </header>
 
     <main id="main">
       <section class="hero shell" id="top" aria-labelledby="title">
-        <span class="label">Open source · MIT · Linux and macOS</span>
-        <h1 id="title">Bitcoin's data, on your own node.</h1>
+        <h1 id="title">Bitcoin’s data, on your own node.</h1>
         <p class="lede">Bitview reads every block from your Bitcoin Core and measures it: prices, supply, holders, miners, fees and thousands more series. Then it serves them to Studio, an HTTP API, generated clients and assistants. <a href="https://bitview.space">bitview.space</a> is the public instance, the same server.</p>
         <div class="actions">
           <a class="button primary" href="#run">Run Bitview</a>
@@ -784,9 +804,9 @@
         </div>
 
         <dl class="specs" aria-label="Bitview, measured">
-          <div><dt>First index</dt><dd>~1½ h<small>from block 0, 16 GB Mac mini</small></dd></div>
-          <div><dt>Peak memory</dt><dd>8.4 GiB<small>16 GB recommended</small></dd></div>
-          <div><dt>On disk</dt><dd>290 GiB<small>beside Bitcoin Core's</small></dd></div>
+          <div><dt>First index</dt><dd>~1½ h<small>from block 0</small></dd></div>
+          <div><dt>Peak memory</dt><dd>8.4 GiB<small>16 GiB recommended</small></dd></div>
+          <div><dt>On disk</dt><dd>290 GiB<small>beside Bitcoin Core’s</small></dd></div>
           <div><dt>Series</dt><dd>21,154<small>across their indexes</small></dd></div>
           <div><dt>API operations</dt><dd>98<small>series, blocks, mempool and more</small></dd></div>
         </dl>
@@ -795,20 +815,19 @@
 
       <section class="shell" id="run" aria-labelledby="run-title"><div class="part">
         <div>
-          <span class="label">01</span>
           <h2 id="run-title">Run it</h2>
           <p class="intro">One executable: the official plugins, Studio and the API, beside your node.</p>
         </div>
         <div>
           <div class="term-head"><span class="label">Install, or update</span><button type="button" data-copy='rustup update &amp;&amp; RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd'>Copy</button></div>
-          <pre class="terminal"><span class="line"><span class="prompt">$</span> rustup update &amp;&amp; RUSTFLAGS="-C <span class="w">target-cpu=native</span>" cargo install <span class="w">--locked</span> bitviewd</span><span class="line"><span class="prompt">$</span> bitviewd</span></pre>
+          <pre class="terminal"><span class="line"><span class="prompt">$</span> rustup update &amp;&amp; <span class="w">RUSTFLAGS="-C target-cpu=native"</span> cargo install <span class="w">--locked</span> bitviewd</span><span class="line"><span class="prompt">$</span> bitviewd</span></pre>
           <dl class="table">
             <div><dt>Bitcoin Core</dt><dd>Mainnet, with <code>server=1</code> and RPC credentials, and its <code>blk*.dat</code> files complete from genesis (not pruned).</dd></div>
-            <div><dt>Machine</dt><dd>Linux or macOS, 16 GB of memory recommended, and about 290 GiB of disk on top of Bitcoin Core's.</dd></div>
-            <div><dt>First index</dt><dd>About an hour and a half on a 16 GB Mac mini with a fast SSD; slower disks and CPUs take longer. When more than 10,000 blocks behind, Bitview catches up before it starts serving.</dd></div>
+            <div><dt>Machine</dt><dd>Linux or macOS, with Rust from <a href="https://rustup.rs">rustup.rs</a>.</dd></div>
+            <div><dt>First index</dt><dd>Slower disks and CPUs take longer. When more than 10,000 blocks behind, Bitview catches up before it starts serving.</dd></div>
             <div><dt>Configuration</dt><dd><code>~/.bitview/config.toml</code>, edited by hand; the install command updates the executable only.</dd></div>
           </dl>
-          <p class="note">It listens on <code>127.0.0.1:3110</code>, this machine only, without authentication. To serve your network, set <code>serverbind = "0.0.0.0"</code> in the configuration, behind access control.</p>
+          <p class="note"><b>It listens on <code>127.0.0.1:3110</code>, this machine only, without authentication.</b> To serve your network, set <code>serverbind = "0.0.0.0"</code> in the configuration, behind access control.</p>
           <div class="actions">
             <a class="button" href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/bitviewd/README.md">Installation and configuration</a>
           </div>
@@ -817,7 +836,6 @@
 
       <section class="shell" id="serves" aria-labelledby="serves-title"><div class="part">
         <div>
-          <span class="label">02</span>
           <h2 id="serves-title">What it serves</h2>
           <p class="intro">The same data, however you work: charts, plain HTTP, a client in your language, or an assistant.</p>
         </div>
@@ -829,7 +847,7 @@
             <div class="body"><h3>HTTP API <span aria-hidden="true">→</span></h3><p>Series as JSON or CSV; blocks, transactions, addresses and the mempool as JSON; OpenAPI documentation.</p></div>
           </a>
           <a href="https://github.com/bitcoinresearchkit/mono/tree/main/crates/bitview_bindgen">
-            <div class="body"><h3>Generated clients <span aria-hidden="true">→</span></h3><p>Rust, JavaScript, Python and a command line, generated from the server's own catalog.</p></div>
+            <div class="body"><h3>Generated clients <span aria-hidden="true">→</span></h3><p>Rust, JavaScript, Python and a command line, generated from the server’s own catalog.</p></div>
           </a>
           <a href="https://mcp.bitview.space/">
             <div class="body"><h3>For assistants <span aria-hidden="true">→</span></h3><p>A stateless MCP server whose tools come from the read-only API, at <code>mcp.bitview.space</code>, no key needed; or hand one <code>llms.txt</code>.</p></div>
@@ -839,32 +857,30 @@
 
       <section class="shell" id="built" aria-labelledby="built-title"><div class="part">
         <div>
-          <span class="label">03</span>
-          <h2 id="built-title">How it's built</h2>
-          <p class="intro">Plugins are plain Rust crates, put together into a typed graph at compile time: no dynamic loading, no plugin ABI. Bitview's own are the default; yours join them.</p>
+          <h2 id="built-title">How it’s built</h2>
+          <p class="intro">Plugins are plain Rust crates, put together into a typed graph at compile time: no dynamic loading, no plugin ABI. Bitview’s own are the default; yours join them.</p>
         </div>
         <div>
-          <svg class="schematic" viewBox="0 0 720 150" role="img" aria-label="Bitcoin Core validates and picks the chain; the Bitcoin Research Kit reads it; plugins index and compute; Studio, the API and clients serve it">
+          <svg class="schematic" viewBox="0 0 720 106" role="img" aria-label="Bitcoin Core validates and picks the chain; the Bitcoin Research Kit reads it; plugins index and compute; Studio, the API and clients serve it">
             <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8" fill="none" stroke="currentColor" style="stroke: var(--soft)" /></marker></defs>
-            <text class="tag" x="0" y="14">YOUR NODE</text>
-            <rect class="box" x="0" y="26" width="150" height="70" rx="8" /><text class="name" x="14" y="54">Bitcoin Core</text><text class="what" x="14" y="74">validates, picks</text><text class="what" x="14" y="89">the chain</text>
-            <path class="wire" d="M150,61H186" />
-            <text class="tag" x="190" y="14">BITVIEW</text>
-            <rect class="box" x="190" y="26" width="150" height="70" rx="8" /><text class="name" x="204" y="54">Research Kit</text><text class="what" x="204" y="74">reads blocks,</text><text class="what" x="204" y="89">RPC, mempool</text>
-            <path class="wire" d="M340,61H376" />
-            <rect class="box accent" x="380" y="26" width="150" height="70" rx="8" /><text class="name" x="394" y="54">Plugins</text><text class="what" x="394" y="74">index, compute</text><text class="what" x="394" y="89">every series</text>
-            <path class="wire" d="M530,61H566" />
-            <rect class="box" x="570" y="26" width="150" height="70" rx="8" /><text class="name" x="584" y="54">Serve</text><text class="what" x="584" y="74">Studio, API,</text><text class="what" x="584" y="89">clients</text>
-            <text class="what" x="380" y="122">yours beside Bitview's own</text>
-            <path class="wire" d="M455,110V100" />
+            <path class="group" d="M0,19.5H150M190,19.5H720" />
+            <text class="tag" x="0" y="14">Your node</text>
+            <rect class="box" x="0" y="26" width="150" height="76" rx="8" /><text class="name" x="14" y="52">Bitcoin Core</text><text class="what" x="14" y="73">validates, picks</text><text class="what" x="14" y="90">the chain</text>
+            <path class="wire" d="M150,64H186" />
+            <text class="tag" x="190" y="14">Bitview</text>
+            <rect class="box" x="190" y="26" width="150" height="76" rx="8" /><text class="name" x="204" y="52">Research Kit</text><text class="what" x="204" y="73">reads blocks,</text><text class="what" x="204" y="90">RPC, mempool</text>
+            <path class="wire" d="M340,64H376" />
+            <rect class="box accent" x="380" y="26" width="150" height="76" rx="8" /><text class="name" x="394" y="52">Plugins</text><text class="what" x="394" y="73">index, compute</text><text class="what" x="394" y="90">every series</text>
+            <path class="wire" d="M530,64H566" />
+            <rect class="box" x="570" y="26" width="150" height="76" rx="8" /><text class="name" x="584" y="52">Serve</text><text class="what" x="584" y="73">Studio, API,</text><text class="what" x="584" y="90">clients</text>
           </svg>
-          <ol class="steps" aria-label="How it's built">
-            <li><b>Bitcoin Core</b><span>on your node: validates, picks the chain</span></li>
-            <li><b>Bitcoin Research Kit</b><span>reads its blocks, RPC and mempool</span></li>
-            <li class="accent"><b>Plugins</b><span>index and compute every series; yours beside Bitview's own</span></li>
-            <li><b>Serve</b><span>Studio, the API, clients</span></li>
+          <ol class="steps" aria-label="How it’s built">
+            <li><b>Bitcoin Core</b><span>on your node; validates, picks the chain</span></li>
+            <li><b>Research Kit</b><span>reads blocks, RPC, mempool</span></li>
+            <li class="accent"><b>Plugins</b><span>index, compute every series</span></li>
+            <li><b>Serve</b><span>Studio, API, clients</span></li>
           </ol>
-          <div class="code"><pre><span class="c">// A plugin: its storage, and what it keeps. (From the custom plugin example.)</span>
+          <div class="code"><pre><span class="c">// A plugin: its storage, and what it keeps.</span>
 <span class="k">#[derive(Traversable, Plugin)]</span>
 <span class="k">#[plugin(storage = STORAGE)]</span>
 pub struct Vecs&lt;M: StorageMode = Rw&gt; {
@@ -875,13 +891,13 @@ pub struct Vecs&lt;M: StorageMode = Rw&gt; {
     streak: M::Stored&lt;PcoVec&lt;Height, Count&gt;&gt;,
 }
 
-<span class="c">// The binary: Bitview's runner, your composition.</span>
+<span class="c">// The binary: Bitview’s runner, your composition.</span>
 fn main() -&gt; Result&lt;()&gt; {
     run(Plugins::import)
 }</pre></div>
-          <p class="caption">The whole example adds one series to Bitview's defaults and serves it through the same API.</p>
+          <p class="caption">The whole example adds one series to Bitview’s defaults and serves it through the same API.</p>
           <div class="actions">
-            <a class="button primary" href="https://github.com/bitcoinresearchkit/mono/tree/main/examples/custom_plugin">Custom plugin example</a>
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/tree/main/examples/custom_plugin">Custom plugin example</a>
             <a class="button" href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/bitview_plugin/README.md">Plugin contract</a>
           </div>
         </div>
@@ -889,7 +905,6 @@ fn main() -&gt; Result&lt;()&gt; {
 
       <section class="shell" aria-labelledby="status-title"><div class="part">
         <div>
-          <span class="label">04</span>
           <h2 id="status-title">In active development</h2>
         </div>
         <div>
