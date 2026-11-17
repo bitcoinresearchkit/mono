@@ -57,23 +57,111 @@ export function tint(color) {
   const seen = read(color);
   if (seen[3] === 0) look = { fill: "transparent", ink: "transparent" };
   else {
-    const fill = rgb(seen), [, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.min(0.06, Math.hypot(a0, b0)), light = whiteReads(fill);
-    // (Its hue at the ink's lightness, its chroma the most sRGB allows there, 0.06 at most.)
-    const l = light ? 0.97 : 0.24;
-    let lo = 0, hi = chroma;
-    if (fits(lin(l, hi * Math.cos(hue), hi * Math.sin(hue)))) lo = hi;
-    else
-      for (let k = 0; k < 24; k++) {
-        const mid = (lo + hi) / 2;
-        if (fits(lin(l, mid * Math.cos(hue), mid * Math.sin(hue)))) lo = mid;
-        else hi = mid;
-      }
-    look = { fill: hex(fill), ink: hex(rgb(lin(l, lo * Math.cos(hue), lo * Math.sin(hue)))) };
+    const fill = rgb(seen), [, a0, b0] = oklab(seen);
+    look = { fill: hex(fill), ink: hex(vivid(whiteReads(fill) ? 0.97 : 0.24, Math.atan2(b0, a0), Math.min(0.06, Math.hypot(a0, b0)))) };
   }
   if (tints.size > 512) tints.clear();
   tints.set(color, look);
   return look;
 }
+
+const overs = new Map();
+
+/**
+ * `color` laid over `ground` as a canvas paints it (its opacity's share of it, the rest the ground's), as #rrggbb: a
+ * see-through color as an opaque one that covers what's under it. Each pair worked out once.
+ * @param {string} color @param {string} ground
+ */
+export function over(color, ground) {
+  const key = `${color}|${ground}`;
+  let out = overs.get(key);
+  if (out !== undefined) return out;
+  const top = read(color), under = read(ground), share = top[3] / 255;
+  out = hex([0, 1, 2].map((c) => Math.round(top[c] * share + under[c] * (1 - share))));
+  if (overs.size > 64) overs.clear();
+  overs.set(key, out);
+  return out;
+}
+
+const legibles = new Map();
+
+/**
+ * `color` as words on `ground` (opaque): itself where it reads there at 5:1 (WCAG 2's floor for small words, 4.5:1,
+ * with room for a canvas's anti-aliasing), else its lightness (OKLab) moved toward white or black, whichever reads
+ * better on the ground, just as far as that takes, its hue kept: words as quiet as they can be and still read. Each
+ * pair worked out once.
+ * @param {string} color @param {string} ground
+ */
+export function legible(color, ground) {
+  const key = `${color}|${ground}`;
+  let out = legibles.get(key);
+  if (out !== undefined) return out;
+  const seen = rgb(read(color)), back = luminance(rgb(read(ground))), [L, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0);
+  const reads = (/** @type {number[]} */ c, y = luminance(c)) => (Math.max(y, back) + 0.05) / (Math.min(y, back) + 0.05) >= 5;
+  let found = seen;
+  if (!reads(seen)) {
+    // (Between its own lightness, short of the floor, and white's or black's, past it.)
+    let lo = L, hi = 1.05 / (back + 0.05) >= (back + 0.05) / 0.05 ? 1 : 0;
+    for (let k = 0; k < 24; k++) {
+      const mid = (lo + hi) / 2;
+      if (reads(vivid(mid, hue, chroma))) hi = mid;
+      else lo = mid;
+    }
+    found = vivid(hi, hue, chroma);
+  }
+  out = hex(found);
+  if (legibles.size > 64) legibles.clear();
+  legibles.set(key, out);
+  return out;
+}
+
+/** sRGB channels' (0 to 255) relative luminance (WCAG 2's). @param {number[]} c */
+function luminance(c) {
+  const f = (/** @type {number} */ v) => ((v /= 255) <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+}
+
+const lightTints = new Map();
+
+/**
+ * A tag's look for words over data in `color`'s hue (see tint): its fill the color itself where dark words read on it
+ * (see whiteReads), else lifted just past where they do, its hue kept and its chroma the most sRGB allows there (never
+ * more than its own): the most vivid version of it under dark words, a light pill on either ground. Its opacity left
+ * out (as a tag's fill). Each color worked out once.
+ * @param {string} color
+ * @returns {{ fill: string, ink: string }}
+ */
+export function lightTint(color) {
+  let look = lightTints.get(color);
+  if (look !== undefined) return look;
+  const seen = read(color), [L, a0, b0] = oklab(seen);
+  look = tint(hex(L < LIFT ? vivid(LIFT, Math.atan2(b0, a0), Math.hypot(a0, b0)) : rgb(seen)));
+  if (lightTints.size > 512) lightTints.clear();
+  lightTints.set(color, look);
+  return look;
+}
+
+/**
+ * The most vivid color sRGB holds at OKLab lightness `l` in `hue` (radians), its chroma `most` at most, as sRGB channels
+ * (0 to 255).
+ * @param {number} l @param {number} hue @param {number} most
+ */
+function vivid(l, hue, most) {
+  const at = (/** @type {number} */ c) => lin(l, c * Math.cos(hue), c * Math.sin(hue));
+  let lo = 0, hi = most;
+  if (fits(at(hi))) lo = hi;
+  else
+    for (let k = 0; k < 24; k++) {
+      const mid = (lo + hi) / 2;
+      if (fits(at(mid))) lo = mid;
+      else hi = mid;
+    }
+  return rgb(at(lo));
+}
+
+/** The lightness (OKLab) white words read under (see whiteReads), and a light fill's for dark ones: just past it, clear of
+ * its channels' rounding (under 0.002 of lightness). */
+const TURN = 0.7157, LIFT = TURN + 0.005;
 
 /**
  * Whether white words read better than black on `back` (sRGB channels, 0 to 255): by its lightness (OKLab), white under
@@ -83,7 +171,7 @@ export function tint(color) {
  * @param {number[]} back
  */
 function whiteReads(back) {
-  return oklab(back)[0] < 0.7157;
+  return oklab(back)[0] < TURN;
 }
 
 /** sRGB channels (0 to 255) from linear ones, or a read color's first three. @param {ArrayLike<number>} c */

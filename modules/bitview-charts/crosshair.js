@@ -167,10 +167,10 @@ export class Crosshair {
     // page's writer for a pane showing nothing): no badge.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
       const value = pane.scale.value(this.y - pane.top), words = pane.axisLabel(value, pane.scale, pane.stepAt(value));
-      if (words) pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left", PILL, "", within);
+      if (words) pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left", PILL, within);
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
       const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
-      if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right", PILL, "", within);
+      if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right", PILL, within);
     }
     // (Its date on the time axis, its point's; past the last, as the points' step goes on.)
     const times = time.times, k = Math.round(i), at = time.timeAt(k);

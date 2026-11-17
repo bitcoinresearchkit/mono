@@ -177,13 +177,18 @@ clears); avoid reflecting programmatic calls. A programmatic
   painted (its group, its bin's rows; none out of its column, or cumulative). `cumulative`: in place of the bars, the amounts summed from the close outward (upward over
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
-- `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
-  each `{ at, position, shape, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
-  `"below"` it (its low) or `"on"` it; an arrow (`"up"`, `"down"`), a `"circle"` or a `"square"` as tall as a point is
-  wide (12 to 30 pixels, times `size`; 0: none), several at a point stacked away from it; its words in a pill of the
-  ground edged in its color (or `textColor`), only where they have room at the zoom (from the latest back, one running
-  into the next one's goes without them). Their room kept at the scale's ends while its series has values in view
-  (`room: false`, none); `set(marks)` after a change.
+- `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after
+  it: each `{ at, position, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
+  `"below"` it (its low) or `"on"` it: a dot in its color (radius 3.5, times `size`; 0: none), ringed in the ground,
+  resting on the point from its side (on it: centered), several at a point stacked away from it; its words just past
+  its dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill of
+  its color (or `textColor`), lifted where dark words wouldn't read on it (just past a tag's turn to dark words), its
+  hue kept, as vivid as sRGB allows there: a light pill on either ground, the words dark on it. None lost where words
+  crowd at the zoom: from the latest back, one whose words would run into the next ones shown on its side (above the
+  series; under it), or on the other where the series crosses between them, is counted in those ("2 more" on their
+  left, quieter than they are: in the theme's `text` color, kept at 5:1 or more, on a quiet tag of its `separator`
+  color laid on its ground); a pan changes none. Their room kept at the scale's ends while its series has values in
+  view (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

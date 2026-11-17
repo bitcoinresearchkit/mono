@@ -1072,8 +1072,8 @@ function markSignals(doc, data, drawn, old) {
     if (!on || !values || !own) continue;
     // (Up, at its place; down, its mirror (above and below swapped), in its second color (red, unset). Its results asked for, each
     // stretch's on the mark that ends it: one ending in neither, a dot there.)
-    const place = layer.place ?? "above", [, , position, shape] = MARK_PLACES.find(([id]) => id === place) ?? MARK_PLACES[0], op = opacityOf(layer);
-    const [, , downPosition, downShape] = MARK_PLACES.find(([id]) => id === (place === "above" ? "below" : place === "below" ? "above" : place)) ?? MARK_PLACES[0];
+    const place = layer.place ?? "above", [, , position] = MARK_PLACES.find(([id]) => id === place) ?? MARK_PLACES[0], op = opacityOf(layer);
+    const [, , downPosition] = MARK_PLACES.find(([id]) => id === (place === "above" ? "below" : place === "below" ? "above" : place)) ?? MARK_PLACES[0];
     // (On its layer's pane and side; a 100% stack's range its own, no room kept for them.)
     const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), down = alpha(ink(belowOf(layer)), op);
     const list = marked.get(on)?.list ?? marked.set(on, { list: [], pane: doc.panes.findIndex((pane) => pane.id === target?.pane), side: target?.side === "left" ? "left" : "right", room: doc.panes.find((pane) => pane.id === target?.pane)?.stack !== "percent" }).get(on).list;
@@ -1081,9 +1081,9 @@ function markSignals(doc, data, drawn, old) {
       // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark.)
       const i = change.at, result = layer.results ? stretchResult(change, reference) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down };
       if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
-      if (change.to > 0 && !shade) list.push({ at: i, position, shape, color, ...text });
-      else if (change.to < 0 && !shade) list.push({ at: i, position: downPosition, shape: downShape, color: down, ...text });
-      else if (result !== undefined) list.push({ at: i, position: "on", shape: "circle", size: 0.5, color: change.was > 0 ? color : down, ...text });
+      if (change.to > 0 && !shade) list.push({ at: i, position, color, ...text });
+      else if (change.to < 0 && !shade) list.push({ at: i, position: downPosition, color: down, ...text });
+      else if (result !== undefined) list.push({ at: i, position: "on", color: change.was > 0 ? color : down, ...text });
     }
   }
   for (const [series, made] of markers) {
