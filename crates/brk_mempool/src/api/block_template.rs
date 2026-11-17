@@ -1,14 +1,11 @@
 //! The next block's template, served as built.
 
-use std::{
-    hash::Hasher,
-    sync::{Arc, OnceLock},
-};
+use std::sync::{Arc, OnceLock};
 
 use brk_error::{Error, Result};
-use brk_types::BlockHash;
+use brk_types::{BlockHash, tag_hash};
 
-use crate::{ReadOnlyMempool, json};
+use crate::ReadOnlyMempool;
 
 /// The next block's template as JSON, shared.
 #[derive(Clone)]
@@ -31,11 +28,7 @@ impl Template {
 impl BlockTemplateJson {
     #[must_use]
     pub fn hash(&self) -> u64 {
-        *self.0.hash.get_or_init(|| {
-            let mut hasher = json::keyed_hasher();
-            hasher.write(&self.0.json);
-            hasher.finish()
-        })
+        *self.0.hash.get_or_init(|| tag_hash(&self.0.json))
     }
 }
 

@@ -39,7 +39,7 @@ async fn serve_pool_blocks(
                 let blocks =
                     q.resolve_pool_blocks(slug.pool()?, before_height, POOL_BLOCKS_LIMIT)?;
                 let params = CacheParams::live(format!(
-                    "pool-blocks-{}-{}",
+                    "pool-blocks-{}-{:x}",
                     blocks::V1_BLOCK_SCHEMA,
                     blocks.identity()
                 ));

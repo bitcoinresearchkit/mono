@@ -1,9 +1,13 @@
-use std::{sync::Arc, thread::available_parallelism};
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+    thread::available_parallelism,
+};
 
-use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::Query;
 use bitview_types::{PageSize, Pagination, SearchQuery, SeriesInfo};
-use serde_json::to_writer;
+use brk_types::TagHasher;
+use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
 use crate::{CacheParams, prepared_json::PreparedJson};
@@ -46,49 +50,36 @@ impl SeriesBodies {
 
 /// URI-scoped metadata revision. Bump info1 if name resolution semantics change.
 fn info_params<'a>(entries: impl IntoIterator<Item = (&'a str, SeriesInfo)>) -> CacheParams {
-    let mut engine = sha256::HashEngine::default();
-    let mut bytes = Vec::new();
+    let mut hasher = TagHasher::default();
     for (name, info) in entries {
-        hash_bytes(&mut engine, name.as_bytes());
-        bytes.clear();
-        to_writer(&mut bytes, &info).expect("serializable series info");
-        hash_bytes(&mut engine, &bytes);
+        name.hash(&mut hasher);
+        to_vec(&info).expect("serializable series info").hash(&mut hasher);
     }
-    CacheParams::revalidate(format!("info1-{}", sha256::Hash::from_engine(engine)))
+    CacheParams::revalidate(format!("info1-{:x}", hasher.finish()))
 }
 
 /// URI-scoped revision, not an assertion that different pages have equal bodies.
 /// Bump list1 when the response schema or pagination derivation changes.
 fn list_params(names: &[&str]) -> CacheParams {
-    let mut engine = sha256::Hash::engine();
-    for name in names {
-        hash_bytes(&mut engine, name.as_bytes());
-    }
+    let mut hasher = TagHasher::default();
+    names.hash(&mut hasher);
     CacheParams::revalidate(format!(
-        "list1-{}-{}-{}",
+        "list1-{}-{}-{:x}",
         *Pagination::DEFAULT_PER_PAGE,
         PageSize::MAX,
-        sha256::Hash::from_engine(engine),
+        hasher.finish(),
     ))
 }
 
 /// URI-scoped search revision. Bump search2 for changes to matching, normalization,
 /// ranking, or output formatting, including changes to QuickMatch defaults.
 fn search_params(catalog: &[u8], names: &[&str]) -> CacheParams {
-    let mut engine = sha256::Hash::engine();
-    hash_bytes(&mut engine, catalog);
-    engine.input(&(names.len() as u64).to_le_bytes());
-    for name in names {
-        hash_bytes(&mut engine, name.as_bytes());
-    }
+    let mut hasher = TagHasher::default();
+    catalog.hash(&mut hasher);
+    names.hash(&mut hasher);
     CacheParams::revalidate(format!(
-        "search2-{}-{}",
+        "search2-{}-{:x}",
         *SearchQuery::DEFAULT_LIMIT,
-        sha256::Hash::from_engine(engine)
+        hasher.finish()
     ))
-}
-
-fn hash_bytes(engine: &mut sha256::HashEngine, bytes: &[u8]) {
-    engine.input(&(bytes.len() as u64).to_le_bytes());
-    engine.input(bytes);
 }

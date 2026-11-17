@@ -1,10 +1,10 @@
 use std::{
-    hash::{Hash, Hasher},
-    sync::Arc,
+    hash::{BuildHasher, Hash, Hasher, RandomState},
+    sync::{Arc, LazyLock},
 };
 
 use brk_error::Result;
-use brk_types::{BlockHash, TxOutspend, TxStatus, Txid, Vin, Vout};
+use brk_types::{BlockHash, TagHasher, TxOutspend, TxStatus, Txid, Vin, Vout};
 use rustc_hash::FxHashSet;
 use serde::Serializer;
 
@@ -13,6 +13,11 @@ use crate::{
     key::{OutpointKey, TxKey},
     state::Pool,
 };
+
+/// Random per process, mixed into a validator made from a revision counted since start: the
+/// counter restarts from zero, and another server counts its own, so without it a revision could
+/// validate a different array.
+static PROCESS_NONCE: LazyLock<u64> = LazyLock::new(|| RandomState::new().hash_one(0u8));
 
 impl ReadOnlyState {
     /// Why a transaction left the pool at `tip`, while the graveyard remembers it: `None` for one
@@ -181,10 +186,10 @@ impl ReadOnlyState {
     }
 
     /// The current txid array's validator: the pool's membership revision, which every change of
-    /// the array moves and nothing else does, made unique across restarts.
+    /// the array moves and nothing else does, made unique to this process ([`PROCESS_NONCE`]).
     pub fn txids_hash(&self) -> Result<u64> {
         let state = self.pool()?;
-        Ok(state.txs.membership_revision() ^ json::process_nonce())
+        Ok(state.txs.membership_revision() ^ *PROCESS_NONCE)
     }
 
     /// The txid array [`Self::txids_hash`] validates, as JSON: encoded once per publication.
@@ -220,7 +225,7 @@ impl ReadOnlyState {
             .iter()
             .map(|txid| state.first_seen(txid).map_or(0, u64::from))
             .collect();
-        let mut hasher = json::keyed_hasher();
+        let mut hasher = TagHasher::default();
         times.as_slice().hash(&mut hasher);
         Ok((times, hasher.finish()))
     }

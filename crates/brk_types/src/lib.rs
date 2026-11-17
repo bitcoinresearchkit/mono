@@ -51,6 +51,7 @@ mod sigops;
 mod sigops32;
 mod silent_payments;
 mod store_value;
+mod tag_hasher;
 #[cfg(test)]
 mod tests;
 mod timestamp;
@@ -113,6 +114,7 @@ pub use sigops::*;
 pub use sigops32::*;
 pub use silent_payments::*;
 pub use store_value::*;
+pub use tag_hasher::*;
 pub use timestamp::*;
 pub use tx::*;
 pub use tx_index::*;

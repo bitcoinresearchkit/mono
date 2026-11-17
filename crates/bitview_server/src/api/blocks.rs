@@ -41,7 +41,7 @@ fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode)
 }
 
 fn blocks_v1_params(snapshot: &ResolvedBlocksV1, cdn_cache_mode: CdnCacheMode) -> CacheParams {
-    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{}", snapshot.identity());
+    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{:x}", snapshot.identity());
     CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
 }
 
@@ -53,7 +53,7 @@ fn block_v1_params(
         .last_height()
         .ok_or(QueryError::Internal("Missing resolved block"))?;
     let identity = snapshot.identity();
-    let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity}"));
+    let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity:x}"));
     Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
 }
 

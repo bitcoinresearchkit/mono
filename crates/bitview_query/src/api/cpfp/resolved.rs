@@ -1,4 +1,4 @@
-use brk_types::{Cpfp, Txid};
+use brk_types::{Cpfp, Txid, tag_hash};
 use serde_json::to_vec;
 
 use crate::{Error, Query, RepresentationId, Result, api::tx::body::ResolvedTxBody};
@@ -24,7 +24,7 @@ impl Query {
     pub fn resolve_cpfp(&self, txid: &Txid) -> Result<ResolvedCpfp> {
         let live = |value: &Cpfp| {
             let value = to_vec(value).unwrap();
-            let hash = RepresentationId::content_hash(&value);
+            let hash = tag_hash(&value);
             (value, hash)
         };
         let source = match self.resolve_tx_body(txid, |mempool, view| {

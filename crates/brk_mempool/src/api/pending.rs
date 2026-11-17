@@ -4,12 +4,12 @@ use std::{
 };
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, Txid, Vout};
+use brk_types::{BlockHash, TagHasher, Txid, Vout};
 use rapidhash::RapidHashMap;
 use rustc_hash::FxHashSet;
 
 use crate::{
-    ReadOnlyState, json,
+    ReadOnlyState,
     state::{BehindSlot, Pool},
     key::{OutpointKey, TxKey},
 };
@@ -58,7 +58,7 @@ impl PendingView {
         if self.settles_nothing() {
             return 0;
         }
-        let mut hasher = json::keyed_hasher();
+        let mut hasher = TagHasher::default();
         self.reader.hash(&mut hasher);
         hasher.finish()
     }

@@ -12,7 +12,7 @@ use bitview_query::PublicationCache;
 use bitview_query::{AsyncQuery, Error as QueryError, Query, RepresentationId, Result};
 use brk_rpc::AsyncClient;
 #[cfg(feature = "full-api")]
-use brk_types::Version;
+use brk_types::{Version, tag_hash};
 use derive_more::Deref;
 use jiff::Timestamp;
 #[cfg(feature = "full-api")]
@@ -292,7 +292,7 @@ impl AppState {
             let params = if q.tip_publication().1 == revision {
                 params
             } else {
-                CacheParams::live_hash(RepresentationId::content_hash(&bytes))
+                CacheParams::live_hash(tag_hash(&bytes))
             };
             Ok(Built::Body(bytes, params))
         })
@@ -356,7 +356,7 @@ impl AppState {
         bytes: Bytes,
         settled: bool,
     ) -> Response<Body> {
-        let params = CacheParams::live_hash(RepresentationId::content_hash(&bytes))
+        let params = CacheParams::live_hash(tag_hash(&bytes))
             .stable_if(settled, self.cdn_cache_mode);
         Response::cached_bytes(headers, &params, "application/json", || bytes)
     }

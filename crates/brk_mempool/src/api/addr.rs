@@ -1,11 +1,14 @@
-use std::{hash::Hasher, sync::Arc};
+use std::{
+    hash::{Hash, Hasher},
+    sync::Arc,
+};
 
 use brk_error::Result;
-use brk_types::{AddressBytes, AddressMempoolStats, Sats, TxOut, Txid, TxidPrefix, Vout};
+use brk_types::{AddressBytes, AddressMempoolStats, Sats, TagHasher, TxOut, Txid, TxidPrefix, Vout};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-    PendingView, PublishedTx, ReadOnlyState, json,
+    PendingView, PublishedTx, ReadOnlyState,
     key::{OutpointKey, TxKey},
     state::Pool,
     stores::{addr_tracker::AddrTx, tx_store::TxRecord},
@@ -41,7 +44,7 @@ impl PendingUtxos {
 pub struct Spends<'a> {
     pending: &'a PendingUtxos,
     filter: SpendFilter,
-    met: FxHashSet<TxKey>,
+    met: FxHashSet<Txid>,
 }
 
 impl Spends<'_> {
@@ -64,7 +67,7 @@ impl Spends<'_> {
     pub fn token(&self) -> u64 {
         self.met
             .iter()
-            .fold(self.pending.token, |token, key| token ^ token_part(SPENDER, key))
+            .fold(self.pending.token, |token, txid| token ^ token_part(SPENDER, txid))
     }
 }
 
@@ -72,19 +75,22 @@ impl Spends<'_> {
 const OWN: u8 = 0;
 const SPENDER: u8 = 1;
 
-/// `key`'s contribution to a token, hashed per role so a transaction in both roles doesn't cancel
+/// `txid`'s contribution to a token, hashed per role so a transaction in both roles doesn't cancel
 /// itself out.
-fn token_part(role: u8, key: &TxKey) -> u64 {
-    let mut hasher = json::keyed_hasher();
+fn token_part(role: u8, txid: &Txid) -> u64 {
+    let mut hasher = TagHasher::default();
     hasher.write_u8(role);
-    hasher.write_u64(**key);
+    txid.hash(&mut hasher);
     hasher.finish()
 }
 
-/// The pending spenders found so far, each with the outpoints its inputs spend. `None` for one the
-/// reader's view settled.
+/// The pending spenders found so far, each with its txid and the outpoints its inputs spend.
+/// `None` for one the reader's view settled.
 #[derive(Default)]
-struct SpendFilter(FxHashMap<TxKey, Option<FxHashSet<(Txid, Vout)>>>);
+struct SpendFilter(FxHashMap<TxKey, Option<(Txid, Inputs)>>);
+
+/// The outpoints a transaction's inputs spend.
+type Inputs = FxHashSet<(Txid, Vout)>;
 
 impl SpendFilter {
     /// The pending transaction spending `txid:vout`, if any.
@@ -94,7 +100,7 @@ impl SpendFilter {
         view: &PendingView,
         txid: &Txid,
         vout: Vout,
-    ) -> Option<TxKey> {
+    ) -> Option<Txid> {
         let key = pool
             .outpoint_spends
             .get(&OutpointKey::new(TxKey::from(txid), vout))?;
@@ -106,17 +112,18 @@ impl SpendFilter {
                     .record_by_key(&key)
                     .filter(|spender| view.pending(&spender.entry.txid))
                     .map(|spender| {
-                        spender
+                        let inputs = spender
                             .tx
                             .input
                             .iter()
                             .map(|input| (input.txid, input.vout))
-                            .collect()
+                            .collect();
+                        (spender.entry.txid, inputs)
                     })
             })
             .as_ref()
-            .is_some_and(|inputs| inputs.contains(&(*txid, vout)))
-            .then_some(key)
+            .filter(|(_, inputs)| inputs.contains(&(*txid, vout)))
+            .map(|(spender, _)| *spender)
     }
 }
 
@@ -190,7 +197,7 @@ impl ReadOnlyState {
             let Some(record) = state.txs.record_by_key(&at.key) else {
                 continue;
             };
-            pending.token ^= token_part(OWN, &at.key);
+            pending.token ^= token_part(OWN, &record.entry.txid);
             let tx = &record.tx;
             for (vout, txout) in tx.output.iter().enumerate() {
                 if pays(txout) {

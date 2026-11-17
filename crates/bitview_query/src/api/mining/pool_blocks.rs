@@ -1,9 +1,8 @@
-use std::sync::Arc;
+use std::{hash::Hasher, sync::Arc};
 
-use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_primitives::PoolSlug;
 use bitview_types::BlockInfoV1;
-use brk_types::{BlockHash, Dollars, Height};
+use brk_types::{BlockHash, Dollars, Height, TagHasher};
 use vecdb::ReadableVec;
 
 use crate::{
@@ -24,15 +23,14 @@ pub struct ResolvedPoolBlocks {
 impl ResolvedPoolBlocks {
     /// Identifies the page: the extended rows' identity at the pool's last activity, and the
     /// selected heights, as a reclassification can change older rows at the same anchor.
-    pub fn identity(&self) -> sha256::Hash {
+    pub fn identity(&self) -> u64 {
         let orphans = self.heights.iter().flat_map(|height| self.stale.at(*height));
-        let rows = blocks_v1_identity(self.activity_anchor, &self.prices, orphans);
-        let mut engine = sha256::Hash::engine();
-        engine.input(rows.as_byte_array());
+        let mut hasher = TagHasher::default();
+        hasher.write_u64(blocks_v1_identity(self.activity_anchor, &self.prices, orphans));
         for height in &self.heights {
-            engine.input(&u32::from(*height).to_le_bytes());
+            hasher.write_u32(u32::from(*height));
         }
-        sha256::Hash::from_engine(engine)
+        hasher.finish()
     }
 }
 

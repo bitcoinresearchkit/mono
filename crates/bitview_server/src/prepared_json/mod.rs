@@ -1,5 +1,5 @@
 use axum::{body::Bytes, http::HeaderMap, response::Response};
-use bitview_query::RepresentationId;
+use brk_types::tag_hash;
 
 use crate::{CacheParams, extended::ResponseExtended};
 
@@ -16,7 +16,7 @@ impl PreparedJson {
     }
 
     pub fn from_bytes(bytes: Bytes) -> Self {
-        let hash = RepresentationId::content_hash(&bytes);
+        let hash = tag_hash(&bytes);
         let params = CacheParams::revalidate(format!("c{hash:x}"));
         Self { bytes, params }
     }

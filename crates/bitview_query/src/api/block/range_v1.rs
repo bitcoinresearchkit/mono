@@ -1,8 +1,7 @@
-use std::sync::Arc;
+use std::{hash::Hasher, sync::Arc};
 
-use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_types::{BlockInfoV1, BlockOrphan};
-use brk_types::{BlockHash, Dollars, Height};
+use brk_types::{BlockHash, Dollars, Height, TagHasher};
 use vecdb::{ReadableVec, VecIndex};
 
 use super::{ResolvedBlocks, StaleBlocks};
@@ -23,24 +22,24 @@ pub(crate) fn blocks_v1_identity<'a>(
     anchor: Option<BlockHash>,
     prices: &[Dollars],
     orphans: impl Iterator<Item = &'a BlockOrphan>,
-) -> sha256::Hash {
-    let mut engine = sha256::Hash::engine();
-    engine.input(&[u8::from(anchor.is_some())]);
+) -> u64 {
+    let mut hasher = TagHasher::default();
+    hasher.write_u8(u8::from(anchor.is_some()));
     if let Some(hash) = anchor {
-        engine.input(&*hash);
+        hasher.write(&*hash);
     }
     for price in prices {
-        engine.input(&f64::from(*price).to_bits().to_le_bytes());
+        hasher.write_u64(f64::from(*price).to_bits());
     }
     // (Each field named: a new one doesn't compile until it's in the hash.)
     for BlockOrphan { height, hash, branchlen, status, prevhash } in orphans {
-        engine.input(&u32::from(*height).to_le_bytes());
-        engine.input(&**hash);
-        engine.input(&branchlen.to_le_bytes());
-        engine.input(&[*status as u8]);
-        engine.input(&**prevhash);
+        hasher.write_u32(u32::from(*height));
+        hasher.write(&**hash);
+        hasher.write_u32(*branchlen);
+        hasher.write_u8(*status as u8);
+        hasher.write(&**prevhash);
     }
-    sha256::Hash::from_engine(engine)
+    hasher.finish()
 }
 
 impl ResolvedBlocksV1 {
@@ -69,7 +68,7 @@ impl ResolvedBlocksV1 {
     }
 
     /// Identifies the rows: their chain's anchor, their prices and the stale blocks they list.
-    pub fn identity(&self) -> sha256::Hash {
+    pub fn identity(&self) -> u64 {
         let (begin, end) = self.blocks.range();
         let orphans = (begin..end).flat_map(|height| self.stale.at(Height::from(height)));
         blocks_v1_identity(self.anchor(), &self.prices, orphans)

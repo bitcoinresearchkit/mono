@@ -16,7 +16,7 @@ use std::{
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
 use brk_types::{
-    FeeRate, MempoolBlock, MempoolBlockHash, Transaction,
+    FeeRate, MempoolBlock, MempoolBlockHash, TagHasher, Transaction,
     Txid,
 };
 use builder::KeyIndex;
@@ -159,7 +159,7 @@ impl Snapshot {
             .into_iter()
             .enumerate()
             .map(|(index, (bodies, digests))| {
-                let mut hasher = json::keyed_hasher();
+                let mut hasher = TagHasher::default();
                 hasher.write_usize(index);
                 hasher.write(&to_vec(&self.stats(index)).expect("block stats serialize"));
                 for digest in digests {
