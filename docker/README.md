@@ -87,7 +87,12 @@ above 1 TiB; use `du -sh` on the volume mount point to see allocated space.
 docker compose -f docker/docker-compose.yml build
 docker compose -f docker/docker-compose.yml ps
 docker compose -f docker/docker-compose.yml logs -f
+docker compose -f docker/docker-compose.yml stop
 ```
+
+A stop waits for the write in progress: under a second once synced, minutes
+during the first sync. Compose gives it 30 minutes (`stop_grace_period`) before
+it kills the process, which would cut that write.
 
 The Bitcoin directory is mounted read-only and `bitviewd` runs as the non-root
 `bitview` user (UID 1000). If startup reports a permission error, make the

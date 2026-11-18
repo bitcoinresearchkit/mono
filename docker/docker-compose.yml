@@ -8,6 +8,9 @@ services:
     image: bitview:latest
     container_name: bitview
     restart: unless-stopped
+    # A stop waits for the write in progress, minutes long during a first sync. Docker's default
+    # kills the process 10 s after asking, in the middle of it.
+    stop_grace_period: 30m
     ports:
       # (This machine only; drop `127.0.0.1:` to serve its network.)
       - 127.0.0.1:7070:3110
