@@ -472,7 +472,7 @@ function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = tru
   save();
   // (The open one drawn again under its new id: a draw of it still on its way, under its old one, gives way. Still
   // starting, the start draws it.)
-  if (started && lost.includes(/** @type {Chart} */ (chart))) refresh(true);
+  if (started && lost.includes(/** @type {Chart} */ (chart))) refresh();
   const moved = to.size;
   if (!told) return kept;
   toast(`The presets were reorganized: ${[moved ? `${plural(moved, "edited preset")} moved with them` : "", kept ? `${plural(kept, "edited preset")} kept as ${kept === 1 ? "a chart" : "charts"} in your Library` : ""].filter(Boolean).join(", ")}`);

@@ -10,16 +10,16 @@ import {
   $, all$, amount, averageFor, AXIS_CHARS, axisTicks, bandLit, belowOf, BRUSH_MIN, brushDrag, bubbleRing, buildAsked,
   buildChart, byBlock, CADENCE, capturing, catalogIndex, changesOf, chart, chartHeight, chartSans, chartSize, CHUNK,
   clamp, client, closest, CLOUD, cloudLayers, cohortName, commit, composing, crossMoved, css, dataRevision, dateLabel,
-  draft, drawnChart, drawnDoc, drawnIndex, drawnVersion, drawVersion, edgesOf, EMPTY, engine, escape, exporting,
+  chartShown, displayed, draft, edgesOf, EMPTY, engine, escape, exporting,
   failing, FINE, FINE_STEP, FIRST_CHUNKS, fitMargins, footPinned, format, fromShort, fromUnfit, goneLayer, grow,
   growth, heatKnown, heatLike, hexToOklch, home, hoverTime, ICONS, indexAt, indexCatalog, INTERVAL_DAYS,
   INTERVAL_LABEL, INTERVAL_ORDER, keepStretch, KEPT_CHUNKS, keyAway, keyText, keyTime, keyValue, layerPicks, light,
   liveHeight, lookDoc, lookShown, lowerBound, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, MONTHS, morphFrom,
   MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, oklchToHex, ontoData, opacityOf, openingView, outreaches,
-  paintNavigator, panelShown, placedOn, placing, pointedLayer, pointerOnChart, precise, PRECISE, profileColor,
+  paintNavigator, panelShown, pending, placedOn, placing, pointedLayer, pointerOnChart, precise, PRECISE, profileColor,
   profileLit, rangeDays, reaching, reduced, resolved, resultText, rowSizes, selected, shownOklch, signalShown,
   signedMeasure, sizeChart, sizeHeld, SPAN, spanDays, spanKey, spanParts, spotlight, stretchResult, submenus,
-  subSetups, tagLit, timeAt, timesAt, tool, TOUCH, TWO_KEPT, unitOf, updateRowChanges, viewMoving, viewTimes, widest,
+  subSetups, tagLit, timeAt, timesAt, tokensNow, tool, TOUCH, TWO_KEPT, unitOf, updateRowChanges, viewMoving, viewTimes, widest,
   WIDEST_VALUES, windowTooLong, within,
 } from "/studio/app.js";
 import { aboutOf, latestSaid } from "/studio/command.js";
@@ -298,7 +298,7 @@ const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).fin
  *   `opens`, `highs`, `lows`: an OHLC series' candles, column by column (their closes its values); `low`: a cloud's lows (its highs, its values); `members`: its layers' values (its bands), `memberIds` their layers, `highest` which is highest; `breaks`: a trend's
  *   flips, a formula's restarts (each the point before: see restarts); `sides`: which it's on, a trend's (see trendOf), or which of a cloud's two is over (see cloudOf).
  * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
- * @typedef {{ times: number[], results: Map<string, Result>, drawn: Set<string>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
+ * @typedef {{ times: number[], results: Map<string, Result>, drawn: Set<string>, failed: string[], key?: string, version?: number, live?: boolean }} Resolved `failed`: the series whose fetch failed (to ask again); a draw's (see draw): `key`, the `dataKey` it was resolved for, `version`, the draw, `live`, whether it reaches the latest bar (a fine interval's chunks may end in the past)
  */
 
 /** The series a chart's formulas name, each once. @param {Chart} doc */
@@ -717,10 +717,10 @@ const profiled = (doc) => doc.layers.some((layer) => layer.type === "profile" &&
 /** The room a heatmap's profile takes after the latest point, past the library's blank: its column's width, else none. */
 const reserveOf = (/** @type {number} */ width, /** @type {Chart | null | undefined} */ doc) => (doc && profiled(doc) ? columnWidth(width) : 0);
 /** The room after the latest point at any width: the library's blank, and with a profile its column more (the chart drawn: ⌘K's preview, while it shows). */
-const rightGap = (width = engine.time.width, doc = drawnDoc ?? chart) => rightBlank(width) + reserveOf(width, doc);
+const rightGap = (width = engine.time.width, doc = displayed?.doc ?? chart) => rightBlank(width) + reserveOf(width, doc);
 /** The timeline's room for the open chart's profile column at this width (the blank is its own). */
 function setReserve(/** @type {number} */ width = engine.time.width) {
-  const reserve = reserveOf(width, drawnDoc ?? chart);
+  const reserve = reserveOf(width, displayed?.doc ?? chart);
   if (reserve !== engine.time.reserve) (engine.time.reserve = reserve), engine.invalidate(true);
 }
 /** The farthest the chart zooms out: four points a pixel, still smooth to pan. */
@@ -729,7 +729,7 @@ const MIN_BAR_SPACING = 0.25;
  * How close the chart's bars can get: four a pixel; at a day or coarser (all of history at hand, a few thousand
  * bars), as close as all of it needs to fit, its first date's label room left: Max is all of history there.
  */
-function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars, /** @type {{ from: number, to: number } | null} */ held = null) {
+function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars, /** @type {{ from: number, to: number } | null} */ held = displayed?.doc.id === doc.id && displayed.doc.index === doc.index ? shownSpan() : null) {
   // (By the chart's own width, its price scales at their widest: not the plot's, narrower or wider as a scale's
   // labels are, which would set it again as the view moves, the library then moving the view: a spacing set again
   // is applied a frame later, as it was when set, undoing a zoom made since.)
@@ -738,7 +738,7 @@ function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars, /** @t
   const fitted = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
   // (Never closer than the view's own bars: one kept at a narrower width (a layout's motion) isn't squeezed. `held`:
   // a view about to be shown, its own.)
-  const range = held ?? (drawnChart === doc.id && drawnIndex === doc.index ? shownSpan() : null), spacing = Math.min(fitted, range ? engine.time.width / (range.to - range.from) : Infinity);
+  const range = held, spacing = Math.min(fitted, range ? engine.time.width / (range.to - range.from) : Infinity);
   if (spacing !== engine.time.minSpacing) (engine.time.minSpacing = spacing), engine.invalidate(true);
 }
 /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
@@ -1015,7 +1015,7 @@ const cardsDrawn = new Map();
 /** Why a layer has no values to give: what went wrong, if something did, else that they're on their way; "" once they're here. */
 const noValues = (/** @type {string} */ id) => ((result) => (result?.values ? "" : result?.error ?? "Its data is still loading"))(resolved?.results.get(id));
 /** The interval of the data on screen: during a switch, the old one (its data the one drawn till the new one's in). */
-const shownIndex = () => drawnIndex || chart?.index || "day1";
+const shownIndex = () => displayed?.doc.index || chart?.index || "day1";
 /** Whether what's drawn is at a fine interval (its dates written with their times): during a switch, the old data's. */
 const fineDrawn = () => FINE.has(shownIndex());
 /** A point's date as its interval (the one drawn, else `index`) has it: a month's, its month ("Oct 2023"); a year's, its year; a day's, its day; finer, its time too. @param {number} time @param {string} [index] */
@@ -1031,12 +1031,19 @@ const setPresetShown = (/** @type {boolean} */ shown) => {
 };
 
 /** Whether what's drawn is this chart with all its data (a build asked for, not yet: not yet, see buildSoon). */
-const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion && !buildAsked;
+const settled = () => chartShown() && !pending() && !buildAsked;
 /**
  * What a chart's resolved values depend on: its interval, each pane's average, and what each layer reads and its
  * pane (in any order); a heatmap's holders and measure (its result's: whether Bitview has them, its unit).
  */
 const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map(({ id, average }) => [id, average ?? ""]).sort(), doc.layers.map((layer) => [layer.id, layer.pane, layer.letter, layer.series, layer.formula, layer.from ? layer.type : null, layer.from ?? null, layer.ref ?? null, heatLike(layer) ? [layer.heatmap ?? "all", layer.profile ?? null, measureOf(layer)] : null]).sort()]);
+/**
+ * What a chart's build draws from, the theme's tokens too (what they're read for: a contrast change redraws it, see
+ * redrawChart): all of it but its title and names, its range (a view: see showRange), its drawings, its panes' sizes
+ * (each shown without one), and the library's own (where it came from, its folder, whether it began blank, when it
+ * was edited).
+ */
+const lookKey = (/** @type {Chart} */ doc) => JSON.stringify([tokensNow(), { ...doc, title: 0, range: 0, drawings: 0, made: 0, updated: 0, folder: 0, preset: 0, base: 0, blank: 0, panes: doc.panes.map(({ size, ...pane }) => pane), layers: doc.layers.map(({ label, underName, levels, ...layer }) => ({ ...layer, levels: levels?.map(({ name, ...level }) => level) })) }]);
 
 /**
  * The signals' marks, each on its layer's series, where it turns up or down (and with its results, where a stretch
@@ -2822,7 +2829,7 @@ let bubbleAt = /** @type {{ time: number | null, pane: number | undefined }} */ 
 function lightBubble(time, pane) {
   bubbleAt = { time, pane };
   let lit = null;
-  const doc = drawnDoc ?? chart;
+  const doc = displayed?.doc ?? chart;
   if (time !== null && pane !== undefined && resolved && doc.layers.some((layer) => layer.type === "bubbles")) {
     const x = xOfTime(time), i = lowerBound(resolved.times, time);
     for (const layer of doc.layers) {
@@ -2866,7 +2873,7 @@ function namePointed() {
 }
 /** The plot as the keys reach it, laid over the plot as it's laid out (none without a chart drawn). */
 function placePlotKeys() {
-  const keys = $("plot-keys"), plot = home || !chart?.layers.length || drawnChart !== chart.id ? null : plotBox();
+  const keys = $("plot-keys"), plot = home || !chart?.layers.length || !chartShown() ? null : plotBox();
   if (!plot) keyAway();
   keys.hidden = !plot;
   if (!plot) return;
@@ -2954,7 +2961,7 @@ const keepPaneSizes = () => setTimeout(() => {
   // (To a thousandth: laid on again, a size kept rounder would move the separator a pixel from where it was let go.)
   const sizes = chart.panes.map((_, i) => Math.round(panes[i].share * 1000) / 1000);
   if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 1000) / 1000)) return;
-  commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { redraw: "none", quiet: true });
+  commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { quiet: true });
   // (Laid on as kept: what an undo puts back is then another size, laid on in its turn.)
   sizePanes(chart);
   fitMargins();
@@ -3106,7 +3113,7 @@ function prefetch() {
   // (The library frames from the page's start, an empty one included; the chart is the one the page opens, made as it starts: none yet, nothing to reach for.)
   const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
   const range = shownSpan();
-  if (!span || presetShown || !range || n < 2 || drawnChart !== chart.id || drawnIndex !== chart.index) return;
+  if (!span || presetShown || !range || n < 2 || !chartShown() || shownIndex() !== chart.index) return;
   const side = nearEnd(span, range, n);
   if (!side) return;
   const k = side < 0 ? span.from - 1 : span.to + 1;
@@ -3142,7 +3149,7 @@ export {
   fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, gapped, glide,
   glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu,
   keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
-  legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads,
+  legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads, lookKey,
   mapResult, marginsOf, markLegends, markSignals, menuPicks, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT,
   noValues, oklchOf, overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries,
   paintSig, paletteOf, PANE, paneBox, paneRect, PERCENT_FORMAT, periodAmount, periodOf, pinCross, placeBrush,

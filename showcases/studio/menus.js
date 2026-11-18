@@ -3,7 +3,7 @@
 import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
   $, all$, atWindow, AVERAGES, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, CADENCE, chart, chartImage,
-  chartWindow, CHEVRON, clamp, closest, commit, css, DASHES, DEFAULT_MEASURE, DEFAULT_RANGE, defaultOpacity, drawKeys, drawnChart,
+  chartShown, chartWindow, CHEVRON, clamp, closest, commit, css, DASHES, DEFAULT_MEASURE, DEFAULT_RANGE, defaultOpacity, drawKeys,
   EDGES, engine, escape, FINE, firstForm, firstLook, flowsAt, FORMATS, FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST,
   grouped, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideMenu, hideSubmenu, ICONS, indexAt,
   INTERVAL_LABEL, INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isSeriesName, isView,
@@ -430,8 +430,8 @@ function renderInterval() {
 }
 /** A preset is a view: no rebuild, the chart glides there. A step, as the interval is (see travel: undone, it glides back). */
 function setRange(range) {
-  commit((doc) => (doc.range = range), { coalesce: "range", redraw: "none", look: true, quiet: true, view: true });
-  showRange();
+  // (The same again, no step: shown again all the same.)
+  commit((doc) => (doc.range = range), { coalesce: "range", look: true, quiet: true, view: true }) || showRange();
 }
 /**
  * The title as wide as it reads, its text or what it'd be named (up to its room), where the field can't size itself
@@ -448,7 +448,7 @@ function fitTitle() {
 function leaveTitle() {
   const field = /** @type {HTMLInputElement} */ ($("title")), title = field.value.trim();
   // (Only what was typed: one focused and left as it was isn't an edit (another tab's rename, taken in meanwhile, stays).)
-  if (title !== chart.title && field.value !== typedFrom.get(field)) commit((doc) => (doc.title = title), { coalesce: "title", redraw: "none" });
+  if (title !== chart.title && field.value !== typedFrom.get(field)) commit((doc) => (doc.title = title), { coalesce: "title" });
   // (Left, it's untouched again: a rename taken in while it's not focused (a tab in the background) shows.)
   typedFrom.set(field, field.value);
 }
@@ -633,7 +633,7 @@ function toSketch(doc) {
   };
 }
 /** The view a link carries for a chart: the one it shows, or was left on; its range showing, none. @param {Chart} doc */
-const carriedView = (doc) => (doc === chart ? (drawnChart === chart.id ? shownView() : openingView(doc)) : openView(doc));
+const carriedView = (doc) => (doc === chart ? (chartShown() ? shownView() : openingView(doc)) : openView(doc));
 /** The dates a chart shows, where they aren't its range's: the first bar's and the last's, past the data too; else null. @param {Chart} doc */
 function linkDates(doc) {
   const kept = carriedView(doc);

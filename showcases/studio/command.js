@@ -1576,7 +1576,7 @@ const folderOwnPage = (/** @type {string} */ given) => ({ title: () => folderByI
   ].map((row) => ({ kind: "row", ...row }));
 } });
 /** A chart's title, its own step wherever it's renamed from (see editChart). @param {Chart} doc @param {string} title */
-const renameChart = (doc, title) => editChart(doc, (draft) => (draft.title = title), { redraw: "none" });
+const renameChart = (doc, title) => editChart(doc, (draft) => (draft.title = title));
 
 /**
  * Every setting and action of this chart, its layers and its panes, as found from the search: "Realized price ·
@@ -1881,7 +1881,7 @@ function layerPage(id) {
         { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
       ] : []),
       ...(!layer.from && layer.type !== "signal" ? /** @type {const} */ ([["cycles", false, "Compare halving cycles"], ["cycles", true, "Overlay halving cycles"], ["years", false, "Compare years"], ["years", true, "Overlay years"]]).map(([which, over, label]) => ({ key: over ? `${which}-over` : which, icon: ICONS.pane, label, verb: over ? "Overlay" : "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: over ? "Each over the ones before" : "Each from its start" }))(((periods) => (periods.length ? unfitHere([periods[0].formula]) : overShort(which)))(periodsOf(layer, which, over))), run: () => comparePeriods(id, which, over) })) : []),
-      { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
+      { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined))) },
       // (A bubbles layer's own, after its series' or formula's, as its settings have them: one group each.)
       ...(layer.type === "bubbles" ? [
         { key: "ref", icon: glyph("bubbles"), label: "On", aside: ((ref) => (ref ? labelOf(ref) : "Its pane's middle"))(layerById(layer.ref ?? "")), group: "Bubbles", page: () => choicePage("On", () => refChoices(id)) },
