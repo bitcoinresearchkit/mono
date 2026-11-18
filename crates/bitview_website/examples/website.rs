@@ -72,7 +72,7 @@ async fn main() -> Result<()> {
         )
         .on_eos(());
 
-    let app = router(website)
+    let app = router(website, false)
         .layer(CatchPanicLayer::new())
         .layer(response_uri_layer)
         .layer(trace_layer)

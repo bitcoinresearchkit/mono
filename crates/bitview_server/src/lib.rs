@@ -274,7 +274,10 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     };
     let state = AppState::new(query.clone(), shared);
 
-    let website_router = WebsiteRouter(state.website.clone());
+    let website_router = WebsiteRouter(
+        state.website.clone(),
+        state.cdn_cache_mode == CdnCacheMode::Aggressive,
+    );
     let mut router = ApiRouter::new()
         .add_api_routes()
         .route_layer(from_fn(canonical_url::refuse_respelled));

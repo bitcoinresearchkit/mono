@@ -6,12 +6,12 @@ use axum::{
     http::{HeaderMap, HeaderName, HeaderValue, Response, StatusCode, Uri, header},
     response::{IntoResponse, Redirect},
 };
-use bitview_http::{CachePolicy, IMMUTABLE, REVALIDATE};
+use bitview_http::{CDN_CACHE_CONTROL, CachePolicy, IMMUTABLE, REVALIDATE};
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
 use crate::{
     Error,
-    page_info::Listing,
+    page_info::{self, Form, Listed, Listing},
     router::Site,
     website::{File, RELEASES, WORKERS, hash},
 };
@@ -179,7 +179,13 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     {
         return released(site, path, asked == release, uri, request_headers);
     }
-    let mut found = site.website.get_file(path)?;
+    let found = match site.website.get_file(path) {
+        // No file there: a listed page's Markdown twin, at an address of its own.
+        Err(error) if error.is_not_found() => {
+            return twin(site, uri, request_headers).ok_or(error);
+        }
+        found => found?,
+    };
     let file = &found.path;
     let content_type = found.content_type;
     let has_slash = path.ends_with('/');
@@ -196,13 +202,11 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     {
         return Err(Error::not_found());
     }
-    let varies = match site
-        .pages
-        .apply(&mut found, uri.path(), request_headers)
-        .map_err(|error| Error::internal(format!("{}: {error}", uri.path())))?
-    {
-        Listing::Listed => true,
-        Listing::Unlisted => false,
+    match site.pages.find(&found.path, uri.path()) {
+        Listing::Listed(listed) => {
+            listed_answer(site, &found, &listed, Form::Html, uri.path(), request_headers)
+        }
+        Listing::Unlisted => Ok(answer(found, site.kept(Kept::Document), request_headers)),
         // Not one of an app's addresses. One of them written the slash the other way, or under a folder that moved,
         // or both: there. Else a 404 for search engines; a browser still gets the app, to say what's missing there (a
         // renamed address).
@@ -213,24 +217,62 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
                 .flatten()
                 .flat_map(|address| [address.to_owned(), other_spelling(address)])
                 .find(|address| site.pages.lists(&found.path, address));
-            return Ok(match listed {
+            Ok(match listed {
                 Some(to) => permanent(&with_query(&to, uri.query())),
                 None => not_found(wants_page(request_headers).then_some(found)),
-            });
+            })
         }
-    };
-    let policy = if varies {
-        // Shared caches may ignore Vary: Accept. Browsers can still revalidate each representation.
-        "private, max-age=0, must-revalidate"
-    } else {
-        REVALIDATE
-    };
-    let mut response = answer(found, policy, request_headers);
-    if varies {
-        response
-            .headers_mut()
-            .insert(header::VARY, HeaderValue::from_static("Accept"));
     }
+}
+
+/// The Markdown twin of a listed page, for an address that names no file: the page's address and `.md`
+/// (`page_info::twin`), without a query. `None` when it is no listed page's.
+fn twin(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Option<Response<Body>> {
+    let page = page_info::twin_page(uri.path()).filter(|_| uri.query().is_none())?;
+    let index = site.website.get_file(page.strip_prefix('/')?).ok()?;
+    let Listing::Listed(listed) = site.pages.find(&index.path, page) else {
+        return None;
+    };
+    listed_answer(site, &index, &listed, Form::Markdown, page, request_headers).ok()
+}
+
+/// A listed page at `address`, or its Markdown twin: each names the other in `Link`, so a reader of one finds the
+/// other, and a search engine the page.
+fn listed_answer(
+    site: &Site,
+    index: &File,
+    listed: &Listed<'_>,
+    form: Form,
+    address: &str,
+    request_headers: &HeaderMap,
+) -> Result<Response<Body>, Error> {
+    let contents = |listed: &Listed<'_>| {
+        listed
+            .contents(form, &index.contents)
+            .map_err(|error| Error::internal(format!("{address}: {error}")))
+    };
+    let kept = site.kept(Kept::Document);
+    let content_type = form.content_type();
+    let mut response = match listed.tag(form) {
+        // Named as the site loaded: a request that has it costs no page.
+        Some(tag) if !cfg!(debug_assertions) => {
+            if bitview_http::if_none_match(request_headers, Some(tag.as_bytes())) {
+                tagged(bitview_http::not_modified(), Some(tag), kept)
+            } else {
+                tagged(file_response(contents(listed)?, content_type), Some(tag), kept)
+            }
+        }
+        _ => conditional(contents(listed)?, None, content_type, kept, request_headers),
+    };
+    let link = match form {
+        Form::Html => format!(
+            "<{}>; rel=\"alternate\"; type=\"text/markdown\"",
+            page_info::twin(address)
+        ),
+        Form::Markdown => format!("<{address}>; rel=\"canonical\""),
+    };
+    let link = HeaderValue::try_from(link).map_err(|error| Error::internal(error.to_string()))?;
+    response.headers_mut().insert(header::LINK, link);
     Ok(response)
 }
 
@@ -252,33 +294,70 @@ fn released(
     {
         return Err(Error::not_found());
     }
-    let policy = if current { IMMUTABLE } else { REVALIDATE };
-    Ok(answer(found, policy, request_headers))
+    let kept = site.kept(if current { Kept::Release } else { Kept::Document });
+    Ok(answer(found, kept, request_headers))
+}
+
+/// How long an answer's bytes stay what they are at its address.
+#[derive(Clone, Copy)]
+enum Kept {
+    /// At the current release's address: for good.
+    Release,
+    /// Anywhere else: until the next release of an embedded site, or any time for a folder's.
+    Document,
+}
+
+impl Site {
+    /// The browser's policy for an answer, and the CDN's own where it differs. Browsers are never purged, so a
+    /// document is asked for again each second. A CDN purged on every release (`cdn_purged`, the server's `--cdn`)
+    /// keeps an embedded site's documents until then, as only a release changes them.
+    fn kept(&self, kept: Kept) -> (&'static str, Option<&'static str>) {
+        match kept {
+            Kept::Release => (IMMUTABLE, None),
+            Kept::Document => {
+                let fixed = self.cdn_purged && self.website.filesystem_path().is_none();
+                (REVALIDATE, fixed.then_some(IMMUTABLE))
+            }
+        }
+    }
 }
 
 /// A file's 200, or its 304 to a request that has it.
-fn answer(found: File, policy: &'static str, request_headers: &HeaderMap) -> Response<Body> {
-    let File {
-        contents,
-        hash: file_hash,
-        content_type,
-        ..
-    } = found;
+fn answer(
+    found: File,
+    kept: (&'static str, Option<&'static str>),
+    request_headers: &HeaderMap,
+) -> Response<Body> {
+    conditional(found.contents, found.hash, found.content_type, kept, request_headers)
+}
+
+/// The 200 of `contents`, or the 304 to a request that has them, named by `known` or else by their hash.
+fn conditional(
+    contents: Bytes,
+    known: Option<&str>,
+    content_type: &'static str,
+    kept: (&'static str, Option<&'static str>),
+    request_headers: &HeaderMap,
+) -> Response<Body> {
     // Release only. Embedded files carry theirs; filesystem content is mutable, so hash it now.
     let etag = (!cfg!(debug_assertions))
-        .then(|| file_hash.map_or_else(|| Cow::Owned(hash(&contents)), Cow::Borrowed));
+        .then(|| known.map_or_else(|| Cow::Owned(hash(&contents)), Cow::Borrowed));
     let etag = etag.as_deref();
-    let mut response = if bitview_http::if_none_match(request_headers, etag.map(str::as_bytes)) {
+    let response = if bitview_http::if_none_match(request_headers, etag.map(str::as_bytes)) {
         bitview_http::not_modified()
     } else {
         file_response(contents, content_type)
     };
-    insert_caching(response.headers_mut(), etag, policy);
-    response
+    tagged(response, etag, kept)
 }
 
-/// The validator and cache policy a file's 200 and 304 share.
-fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, policy: &'static str) {
+/// A 200 or 304 with the validator and cache policy the two share.
+fn tagged(
+    mut response: Response<Body>,
+    etag: Option<&str>,
+    (browser, cdn): (&'static str, Option<&'static str>),
+) -> Response<Body> {
+    let headers = response.headers_mut();
     if let Some(etag) = etag {
         // Weak: a CDN compressing the file serves other bytes under the same validator.
         headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());
@@ -286,7 +365,11 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>, policy: &'static 
         // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
         headers.insert(VERSION, etag.parse().unwrap());
     }
-    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(policy));
+    headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(browser));
+    if let Some(cdn) = cdn {
+        headers.insert(CDN_CACHE_CONTROL, HeaderValue::from_static(cdn));
+    }
+    response
 }
 
 /// Whether the path as sent is written the one way: no escape, no empty, `.` or `..` segment, which

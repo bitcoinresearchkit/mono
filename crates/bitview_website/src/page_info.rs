@@ -7,7 +7,7 @@ use std::{
     time::Instant,
 };
 
-use axum::http::{HeaderMap, header};
+use axum::body::Bytes;
 use flate2::read::GzDecoder;
 use include_dir::Dir;
 use serde::Deserialize;
@@ -15,14 +15,36 @@ use tracing::info;
 
 use crate::{
     Website,
-    website::{EMBEDDED, File},
+    website::{EMBEDDED, hash},
 };
 
 const NAME: &str = "page-info.json.gz";
+/// A folder's page, at the folder's address.
+const INDEX: &str = "index.html";
+/// What a page's address takes to name its Markdown twin, a folder's page being its `index.html`
+/// (`/studio/index.html.md`, `/studio/presets/price/all-time-high.md`): where llmstxt.org has readers look.
+const TWIN: &str = ".md";
 const HEAD: (&str, &str) = ("<!-- page-info-head -->", "<!-- /page-info-head -->");
 const BODY: (&str, &str) = ("<!-- page-info-body -->", "<!-- /page-info-body -->");
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
+/// Where a page's two slots begin and end in its folder's index: the head's, then the body's.
+type Slots = ((usize, usize), (usize, usize));
+
+/// The address of the Markdown twin of the page at `address`.
+pub(crate) fn twin(address: &str) -> String {
+    let index = if address.ends_with('/') { INDEX } else { "" };
+    format!("{address}{index}{TWIN}")
+}
+
+/// The address of the page whose Markdown twin `address` would be.
+pub(crate) fn twin_page(address: &str) -> Option<&str> {
+    let page = address.strip_suffix(TWIN)?;
+    Some(match page.strip_suffix(INDEX) {
+        Some(folder) if folder.ends_with('/') => folder,
+        _ => page,
+    })
+}
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -37,21 +59,81 @@ struct Source {
 struct Page {
     head: String,
     body: String,
-    markdown: String,
+    markdown: Bytes,
+    /// The page's validator and its twin's, made as the site loads when its files can't change after.
+    tags: Option<[String; 2]>,
+}
+
+/// A folder's index with its slots found, kept for a site whose files can't change after it loads (the embedded
+/// one): a page is then three slices of it around the page's two strings, and nothing is searched per request.
+struct Template {
+    html: Bytes,
+    slots: Slots,
+}
+
+#[derive(Default)]
+struct Folder {
+    template: Option<Template>,
+    pages: HashMap<String, Page>,
+}
+
+/// The two ways a listed address is sent: the page, and its Markdown twin at an address of its own (`twin`).
+#[derive(Clone, Copy)]
+pub(crate) enum Form {
+    Html,
+    Markdown,
+}
+
+impl Form {
+    pub(crate) fn content_type(self) -> &'static str {
+        match self {
+            Self::Html => "text/html; charset=utf-8",
+            Self::Markdown => "text/markdown; charset=utf-8",
+        }
+    }
 }
 
 /// What a folder's page info makes of an address its index answers.
-pub(crate) enum Listing {
+pub(crate) enum Listing<'a> {
     /// The folder keeps no page info: its index as it is.
     Unlisted,
-    /// One of the folder's addresses: its content written in, as `Accept` asks (so the response varies by it).
-    Listed,
+    /// One of the folder's addresses.
+    Listed(Listed<'a>),
     /// Not one of the folder's addresses, which its page info lists in full: nothing is there.
     Unknown,
 }
 
+/// One of a folder's addresses: its content, to write into the folder's index or to send as Markdown.
+pub(crate) struct Listed<'a> {
+    template: Option<&'a Template>,
+    page: &'a Page,
+}
+
+impl Listed<'_> {
+    /// The validator of a form, where it is known without its bytes.
+    pub(crate) fn tag(&self, form: Form) -> Option<&str> {
+        let [html, markdown] = self.page.tags.as_ref()?;
+        Some(match form {
+            Form::Html => html,
+            Form::Markdown => markdown,
+        })
+    }
+
+    /// The bytes of a form. `index` is the folder's index as read for this request, searched for its slots only
+    /// when none was kept.
+    pub(crate) fn contents(&self, form: Form, index: &[u8]) -> Result<Bytes> {
+        Ok(match (form, self.template) {
+            (Form::Markdown, _) => self.page.markdown.clone(),
+            (Form::Html, Some(template)) => self.page.written_into(&template.html, template.slots),
+            (Form::Html, None) => {
+                self.page.written_into(index, slots(std::str::from_utf8(index)?)?)
+            }
+        })
+    }
+}
+
 #[derive(Default)]
-pub(crate) struct Pages(HashMap<PathBuf, HashMap<String, Page>>);
+pub(crate) struct Pages(HashMap<PathBuf, Folder>);
 
 impl Pages {
     pub(crate) fn load(website: &Website) -> Result<Self> {
@@ -83,21 +165,23 @@ impl Pages {
             Some(base) => filesystem(base, base, &mut files)?,
             None => embedded(&EMBEDDED, &mut files),
         }
+        // The embedded site's files are what they are for good: its templates and tags are made here, once.
+        let fixed = website.filesystem_path().is_none();
         let mut pages = Self::default();
         for file in files {
-            let load = || -> Result<HashMap<String, Page>> {
+            let load = || -> Result<Folder> {
                 let contents = website
                     .get_file(file.to_str().ok_or("Non-UTF-8 page-info path")?)
                     .map_err(|_| "Cannot read page-info file")?;
                 let mut decoded = Vec::new();
                 GzDecoder::new(contents.contents.as_ref()).read_to_end(&mut decoded)?;
                 let sources: HashMap<String, Source> = serde_json::from_slice(&decoded)?;
-                let index = file.with_file_name("index.html");
+                let index = file.with_file_name(INDEX);
                 let template = website
                     .get_file(index.to_str().ok_or("Non-UTF-8 index path")?)
                     .map_err(|_| "Cannot read page-info index.html")?;
-                let html = std::str::from_utf8(&template.contents)?;
-                slots(html)?;
+                let slots = slots(std::str::from_utf8(&template.contents)?)?;
+                let template_hash = template.hash.filter(|_| fixed);
                 // Kept by the address as requested: the folder's own path, then the key.
                 let folder = file
                     .parent()
@@ -108,14 +192,26 @@ impl Pages {
                 } else {
                     format!("/{folder}")
                 };
-                sources.into_iter().map(|(address, source)| {
-                    if !address.starts_with('/') || address.contains(['?', '#']) { return Err("Page-info keys must be folder-relative addresses starting with /, without query or fragment".into()); }
-                    Ok((format!("{prefix}{address}"), Page::new(source)))
-                }).collect()
+                let pages = sources
+                    .into_iter()
+                    .map(|(address, source)| {
+                        if !address.starts_with('/') || address.contains(['?', '#']) {
+                            return Err("Page-info keys must be folder-relative addresses starting with /, without query or fragment".into());
+                        }
+                        Ok((format!("{prefix}{address}"), Page::new(source, template_hash)))
+                    })
+                    .collect::<Result<_>>()?;
+                Ok(Folder {
+                    template: fixed.then(|| Template {
+                        html: template.contents,
+                        slots,
+                    }),
+                    pages,
+                })
             };
-            let entries = load().map_err(|error| format!("{}: {error}", file.display()))?;
-            info!(file = %file.display(), entries = entries.len(), "Loaded website page info");
-            pages.0.insert(file.with_file_name("index.html"), entries);
+            let folder = load().map_err(|error| format!("{}: {error}", file.display()))?;
+            info!(file = %file.display(), entries = folder.pages.len(), "Loaded website page info");
+            pages.0.insert(file.with_file_name(INDEX), folder);
         }
         info!(elapsed = ?start.elapsed(), "Website page info ready");
         Ok(pages)
@@ -125,45 +221,27 @@ impl Pages {
     pub(crate) fn lists(&self, index: &Path, address: &str) -> bool {
         self.0
             .get(index)
-            .is_some_and(|entries| entries.contains_key(address))
+            .is_some_and(|folder| folder.pages.contains_key(address))
     }
 
-    /// Only the folder whose index actually answered owns this address's content.
-    pub(crate) fn apply(
-        &self,
-        file: &mut File,
-        address: &str,
-        headers: &HeaderMap,
-    ) -> Result<Listing> {
-        let Some(entries) = self.0.get(&file.path) else {
-            return Ok(Listing::Unlisted);
+    /// What the folder of `index`, the file that answers `address`, makes of it: only that folder owns the
+    /// address's content.
+    pub(crate) fn find(&self, index: &Path, address: &str) -> Listing<'_> {
+        let Some(folder) = self.0.get(index) else {
+            return Listing::Unlisted;
         };
-        let Some(page) = entries.get(address) else {
-            return Ok(Listing::Unknown);
-        };
-        file.hash = None;
-        if wants_markdown(headers) {
-            file.contents = page.markdown.clone().into();
-            file.content_type = "text/markdown; charset=utf-8";
-        } else {
-            file.content_type = "text/html; charset=utf-8";
-            let html = std::str::from_utf8(&file.contents)?;
-            let (head, body) = slots(html)?;
-            let mut rendered =
-                String::with_capacity(html.len() + page.head.len() + page.body.len());
-            rendered.push_str(&html[..head.0]);
-            rendered.push_str(&page.head);
-            rendered.push_str(&html[head.1..body.0]);
-            rendered.push_str(&page.body);
-            rendered.push_str(&html[body.1..]);
-            file.contents = rendered.into();
+        match folder.pages.get(address) {
+            Some(page) => Listing::Listed(Listed {
+                template: folder.template.as_ref(),
+                page,
+            }),
+            None => Listing::Unknown,
         }
-        Ok(Listing::Listed)
     }
 }
 
 /// The two explicit replacement slots, each exactly once, in document order.
-fn slots(html: &str) -> Result<((usize, usize), (usize, usize))> {
+fn slots(html: &str) -> Result<Slots> {
     let slot = |(open, close): (&str, &str)| -> Result<(usize, usize)> {
         if html.matches(open).count() != 1 || html.matches(close).count() != 1 {
             return Err(format!("Expected one {open} and {close}").into());
@@ -184,19 +262,40 @@ fn slots(html: &str) -> Result<((usize, usize), (usize, usize))> {
 }
 
 impl Page {
-    fn new(source: Source) -> Self {
+    /// A page's content as written into its folder's index. With the hash of an index that can't change after,
+    /// its validators too: the page's from the index's and what is written in, so no page is rendered to name it.
+    fn new(source: Source, template_hash: Option<&str>) -> Self {
         let title = escape(&source.title);
         let description = escape(&source.description);
         let canonical = escape(&source.canonical);
+        let twin = escape(&twin(&source.canonical));
         // JSON inside a script is raw text: escaping '<' prevents any case of </script> ending it.
         let json = source.json_ld.to_string().replace('<', "\\u003c");
+        let head = format!(
+            "\n<title>{title}</title>\n<meta name=\"description\" content=\"{description}\">\n<link rel=\"canonical\" href=\"{canonical}\">\n<link rel=\"alternate\" type=\"text/markdown\" href=\"{twin}\">\n<meta property=\"og:title\" content=\"{title}\">\n<meta property=\"og:description\" content=\"{description}\">\n<meta property=\"og:url\" content=\"{canonical}\">\n<script type=\"application/ld+json\">{json}</script>\n"
+        );
+        let body = markdown(&source.markdown);
+        let tags = template_hash.map(|template| {
+            let written = [template, "\0", &head, "\0", &body].concat();
+            [hash(written.as_bytes()), hash(source.markdown.as_bytes())]
+        });
         Self {
-            head: format!(
-                "\n<title>{title}</title>\n<meta name=\"description\" content=\"{description}\">\n<link rel=\"canonical\" href=\"{canonical}\">\n<meta property=\"og:title\" content=\"{title}\">\n<meta property=\"og:description\" content=\"{description}\">\n<meta property=\"og:url\" content=\"{canonical}\">\n<script type=\"application/ld+json\">{json}</script>\n"
-            ),
-            body: markdown(&source.markdown),
-            markdown: source.markdown,
+            head,
+            body,
+            markdown: source.markdown.into(),
+            tags,
         }
+    }
+
+    /// The folder's index `html` with this page's content in its `slots`.
+    fn written_into(&self, html: &[u8], (head, body): Slots) -> Bytes {
+        let mut page = Vec::with_capacity(html.len() + self.head.len() + self.body.len());
+        page.extend_from_slice(&html[..head.0]);
+        page.extend_from_slice(self.head.as_bytes());
+        page.extend_from_slice(&html[head.1..body.0]);
+        page.extend_from_slice(self.body.as_bytes());
+        page.extend_from_slice(&html[body.1..]);
+        page.into()
     }
 }
 
@@ -278,49 +377,4 @@ fn markdown(text: &str) -> String {
         html.push_str(&format!("</{open}>\n"));
     }
     html
-}
-
-/// HTML is the default. Markdown must be explicitly requested and preferred over HTML;
-/// more specific ranges override wildcard ranges, including q=0 exclusions.
-fn wants_markdown(headers: &HeaderMap) -> bool {
-    let ranges: Vec<_> = headers
-        .get_all(header::ACCEPT)
-        .iter()
-        .filter_map(|v| v.to_str().ok())
-        .flat_map(|v| v.split(','))
-        .collect();
-    let quality = |kind: &str| {
-        ranges
-            .iter()
-            .filter_map(|range| {
-                let mut parts = range.split(';');
-                let media = parts.next()?.trim();
-                let specificity = if media.eq_ignore_ascii_case(kind) {
-                    2
-                } else if media.eq_ignore_ascii_case("text/*") {
-                    1
-                } else if media == "*/*" {
-                    0
-                } else {
-                    return None;
-                };
-                let q = parts
-                    .find_map(|part| {
-                        part.trim()
-                            .split_once('=')
-                            .filter(|(key, _)| key.eq_ignore_ascii_case("q"))
-                            .map(|(_, value)| value.trim().parse::<f32>().unwrap_or(0.0))
-                    })
-                    .unwrap_or(1.0);
-                Some((specificity, if (0.0..=1.0).contains(&q) { q } else { 0.0 }))
-            })
-            .max_by(|a, b| a.0.cmp(&b.0).then(a.1.total_cmp(&b.1)))
-            .map_or(0.0, |(_, q)| q)
-    };
-    ranges.iter().any(|range| {
-        range
-            .split(';')
-            .next()
-            .is_some_and(|media| media.trim().eq_ignore_ascii_case("text/markdown"))
-    }) && quality("text/markdown") > quality("text/html")
 }

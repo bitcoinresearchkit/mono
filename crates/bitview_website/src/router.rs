@@ -7,10 +7,12 @@ use crate::{Website, handlers::file_handler, page_info::Pages};
 pub(crate) struct Site {
     pub(crate) website: Website,
     pub(crate) pages: Pages,
+    pub(crate) cdn_purged: bool,
 }
 
-/// Returns an empty router if the website is disabled.
-pub fn router(website: Website) -> Router {
+/// Returns an empty router if the website is disabled. `cdn_purged` says a CDN in front is purged on every
+/// release, so it may keep until then what only a release changes.
+pub fn router(website: Website, cdn_purged: bool) -> Router {
     if website.is_enabled() {
         // Validate all embedded pages at startup, including sites without page info.
         let _ = website.release();
@@ -19,7 +21,11 @@ pub fn router(website: Website) -> Router {
         Router::new()
             .route("/{*path}", get(file_handler))
             .route("/", get(file_handler))
-            .with_state(Arc::new(Site { website, pages }))
+            .with_state(Arc::new(Site {
+                website,
+                pages,
+                cdn_purged,
+            }))
     } else {
         Router::new()
     }

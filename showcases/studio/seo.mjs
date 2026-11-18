@@ -100,9 +100,12 @@ for (const preset of presets) for (let depth = 1; depth < preset.p.length && dep
   const key = JSON.stringify(preset.p.slice(0, depth));
   held.set(key, (held.get(key) ?? 0) + 1);
 }
+// A page's Markdown twin: its address and `.md`, a section's (a folder's page) being its index.html, as the server
+// answers them (`twin` in crates/bitview_website/src/page_info.rs) and llmstxt.org has readers look.
+const twin = (/** @type {string} */ address) => `${address}${address.endsWith("/") ? "index.html" : ""}.md`;
 const sections = [...held].map(([key, count]) => {
   const path = JSON.parse(key);
-  return `${path.length > 1 ? "  " : ""}- ${shownStep(labels, path)} (${count}): ${ORIGIN}${book.sections.get(key)}`;
+  return `${path.length > 1 ? "  " : ""}- ${shownStep(labels, path)} (${count}): ${ORIGIN}${twin(book.sections.get(key))}`;
 });
 // (In plain ASCII where it can be: it's served as a text file is, without a charset.)
 const ascii = (/** @type {string} */ text) => text.replace(/[…⋯]/g, "...").replace(/›/g, ">").replace(/[−–—]/g, "-").replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
@@ -142,7 +145,7 @@ pageInfo["/"] = { title: STUDIO_TITLE, description: STUDIO_DESCRIPTION, canonica
 const pageInfoText = `${JSON.stringify(pageInfo)}\n`;
 const files = {
   "page-info.json.gz": gzipSync(pageInfoText, { level: 9 }),
-  "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
+  "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml. Every page is also there as Markdown, at its address and .md (after a section's, which ends in a slash, index.html.md), as below.\n\n${sections.join("\n")}\n`),
   "presets.hash": `${sha.digest("hex")}\n`,
   "chain-facts.json": `${factsKey(facts)}\n`,
   "sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`,

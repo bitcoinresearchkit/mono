@@ -28,6 +28,11 @@ transforms `./showcases` the same way, without a release, so it checks pages in 
 `<head>` and module scripts with a `src` name a site file by its absolute path. Invalid embedded pages stop router
 initialization with every bad file named. A `Filesystem` website has no release and serves its HTML unchanged.
 
+Outside a release's address, browsers revalidate every answer (`max-age=1, must-revalidate`). With
+`router(website, true)` (the server's `--cdn`: a CDN in front, purged on every release) the embedded site's files
+and pages also carry `CDN-Cache-Control: immutable`, as only a release changes them; redirects don't, nor anything
+of a `Filesystem` website, whose files change at any time.
+
 ## Behind Cloudflare
 
 Cloudflare drops pages' ETag whenever one of its features that process HTML is on for the zone, whether or not it
@@ -100,7 +105,13 @@ unordered lists and HTTP(S), root-relative or fragment links; raw HTML is escape
 the router starts, including for filesystem websites: restart after replacing the data. Gzip keeps large generated
 catalogs small on disk and in embedded builds; requests never decompress or render Markdown.
 
-An app removes its body article when it starts, leaving that article readable when JavaScript cannot run. HTML and
-Markdown carry the same content for every user agent. An explicit `Accept: text/markdown` preference over HTML selects
-the entry's Markdown instead; both variants send `Vary: Accept`, including on 304. Release ETags hash the final response
-bytes, so addresses and representations validate independently. Negotiated responses are private and must revalidate, so shared caches that ignore `Accept` cannot mix formats.
+An app removes its body article when it starts, leaving that article readable when JavaScript cannot run.
+
+Each entry's Markdown has an address of its own, its twin: the page's address and `.md`, a folder's page being its
+`index.html` (`/studio/index.html.md`, `/studio/presets/valuation/mvrv.md`), where llmstxt.org has readers look.
+The page names its twin in a `Link` header (`rel="alternate"; type="text/markdown"`) and in a `<link>` of its
+head; the twin names its page (`rel="canonical"`). Nothing is negotiated: an address answers the same bytes whatever
+`Accept` says, so pages and twins are cached as every other document is. A twin takes no query, and a file of that
+name comes first. For the embedded site each entry's two ETags are made as the router starts (the page's from its
+index's hash and what is written in, the twin's from its Markdown) and its index's slots are found once, so a 304
+renders no page; a `Filesystem` website's index is read, and its page named by its bytes, on each request.
