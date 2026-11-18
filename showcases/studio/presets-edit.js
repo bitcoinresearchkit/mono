@@ -9,11 +9,10 @@ import { windowNamed } from "/studio/words.js";
 import {
   applyPanel, asThen, atWindow, averageFor, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
   drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, inLibrary, isDeleted, isPreview,
-  keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, menuOf, newDraft, nextHalvings, normalize, notice,
-  openChart, panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed,
-  presetsMatching, previews, previousChart, readOnly, readPresetList, refresh, rekey, relist, renderCharts, resolved,
-  retryPresets, ROUTED, save, saveView, sectionMark, showPalette, started, storage, thumbs, toast, tree, undoToast,
-  viewed, VIEWED,
+  keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, newDraft, nextHalvings, normalize, notice, openChart,
+  panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching,
+  previews, previousChart, readOnly, readPresetList, refresh, rekey, relist, renderCharts, resolved, retryPresets,
+  ROUTED, save, saveView, sectionMark, showPalette, started, storage, thumbs, toast, tree, undoToast, viewed, VIEWED,
 } from "/studio/app.js";
 import { $, all$, escapeHtml } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
@@ -32,7 +31,9 @@ import {
   presetNodeAt, presetSearch, previewIndex, recommendedPresets, saveThumbs, slide, titleOf, treeOf,
 } from "/studio/grid.js";
 import { goneSaid, hideLayers, keepFocus, layerById, modesFor, movers, paneMode } from "/studio/inspector.js";
-import { contentOf, exportRows, fromSketch, keepCarriedView, lookFields, renameInPlace, validate } from "/studio/menus.js";
+import {
+  contentOf, exportRows, fromSketch, keepCarriedView, lookFields, menuOf, renameInPlace, validate,
+} from "/studio/menus.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Landing } from "/studio/gestures.js" */
 /** @import { Action, Page } from "/studio/command.js" */

@@ -5,8 +5,8 @@ import { capitalized } from "/studio/words.js";
 import {
   beltStop, boxing, capturing, chart, chosen, commit, css, draft, drawingsHidden, drawVersion, engine, hideBelt, home,
   indexAt, labelTyping, magnifying, measurer, measuring, minedHalvings, MOTION, moving, nextHalvings, phone, placing,
-  prefs, reduced, renderBelt, reshaped, resolved, revision, SANS, savePrefs, selected, selectingArea, showMenu,
-  shownDrawings, shownOklch, takeUp, timeAt, tool, typingIn,
+  prefs, reduced, renderBelt, reshaped, resolved, revision, SANS, savePrefs, selected, selectingArea, shownDrawings,
+  shownOklch, takeUp, timeAt, tool, typingIn,
 } from "/studio/app.js";
 import { $, all$, escapeHtml, keyText, MAC } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
@@ -24,7 +24,7 @@ import {
 } from "/studio/chart.js";
 import { nearestFinite, paneAt } from "/studio/formulas.js";
 import { layerById, slider } from "/studio/inspector.js";
-import { fitted } from "/studio/menus.js";
+import { fitted, showMenu } from "/studio/menus.js";
 import { refocus } from "/studio/presets-edit.js";
 /** @import { End } from "/studio/tools.js" */
 /** @import { Drawing, DrawingKind, Layer } from "/studio/vocabulary.js" */

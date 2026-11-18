@@ -2,14 +2,13 @@
 // Menus, the toolbar, sharing, importing and exporting.
 import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
-  atWindow, chart, chartImage, chartShown, chartWindow, commit, css, engine, firstForm, firstLook, flowsAt, hideMenu,
-  hideSubmenu, indexAt, isView, library, listedPreviews, loadPresets, measure, menuBack, menuOwner, menuPicked,
-  menuScrim, MOTION, navigations, normalize, notice, openCascade, openingView, openView, phone, putViews, reduced,
-  resolved, revision, ROUTED, saveView, SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast,
-  UNREAD, viewsNow,
+  atWindow, byTouch, chart, chartImage, chartShown, chartWindow, commit, css, engine, firstForm, firstLook, flowsAt,
+  focusMenu, hideTip, indexAt, isView, library, listedPreviews, loadPresets, measure, menuNameOf, MOTION, navigations,
+  normalize, notice, openingView, openView, phone, putViews, railMenu, reduced, resolved, revision, ROUTED, saveView,
+  SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast, UNREAD, viewsNow,
 } from "/studio/app.js";
 import { isCatalogPath, isSeriesName } from "/studio/catalog-walk.js";
-import { $, all$, closest, drawKeys, escapeHtml, KEY_STEPS, stepIn } from "/studio/dom.js";
+import { $, all$, closest, drawKeys, escapeHtml, KEY_STEPS, keyText, stepIn } from "/studio/dom.js";
 import { clamp, uid } from "/studio/math.js";
 import { FORMATS, grouped, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
@@ -27,11 +26,12 @@ import {
 import { isColor, PALETTE } from "/studio/color.js";
 import {
   forgetSpans, inSubmenu, known, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
-  resolve, rightGap, seriesIn, settled, shownDates, shownRange, subAt, viewName,
+  resolve, rightGap, seriesIn, settled, shownDates, shownRange, subAt, viewName, whenSubmenu,
 } from "/studio/chart.js";
-import { folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
-import { focusKey, labelOf, restoreFocus } from "/studio/inspector.js";
-import { isMade, presetEdited, presetLink } from "/studio/presets-edit.js";
+import { chartPathRows, folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
+import { focusKey, keyOf, labelOf, restoreFocus } from "/studio/inspector.js";
+import { isMade, presetEdited, presetLink, tick } from "/studio/presets-edit.js";
+import { headMenu, pageTitle } from "/studio/command.js";
 /** @import { Chart, Layer, Level } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
@@ -60,6 +60,411 @@ function menuModal(/** @type {boolean} */ on) {
 const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
 /** A menu's opener let go of: its open state gone, where the menu set it (a folder's row says its own, open or not). */
 const unexpand = (/** @type {Element | null} */ owner) => (owner?.removeAttribute("data-menu-open"), owner?.hasAttribute("aria-haspopup") && owner.removeAttribute("aria-expanded"));
+/** What opened the menu shown, if one is. @type {HTMLElement | null} */
+let menuOwner = null;
+/** The menu shown taken as `owner`'s: the focus goes back to it as the menu closes. */
+const setMenuOwner = (/** @type {HTMLElement} */ owner) => (menuOwner = owner);
+/** The menu a page of a menu came from (a phone's: its ‹, and Back), else null. @type {(() => void) | null} */
+let menuBack = null;
+/** A page of a menu, shown by other than menuOf: `back`, the menu it came from. */
+const setMenuBack = (/** @type {() => void} */ back) => (menuBack = back);
+/** Each menu shown, counted (see Share: one shown since its press, gone again or not, and it shows nothing). */
+let menusShown = 0;
+/**
+ * A menu under (or over) its anchor, or at `point` for a right-click; focus goes back to the anchor. `side`: where
+ * it opens, if it fits there (else across): "above", "below", "left" or "right" of what opened it. `asFlyout`: shown
+ * by a pointer resting (see flyout).
+ */
+function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | null} */ point = null, side = "", asFlyout = false, named = "") {
+  const menu = $("menu");
+  menusShown++;
+  if (cascadeRow && !menu.hidden) return showSubmenu(cascadeRow, html, onPick);
+  if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
+  // (Shown for another (a flyout moving on to the next row, pointed at): one menu, moving to this one's, its rows
+  // this one's, from where it shows now; not one fading as another comes. See showSubmenu.)
+  const was = !menu.hidden && !phone.matches && !point ? menu.getBoundingClientRect() : null;
+  if (was) for (const motion of menu.getAnimations()) motion.finish();
+  hideSubmenu();
+  flyout = asFlyout || openingByHover;
+  // Inside a dialog, the menu must live in the dialog (in the top layer) to be seen. (Named by what opened it.)
+  const host = anchor.closest("dialog") ?? document.body;
+  fillMenu(menu, host, html, named || calledBy(anchor), onPick);
+  menu.setAttribute("role", menu.querySelector(":scope > .share-pop") ? "dialog" : "menu");
+  // On a phone, a sheet from the foot (placed by its style), over a backdrop of its own; its handle first.
+  menu.classList.toggle("as-sheet", phone.matches);
+  if (phone.matches) menu.insertAdjacentHTML("afterbegin", '<div class="menu-handle" aria-hidden="true"></div>');
+  if (phone.matches) {
+    // (Its dim kept where it is (a page of the menu, one opened as it fades), from what it shows back to whole: put
+    // in again, it'd show in again from none.)
+    if (scrimFade) {
+      const shows = Number(getComputedStyle(menuScrim).opacity);
+      scrimFade.cancel();
+      if (shows < 1) menuScrim.animate({ opacity: [shows, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout });
+    }
+    if (menuScrim.parentElement !== host || menuScrim.nextElementSibling !== menu) host.insertBefore(menuScrim, menu);
+  }
+  menuModal(phone.matches);
+  for (const button of all$("button", menu)) {
+    // (One leading to another menu: its › at its end, after what it says.)
+    if (button.getAttribute("aria-haspopup") === "menu" && !button.querySelector(".sub")) button.insertAdjacentHTML("beforeend", `<span class="sub">${ICONS.next}</span>`);
+    // Its key, kept for the menu's key hints (pressed, it's run).
+    const key = button.querySelector("kbd")?.textContent;
+    if (key) button.dataset.key = key;
+  }
+  cutFade(menu);
+  menu.hidden = false;
+  unexpand(menuOwner);
+  menuOwner = anchor;
+  if (!point && anchor.hasAttribute("aria-haspopup")) anchor.setAttribute("aria-expanded", "true");
+  // (What it's of, held lit while it's open, as a menu bar's title: a row on the rail, its own state aside.)
+  anchor.toggleAttribute("data-menu-open", true);
+  if (phone.matches) Object.assign(menu.style, { left: "", top: "", maxHeight: "", transformOrigin: "" });
+  else placeMenu(menu, host, anchor, point, side);
+  if (was) {
+    menu.style.animation = "none";
+    slideFrom(menu, was);
+  }
+  // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be; a
+  // finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on from there.)
+  const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled, [data-menu-back])"));
+  settleMenu(menu);
+  if (!flyout) (byTouch ? menu : first)?.focus({ preventScroll: true });
+  if (first && menu.scrollHeight > menu.clientHeight) first.scrollIntoView({ block: "nearest" });
+}
+/**
+ * Rows as a menu (a ⋯, a right-click, a select's list; on a phone, a sheet): a rule before what's apart (`apart`,
+ * a new group, the first that removes), each group's name over it with `heads`; the choice in effect ticked; one
+ * that can't act saying why when pressed; one with a page leads to its rows, beside it (on a phone, in its place,
+ * titled, its ‹ (and Back) the menu it came from). `title`: a heading on top; `hover`: shown by a pointer resting
+ * (see flyout); `back`: the menu it's a page of.
+ * @param {HTMLElement} anchor @param {(Action | false | null | undefined)[]} rows
+ */
+function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ point = null, side = "", { heads = false, title = "", hover: asFlyout = false, named = "", back = /** @type {(() => void) | undefined} */ (undefined) } = {}) {
+  const list = /** @type {Action[]} */ (rows.filter(Boolean));
+  if (!list.length) return;
+  // (A menu of choices: its check's column on every row, the others' too (a way out, a new one): their icons in line.)
+  const checks = list.some((row) => row.current !== undefined);
+  const html = list.map((row, i) => {
+    const before = list[i - 1], apart = i > 0 && (row.apart || (row.group ?? "") !== (before.group ?? "") || (row.danger && !before.danger));
+    const head = heads && row.group && row.group !== before?.group ? `<div class="menu-group">${escapeHtml(row.group)}</div>` : "";
+    const choice = row.current !== undefined;
+    return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escapeHtml(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escapeHtml(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escapeHtml(row.label)}</span>${row.marked ? '<i class="menu-holds" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escapeHtml(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escapeHtml(row.disabled || row.aside || "")}</span>` : ""}</button>`;
+  }).join("");
+  // (What it's for named on top wherever its name is out of sight: a row's on the rail; anything's on a phone, its
+  // sheet over the page. However it's opened. Not a submenu's.)
+  if (!title && !cascadeRow && (phone.matches || (onRail() && anchor.closest("#chart-list")))) title = menuNameOf(anchor);
+  const head = back ? `<div class="menu-group menu-title"><button type="button" class="cap small" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>${escapeHtml(title)}</div>` : title ? `<div class="menu-group">${escapeHtml(title)}</div>` : "";
+  showMenu(anchor, `${head}${html}`, ({ pick: key, menuBack: backed }) => {
+    if (backed) return back?.();
+    const row = list.find((item, i) => (item.key ?? String(i)) === key);
+    if (!row) return;
+    if (row.disabled) return notice(row.disabled);
+    if (!row.page) return row.run?.();
+    const page = row.page(), here = () => menuOf(anchor, rows, point, side, { heads, title, hover: asFlyout, named, back });
+    // (Beside it, titled if it's a folder's (see folderFlyout); in its place (a phone's, or no room beside), titled,
+    // ‹ back to it.)
+    menuOf(anchor, page.options?.() ?? page.rows(), point, side, cascadeRow ? { title: page.heading ? pageTitle(page) : "" } : { title: pageTitle(page), back: here });
+  }, point, side, asFlyout, named || title);
+  menuBack = back ?? null;
+}
+/**
+ * An item picked, in a menu or its submenu: they go, its pick runs; picked by a key, the focus was in them: back on
+ * what opened them (its like, once redrawn), unless something took it or a menu the pick opened has it.
+ */
+function menuPicked(/** @type {HTMLElement} */ button, /** @type {(data: DOMStringMap) => void} */ onPick) {
+  const menu = $("menu"), owner = ownerNow(), key = owner && keyOf(owner), scope = owner?.parentElement?.closest("[id]"), target = menuTarget;
+  hideMenu();
+  onPick(button.dataset);
+  // (A menu it leads to acts on the same: outlined still.)
+  if (!menu.hidden) return void (target?.isConnected && outlineMenuTarget(target));
+  const active = document.activeElement;
+  if (active && active !== document.body && !menu.contains(active) && !inSubmenu(active)) return;
+  if (owner?.isConnected) owner.focus({ preventScroll: true });
+  else if (scope?.isConnected) restoreFocus(scope, key);
+}
+/** A phone's menu's backdrop: tapped, it closes the menu, and the tap ends there. `scrimFade`: its going, as its sheet slides away. */
+const menuScrim = document.createElement("div");
+menuScrim.className = "menu-scrim";
+let scrimFade = /** @type {Animation | null} */ (null);
+/** The item a menu acts on alone, beside others picked: outlined while it shows. @type {HTMLElement | null} */
+let menuTarget = null;
+/** The menu shown acts on `target` alone: outlined till it goes. */
+const outlineMenuTarget = (/** @type {HTMLElement} */ target) => (menuTarget = target).classList.add("menu-target");
+/** The row whose submenu is being asked for (while its menu's pick runs), a pointer's wait to switch (and what it waits on, at which level). */
+let cascadeRow = /** @type {HTMLElement | null} */ (null), cascadeTimer = 0;
+let cascadeWait = /** @type {{ row: Element | null, heading: boolean, level: number } | null} */ (null);
+function openCascade(/** @type {HTMLElement} */ row, focus = false) {
+  const own = /** @type {HTMLElement | null} */ (row.closest("#menu, .submenu"));
+  if ($("menu").hidden || !own || own.hidden) return;
+  const level = levelOf(own) + 1;
+  if (subRows[level] !== row || subAt(level).hidden) {
+    // (Another row's shown: it moves to this one, as it is (see showSubmenu); none, it comes.)
+    hideSubmenu(subAt(level).hidden ? level : level + 1);
+    cascadeRow = row;
+    try {
+      menuPicks.get(own)?.(row.dataset);
+    } finally {
+      cascadeRow = null;
+    }
+  } else if (subAt(level).hasAttribute("data-covered")) hideSubmenu(level + 1);
+  // (Its choice in effect first, as a menu opens on it.)
+  const sub = subAt(level);
+  if (focus && !sub.hidden) /** @type {HTMLElement | undefined} */ (sub.querySelector("button[aria-checked='true']:not(:disabled)") ?? all$("button:not(:disabled)", sub)[0])?.focus();
+}
+/** The submenus from a level on gone (a wait to open one too); the focus in them, back on the row the first was beside. */
+function hideSubmenu(from = 1) {
+  clearTimeout(cascadeTimer);
+  cascadeWait = null;
+  const gone = submenus.slice(from - 1), had = gone.some((sub) => sub.contains(document.activeElement)), back = subRows[from];
+  for (const sub of gone.reverse()) {
+    if (sub.hidden) continue;
+    fadeOut(sub, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }]);
+    sub.hidden = true;
+  }
+  for (const row of subRows.splice(from)) row?.removeAttribute("aria-expanded");
+  // (The menu the first covered, if it did, back in sight.)
+  for (const menu of [$("menu"), ...submenus].slice(from - 1)) menu.removeAttribute("data-covered");
+  if (had && back?.isConnected) back.focus({ preventScroll: true });
+}
+// Pointed at: a row's submenu, a moment after the pointer comes onto it (a pass over it opens none); one open, another
+// row with one switches it at once (a gap, a rule or a row without one closes it a moment later: crossing a rule to
+// the next doesn't close and open again). Heading for the open one, what's under the pointer waits while it's on its
+// way (a moment, then as long as it still heads there), then shows its own; the triangle left switches at once. In
+// the menu and in each submenu alike, for the one beside it.
+function startCascade() {
+  let last = { x: 0, y: 0 }, toward = false, headedAt = -Infinity;
+  const inTriangle = (/** @type {number[]} */ [px, py], /** @type {number[][]} */ [[ax, ay], [bx, by], [cx, cy]]) => {
+    const side = (/** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ x2, /** @type {number} */ y2) => (px - x2) * (y1 - y2) - (x1 - x2) * (py - y2);
+    const d1 = side(ax, ay, bx, by), d2 = side(bx, by, cx, cy), d3 = side(cx, cy, ax, ay);
+    return !((d1 < 0 || d2 < 0 || d3 < 0) && (d1 > 0 || d2 > 0 || d3 > 0));
+  };
+  /** The wait done: the row under the pointer then shows its submenu, or none shows (still heading a moment ago, it waits on). */
+  const waited = () => {
+    if (cascadeWait?.heading && performance.now() - headedAt < 100) return void (cascadeTimer = window.setTimeout(waited, 100));
+    const row = cascadeWait?.row, level = cascadeWait?.level ?? 1;
+    cascadeWait = null;
+    row && cascades(row) ? openCascade(/** @type {HTMLElement} */ (row)) : hideSubmenu(level);
+  };
+  // (Scrolled, rows pass under a pointer held still: a wait begun goes, and a browser's own moves after it, the
+  // pointer where it was, aren't its moving: as the rail's, see pointedAt.)
+  let seen = { x: NaN, y: NaN };
+  const moves = (/** @type {HTMLElement} */ menu) => menu.addEventListener("pointermove", (event) => {
+    if (event.pointerType !== "mouse" || phone.matches || (event.clientX === seen.x && event.clientY === seen.y)) return;
+    seen = { x: event.clientX, y: event.clientY };
+    const level = levelOf(menu) + 1, next = submenus[level - 1], open = next && !next.hidden ? next : null;
+    const row = /** @type {HTMLElement | null} */ (closest(event, "button:not(:disabled)")), at = [event.clientX, event.clientY];
+    // Heading for the open submenu: judged over a few pixels (a hand's tremor doesn't turn it), toward it and a row
+    // past each end (a curved path still counts).
+    const box = open?.getBoundingClientRect(), far = Math.hypot(at[0] - last.x, at[1] - last.y) >= 5;
+    if (!box) toward = false;
+    else if (far) {
+      const edge = box.left >= last.x ? box.left : box.right;
+      toward = inTriangle(at, [[last.x, last.y], [edge, box.top - 40], [edge, box.bottom + 40]]);
+    }
+    if (!box || far) last = { x: at[0], y: at[1] };
+    if (far && toward) headedAt = performance.now();
+    const opens = row && cascades(row);
+    // (Its own, covered by the levels after it: back to it.)
+    if (row && row === subRows[level] && open?.hasAttribute("data-covered")) return void (clearTimeout(cascadeTimer), (cascadeWait = null), openCascade(row));
+    if ((row && row === subRows[level]) || (!opens && !open)) return void (clearTimeout(cascadeTimer), (cascadeWait = null));
+    if (toward) {
+      // (On its way: the wait as it was, or begun, for what's under the pointer now.)
+      if (cascadeWait?.heading) return void (cascadeWait.row = row);
+      clearTimeout(cascadeTimer);
+      cascadeWait = { row, heading: true, level };
+      return void (cascadeTimer = window.setTimeout(waited, 300));
+    }
+    if (opens && open) return void (clearTimeout(cascadeTimer), (cascadeWait = null), openCascade(/** @type {HTMLElement} */ (row)));
+    // (A first submenu: a moment from coming onto its row. A gap or a row without one: a moment from the first, the
+    // open one closed then.)
+    if (cascadeWait && !cascadeWait.heading && (cascadeWait.row === row || !opens)) return void (cascadeWait.row = row);
+    clearTimeout(cascadeTimer);
+    cascadeWait = { row, heading: false, level };
+    cascadeTimer = window.setTimeout(waited, 100);
+  });
+  moves($("menu"));
+  whenSubmenu(moves);
+  // (Left, for a submenu or anywhere, or scrolled: what it was about to do, it doesn't. Left, the point it was at
+  // forgotten: back on it, it's a move.)
+  const calm = () => (clearTimeout(cascadeTimer), (cascadeWait = null));
+  const left = () => (calm(), (seen = { x: NaN, y: NaN }));
+  for (const type of ["wheel", "scroll"]) $("menu").addEventListener(type, calm, { passive: true });
+  whenSubmenu((sub) => ["wheel", "scroll"].forEach((type) => sub.addEventListener(type, calm, { passive: true })));
+  $("menu").addEventListener("pointerleave", left);
+  whenSubmenu((sub) => (sub.addEventListener("pointerenter", calm), sub.addEventListener("pointerleave", left)));
+}
+/** A menu shown by a pointer's resting (a closed folder's charts): it leaves the focus be, goes as the pointer does, and as a key's pressed (a tip's way). */
+/** A ⋯ opening its menu as the pointer rests on it (see hoverMenu): the menu its click shows, shown as a flyout (gone as the pointer leaves it). */
+let openingByHover = false;
+let flyout = false;
+/** A flyout kept: the menu stays as a press shows it, no longer going with the pointer. */
+const keepMenu = () => (flyout = false);
+// Hover to look, press to keep (with a mouse): a closed folder's row, its charts beside it (pressed, it opens); the
+// chart's ⋯, its menu (pressed, kept). Gone as the pointer leaves the menu (and what opened it), a moment after
+// (time enough to cross to the flyout, right beside its row).
+function startFlyouts() {
+  let flyTimer = 0, from = /** @type {HTMLElement | null} */ (null);
+  const sidebar = $("sidebar");
+  const shut = () => {
+    clearTimeout(flyTimer);
+    // (What opened it written anew meanwhile (the chart's place): its flyout goes all the same.)
+    if (from && flyout && (ownerNow() === from || !from.isConnected)) hideMenu();
+    from = null;
+    flyout = false;
+  };
+  /**
+   * Pointed at a moment (`wait`): if it still is (`ready` done, and true), and no menu was opened meanwhile (one shown
+   * this way gives way), its own shown (`open`). `warm`: one shown this way already, its place taken (as a tip's,
+   * the next at once: no fading out, no growing in again).
+   */
+  const lookSoon = (/** @type {HTMLElement} */ element, /** @type {number} */ wait, /** @type {() => void} */ open, ready = async () => true, warm = false) => {
+    clearTimeout(flyTimer);
+    flyTimer = window.setTimeout(async () => {
+      if (!(await ready()) || !element.isConnected || !element.matches(":hover") || (!$("menu").hidden && !flyout)) return;
+      const inPlace = warm && flyout && !$("menu").hidden;
+      if (!inPlace) shut();
+      from = element;
+      // (One showing, it moves to this one's place: see showMenu.)
+      open();
+    }, wait);
+  };
+  /** A chart's row by what it opens (written anew, the same); else nothing. @param {HTMLElement} row */
+  const chartKey = (row) => (row.dataset.openChart ? `c:${row.dataset.openChart}` : row.dataset.openPreset !== undefined ? `p:${row.dataset.openPreset}` : "");
+  /** The chart last pressed on the rail, quiet till the pointer's left it (see chartKey). */
+  let pressed = "";
+  /** Left: a moment later, off the menu, its submenu and what opened it, it goes. */
+  const goSoon = () => {
+    clearTimeout(flyTimer);
+    flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !submenus.some((sub) => sub.matches(":hover")) && !from?.matches(":hover") && shut(), HOVER.go);
+  };
+  // (Scrolled, rows pass under a pointer held still: none of them pointed at, nor one about to be, till it moves; then
+  // the row it's on, as if it had just come onto it. From the wheel's turn: a browser tells of the row come under the
+  // pointer before it tells of the scroll. A browser's own moves after a scroll, the pointer where it was, aren't its
+  // moving.)
+  let still = false, at = { x: NaN, y: NaN };
+  for (const type of ["wheel", "scroll"]) $("chart-list").addEventListener(type, () => (still = true), { passive: true });
+  $("chart-list").addEventListener("pointermove", (event) => {
+    if (event.clientX === at.x && event.clientY === at.y) return;
+    at = { x: event.clientX, y: event.clientY };
+    if (still) (still = false), pointedAt(event);
+  });
+  $("chart-list").addEventListener("pointerover", (event) => pointedAt(event));
+  /** A row of the rail come under the pointer: its menu, a moment after (see lookSoon). @param {PointerEvent} event */
+  function pointedAt(event) {
+    // (The rail's alone: a row there is its icon, its name out of sight: its menu says it, a chart's as a folder's.)
+    if (event.pointerType !== "mouse" || !railed() || still) return;
+    const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])"));
+    if (row && row === from && flyout) return clearTimeout(flyTimer);
+    clearTimeout(flyTimer);
+    // (A chart just pressed: opened, its row written anew under the pointer, not its menu again, till another's
+    // pointed at or the list's left: as the row's written anew, the pointer's over the list alone a moment.)
+    if (row && pressed && chartKey(row) === pressed) return;
+    if (!row) return void (from && goSoon());
+    pressed = "";
+    // (A menu pressed open on the rail: another row pointed at shows its own at once, as a menu bar's do.)
+    if (!$("menu").hidden && !flyout) return void (ownerNow()?.closest("#chart-list") && ownerNow() !== row && railMenu(row));
+    // (Over a sidebar still widening: once it's done, beside the row where it ends. Scrolled meanwhile, none.)
+    const widened = async () => (await Promise.all(sidebar.getAnimations().map((animation) => animation.finished)).catch(() => {}), railed() && !still);
+    // (One showing already: the next row's at once, in its place.)
+    const warm = flyout && !$("menu").hidden && Boolean(from);
+    lookSoon(row, warm ? 0 : HOVER.row, () => railMenu(row, true), widened, warm);
+  }
+  $("chart-list").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && ((pressed = ""), from && goSoon()));
+  // (Pressed, or right-clicked, before it shows: it doesn't.)
+  for (const type of ["pointerdown", "contextmenu"]) $("chart-list").addEventListener(type, () => clearTimeout(flyTimer), true);
+  // (Over the menu or a submenu of it, it stays; off them and what opened it, it goes a moment later.)
+  const keeps = (/** @type {HTMLElement} */ menu) => {
+    menu.addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
+    menu.addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
+  };
+  keeps($("menu"));
+  whenSubmenu(keeps);
+  /**
+   * A flyout pressed on what showed it, where a press shows that menu too: kept as it is, as a press opens one (the
+   * focus in it, for its keys), not put away and shown again (it'd blink).
+   * @param {Event} event @param {HTMLElement} anchor
+   */
+  const keepFlyout = (event, anchor) => {
+    if (from !== anchor || !flyout || $("menu").hidden || ownerNow() !== anchor) return false;
+    event.stopImmediatePropagation();
+    flyout = false;
+    from = null;
+    focusMenu();
+    return true;
+  };
+  // (A row pressed, its menu as pressed takes the flyout's place, see railMenu: its own already showing, kept; a
+  // chart, opened, none. Its ⋯ isn't the row: a ⋯'s own menu, shown by its click as the pointer rests on it, is the
+  // flyout.)
+  $("chart-list").addEventListener("click", (event) => {
+    const item = /** @type {HTMLElement | null} */ (closest(event, ":is(.chart-row, .folder-row, .list-head) > :is(.chart-item, .folder-item, .list-head-name)"));
+    if (!item) return;
+    if (railed() && !item.matches("[data-open-chart], [data-open-preset]") && keepFlyout(event, item)) return;
+    shut();
+    pressed = chartKey(item);
+  }, true);
+  /**
+   * A button whose menu (`open`) shows as it's pointed at a moment; pressed then, the menu's kept (a press with none
+   * shown opens it, as its own click does). Found in `host` by `anchorOf` (one written anew, as the chart's place).
+   * @param {HTMLElement} host @param {(event: Event) => HTMLElement | null} anchorOf @param {(anchor: HTMLElement) => void} open
+   */
+  const hoverMenu = (host, anchorOf, open) => {
+    host.addEventListener("pointerover", (event) => {
+      const anchor = anchorOf(event);
+      if (event.pointerType !== "mouse" || phone.matches || !anchor) return;
+      if (anchor === from && flyout) return clearTimeout(flyTimer);
+      // (One shown this way already: the next ⋯'s at once, in its place, as the rail's rows (and a tip) do.)
+      const warm = flyout && !$("menu").hidden && Boolean(from);
+      clearTimeout(flyTimer);
+      if (!$("menu").hidden && !warm) return;
+      lookSoon(anchor, warm ? 0 : HOVER.button, () => (hideTip(), open(anchor)), async () => !anchor.hidden, warm);
+    });
+    host.addEventListener("pointerout", (event) => {
+      const anchor = anchorOf(event);
+      if (event.pointerType === "mouse" && anchor && from === anchor && flyout && !(event.relatedTarget instanceof Element && anchor.contains(event.relatedTarget))) goSoon();
+    });
+    host.addEventListener("click", (event) => {
+      const anchor = anchorOf(event);
+      if (!anchor) return;
+      if (from === anchor || !flyout) clearTimeout(flyTimer);
+      keepFlyout(event, anchor);
+    }, true);
+  };
+  // The chart's ⋯ the same, and its place (the folder before its name): pointed at a moment, its menu.
+  const more = $("chart-more");
+  hoverMenu(more, () => more, (anchor) => menuOf(anchor, headMenu(), null, "", { hover: true }));
+  // Every ⋯ in the lists too (a chart's, a folder's, a section's, a preset's, a group's, a tile's): what its click
+  // shows, as the pointer rests on it, as the header's ⋯.
+  hoverMenu(document.body, (event) => /** @type {HTMLElement | null} */ (closest(event, "[data-chart-menu], [data-folder-menu], [data-section-menu], [data-preset-menu], [data-group-menu], [data-tile-menu]")), (anchor) => ((openingByHover = true), anchor.click(), (openingByHover = false)));
+  hoverMenu($("chart-path"), (event) => /** @type {HTMLElement | null} */ (closest(event, "#chart-place")), (anchor) => menuOf(anchor, chartPathRows(), null, "", { hover: true }));
+}
+/** @param {{ frames: Keyframe[], duration: number, easing: string } | null} away its way out, if not its own (a sheet flung, see slideAway) */
+function hideMenu(away = null) {
+  flyout = false;
+  hideSubmenu();
+  menuBack = null;
+  menuTarget?.classList.remove("menu-target");
+  menuTarget = null;
+  // (A sheet's dim fades from what it shows as the sheet slides away, reaching nothing meanwhile; a popover's goes
+  // with it. Put away already, its dim's going.)
+  if (!$("menu").hidden && $("menu").classList.contains("as-sheet") && menuScrim.isConnected && !reduced.matches) {
+    const fade = (scrimFade = menuScrim.animate({ opacity: 0 }, { duration: MOTION.layout, easing: MOTION.easeLayout }));
+    menuScrim.style.pointerEvents = "none";
+    const done = (/** @type {boolean} */ gone) => scrimFade === fade && ((scrimFade = null), (menuScrim.style.pointerEvents = ""), gone && menuScrim.remove());
+    fade.finished.then(() => done(true), () => done(false));
+  } else if (!scrimFade) menuScrim.remove();
+  menuModal(false);
+  // (As it came: a popover settling back out; a sheet down.)
+  // (A sheet from where it is; flung, as fast as it was.)
+  if (away) fadeOut($("menu"), away.frames, away.duration, false, away.easing);
+  else fadeOut($("menu"), $("menu").classList.contains("as-sheet") ? [{ transform: getComputedStyle($("menu")).transform }, { transform: "translateY(100%)" }] : [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }], $("menu").classList.contains("as-sheet") ? MOTION.layout : MOTION.micro);
+  $("menu").hidden = true;
+  unexpand(ownerNow());
+  // (Only a menu that was open: closing again keeps who opened the last.)
+  if (menuOwner) (closedOwner = ownerNow()), (closedAt = performance.now());
+  menuOwner = null;
+}
+/** The last menu's opener, and when it closed: a field opened by one of its rows (Rename) goes back to it. */
+let closedOwner = /** @type {HTMLElement | null} */ (null), closedAt = 0;
 /**
  * A menu beside what opened it (or at a point): below it if it fits, else above, kept within its host; from its left
  * edge (its right, where that fits better), or, asked for a side (the belt's popovers), centered on it.
@@ -1315,12 +1720,13 @@ async function drawMarks(pieces) {
   pieces.splice(0, pieces.length, ...pieces.filter((piece) => !piece.svg || piece.image));
 }
 export {
-  anythingKept, APART, apartFonts, apartLayout, calledBy, canvasReadable, cascades, chartsFile, contentOf, copyLink,
-  cutFade, datedView, dismissMenu, download, downloadAll, downloadChart, downloadFolder, drawMarks, exportAs,
-  exportData, exportRows, fadeOut, fading, fieldOpener, FIELDS, fillMenu, fitted, fitTitle, fixedOrigin, fromLink,
-  fromSketch, HOVER, keepCarriedView, leaveTitle, letGo, linkLookOf, linksOf, lookFields, measureLegends, menuGoBack,
-  menuHidden, menuModal, NO_INTERVAL, onRail, openedImages, ownerNow, placeFixed, placeMenu, portable, qrCode, railed,
-  readChart, renameInPlace, renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setRange, settleMenu,
-  shareLink, shownAs, showSubmenu, slideFrom, stepInterval, subRows, supportedIntervals, switchInterval, titleReads,
-  TOO_SMALL, toSketch, twinOf, typedFrom, unexpand, UNREADABLE, validate, viewDates, walkMenu,
+  anythingKept, APART, apartFonts, apartLayout, canvasReadable, cascades, chartsFile, closedAt, closedOwner, contentOf,
+  copyLink, cutFade, datedView, dismissMenu, download, downloadAll, downloadChart, downloadFolder, drawMarks, exportAs,
+  exportData, exportRows, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle, fixedOrigin, flyout, fromLink,
+  fromSketch, hideMenu, hideSubmenu, keepCarriedView, keepMenu, leaveTitle, letGo, linkLookOf, linksOf, lookFields,
+  measureLegends, menuGoBack, menuHidden, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
+  outlineMenuTarget, ownerNow, placeFixed, portable, qrCode, railed, readChart, renameInPlace, renderInterval,
+  renderRanges, renderWindow, sameChart, scrolled, setApart, setMenuBack, setMenuOwner, setRange, shareLink, showMenu,
+  shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval, switchWindow, titleReads,
+  TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
 };

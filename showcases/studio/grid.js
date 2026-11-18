@@ -5,19 +5,18 @@ import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.j
 import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
 import { capitalized, shownStep } from "/studio/words.js";
 import {
-  acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartById, chartNow, closedOwner, css, deleteChart,
-  deleteFolder, dialogsShown, discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks, drawYours,
-  emptyYours, engine, FOLDER_ICONS, folderAgain, folderMark, folderNow, fromUnfit, galleryAhead, galleryPlace,
-  galleryShown, galleryTilesAhead, galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID,
-  HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatKnown, heldUpright, hideMenu, home, homeAt, homeScroll, homeScroller,
-  importCharts, inLibrary, isPreview, isYours, keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve,
-  layoutOwed, leaveHome, leftView, leftWith, letterOf, library, libraryEdits, libraryStep, light, listedPreviews,
-  listOwed, listStop, livePrice, loadPresets, menuOf, minedHalvings, mostBars, MOTION, newDraft, notice, openChart,
-  openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs, presetLabels, presetMarks, presets, presetsFailed,
-  presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, recentCharts, redoing, reduced,
-  relayout, relist, renderCharts, save, savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls,
-  sideLight, sidePresets, started, storage, THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList,
-  yourTilesSeen, zeroFit,
+  acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartById, chartNow, css, deleteChart, deleteFolder, dialogsShown,
+  discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks, drawYours, emptyYours, engine, FOLDER_ICONS,
+  folderAgain, folderMark, folderNow, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead,
+  galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS,
+  heatKnown, heldUpright, home, homeAt, homeScroll, homeScroller, importCharts, inLibrary, isPreview, isYours,
+  keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith,
+  letterOf, library, libraryEdits, libraryStep, light, listedPreviews, listOwed, listStop, livePrice, loadPresets,
+  minedHalvings, mostBars, MOTION, newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset,
+  placeGallery, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts,
+  previews, previousChart, profileColor, recentCharts, redoing, reduced, relayout, relist, renderCharts, save,
+  savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls, sideLight, sidePresets, started, storage,
+  THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit,
 } from "/studio/app.js";
 import { $, all$, composing, escapeHtml, scrollsY, SLOP, TOUCH, typing } from "/studio/dom.js";
 import { inSlices, whenIdle } from "/studio/timing.js";
@@ -50,8 +49,8 @@ import {
   restoreFocus, STACK_FILL, stackOf,
 } from "/studio/inspector.js";
 import {
-  anythingKept, chartsFile, cutFade, download, downloadAll, downloadChart, downloadFolder, fadeOut, fading,
-  keepCarriedView, onRail, ownerNow, railed, supportedIntervals,
+  anythingKept, chartsFile, closedOwner, cutFade, download, downloadAll, downloadChart, downloadFolder, fadeOut, fading,
+  hideMenu, keepCarriedView, menuOf, onRail, ownerNow, railed, supportedIntervals,
 } from "/studio/menus.js";
 import {
   editedPreset, fromPreset, keptPreset, presetById, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex,

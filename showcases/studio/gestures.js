@@ -2,9 +2,10 @@
 // How a press resolves, one way for every list and control: a click, a hold, a drag that reorders; the click a gesture
 // swallows; the click given to a control that slid from under a still pointer.
 import { press } from "/modules/bitview-charts/index.js";
-import { hideMenu, hideTip, MOTION, reduced } from "/studio/app.js";
+import { hideTip, MOTION, reduced } from "/studio/app.js";
 import { all$, closest, SLOP, TOUCH, typing } from "/studio/dom.js";
 import { clamp } from "/studio/math.js";
+import { hideMenu } from "/studio/menus.js";
 
 /**
  * Where an element is once every motion moving it is over (its own, and its boxes' around it: a slide, a glide): each
