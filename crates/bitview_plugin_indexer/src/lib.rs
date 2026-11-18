@@ -96,6 +96,7 @@ enum ImportValidation {
 }
 
 fn write_xor_marker(path: &Path, source_xor: XORBytes) -> Result<()> {
+    debug_assert!(Exit::is_locked(), "source marker written outside the exit lock");
     let pending = path.join("xor.pending");
     fs::write(&pending, *source_xor)?;
     fs::rename(&pending, path.join("xor.dat"))?;

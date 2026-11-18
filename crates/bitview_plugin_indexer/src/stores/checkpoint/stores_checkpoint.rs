@@ -1,4 +1,5 @@
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_types::Height;
 use std::{
     fs,
@@ -57,6 +58,7 @@ impl StoresCheckpoint {
     }
 
     fn invalidate(&self) -> Result<PathBuf> {
+        debug_assert!(Exit::is_locked(), "stores checkpoint removed outside the exit lock");
         let pending_path = self.path.with_extension("pending");
         remove_if_exists(&self.path)?;
         remove_if_exists(&pending_path)?;

@@ -5,7 +5,7 @@ use std::{
     process::exit,
     ptr,
     sync::{
-        Arc,
+        Arc, OnceLock,
         atomic::{AtomicBool, AtomicI32, Ordering},
     },
     thread,
@@ -21,7 +21,8 @@ mod guard;
 
 pub use guard::ExitGuard;
 
-static HANDLER_INSTALLED: AtomicBool = AtomicBool::new(false);
+/// The lock of the coordinator whose signal handlers are installed: one per process.
+static INSTALLED: OnceLock<Arc<RwLock<()>>> = OnceLock::new();
 static SIGNAL_RECEIVED: AtomicBool = AtomicBool::new(false);
 static SIGNAL_PIPE: AtomicI32 = AtomicI32::new(-1);
 
@@ -80,7 +81,7 @@ impl Exit {
     /// Panics if called more than once per process, or if pipe creation or `sigaction` fails.
     pub fn install_signal_handlers(&self) {
         assert!(
-            !HANDLER_INSTALLED.swap(true, Ordering::Relaxed),
+            INSTALLED.set(self.lock.clone()).is_ok(),
             "signal handlers are already installed"
         );
 

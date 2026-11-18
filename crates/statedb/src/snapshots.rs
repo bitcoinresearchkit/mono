@@ -3,6 +3,7 @@ use crate::{
     snapshot::{self, HEADER, MAX_RECORD, PAGE, PAGE_BYTES, PAGED, Snapshot},
     util::{atomic_write, invalid},
 };
+use brk_exit::Exit;
 use std::{
     fs::{self, File, OpenOptions},
     io::{Error, ErrorKind, Result, Write},
@@ -221,6 +222,7 @@ impl Snapshots {
     /// Runs one write; a failure leaves the files mid-update, so later use must reopen.
     fn write(&mut self, f: impl FnOnce(&mut Self) -> Result<()>) -> Result<()> {
         debug_assert!(self.writable);
+        debug_assert!(Exit::is_locked(), "snapshot write outside the exit lock");
         self.healthy()?;
         let result = f(self);
         self.poisoned = result.is_err();

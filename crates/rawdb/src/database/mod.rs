@@ -109,7 +109,7 @@ impl Database {
             return Ok(region);
         }
         RegionMetadata::validate_id(id)?;
-        let _writes = self.inner.writes.read();
+        let _writes = self.inner.mutation();
         let mut layout = self.layout_mut();
         let mut regions = self.regions_mut();
         if let Some(region) = regions.get(id).cloned() {
@@ -165,7 +165,7 @@ impl Database {
         for region in regions_to_remove {
             region.remove()?;
         }
-        let _writes = self.inner.writes.write();
+        let _writes = self.inner.exclusive_mutation();
         self.regions_mut().shrink_to_fit()?;
         self.flush_inner(&_writes);
         Ok(())
@@ -178,6 +178,7 @@ impl Database {
     /// Makes freed space reusable. Writes reach the OS page cache or the file directly, so they are
     /// visible to the next open (soft quits included) without syncing; power loss is out of scope.
     pub fn flush(&self) {
+        // The barrier without the exit-lock check: this changes memory only.
         let _writes = self.inner.writes.write();
         self.flush_inner(&_writes);
     }
@@ -206,7 +207,7 @@ impl Database {
 
     /// Flushes, then punches holes to reclaim disk space.
     pub fn compact(&self) -> Result<()> {
-        let _writes = self.inner.writes.write();
+        let _writes = self.inner.exclusive_mutation();
         let i = Instant::now();
         self.flush_inner(&_writes);
         let r = self.punch_holes(&_writes);

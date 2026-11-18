@@ -3,6 +3,7 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
 };
 
+use brk_exit::Exit;
 use inner::HeaderInner;
 use parking_lot::RwLock;
 use rawdb::Region;
@@ -146,7 +147,9 @@ impl Header {
             .expect("vector cannot continue after a failed write");
     }
 
+    /// Every write, flush and reset of a vector starts here, its change files included.
     pub(crate) fn begin_write(&self) -> Result<WriteGuard> {
+        debug_assert!(Exit::is_locked(), "vecdb write outside the exit lock");
         WriteGuard::new(&self.write_failed)
     }
 }

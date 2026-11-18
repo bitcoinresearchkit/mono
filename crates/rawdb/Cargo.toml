@@ -11,6 +11,7 @@ repository.workspace = true
 readme = "README.md"
 
 [dependencies]
+brk_exit = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
 memmap2 = "0.9.12"

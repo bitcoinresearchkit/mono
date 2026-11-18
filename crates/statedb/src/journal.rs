@@ -1,4 +1,5 @@
 use crate::util::{atomic_write, invalid};
+use brk_exit::Exit;
 use std::{
     fs::{self, File, OpenOptions},
     io::{BufWriter, Error, Read, Result, Seek, SeekFrom, Write},
@@ -288,7 +289,9 @@ impl Journal {
             Ok(())
         })
     }
+    /// The commit: the manifest says how much of the files counts.
     fn publish(&self, count: usize) -> Result<()> {
+        debug_assert!(Exit::is_locked(), "journal commit outside the exit lock");
         let mut bytes = MAGIC.to_vec();
         for n in [
             self.version,

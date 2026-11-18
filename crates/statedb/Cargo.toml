@@ -8,5 +8,6 @@ homepage.workspace = true
 repository.workspace = true
 
 [dependencies]
+brk_exit = { workspace = true }
 pco = { workspace = true }
 zerocopy = { version = "0.8.63", features = ["derive"] }

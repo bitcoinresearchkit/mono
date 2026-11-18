@@ -5,6 +5,7 @@ use std::{
 };
 
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_types::Height;
 
 /// The lowest height dependents must recompute from after a rollback or a reset. It persists
@@ -39,6 +40,7 @@ impl RollbackFloor {
         if self.height.is_some_and(|floor| floor <= height) {
             return Ok(());
         }
+        debug_assert!(Exit::is_locked(), "rollback floor lowered outside the exit lock");
         let pending = self.path.with_extension("pending");
         fs::write(&pending, u32::from(height).to_le_bytes())?;
         fs::rename(&pending, &self.path)?;
@@ -48,6 +50,7 @@ impl RollbackFloor {
 
     pub(crate) fn clear(&mut self) -> Result<()> {
         if self.height.take().is_some() {
+            debug_assert!(Exit::is_locked(), "rollback floor cleared outside the exit lock");
             fs::remove_file(&self.path)?;
         }
         Ok(())

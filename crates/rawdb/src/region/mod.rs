@@ -144,7 +144,7 @@ impl Region {
         let start = meta.start();
         let reserved = meta.reserved();
         drop(meta);
-        let writes = db.inner.writes.read();
+        let writes = db.inner.mutation();
         let mut layout = db.layout_mut();
         let added = capacity - reserved;
         let next = start + reserved;
@@ -258,7 +258,7 @@ impl Region {
         let _exclusive = exclude_readers.then(|| self.0.access.write());
         let _shared =
             (!exclude_readers).then(|| (self.0.access.read_recursive(), self.0.writer.lock()));
-        let _writes = storage.writes.read();
+        let _writes = storage.mutation();
         // SAFETY: access keeps bounds stable; the barrier keeps flushing and hole punching out.
         let (region_start, region_len, _reserved) = unsafe { self.0.bounds() };
         assert!(end <= region_len, "batch bounds exceed region");
@@ -303,7 +303,7 @@ impl Region {
         }
         let db = self.db();
         let _access = self.0.access.write();
-        let _writes = db.inner.writes.read();
+        let _writes = db.inner.mutation();
         let regions = db.regions();
         let meta = self.0.meta.read();
         if from > meta.byte_len() {
@@ -352,7 +352,7 @@ impl Region {
             let end = offset.saturating_add(data.len());
             let new_len = if truncate { end } else { end.max(len) };
             if offset == len && new_len <= reserved {
-                let _writes = db.inner.writes.read();
+                let _writes = db.inner.mutation();
                 // SAFETY: past every reader's bounds: no reference covers these bytes.
                 unsafe { db.inner.data.write(start + offset, data) };
                 if new_len != len {
@@ -388,7 +388,7 @@ impl Region {
             start = self.meta().start();
             writes
         } else {
-            db.inner.writes.read()
+            db.inner.mutation()
         };
         // SAFETY: access excludes readers and overlapping writes to this region.
         unsafe { db.inner.data.write(start + offset, data) };
@@ -413,7 +413,7 @@ impl Region {
     /// and its allocation are unchanged.
     pub fn remove(self) -> Result<()> {
         let db = self.db();
-        let _writes = db.inner.writes.read();
+        let _writes = db.inner.mutation();
         let mut layout = db.layout_mut();
         let mut regions = db.regions_mut();
         regions.check_removable(&self)?;
