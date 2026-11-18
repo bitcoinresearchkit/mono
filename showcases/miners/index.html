@@ -77,6 +77,9 @@
         --line: rgb(20 18 16 / 0.1);
         --accent: #b86a18;
         --gutter: 16px;
+        /* (The page's sides: the gutter, or a notch's inset where that's wider.) */
+        --side-left: max(var(--gutter), env(safe-area-inset-left));
+        --side-right: max(var(--gutter), env(safe-area-inset-right));
       }
       @media (prefers-color-scheme: dark) {
         :root {
@@ -107,7 +110,7 @@
       main {
         max-width: 860px;
         margin: 0 auto;
-        padding-inline: max(var(--gutter), env(safe-area-inset-left)) max(var(--gutter), env(safe-area-inset-right));
+        padding-inline: var(--side-left) var(--side-right);
       }
       header {
         padding-block: 18px 0;
@@ -164,6 +167,25 @@
       .about a {
         color: var(--accent);
       }
+      /* (Nothing moves as the tables come in: what's under a table still being read waits unseen, and shows in its
+         place once every table above it is in; a section a link asked for shows at once, held in view as they fill.) */
+      main:not(:has(:target)) section:has(.wait) ~ section,
+      main:has(.wait):not(:has(:target)) + footer {
+        visibility: hidden;
+        /* (Shown anyway after 4 s: a table that slow, or a script that never ran, never keeps the page hidden.) */
+        animation: shown 0s 4s forwards;
+      }
+      @keyframes shown {
+        to {
+          visibility: visible;
+        }
+      }
+      /* (A table wider than a phone scrolls in its own box, never the page, out to the screen's edges.) */
+      [data-table] {
+        overflow-x: auto;
+        margin-inline: calc(-1 * var(--side-left)) calc(-1 * var(--side-right));
+        padding-inline: var(--side-left) var(--side-right);
+      }
       table {
         width: 100%;
         border-collapse: collapse;
@@ -183,8 +205,11 @@
       th.num,
       td.num {
         text-align: right;
-        padding-right: 0;
         white-space: nowrap;
+      }
+      /* (Every column 10px clear of the next; the last flush with the table's edge.) */
+      :is(th, td):last-child {
+        padding-right: 0;
       }
       .pool {
         display: inline-flex;
@@ -205,6 +230,7 @@
         display: block;
         color: var(--dim);
         font-size: 12.5px;
+        white-space: nowrap;
       }
       .none {
         color: var(--dim);
@@ -222,10 +248,25 @@
         min-height: 44px;
         cursor: pointer;
       }
+      /* (For fingers: a reach 44 about each link, unseen; the jump links' rows as far apart as that reach is tall.) */
+      @media (pointer: coarse) {
+        :is(.brand, nav.jump a, td a) {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc(50% - 22px));
+          }
+        }
+        nav.jump {
+          row-gap: calc(44px - 1lh);
+        }
+      }
       footer {
         max-width: 860px;
         margin: 0 auto;
-        padding: 26px var(--gutter) 40px;
+        padding: 26px var(--side-right) 40px var(--side-left);
         color: var(--dim);
         font-size: 13.5px;
       }
@@ -289,8 +330,13 @@
       };
       const fill = (name, html) => {
         const place = document.querySelector(`[data-table="${name}"]`);
+        const target = document.querySelector(":target");
+        const targetTop = target?.getBoundingClientRect().top;
         place.classList.remove("wait");
         place.innerHTML = html;
+        // (A section a link asked for, in view, stays where it is as a table above it fills, where the browser doesn't
+        // anchor the scroll itself.)
+        if (target && targetTop >= 0 && targetTop < innerHeight) scrollBy(0, target.getBoundingClientRect().top - targetTop);
       };
       const fail = (name) => fill(name, '<p class="none">This table couldn’t be read from the server. Reload to try again.</p>');
 
