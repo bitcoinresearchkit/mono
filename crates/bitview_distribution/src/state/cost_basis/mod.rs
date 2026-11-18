@@ -6,10 +6,9 @@ pub use ops::CostBasisOps;
 pub use realized::RealizedOps;
 
 mod core_realized_state;
-mod distribution;
 mod unrealized;
 pub use core_realized_state::CoreRealizedState;
-pub use distribution::CostBasisDistribution;
+pub use unrealized::SpotSplit;
 pub(crate) use unrealized::UnrealizedState;
 
 mod held_extremes;

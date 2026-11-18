@@ -6,7 +6,7 @@ use tracing::debug;
 use vecdb::VecIndex;
 
 /// Sparse table of the spot price's range maxima, in compact cents (exact for every price a
-/// cohort price map holds) to halve its ~19M entries at 1M heights.
+/// cohort's split holds) to halve its ~19M entries at 1M heights.
 #[derive(Default)]
 pub struct PriceRangeMax {
     levels: Vec<Vec<CentsCompact>>,

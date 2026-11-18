@@ -1,15 +1,15 @@
 use bitview_cohort::Age;
-use bitview_primitives::{CoinDays, CostBasisSnapshot, Count, SupplyState};
+use bitview_primitives::{CentsCompact, CoinDays, CostBasisSnapshot, Count, SupplyState};
 use brk_types::{Bitcoin, Cents, CentsSats, CentsSigned, Sats};
 
 use super::{
     SendPrecomputed, UnrealizedState,
-    cost_basis::{CostBasisDistribution, CostBasisOps, MinimalRealizedState, RealizedOps},
+    cost_basis::{CostBasisOps, MinimalRealizedState, RealizedOps, SpotSplit},
 };
 use crate::metrics::RealizedBlockData;
 
-/// A UTXO cohort's accounting state with its cost basis distribution.
-pub type MappedUTXOCohortState<R> = CohortState<R, CostBasisDistribution>;
+/// A UTXO cohort's accounting state with its split at the spot.
+pub type SplitCohortState<R> = CohortState<R, SpotSplit>;
 
 #[derive(Default)]
 pub struct CohortState<R: RealizedOps, C: CostBasisOps> {
@@ -48,10 +48,6 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
             net_pnl: CentsSigned::new(profit.inner() as i64 - loss.inner() as i64),
             value_destroyed: self.realized.value_destroyed(),
         }
-    }
-
-    pub fn apply_pending(&mut self) {
-        self.cost_basis.apply_pending();
     }
 
     pub fn reset_block(&mut self) {
@@ -132,13 +128,16 @@ impl<R: RealizedOps, C: CostBasisOps> CohortState<R, C> {
     }
 }
 
-impl<R: RealizedOps> CohortState<R, CostBasisDistribution> {
-    pub fn finish_restore(&mut self) {
-        self.cost_basis.finish_restore();
+impl<R: RealizedOps> CohortState<R, SpotSplit> {
+    /// Moves sats the cohort holds, created at `price`, across the spot that passed their price
+    /// (see [`SpotSplit::cross`]).
+    pub fn cross(&mut self, price: CentsCompact, sats: Sats) {
+        self.cost_basis.cross(price, sats);
     }
 
+    /// The cohort's split at the block's spot, once the coins the spot passed have crossed.
     pub(crate) fn compute_unrealized_state(&mut self, height_price: Cents) -> UnrealizedState {
-        self.cost_basis.compute_unrealized_state(height_price)
+        self.cost_basis.at(height_price)
     }
 }
 

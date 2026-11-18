@@ -1,10 +1,10 @@
 # Distribution
 
-Shared accounting, price maps, price indexes and metric helpers used by Age,
+Shared accounting, the UTXO history walk, price indexes and metric helpers used by Age,
 Holders, UTXOs, Addresses, Entry, Profitability, Cointime and Coinflow. This library
 owns no database, producer or pipeline loop: plugins compose its column readers and
 checkpoint mechanics and own their checkpoints, derived state and recovery.
-UTXOs and Addresses compile out optional price-map operations. Realized balances
+UTXOs and Addresses compile out the optional split at the spot. Realized balances
 live only in shared accounting state.
 
 Shared families keep one implementation per shape: the creation-cohort bundle

@@ -22,7 +22,7 @@ use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use super::{CohortCostBasis, ShareTotals, StoredUtxos};
-use crate::state::{MappedUTXOCohortState, RealizedOps};
+use crate::state::{SplitCohortState, RealizedOps};
 
 #[derive(Traversable)]
 pub struct CreationCohort<M: StorageMode = Rw> {
@@ -74,7 +74,7 @@ impl CreationCohort {
 
     /// Appends the block's values at the block's spot `price`.
     #[inline(always)]
-    pub fn push<R: RealizedOps>(&mut self, state: &mut MappedUTXOCohortState<R>, price: Cents) {
+    pub fn push<R: RealizedOps>(&mut self, state: &mut SplitCohortState<R>, price: Cents) {
         let profitability = state.compute_unrealized_state(price);
         let realized = state.realized_block_data();
         self.supply.push(state.supply.value, &profitability);

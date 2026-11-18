@@ -432,7 +432,6 @@ dependencies = [
  "brk_types",
  "derive_more",
  "rayon",
- "rustc-hash",
  "schemars",
  "statedb",
  "vecdb",

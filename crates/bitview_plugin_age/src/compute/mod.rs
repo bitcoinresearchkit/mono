@@ -113,7 +113,7 @@ impl Consumer for AgeConsumer<'_> {
             states.lose_origin(Height::new(origin), supply(amount), block);
         }
 
-        states.apply_pending();
+        states.cross(block);
 
         // Every cohort's values once the block's spends and receives are applied, and the
         // capital of all ranges together, summed exactly and converted to cents once.

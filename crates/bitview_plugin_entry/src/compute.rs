@@ -1,7 +1,7 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
 use bitview_compute::{save_stamped, write_chunks};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
-use bitview_primitives::{CostBasisSnapshot, SupplyState};
+use bitview_primitives::{CentsCompact, CostBasisSnapshot, SupplyState};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Sats, Version};
@@ -68,6 +68,8 @@ impl ComputePlugin for Vecs {
                 LiveState {
                     cohorts: ByEntry::from_fn(|_| CohortState::default()),
                     entries: Vec::new(),
+                    sats: Vec::new(),
+                    spot: CentsCompact::ZERO,
                     hash: [0; 32],
                     version,
                 },
@@ -91,9 +93,7 @@ impl ComputePlugin for Vecs {
                 live.cohorts
                     .get_mut(live.entries[h])
                     .increment_snapshot(&CostBasisSnapshot::from_utxo(prices[h], &supply(amount)));
-            }
-            for state in live.cohorts.iter_mut() {
-                state.finish_restore();
+                live.sats.push(Sats::new(amount.sats));
             }
             live.hash = origins.hash();
         }
@@ -105,6 +105,10 @@ impl ComputePlugin for Vecs {
                 live.cohorts
                     .get_mut(live.entries[h])
                     .receive_utxo(&supply(diff.created), price);
+                live.sats.push(Sats::new(diff.created.sats));
+                for (origin, amount) in diff.removed() {
+                    live.sats[origin as usize] -= Sats::new(amount.sats);
+                }
                 for (origin, amount) in diff.spent() {
                     let origin = origin as usize;
                     let age = Age::new(timestamps[h], timestamps[origin]);
@@ -126,6 +130,18 @@ impl ComputePlugin for Vecs {
                             &supply(amount),
                         ));
                 }
+                // The spot moves to the block's: what each origin it passed holds after the block
+                // changes side in its cohort. The walk's order runs past this block, to origins
+                // that hold nothing yet.
+                let spot = CentsCompact::from(price);
+                for (cost, origin) in walk.order().passed(live.spot, spot) {
+                    if let Some(&sats) = live.sats.get(origin)
+                        && sats != Sats::ZERO
+                    {
+                        live.cohorts.get_mut(live.entries[origin]).cross(cost, sats);
+                    }
+                }
+                live.spot = spot;
                 for (target, state) in self.cohorts.iter_mut().zip(live.cohorts.iter_mut()) {
                     target.push(state, price);
                     state.reset_block();

@@ -1,6 +1,6 @@
 [package]
 name = "bitview_distribution"
-description = "Shared cohort accounting and price maps for distribution plugins"
+description = "Shared cohort accounting, the UTXO history walk and price indexes for distribution plugins"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -20,7 +20,6 @@ brk_types = { workspace = true, features = ["storage"] }
 derive_more = { workspace = true }
 schemars = { workspace = true }
 vecdb = { workspace = true, features = ["pco"] }
-rustc-hash = { workspace = true }
 rayon = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }

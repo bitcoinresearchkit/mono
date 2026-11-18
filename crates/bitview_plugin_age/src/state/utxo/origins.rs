@@ -26,7 +26,7 @@ impl UTXOStates {
             let origin_timestamp = block.timestamps[origin];
             let age = Age::new(last_timestamp, origin_timestamp);
 
-            // The table holds prices over `CentsCompact`'s ceiling at it, as the cost-basis maps
+            // The table holds prices over `CentsCompact`'s ceiling at it, as the cohorts' splits
             // do: the peak is never below the send's own price, so the regret never goes negative.
             let peak_price = if sent.value == Sats::ZERO {
                 Cents::ZERO

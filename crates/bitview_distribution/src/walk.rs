@@ -1,12 +1,13 @@
 //! The one walk of the UTXO set's history. Everything that follows the coins block by block (the
 //! age cohorts, the price index, the URPD cells) is a [`Consumer`] of it: one state of the
-//! origins, one price and time per block, one scan of the age boundaries and one read of each
-//! block's changes, whoever reads them.
+//! origins, one price and time per block, one order of the origins by price, one scan of the age
+//! boundaries and one read of each block's changes, whoever reads them.
 
 use std::mem;
 
 use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRangeId, for_each_age_crossing};
 use bitview_compute::{Inputs, WRITE_INTERVAL};
+use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Height, Timestamp, Version};
 use statedb::{Amount, BlockDiff, Reader, State};
@@ -41,6 +42,45 @@ fn history_version(history: &Reader<'_>) -> Version {
     fold(spends) + fold(creations)
 }
 
+/// The walk's origins in order of price. A coin's price is its origin's, fixed for good, so this
+/// one order answers for every cohort which coins the spot passes when it moves: no cohort keeps
+/// its coins by price.
+#[derive(Default)]
+pub struct PriceOrder(Vec<(CentsCompact, u32)>);
+
+impl PriceOrder {
+    /// Takes in the origins it lacks: `prices` is every origin's, by height.
+    fn extend(&mut self, prices: &[Cents]) {
+        let known = self.0.len();
+        self.0.extend(
+            (prices.iter().enumerate().skip(known))
+                .map(|(origin, &price)| (CentsCompact::from(price), origin as u32)),
+        );
+        let Some(&lowest) = self.0[known..].iter().min() else {
+            return;
+        };
+        // The origins under the lowest new one keep their place: a block at the tip sorts with
+        // the ones priced over it (some 90,000 at today's prices), not with all of them. `sort`
+        // because it merges runs already in order, which `sort_unstable` sorts again (6 ms
+        // against 116 ms for one new origin among all 976,000).
+        let settled = self.0[..known].partition_point(|&held| held < lowest);
+        self.0[settled..].sort();
+    }
+
+    /// The origins priced over the lower of two spots and up to the higher, with their price:
+    /// the ones whose coins change side of the spot when it goes from one to the other. Every
+    /// origin of the walk is in the order, the ones past a reader's own block too.
+    pub fn passed(
+        &self,
+        from: CentsCompact,
+        to: CentsCompact,
+    ) -> impl Iterator<Item = (CentsCompact, usize)> + '_ {
+        let through = |spot| self.0.partition_point(|&(price, _)| price <= spot);
+        (self.0[through(from.min(to))..through(from.max(to))].iter())
+            .map(|&(price, origin)| (price, origin as usize))
+    }
+}
+
 /// The origins before a consumer's first block, which it restores its state from. Prices and
 /// times cover the whole walk, by height.
 pub struct Origins<'a> {
@@ -70,6 +110,8 @@ pub struct Block<'a> {
     pub hash: [u8; 32],
     pub prices: &'a [Cents],
     pub timestamps: &'a [Timestamp],
+    /// Every origin of the walk by price, the ones past this block too.
+    pub order: &'a PriceOrder,
     /// The origins that aged past a boundary since the block before, by boundary then height.
     pub crossings: &'a [Crossing],
     /// What the block created and removed.
@@ -154,6 +196,8 @@ pub struct Walk {
     origins: State,
     prices: Vec<Cents>,
     timestamps: Vec<Timestamp>,
+    /// The origins of `prices` by price.
+    order: PriceOrder,
     /// The age boundaries' scan positions, valid for `origins`.
     positions: [usize; AGE_RANGE_COUNT - 1],
     /// The block being applied's crossings.
@@ -176,6 +220,11 @@ impl Walk {
         &self.timestamps
     }
 
+    /// Every block through the last walk's end by price.
+    pub fn order(&self) -> &PriceOrder {
+        &self.order
+    }
+
     /// Walks from the lowest block a consumer has yet to compute through the sources' end. Each
     /// consumer joins at its own start, from the state it kept if the last walk left it there on
     /// this chain, restored from the origins otherwise; all save every [`WRITE_INTERVAL`] blocks
@@ -196,6 +245,7 @@ impl Walk {
             self.origins = sources.history.state_at(start)?;
             self.prices.clear();
             self.timestamps.clear();
+            self.order = PriceOrder::default();
             self.positions = [0; AGE_RANGE_COUNT - 1];
             self.version = version;
         }
@@ -203,6 +253,7 @@ impl Walk {
             origins,
             prices,
             timestamps,
+            order,
             positions,
             crossings,
             ..
@@ -214,6 +265,7 @@ impl Walk {
         if prices.len() != end || timestamps.len() != end {
             return Err(Error::Internal("incomplete walk price or timestamp history"));
         }
+        order.extend(prices);
         let mut cursor = sources.history.cursor(origins)?;
         for height in start..=end {
             let state = cursor.state();
@@ -253,6 +305,7 @@ impl Walk {
                 hash: state.hash(),
                 prices,
                 timestamps,
+                order,
                 crossings,
                 diff,
                 amounts: state.amounts(),
