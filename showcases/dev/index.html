@@ -248,6 +248,42 @@
         margin-top: 28px;
       }
 
+      /* Who uses Bitview: their logos in one quiet row, each a link to its site (written by showcases/home.mjs). */
+      .used-by {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 16px;
+        margin-top: 36px;
+
+        .label {
+          margin: 0;
+        }
+
+        ul {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        a {
+          display: block;
+          border-radius: 8px;
+        }
+
+        img {
+          display: block;
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          outline: 1px solid var(--hair);
+          outline-offset: -1px;
+        }
+      }
+
       .button {
         display: inline-flex;
         align-items: center;
@@ -802,6 +838,9 @@
           <a class="button primary" href="#run">Run Bitview</a>
           <a class="button" href="https://bitview.space">Open the public instance ↗</a>
         </div>
+        <!-- used by -->
+        <div class="used-by" id="used-by"><p class="label">Used by</p><ul><li><a href="https://www.checkonchain.com/"><img src="/assets/used-by/checkonchain.png" width="32" height="32" alt="Checkonchain" title="Checkonchain" /></a></li><li><a href="https://newhedge.io/"><img src="/assets/used-by/newhedge.png" width="32" height="32" alt="Newhedge" title="Newhedge" /></a></li><li><a href="https://qfilabs.substack.com/"><img src="/assets/used-by/qfilabs.png" width="32" height="32" alt="QFI Labs" title="QFI Labs" /></a></li><li><a href="https://thebitcoinlayer.com/"><img src="/assets/used-by/thebitcoinlayer.png" width="32" height="32" alt="The Bitcoin Layer" title="The Bitcoin Layer" /></a></li><li><a href="https://papanglabs.com/"><img src="/assets/used-by/papanglabs.svg" width="32" height="32" alt="Papang Labs" title="Papang Labs" /></a></li><li><a href="https://atreidis.app/"><img src="/assets/used-by/atreidis.png" width="32" height="32" alt="Atreidis" title="Atreidis" /></a></li><li><a href="https://sparrowwallet.com/"><img src="/assets/used-by/sparrowwallet.png" width="32" height="32" alt="Sparrow Wallet" title="Sparrow Wallet" /></a></li><li><a href="https://www.lookintobitcoin.com/"><img src="/assets/used-by/lookintobitcoin.png" width="32" height="32" alt="LookIntoBitcoin" title="LookIntoBitcoin" /></a></li></ul></div>
+        <!-- /used by -->
 
         <dl class="specs" aria-label="Bitview, measured">
           <div><dt>First index</dt><dd>~1½ h<small>from block 0</small></dd></div>
