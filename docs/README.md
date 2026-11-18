@@ -116,11 +116,11 @@ June 2027.
 
 ### Donations
 
-<a href="https://x.com/_Checkmatey_"><img src="https://pbs.twimg.com/profile_images/1657255419172253698/ncG0Gt8e_400x400.jpg" width="50" alt="_Checkmatey_" title="_Checkmatey_" style="border-radius:50%" /></a>
-<a href="https://x.com/JohanMBergman"><img src="https://pbs.twimg.com/profile_images/1958587470120988673/7rlY5csu_400x400.jpg" width="50" alt="Johan Bergman" title="Johan Bergman" style="border-radius:50%" /></a>
-<a href="https://x.com/alonshvartsman"><img src="https://pbs.twimg.com/profile_images/2057096517954007041/7nv7ygDB_400x400.jpg" width="50" alt="Alon Shvartsman" title="Alon Shvartsman" style="border-radius:50%" /></a>
-<a href="https://x.com/clearmined1"><img src="https://pbs.twimg.com/profile_images/1657777901830541313/6OAaR8XF_400x400.png" width="50" alt="ClearMined" title="ClearMined" style="border-radius:50%" /></a>
-<a href="https://x.com/PositiveCrypto"><img src="https://pbs.twimg.com/profile_images/1506441769424142336/msV99x2s_400x400.jpg" width="50" alt="Philip Swift" title="Philip Swift" style="border-radius:50%" /></a>
+<a href="https://x.com/_Checkmatey_"><img src="./donors/checkmatey.jpg" width="50" height="50" alt="_Checkmatey_" title="_Checkmatey_" style="border-radius:50%" /></a>
+<a href="https://x.com/JohanMBergman"><img src="./donors/johanmbergman.jpg" width="50" height="50" alt="Johan Bergman" title="Johan Bergman" style="border-radius:50%" /></a>
+<a href="https://x.com/alonshvartsman"><img src="./donors/alonshvartsman.jpg" width="50" height="50" alt="Alon Shvartsman" title="Alon Shvartsman" style="border-radius:50%" /></a>
+<a href="https://x.com/clearmined1"><img src="./donors/clearmined1.png" width="50" height="50" alt="ClearMined" title="ClearMined" style="border-radius:50%" /></a>
+<a href="https://x.com/PositiveCrypto"><img src="./donors/positivecrypto.jpg" width="50" height="50" alt="Philip Swift" title="Philip Swift" style="border-radius:50%" /></a>
 
 <img src="./qr.png" alt="Bitcoin donation QR code" width="120" />
 
