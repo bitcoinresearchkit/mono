@@ -28,11 +28,7 @@ use tokio::{
     net::{TcpListener, TcpSocket},
     sync::Semaphore,
 };
-use tower_http::{
-    catch_panic::CatchPanicLayer,
-    cors::CorsLayer,
-    timeout::RequestBodyTimeoutLayer,
-};
+use tower_http::{catch_panic::CatchPanicLayer, cors::CorsLayer};
 use tracing::info;
 
 use api::*;
@@ -167,10 +163,6 @@ fn commit_installed(record: &[u8], name: &str) -> Option<String> {
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
-/// The longest a request body may go without sending more (a transaction broadcast): a client
-/// stalling one would hold its admission permit.
-const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
-
 /// How long browsers may reuse a CORS preflight.
 const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
@@ -293,7 +285,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         .with_state(state)
         .merge(website_router)
         .layer(from_fn(request_deadline::apply))
-        .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
         .layer(from_fn(json_error::respond))
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
