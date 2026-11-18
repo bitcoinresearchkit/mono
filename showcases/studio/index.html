@@ -155,6 +155,8 @@
            field, a select, a segmented control's track, a chip, the navigator); a hover, that same step, a bare one
            pointed at; a press, what's pressed, current or chosen, and a key; then an active, pressed again. */
         --field: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
+        /* (A big field's ground and its square's: the field's, but Home's, see .home.) */
+        --big-field: var(--field);
         --hover: var(--field);
         --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
         --press: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.07));
@@ -4095,7 +4097,7 @@
         border-radius: var(--radius-lg);
         padding: 0 14px;
         color: var(--muted);
-        background: var(--field);
+        background: var(--big-field);
         box-shadow: inset 0 0 0 1px var(--line);
         font-size: 13px;
         transition: box-shadow var(--fade), color var(--fade), opacity var(--dur-micro) var(--ease);
@@ -7738,6 +7740,9 @@
         /* (The room over the page's first row: its top corner's row is placed by it too, see .home-top.) */
         --home-room: 56px;
         --home-top: var(--home-room);
+        /* (Its big fields and their squares on the light page's grey: white, as the cards on it, a field to type in where
+           the controls' grey read as one switched off. An empty chart's, on its card's white, keep the field's grey.) */
+        --big-field: light-dark(var(--card), var(--field));
         position: relative;
         z-index: 1;
         min-width: 0;
@@ -7805,11 +7810,11 @@
         width: 48px;
         height: 48px;
         border-radius: var(--radius-lg);
-        background: var(--field);
+        background: var(--big-field);
         box-shadow: inset 0 0 0 1px var(--line);
 
         &:hover:where(.can-hover *):not(:disabled) {
-          background: var(--field);
+          background: var(--big-field);
           box-shadow: inset 0 0 0 1px var(--faint);
         }
       }
