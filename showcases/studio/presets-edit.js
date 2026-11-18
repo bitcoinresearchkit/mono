@@ -8,11 +8,12 @@ import { addressSteps } from "/studio/addresses.js";
 import { windowNamed } from "/studio/words.js";
 import {
   applyPanel, asThen, atWindow, averageFor, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
-  drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, isDeleted, isPreview, keptAsEdited,
-  leaveHome, leftView, library, LIVE, loadPresets, menuOf, newDraft, nextHalvings, normalize, notice, openChart,
-  panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching,
-  previews, previousChart, readOnly, readPresetList, refresh, rekey, renderCharts, resolved, retryPresets, ROUTED, save,
-  saveView, sectionMark, showPalette, started, storage, thumbs, toast, tree, undoToast, viewed, VIEWED,
+  drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, inLibrary, isDeleted, isPreview,
+  keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, menuOf, newDraft, nextHalvings, normalize, notice,
+  openChart, panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed,
+  presetsMatching, previews, previousChart, readOnly, readPresetList, refresh, rekey, relist, renderCharts, resolved,
+  retryPresets, ROUTED, save, saveView, sectionMark, showPalette, started, storage, thumbs, toast, tree, undoToast,
+  viewed, VIEWED,
 } from "/studio/app.js";
 import { $, all$, escapeHtml } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
@@ -505,10 +506,8 @@ function resetPreset(doc) {
  * A preset copied into your Library (`folder`: into it; none, at the top), as it shows here, first there, and opened;
  * said, with an Undo (back to the preset; `quiet`: not, a new folder's own). @returns {Chart}
  */
-function copyPreset(/** @type {number} */ i, /** @type {string | undefined} */ folder = undefined, quiet = false, /** @type {string | undefined} */ was = undefined) {
+function copyPreset(/** @type {number} */ i, /** @type {string | undefined} */ folder = undefined, quiet = false) {
   const from = presetDoc(i), copy = /** @type {Chart} */ ({ ...structuredClone(from), id: uid(), updated: Date.now() });
-  // (Made again by a Redo, in place of the copy its Undo let go of: the steps that knew that one find this one.)
-  if (was) chartAgain.set(was, copy.id);
   delete copy.preset;
   delete copy.base;
   // (Where it's looked at, too.)
@@ -520,27 +519,36 @@ function copyPreset(/** @type {number} */ i, /** @type {string | undefined} */ f
   const drawn = previews.get(from.id), mark = thumbs.get(from.id);
   if (drawn) previews.set(copy.id, { ...drawn, key: "" });
   if (mark) (thumbs.set(copy.id, mark), saveThumbs());
+  // (Listed first and opened at once (its toast then answers ⌘Z): it's what's worked on now. Undo, back to the preset,
+  // the copy gone; Redo, that same copy listed and opened again, so its own steps and every Library step that knew it
+  // find it.)
+  const preset = presetIdOf(presetKey(i));
   library.charts.unshift(copy);
-  save();
-  // (In Recent, in the preset's stead (by its lasting id: its edits reset, its chart's is another): the same chart,
-  // under the same name, the copy what's looked at now; Undo opens the preset again, back in it.)
-  storage.set(VIEWED, viewed().filter((id) => id !== presetIdOf(presetKey(i))));
-  // (The copy opened, at once (its toast then answers ⌘Z): it's what's worked on now; Undo, back to the preset, the
-  // copy gone.)
-  if (home) leaveHome(() => openChart(copy));
-  else openChart(copy);
-  renderCharts();
-  const same = asThen([copy]);
-  if (!quiet) toast(`Saved a copy of “${titleOf(copy)}” to ${copy.folder ? `“${folderPath(copy.folder)}”` : "your Library"}`, { label: "Undo", run: () => {
-    if (!library.charts.some((other) => other.id === copy.id)) return;
-    if (!same()) return keptAsEdited([copy]);
-    if (chart === copy) openChart(presets?.[i] ? presetChart(i) : previousChart() ?? newDraft());
-    discard(copy);
+  const openCopy = () => {
     save();
+    // (In Recent, in the preset's stead (by its lasting id: its edits reset, its chart's is another): the same chart,
+    // under the same name, the copy what's looked at now; Undo opens the preset again, back in it.)
+    storage.set(VIEWED, viewed().filter((id) => id !== preset));
+    if (home) leaveHome(() => openChart(copy));
+    else openChart(copy);
     renderCharts();
-    // (Redone: copied again, where it went (that folder, made again since, as it is now), in the copy's place.)
-    return () => presets?.[i] && copyPreset(i, folder && folderNow(folder), false, copy.id);
-  } });
+    const same = asThen([copy]);
+    if (!quiet) toast(`Saved a copy of “${titleOf(copy)}” to ${copy.folder ? `“${folderPath(copy.folder)}”` : "your Library"}`, { label: "Undo", run: () => {
+      if (!inLibrary(copy)) return;
+      if (!same()) return keptAsEdited([copy]);
+      if (chart === copy) openChart(presets?.[i] ? presetChart(i) : previousChart() ?? newDraft());
+      discard(copy);
+      save();
+      renderCharts();
+      // (Back where it went: that folder, made again since, as it is now (see recover).)
+      return () => {
+        if (inLibrary(copy)) return;
+        relist(copy, 0);
+        openCopy();
+      };
+    } });
+  };
+  openCopy();
   return copy;
 }
 /** Where a preset's copy can go: your charts, each folder (named with those it's in), a new one. @returns {Action[]} */

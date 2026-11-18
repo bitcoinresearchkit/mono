@@ -1250,9 +1250,8 @@ const dropEmpty = (/** @type {Chart} */ doc) => {
   cancelledNew = null;
   if (left) queueMicrotask(() => toast("Removed the new chart", { label: "Undo", run: () => {
     if (inLibrary(doc)) return;
-    recover(doc);
+    relist(doc, left.at);
     if (left.folder && folderById(left.folder)) doc.folder = left.folder;
-    library.charts.splice(Math.min(left.at, library.charts.length), 0, doc);
     save();
     if (home) leaveHome(() => openChart(doc));
     else openChart(doc);
@@ -1266,6 +1265,11 @@ const recover = (doc) => {
   if (doc.folder) doc.folder = folderNow(doc.folder);
   if (doc.folder && !library.folders.some((folder) => folder.id === doc.folder)) delete doc.folder;
   delete library.deleted[doc.id];
+};
+/** A deleted chart back in your charts (an Undo, a Redo: the same chart, its id and steps its own), at `at`. @param {Chart} doc @param {number} at */
+const relist = (doc, at) => {
+  recover(doc);
+  library.charts.splice(Math.min(at, library.charts.length), 0, doc);
 };
 /** A chart edited, stamped: now, and past its last stamp and any deletion of it (a clock set back). @param {Chart} doc */
 const stampEdit = (doc) => (doc.updated = Math.max(Date.now(), doc.updated + 1, (library.deleted[doc.id] ?? 0) + 1));
@@ -2307,8 +2311,9 @@ function openChart(doc) {
   lastOpen = "";
   // (Another chart opened over Quick Look (⌘K's pick, a link, a script): the look's put away first.)
   quickHide();
-  // (Left, a chart started here is kept for good: undoing its first edit makes it a draft only while it's still on screen.)
-  if (chart && chart !== doc) keptByEdit.delete(chart);
+  // (Left, a chart started here is kept for good: undoing its first edit makes it a draft only while it's still on screen.
+  // Left a draft again, it keeps that step's place: brought back to redo it (see redoLibrary), kept again.)
+  if (chart && chart !== doc && !isPreview(chart)) keptByEdit.delete(chart);
   stopCarrying();
   // What's being typed is kept, on the chart it was typed on.
   leaveField();
@@ -2468,9 +2473,11 @@ function keepPreview(announce = true, doc = chart) {
   // (Its copy aside stays till it's saved with your charts: see persist.)
   asideDirty.delete(doc);
   keptPreviews.set(doc.id, doc.updated);
-  // (Its id another's, listed or deleted: a new one.)
-  // (Its old id let go of (its Keep undone, deleted): the steps that knew it find it under the new one, see chartAgain.)
+  // (A draft's own id, deleted as its first edit was undone: its own again, kept again by a redo or a new edit. Any
+  // other id another's, listed or deleted (a link's): a new one, the steps that knew the old one finding it, see
+  // chartAgain.)
   const listed = inLibrary(doc), old = doc.id;
+  if (!listed && drafts.has(doc) && Object.hasOwn(library.deleted, doc.id)) recover(doc);
   if (listed || Object.hasOwn(library.deleted, doc.id)) rekey(doc, uid());
   if (!listed && old !== doc.id) chartAgain.set(old, doc.id);
   // (Kept by its button, which goes: the focus on the chart's ⋯ beside it, not into a field where the next key would type.)
@@ -2497,7 +2504,12 @@ function keepChart(doc = chart) {
     save(false);
     renderCharts();
     renderHome();
-    return () => keepChart(now);
+    // (Kept again: the same chart, its deletion taken back, as a deleted chart's Undo does.)
+    return () => {
+      if (!isPreview(now)) return;
+      recover(now);
+      keepChart(now);
+    };
   }, `“${titleOf(doc)}” a preview again`);
 }
 const recent = () => {
@@ -6444,9 +6456,9 @@ function deleteChart(doc) {
   const index = library.charts.indexOf(doc);
   if (index < 0) return;
   const wasOpen = doc === chart;
-  // Its history goes with it and comes back with it: undone, the chart can still be undone further.
-  // (Its redos let go of: the delete is a step done since.)
-  const undoable = wasOpen ? { past: [...edits.past], future: [] } : null;
+  // Its history kept as any chart's left is (see keepHistory: the last few charts', fifty steps each), there when it
+  // comes back: undone, the chart can still be undone further. (Its redos let go of: the delete is a step done since.)
+  if (wasOpen) edits.future = [];
   // (Where the focus goes, asked before what has it goes: the row after, else the one before, else New chart; from
   // the Charts page (its tile, its ⋯'s menu), that one's tile there.)
   const neighbor = library.charts[index + 1] ?? library.charts[index - 1], kept = () => Boolean(neighbor && library.charts.includes(neighbor));
@@ -6473,14 +6485,9 @@ function deleteChart(doc) {
     label: "Undo",
     run: () => {
       if (inLibrary(doc)) return;
-      recover(doc);
-      library.charts.splice(Math.min(index, library.charts.length), 0, doc);
+      relist(doc, index);
       save();
-      const reopen = () => {
-        openChart(doc);
-        if (undoable) Object.assign(edits, undoable);
-        refresh();
-      };
+      const reopen = () => openChart(doc);
       if (!wasOpen) renderCharts();
       // (Gone back to the Charts page for it: back into it.)
       else if (away && home) void leaveHome(reopen);
@@ -10030,8 +10037,9 @@ function canTravel(/** @type {boolean} */ back) {
 /**
  * A step of the Library's own (a chart or a folder deleted, moved, copied; one a toast offered to undo): what it
  * said, how it's undone (giving how it's done again, if it can be), and when it was done (see ChartStep).
- * (`folder`: the folder it made, whose first name is its own: see nameFolder.)
- * @typedef {{ text: string, run: () => (void | false | (() => void)), undone?: string, at: number, folder?: string }} LibraryStep
+ * (`folder`: the folder it made, whose first name is its own: see nameFolder. An undone one's `open`, the chart open
+ * before its undo, and `left`, the one open after it: see redoLibrary.)
+ * @typedef {{ text: string, run: () => (void | false | (() => void)), undone?: string, at: number, folder?: string, open?: Chart, left?: string }} LibraryStep
  */
 /**
  * The Library's steps, kept however long ago they were (the toast that said one gone or not): ⌘Z and ⇧⌘Z take them
@@ -10058,7 +10066,7 @@ const folderNow = (/** @type {string} */ id) => {
   for (let hops = 0; folderAgain.has(id) && hops < 50; hops++) id = /** @type {string} */ (folderAgain.get(id));
   return id;
 };
-/** Charts given a new id since, their old one let go of (kept again after its Keep was undone; an edited preset moved): the old → the new. @type {Map<string, string>} */
+/** Charts given a new id since, their old one let go of (a link's preview kept, its id deleted here; an edited preset moved): the old → the new. @type {Map<string, string>} */
 const chartAgain = new Map();
 const chartNow = (/** @type {string} */ id) => {
   for (let hops = 0; chartAgain.has(id) && hops < 50; hops++) id = /** @type {string} */ (chartAgain.get(id));
@@ -10083,7 +10091,7 @@ function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} 
 function undoLibrary() {
   const step = libraryEdits.past.pop();
   if (!step) return;
-  const saved = saves, said = toasts;
+  const saved = saves, said = toasts, was = chart;
   undoing = true;
   let again;
   try {
@@ -10094,23 +10102,42 @@ function undoLibrary() {
   // (Nothing done (what it'd undo changed since, gone, back already): not said as done; its own word, if it had one.)
   if (saves === saved) return void (syncUndo(), toasts === said && notice(`Nothing to undo: things have changed since then (${step.text})`));
   if (typeof again !== "function") return void (syncUndo(), toast(step.undone ?? "Undone"));
-  const back = { text: step.text, run: again, undone: step.undone, at: ++stepCount };
+  const back = { text: step.text, run: again, undone: step.undone, at: ++stepCount, open: was, left: chart.id };
   libraryEdits.future.push(back);
   // (Its Redo, while it's still the next to redo.)
   toast(step.undone ?? "Undone", { label: "Redo", run: () => (libraryEdits.future.at(-1) === back ? redoLibrary() : notice("Nothing to redo: things have changed since then")) });
 }
-/** The Library's last step undone, done again (it says so itself, its Undo a step again). */
+/**
+ * The Library's last step undone, done again (it says so itself, its Undo a step again). Redone where its undo left
+ * (nothing opened since), the chart open before that undo is open again, whatever either opened (a duplicate's copy,
+ * a deleted chart's neighbor, a preset's copy): its own steps in reach as they were then. Another opened since, it's
+ * left open: the redo doesn't take you back.
+ */
 function redoLibrary() {
   const step = libraryEdits.future.pop();
   if (!step) return notice("Nothing to redo");
   // (Its "Undone" put away: what it does says itself, or nothing.)
   hideToast();
-  const saved = saves, said = toasts;
+  const saved = saves, said = toasts, from = chart;
   redoing = true;
   try {
     step.run();
   } finally {
     redoing = false;
+  }
+  // (Only once it did something: a refused redo moves nothing, nor the chart open.)
+  // (From the Charts page, none: the chart under it isn't the one being looked at, nor swapped unseen.)
+  if (step.open && saves !== saved && !home && from.id === step.left && chart.id !== step.open.id) {
+    const doc = step.open, preset = doc.preset !== undefined ? presetIndex(doc) : -1;
+    // (Let go of as it was left, as it came (see openChart): a draft one again, a preset made anew; its steps, kept by
+    // its id, with it. Deleted since (another tab), none: the one the redo opened stays.)
+    if (!chartById(doc.id) && drafts.has(doc)) addPreview(doc);
+    const now = chartById(doc.id) ?? (preset >= 0 ? presetChart(preset) : undefined);
+    if (now?.id === doc.id) {
+      // (The redo opened one itself: this one in its place in the tab's history, Back never to a chart not seen.)
+      if (chart !== from && history.state?.chart === chart.id) history.replaceState({ ...history.state, chart: now.id }, "");
+      openChart(now);
+    }
   }
   syncUndo();
   if (saves === saved && toasts === said) notice(`Nothing to redo: things have changed since then (${step.text})`);
@@ -11883,16 +11910,16 @@ export {
   pendingRoute, phone, pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels,
   presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart,
   profileColor, profileLit, putViews, quick, quickHide, quickShow, quickWorks, reaching, readOnly, readPresetList,
-  recent, recentCharts, recover, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout, remember,
-  removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape, reshaped, resolved,
-  retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon, saveView, say, secondColor,
-  sectionMark, select, selected, selectingArea, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES,
-  SHEET_SHARE, shelfRows, shelfScrolls, showGuide, showList, showLook, showMenu, shownDrawings, shownOklch, shownView,
-  showPalette, showRange, showShortcuts, sideLight, sidePresets, signalShown, signedSignal, sizeChart, sizeHeld,
-  SLIDERS, SPAN, spanKey, spanParts, spotlight, STACKED_ONLY, started, startLabel, startTyping, storage, studioVersion,
-  submenus, subSetups, syncUndo, tabletHead, tagLit, takeUp, takeView, THEMES, thumbs, timeAt, timesAt, toast,
-  togglePanel, toggleSidebar, tokensMedia, tokensNow, tool, toolKept, touched, track, tree, trendShort, typingIn,
-  undoLast, undoLibrary, undoToast, UNREAD, updatePaletteKeys, updateRowChanges, used, viewed, VIEWED, viewMoving,
-  viewOn, viewsNow, viewTimes, VIVID_ROWS, vividGrid, vividWork, widest, windowTooLong, within, writeSideList, writing,
-  yourTilesSeen, zeroFit,
+  recent, recentCharts, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout, relist,
+  remember, removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape, reshaped,
+  resolved, retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon, saveView, say,
+  secondColor, sectionMark, select, selected, selectingArea, seriesCount, setSingleKeys, SHARE, sharedTops,
+  SHARES_IMAGES, SHEET_SHARE, shelfRows, shelfScrolls, showGuide, showList, showLook, showMenu, shownDrawings,
+  shownOklch, shownView, showPalette, showRange, showShortcuts, sideLight, sidePresets, signalShown, signedSignal,
+  sizeChart, sizeHeld, SLIDERS, SPAN, spanKey, spanParts, spotlight, STACKED_ONLY, started, startLabel, startTyping,
+  storage, studioVersion, submenus, subSetups, syncUndo, tabletHead, tagLit, takeUp, takeView, THEMES, thumbs, timeAt,
+  timesAt, toast, togglePanel, toggleSidebar, tokensMedia, tokensNow, tool, toolKept, touched, track, tree, trendShort,
+  typingIn, undoLast, undoLibrary, undoToast, UNREAD, updatePaletteKeys, updateRowChanges, used, viewed, VIEWED,
+  viewMoving, viewOn, viewsNow, viewTimes, VIVID_ROWS, vividGrid, vividWork, widest, windowTooLong, within,
+  writeSideList, writing, yourTilesSeen, zeroFit,
 };
