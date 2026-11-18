@@ -4,34 +4,35 @@ import { press, stack as stackColumns } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
   acrossUnfit, afterHands, byBlock, byTouch, chart, chooseDrawings, chosen, clearLayerPicks, client, cohortName,
-  colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit, fromLetters,
-  fromShort, fromUnfit, gradientWidth, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks, layersBatch,
-  letterChip, markFor, markPicks, memberable, minedHalvings, MOTION, multiEdit, notice, openPalette, ownerOf,
-  paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt,
-  renderInspector, renderLayers, reshape, resolved, secondColor, select, selected, seriesCount, showList, shownOklch,
-  signedSignal, SLIDERS, STACKED_ONLY, toast, track, tree, undoToast, VIVID_ROWS, vividGrid, vividWork, widest,
+  colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaDrafts,
+  formulaFit, fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks,
+  layersBatch, letterChip, markFor, markPicks, marksOf, memberable, minedHalvings, MOTION, notice, openPalette, ownerOf,
+  panelShown, paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt,
+  renderLayers, reshape, resolved, secondColor, select, selected, seriesCount, showList, shownOklch, signedSignal,
+  SLIDERS, STACKED_ONLY, toast, track, tree, undoToast, widest,
 } from "/studio/app.js";
 import { isSeriesName } from "/studio/catalog-walk.js";
-import { $, all$, closest, escapeHtml, keyText, SLOP, viewport } from "/studio/dom.js";
+import { $, all$, closest, drawKeys, escapeHtml, keyText, proseHtml, SLOP, viewport } from "/studio/dom.js";
 import { inSlices, whenIdle } from "/studio/timing.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
 import {
   axisLabel, fieldUnit, format, FORMATS, grouped, humanize, plural, UNIT_NAMES, unitOf,
 } from "/studio/format.js";
-import { CHEVRON, dashGlyph, glyph, glyphSvg, ICONS, shapeGlyph } from "/studio/icons.js";
+import { CHEVRON, dashGlyph, glyph, glyphSvg, ICONS, markBody, shapeGlyph } from "/studio/icons.js";
 import {
-  belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, follows, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST,
-  HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, markable, MAX_LEVELS,
-  MAX_PANES, membersOf, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale, OUTLINED, PAIRS, placedBy,
-  placedOn, seriesLooked, SHAPES, toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, TYPES, WIDTHS,
+  belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
+  GRADIENT_MOST, HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
+  markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale,
+  OUTLINED, PAIRS, placedBy, placedOn, placeName, seriesLooked, SHAPES, STACKS, toggleMember, TREND_FLIP, TREND_SAYS,
+  TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   FINE, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, spanDays, SPANS, windowPoints,
 } from "/studio/intervals.js";
 import { gamma, hexToOklch, inside, limit, maxChroma, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
 import {
-  BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, idOf, info, ink, lastShown, noValues, oklchOf, respot,
-  retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
+  baseOf, BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, idOf, info, ink, lastShown, noValues, oklchOf,
+  respot, retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
 } from "/studio/chart.js";
 import {
   bothOf, choicePage, findSeries, formulaError, formulaSide, listPage, loopError, nodeAt, palette, paneNames,
@@ -43,9 +44,11 @@ import {
   VALUES,
 } from "/studio/formulas.js";
 import { fillSlot, isOpen, recommendedCards } from "/studio/grid.js";
-import { HEAT_FADE, heatAmount, heatFelt, heatGrid, heatLooks, heatName, heatPath } from "/studio/heatmaps.js";
-import { exportData, menuOf, scrolled, showMenu } from "/studio/menus.js";
-import { presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
+import {
+  HEAT_FADE, heatAmount, heatFelt, heatGrid, heatLooks, heatName, heatPath, heatSection,
+} from "/studio/heatmaps.js";
+import { cutFade, exportData, fadeOut, menuOf, scrolled, showMenu } from "/studio/menus.js";
+import { ordersOf, presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
 /** @import { Node, Vector } from "/studio/formulas.js" */
@@ -332,6 +335,214 @@ function showSelection() {
   respot();
   updateLegends();
   renderBelt();
+}
+let inspected = "";
+/** Whether the inspector edits the layers picked, together (the bar's Edit), while none's selected. */
+let multiEdit = false;
+/**
+ * How many levels and gradient colors the layer had as its panel was last drawn (a field kept as it's typed in only
+ * while they're the same). See fieldsShape.
+ */
+let inspectedShape = "";
+let expanded = false;
+/** The layer's actions as last written (written again only when they change). */
+let actionsShown = "";
+/** The panel waiting to be drawn again, a color's hex being typed in it (see renderInspector). */
+let inspectorDue = false;
+function renderInspector() {
+  // (Not under a hex being typed: its caret, its undo, what's half typed; drawn again once it's left.)
+  if (document.activeElement?.matches?.("#inspector .color-editor .hex")) return void (inspectorDue = true);
+  inspectorDue = false;
+  const layer = layerById(selected);
+  if (layer) vividAhead();
+  // (Several picked and opened together: theirs; down to one or none picked, back to the list.)
+  if (multiEdit && !editingMany()) multiEdit = false;
+  const many = editingMany() ? pickedLayers() : null, open = Boolean(layer || many);
+  // (From the list to a layer's settings or back: the one left going as the other comes (no empty frame between),
+  // the list on the left, a layer's settings on the right.)
+  if (document.body.hasAttribute("data-inspect") !== open && panelShown()) {
+    cutFade(open ? $("inspector") : $("layers-view"));
+    fadeOut(open ? $("layers-view") : $("inspector"), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${open ? -8 : 8}px)` }], MOTION.micro, true);
+  }
+  document.body.toggleAttribute("data-inspect", open);
+  const panel = $("inspector");
+  if (many) return renderMany(panel, many);
+  if (!layer) {
+    panel.innerHTML = "";
+    inspected = "";
+    return;
+  }
+  // While typing into this layer's formula or name (or a number of it: its base, a level, a gradient's place), keep
+  // the field (and its caret) as it is.
+  const active = document.activeElement;
+  // (Turned into a series meanwhile, or into a formula, it's drawn anew.)
+  // (Its levels or gradient colors taken off or added meanwhile (a field's index another one's now): drawn anew, the
+  // field too.)
+  const shape = fieldsShape(layer);
+  const typed = !panel.dataset.pressed;
+  delete panel.dataset.pressed;
+  if (typed && active && inspected === layer.id && shape === inspectedShape && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-") || /** @type {HTMLElement} */ (active).dataset.stopAt !== undefined)) {
+    updateFormula(layer);
+    // (The interval may have changed: the spans offered follow.)
+    suggestHere();
+    const fresh = actionsOf(layer);
+    if (fresh !== actionsShown) /** @type {HTMLElement} */ (panel.querySelector(".layer-actions")).outerHTML = actionsShown = fresh;
+    // (Hidden or shown meanwhile, from the list, the legend, another tab: its eye says so.)
+    const eye = $("inspector-eye");
+    if (eye && eye.dataset.hidden !== String(Boolean(layer.hidden))) eye.outerHTML = eyeOf(layer);
+    return;
+  }
+  const another = inspected !== layer.id;
+  if (another) expanded = false;
+  // (A level's field or a gradient's, those changed meanwhile: not put back by its index, another one's now.)
+  const focus = inspected === layer.id && !(shape !== inspectedShape && active?.closest?.(".levels, .gradient-hand")) ? focusKey(panel) : null;
+  inspected = layer.id;
+  inspectedShape = shape;
+  const result = resolved?.results.get(layer.id);
+  const meta = result?.info;
+  const isFormula = layer.formula !== undefined, signal = layer.type === "signal";
+  const unit = unitFor(layer, result);
+  const layerPane = /** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane)), stackOfPane = layerPane?.stack ?? "", ordered = chart.layers.filter((item) => item.pane === layer.pane).length > 1;
+  // (Under one made from layers: what it lacks, else a trend's way, and why it isn't drawn here.)
+  const fromError = layer.from ? fromShort(layer) || result?.error : "";
+  const fromSays = layer.from && !fromError ? ((unfit) => [layer.type === "trend" ? TREND_SAYS : "", unfit === "Not in a stack" ? "not drawn in a stacked pane" : unfit === ONE_SCALE ? `not drawn: ${FLIP_APART.toLowerCase()}` : unfit ? "not drawn on a percent or indexed scale" : ""].filter(Boolean).join("; "))(fromUnfit(chart, layer)) : "";
+  const sourceSection = heatLike(layer)
+    ? heatSection(layer)
+    : layer.from
+    ? `<section>
+              <h3>${typeName(layer.type)}</h3>
+              ${betweenField(layer)}
+              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${refPicked(layer)}${CHEVRON}</button></div>`}
+              ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escapeHtml(fromError || `${capitalized(fromSays)}.`)}</p>` : ""}
+            </section>`
+    : isFormula
+    ? `<section>
+              <h3>${signal ? "Signal" : "Formula"}</h3>
+              <div class="formula-editor" id="formula-editor">
+                <pre id="formula-mirror" aria-hidden="true"></pre>
+                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="${FORMULA_MAX}" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escapeHtml(((draft) => (draft && draft.over === layer.formula ? draft.text : layer.formula))(formulaDrafts.get(chart.id)?.get(layer.id)))}</textarea>
+                <div class="assist" popover="manual">
+                  <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
+                  <ul id="suggest" class="suggest" role="listbox" hidden></ul>
+                  <p id="suggest-more" class="more" hidden></p>
+                </div>
+              </div>
+              <p id="formula-status" class="formula-status"></p>
+              <details class="help"><summary>Functions and how letters work</summary>
+                <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escapeHtml(signature)}</b><span>${escapeHtml(what)}</span></button>`).join("")}</div>
+                <p>Capital letters are layers as drawn; a series by its name (${escapeHtml(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
+              </details>
+              ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${refPicked(layer)}${CHEVRON}</button></div>
+              <div class="field"><span>Shown as<span class="color-now">${escapeHtml(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
+              <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
+              <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Every time it signaled; pick one to jump to it">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
+            </section>`
+    : `<section>
+              <h3>Series</h3>
+              <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Replace series, ${escapeHtml(layer.series)}" data-tip="Replace series"><code>${escapeHtml(layer.series)}</code>${ICONS.swap}</button>
+                <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
+              </div>
+              ${result?.error ? errorBox(result, layer.series ?? "") : ""}
+              ${meta?.description ? `<div class="description ${expanded ? "" : "clamped"}">${proseHtml(meta.description)}</div>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more" aria-expanded="${expanded}">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
+              ${meta ? `<div class="facts"><span class="chip">${escapeHtml(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
+            </section>`;
+  const html = `
+          <div class="inspector-head">
+            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
+            ${letterChip(layer)}
+            <input id="label" class="label-input" maxlength="120" enterkeyhint="done" value="${escapeHtml(layer.label ?? "")}" placeholder="${escapeHtml(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
+            ${eyeOf(layer)}
+            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
+          </div>
+          ${sourceSection}
+          ${layer.type === "bubbles" ? bubbleSection(layer) : ""}
+          <section>
+            <h3>Style</h3>
+            ${typeField([layer])}
+            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<label class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escapeHtml(fieldUnit(unit))}</span></label></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escapeHtml(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
+            ${colorPicker(layer)}
+            ${opacityField([layer])}
+            ${widthField([layer])}
+            ${lineField([layer])}
+            ${fillField([layer])}
+            ${candlesField([layer])}
+            ${outlineField([layer])}
+            ${priceLineField([layer])}
+            ${layer.from || placedOn(layer) || heatLike(layer) ? "" : levelsField(layer, unit, result)}
+          </section>
+          ${signal ? "" : `<section>
+            <h3>Layout</h3>
+            ${paneField([layer])}
+            ${axisField([layer])}
+            ${fitField([layer])}
+            ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escapeHtml(formatName(layer, result))}"><span class="name">${escapeHtml(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
+            <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
+            ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
+            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
+            ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
+          </section>`}
+          ${(actionsShown = actionsOf(layer))}`;
+  // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those
+  // of this layer whose stop changes alone (reading one lays the page's style out first: an edit elsewhere, none read).
+  const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
+  const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(sliderTrack(element), "::after").left, fill: getComputedStyle(sliderTrack(element), "::before").width }]));
+  rewrite(panel, html);
+  // (Its gradient's bar watched, its ticks fitted to its width: see gradientWidth.)
+  gradientRoom.disconnect();
+  ((bar) => bar && gradientRoom.observe(bar))(panel.querySelector("[data-gradient-bar]"));
+  drawKeys(panel);
+  if (isFormula) updateFormula(layer);
+  restoreFocus(panel, focus);
+  drawPlanes();
+  // Redrawn, each slider glides on from where it was to its stop, however many times it's redrawn on the way.
+  for (const element of all$("#inspector .stepper")) {
+    const from = was.get(element.id);
+    if (!from) continue;
+    const track = sliderTrack(element), handle = getComputedStyle(track, "::after").left, fill = getComputedStyle(track, "::before").width;
+    const timing = { duration: MOTION.micro, easing: MOTION.ease };
+    glidesUntil.set(element.id, performance.now() + MOTION.micro);
+    if (handle !== from.handle) track.animate({ left: [from.handle, handle] }, { ...timing, pseudoElement: "::after" });
+    if (fill !== from.fill) track.animate({ width: [from.fill, fill] }, { ...timing, pseudoElement: "::before" });
+  }
+  if (another) panel.scrollTop = 0;
+  if (result?.missing) suggestReplacement(layer);
+}
+/**
+ * The inspector for several layers, opened together from the bar (see multiEdit): their letters and how many, then
+ * what they all have (see typeField), each change to every one of them, in one step.
+ * @param {HTMLElement} panel @param {Layer[]} layers
+ */
+function renderMany(panel, layers) {
+  const key = `many:${layers.map((layer) => layer.id).join()}`, focus = inspected === key ? focusKey(panel) : null, another = inspected !== key;
+  inspected = key;
+  actionsShown = "";
+  const style = [typeField(layers), colorField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), candlesField(layers), outlineField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers), fitField(layers)].join("");
+  rewrite(panel, `
+          <div class="inspector-head">
+            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
+            <span class="many-letters">${layers.slice(0, 4).map((layer) => letterChip(layer, true)).join("")}${layers.length > 4 ? `<span class="letter rest" data-tip="${escapeHtml(layers.slice(4).map(labelOf).join(", "))}">+${layers.length - 4}</span>` : ""}</span>
+            <span class="many-name">${plural(layers.length, "layer")}<span class="many-of">${escapeHtml(layers.map(labelOf).join(", "))}</span></span>
+            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
+          </div>
+          <section><h3>Style</h3>${style}</section>
+          ${layout ? `<section><h3>Layout</h3>${layout}</section>` : ""}`);
+  drawKeys(panel);
+  restoreFocus(panel, focus);
+  drawPlanes();
+  if (another) panel.scrollTop = 0;
+}
+/** The layers picked, edited together in the inspector (the bar's Edit); `on` false: back to the list, kept picked. */
+function editPicked(/** @type {boolean} */ on) {
+  multiEdit = on;
+  renderInspector();
+}
+/** A layer's description shown whole, or clamped again, by its Show more (`button`). */
+function toggleDescription(/** @type {HTMLElement} */ button) {
+  expanded = !expanded;
+  const description = $("inspector").querySelector(".description");
+  description?.classList.toggle("clamped", !expanded);
+  button.textContent = expanded ? "Show less" : "Show more";
+  button.setAttribute("aria-expanded", String(expanded));
 }
 const editingMany = () => multiEdit && !selected && pickedLayers().length > 1;
 /** The layers the inspector edits: the one selected, or those picked, edited together (see multiEdit). */
@@ -988,6 +1199,12 @@ function gradientEditor(layer, key) {
   const head = `<div class="gradient-head"><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escapeHtml(readyName(stops))}" data-tip="Gradients ready made">${gradientSwatch(stops)}<span class="name">${escapeHtml(readyName(stops))}</span>${CHEVRON}</button><button type="button" class="cap" data-action="gradient-reverse" aria-label="Reverse the gradient" data-tip="Reverse the gradient">${ICONS.swap}</button><button type="button" class="cap" data-action="gradient-add" aria-label="Add a color" ${stops.length >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button></div>`;
   return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escapeHtml(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer, stops[k]?.[0])}</div>${gradientHand(layer, k)}`;
 }
+/** The width a gradient's bar is laid out at, its ticks fitted to it: kept as it changes (the panel's grip, a phone turned). */
+let gradientWidth = 0;
+const gradientRoom = new ResizeObserver((entries) => {
+  const width = entries[entries.length - 1].contentRect.width;
+  if (width && width !== gradientWidth) (gradientWidth = width), showScale();
+});
 /**
  * Where a gradient's values fall along it, under its bar, the color in hand's (at `hand`) under its knob (see
  * gradientTicks; none yet, nothing). @param {Layer} layer @param {number} [hand]
@@ -1150,6 +1367,30 @@ function penColors(/** @type {HTMLElement} */ button) {
     refocus(`#${button.id}`);
   }, () => ((now) => now && penColors(now))($(button.id)));
 }
+/**
+ * The surface's chroma at a lightness and hue: CHROMA, the same for every hue as OKLCH means it, eased down where
+ * sRGB can't hold it. sRGB's limit bends sharply at its primaries (blue's chroma nearly doubles within 5° of hue),
+ * which would crease the surface: taken at its lowest, then averaged, over 12° of hue and 0.03 of lightness around
+ * each point, it has no creases and never leaves sRGB, and a soft minimum eases CHROMA into it without a seam.
+ * Built once on a grid (a degree by 0.005), read between its points.
+ */
+let vividGrid = /** @type {Float64Array | null} */ (null);
+const VIVID_ROWS = Math.round(1 / 0.005) + 1;
+/** The surface's grid made a line at a time: its limits row by row, folded at their lowest, then averaged, then eased. */
+const vividWork = (function* () {
+  const rows = VIVID_ROWS, limits = new Float64Array(rows * 360);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < 360; c++) limits[r * 360 + c] = limit(1 - r * 0.005, c, 12);
+    yield;
+  }
+  const smooth = yield* fold(yield* fold(limits, true), false), eased = new Float64Array(rows * 360);
+  // A soft minimum: below both, and smooth where they cross.
+  for (let r = 0; r < rows; r++) {
+    for (let i = r * 360; i < (r + 1) * 360; i++) eased[i] = -0.012 * Math.log(Math.exp(-CHROMA / 0.012) + Math.exp(-smooth[i] / 0.012));
+    yield;
+  }
+  vividGrid = eased;
+})();
 /**
  * Each window of `size` along `line` (its first window at the line's start), its minimum (`lowest`) or its mean,
  * written into `into` from `at`, a `step` apart: a running sum, a queue of the window's rising minima, one step a
@@ -1621,6 +1862,21 @@ function updateSuggestions() {
   if (quiet) return showSuggestions([]);
   showSuggestions(items);
   completeSeries(suggest, token, (series) => document.activeElement === textarea && showSuggestions([...items, ...series]));
+}
+/** Suggestions where the caret is now (and at this interval): made again only when either changed, so an arrow's pick stays. */
+let suggestedAt = "";
+function suggestHere() {
+  const at = `${assistKey()} ${chart.index} ${resolved?.times.length ?? 0}`;
+  if (at === suggestedAt) return;
+  suggestedAt = at;
+  updateSuggestions();
+}
+/** The formula's field left: its suggestions gone. */
+function dropSuggestions() {
+  suggest.controller?.abort();
+  // Out of the field, it all goes at once (a press on the popover keeps the field's focus); back in, anew.
+  suggest.away = suggestedAt = "";
+  showSuggestions([]);
 }
 /** What each argument of a function takes, by its name in the signatures. */
 const ARGUMENTS = {
@@ -2496,24 +2752,21 @@ function toSeries(/** @type {string} */ id, /** @type {string} */ name) {
   refocus('[data-action="change-series"]');
 }
 export {
-  acceptSuggestion, actionsOf, addFormula, addFormulaLayer, addFrom, addHeatmap, addLevel, addSeries, addSignal,
-  addSignalLayer, addStop, afterPress, assistKey, axisField, bandOf, barAt, betweenField, bubbleSection, candlesField,
-  changeSeries, chooseSuggestion, CHROMA, closestSeries, cloudable, colorField, colorLevels, colorModeChoices,
-  colorModeOf, colorOf, colorPicker, colorSlot, colorSlots, colorSource, completeSeries, completion, completionsAt,
-  copyName, dashRow, drawPlanes, duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, errorBox,
-  eyeOf, fadingOf, faintOf, fieldsShape, fillField, fillOf, fitChoices, fitField, fitOf, FITS, fitsAt, flushPick,
-  focusKey, fold, formatChoices, formatMenu, formulaInputs, fromChoices, fromPage, glidesUntil, goneSaid,
-  GRADIENT_STEPS, gradientCss, gradientEdit, gradientPlaces, gradientSwatch, gradientTable, hexField, hideLayers, HUES,
-  inHand, insertAtCaret, isUnfinished, keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands,
-  layersMenu, levelRows, levelsField, levelSteps, levelValue, lineAt, lineButtons, lineChoices, lineField, lineLook,
-  lineLookOn, lineMenu, lineStyleGlyph, lineStyleName, markTyping, modeName, modeOf, modesFor, modeSwatch, moveLayer,
-  movers, moveStop, named, opacityField, outlineField, overShort, ownColor, paneChoices, paneField, paneLayers,
-  paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress,
-  placeAssist, placeOf, planeHtml, planeOf, planeTarget, priceLineField, rangeOf, readNumber, readsOf, readyName,
-  readyPage, recipesFor, refChoices, refMenu, refPicked, removeLayer, removeLayers, removeStop, renderLayersBar,
+  acceptSuggestion, addFormula, addFormulaLayer, addFrom, addHeatmap, addLevel, addSeries, addSignal, addSignalLayer,
+  addStop, afterPress, assistKey, bandOf, barAt, changeSeries, chooseSuggestion, closestSeries, cloudable, colorLevels,
+  colorModeChoices, colorModeOf, colorOf, colorSlot, colorSlots, colorSource, completeSeries, completion, completionsAt,
+  copyName, dashRow, drawPlanes, dropSuggestions, duplicateLayer, duplicateLayers, editAdded, editById, editingMany,
+  editLayer, editPicked, fadingOf, faintOf, fillOf, fitChoices, fitOf, FITS, fitsAt, flushPick, focusKey, formatChoices,
+  formatMenu, formulaInputs, fromChoices, fromPage, goneSaid, GRADIENT_STEPS, gradientCss, gradientEdit, gradientPlaces,
+  gradientSwatch, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, isUnfinished,
+  keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, levelRows, levelSteps,
+  levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName, markTyping, modeName,
+  modeOf, modesFor, modeSwatch, moveLayer, movers, moveStop, multiEdit, named, overShort, ownColor, paneChoices,
+  paneLayers, paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint,
+  pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, rangeOf, readNumber, readsOf, readyName, readyPage,
+  recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop, renderInspector, renderLayersBar,
   replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit, setLineLook, setSlider, sharedBy,
-  showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider, sliderAt, sliders, sliderTrack,
-  slotName, soloLayer, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestReplacement,
-  TAG_NEEDS_LINE, toggleHidden, typeField, underColorMenu, updateCallHelp, updateFormula, updateSuggestions, usesOf,
-  vividAhead, widthField, widthRow, withLevel, withoutLevel,
+  showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider, sliders, slotName, soloLayer,
+  STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestHere, TAG_NEEDS_LINE, toggleDescription,
+  toggleHidden, underColorMenu, updateCallHelp, updateFormula, usesOf, widthRow, withLevel, withoutLevel,
 };
