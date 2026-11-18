@@ -52,12 +52,11 @@ impl Vecs {
             })?;
         }
 
-        // Saved every WRITE_INTERVAL heights, so a stopped pass resumes from its last save. The
-        // regimes start on multiples of it, so a chunk lies in one: the table before the oracle,
-        // or one EMA.
-        const _: () = assert!(
-            START_HEIGHT_SLOW % WRITE_INTERVAL == 0 && START_HEIGHT_FAST % WRITE_INTERVAL == 0
-        );
+        // Saved every WRITE_INTERVAL heights, so a stopped pass resumes from its last save. A
+        // chunk lies in one regime, the table before the oracle or one EMA: write_chunks splits
+        // at START_HEIGHT_SLOW, a multiple of WRITE_INTERVAL, and segments_for_range at
+        // START_HEIGHT_FAST, which isn't.
+        const _: () = assert!(START_HEIGHT_SLOW % WRITE_INTERVAL == 0);
         let start = self.spot.cents.height.len();
         // The retained oracle continues exactly where the stored prices end; otherwise it is
         // rebuilt from the last stored bin and its warmup blocks (the same state: the EMA is a
@@ -67,7 +66,7 @@ impl Vecs {
             .take()
             .and_then(|(next, oracle)| (next == start).then_some(oracle));
         let mut logged = 0;
-        for chunk in write_chunks(start..total_heights) {
+        for chunk in Config::segments_for_range(start..total_heights).flat_map(write_chunks) {
             if chunk.end <= START_HEIGHT_SLOW {
                 for cents in pre_oracle_prices_from(chunk.start).take(chunk.len()) {
                     self.spot.cents.height.push(cents);
