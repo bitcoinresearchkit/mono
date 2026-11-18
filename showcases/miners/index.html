@@ -464,6 +464,9 @@
           font-size: 12px;
         }
       }
+      [data-table="matrix"] {
+        container: matrix / inline-size;
+      }
       /* (Nothing moves as the tables come in: what's under a table still being read waits unseen, and shows in its
          place once every table above it is in; a section a link asked for shows at once, held in view as they fill.) */
       main:not(:has(:target)) section:has(.wait) ~ section,
@@ -576,7 +579,9 @@
           gap: 0;
           line-height: 1.35;
         }
-        /* Seven columns don't fit: a pool's row is its name over its blocks, then the five counts, each over its bar. */
+      }
+      /* Where seven columns don't fit: a pool's row is its name over its blocks, then the five counts, each over its bar. */
+      @container matrix (max-width: 879px) {
         .matrix {
           &,
           thead,
@@ -589,7 +594,7 @@
           .line,
           .all {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) repeat(5, 42px);
+            grid-template-columns: minmax(0, 1fr) repeat(5, clamp(42px, 9cqi, 72px));
             column-gap: 5px;
             align-items: center;
             align-content: center;
