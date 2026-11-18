@@ -906,6 +906,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- The pools' dollar fee averages (`pool_*_fees_avg_{24h,1w,1m,1y}_usd`) serve the same `version` however the server
+  got there; after a first compute in the same process they served another number until a restart (values were
+  equal). Their version and that of the market's 1w/1m/1y price ranges and moving averages change once; the market
+  ones recompute
 - The price plugin saves its prices every 10,000 blocks instead of once at the end of its pass, so a Ctrl+C or a
   restart during a pass from genesis resumes from the last save (a pass took 35 s on the M6 bench and 3 to 10 min on
   a loaded Mac). A stop inside the oracle's slow regime (blocks 340,000 to 508,000) still resumes from its start, as

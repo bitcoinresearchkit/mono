@@ -130,7 +130,7 @@ pub type PricedDeltaFromHeight<S, C> = LazyDeltaFromHeight<S, C, PricedChange>;
 pub fn priced_starts(starts: &LazyWindowStartVec) -> LazyVec<Height, Height, Height> {
     LazyVec::new(
         &format!("{}_priced", starts.name()),
-        starts.version() + Version::ONE,
+        PRICED_VERSION,
         starts.read_only_boxed_clone(),
         |height, start| Height::from(first_priced(start.to_usize()).min(height.to_usize() + 1)),
     )
