@@ -382,6 +382,29 @@ const alignedOn = (/** @type {number} */ lo, /** @type {number[]} */ times) => {
   return aligned;
 };
 /**
+ * A series with its data at a chart's interval, or why there is none: its info and its data asked for together.
+ * @param {string} name @param {Chart} doc @returns {Promise<any>}
+ */
+async function fetchSeries(name, doc, fresh = false) {
+  // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
+  // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
+  if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
+  // Known to lack this interval (any by date, by block only): say so without asking for its data.
+  const lacking = byBlock.has(name) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
+  const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
+  if (about.status === "rejected") return { error: about.reason };
+  const meta = about.value;
+  units.set(name, unitOf(meta.type));
+  if (!meta.indexes.includes(doc.index)) return { meta, error: { unavailable: true } };
+  if (series.status === "rejected") return { meta, error: series.reason };
+  return { meta, data: series.value };
+}
+/**
+ * What resolve would read for a chart, asked for now and not waited for: the resolve that follows finds it in hand
+ * (the same requests, see info and load), a trip sooner than if it waited on what came before. @param {Chart} doc
+ */
+const ask = (doc) => void Promise.all(drawSeries(doc).map((name) => fetchSeries(name, doc)));
+/**
  * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
  * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
  */
@@ -390,23 +413,8 @@ async function resolve(doc, fresh = false) {
   const sources = /** @type {(Layer & { series: string })[]} */ (layers.filter((layer) => layer.series));
   const named = formulaSeries(drawing);
   if (fresh) for (const name of seriesIn(drawing)) retryInfo(name);
-  /** A series with its data at the chart's interval, or why there is none. @param {string} name @returns {Promise<any>} */
-  const fetchSeries = async (name) => {
-    // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
-    // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
-    if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
-    // Known to lack this interval (any by date, by block only): say so without asking for its data.
-    const lacking = byBlock.has(name) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
-    const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
-    if (about.status === "rejected") return { error: about.reason };
-    const meta = about.value;
-    units.set(name, unitOf(meta.type));
-    if (!meta.indexes.includes(doc.index)) return { meta, error: { unavailable: true } };
-    if (series.status === "rejected") return { meta, error: series.reason };
-    return { meta, data: series.value };
-  };
   // Each series once, however many layers and formulas read it.
-  const fetched = new Map(await Promise.all(seriesIn(drawing).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name)]))));
+  const fetched = new Map(await Promise.all(seriesIn(drawing).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name, doc, fresh)]))));
   // The timeline and each series on it, kept from the last resolve of this chart that read the same data (the same
   // fetched objects): its series keep their identity, and with them what's computed from them (formulas, windows'
   // stats, the chart's series): an edit to one layer redoes that layer only.
@@ -3172,7 +3180,7 @@ function reachOut() {
   if (side) void grow(span, side);
 }
 export {
-  alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
+  alpha, amountOn, applyRange, ask, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
   build, built, BY_BLOCK, byColor, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme,
   chartWidth, chipText, chunkAt, chunked, chunks, Cloud, colorChain, colorNow, colorsAt, columnBy, crossHeld, crossOn,
   crossSet, cssColor, cutsOf, dailyOf, dashFor, dataKey, datedIntervals, defaultSize, describePlot, dotLineOf,

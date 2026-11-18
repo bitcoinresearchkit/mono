@@ -82,11 +82,11 @@ import {
   bandSum, dragBrush, FUNCTIONS, isBandSum, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere, windowsOf,
 } from "/studio/formulas.js";
 import {
-  aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
+  aheadOf, allShelfSteps, arrive, askPicture, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
   depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
   fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
+  galleryFound, galleryQueue, gallerySeen, galleryWaiting, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
   isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave,
   leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder, nextCard, nextGallery,
   NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
@@ -5710,14 +5710,19 @@ const yourTilesSeen = new IntersectionObserver((entries) => {
   for (const entry of entries) (entry.isIntersecting ? yoursSeen.add(entry.target) : yoursSeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
   queueYours();
 });
+/** A tile of yours' chart, and the interval its picture reads (a preset's, from weekly data, as the gallery's). @param {string} id @returns {[Chart | undefined, string | undefined]} */
+const yourPicture = (id) => {
+  const doc = chartById(id) ?? [...presetTiles.keys()].find((tile) => tile.id === id);
+  return [doc, doc && (presetTiles.has(doc) ? previewIndex(doc) : doc.index)];
+};
 const drawYours = serial(async () => {
   for (const id of yourQueue) {
+    for (const waiting of yourQueue) askPicture(...yourPicture(waiting));
     yourQueue.delete(id);
-    const doc = chartById(id) ?? [...presetTiles.keys()].find((tile) => tile.id === id);
-    // Drawn already (maybe from ⌘K), it's shown where it's still waited for (a preset's, from weekly data, as the
-    // gallery's). A failed fetch isn't drawn (nor kept): it says so, and it's asked for again as the server answers
-    // (see paint, retryPlots).
-    if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc, presetTiles.has(doc) ? previewIndex(doc) : doc.index));
+    const [doc, index] = yourPicture(id);
+    // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor kept):
+    // it says so, and it's asked for again as the server answers (see paint, retryPlots).
+    if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc, index));
   }
 });
 /**
@@ -5813,9 +5818,13 @@ new ResizeObserver(() => {
 startGalleryRest();
 const drawGallery = serial(async () => {
   const tried = /** @type {Set<number>} */ (new Set());
+  /** A tile to draw: its preset read, the gallery shown, its tile waiting. @param {number} i */
+  const due = (i) => Boolean(presets?.[i] && home && !$("gallery").hidden && $("gallery").querySelector(`[data-preset="${i}"] .pending`));
   for (let i = nextGallery(tried); i >= 0; i = nextGallery(tried)) {
+    // (Those in view asked for at once; those a screen ahead once none in view waits, so as not to slow them.)
+    for (const waiting of galleryQueue.size ? galleryQueue : galleryWaiting(tried)) if (due(waiting)) askPicture(presetDoc(waiting));
     tried.add(i);
-    if (!presets?.[i] || !home || $("gallery").hidden || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
+    if (!due(i)) continue;
     const doc = presetDoc(i), have = previews.get(doc.id);
     // (A tile written of it as it was, kept since as opened or edited (in another tab): written again, as it is.)
     for (const tile of all$(`.tile[data-preset="${i}"]:has(> [data-open-preset])`, $("gallery"))) if (tile.querySelector("[data-plot]")?.getAttribute("data-plot") !== doc.id) writeTile(tile, i);
@@ -6613,6 +6622,7 @@ strip($("templates"));
 new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
 const drawCards = serial(async () => {
   for (const i of cardQueue) {
+    for (const waiting of cardQueue) askPicture(recommendedCards[waiting]?.doc);
     cardQueue.delete(i);
     const card = recommendedCards[i];
     if (!card || previews.get(card.doc.id)?.key === previewKey(card.doc)) continue;
