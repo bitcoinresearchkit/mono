@@ -5,7 +5,7 @@ import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.j
 import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
 import { capitalized, shownStep } from "/studio/words.js";
 import {
-  acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartAgain, chartById, chartNow, closedOwner, css, deleteChart,
+  acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartById, chartNow, closedOwner, css, deleteChart,
   deleteFolder, dialogsShown, discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks, drawYours,
   emptyYours, engine, FOLDER_ICONS, folderAgain, folderMark, folderNow, fromUnfit, galleryAhead, galleryPlace,
   galleryShown, galleryTilesAhead, galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID,
@@ -14,8 +14,8 @@ import {
   layoutOwed, leaveHome, leftView, leftWith, letterOf, library, libraryEdits, libraryStep, light, listedPreviews,
   listOwed, listStop, livePrice, loadPresets, menuOf, minedHalvings, mostBars, MOTION, newDraft, notice, openChart,
   openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs, presetLabels, presetMarks, presets, presetsFailed,
-  presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, recentCharts, recover, redoing,
-  reduced, relayout, renderCharts, save, savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls,
+  presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, recentCharts, redoing, reduced,
+  relayout, relist, renderCharts, save, savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls,
   sideLight, sidePresets, started, storage, THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList,
   yourTilesSeen, zeroFit,
 } from "/studio/app.js";
@@ -2054,9 +2054,7 @@ function deleteCharts(docs) {
     run: () => {
       if (places.every(([, doc]) => inLibrary(doc))) return;
       for (const [at, doc] of places) {
-        if (inLibrary(doc)) continue;
-        recover(doc);
-        library.charts.splice(Math.min(at, library.charts.length), 0, doc);
+        if (!inLibrary(doc)) relist(doc, at);
       }
       if (wasOpen) openChart(chartById(open.id) ?? open);
       save();
@@ -3637,13 +3635,14 @@ function chartPick(id, pick) {
   else if (pick === "delete") deleteChart(doc);
 }
 /**
- * Charts copied, each right under its original (nothing opens), with an Undo. `was`: the copies an Undo let go of,
- * these made again in their place (a Redo): the steps that knew them find these (see chartAgain).
- * @param {Chart[]} docs @param {Chart[] | null} [was]
+ * Charts copied, each right under its original (nothing opens), with an Undo. `again`: the copies an Undo let go of,
+ * listed again in their place (a Redo: the same charts, so their own steps and every Library step that knew them find
+ * them).
+ * @param {Chart[]} docs @param {Chart[] | null} [again]
  */
-function duplicateCharts(docs, was = null) {
-  const copies = docs.map(duplicateChart);
-  was?.forEach((old, i) => copies[i] && chartAgain.set(old.id, copies[i].id));
+function duplicateCharts(docs, again = null) {
+  const copies = again ?? docs.map(duplicateChart);
+  again?.forEach((copy, i) => relist(copy, library.charts.indexOf(docs[i]) + 1));
   save();
   renderCharts();
   const same = asThen(copies);
@@ -3656,9 +3655,9 @@ function duplicateCharts(docs, was = null) {
     if (open >= 0) openChart(chartById(docs[open].id) ?? previousChart() ?? library.charts[0] ?? newDraft());
     save();
     renderCharts();
-    // (Redone: copied again, those still there, in the copies' place.)
+    // (Redone: each copy back under its original, those still there.)
     return () => {
-      const left = docs.flatMap((doc, i) => ((now) => (now ? [{ doc: now, copy: copies[i] }] : []))(library.charts.find((other) => other.id === chartNow(doc.id))));
+      const left = docs.flatMap((doc, i) => ((now) => (now && !inLibrary(copies[i]) ? [{ doc: now, copy: copies[i] }] : []))(library.charts.find((other) => other.id === chartNow(doc.id))));
       if (left.length) duplicateCharts(left.map(({ doc }) => doc), left.map(({ copy }) => copy));
     };
   } });
