@@ -73,11 +73,13 @@ impl Height {
     }
 
     pub fn left_before_next_diff_adj(self) -> u32 {
-        crate::chain().difficulty_interval - (*self % crate::chain().difficulty_interval)
+        let interval = crate::chain().difficulty_interval;
+        interval - *self % interval
     }
 
     pub fn left_before_next_halving(self) -> u32 {
-        crate::chain().halving_interval - (*self % crate::chain().halving_interval)
+        let interval = crate::chain().halving_interval;
+        interval - *self % interval
     }
 
     /// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.

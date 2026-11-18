@@ -10,7 +10,7 @@ use std::{io::Write, sync::Arc};
 
 use bitcoin::{
     Block, CompactTarget, Target, WitnessMerkleNode, Wtxid, block::Header, hashes::Hash,
-    hex::DisplayHex, params::Params,
+    hex::DisplayHex,
 };
 use brk_types::{Height, Sats, Timestamp, Txid, merkle_root, push_hex, reversed_hex, tag_hash};
 use rapidhash::RapidHashMap;
@@ -39,18 +39,15 @@ pub struct TipFacts {
 }
 
 impl TipFacts {
-    /// The next block's compact target: the tip's, or a retarget's at an epoch boundary. Mainnet
-    /// rules, which Bitview indexes (no testnet minimum-difficulty blocks).
+    /// The tip's compact target between retargets, or the chain's periodic retarget.
     fn next_bits(&self) -> CompactTarget {
-        debug_assert!(brk_types::chain().supports_block_template());
-        let params = &Params::new(brk_types::chain().network);
-        if !((*self.height + 1) as u64)
-            .is_multiple_of(u64::from(brk_types::chain().difficulty_interval))
-        {
+        let chain = brk_types::chain();
+        debug_assert!(chain.supports_block_template());
+        if !((*self.height + 1) as u64).is_multiple_of(u64::from(chain.difficulty_interval)) {
             return self.header.bits;
         }
         let timespan = self.header.time.saturating_sub(*self.epoch_start_time);
-        CompactTarget::from_next_work_required(self.header.bits, u64::from(timespan), params)
+        CompactTarget::from_next_work_required(self.header.bits, u64::from(timespan), chain.network)
     }
 
     /// The earliest time the next block may carry: Core's `GetMinimumTime`, which applies BIP 94

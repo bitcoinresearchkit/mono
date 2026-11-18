@@ -7,19 +7,20 @@ use crate::FromCoarserIndex;
 #[cfg(feature = "storage")]
 use vecdb::{Pco, PrintableIndex};
 
-/// Index of a difficulty epoch (2,016 blocks).
+/// Index of a difficulty epoch on the active chain.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct DifficultyEpoch(u32);
+pub struct DifficultyEpoch(u16);
 
-brk_types::impl_integer_index!(DifficultyEpoch, u32);
+brk_types::impl_integer_index!(DifficultyEpoch, u16);
 
 impl From<Height> for DifficultyEpoch {
     #[inline]
     fn from(value: Height) -> Self {
-        Self(u32::from(value) / brk_types::chain().difficulty_interval)
+        let epoch = u32::from(value) / brk_types::chain().difficulty_interval;
+        Self(u16::try_from(epoch).expect("Block height exceeds 65,536 difficulty epochs"))
     }
 }
 
@@ -38,7 +39,7 @@ impl PrintableIndex for DifficultyEpoch {
 impl From<f64> for DifficultyEpoch {
     #[inline]
     fn from(value: f64) -> Self {
-        Self(value.round() as u32)
+        Self(value.round() as u16)
     }
 }
 
