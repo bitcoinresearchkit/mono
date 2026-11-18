@@ -38,13 +38,12 @@ struct ManifestTool {
     annotations: ManifestToolAnnotations,
 }
 
+/// With `readOnlyHint` the spec gives `destructiveHint` and `idempotentHint` no meaning, and `openWorldHint` is true
+/// by default: one hint says it all, in every tool of every session's list.
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ManifestToolAnnotations {
     read_only_hint: bool,
-    destructive_hint: bool,
-    idempotent_hint: bool,
-    open_world_hint: bool,
 }
 
 #[derive(Serialize)]
@@ -124,7 +123,7 @@ fn operation_from_endpoint<'a>(
         ));
     }
 
-    let input_schema = build_input_schema(endpoint, schemas)?;
+    let input_schema = build_input_schema(endpoint, routes, schemas)?;
     let parameters = endpoint
         .path_params
         .iter()
@@ -145,9 +144,6 @@ fn operation_from_endpoint<'a>(
             input_schema,
             annotations: ManifestToolAnnotations {
                 read_only_hint: true,
-                destructive_hint: false,
-                idempotent_hint: true,
-                open_world_hint: true,
             },
         },
         http: ManifestHttpOperation {
@@ -168,18 +164,22 @@ fn tool_description(endpoint: &Endpoint, routes: &BTreeMap<String, &str>) -> Opt
         .map(without_link_paragraphs)
         .filter(|description| !description.is_empty())
         .or_else(|| endpoint.summary.clone())?;
-    let description = description
+    Some(format!("Bitcoin: {}", name_tools(&description, routes)))
+}
+
+/// A description with each route it mentions in backticks written as that route's tool.
+fn name_tools(description: &str, routes: &BTreeMap<String, &str>) -> String {
+    description
         .split('`')
         .enumerate()
         .map(|(index, mention)| {
             if index % 2 == 0 {
-                return mention.to_string();
+                return mention;
             }
-            routes.get(mention).copied().unwrap_or(mention).to_string()
+            routes.get(mention).copied().unwrap_or(mention)
         })
         .collect::<Vec<_>>()
-        .join("`");
-    Some(format!("Bitcoin: {description}"))
+        .join("`")
 }
 
 fn without_link_paragraphs(description: &str) -> String {
@@ -221,7 +221,11 @@ fn manifest_parameter(parameter: &Parameter, location: ParameterLocation) -> Man
     }
 }
 
-fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<Value> {
+fn build_input_schema(
+    endpoint: &Endpoint,
+    routes: &BTreeMap<String, &str>,
+    schemas: &TypeSchemas,
+) -> io::Result<Value> {
     let mut properties = Map::new();
     let mut required = Vec::new();
 
@@ -258,12 +262,15 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
                     .insert("type".into(), Value::Array(types));
             }
         }
-        if let Some(description) = &parameter.description
-            && let Some(object) = schema.as_object_mut()
-        {
-            object
-                .entry("description")
-                .or_insert_with(|| Value::String(description.clone()));
+        if let Some(object) = schema.as_object_mut() {
+            if let Some(description) = &parameter.description {
+                object
+                    .entry("description")
+                    .or_insert_with(|| Value::String(description.clone()));
+            }
+            if let Some(Value::String(description)) = object.get_mut("description") {
+                *description = name_tools(description, routes);
+            }
         }
         // MCP clients refuse other names (Claude: `^[a-zA-Z0-9_.-]{1,64}$`), so `txId[]` is
         // offered as `txids`.
@@ -357,12 +364,23 @@ const JSON_SCHEMA_FORMATS: [&str; 19] = [
     "regex",
 ];
 
-/// Keep standard formats and one example per schema. Values such as
+/// A longer list of values isn't spelled out: it would cost every session its tokens in each tool taking one, where the
+/// description says which tool lists them and the API answers a wrong one.
+const MAX_LISTED_VALUES: usize = 64;
+
+/// Keep standard formats, one example per schema and the short value lists. Values such as
 /// `default`, `examples`, `enum` and `const` are data, not nested schemas.
 fn normalize_input_schema(schema: &mut Value) {
     let Some(object) = schema.as_object_mut() else {
         return;
     };
+    if object
+        .get("enum")
+        .and_then(Value::as_array)
+        .is_some_and(|values| values.len() > MAX_LISTED_VALUES)
+    {
+        object.remove("enum");
+    }
     if let Some(examples) = object.get_mut("examples").and_then(Value::as_array_mut) {
         examples.truncate(1);
     }
