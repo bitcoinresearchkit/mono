@@ -60,9 +60,13 @@ impl ComputePluginSet for Plugins {
             .then_compute(|| self.compute_near_full_blocks(context))
     }
 
-    fn compute(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        self.defaults.compute(context)?;
-        self.compute_near_full_blocks(context)
+    /// Unless the index moved, this plugin, like the defaults, is already at its tip.
+    fn compute(&mut self, context: UpdateContext<'_>) -> Result<bool> {
+        let moved = self.defaults.compute(context)?;
+        if moved {
+            self.compute_near_full_blocks(context)?;
+        }
+        Ok(moved)
     }
 
     fn commit(&mut self, complete: bool) -> Result<()> {
