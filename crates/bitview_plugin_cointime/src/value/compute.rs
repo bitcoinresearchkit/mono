@@ -4,7 +4,7 @@ use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::DollarBlocks;
 use brk_error::Result;
 use brk_exit::Exit;
-use vecdb::ComputeVec;
+use vecdb::{ComputeVec, ReadableCloneableVec};
 
 use super::{super::activity, Vecs};
 
@@ -23,21 +23,21 @@ impl Vecs {
         for (target, source) in [
             (
                 &mut self.destroyed.cumulative.height,
-                &coinblocks_destroyed.block,
+                coinblocks_destroyed.block.read_only_boxed_clone(),
             ),
             (
                 &mut self.created.cumulative.height,
-                &activity.coinblocks_created.block,
+                activity.coinblocks_created.block.read_only_boxed_clone(),
             ),
             (
                 &mut self.stored.cumulative.height,
-                &activity.coinblocks_stored.block,
+                activity.coinblocks_stored.block.read_only_boxed_clone(),
             ),
         ] {
             target.compute_cumulative_transformed_binary(
                 starting_height,
                 &prices.spot.usd.height,
-                source,
+                &source,
                 |price, value| DollarBlocks::from(f64::from(price) * f64::from(value)),
                 exit,
             )?;
