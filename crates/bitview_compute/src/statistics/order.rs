@@ -43,7 +43,7 @@ impl ExactOrderStats {
         Self::from_sorted(values)
     }
 
-    pub(crate) fn from_sorted(values: Vec<f64>) -> Self {
+    fn from_sorted(values: Vec<f64>) -> Self {
         debug_assert!(
             values
                 .windows(2)
@@ -125,8 +125,8 @@ impl ExactOrderStats {
         true
     }
 
-    /// Percentiles (0.0-1.0, ascending) at the nearest rank ([`nearest_rank`]),
-    /// resolved in one pass. The set must not be empty.
+    /// Percentiles (0.0-1.0, ascending) at the nearest rank, `max(0, ceil(len * p) - 1)` (`p` in
+    /// whole parts per million), resolved in one pass. The set must not be empty.
     pub fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
         let ranks = ps.map(|p| nearest_rank(self.len, p));
         let mut out = [0.0; N];

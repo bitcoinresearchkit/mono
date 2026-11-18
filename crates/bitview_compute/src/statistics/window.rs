@@ -33,7 +33,7 @@ impl SortedWindow {
             return Self {
                 values: VecDeque::new(),
                 start: first,
-                sorted: ExactOrderStats::from_sorted(Vec::new()),
+                sorted: ExactOrderStats::default(),
             };
         }
         // (An empty window starts after its row: at `next`.)

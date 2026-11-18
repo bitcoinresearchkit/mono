@@ -68,11 +68,12 @@ where
     T: NumericValue + JsonSchema,
 {
     /// `source` is the metric; its id with `_rarity` prefixes the bands' (`supply_in_loss_rarity_p1`).
-    pub fn import(
+    pub(super) fn import(
         db: &Database,
         source: &impl ReadableCloneableVec<Height, T>,
         version: Version,
         mappings: &IndexSources,
+        config: Config,
     ) -> Result<Self> {
         let name = format!("{}_rarity", source.name());
         Ok(Self {
@@ -85,18 +86,13 @@ where
             bands: RarityPercentiles::try_from_fn(|id| {
                 PerBlock::import(db, &format!("{name}_{}", id.suffix()), version, mappings)
             })?,
-            history: History::default(),
+            history: History::new(config),
         })
     }
 
     /// Each missing block's bands, then the block joins the history. The history carries on when
     /// it stands at the first missing block, and is read again from the source otherwise.
-    pub(super) fn compute(
-        &mut self,
-        starting_height: Height,
-        config: Config,
-        exit: &Exit,
-    ) -> Result<()> {
+    pub(super) fn compute(&mut self, starting_height: Height, exit: &Exit) -> Result<()> {
         let source = &self.value.height.clone();
         let source_end = source.len();
         let start = prepare_computed(
@@ -118,17 +114,18 @@ where
         } else {
             let mut prior = values(0);
             let pending = prior.split_off(start);
-            self.history.rebuild(prior, config);
+            self.history.rebuild(prior);
             pending
         };
 
+        let mut pending = pending.into_iter();
         for chunk in write_chunks(start..source_end) {
-            for &value in &pending[chunk.start - start..chunk.end - start] {
+            for value in pending.by_ref().take(chunk.len()) {
                 let bands = self.history.bands();
                 for (vec, band) in self.bands.iter_mut().zip(bands) {
                     vec.height.push(T::from(band));
                 }
-                self.history.observe(value, config);
+                self.history.observe(value);
             }
             write_locked(self.iter_any_stored_mut(), exit)?;
         }
@@ -137,8 +134,9 @@ where
 }
 
 /// The accepted observations before a block, in order of value.
-#[derive(Default)]
 struct History {
+    /// Which observations it keeps, fixed for the series.
+    config: Config,
     stats: ExactOrderStats,
     /// Source values taken in, accepted or not: the height the history stands at.
     processed: usize,
@@ -147,7 +145,17 @@ struct History {
 }
 
 impl History {
-    fn rebuild(&mut self, mut prior: Vec<f64>, config: Config) {
+    fn new(config: Config) -> Self {
+        Self {
+            config,
+            stats: ExactOrderStats::default(),
+            processed: 0,
+            recent: VecDeque::new(),
+        }
+    }
+
+    fn rebuild(&mut self, mut prior: Vec<f64>) {
+        let config = self.config;
         self.processed = prior.len();
         prior.retain(|&value| config.accepts(value));
         self.recent.clear();
@@ -158,14 +166,14 @@ impl History {
         self.stats = ExactOrderStats::from_unsorted(prior);
     }
 
-    fn observe(&mut self, value: f64, config: Config) {
+    fn observe(&mut self, value: f64) {
         self.processed += 1;
-        if !config.accepts(value) {
+        if !self.config.accepts(value) {
             return;
         }
 
         self.stats.insert(value);
-        if let Some(window) = config.window {
+        if let Some(window) = self.config.window {
             self.recent.push_back(value);
             if self.recent.len() > window {
                 // A value expires from the window that took it in.

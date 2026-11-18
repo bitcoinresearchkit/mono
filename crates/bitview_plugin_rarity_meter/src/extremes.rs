@@ -55,42 +55,45 @@ impl Extremes {
                 &all.supply.in_loss.value.btc.height,
                 version,
                 mappings,
+                SUPPLY_IN_LOSS,
             )?,
             realized_profit_sum_24h: Extreme::import(
                 db,
                 &realized.profit.sum._24h.usd.height,
                 version,
                 mappings,
+                REALIZED,
             )?,
             realized_loss_sum_24h: Extreme::import(
                 db,
                 &realized.loss.sum._24h.usd.height,
                 version,
                 mappings,
+                REALIZED,
             )?,
             realized_peak_regret_sum_24h: Extreme::import(
                 db,
                 &realized.peak_regret.sum._24h.usd.height,
                 version,
                 mappings,
+                REALIZED,
             )?,
             sell_side_risk_ratio_24h: Extreme::import(
                 db,
                 &realized.sell_side_risk_ratio._24h.ratio.height,
                 version + Version::ONE,
                 mappings,
+                SELL_SIDE_RISK,
             )?,
         })
     }
 
     pub(crate) fn compute(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let from = indexer.compute_start().height;
-        self.supply_in_loss.compute(from, SUPPLY_IN_LOSS, exit)?;
-        self.realized_profit_sum_24h.compute(from, REALIZED, exit)?;
-        self.realized_loss_sum_24h.compute(from, REALIZED, exit)?;
-        self.realized_peak_regret_sum_24h
-            .compute(from, REALIZED, exit)?;
-        self.sell_side_risk_ratio_24h
-            .compute(from, SELL_SIDE_RISK, exit)
+        self.supply_in_loss.compute(from, exit)?;
+        self.realized_profit_sum_24h.compute(from, exit)?;
+        self.realized_loss_sum_24h.compute(from, exit)?;
+        self.realized_peak_regret_sum_24h.compute(from, exit)?;
+        self.sell_side_risk_ratio_24h.compute(from, exit)
     }
 }
