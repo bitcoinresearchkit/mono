@@ -8015,7 +8015,7 @@
       }
 
       /* Under Home's search, from its left, its doors: a group each, the app's ghost button (its mark beside its name, as
-         the sidebar's; how many, in its tip); at its right, New chart (a phone's in its tab bar). */
+         the sidebar's; how many, after it); at its right, New chart (a phone's in its tab bar). */
       .home-doors {
         display: flex;
         align-items: flex-start;
@@ -8028,6 +8028,12 @@
         .btn {
           gap: 4px;
           padding-inline: 8px;
+        }
+
+        .count {
+          margin-left: 2px;
+          color: var(--count);
+          font-variant-numeric: tabular-nums;
         }
       }
 
@@ -8214,17 +8220,6 @@
             color: var(--ink);
           }
         }
-
-        /* (How many it holds and its way on, as the sidebar's heads show them: as its row's pointed at or reached by a
-           key, together (nothing moves); at rest, its name (and its mark) alone; its count said all the same (its
-           label). A search's heads, what it found, say theirs always.) */
-        > :is(.count, svg) {
-          display: none;
-        }
-      }
-
-      .shelf:is(:hover:where(.can-hover *), :has(:focus-visible)) .shelf-title > :is(.count, svg) {
-        display: inline;
       }
 
       /* (Its steps as its row is pointed at or reached by a key: at rest, its tiles alone, as a list's rows are.) */
@@ -10585,11 +10580,6 @@
         .shelf-more,
         .tile .tile-more {
           opacity: 1;
-        }
-
-        /* (No pointing: a shelf's count and way always there, as the sidebar's.) */
-        .shelf-title > :is(.count, svg) {
-          display: inline;
         }
 
         /* (A row's ⋯ out of sight and out of reach, the list kept quiet: a hold shows its menu, see onHold. A preview's ×

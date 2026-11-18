@@ -1488,7 +1488,11 @@ function renderDoors() {
   box.hidden = !home || !("top" in homeAt);
   if (box.hidden) return;
   const counts = /** @type {Record<Group, number | null>} */ ({ recent: recentCharts().length, previews: listedPreviews().length, library: library.charts.length, presets: presets?.length ?? null });
-  const door = (/** @type {Group} */ group) => ((name, count) => ((said) => `<button type="button" class="btn ghost" data-place="${escapeHtml(JSON.stringify(GROUP_OF[group][1]))}" aria-label="${said}" data-tip="${said}">${ICONS[GROUP_MARK[group]]}${name}</button>`)(count === null ? name : `${name}, ${plural(count, "chart")}`))(GROUP_OF[group][0], counts[group]);
+  // (How many after its name, as a shelf's head says it; none for an empty Library, nor before the presets are in.)
+  const door = (/** @type {Group} */ group) => {
+    const [name, place] = GROUP_OF[group], count = counts[group];
+    return `<button type="button" class="btn ghost" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="${count === null ? name : `${name}, ${plural(count, "chart")}`}">${ICONS[GROUP_MARK[group]]}${name}${count ? `<span class="count">${grouped.format(count)}</span>` : ""}</button>`;
+  };
   // (Recent and the previews only while they hold some, as in the sidebar.)
   const html = `<nav class="doors" aria-label="Go to">${GROUPS.filter((group) => counts[group] !== 0 || group === "library" || group === "presets").map(door).join("")}</nav><button type="button" class="btn ghost home-new" data-action="new-chart" data-tip="New chart" data-kbd="N">${ICONS.plus}New chart</button>`;
   if (html === doorsDrawn) return;
