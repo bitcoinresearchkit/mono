@@ -3,11 +3,10 @@ use bitview_primitives::Percent;
 use bitview_traversable::Traversable;
 use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
-use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform, VecValue};
+use vecdb::{BinaryTransform, Ident, ReadableCloneableVec, UnaryTransform};
 
 use crate::{
-    IndexSources, LazyIndexedVec, LazyLookbackVec, LazyPerBlock, ops::FixedToPercent,
-    shapes::PercentViews,
+    IndexSources, LazyIndexedVec, LazyPerBlock, ops::FixedToPercent, shapes::PercentViews,
 };
 
 /// A fixed-point view and the percentage view derived from it.
@@ -52,32 +51,6 @@ impl<B: FixedRatio> LazyPercentPerBlock<B> {
         let fixed_name = format!("{name}_{}", B::SUFFIX);
         let fixed =
             LazyPerBlock::from_height_source::<Ident>(&fixed_name, version, source, indexes);
-        Self::from_fixed(name, version, fixed)
-    }
-
-    /// Create from two values a fixed distance apart in one height source.
-    pub fn from_lookback_source<S>(
-        name: &str,
-        version: Version,
-        source: &impl ReadableCloneableVec<Height, S>,
-        lookback: usize,
-        compute: fn(S, Option<S>) -> B,
-        indexes: &IndexSources,
-    ) -> Self
-    where
-        S: VecValue,
-    {
-        let fixed_name = format!("{name}_{}", B::SUFFIX);
-        let source = LazyLookbackVec::new(
-            &format!("{fixed_name}_source"),
-            version,
-            source,
-            lookback,
-            compute,
-        );
-        let fixed =
-            LazyPerBlock::from_height_source::<Ident>(&fixed_name, version, &source, indexes);
-
         Self::from_fixed(name, version, fixed)
     }
 
