@@ -551,6 +551,20 @@
               min-width: 42px;
               padding: 0 8px;
             }
+
+            /* (Zoom's pair still drawn 32px wide, each reaching 11px out of its side into the row's gaps; Play, whose
+               reach would meet it there, takes its 44px from the page's margin on its left instead.) */
+            .zoom button:first-child::before {
+              left: -11px;
+            }
+
+            .zoom button:last-child::before {
+              right: -11px;
+            }
+
+            .replay.round::before {
+              inset: -7px 0 -7px -14px;
+            }
           }
         }
       }
