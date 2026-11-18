@@ -24,8 +24,9 @@ import { legible, lightTint, over } from "./color.js";
 import { pill, PILL } from "./tags.js";
 import { alike } from "./timeline.js";
 
-/** A dot's radius (times its mark's `size`), the ring of the ground about it, and its words' gap from it. */
-const DOT = 3.5, RING = 1.5, GAP = 2;
+/** A dot's radius (times its mark's `size`), the ring of the ground about it, its words' gap from it, and the room
+ * words keep from another mark's dot: a pixel more, so words just clear of it still sit nearer their own (see ours). */
+const DOT = 3.5, RING = 1.5, GAP = 2, APART = GAP + 1;
 /** A pill's width past its words', a count's gap from the pill holding it, and the least room between two marks' (side by
  * side, two pills; at one point, one's words and the next one's dot). */
 const PAD = 12, SEP = 2, CLEAR = 6;
@@ -412,15 +413,15 @@ export class Marks {
   }
 
   /**
-   * Its dots by the plot (within REACH of it), each where it's drawn (its middle, its reach: its ring and GAP, and its
-   * mark), into DOTS, in their points' order.
+   * Its dots by the plot (within REACH of it), each where it's drawn (its middle, its reach: its ring and APART, and
+   * its mark), into DOTS, in their points' order.
    * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {number} plot
    * @param {Float64Array} highs @param {Float64Array} lows @param {Float64Array} values
    */
   #dots(time, scale, plot, highs, lows, values) {
     const marks = this.marks, n = marks.length;
     if (DOTS.length < n * 4) DOTS = new Float64Array(n * 8);
-    REACH = this.dots + GAP;
+    REACH = this.dots + APART;
     let k = 0, d = 0;
     for (let hi = n; k < hi; ) {
       const m = (k + hi) >> 1;
@@ -432,7 +433,7 @@ export class Marks {
       if (x > plot + REACH) break;
       if (mark.at < 0 || !r) continue;
       this.#at(k, scale, highs, lows, values);
-      if (AT[0] === AT[0]) (DOTS[d * 4] = x), (DOTS[d * 4 + 1] = AT[0]), (DOTS[d * 4 + 2] = r + RING + GAP), (DOTS[d * 4 + 3] = k), d++;
+      if (AT[0] === AT[0]) (DOTS[d * 4] = x), (DOTS[d * 4 + 1] = AT[0]), (DOTS[d * 4 + 2] = r + RING + APART), (DOTS[d * 4 + 3] = k), d++;
     }
     DOTN = d;
   }
@@ -505,10 +506,10 @@ function free(s, placed, plot, height, out) {
 
 /**
  * Whether the s-th words, `width` wide from `left`, their middle at `y`, would run into others' (the first `placed` in
- * ORDER: CLEAR apart side by side, GAP over and under) or cover a dot (any but their mark's: GAP from its ring); if so,
- * the nearest spots clear of what they'd run into, into HIT: their left just before it and just past it, their middle
- * just over it and just under it. Each tested here as found: rounded once more (`left + width`), a step to one could
- * land back on its edge again and again.
+ * ORDER: CLEAR apart side by side, GAP over and under) or come near a dot (any but their mark's: APART from its ring);
+ * if so, the nearest spots clear of what they'd run into, into HIT: their left just before it and just past it, their
+ * middle just over it and just under it. Each tested here as found: rounded once more (`left + width`), a step to one
+ * could land back on its edge again and again.
  * @param {number} s @param {number} left @param {number} width @param {number} y @param {number} placed
  */
 function hit(s, left, width, y, placed) {
