@@ -9,9 +9,8 @@ use vecdb::Stamp;
 
 use crate::{Vecs, state::UTXOStates};
 
-/// Flush UTXO metrics before this plugin’s scalar checkpoint.
-///
-/// Set `with_changes=true` near chain tip to enable rollback support.
+/// Writes the cohorts' outputs, then the plugin's scalar checkpoint at `height`: the outputs
+/// resume by length and carry no stamp, the caps keep theirs and, `with_changes`, their undo.
 pub fn write(
     vecs: &mut Vecs,
     utxo_states: &mut UTXOStates,
@@ -20,13 +19,11 @@ pub fn write(
 ) -> Result<()> {
     let i = Instant::now();
 
-    let stamp = Stamp::from(height);
-
     vecs.cohorts
         .par_iter_vecs_mut()
-        .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
+        .try_for_each(|v| v.write().map(drop))?;
 
-    vecs.save_caps(utxo_states, stamp, with_changes)?;
+    vecs.save_caps(utxo_states, Stamp::from(height), with_changes)?;
 
     info!("Saved UTXO data in {:.2?}", i.elapsed());
 

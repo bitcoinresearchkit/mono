@@ -186,8 +186,8 @@ pub trait Consumer {
 
     fn apply(&mut self, block: &Block<'_>) -> Result<()>;
 
-    /// Saves what it computed for the blocks before `end`.
-    fn save(&mut self, end: usize) -> Result<()>;
+    /// Saves what it computed for the blocks applied.
+    fn save(&mut self) -> Result<()>;
 }
 
 /// The walk's own state, kept between updates.
@@ -314,7 +314,7 @@ impl Walk {
             for consumer in consumers.iter_mut().filter(|c| c.start() <= height) {
                 consumer.apply(&block)?;
                 if saves {
-                    consumer.save(height + 1)?;
+                    consumer.save()?;
                 }
             }
         }

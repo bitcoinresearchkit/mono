@@ -1,5 +1,5 @@
 use bitview_cohort::{Age, ByEntry, EntryPrice};
-use bitview_compute::{save_stamped, write_chunks};
+use bitview_compute::{write_chunks, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_primitives::{CentsCompact, CostBasisSnapshot, SupplyState};
 use bitview_traversable::Traversable;
@@ -147,13 +147,8 @@ impl ComputePlugin for Vecs {
                     state.reset_block();
                 }
             }
-            save_stamped(
-                &self.db,
-                self.cohorts.iter_any_stored_mut(),
-                chunk.end,
-                true,
-                context.exit(),
-            )?;
+            write_locked(self.cohorts.iter_any_stored_mut(), context.exit())?;
+            self.db.flush();
         }
         if let Some(hash) = diffs.hash() {
             live.hash = hash;

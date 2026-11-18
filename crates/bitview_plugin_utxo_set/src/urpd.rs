@@ -59,7 +59,7 @@ impl Consumer for UrpdConsumer<'_> {
             .push(block.hash, &block.prices[..=block.height], moves)
     }
 
-    fn save(&mut self, _end: usize) -> Result<()> {
+    fn save(&mut self) -> Result<()> {
         let _lock = self.exit.lock();
         self.urpd.commit()
     }

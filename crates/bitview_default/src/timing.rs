@@ -135,8 +135,8 @@ impl<C: Consumer> Consumer for Timed<C> {
         self.time(|consumer| consumer.apply(block))
     }
 
-    fn save(&mut self, end: usize) -> Result<()> {
-        self.time(|consumer| consumer.save(end))
+    fn save(&mut self) -> Result<()> {
+        self.time(|consumer| consumer.save())
     }
 }
 

@@ -2,8 +2,8 @@ use std::{iter, ops::Range};
 
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Height, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, Stamp};
+use brk_types::Version;
+use vecdb::{AnyStoredVec, AnyVec};
 
 /// Rows a long computation pushes between flushes, bounding the work a soft quit loses.
 pub const WRITE_INTERVAL: usize = 10_000;
@@ -90,8 +90,9 @@ pub fn undo_tail_start(range: &Range<usize>) -> usize {
 /// `range` in the writes of a computation that keeps undo, each with whether it does:
 /// [`WRITE_INTERVAL`]-block chunks from the start (the bulk, whose last write is the baseline the
 /// undo lands on), then the protected tail ([`undo_tail_start`]), the only write with undo
-/// unless it is genesis alone ([`save_point`]). An update of at most [`UNDO_TAIL`] blocks is
-/// that one write.
+/// unless it is genesis alone: that is the initial baseline, at a fresh vector's stamp, and no
+/// rollback reaches before it (its undo would link the stamp to itself). An update of at most
+/// [`UNDO_TAIL`] blocks is that one write.
 pub fn undo_chunks(range: Range<usize>) -> impl Iterator<Item = (Range<usize>, bool)> {
     let tail = undo_tail_start(&range);
     (range.start..tail)
@@ -100,14 +101,9 @@ pub fn undo_chunks(range: Range<usize>) -> impl Iterator<Item = (Range<usize>, b
         .chain((tail < range.end).then_some((tail..range.end, range.end > 1)))
 }
 
-/// The stamp of a save of the rows `0..end` (`end > 0`), and whether it keeps the rollback changes
-/// asked for. Genesis alone never does: it is the initial baseline, at a fresh vector's stamp, and
-/// no rollback reaches before it (its undo would link the stamp to itself).
-pub fn save_point(end: usize, with_changes: bool) -> (Stamp, bool) {
-    (Stamp::from(Height::from(end - 1)), with_changes && end > 1)
-}
-
-/// Flushes a group under the exit lock: a soft quit never persists part of it.
+/// Writes a group of appended outputs under the exit lock: a soft quit never persists part of
+/// it. They resume by length and version ([`prepare_computed`]), so they carry no stamp; only a
+/// store rewritten in place writes one, with its undo.
 pub fn write_locked<'a, V: AnyStoredVec + ?Sized + 'a>(
     outputs: impl IntoIterator<Item = &'a mut V>,
     exit: &Exit,
@@ -116,23 +112,5 @@ pub fn write_locked<'a, V: AnyStoredVec + ?Sized + 'a>(
     for vec in outputs {
         vec.write()?;
     }
-    Ok(())
-}
-
-/// Saves a group computed for the rows `0..end` under the exit lock at its [`save_point`], then
-/// flushes its database.
-pub fn save_stamped<'a, V: AnyStoredVec + ?Sized + 'a>(
-    db: &Database,
-    outputs: impl IntoIterator<Item = &'a mut V>,
-    end: usize,
-    with_changes: bool,
-    exit: &Exit,
-) -> Result<()> {
-    let _lock = exit.lock();
-    let (stamp, with_changes) = save_point(end, with_changes);
-    for vec in outputs {
-        vec.any_stamped_write_maybe_with_changes(stamp, with_changes)?;
-    }
-    db.flush();
     Ok(())
 }

@@ -1,9 +1,8 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_compute::{Inputs, save_point, write_chunks};
+use bitview_compute::{Inputs, write_chunks, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_exit::Exit;
 use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec, ReadableVec};
 
@@ -33,7 +32,7 @@ impl ComputePlugin for Vecs {
                     id.select_mut(&mut self.columns).push(id.select(row), spot);
                 }
             }
-            self.save(chunk.end, false, exit)?;
+            write_locked(self.state_vecs_mut(), exit)?;
             // The update's last save flushes once everything is written.
             if chunk.end < end {
                 self.db.flush();
@@ -48,7 +47,12 @@ impl ComputePlugin for Vecs {
             spot,
             exit,
         })?;
-        self.save(end, true, exit)?;
+        debug_assert_eq!(
+            self.iter_any_stored_mut().count(),
+            self.columns.iter_any_stored_mut().count() + self.cohorts.iter_any_stored_mut().count(),
+            "every output is a column or derived from them"
+        );
+        write_locked(self.cohorts.iter_any_stored_mut(), exit)?;
         self.db.flush();
         Ok(())
     }
@@ -59,31 +63,5 @@ impl Vecs {
     /// loop, each validating its own version.
     fn state_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.columns.iter_any_stored_mut().collect()
-    }
-
-    /// The outputs each cohort derives from the block loop's after it.
-    fn derived_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.cohorts.iter_any_stored_mut().collect()
-    }
-
-    /// Saves the block loop's outputs, or with `derived` the outputs derived from them (the
-    /// loop saved its own), at the [`save_point`] through `end`: only derived ones keep undo.
-    fn save(&mut self, end: usize, derived: bool, exit: &Exit) -> Result<()> {
-        debug_assert_eq!(
-            self.iter_any_stored_mut().count(),
-            self.state_vecs_mut().len() + self.derived_vecs_mut().len(),
-            "every output is a state or a derived one"
-        );
-        let _lock = exit.lock();
-        let (stamp, with_changes) = save_point(end, derived);
-        let vectors = if derived {
-            self.derived_vecs_mut()
-        } else {
-            self.state_vecs_mut()
-        };
-        for v in vectors {
-            v.any_stamped_write_maybe_with_changes(stamp, with_changes)?;
-        }
-        Ok(())
     }
 }

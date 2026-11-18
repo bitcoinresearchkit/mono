@@ -1,4 +1,4 @@
-use bitview_compute::save_stamped;
+use bitview_compute::write_locked;
 use bitview_distribution::{
     state::cost_basis::{PRICE_INDEX_VERSION, age_index::AgeIndex},
     walk::{Block, Consumer, Origins, Sources},
@@ -78,22 +78,21 @@ impl Consumer for ProfitabilityConsumer<'_> {
         Ok(())
     }
 
-    fn save(&mut self, end: usize) -> Result<()> {
+    fn save(&mut self) -> Result<()> {
         let Vecs {
             db,
             metrics,
             cost_basis,
             ..
         } = &mut *self.vecs;
-        save_stamped(
-            db,
+        write_locked(
             metrics
                 .iter_any_stored_mut()
                 .chain(cost_basis.iter_any_stored_mut()),
-            end,
-            true,
             self.context.exit(),
-        )
+        )?;
+        db.flush();
+        Ok(())
     }
 }
 

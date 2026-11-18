@@ -1,7 +1,6 @@
 mod price_range_max;
 pub use price_range_max::PriceRangeMax;
 
-use bitview_compute::save_point;
 use bitview_distribution::{
     state::RealizedOps,
     walk::{Block, Consumer, Origins, Sources},
@@ -136,16 +135,14 @@ impl Consumer for AgeConsumer<'_> {
         Ok(())
     }
 
-    /// Saves the outputs computed through `end` at their [`save_point`], in parallel
-    /// (`save_stamped` writes one at a time).
-    fn save(&mut self, end: usize) -> Result<()> {
+    /// In parallel, which `write_locked` is not: the plugin has over a thousand outputs.
+    fn save(&mut self) -> Result<()> {
         let _lock = self.context.exit().lock();
-        let (stamp, with_changes) = save_point(end, true);
         self.vecs
             .iter_any_stored_mut()
             .collect::<Vec<_>>()
             .into_par_iter()
-            .try_for_each(|v| v.any_stamped_write_maybe_with_changes(stamp, with_changes))?;
+            .try_for_each(|v| v.write().map(drop))?;
         self.vecs.db.flush();
         Ok(())
     }
