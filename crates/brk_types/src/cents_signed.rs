@@ -4,7 +4,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::Dollars;
+use super::{Cents, Dollars};
 use crate::{CheckedSub, unlikely};
 
 #[cfg(feature = "storage")]
@@ -33,6 +33,12 @@ impl CentsSigned {
     #[inline]
     pub const fn is_nan(self) -> bool {
         self.0 == i64::MIN
+    }
+
+    /// `minuend - subtrahend`, both unsigned: a profit less a loss.
+    #[inline]
+    pub const fn from_difference(minuend: Cents, subtrahend: Cents) -> Self {
+        Self::new(minuend.inner() as i64 - subtrahend.inner() as i64)
     }
 
     /// NaN when either is; else the difference, none on overflow (or when it'd be the sentinel).

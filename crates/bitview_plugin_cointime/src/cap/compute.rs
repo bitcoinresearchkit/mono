@@ -27,9 +27,7 @@ impl Vecs {
             starting_lengths.height,
             realized_cap_cents,
             &self.thermo.cents.height,
-            |(_, realized, thermo, ..)| {
-                CentsSigned::new(realized.inner() as i64 - thermo.inner() as i64)
-            },
+            |(_, realized, thermo, ..)| CentsSigned::from_difference(realized, thermo),
             exit,
         )?;
 

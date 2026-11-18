@@ -3,13 +3,13 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{CoinDays, Days};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
-    LazyWindowStartVec, RollingWindows, shapes::Windows,
+    CachedSeries, LazyIndexedVec, LazyPerBlockCumulativeRolling,
+    LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows, shapes::Windows,
 };
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{ComputeVec, Database, Rw, StorageMode};
+use vecdb::{ComputeVec, Database, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::columns::Columns;
 
@@ -50,7 +50,7 @@ impl Activity {
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let value = |metric: &str,
-                     sats: &CachedSeries<Height, Sats>,
+                     sats: &dyn ReadableCloneableVec<Height, Sats>,
                      cents: &CachedSeries<Height, Cents>| {
             LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
                 &id.metric_name(metric),
@@ -68,6 +68,15 @@ impl Activity {
             windows,
             mappings,
         );
+        // Every spent coin is in profit or in loss: the loss side's sats are what profit leaves.
+        // Their cents are rounded per side, so they stay stored.
+        let volume_loss_sats = LazyIndexedVec::new(
+            &id.metric_name("transfer_volume_in_loss_cumulative_sats_source"),
+            v,
+            &c.volume_sats,
+            &c.volume_profit_sats,
+            |_, volume: Sats, in_profit: Sats| volume - in_profit,
+        );
         Ok(Self {
             transfer_volume: value("transfer_volume", &c.volume_sats, &c.volume_cents),
             transfer_volume_in_profit: value(
@@ -77,7 +86,7 @@ impl Activity {
             ),
             transfer_volume_in_loss: value(
                 "transfer_volume_in_loss",
-                &c.volume_loss_sats,
+                &volume_loss_sats,
                 &c.volume_loss_cents,
             ),
             coindays_destroyed,

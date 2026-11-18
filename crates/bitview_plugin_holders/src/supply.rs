@@ -4,11 +4,12 @@ use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, PercentPerBlock, ops::Quotient,
+    LazyIndexedVec, LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, PercentPerBlock,
+    ops::Quotient,
 };
 use brk_error::Result;
-use brk_types::{Sats, SatsSigned};
-use vecdb::{ComputeVec, Rw, StorageMode};
+use brk_types::{Height, Sats, SatsSigned};
+use vecdb::{ComputeVec, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::{
     part::Part,
@@ -75,7 +76,7 @@ impl Section for Supply {
                 spot,
             )
         };
-        let part = |metric: &str, sats| {
+        let part = |metric: &str, sats: &dyn ReadableCloneableVec<Height, Sats>| {
             let name = id.metric_name(metric);
             Part::import(
                 db,
@@ -85,10 +86,18 @@ impl Section for Supply {
                 LazySpotValuePerBlock::from_sats_source(&name, v, sats, mappings, spot),
             )
         };
+        // Profit and loss split the cohort's coins: the loss side is what profit leaves.
+        let supply_loss = LazyIndexedVec::new(
+            &id.metric_name("supply_in_loss_sats_source"),
+            v,
+            &c.supply,
+            &c.supply_profit,
+            |_, supply: Sats, in_profit: Sats| supply - in_profit,
+        );
         Ok(Self {
             total,
             in_profit: part("supply_in_profit", &c.supply_profit)?,
-            in_loss: part("supply_in_loss", &c.supply_loss)?,
+            in_loss: part("supply_in_loss", &supply_loss)?,
             delta: LazyRollingDeltasAmountFromHeight::new(
                 &id.metric_name("supply_delta"),
                 v,
@@ -116,7 +125,7 @@ impl Section for Supply {
             .height
             .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
                 from,
-                &c.supply_loss,
+                &self.in_loss.value.sats.height,
                 &c.supply,
                 exit,
             )?;

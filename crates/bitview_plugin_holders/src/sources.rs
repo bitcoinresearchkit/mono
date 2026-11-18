@@ -29,10 +29,6 @@ macro_rules! with_columns {
                 $r.transfer_volume_in_profit.cents.cumulative_source()
             ),
             (
-                volume_loss_sats,
-                $r.transfer_volume_in_loss.sats.cumulative_source()
-            ),
-            (
                 volume_loss_cents,
                 $r.transfer_volume_in_loss.cents.cumulative_source()
             ),
@@ -44,7 +40,6 @@ macro_rules! with_columns {
             (capitalized_cap_raw, &$r.raw.capitalized_cap),
             (profit, $r.realized.profit.stored.cumulative_source()),
             (loss, $r.realized.loss.stored.cumulative_source()),
-            (net_pnl, $r.realized.net_pnl.stored.cumulative_source()),
             (
                 value_destroyed,
                 $r.realized.value_destroyed.stored.cumulative_source()
@@ -52,7 +47,6 @@ macro_rules! with_columns {
             (unrealized_profit, &$r.unrealized.profit.stored),
             (unrealized_loss, &$r.unrealized.loss.stored),
             (supply_profit, &$r.supply.in_profit.stored),
-            (supply_loss, &$r.supply.in_loss.stored),
             (capital_profit, &$r.capital.in_profit.stored),
             (capital_loss, &$r.capital.in_loss.stored),
             (peak_regret_raw, &$r.raw.peak_regret),
