@@ -197,10 +197,10 @@ clears); avoid reflecting programmatic calls. A programmatic
   clear of its other dots and of the words placed before them (in their order, the counts alone last): where its edge
   would cut them or they'd cover a dot, moved to the nearest spot that's clear (along their row or out from the series)
   where they're still nearer their own dot than any other, else a pill tried without its count, else left out; a count
-  that doesn't fit between the plot's left edge and its pill's dot left out, the pill kept on its dot; one whose pill's
-  dot is past an edge of the plot shown alone, where the words of the one it holds nearest that edge would be, while a
-  mark it holds is in view. Their room kept at the scale's ends while its series has values in view (`room: false`,
-  none); `set(marks)` after a change.
+  on the side of its pill away from its dot (right of it where the pill moves right or the count has no room on its
+  left); one whose pill's dot is past an edge of the plot shown alone, where the words of the one it holds nearest that
+  edge would be, while a mark it holds is in view. Their room kept at the scale's ends while its series has values in
+  view (`room: false`, none); `set(marks)` after a change.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

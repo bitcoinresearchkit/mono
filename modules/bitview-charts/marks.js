@@ -16,9 +16,9 @@
 // whole within the plot and clear of its other dots and of the words placed before them (in that order, the counts
 // alone last): where its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their
 // row or out from the series, where they're still nearer their own dot than any other (none: a pill tried again without
-// its count, else left out); a count that doesn't fit between the plot's left edge and its pill's dot left out, the
-// pill kept on its dot; one whose pill's dot is past an edge of the plot, while a mark it holds is in view, shown alone
-// where the words of the one nearest that edge would be.
+// its count, else left out), a count on the side of its pill away from its dot (right of it where the pill moves right
+// or the count has no room on its left); one whose pill's dot is past an edge of the plot, while a mark it holds is in
+// view, shown alone where the words of the one nearest that edge would be.
 // Added to its pane on its series' side, its marks in their points' order. The room they take kept at its scale's ends
 // while its series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
 import { legible, lightTint, over } from "./color.js";
@@ -32,7 +32,7 @@ const DOT = 3.5, RING = 1.5, GAP = 2, APART = GAP + 1;
  * side, two pills; at one point, one's words and the next one's dot). */
 const PAD = 12, SEP = 2, CLEAR = 6;
 /** The numbers a frame's words keep in BOXES (see box). */
-const BOX = 7;
+const BOX = 8;
 /** The counts' words, each made once ("n more" at n). @type {string[]} */
 const MORE = [];
 /** A series' range over the view, read for whether it has values there (made once). */
@@ -171,11 +171,11 @@ export class Marks {
    * Which marks show their words at `spacing`, and how many others' each holds: in their order (see set), each clear
    * (CLEAR apart) of those shown before it on its side (above its series; under it), and of the other side's where the
    * series crosses between them (by the heights its marks sit at: their tops over it, their feet under it, else its
-   * values; at one point, never), else counted in the nearest of those, its count just left of its pill (room kept
-   * there where words later in the order would run into its own); marks at one point stack, each its own. Each one's
-   * words kept CLEAR within the timeline's ends as the chart frames them whole (its first point at the plot's left, the
-   * right offset past its last), moved along their dot. Read from its points' values and the zoom, not where they're
-   * drawn: a pan or a scale's fit changes none.
+   * values; at one point, never), else counted in the nearest of those (room kept for its count just left of its pill
+   * where words later in the order would run into its own; drawn where free puts it); marks at one point stack, each
+   * its own. Each one's words kept CLEAR within the timeline's ends as the chart frames them whole (its first point at
+   * the plot's left, the right offset past its last), moved along their dot. Read from its points' values and the zoom,
+   * not where they're drawn: a pan or a scale's fit changes none.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {Float64Array} highs @param {Float64Array} lows @param {Float64Array} values
    */
   #say(g, time, highs, lows, values) {
@@ -328,19 +328,18 @@ export class Marks {
 
   /**
    * Its words, over everything (its pane's layer over it, drawn whole each frame: a picture moved by a pan never holds
-   * them, so they can keep to the view): each in the chart's one pill, the marks it holds counted just left of it,
-   * quieter than the words they're counted with: in the chart's text color (its axis labels'), kept legible, on a quiet
-   * tag of its separator color as laid on its ground (it may hold any kind of mark): a line it crosses covered, not cut
-   * off. Only those with their dot in the plot, each whole within it and clear of its other dots (another mark's, of
-   * another color maybe) and of the words placed before them (in their order: see set; the counts alone last): where
-   * its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row (off their
-   * dot only as far as that takes) or out from the series, where they're still nearer their own dot than any other, so
-   * they never read as another's (none: a pill tried again without its count, else left out); a count that doesn't fit
-   * between the plot's left edge and its pill's dot left out, so the pill stays on its dot; one whose pill's dot is
-   * past an edge of the plot, while a mark it holds has its dot in the plot, shown alone where the words of the one
-   * nearest that edge would be. Each pill a sprite drawn once (see sprites), copied each frame onto whole device
-   * pixels: drawn anew each frame, a dense chart's words took twice as long or more (0.065 ms a frame against 0.025 in
-   * WebKit, 0.17 against 0.09 in Chromium).
+   * them, so they can keep to the view): each in the chart's one pill, the marks it holds counted beside it, quieter
+   * than the words they're counted with: in the chart's text color (its axis labels'), kept legible, on a quiet tag of
+   * its separator color as laid on its ground (it may hold any kind of mark): a line it crosses covered, not cut off.
+   * Only those with their dot in the plot, each whole within it and clear of its other dots (another mark's, of another
+   * color maybe) and of the words placed before them (in their order: see set; the counts alone last): where its edge
+   * would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row (off their dot only as
+   * far as that takes) or out from the series, where they're still nearer their own dot than any other, so they never
+   * read as another's (none: a pill tried again without its count, else left out), a count on the side of its pill
+   * away from its dot (see free); one whose pill's dot is past an edge of the plot, while a mark it holds has its dot
+   * in the plot, shown alone where the words of the one nearest that edge would be. Each pill a sprite drawn once (see
+   * sprites), copied each frame onto whole device pixels: drawn anew each frame, a dense chart's words took twice as
+   * long or more (0.065 ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} _x0 @param {number} plot @param {number} dpr @param {{ background: string, font: string, separator: string, text: string }} theme
    * @param {(x: number, y: number, width: number, height: number) => void} drew Told each one's box (count and pill).
@@ -353,8 +352,8 @@ export class Marks {
     this.#say(g, time, highs, lows, values);
     const said = this.said, widths = this.widths, shown = this.shown, from = this.shownFrom;
     if (BOXES.length < (n - from) * BOX) BOXES = new Float64Array((n - from) * BOX * 2);
-    // (Each shown one with its dot in the plot (the first found by halves), its count just left of its pill unless that
-    // doesn't fit between the plot's left edge and the pill's dot.)
+    // (Each shown one with its dot in the plot (the first found by halves), its count just left of its pill till free
+    // places it.)
     let j = from, boxes = 0;
     for (let hi = n; j < hi; ) {
       const m = (j + hi) >> 1;
@@ -367,7 +366,7 @@ export class Marks {
       this.#at(k, scale, highs, lows, values);
       if (AT[1] !== AT[1]) continue;
       const right = x + this.offsets[k] + (widths[k] + PAD) / 2, words = right - widths[k] - PAD, count = held ? SEP + this.#moreWidth(g, held) + PAD : 0;
-      box(boxes++, k, count > x ? words : words - count, words, right, AT[1], x, AT[0]);
+      box(boxes++, k, words - count, words, right, right, AT[1], x, AT[0]);
     }
     // (A count whose pill's dot is out of the plot, while a mark it holds has its dot in it: alone, where the words of
     // the one nearest the edge its pill's dot is past would be.)
@@ -391,7 +390,7 @@ export class Marks {
       this.#at(k, scale, highs, lows, values);
       if (AT[1] !== AT[1]) continue;
       const half = (this.#moreWidth(g, said[h] - 1) + PAD) / 2;
-      box(t, k, x - half, x + half, x + half, AT[1], x, AT[0]);
+      box(t, k, x - half, x - half, x + half, x + half, AT[1], x, AT[0]);
       if (t === boxes) boxes++;
     }
     if (!boxes) return;
@@ -408,11 +407,13 @@ export class Marks {
     if (theme !== this.spritesTheme || dpr !== this.spritesDpr) (this.spritesTheme = theme), (this.spritesDpr = dpr), (this.sprites = []), (this.moreSprites = []);
     const countFill = over(theme.separator, theme.background), countInk = legible(theme.text, countFill);
     for (let s = 0; s < boxes; s++) {
-      const b = s * BOX, k = BOXES[b], left = BOXES[b + 1], words = BOXES[b + 2], right = BOXES[b + 3], top = BOXES[b + 4] - PILL / 2;
+      const b = s * BOX, k = BOXES[b], left = BOXES[b + 1], words = BOXES[b + 2], end = BOXES[b + 3], right = BOXES[b + 4], top = BOXES[b + 5] - PILL / 2;
       if (k < 0) continue;
-      const look = /** @type {{ fill: string, ink: string }} */ (this.looks[k]), held = said[holder[k]] - 1;
-      if (words < right) place(g, (this.sprites[k] ??= sprite(/** @type {string} */ (marks[k].text), look.fill, look.ink, widths[k] + PAD, theme.font, dpr)), words, top, dpr);
-      if (left < words) place(g, (this.moreSprites[held] ??= sprite(MORE[held], countFill, countInk, this.#moreWidth(g, held) + PAD, theme.font, dpr)), left, top, dpr);
+      const look = /** @type {{ fill: string, ink: string }} */ (this.looks[k]), alone = holder[k] !== k, held = said[holder[k]] - 1;
+      // (Its count where free put it: left of its pill, right of it, or alone in a pill's place; NaN: none.)
+      const count = alone ? words : left < words ? left : end < right ? end + SEP : NaN;
+      if (!alone) place(g, (this.sprites[k] ??= sprite(/** @type {string} */ (marks[k].text), look.fill, look.ink, widths[k] + PAD, theme.font, dpr)), words, top, dpr);
+      if (count === count) place(g, (this.moreSprites[held] ??= sprite(MORE[held], countFill, countInk, this.#moreWidth(g, held) + PAD, theme.font, dpr)), count, top, dpr);
       drew(left, top, right - left, PILL);
     }
   }
@@ -468,45 +469,55 @@ function dotOf(mark) {
   return r ? 2 * (r + RING) : 0;
 }
 
-/** The `s`-th words a frame draws, BOX numbers in BOXES: whose (-1: left out), its count's left, its pill's left and
- * right (a count alone: its own right, twice), their middle's y, and its dot's middle (x, y).
- * @param {number} s @param {number} k @param {number} left @param {number} words @param {number} right @param {number} y
- * @param {number} x @param {number} dot */
-function box(s, k, left, words, right, y, x, dot) {
+/** The `s`-th words a frame draws, BOX numbers in BOXES: whose (-1: left out); their left, their pill's left and
+ * right, and their right (its count SEP from the pill, left or right of it: see free; a count alone in a pill's
+ * place); their middle's y; and their dot's middle (x, y).
+ * @param {number} s @param {number} k @param {number} left @param {number} words @param {number} end @param {number} right
+ * @param {number} y @param {number} x @param {number} dot */
+function box(s, k, left, words, end, right, y, x, dot) {
   const b = s * BOX;
-  (BOXES[b] = k), (BOXES[b + 1] = left), (BOXES[b + 2] = words), (BOXES[b + 3] = right), (BOXES[b + 4] = y), (BOXES[b + 5] = x), (BOXES[b + 6] = dot);
+  (BOXES[b] = k), (BOXES[b + 1] = left), (BOXES[b + 2] = words), (BOXES[b + 3] = end), (BOXES[b + 4] = right), (BOXES[b + 5] = y), (BOXES[b + 6] = x), (BOXES[b + 7] = dot);
 }
 
 /**
  * The `s`-th words (see box) moved where they're clear (see hit) and whole within the plot (`plot` wide, `height`
- * tall): where they are (just within its edge, where that cuts them), else the nearest spot along their row, either
- * way, or out from their series (`out`: up, -1; down, 1) where they still read as their own dot's (see ours); none, a
- * pill tried again without its count; else left out.
+ * tall), their count on the side of their pill away from its dot: where they are (just within its edge, where that
+ * cuts them; the count right of the pill where it has no room on its left), else the nearest spot along their row,
+ * either way (the count left of the pill as it moves left, right of it as it moves right), or out from their series
+ * (`out`: up, -1; down, 1) where they still read as their own dot's (see ours); none, a pill tried again without its
+ * count; else left out.
  * @param {number} s @param {number} placed @param {number} plot @param {number} height @param {number} out
  */
 function free(s, placed, plot, height, out) {
-  const b = s * BOX, was = BOXES[b + 1], width = BOXES[b + 3] - was, y = BOXES[b + 4], most = plot - CLEAR - width;
-  if (most < CLEAR) return void (BOXES[b] = -1);
-  let left = Math.min(Math.max(was, CLEAR), most), to = y;
-  if (hit(s, left, width, y, placed)) {
-    // (Just past what they run into, again and again till clear: left, right, and away from the series.)
-    let a = left, c = left, away = y;
-    // (Each walk stopped once it's further than the nearest spot found before it: it couldn't be taken.)
-    while (a >= CLEAR && hit(s, a, width, y, placed)) a = HIT[0];
-    const byA = a >= CLEAR && ours(s, a - was, y) ? left - a : Infinity;
-    while (c <= most && c - left < byA && hit(s, c, width, y, placed)) c = HIT[1];
-    const byC = c <= most && c - left < byA && ours(s, c - was, y) ? c - left : Infinity, best = Math.min(byA, byC);
-    while (away >= PILL / 2 && away <= height - PILL / 2 && Math.abs(away - y) <= best && hit(s, left, width, away, placed)) away = out < 0 ? HIT[2] : HIT[3];
-    const byAway = away >= PILL / 2 && away <= height - PILL / 2 && Math.abs(away - y) <= best && ours(s, left - was, away) ? Math.abs(away - y) : Infinity;
-    const least = Math.min(byA, byC, byAway);
-    if (least === Infinity) {
-      if (BOXES[b + 1] < BOXES[b + 2] && BOXES[b + 2] < BOXES[b + 3]) return (BOXES[b + 1] = BOXES[b + 2]), free(s, placed, plot, height, out);
-      return void (BOXES[b] = -1);
+  const b = s * BOX, was = BOXES[b + 2], pw = BOXES[b + 3] - was, y = BOXES[b + 5];
+  for (let cw = was - BOXES[b + 1]; ; cw = 0) {
+    const width = cw + pw, most = plot - CLEAR - width;
+    // (Their left: from `a` on left, the count left of the pill (on its dot, or moved left within the plot's right
+    // edge); from `c` on right, the count right of it (moved right within the left edge). They start at the first
+    // that's in the plot (`flip`: the count right of the pill).)
+    let a = Math.min(was - cw, most), c = Math.max(was, CLEAR), flip = a < CLEAR, left = flip ? c : a, to = y;
+    let least = left <= most ? 0 : Infinity;
+    if (!least && hit(s, left, width, y, placed)) {
+      // (Just past what they run into, again and again till clear: left, right, and away from the series from where
+      // they start; each walk stopped once it's further than the nearest spot found before it: it couldn't be taken.)
+      while (a >= CLEAR && hit(s, a, width, y, placed)) a = HIT[0];
+      const byA = a >= CLEAR && ours(s, a + cw, y) ? was - cw - a : Infinity;
+      while (c <= most && c - was < byA && hit(s, c, width, y, placed)) c = HIT[1];
+      const byC = c <= most && c - was < byA && ours(s, c, y) ? c - was : Infinity, best = Math.min(byA, byC);
+      const start = flip ? left : left + cw, off = Math.abs(start - was);
+      let away = y;
+      while (away >= PILL / 2 && away <= height - PILL / 2 && off + Math.abs(away - y) <= best && hit(s, left, width, away, placed)) away = out < 0 ? HIT[2] : HIT[3];
+      const byAway = away >= PILL / 2 && away <= height - PILL / 2 && off + Math.abs(away - y) <= best && ours(s, start, away) ? off + Math.abs(away - y) : Infinity;
+      least = Math.min(byA, byC, byAway);
+      if (least === byAway) to = away;
+      else (flip = least !== byA), (left = flip ? c : a);
     }
-    if (least === byAway) to = away;
-    else left = least === byA ? a : c;
+    if (least < Infinity) {
+      const words = flip ? left : left + cw;
+      return void ((BOXES[b + 1] = left), (BOXES[b + 2] = words), (BOXES[b + 3] = words + pw), (BOXES[b + 4] = left + width), (BOXES[b + 5] = to));
+    }
+    if (!cw) return void (BOXES[b] = -1);
   }
-  (BOXES[b + 1] += left - was), (BOXES[b + 2] += left - was), (BOXES[b + 3] += left - was), (BOXES[b + 4] = to);
 }
 
 /**
@@ -525,9 +536,9 @@ function hit(s, left, width, y, placed) {
     if (BOXES[t] < 0) continue;
     const lo = BOXES[t + 1] - CLEAR - width;
     if (lo >= left) continue;
-    const hi = BOXES[t + 3] + CLEAR;
+    const hi = BOXES[t + 4] + CLEAR;
     if (left >= hi) continue;
-    const up = BOXES[t + 4] - PILL - GAP, down = BOXES[t + 4] + PILL + GAP;
+    const up = BOXES[t + 5] - PILL - GAP, down = BOXES[t + 5] + PILL + GAP;
     if (up < y && y < down) return (HIT[0] = lo), (HIT[1] = hi), (HIT[2] = up), (HIT[3] = down), true;
   }
   const k = BOXES[s * BOX];
@@ -543,13 +554,12 @@ function hit(s, left, width, y, placed) {
 }
 
 /**
- * Whether the `s`-th words (see box: their pill, or a count alone), moved `by` along their row, their middle at `y`,
- * are nearer their own dot than any other: moved off it, they never read as another's.
- * @param {number} s @param {number} by @param {number} y
+ * Whether the `s`-th words' pill (see box: a count alone, in a pill's place), its left at `left` and its middle at `y`,
+ * is nearer its own dot than any other: moved off it, it never reads as another's.
+ * @param {number} s @param {number} left @param {number} y
  */
-function ours(s, by, y) {
-  const b = s * BOX, pill = BOXES[b + 2] < BOXES[b + 3], left = BOXES[b + (pill ? 2 : 1)] + by, right = BOXES[b + (pill ? 3 : 2)] + by;
-  const near = apart(BOXES[b + 5], BOXES[b + 6], left, right, y), k = BOXES[b];
+function ours(s, left, y) {
+  const b = s * BOX, right = left + BOXES[b + 3] - BOXES[b + 2], near = apart(BOXES[b + 6], BOXES[b + 7], left, right, y), k = BOXES[b];
   for (let d = firstDot(left - near); d < DOTN && DOTS[d * 4] <= right + near; d++)
     if (DOTS[d * 4 + 3] !== k && apart(DOTS[d * 4], DOTS[d * 4 + 1], left, right, y) <= near) return false;
   return true;
