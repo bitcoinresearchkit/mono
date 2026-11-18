@@ -7,6 +7,7 @@ pub struct SeriesEntry<'a> {
     pub(crate) vec: &'a dyn AnyExportableVec,
     pub(crate) index: Index,
     pub(crate) available: bool,
+    pub(crate) null_values: bool,
     /// Whether existing values may change, preventing an immutable cache prefix.
     pub(crate) is_mutable: bool,
 }

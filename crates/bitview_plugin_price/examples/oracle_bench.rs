@@ -36,7 +36,7 @@ fn main() -> Result<()> {
     let connect = ConnectArgs::default();
     let client = connect.client()?;
     let reader = Reader::connect(&connect, &client)?;
-    if !reader.chain().is_mainnet() {
+    if bitview_vecs::first_price_height().is_none() {
         return Err(Error::InvalidNetwork);
     }
     let exit = Exit::new();

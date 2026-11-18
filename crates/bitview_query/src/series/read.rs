@@ -10,7 +10,7 @@ use crate::{Error, Query, Result, SeriesEntry};
 /// Column readers borrow this view, so they cannot outlive its read protection.
 /// The underlying unbounded vectors and bounds are deliberately private.
 pub struct SeriesRead {
-    vecs: Vec<&'static dyn AnyExportableVec>,
+    entries: Vec<SeriesEntry<'static>>,
     bounds: ReadBounds,
     is_mutable: bool,
     pin: SafeLengths,
@@ -29,16 +29,12 @@ impl SeriesRead {
             }
         }
         let is_mutable = entries.iter().any(|entry| entry.is_mutable);
-        let vecs = entries
-            .into_iter()
-            .map(|entry| entry.vec)
-            .collect::<Vec<_>>();
         debug_assert!(
-            vecs.iter().all(|vec| bounds.bind(*vec).is_some()),
+            entries.iter().all(|entry| bounds.bind(entry.vec).is_some()),
             "every series index has a published bound"
         );
         Ok(Self {
-            vecs,
+            entries,
             bounds,
             is_mutable,
             pin: pin.into_inner(),
@@ -65,10 +61,11 @@ impl SeriesRead {
     }
 
     pub(crate) fn columns(&self) -> impl ExactSizeIterator<Item = BoundedVec<'_>> + '_ {
-        self.vecs.iter().map(|vec| {
+        self.entries.iter().map(|entry| {
             self.bounds
-                .bind(*vec)
+                .bind(entry.vec)
                 .expect("selected series bounds were checked at construction")
+                .with_null_values(entry.null_values)
         })
     }
 }

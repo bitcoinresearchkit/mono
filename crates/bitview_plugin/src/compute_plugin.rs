@@ -33,6 +33,9 @@ pub trait ComputePlugin: Plugin {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        if !self.storage().available() {
+            return Ok(());
+        }
         if let Some(db) = self.database() {
             db.sync_bg_tasks()?;
         }

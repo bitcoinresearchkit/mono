@@ -7,7 +7,7 @@ use bitview_cohort::{
     AGE_RANGE_NAMES, AMOUNT_RANGE_NAMES, ENTRY_NAMES, HALVING_EPOCH_NAMES,
     PROFITABILITY_RANGE_NAMES, SPENDABLE_TYPE_NAMES, TERM_NAMES, VINTAGE_NAMES,
 };
-use bitview_primitives::{Calendar, Index, OP_RETURN_KIND_NAMES, pools};
+use bitview_primitives::{Calendar, Index, OP_RETURN_KIND_NAMES, mainnet_pools};
 use brk_types::ADDRESS_PAYLOAD_LENGTHS;
 use serde::Serialize;
 use serde_json::{Map, Value, json, to_string_pretty};
@@ -25,7 +25,7 @@ impl ClientConstants {
         let indexes = Index::all();
         let indexes: Vec<&'static str> = indexes.iter().map(|i| i.name()).collect();
 
-        let pool_map: BTreeMap<String, &'static str> = pools()
+        let pool_map: BTreeMap<String, &'static str> = mainnet_pools()
             .iter()
             .map(|p| (p.slug.to_string(), p.name))
             .collect();

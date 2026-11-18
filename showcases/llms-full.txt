@@ -838,7 +838,7 @@ Live BTC/USD price
 
 Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
 
-Returns: JSON `Dollars`
+Returns: JSON `Dollars | null`
 
 ### Prices
 
@@ -1278,8 +1278,8 @@ Returns: JSON `ServerVersion`
 - `spent_txo_count`: `integer` (required) — Total number of transaction outputs spent from this address
 - `spent_txo_sum`: `Sats` (required) — Total amount in satoshis spent from this address
 - `tx_count`: `integer` (required) — Total number of confirmed transactions involving this address
-- `type_index`: `TypeIndex | null` — Index of this address within its type on the blockchain, null for an address without confirmed activity
-- `realized_price`: `Dollars` (required) — Realized price (average cost basis) in USD
+- `type_index`: `TypeIndex | null` (required) — Index of this address within its type on the blockchain, null for an address without confirmed activity
+- `realized_price`: `Dollars | null` (required) — Realized price (average cost basis) in USD
 
 ### `AddressHashPrefixMatches`
 
@@ -1414,11 +1414,11 @@ Returns: JSON `ServerVersion`
 - `medianFee`: `FeeRate` (required) — Median effective (CPFP) fee rate in sat/vB, by vsize: the rate half the block's space paid at most (Bitcoin Core's `getblockstats` rule; mempool.space averages the middle 0.25% of a 4M WU block instead)
 - `feeRange`: `FeeRate[]` (required) — Effective (CPFP) fee rate range in sat/vB: [min, 10%, 25%, 50%, 75%, 90%, max], the percentiles of block space (vsize-weighted, as `medianFee`; mempool.space ranks transactions by count), min and max the lower/higher of the 1st/99th percentile and the extreme rate in the block's last/first 2% of vsize
 - `reward`: `Sats` (required) — Total block reward (subsidy + fees) in satoshis
-- `pool`: `BlockPool` (required)
+- `pool`: `BlockPool | null` (required)
 - `avgFee`: `Sats` (required) — Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
 - `avgFeeRate`: `FeeRate` (required) — Average fee rate in sat/vB
 - `coinbaseRaw`: `Hex` (required) — Raw coinbase transaction scriptsig as hex
-- `coinbaseAddress`: `Address | null` — Primary coinbase output address
+- `coinbaseAddress`: `Address | null` (required) — Primary coinbase output address
 - `coinbaseAddresses`: `Address[]` (required) — All coinbase output addresses
 - `coinbaseSignature`: `string` (required) — Coinbase output script in ASM format
 - `coinbaseSignatureAscii`: `string` (required) — Coinbase scriptsig with each byte read as the Unicode code point of the same value
@@ -1436,14 +1436,14 @@ Returns: JSON `ServerVersion`
 - `utxoSetSize`: `integer` (required) — Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
 - `totalInputAmt`: `Sats` (required) — Total input amount in satoshis
 - `virtualSize`: `number` (required) — Virtual size in vbytes: weight / 4, unrounded
-- `coinbaseBip54`: `boolean | null` — Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
-- `firstSeen`: `Timestamp | null` — Timestamp when the block was first seen (always null, not yet supported)
+- `coinbaseBip54`: `boolean | null` (required) — Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
+- `firstSeen`: `Timestamp | null` (required) — Timestamp when the block was first seen (always null, not yet supported)
 - `orphans`: `BlockOrphan[]` (required) — Stale blocks at this height the server's node knows, each server's own
-- `matchRate`: `number | null` — Match rate of this server's live pre-block observation; null for unaudited blocks.
-- `expectedFees`: `Sats | null` — Base fees of this server's expected block, excluding coinbase.
-- `expectedWeight`: `Weight | null` — Raw transaction weight of the expected block, excluding header and coinbase reserve.
-- `similarity`: `number | null` — Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
-- `price`: `Dollars` (required) — USD price at block height
+- `matchRate`: `number | null` (required) — Match rate of this server's live pre-block observation; null for unaudited blocks.
+- `expectedFees`: `Sats | null` (required) — Base fees of this server's expected block, excluding coinbase.
+- `expectedWeight`: `Weight | null` (required) — Raw transaction weight of the expected block, excluding header and coinbase reserve.
+- `similarity`: `number | null` (required) — Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
+- `price`: `Dollars | null` (required) — USD price at block height
 
 ### `BlockFeeRatesEntry`
 
@@ -1474,7 +1474,7 @@ Returns: JSON `ServerVersion`
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
 - `avgFees`: `Sats` (required) — Mean fees per block in this bucket, rounded half up (sats)
-- `USD`: `Dollars` (required) — Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
+- `USD`: `Dollars | null` (required) — Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
 
 ### `BlockHash`
 
@@ -1539,7 +1539,7 @@ Returns: JSON `ServerVersion`
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
 - `avgRewards`: `Sats` (required) — Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
-- `USD`: `Dollars` (required) — Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
+- `USD`: `Dollars | null` (required) — Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
 
 ### `BlockSizeEntry`
 
@@ -2000,7 +2000,7 @@ Returns: JSON `ServerVersion`
 ### `PricePoint`
 
 - `time`: `Timestamp` (required) — Unix timestamp: a historical close's, or for the current price when it was derived (the mempool publication counted in it, else the tip block's time)
-- `USD`: `Dollars` (required) — BTC/USD price
+- `USD`: `Dollars | null` (required) — BTC/USD price
 
 ### `RangeIndex`
 

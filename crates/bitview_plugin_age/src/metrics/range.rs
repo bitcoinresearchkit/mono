@@ -46,12 +46,12 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     pub coindays_created: PerBlockCumulativeRolling<CoinDays, M>,
     /// Value of the outputs spent in each block whose spending price is greater than or equal to
     /// their creation price; USD at the spending block's spot price.
-    #[traversable(wrap = "activity/transfer_volume", rename = "in_profit")]
+    #[traversable(wrap = "activity/transfer_volume", rename = "in_profit", priced)]
     #[traversable(lead = "Transfer volume in profit: the bitcoin spent at or above its cost.")]
     pub transfer_volume_in_profit: CumulativeValue<M>,
     /// Value of the outputs spent in each block whose spending price is below their creation
     /// price; USD at the spending block's spot price.
-    #[traversable(wrap = "activity/transfer_volume", rename = "in_loss")]
+    #[traversable(wrap = "activity/transfer_volume", rename = "in_loss", priced)]
     #[traversable(lead = "Transfer volume in loss: the bitcoin spent below its cost.")]
     pub transfer_volume_in_loss: CumulativeValue<M>,
     #[traversable(hidden)]

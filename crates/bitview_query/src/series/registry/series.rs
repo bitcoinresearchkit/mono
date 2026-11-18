@@ -9,6 +9,8 @@ pub(super) struct Series<'a> {
     pub(super) description: Option<Arc<str>>,
     /// Its metadata's, set at the registry's build.
     pub(super) accumulation: Accumulation,
+    /// Whether its metadata says its values depend on the price, whatever their type.
+    pub(super) priced: bool,
 }
 
 impl Default for Series<'_> {
@@ -18,6 +20,7 @@ impl Default for Series<'_> {
             entries: Vec::new(),
             description: None,
             accumulation: Accumulation::UNDECLARED,
+            priced: false,
         }
     }
 }
@@ -34,6 +37,22 @@ impl<'a> Series<'a> {
             entry.index
         );
         self.entries.insert(position, entry);
+    }
+
+    /// On a chain without a price, every value that depends on it is null, never made up from
+    /// the missing price (a fiat type always does; others say so in their metadata). An index
+    /// whose type has no null serves no rows.
+    pub(super) fn leave_prices_out(&mut self) {
+        for entry in &mut self.entries {
+            let fiat = matches!(
+                entry.vec.value_type_name(),
+                "Dollars" | "Cents" | "CentsSigned" | "CentsFract" | "OHLCDollars" | "OHLCCents"
+            );
+            if self.priced || fiat {
+                entry.null_values = entry.vec.nullable();
+                entry.available &= entry.null_values;
+            }
+        }
     }
 
     pub(super) fn get(&self, index: Index) -> Option<&SeriesEntry<'a>> {

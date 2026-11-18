@@ -40,7 +40,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         Confirmed per-height history is available at `GET /api/series/price/height`. Not \
                         found before the oracle's first prices.",
                     )
-                    .json_response::<Dollars>()
+                    .json_response::<Option<Dollars>>()
                     .not_modified()
                     .not_found()
             }),

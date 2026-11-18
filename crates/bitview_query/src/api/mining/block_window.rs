@@ -145,7 +145,10 @@ impl BlockWindow {
 
     /// Each bucket's mean price: the price source's unavailable sentinel stays unavailable
     /// instead of converting to an integer (which panics); finite means keep cent rounding.
-    pub fn mean_prices(&self, prices: &impl ReadableVec<Height, Cents>) -> Result<Vec<Dollars>> {
+    pub fn mean_prices(
+        &self,
+        prices: &impl ReadableVec<Height, Cents>,
+    ) -> Result<Vec<Option<Dollars>>> {
         let sums = self.fold(prices, Some(0u128), |sum, price| {
             *sum = sum
                 .zip(price.finite_inner())
@@ -155,9 +158,7 @@ impl BlockWindow {
             .into_iter()
             .zip(&self.buckets)
             .map(|(sum, bucket)| {
-                sum.map_or(Dollars::NAN, |sum| {
-                    Dollars::from(Cents::from(round_half_up(sum, bucket.count.into())))
-                })
+                sum.map(|sum| Dollars::from(Cents::from(round_half_up(sum, bucket.count.into()))))
             })
             .collect())
     }

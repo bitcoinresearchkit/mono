@@ -22,19 +22,15 @@ use crate::{IndexSources, LazyDeltaFromHeight, LazyPerBlock, LazyWindowStartVec}
 /// the first price), so whatever is computed from it is again.
 const PRICED_VERSION: Version = Version::ONE;
 
-#[inline]
-fn is_priced(height: usize) -> bool {
-    height >= FIRST_PRICE_HEIGHT && brk_types::chain().is_mainnet()
+/// Where the BTC/USD price history starts on the active chain, if it has one.
+pub fn first_price_height() -> Option<usize> {
+    brk_types::chain().is_mainnet().then_some(FIRST_PRICE_HEIGHT)
 }
 
 /// The first priced height at or after `height`.
 #[inline]
 fn first_priced(height: usize) -> usize {
-    if brk_types::chain().is_mainnet() {
-        height.max(FIRST_PRICE_HEIGHT)
-    } else {
-        usize::MAX
-    }
+    first_price_height().map_or(usize::MAX, |first| height.max(first))
 }
 
 /// The priced heights of `heights`, a suffix of them: empty at its end when none is priced.
@@ -46,10 +42,13 @@ pub fn priced_range(heights: Range<usize>) -> Range<usize> {
 /// The first height whose window (`starts`, never decreasing) starts at or after the first price:
 /// the first a dollar sum over it has a value (their length when none does yet).
 pub fn first_wholly_priced(starts: &impl ReadableVec<Height, Height>) -> usize {
+    let Some(first) = first_price_height() else {
+        return starts.len();
+    };
     let (mut low, mut high) = (0, starts.len());
     while low < high {
         let middle = (low + high) / 2;
-        if is_priced(starts.collect_one_at(middle).unwrap().to_usize()) {
+        if starts.collect_one_at(middle).unwrap().to_usize() >= first {
             high = middle;
         } else {
             low = middle + 1;
@@ -71,7 +70,7 @@ where
 {
     #[inline]
     fn count(h: usize, start: usize) -> usize {
-        if is_priced(start.saturating_sub(usize::from(BEFORE))) {
+        if start.saturating_sub(usize::from(BEFORE)) >= first_priced(0) {
             Op::count(h, start)
         } else {
             0

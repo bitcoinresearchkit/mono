@@ -74,7 +74,7 @@ fn compute_seconds_since(
                 (seconds != UNPRICED)
                     .then(|| Timestamp::from(*timestamps.collect_one(prev).unwrap() - *seconds))
             });
-            if ath == Cents::ZERO {
+            if ath == Cents::ZERO || ath.is_nan() {
                 UNPRICED
             } else if price == ath {
                 *ath_ts = Some(ts);

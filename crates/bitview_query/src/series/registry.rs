@@ -57,7 +57,10 @@ impl<'a> SeriesRegistry<'a> {
     where
         P: PluginSet + Traversable,
     {
-        let mut builder = Builder::default();
+        let mut builder = Builder {
+            without_prices: bitview_vecs::first_price_height().is_none(),
+            ..Builder::default()
+        };
         let mut metadata = Vec::new();
         plugins.for_each_plugin(&mut |plugin| {
             let db = plugin.id().as_str();
@@ -115,8 +118,9 @@ impl<'a> SeriesRegistry<'a> {
                 debug_assert!(false, "Metadata references unknown series: {series}");
                 continue;
             };
-            let (fragments, accumulation) = bitview_traversable::split_metadata(&fragments);
+            let (fragments, accumulation, priced) = bitview_traversable::split_metadata(&fragments);
             entry.accumulation = accumulation;
+            entry.priced = priced;
             if fragments.is_empty() {
                 continue;
             }
@@ -148,6 +152,11 @@ impl<'a> SeriesRegistry<'a> {
                         debug_assert!(false, "plugin {db} has no root of its own in the catalog")
                     }
                 }
+            }
+        }
+        if builder.without_prices {
+            for series in builder.by_series.values_mut() {
+                series.leave_prices_out();
             }
         }
         builder.counts.distinct = builder.by_series.len();
@@ -303,6 +312,7 @@ impl<'a> SeriesRegistry<'a> {
 
 #[derive(Default)]
 struct Builder<'a> {
+    without_prices: bool,
     by_series: FxHashMap<&'a str, Series<'a>>,
     counts: SeriesCount,
     counts_by_db: BTreeMap<String, SeriesCount>,
@@ -427,6 +437,7 @@ impl<'a> Builder<'a> {
             vec,
             index,
             available,
+            null_values: false,
             is_mutable: vec.is_mutable(),
         });
         let is_lazy = vec.region_names().is_empty();

@@ -28,7 +28,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     live: M::WriteOnly<Option<LiveState>>,
-    #[traversable(flatten)]
+    // Bands by profit or loss against the spot price.
+    #[traversable(flatten, priced)]
     metrics: Box<Metrics<M>>,
     /// Every holder group's stored cost-basis sources, which Holders publishes views over.
     #[traversable(hidden)]

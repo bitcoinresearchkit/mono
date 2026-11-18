@@ -71,23 +71,13 @@ impl Ty {
         match schema.get("type") {
             Some(Value::String(kind)) => return Self::kind(kind, schema),
             Some(Value::Array(kinds)) => {
-                let mut types: Vec<Self> = kinds
+                let types = kinds
                     .iter()
                     .filter_map(Value::as_str)
-                    .filter(|&kind| kind != "null")
                     .map(|kind| Self::kind(kind, schema))
                     .collect();
-                if !types.is_empty() {
-                    let ty = if types.len() == 1 {
-                        types.swap_remove(0)
-                    } else {
-                        Self::Union(types)
-                    };
-                    return if kinds.iter().any(|kind| kind == "null") {
-                        Self::Nullable(Box::new(ty))
-                    } else {
-                        ty
-                    };
+                if let Some(ty) = Self::one_of(types) {
+                    return ty;
                 }
             }
             _ => {}
@@ -99,13 +89,32 @@ impl Ty {
         {
             let variants: Vec<Self> = variants.iter().map(Self::parse).collect();
             // A variant accepting anything makes the union accept anything.
-            return if variants.contains(&Self::Any) {
-                Self::Any
-            } else {
-                Self::Union(variants)
-            };
+            if variants.contains(&Self::Any) {
+                return Self::Any;
+            }
+            if let Some(ty) = Self::one_of(variants) {
+                return ty;
+            }
         }
         Self::Any
+    }
+
+    /// One of several types, null among them making it nullable: `type: [X, "null"]` and
+    /// `anyOf: [X, {type: null}]` are one reading. None for null alone.
+    fn one_of(mut types: Vec<Self>) -> Option<Self> {
+        let count = types.len();
+        types.retain(|ty| *ty != Self::Null);
+        let nullable = types.len() < count;
+        let ty = match types.len() {
+            0 => return None,
+            1 => types.swap_remove(0),
+            _ => Self::Union(types),
+        };
+        Some(if nullable {
+            Self::Nullable(Box::new(ty))
+        } else {
+            ty
+        })
     }
 
     /// One `type` keyword, with the `items`/`additionalProperties` it applies to.

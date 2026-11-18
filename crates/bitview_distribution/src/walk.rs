@@ -263,7 +263,7 @@ impl Walk {
             crossings,
             ..
         } = self;
-        sources.prices.read_into_at(prices.len(), end, prices);
+        crate::read_basis_prices(sources.prices, end, prices);
         sources
             .timestamps
             .read_into_at(timestamps.len(), end, timestamps);

@@ -15,7 +15,7 @@ pub struct AwakeVecs<M: StorageMode = Rw> {
     /// Share of awake supply that is in loss: the sum of supply in loss
     /// multiplied by wakefulness divided by the sum of total supply multiplied
     /// by wakefulness. Null when the weighted supply is zero. As a percentage.
-    #[traversable(wrap = "supply/in_loss", rename = "share")]
+    #[traversable(wrap = "supply/in_loss", rename = "share", priced)]
     #[traversable(lead = "Awake supply in loss: the part of it now below its cost.")]
     pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by wakefulness across the

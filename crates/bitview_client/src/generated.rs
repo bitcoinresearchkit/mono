@@ -4293,7 +4293,7 @@ impl BitviewClient {
     /// Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
     ///
     /// Endpoint: `GET /api/oracle/price`
-    pub fn get_live_price(&self) -> Result<Dollars> {
+    pub fn get_live_price(&self) -> Result<Option<Dollars>> {
         self.base.get_json(&format!("/api/oracle/price"))
     }
 

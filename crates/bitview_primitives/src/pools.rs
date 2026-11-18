@@ -1,5 +1,6 @@
 use std::sync::OnceLock;
 
+use bitcoin::{Address, Network};
 use brk_types::AddressBytes;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
@@ -49,7 +50,22 @@ pub struct Pools {
     by_addr: FxHashMap<AddressBytes, PoolSlug>,
 }
 
+impl Default for Pools {
+    fn default() -> Self {
+        // Every PoolSlug has an entry, so `get` can't miss: the reserved ones stay empty.
+        Self {
+            pools: (0..=usize::from(u8::MAX)).map(empty_pool).collect(),
+            by_addr: FxHashMap::default(),
+        }
+    }
+}
+
 impl Pools {
+    pub fn empty() -> &'static Self {
+        static EMPTY: OnceLock<Pools> = OnceLock::new();
+        EMPTY.get_or_init(Self::default)
+    }
+
     pub fn find_from_coinbase_tag(&self, coinbase_tag: &str) -> Option<&Pool> {
         let coinbase_tag = coinbase_tag.to_lowercase();
         self.iter().find(|pool| {
@@ -87,22 +103,15 @@ impl Pools {
     }
 }
 
-pub fn pools() -> &'static Pools {
+pub fn mainnet_pools() -> &'static Pools {
     static POOLS: OnceLock<Pools> = OnceLock::new();
     POOLS.get_or_init(|| {
-        let entries: Vec<JsonPoolEntry> = if brk_types::chain().is_mainnet() {
-            from_str(JSON_DATA).expect("Failed to parse pools-v2.json")
-        } else {
-            Vec::new()
-        };
+        let Pools { mut pools, mut by_addr } = Pools::default();
 
-        // Every PoolSlug has an entry, so `get` can't miss: the reserved ones stay empty.
-        let mut pools: Vec<Pool> = (0..=usize::from(u8::MAX)).map(empty_pool).collect();
-
-        if brk_types::chain().is_mainnet() {
-            pools[0].name = "Unknown";
-            pools[0].lead = "Blocks not matched to a known mining pool.";
-        }
+        let entries: Vec<JsonPoolEntry> =
+            from_str(JSON_DATA).expect("Failed to parse pools-v2.json");
+        pools[0].name = "Unknown";
+        pools[0].lead = "Blocks not matched to a known mining pool.";
 
         for entry in entries {
             if TESTNET_IDS.contains(&entry.id) {
@@ -141,11 +150,13 @@ pub fn pools() -> &'static Pools {
             };
         }
 
-        let mut by_addr = FxHashMap::default();
         for pool in pools.iter().filter(|pool| !pool.name.is_empty()) {
-            for addr in &pool.addrs {
-                if let Ok(addr) = addr.parse() {
-                    by_addr.entry(addr).or_insert(pool.slug);
+            for text in &pool.addrs {
+                if let Ok(addr) = text.parse::<Address<_>>()
+                    && let Ok(addr) = addr.require_network(Network::Bitcoin)
+                    && let Ok(bytes) = AddressBytes::try_from(&addr.script_pubkey())
+                {
+                    by_addr.entry(bytes).or_insert(pool.slug);
                 }
             }
         }

@@ -6,7 +6,8 @@ use bitcoin::{
     hex::DisplayHex,
     io::FromStd,
 };
-use bitview_primitives::{Bytes32, Difficulty, Lengths, PoolSlug, pools};
+use bitview_plugin_pools::pools;
+use bitview_primitives::{Bytes32, Difficulty, Lengths, PoolSlug};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_types::{
     BlkPosition, BlockHash, CheckedSub, Dollars, FeeRate, Height, Hex, Sats, Timestamp, TxIndex,
@@ -89,7 +90,15 @@ impl Query {
         let all_pools = pools();
 
         let blockhashes = indexer.vecs().blocks.blockhash.collect_range_at(begin, end);
-        let pool_slugs = plugins.pools.block_pool.collect_range_at(begin, end);
+        let pool_slugs = if bitview_plugin_pools::STORAGE.available() {
+            let slugs = plugins.pools.block_pool.collect_range_at(begin, end);
+            if slugs.len() != count {
+                return Err(Error::Internal("Incomplete block pool data"));
+            }
+            slugs
+        } else {
+            Vec::new()
+        };
         let pool_block_numbers = plugins
             .pools
             .heights
@@ -156,11 +165,6 @@ impl Query {
 
         if [
             blockhashes.len(),
-            if brk_types::chain().is_mainnet() {
-                pool_slugs.len()
-            } else {
-                end - begin
-            },
             segwit_txs.len(),
             segwit_sizes.len(),
             segwit_weights.len(),
@@ -326,11 +330,7 @@ impl Query {
                     expected_fees: audits[i].map(|s| s.expected_fees),
                     expected_weight: audits[i].map(|s| s.expected_weight),
                     similarity: audits[i].map(|s| s.similarity),
-                    price: if brk_types::chain().is_mainnet() {
-                        prices[i]
-                    } else {
-                        Dollars::NAN
-                    },
+                    price: prices[i].is_finite().then_some(prices[i]),
                 };
 
                 blocks.push(BlockInfoV1 {

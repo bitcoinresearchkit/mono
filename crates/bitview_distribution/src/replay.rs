@@ -126,7 +126,7 @@ pub fn run<R: Replay>(
         state = R::State::default();
     }
     prices.truncate(start);
-    prices.extend(spot.collect_range_at(prices.len(), end));
+    crate::read_basis_prices(spot, end, &mut prices);
     replay(plugin, &mut state, start..end, &prices)?;
     *plugin.live() = Some(LiveState {
         end,
