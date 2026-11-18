@@ -872,6 +872,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- Startup builds each value type's JSON Schema once and every series of the type shares it, where it built one per
+  stored vector (476,478 for 92 distinct) and kept one per series
 - The holders' transfer volume in loss, net and gross realized and unrealized pnl and supply in loss are read as the
   difference or sum of the series they come from, 42 stored columns fewer: −124 MB on disk, the same bytes served,
   about 0.013 ms more at p50. The first start after upgrading computes cointime's created dollar-blocks again (about
