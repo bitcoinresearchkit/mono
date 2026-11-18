@@ -4251,7 +4251,7 @@ function updateRowChanges() {
       }
     }
   }
-  const head = $("changes-since"), text = since.size === 1 ? `Since ${pointLabel([...since][0])}` : since.size ? "Since the view's start" : "";
+  const head = $("changes-since"), text = since.size === 1 ? `Change since ${pointLabel([...since][0])}` : since.size ? "Change since the view's start" : "";
   if (head.textContent !== text) head.textContent = text;
   head.hidden = !text;
 }
