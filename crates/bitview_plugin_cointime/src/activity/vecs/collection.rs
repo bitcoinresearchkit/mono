@@ -1,12 +1,11 @@
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CumulativeState, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyRollingSumsFromHeight,
-    PerBlockCumulative, PerBlockCumulativeRolling,
+    CumulativeState, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, PerBlockCumulativeRolling,
 };
 use brk_types::{Height, Sats};
 use derive_more::{Deref, DerefMut};
-use vecdb::{LazyVec, Rw, StorageMode};
+use vecdb::{DeltaSub, LazyVec, Rw, StorageMode};
 
 use super::DerivedVecs;
 
@@ -40,15 +39,5 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 /// The block value reads circulating supply directly. The cumulative value rounds an exact
 /// sat-block total to coinblocks, and window sums subtract the rounded endpoints.
-#[derive(Deref, DerefMut, Traversable)]
-#[traversable(client = "Flow")]
-pub struct CoinblocksCreated<M: StorageMode = Rw> {
-    /// Value for the represented block.
-    #[traversable(accumulation = Flow)]
-    pub block: LazyVec<Height, CoinBlocks, Sats>,
-    #[deref]
-    #[deref_mut]
-    #[traversable(flatten)]
-    pub(crate) running: PerBlockCumulative<CoinBlocks, M>,
-    pub sum: LazyRollingSumsFromHeight<CoinBlocks>,
-}
+pub type CoinblocksCreated<M = Rw> =
+    PerBlockCumulativeRolling<CoinBlocks, M, DeltaSub, LazyVec<Height, CoinBlocks, Sats>>;

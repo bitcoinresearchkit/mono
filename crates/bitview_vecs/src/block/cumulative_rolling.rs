@@ -1,5 +1,5 @@
-//! The cumulative vector is the sole stored source of truth. Per-block values
-//! and window sums are derived lazily from it.
+//! A stored running total and lazy window sums, with a block view that usually
+//! reads the difference between cumulative values.
 
 use bitview_compute::{NumericValue, Quantity};
 use bitview_traversable::Traversable;
@@ -16,14 +16,15 @@ use crate::{
 
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(client = "Flow")]
-pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw, Op = DeltaSub>
+pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw, Op = DeltaSub, B = LazyPreviousDeltaVec<Height, T>>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
     Op: Clone + 'static,
+    B: Clone + Traversable,
 {
     /// Value for the represented block.
     #[traversable(accumulation = Flow)]
-    pub block: LazyPreviousDeltaVec<Height, T>,
+    pub block: B,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
@@ -46,13 +47,32 @@ where
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Result<Self> {
+        Self::import_with_block(db, name, version, indexes, window_starts, |running| {
+            LazyPreviousDeltaVec::new(name, version, running.cumulative_source())
+        })
+    }
+}
+
+impl<T, Op, B> PerBlockCumulativeRolling<T, Rw, Op, B>
+where
+    T: NumericValue + JsonSchema + Quantity<Sum = T>,
+    Op: DeltaOp<T, T> + Clone,
+    B: Clone + Traversable,
+{
+    pub fn import_with_block(
+        db: &Database,
+        name: &str,
+        version: Version,
+        indexes: &IndexSources,
+        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+        block: impl FnOnce(&PerBlockCumulative<T>) -> B,
+    ) -> Result<Self> {
         let running = PerBlockCumulative::import(db, name, version, indexes)?;
-        let source = running.cumulative.resolutions.height_source();
-        let block = LazyPreviousDeltaVec::new(name, version, source);
+        let block = block(&running);
         let sum = LazyRollingSumsFromHeight::new(
             &format!("{name}_sum"),
             version,
-            source,
+            running.cumulative_source(),
             window_starts,
             indexes,
         );
