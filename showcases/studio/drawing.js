@@ -1,5 +1,5 @@
 // @ts-check
-// Drawing on the chart: lines, boxes, text and strokes. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
+// Drawing on the chart: lines, boxes, text and strokes.
 import { Custom, FAINT } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {

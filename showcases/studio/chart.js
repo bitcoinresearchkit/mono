@@ -1,5 +1,5 @@
 // @ts-check
-// The chart: drawing a chart's layers and panes, its readouts, keys and navigator. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
+// The chart: drawing a chart's layers and panes, its readouts, keys and navigator.
 import {
   Band, Bars, Candles, channels, columnWidth, Custom, DARK, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,
   Profile, rightBlank, Scale, Shade,

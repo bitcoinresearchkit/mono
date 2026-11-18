@@ -1,5 +1,5 @@
 // @ts-check
-// Heatmaps (the URPD, a day a column) and bubbles. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
+// Heatmaps (the URPD, a day a column) and bubbles.
 import { columnWidth, Custom, press, Profile } from "/modules/bitview-charts/index.js";
 import { capitalized, inSentence } from "/studio/words.js";
 import {

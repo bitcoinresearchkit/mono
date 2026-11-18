@@ -1,15 +1,15 @@
 // @ts-check
-// The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them. (Functions alone, called from app.js, which keeps Studio's state and runs its start.)
+// The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them.
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
 import { capitalized, shownStep } from "/studio/words.js";
 import {
-  $, acrossUnfit, all$, applyTheme, asThen, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cardsSeen, carrying, chart,
-  chartAgain, chartById, chartNow, clamp, closedOwner, closest, cloudLayers, composing, css, DASHES, dashOf,
+  $, acrossUnfit, all$, applyTheme, asThen, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cardsSeen, chart,
+  chartAgain, chartById, chartNow, clamp, closedOwner, cloudLayers, composing, css, DASHES, dashOf,
   deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks,
   drawYours, edgesOf, emptyYours, engine, escape, FINE, FOLDER_ICONS, folderAgain, folderMark, folderNow, format,
-  fromUnfit, galleryAhead, galleryPlace, galleryResting, galleryShown, galleryTilesAhead, galleryTilesSeen, goTo,
+  fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, goTo,
   GROUP_MARK, GROUP_OF, grouped, GROUPS, hashOf, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS,
   HEAT_TILE_COLUMNS, heatKnown, heatLike, heldUpright, hideMenu, home, homeAt, homeScroll, homeScroller, ICONS,
   importCharts, inLibrary, inSlices, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isColor, isPreview, isYours,
@@ -20,9 +20,10 @@ import {
   precise, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts,
   previews, previousChart, profileColor, rangeDays, recentCharts, recover, redoing, reduced, relayout, renderCharts,
   save, savePrefs, savePreviewsSoon, saveView, scrollsY, sectionMark, SHELF_STEPS, shelfRows, shelfScrolls, sideLight,
-  sidePresets, SLOP, started, storage, swallowClick, THEMES, thumbs, toast, TOUCH, touched, typing, uid, undoLibrary,
+  sidePresets, SLOP, started, storage, THEMES, thumbs, toast, TOUCH, touched, typing, uid, undoLibrary,
   unfitted, viewOn, whenIdle, within, writeSideList, yourTilesSeen, zeroFit,
 } from "/studio/app.js";
+import { stopCarrying, swallowClick } from "/studio/gestures.js";
 import {
   asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldedPanes, foldOf,
   forget, gapped, info, ink, load, loads, MIN_BAR_SPACING, paintOf, periodAmount, presetWindow, profiled, resolve,
@@ -1908,6 +1909,30 @@ const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entr
 }, { root: homeScroller, rootMargin: `0px 0px ${Math.round(height)}px 0px` });
 /** A tile waiting to be drawn, watched in view and a screen ahead. @param {Element} frame */
 const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
+// (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
+// finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
+let galleryResting = true;
+let galleryScrolling = false;
+const galleryRests = () => {
+  galleryResting = true;
+  drawGallery();
+};
+/** Home's listeners that tell whether the grid's at rest, added where app.js's start comes to them. */
+function startGalleryRest() {
+  $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
+  $("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
+  // (A press keeps the grid from rest till its release; a press cancelled or lost, till the next frame unless a
+  // scroll's begun by then, whose end then says.)
+  $("home").addEventListener("pointerdown", (event) => {
+    galleryResting = false;
+    press(event, {
+      end: (release) => {
+        if (release) galleryRests();
+        else requestAnimationFrame(() => galleryScrolling || galleryRests());
+      },
+    });
+  });
+}
 /** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
 const nextGallery = (tried) => {
   for (const i of galleryQueue) return galleryQueue.delete(i), i;
@@ -3718,47 +3743,6 @@ function slide(elements, key, was, { moved = null, fade = false, pseudo, layout 
   }
 }
 
-/**
- * Where an element is once every motion moving it is over (its own, and its boxes' around it: a slide, a glide): each
- * at its end a moment, read, and back where it was, nothing drawn between.
- */
-function restRect(/** @type {HTMLElement} */ element) {
-  const moving = [];
-  // (One that never ends (none here), as it is.)
-  for (let at = /** @type {HTMLElement | null} */ (element); at; at = at.parentElement) for (const motion of at.getAnimations()) if ((motion.playState === "running" || motion.playState === "paused") && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime))) moving.push(motion);
-  const was = moving.map((motion) => motion.currentTime);
-  try {
-    for (const motion of moving) motion.currentTime = Number(motion.effect?.getComputedTiming().endTime);
-    return element.getBoundingClientRect();
-  } finally {
-    moving.forEach((motion, i) => (motion.currentTime = was[i]));
-  }
-}
-const stopCarrying = () => carrying?.();
-/**
- * A finger's hold on what `selector` finds in `container` (none by a mouse: its button's own): `start(element)`, as
- * it's pressed, gives what the hold does (none: nothing to hold), run once it's held still (a move past SLOP is a
- * scroll); it says whether it took the hold, the click its release would make then swallowed. The system's own
- * menu there, none. One way for every hold (⌘K's rows, a preset's tile).
- * @param {HTMLElement} container @param {string} selector @param {(element: HTMLElement) => (() => boolean) | null} start
- */
-function onHold(container, selector, start) {
-  /** The hold under way let go of, unheld: a new press is the one that counts. */
-  let drop = () => {};
-  container.addEventListener("pointerdown", (event) => {
-    drop();
-    const element = /** @type {HTMLElement | null} */ (event.pointerType === "touch" ? closest(event, selector) : null), held = element && start(element);
-    if (!element || !held) return;
-    let taken = false;
-    const timer = window.setTimeout(() => element.isConnected && held() && ((taken = true), navigator.vibrate?.(8)), 450);
-    const stop = press(event, {
-      move: (moved) => Math.hypot(moved.clientX - event.clientX, moved.clientY - event.clientY) > SLOP && clearTimeout(timer),
-      end: () => (clearTimeout(timer), taken && swallowClick()),
-    });
-    drop = () => (clearTimeout(timer), stop());
-  });
-  container.addEventListener("contextmenu", (event) => TOUCH && closest(event, selector) && event.preventDefault());
-}
 /** Where a drag in a list (along y) lands: by the row the pointer's over, or the nearest (never the end). @param {HTMLElement[]} rows */
 function landingIn(rows, /** @type {number} */ y, /** @type {(row: HTMLElement) => string} */ idOf, /** @type {string[]} */ ids) {
   // (Those carried aren't places: by the nearest of the others.)
@@ -3866,18 +3850,18 @@ export {
   forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows,
   groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS,
   keptMarkKey, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder, movingSide,
-  naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed, onHold,
+  naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,
   onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf, pickChart, picked,
   placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey, presetMarkQueue,
   presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf, presetSearch, presetTiles,
   presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg, profileMark, queueYours,
   recommendedCards, recommendedDrawn, recommendedKey, recommendedPresets, renderChartPath, renderDoors, renderGallery,
   renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme, renderYours, reorderable,
-  restOf, restRect, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
+  restOf, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
   searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, setTheme,
   sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
-  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, stepChart, stepFolder, stepShelf,
-  stopCarrying, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection,
+  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, stepChart, stepFolder, stepShelf,
+  stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection,
   treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards,
   writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 };
