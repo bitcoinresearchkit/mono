@@ -396,7 +396,6 @@
             }
 
             a {
-              position: relative;
               flex: none;
               border-radius: 16px;
               padding: 6px 13px;
@@ -411,19 +410,12 @@
                 background: #f6f3ee;
                 box-shadow: none;
               }
-
-              &::before {
-                content: "";
-                position: absolute;
-                inset: -6px 0;
-              }
             }
           }
         }
       }
 
       .brand {
-        position: relative;
         display: flex;
         align-items: center;
         gap: 10px;
@@ -435,14 +427,6 @@
         img {
           width: 22px;
           height: 25.5px;
-        }
-
-        @media (pointer: coarse) {
-          &::before {
-            content: "";
-            position: absolute;
-            inset: -9px 0;
-          }
         }
       }
 
@@ -872,10 +856,14 @@
         align-items: center;
         gap: 10px;
         margin: 22px 0 0;
+
+        /* (For fingers, room for the last bar's reach and the pause's, side by side.) */
+        @media (pointer: coarse) {
+          gap: 16px;
+        }
       }
 
       .pause {
-        position: relative;
         display: grid;
         place-items: center;
         width: 24px;
@@ -896,12 +884,6 @@
           height: 14px;
         }
 
-        &::before {
-          content: "";
-          position: absolute;
-          inset: -10px;
-        }
-
         &[hidden] {
           display: none;
         }
@@ -914,6 +896,12 @@
         padding: 0;
         list-style: none;
 
+        /* (For fingers, each bar's reach 44px wide, unseen: a clear border half into the gaps either side, as wide as
+           that needs.) */
+        @media (pointer: coarse) {
+          gap: 12px;
+        }
+
         button {
           position: relative;
           width: 32px;
@@ -923,8 +911,13 @@
           background: none;
           cursor: pointer;
 
+          /* (The bar its 32px still: the border is outside it; its ring 2px off the bar's ends.) */
           @media (pointer: coarse) {
+            width: 44px;
             height: 44px;
+            border-inline: 6px solid transparent;
+            margin-inline: -6px;
+            outline-offset: -4px;
           }
 
           &::before,
@@ -1106,6 +1099,21 @@
         }
       }
 
+      /* (Until the script lays the rows, the shelves and the foot wait unseen: their headings never shown where the rows
+         then push them from; never when a link has asked for one of them.) */
+      main:not(:has(.row), :has(:target)),
+      main:not(:has(.row), :has(:target)) ~ footer {
+        visibility: hidden;
+        /* (Shown anyway after 4 s if the script never lays them: one that failed to load or threw.) */
+        animation: shown 0s 4s forwards;
+      }
+
+      @keyframes shown {
+        to {
+          visibility: visible;
+        }
+      }
+
       .shelf {
         position: relative;
         margin-top: 36px;
@@ -1173,20 +1181,8 @@
           letter-spacing: 0;
         }
 
-        a {
-          position: relative;
-
-          &:hover {
-            color: var(--ink);
-          }
-
-          @media (pointer: coarse) {
-            &::before {
-              content: "";
-              position: absolute;
-              inset: -12px -6px;
-            }
-          }
+        a:hover {
+          color: var(--ink);
         }
 
         .live {
@@ -1424,24 +1420,30 @@
             opacity: 1;
           }
         }
-
-        @media (pointer: coarse) {
-          &::before {
-            content: "";
-            position: absolute;
-            inset: -7px;
-          }
-        }
       }
 
       /* A chart, as a stock's card: its name, its value now large, how it moved in a year; its last ten years under
          them, drawn from this server now, its last point lit. */
       .chart {
+        display: flex;
+        flex-direction: column;
         padding: 12px 14px;
 
+        /* (Its words their own height; the line its lower 58%, out to its edges, less where the words wrap to a third
+           line, so it never runs under them. A percent here is of the box inside the padding: 14px, 58% of the 24px
+           padding, puts it back.) */
+        > :not(canvas) {
+          flex-shrink: 0;
+        }
+
         > canvas {
-          inset: auto 0 0;
-          height: 58%;
+          position: relative;
+          order: 1;
+          flex: 0 1 calc(58% + 14px);
+          width: auto;
+          height: auto;
+          min-height: 0;
+          margin: auto -14px -12px;
         }
 
         .label {
@@ -1925,12 +1927,13 @@
             object-fit: cover;
           }
 
-          /* (Its foot into the sheet, under the words over it.) */
+          /* (Its foot into the sheet, under the words over it: deep enough there for the soft words at 4.5:1 over any
+             picture's greys.) */
           &::after {
             content: "";
             position: absolute;
             inset: 30% 0 0;
-            background: linear-gradient(to top, #181613, rgb(24 22 19 / 0.75) 40%, transparent);
+            background: linear-gradient(to top, #181613, rgb(24 22 19 / 0.85) 40%, transparent);
           }
         }
 
@@ -2137,6 +2140,29 @@
         }
       }
 
+      /* ── Reach ── */
+
+      /* (The brand, the links of the bar, a shelf's heading and the foot, the pause, a tile's i and a sheet's ×:
+         reached at 24 px by a pointer and 44 by a finger, unseen and centred on each; the foot's rows as far apart as
+         that, so no reach takes another's link.) */
+      :root {
+        --hit: 24px;
+
+        @media (pointer: coarse) {
+          --hit: 44px;
+        }
+      }
+
+      :where(.brand, .top nav a, .shelf h2 a, .pause, footer a, .info, .close) {
+        position: relative;
+
+        &::before {
+          content: "";
+          position: absolute;
+          inset: min(0px, calc(50% - var(--hit) / 2));
+        }
+      }
+
       /* ── The foot ── */
 
       footer {
@@ -2204,16 +2230,7 @@
               }
 
               a {
-                position: relative;
                 font-size: 12.5px;
-
-                @media (pointer: coarse) {
-                  &::before {
-                    content: "";
-                    position: absolute;
-                    inset: -12px 0;
-                  }
-                }
               }
             }
           }
@@ -2237,20 +2254,11 @@
           }
 
           a {
-            position: relative;
             color: var(--soft);
             font-size: 13.5px;
 
             &:hover {
               color: var(--ink);
-            }
-
-            @media (pointer: coarse) {
-              &::before {
-                content: "";
-                position: absolute;
-                inset: -12px 0;
-              }
             }
           }
         }
@@ -2319,6 +2327,8 @@
             <p class="meta" id="bb-meta"></p>
             <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
           </div>
+          <!-- (The words' room from the first frame: a serif title's line, the tallest a title's is; the script puts every title's in it.) -->
+          <div class="room" aria-hidden="true"><div><p class="kind">&nbsp;</p><p class="title" data-face="trail">&nbsp;</p><p class="meta"></p><p class="blurb">&nbsp;</p></div></div>
         </div>
         <div class="buttons">
           <a class="primary" id="bb-open" href="/studio/" data-open="studio" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-play" /></svg>Open</a>
@@ -2543,15 +2553,15 @@
         /** @type {Element} */ (words.querySelector(".meta")).innerHTML = meta(t);
         /** @type {Element} */ (words.querySelector(".blurb")).textContent = t.line;
       }
-      // (The words' room: every title's words, hidden, where the shown ones are.)
+      // (The words' room: every title's words, hidden, where the shown ones are, in place of the markup's one line.)
       const shown = /** @type {Element} */ ($("words").firstElementChild);
-      const room = el("div", { className: "room" }, ...FEATURED.map((t) => {
+      const room = /** @type {Element} */ ($("words").querySelector(".room"));
+      room.replaceChildren(...FEATURED.map((t) => {
         const copy = /** @type {Element} */ (shown.cloneNode(true));
         copy.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
         fill(copy, t);
         return copy;
       }));
-      $("words").append(room);
       const SHOW = 9000;
       /** The title turned to (at), the one its words and buttons show (current: the same once its words are in). */
       let at = -1, current = 0, elapsed = 0, fading = 0;
@@ -2678,7 +2688,7 @@
       const STATEMENTS = {
         api: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "GET"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big api-answer" }, "–")),
         catalog: () => el("span", { className: "say" }, el("code", { className: "big catalog-count" }, "–"), el("span", { className: "small" }, "What each one is, and how to fetch it")),
-        changes: () => el("span", { className: "say" }, el("code", { className: "ask" }, "utxos_2y_to_3y_old_…"), el("code", { className: "big" }, el("b", {}, "→"), "\u00a0age_2y_to_3y_…")),
+        changes: () => el("span", { className: "say" }, el("code", { className: "ask" }, "utxos_", el("wbr"), "2y_to_3y_", el("wbr"), "old_…"), el("code", { className: "big" }, el("b", {}, "→"), "\u00a0age_2y_to_3y_…")),
         run: () => el("span", { className: "say" }, el("code", { className: "big cmd" }, el("b", {}, "$"), " cargo install", el("br"), "--locked bitviewd"), el("span", { className: "small" }, "Linux · macOS · beside Bitcoin Core")),
         logs: () => el("span", { className: "say" }, el("code", { className: "ask" }, el("b", {}, "200"), "\u00a0/api/blocks/", el("wbr"), "tip/height"), el("code", { className: "big" }, "every request"), el("span", { className: "small" }, "Response times · refusals · failures")),
         benchmarks: () => el("span", { className: "say" }, el("code", { className: "big" }, "block 0", el("b", {}, " → "), "tip"), el("span", { className: "small" }, "Time · memory · disk · CPU")),
