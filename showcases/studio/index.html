@@ -10513,6 +10513,12 @@
           top: -7px;
         }
 
+        /* (A shelf's head a finger high: its row's scroller starts 6px under it, so the reach comes from the room above,
+           the shelves' 20px gap.) */
+        .shelf-title::before {
+          inset-block: -14px -6px;
+        }
+
         /* (Full screen's a finger high: the row under it holds its own reach, so it reaches up over the price scale's
            foot; a drag from the scale's last 18px is Full screen's.) */
         #full::before {
