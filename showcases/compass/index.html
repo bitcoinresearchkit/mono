@@ -569,6 +569,14 @@
             }
           }
         }
+
+        /* (A finger's 44px across on a wider touch screen, where the row has room: each span and each zoom button at least
+           as wide as its reach is tall, the pan bar giving up the difference.) */
+        @media (pointer: coarse) and (min-width: 720px) {
+          :is(.ranges, .zoom) button {
+            min-width: 44px;
+          }
+        }
       }
 
       /* The pan bar (Studio's navigator, as this page draws): all the history, the chart's days a window on it. */
