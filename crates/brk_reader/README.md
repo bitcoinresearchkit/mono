@@ -31,12 +31,6 @@ for block in reader.after(Some(last_known_hash))? {
     let block = block?;
     // ...
 }
-
-// A specific inclusive height range
-for block in reader.range(Height::new(800_000), Height::new(850_000))? {
-    let block = block?;
-    // ...
-}
 ```
 
 `Reader` is thread-safe and cheap to clone (Arc-backed). Each item is
@@ -46,45 +40,31 @@ errors, missing canonical blocks) reach the consumer as a final
 
 ## How It Works
 
-Three strategies, picked per call:
-
-* **appended** — an update right after the previous call reads only the
-  frames appended after the last block it streamed, in the same blk file:
-  no directory scan, probe, or walk from the file's start. Any
-  discontinuity (another anchor, a rollover, a gap) falls back to
-  picking forward or tail.
-
-* **forward** — one reader thread walks blk files in order from a
-  bisection lower bound and ships canonical hits to a pool of parser
-  threads (a third of the cores, at most four), which decode bodies
-  and emit them in order. Blocks found past a gap in the sequence are
-  parsed ahead up to a byte budget; beyond it only their positions are
-  kept and re-read once the gap closes.
-* **tail** — single-threaded reverse header scan of the newest blk
-  files, then in-order body reads, used when the requested range sits
-  within ~8 files of the chain tip. Avoids the forward pipeline's bisection + 21-file backoff
-  (~2.7 GB of reads) for tip-clustered catchups.
+One pipeline for every range: locate each block by its header, read the bodies in chain order.
 
 ```text
-canonical chain ──► Reader thread ──► Parser pool ──► Receiver<Result<ReadBlock>>
-(pre-fetched         walks blk files,    N workers       in canonical order
- hashes via RPC)     peeks headers,      decode bodies
-                     ships hits
+canonical chain ──► Locate ──► Parsers ──► Receiver<Result<ReadBlock>>
+(hashes via RPC)    hops frames,   read and      in canonical order
+                    headers only   decode bodies
 ```
 
 1. **`CanonicalRange`** asks bitcoind up front for the canonical
    block hash at every height in the target window, in sequential
    JSON-RPC batches of 2,000 heights (one round trip each), no per-block
    RPC chatter. A batch is retried as single calls are (lost connections, the node warming up).
-2. **Reader thread** walks blk files, scans each for block magic, and
-   for every block found hashes its 80-byte header and looks the hash
-   up in the canonical map. Orphans short-circuit before the block
-   bytes are cloned.
-3. **Parser pool** (scoped threads, forward pipeline only) fully
-   decodes canonical bodies in parallel and serialises output through
-   an in-order reorder buffer. The reader thread has already checked
-   each block's `prev_blockhash` against the canonical chain — and
-   against the user-supplied anchor for the very first block.
+2. **Locate** hops the blk files frame to frame (a frame's 8-byte head gives the next one's
+   offset), reads each block's 80-byte header, and looks its hash up in the canonical map. Core
+   writes blocks out of height order during initial sync and reindex, so a block found before
+   its turn waits as a position (file, offset, header), never as bytes; stale blocks match
+   nothing. Each block's `prev_blockhash` is checked against the canonical chain, and against the
+   anchor for the first.
+   Where the hop starts:
+   * right after the last block streamed, for an update that follows the previous call: only the
+     frames appended since are read, with no directory scan;
+   * otherwise at the last file whose first block is no newer than the anchor, 21 files back
+     (the margin for out-of-order writes), or at the first file from genesis.
+3. **Parsers** (a third of the cores, at most four) read each located body with one positioned
+   read, past the OS page cache, decode it, and send it at its turn.
 
-See `src/pipeline/` for the orchestration and `src/canonical.rs` for the
-filter map.
+See `src/pipeline.rs` for the pipeline, `src/scan.rs` for the frame hop and `src/canonical.rs`
+for the filter map.

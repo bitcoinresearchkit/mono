@@ -1,10 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    fs::{self, File, Metadata},
-    os::unix::fs::MetadataExt,
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{collections::BTreeMap, fs::File, path::PathBuf, sync::Arc};
 
 use arc_swap::ArcSwap;
 use brk_error::Result;
@@ -25,19 +19,6 @@ pub struct AppendPosition {
     pub blk_index: u16,
     /// The end of the block's frame: the next frame's start.
     pub end: usize,
-    /// The file it was found in: a replaced pathname (a reindex rewriting files) holds other
-    /// offsets.
-    pub file: FileId,
-}
-
-/// A file's device and inode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct FileId(u64, u64);
-
-impl From<&Metadata> for FileId {
-    fn from(metadata: &Metadata) -> Self {
-        Self(metadata.dev(), metadata.ino())
-    }
 }
 
 #[derive(Debug)]
@@ -76,15 +57,8 @@ impl ReaderInner {
         paths
     }
 
-    fn blk_path(&self, blk_index: u16) -> PathBuf {
+    pub fn blk_path(&self, blk_index: u16) -> PathBuf {
         self.blocks_dir.join(format!("blk{blk_index:05}.dat"))
-    }
-
-    /// The identity of the file the pathname of `blk_index` names now.
-    pub fn blk_path_id(&self, blk_index: u16) -> Option<FileId> {
-        fs::metadata(self.blk_path(blk_index))
-            .ok()
-            .map(|metadata| FileId::from(&metadata))
     }
 
     pub fn open_blk(&self, blk_index: u16) -> Result<Arc<File>> {

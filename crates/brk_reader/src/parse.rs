@@ -1,42 +1,38 @@
-use std::io::Cursor;
+use std::{
+    fs::File,
+    io::{self, Cursor},
+    os::unix::fs::FileExt,
+};
 
 use bitcoin::{Block as BitcoinBlock, Transaction, VarInt, block::Header, consensus::Decodable};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
 
-use crate::{XORBytes, XORIndex, canonical::CanonicalRange};
+use crate::{XORBytes, XORIndex};
 
-pub const HEADER_LEN: usize = 80;
+const HEADER_LEN: usize = 80;
 
 /// The smallest serialized transaction: version, one input (outpoint, empty script, sequence), one
 /// output (value, empty script) and lock time.
 const MIN_TX_LEN: usize = 60;
 
-/// The canonical offset and header of the block in `bytes`, `None` for any other block. A block
-/// of the range that does not follow its canonical predecessor is an error: the range was resolved
-/// across a reorg. Decodes the header onto a stack buffer so `bytes` stays untouched: the body
-/// parse later re-XORs the full block from the original phase.
-pub fn peek_canonical(
-    bytes: &[u8],
-    mut xor_state: XORIndex,
+/// The header of the block in the frame at `(offset, len)`, `None` when the frame is too short to
+/// hold one.
+pub fn read_header(
+    file: &File,
+    (offset, len): (usize, usize),
     xor_bytes: XORBytes,
-    canonical: &CanonicalRange,
-) -> Result<Option<(u32, Header)>> {
-    if bytes.len() < HEADER_LEN {
+) -> io::Result<Option<Header>> {
+    if len < HEADER_LEN {
         return Ok(None);
     }
-    let mut header_buf = [0u8; HEADER_LEN];
-    header_buf.copy_from_slice(&bytes[..HEADER_LEN]);
-    xor_state.bytes(&mut header_buf, xor_bytes);
-    let header = Header::consensus_decode_from_finite_reader(&mut &header_buf[..])
-        .expect("an 80-byte header always decodes");
-    let Some(offset) = canonical.offset_of(&BlockHash::from(header.block_hash())) else {
-        return Ok(None);
-    };
-    if !canonical.verify_prev(offset, &BlockHash::from(header.prev_blockhash)) {
-        return Err(Error::Internal("canonical batch stitched across a reorg"));
-    }
-    Ok(Some((offset, header)))
+    let mut bytes = [0u8; HEADER_LEN];
+    file.read_exact_at(&mut bytes, offset as u64)?;
+    XORIndex::at_offset(offset).bytes(&mut bytes, xor_bytes);
+    Ok(Some(
+        Header::consensus_decode_from_finite_reader(&mut &bytes[..])
+            .expect("an 80-byte header always decodes"),
+    ))
 }
 
 pub fn parse_canonical_body(

@@ -12,17 +12,7 @@ impl XORIndex {
     }
 
     #[inline]
-    pub fn phase(self) -> usize {
-        self.0
-    }
-
-    #[inline]
-    pub fn set_phase(&mut self, phase: usize) {
-        self.0 = phase & (XOR_LEN - 1);
-    }
-
-    #[inline]
-    pub fn add_assign(&mut self, i: usize) {
+    fn add_assign(&mut self, i: usize) {
         self.0 = (self.0 + i) & (XOR_LEN - 1);
     }
 

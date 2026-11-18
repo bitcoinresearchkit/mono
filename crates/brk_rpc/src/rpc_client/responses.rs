@@ -14,6 +14,8 @@ pub struct GetBlockHeaderVerbose {
     /// Zero or less when the block is off the best chain.
     pub confirmations: i64,
     pub height: i64,
+    /// The header's time field.
+    pub time: u32,
     /// `None` at genesis.
     #[serde(rename = "previousblockhash")]
     pub previous_block_hash: Option<BlockHash>,

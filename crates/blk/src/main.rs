@@ -42,6 +42,16 @@ fn run() -> Result<()> {
 
     let client = args.connect.client()?;
     let (start, end) = selector::parse(&args.selector, &client)?;
+    let tip = client.get_last_height()?;
+    if end > tip {
+        return Err(Error::OutOfRange(
+            format!("range end {end} is past current tip {tip}").into(),
+        ));
+    }
+    let before = match start.decremented() {
+        Some(height) => client.get_block_hashes_range(*height, *height)?.pop(),
+        None => None,
+    };
     let network = client.get_network()?;
 
     let mode = Mode::pick(args.pretty, args.compact, args.paths.len())?;
@@ -49,7 +59,7 @@ fn run() -> Result<()> {
     reader.check_network()?;
     let formatter = Formatter::new(mode, args.paths);
     let mut out = BufWriter::new(io::stdout().lock());
-    for block in reader.range(start, end)? {
+    for block in reader.after(before)?.take((*end - *start) as usize + 1) {
         formatter.write(&Ctx::new(&block?, network), &mut out)?;
     }
     Ok(out.flush()?)
