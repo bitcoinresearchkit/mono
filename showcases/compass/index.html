@@ -539,6 +539,19 @@
             flex-basis: 100%;
             justify-content: space-between;
           }
+
+          /* (A finger's 44px across, the row still one line on a 375px phone: a span 42px drawn, with the 2px gap's halves
+             unseen; Max's padding brought to that width.) */
+          @media (pointer: coarse) {
+            :is(.ranges, .zoom) button::before {
+              inset: -8px -1px;
+            }
+
+            .ranges button {
+              min-width: 42px;
+              padding: 0 8px;
+            }
+          }
         }
       }
 
