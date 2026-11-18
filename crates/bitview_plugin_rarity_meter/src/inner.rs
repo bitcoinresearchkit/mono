@@ -5,7 +5,7 @@ use bitview_vecs::{IndexSources, PerBlock, Price, shapes::RarityPercentiles};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
+use vecdb::{AnyVec, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use super::{Component, START_HEIGHT, component};
 
@@ -169,14 +169,6 @@ impl RarityMeterInner {
         Ok(())
     }
 
-    fn prices_len(&self) -> usize {
-        self.prices
-            .iter()
-            .map(|p| p.cents.height.len())
-            .min()
-            .expect("rarity meter percentiles")
-    }
-
     fn prices_version(&self) -> Version {
         self.prices.iter().map(|p| p.cents.height.version()).sum()
     }
@@ -198,32 +190,6 @@ impl RarityMeterInner {
             .count() as i8;
         let upper = (5..10).filter(|&i| price > boundary(i)).count() as i8;
         upper - lower
-    }
-
-    pub fn needs_compute(
-        &self,
-        components: &[&Component],
-        spot: &impl ReadableVec<Height, Cents>,
-        starting_height: Height,
-    ) -> bool {
-        let prices_end = prices_end(components);
-        let score_end = prices_end.min(spot.len());
-        let starting_height = usize::from(starting_height);
-
-        let version = boundary_version(components);
-        self.prices.iter().any(|price| {
-            let target = &price.cents.height;
-            target.header().computed_version() != target.header().vec_version() + version
-        }) || self.level.height.header().computed_version()
-            != self.level.height.header().vec_version() + (self.prices_version() + spot.version())
-            || self.score.height.header().computed_version()
-                != self.score.height.header().vec_version() + (version + spot.version())
-            || self.prices_len() != prices_end
-            || self.level.height.len() != score_end
-            || self.score.height.len() != score_end
-            || self.prices_len() > starting_height
-            || self.level.height.len() > starting_height
-            || self.score.height.len() > starting_height
     }
 
     /// 16 components score at most 80 either way, above the undefined minimum.

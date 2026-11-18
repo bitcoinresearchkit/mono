@@ -9,9 +9,7 @@ use bitview_vecs::{
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{
-    AnyStoredVec, AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec,
-};
+use vecdb::{AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode, WritableVec};
 
 use super::{Band, BlockDecayPercentiles, START_HEIGHT, component_price::ComponentPrice};
 
@@ -132,15 +130,6 @@ impl Component {
         }
 
         Ok(())
-    }
-
-    pub fn needs_compute(&self, starting_height: Height) -> bool {
-        let ratio_source = &self.price.ratio;
-        self.ratios.iter().any(|v| {
-            v.len() != ratio_source.len()
-                || v.version() != v.header().vec_version() + ratio_source.version()
-                || v.len() > usize::from(starting_height)
-        })
     }
 }
 

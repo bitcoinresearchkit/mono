@@ -189,15 +189,9 @@ impl Components {
     /// Every component, each from where it resumes.
     pub(crate) fn compute(&mut self, starting_lengths: &Lengths, exit: &Exit) -> Result<()> {
         let components: Vec<_> = self.iter_mut().collect();
-        let has_work = components
-            .iter()
-            .any(|component| component.needs_compute(starting_lengths.height));
-        let compute = |component: &mut Component| component.compute(starting_lengths, exit);
-        if has_work {
-            components.into_par_iter().try_for_each(compute)
-        } else {
-            components.into_iter().try_for_each(compute)
-        }
+        components
+            .into_par_iter()
+            .try_for_each(|component| component.compute(starting_lengths, exit))
     }
 
     fn iter_mut(&mut self) -> impl Iterator<Item = &mut Component> {

@@ -35,16 +35,8 @@ impl ComputePlugin for Vecs {
             (&mut self.cycle, &cycle),
             (&mut self.full, &full),
         ];
-        let has_work = jobs
-            .iter()
-            .any(|(inner, components)| inner.needs_compute(components, spot, starting_height));
-        let compute = |(inner, components): (&mut RarityMeterInner, &[&Component])| {
+        jobs.into_par_iter().try_for_each(|(inner, components)| {
             inner.compute(components, spot, starting_height, exit)
-        };
-        if has_work {
-            jobs.into_par_iter().try_for_each(compute)
-        } else {
-            jobs.into_iter().try_for_each(compute)
-        }
+        })
     }
 }
