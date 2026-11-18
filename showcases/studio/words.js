@@ -93,11 +93,8 @@ export const windowSaid = (key) => {
 };
 /** A window as the page's controls write it, short (see windowSaid): `_24h` "24h", `_1w` "1w", `_1m` "30d". @param {string} key */
 export const windowShort = (key) => windowSaid(key).replace(/^(\d+) (\w)\w*$/, "$1$2");
-/**
- * Which of `keys` (windows) `words` name, as a link writes it (windowShort: "30d") or an old preset's address did
- * (spanLabel: "24 hours", see routeOf), any case; none, undefined. @param {string} words @param {string[]} keys
- */
-export const windowNamed = (words, keys) => ((said) => keys.find((key) => [spanLabel(key), windowShort(key)].some((text) => text.toLowerCase() === said)))(words.trim().toLowerCase());
+/** Which of `keys` (windows) `words` name, as a link writes it (windowShort: "30d"), any case; none, undefined. @param {string} words @param {string[]} keys */
+export const windowNamed = (words, keys) => ((said) => keys.find((key) => windowShort(key).toLowerCase() === said))(words.trim().toLowerCase());
 /** A span's words as an adjective: "200 days" "200-day", "1 week" "1-week". @param {string} words */
 export const adjective = (words) => words.replace(/^(\d+) (\w+?)s?$/, "$1-$2");
 /** A window as an adjective, as shown (see windowSaid): `_200d` "200-day", `_1m` "30-day". @param {string} key */

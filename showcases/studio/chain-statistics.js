@@ -6,7 +6,7 @@
  */
 
 /** @import { SeriesTree, SeriesPattern, Pool, Concentration } from "../../modules/bitview-client/index.js" */
-/** @import { ChartBuilder, SectionBuilder, SectionNode } from "./presets.js" */
+/** @import { ChartBuilder, Name, SectionBuilder, SectionNode } from "./presets.js" */
 /** @import { Facts } from "./facts.js" */
 /**
  * @typedef {Pick<SeriesPattern<unknown>, "name">} NamedSeries
@@ -18,7 +18,7 @@
 export const CHAIN_STATISTICS = "Chain statistics";
 
 /**
- * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1w" | "_1m") => NamedSeries | undefined, underOneSatVb: Cumulative[] }} parts
+ * @param {{ t: SeriesTree, facts: Facts | undefined, chart: ChartBuilder, section: SectionBuilder, ramp: (count: number) => readonly string[], flowWindow: (sums: Cumulative["sum"], key: "_1m") => NamedSeries | undefined, underOneSatVb: Cumulative[] }} parts
  * @returns {SectionNode}
  */
 export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }) {
@@ -30,23 +30,25 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
   const percent = (part, whole) => `100 * (${part}) / (${whole})`;
   /** What `all` holds beyond `parts`. @param {string} all @param {string[]} parts */
   const rest = (all, parts) => `${all} - ${parts.map((part) => `(${part})`).join(" - ")}`;
-  /** Lines, each a label and a formula. @param {string} name @param {string[][]} lines @param {number} days @param {{ title?: string, format?: string, log?: number[], maxInterval?: string }} [options] */
-  const line = (name, lines, days, { title = name, format, log, maxInterval } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}), ...(maxInterval ? { maxInterval } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
+  /** Lines, each a label and a formula (`was`, see chart). @param {Name} name @param {string[][]} lines @param {number} days @param {{ title?: string, format?: string, log?: number[], was?: Record<string, string> }} [options] */
+  const line = (name, lines, days, { title = typeof name === "string" ? name : name.shown, format, log, was } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}), ...(was ? { was } : {}) });
   /**
-   * Fixed native event windows: separate charts, each sampled no coarser than its declared span. One whose lines aren't
-   * all published is left out whole (a comparison missing a line would read as that line at zero); the tree
-   * is the generated client's, so the set is fixed per release and the sitemap (seo.mjs) is built from the same one.
+   * Events counted over a window, one chart, opened at 30 days as every flow is (the page offers the others, the week
+   * mainnet.observer shows among them, see chartWindow), at an address of its own; its name's old one opens the 7-day
+   * chart it was, and "per 30 days" the 30-day one (`was`; `weekly: false`, one only ever 30 days: its name's, that).
+   * One whose lines aren't all published is left out whole (a comparison missing a line would read as that line at
+   * zero); the tree is the generated client's, so the set is fixed per release and the sitemap (seo.mjs) is built from
+   * the same one.
    */
-  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, /** @type {(7 | 30)[]} */ spans = [7, 30], options = {}) => spans.flatMap((span, i) => {
-    const heading = `${title}, per ${span} days`, name = i ? heading : title;
+  const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, { weekly = true, ...options } = /** @type {{ weekly?: boolean, log?: number[] }} */ ({})) => {
     /** @type {string[][]} */
     const lines = [];
     for (const [label, total] of totals) {
-      const node = flowWindow(total.sum, span === 7 ? "_1w" : "_1m");
-      if (node) lines.push([`${label} per ${span} days`, node.name]);
+      const node = flowWindow(total.sum, "_1m");
+      if (node) lines.push([`${label}, 30 days`, node.name]);
     }
-    return lines.length === totals.length ? [line(name, lines, 1, { ...options, title: heading, maxInterval: span === 7 ? "week1" : "month1" })] : [];
-  });
+    return lines.length === totals.length ? [line({ place: `${title}, by window`, shown: title }, lines, 1, { ...options, title: `${title}, 30 days`, was: weekly ? { [title]: "_1w", [`${title}, per 30 days`]: "_1m" } : { [title]: "_1m" } })] : [];
+  };
   /** A calendar year's flow, from the preceding year's end. */
   const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `flow(${total.name}, 1y)`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
   /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
@@ -186,7 +188,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
         ...events("Runestone (OP_RETURN)", [["runestones", t.opReturn.protocols.runes.outputCount]]),
         line("Cumulative outputs by script type", types.map((key) => [label(key), outputs[key].count.cumulative.name]), 7),
         line("Cumulative OP_RETURN output values", [["BTC in OP_RETURN", t.outputs.opReturnValue.cumulative.btc.name]], 7, { format: "btc" }),
-        ...events("OP_RETURN outputs by size", (/** @type {const} */ ([["over 42 bytes", "over42Bytes"], ["over 520 bytes", "over520Bytes"], ["over 10,000 bytes", "over10kBytes"]])).map(([name, key]) => [name, t.opReturn.sizes[key].outputCount]), [30], { log: [1] }),
+        ...events("OP_RETURN outputs by size", (/** @type {const} */ ([["over 42 bytes", "over42Bytes"], ["over 520 bytes", "over520Bytes"], ["over 10,000 bytes", "over10kBytes"]])).map(([name, key]) => [name, t.opReturn.sizes[key].outputCount]), { weekly: false, log: [1] }),
         line("Bytes saved by x-only keys", [["at least", outputs.p2tr.count.cumulative.name]], 1),
       ];
     })()),

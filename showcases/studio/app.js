@@ -975,13 +975,43 @@ const storage = {
     } catch {}
   },
 };
+/** The library as stored when this tab read it. */
+const startText = (() => {
+  try {
+    return localStorage.getItem(STORE);
+  } catch {
+    return null;
+  }
+})();
+/**
+ * The library as storage held it when this tab last wrote, read or took it in: storage still holding it, no other tab
+ * has saved since (see storedSince). (Read at start, not "": else its first save takes its own start in as another
+ * tab's, and what it let go of since, an unedited preset's copy whose place is gone, comes back.)
+ */
+let storedAs = startText ?? "";
+/** The library written, as text; whether it was. @param {string} text */
+function writeStored(text) {
+  try {
+    localStorage.setItem(STORE, text);
+  } catch {
+    return false;
+  }
+  storedAs = text;
+  return true;
+}
 /**
  * The charts, their folders, and the sidebar's own order: every item's among its folder's, at any depth, as arranged
  * ("f:" a folder's id, "c:" a chart's; see childrenOf); the presets as edited here (each a chart of its own, by the
  * preset it is: see presetKey); and the charts deleted, by id, when (see `discard`).
  * @type {{ charts: Chart[], active: string, folders: Folder[], order: string[], presets: Chart[], deleted: Record<string, number> }}
  */
-let library = storage.get(STORE, null);
+let library = (() => {
+  try {
+    return JSON.parse(startText ?? "");
+  } catch {
+    return null;
+  }
+})();
 /**
  * The library's shape, as this Studio writes it (raised with what `validate` learns to read, and with what's kept:
  * 5, the deletions, so a Studio that doesn't record them can't save over them; 6, folders in folders, so one that
@@ -997,13 +1027,7 @@ let library = storage.get(STORE, null);
  * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
  */
 const SCHEMA = 15;
-let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
-  try {
-    return localStorage.getItem(STORE) !== null;
-  } catch {
-    return false;
-  }
-})());
+let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && startText !== null);
 /** Why nothing's saved here, if it isn't: a newer Studio's library ("newer"), one this can't read ("unreadable"), storage full ("full"). */
 let unsavedWhy = !readOnly ? "" : Number(/** @type {any} */ (library)?.schema) > SCHEMA ? "newer" : "unreadable";
 if (!Array.isArray(library?.charts)) library = { charts: [], active: "", folders: [], order: [], presets: [], deleted: {} };
@@ -1127,7 +1151,7 @@ function foldersOf(/** @type {any} */ stored, /** @type {Chart[]} */ charts) {
       else later.folder = doc.folder;
       return later;
     });
-    if (!readOnly && still.length !== aside.length && storage.set(STORE, { ...library, schema: SCHEMA, charts: [...charts, ...replaced], presets: edited })) {
+    if (!readOnly && still.length !== aside.length && writeStored(JSON.stringify({ ...library, schema: SCHEMA, charts: [...charts, ...replaced], presets: edited }))) {
       library.charts = [...charts, ...replaced];
       library.presets = edited;
       storage.set(UNREAD, still);
@@ -1462,19 +1486,23 @@ let home = false;
 let saveDue = false, savedFade = /** @type {Animation | null} */ (null), unsaved = false;
 /** Whether the write coming says "Saved" (an edit asked for it meanwhile). */
 let announcing = false;
-/** The library as this tab last wrote it: storage still holding it, no other tab has saved since. */
-let lastWritten = "";
-/** The library as stored now, if another tab saved since this one: read, or `null` (none since, or none). */
+/**
+ * The library as stored now, if another tab saved since this one: read, and taken in by the caller (so not again by
+ * the next save, which would bring back what this tab let go of since), or `null` (none since, or none).
+ */
 function storedSince() {
   let text = null;
   try {
     text = localStorage.getItem(STORE);
   } catch {}
-  if (text === null || text === lastWritten) return null;
+  if (text === null || text === storedAs) return null;
   try {
     const stored = JSON.parse(text);
     // (Another tab's, newer or unreadable here: kept, and none of this one's saved over it.)
-    if (!(Number(stored?.schema) > SCHEMA) && Array.isArray(stored?.charts)) return stored;
+    if (!(Number(stored?.schema) > SCHEMA) && Array.isArray(stored?.charts)) {
+      storedAs = text;
+      return stored;
+    }
     unsavedWhy ||= Number(stored?.schema) > SCHEMA ? "newer" : "unreadable";
   } catch {
     unsavedWhy ||= "unreadable";
@@ -1516,14 +1544,9 @@ function persist() {
     if (aside) for (const doc of mine) asideDirty.delete(doc);
   }
   const write = () => {
-    try {
-      localStorage.setItem(STORE, written);
-      lastWritten = written;
-      arrangedAs = arrangedNow();
-      return true;
-    } catch {
-      return false;
-    }
+    if (!writeStored(written)) return false;
+    arrangedAs = arrangedNow();
+    return true;
   };
   const ok = write() || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS, SIDE_PRESETS), write());
   // (Previews kept: let go of aside only once they're saved with your charts, never before; one rekeyed, once its

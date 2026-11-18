@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * The presets' addresses: each preset's and section's, and each address back to its place.
- * @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number }> }} AddressBook
+ * @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number, window?: string }>, clashes: string[] }} AddressBook
  */
 
 /**
@@ -10,8 +10,10 @@
  * knows which before they're read). Names as an address writes them: lowercase words joined by dashes, signs as words
  * (>4M RP: over-4m-rp; +90%: plus-90-percent). Two under one place still alike, each tagged by its own name (a short
  * hash of it): an address is the same whatever else there is, and in whatever order. Made a few hundred places a
- * step (a generator: the page makes them while it's idle, a slice at a time); addressesOf, all at once.
- * @param {{ p: string[] }[]} list
+ * step (a generator: the page makes them while it's idle, a slice at a time); addressesOf, all at once. A preset once
+ * one a window keeps those addresses (its `w`), each the preset at its window; one something else has now, in `clashes`
+ * (seo.mjs stops the build on any).
+ * @param {{ p: string[], w?: Record<string, string> }[]} list
  * @returns {Generator<void, AddressBook>}
  */
 export function* addressSteps(list) {
@@ -59,9 +61,16 @@ export function* addressSteps(list) {
     presetsAt.push(address);
     if (++done % STEP === 0) yield;
   }
-  return { presets: presetsAt, sections, at };
+  const clashes = [];
+  for (const [i, preset] of list.entries()) for (const [name, window] of Object.entries(preset.w ?? {})) {
+    const address = `${sectionAt(preset.p.slice(0, -1))}${word(name)}`;
+    if (!at.has(address)) at.set(address, { preset: i, window });
+    else clashes.push(`${address}, once ${preset.p.join(" › ")} at ${window}`);
+    if (++done % STEP === 0) yield;
+  }
+  return { presets: presetsAt, sections, at, clashes };
 }
-/** The presets' addresses, all at once (see addressSteps). @param {{ p: string[] }[]} list */
+/** The presets' addresses, all at once (see addressSteps). @param {{ p: string[], w?: Record<string, string> }[]} list */
 export function addressesOf(list) {
   const steps = addressSteps(list);
   let step = steps.next();
