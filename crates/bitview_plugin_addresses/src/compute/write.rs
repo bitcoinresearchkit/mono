@@ -102,9 +102,6 @@ impl Vecs {
                 ..
             }) => {
                 let i = Instant::now();
-                // The compaction this update scheduled runs first: a header write waiting on it
-                // would keep the state's readers out meanwhile.
-                self.db.sync_bg_tasks()?;
                 self.write_state_vecs(stamp, with_changes)?;
                 self.unpublished_state = None;
                 info!("Wrote address state in {:.2?}", i.elapsed());

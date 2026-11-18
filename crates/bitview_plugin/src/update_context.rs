@@ -24,11 +24,12 @@ impl<'a> UpdateContext<'a> {
 
     /// Schedules deferred compaction as a background task, unless the database has nothing to
     /// reclaim: a wait, then compaction under the shutdown lock, so a quit during the wait never
-    /// waits for it. A join during the wait (the next [`crate::ComputePlugin::compute`] before
-    /// it writes again, or a drop) cancels it, so it never runs on an update's path: the space
-    /// stays marked to reclaim, and that compute schedules it again once it succeeds. A plugin
-    /// computed outside it (a consumer of the shared walk) calls this itself once its
-    /// computation succeeds.
+    /// waits for it. A join during the wait cancels it and leaves the space marked to reclaim:
+    /// that keeps it off the path of the database's next update, which joins before writing and
+    /// schedules it again once it succeeds, and lets a drop skip it. Nothing else may join the
+    /// database before that update, or every compaction would be cancelled. A plugin computed
+    /// outside [`crate::ComputePlugin::compute`] (a consumer of the shared walk) calls this
+    /// itself once its computation succeeds.
     pub fn compact_database(self, db: &Database) {
         if !db.needs_compaction() {
             return;

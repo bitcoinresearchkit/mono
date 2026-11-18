@@ -225,6 +225,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `bitview_traversable`: `Traversable::collect_series_descriptions` is `collect_series_metadata`, and
   `bitview_plugin`'s `PluginData::collect_descriptions` is `collect_metadata`: they collect `MetadataFragment`s, a
   description's `Fragment` or a series' accumulation, which `split_metadata` sets apart
+- `bitview_plugin`: `ComputePluginSet::compute` returns `Result<bool>`, whether the update's chain moved (the index
+  rolled back or appended a block). On `false` the runner commits nothing and tries again after its one-second idle
+  wait, so a block the reader can't read no longer makes it publish revision after revision; a composition extending
+  `DefaultPlugins` computes its own plugins only when the defaults moved (as `examples/custom_plugin` does).
+  `ComputePluginSet::bootstrap_compute` has no default body. `rawdb::Database::bg_sleep` returns whether the whole
+  delay passed: a deferred compaction woken by a join returns without compacting, so the next update no longer pays
+  for it, and only that update may join the database meanwhile
 - MCP: no tool declares an `outputSchema` or returns `structuredContent`; results are the API's JSON text, with exact
   numbers. Four duplicate tools are removed: use `get_hashrate_by_period`, `get_difficulty_adjustments_by_period` and
   `get_pools_hashrate_by_period` with `all` in place of `get_hashrate`, `get_difficulty_adjustments` and

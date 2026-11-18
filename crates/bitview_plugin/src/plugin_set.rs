@@ -37,7 +37,8 @@ pub trait ComputePluginSet: PluginSet {
 
     /// Computes one steady-state update and returns whether its chain moved: false when it
     /// neither rolled back nor appended a block (no new block, or the reader failed at the first
-    /// one), so there is nothing to commit.
+    /// one). False skips the commit, so whatever the composition changed in that call stays
+    /// unpublished: return it only when nothing readers see has changed.
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<bool>;
 
     /// Commits the pipeline-wide publication cursor after a computation. `complete` is false

@@ -31,10 +31,11 @@ The default composition lives in
 ## Compositions
 
 `PluginSet` is a statically composed collection of plugins; `ComputePluginSet`
-adds its typed compute schedule (`bootstrap_compute` returning a
-`BootstrapAction`, `compute` whether the chain moved), `commit`, which publishes the computed state, and
-`write_published`, which persists what the publication served from memory: the
-runner calls it after publication, under the exit guard, before the next update.
+adds its typed compute schedule (`bootstrap_compute`, which returns a
+`BootstrapAction`, and `compute`, which returns whether the chain moved),
+`commit`, which publishes the computed state, and `write_published`, which
+persists what the publication served from memory: the runner calls it after
+publication, under the exit guard, before the next update.
 A composition extending `DefaultPlugins` delegates `commit` and `write_published`
 to it. `bitview` drives the lifecycle (bootstrap, then one update per new tip).
 

@@ -412,8 +412,9 @@ impl ComputePluginSet for DefaultPlugins {
         let next = self.indexer.vecs().next_height();
         let start = Instant::now();
         self.indexer.compute((), context)?;
-        // Every dependent ends each update at the indexer's tip: unless the index moved, there is
-        // nothing to compute, publish or log (a reader that failed logged why).
+        // Every dependent ends each update at the indexer's tip (an update that errs stops the
+        // process, and bootstrap computes every plugin): unless the index moved, there is nothing
+        // to compute, publish or log (a reader that failed logged why).
         if !rolled_back && self.indexer.vecs().next_height() == next {
             return Ok(false);
         }

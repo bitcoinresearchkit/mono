@@ -176,14 +176,11 @@ where
         let published = mempool.chain_waker();
         thread::spawn(move || {
             let facts = chain.clone();
-            // `StateUpdating`: the chain moved past the tip meanwhile, and the pool follows it.
-            let tip_facts = move |tip: &_| match facts.tip_facts(tip) {
-                Ok(facts) => Some(facts),
-                Err(bitview_query::Error::StateUpdating(_)) => None,
-                Err(error) => {
-                    warn!(%error, %tip, "block template: the chain's facts at the tip");
-                    None
-                }
+            let tip_facts = move |tip: &_| {
+                facts
+                    .tip_facts(tip)
+                    .inspect_err(|error| warn!(%error, %tip, "block template: the chain's facts at the tip"))
+                    .ok()
             };
             mempool.start_with(resolver, || chain.tip_blockhash(), tip_facts);
         });
