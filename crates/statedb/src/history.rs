@@ -84,15 +84,15 @@ impl History {
             checked: Default::default(),
         })
     }
-    /// A reader through `ceiling` blocks (or the producers' end), reading nothing past them: a
-    /// rewind may be rewriting the producers' later rows. Snapshots only speed up its restores.
+    /// A reader through `end` blocks, no more than the producers hold, reading nothing past
+    /// them: a rewind may be rewriting the producers' later rows. Snapshots only speed up its
+    /// restores.
     pub(crate) fn reader_within<'a>(
         &'a self,
         spends: &'a Spends,
         creations: &'a Creations,
-        ceiling: usize,
+        end: usize,
     ) -> Result<Reader<'a>> {
-        let end = spends.end().min(creations.end()).min(ceiling);
         let tips = self.tips_within(spends, creations, end)?;
         Ok(Reader {
             history: self,

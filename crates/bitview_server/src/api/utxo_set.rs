@@ -1,7 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_primitives::BlockHashPrefix;
-use bitview_query::{Query, Result as QueryResult, UtxoSetPoint};
+use bitview_query::{Result as QueryResult, UtxoSetPoint};
 use bitview_types::{HeightOrDate, UtxoSet, UtxoSetDiff};
 use brk_types::Version;
 
@@ -24,7 +24,7 @@ impl AppState {
         &self,
         headers: &HeaderMap,
         point: Option<HeightOrDate>,
-        build: fn(&Query, &UtxoSetPoint) -> QueryResult<Vec<u8>>,
+        build: fn(&UtxoSetPoint) -> QueryResult<Vec<u8>>,
     ) -> Response {
         self.respond(headers, self.utxo_set(), move |q| {
             let point = match point {
@@ -34,7 +34,7 @@ impl AppState {
             };
             let tag = format!("a{VERSION}-{:x}", *BlockHashPrefix::from(point.hash()));
             let settled = point.is_settled();
-            let answer = Answer::new(tag, move |q| Ok(Content::new(JSON, build(q, &point)?)));
+            let answer = Answer::new(tag, move |_| Ok(Content::new(JSON, build(&point)?)));
             Ok(answer.settled(settled))
         })
         .await
@@ -48,7 +48,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    _: Empty,
                    RequestState(state): RequestState| {
-                state.respond_utxo_set(&headers, None, Query::utxo_set).await
+                state.respond_utxo_set(&headers, None, UtxoSetPoint::set_json).await
             },
             |op| {
                 op.id("get_utxo_set_latest")
@@ -74,7 +74,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    RequestState(state): RequestState| {
                 let point = path.point;
                 state
-                    .respond_utxo_set(&headers, Some(point), Query::utxo_set)
+                    .respond_utxo_set(&headers, Some(point), UtxoSetPoint::set_json)
                     .await
             },
             |op| {
@@ -104,7 +104,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    RequestState(state): RequestState| {
                 let point = path.point;
                 state
-                    .respond_utxo_set(&headers, Some(point), Query::utxo_set_diff)
+                    .respond_utxo_set(&headers, Some(point), UtxoSetPoint::diff_json)
                     .await
             },
             |op| {

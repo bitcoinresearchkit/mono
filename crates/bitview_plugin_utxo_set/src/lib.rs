@@ -4,6 +4,8 @@ mod has;
 mod import;
 mod urpd;
 
+/// What [`Vecs::urpd`] opens.
+pub use bitview_urpd::UrpdHistory;
 pub use dependencies::Dependencies;
 pub use has::HasUtxoSet;
 pub use urpd::UrpdConsumer;
@@ -14,7 +16,6 @@ use bitview_distribution::walk::Walk;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_urpd::UrpdHistory;
 use bitview_vecs::{CachedSeries, LazyPerBlock, PerBlock};
 use brk_error::Result;
 use brk_types::{Bitcoin, Height, Sats, Version};

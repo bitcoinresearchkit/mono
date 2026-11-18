@@ -26,10 +26,16 @@ impl View {
         })
     }
 
+    /// The blocks a reader within `ceiling` covers: the producers' as this view opened them, no
+    /// more than `ceiling`. Reads nothing.
+    pub fn len_within(&self, ceiling: usize) -> usize {
+        self.spends.end().min(self.creations.end()).min(ceiling)
+    }
+
     /// A reader of at most `ceiling` blocks (the caller's published height) that reads nothing
     /// past them.
     pub fn reader(&self, ceiling: usize) -> Result<Reader<'_>> {
         self.history
-            .reader_within(&self.spends, &self.creations, ceiling)
+            .reader_within(&self.spends, &self.creations, self.len_within(ceiling))
     }
 }

@@ -1,5 +1,6 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_plugin_indexer::SafeLengths;
+use bitview_plugin_utxo_set::UrpdHistory;
 use bitview_primitives::{Date, Day1};
 use bitview_types::{UrpdAggregation, UrpdCohort, UrpdWeight};
 use brk_types::{BlockHash, Height, Sats, Version};
@@ -13,9 +14,10 @@ use entries::UrpdHeader;
 
 /// A URPD request resolved under one pin to the block it answers for: its identity, without
 /// the distribution, which [`Query::urpd_resolved`] projects from its block's URPD cells under
-/// the same pin.
+/// the same pin, in the history opened here: no file is opened twice.
 pub struct ResolvedUrpd {
     pin: SafeLengths,
+    history: UrpdHistory,
     cohort: UrpdCohort,
     ages: &'static [AgeRangeId],
     height: Height,
@@ -50,7 +52,7 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         let view = self.plugins().utxo_set.view()?;
         let published = usize::from(pin.lengths().height);
-        if published == 0 || view.reader(published)?.is_empty() {
+        if view.len_within(published) == 0 {
             return Ok(Vec::new());
         }
         Ok(UrpdCohort::all().collect())
@@ -147,9 +149,11 @@ impl Query {
             .blockhash
             .collect_one(height)
             .data()?;
+        let history = self.plugins().utxo_set.urpd()?;
         Ok(ResolvedUrpd {
-            version: self.urpd_version(ages, weight)?,
+            version: self.urpd_version(history.version(), ages, weight),
             pin: pin.into_inner(),
+            history,
             cohort,
             ages,
             height,
@@ -160,12 +164,11 @@ impl Query {
         })
     }
 
-    /// The summed versions of the sources a distribution reads: its block's URPD cells (which
-    /// cover the header's prices and timestamps), and for a weighted one the cohort's supplies
-    /// and weights.
-    fn urpd_version(&self, ages: &[AgeRangeId], weight: UrpdWeight) -> Result<Version> {
+    /// The summed versions of the sources a distribution reads: its block's URPD cells (`base`,
+    /// which covers the header's prices and timestamps), and for a weighted one the cohort's
+    /// supplies and weights.
+    fn urpd_version(&self, base: Version, ages: &[AgeRangeId], weight: UrpdWeight) -> Version {
         let plugins = self.plugins();
-        let base = plugins.utxo_set.urpd()?.version();
         let weights = |age: &AgeRangeId| match weight {
             UrpdWeight::None => Version::ZERO,
             UrpdWeight::Wakefulness => age
@@ -176,9 +179,9 @@ impl Query {
                 .version(),
         };
         if weight == UrpdWeight::None {
-            return Ok(base);
+            return base;
         }
-        Ok(base + ages
+        base + ages
             .iter()
             .map(|age| {
                 let supply = &age
@@ -190,7 +193,7 @@ impl Query {
                     .height;
                 supply.version() + weights(age)
             })
-            .sum::<Version>())
+            .sum::<Version>()
     }
 
     /// Projects the distribution `resolved` selected from its block's URPD cells, under its pin,
@@ -198,6 +201,7 @@ impl Query {
     pub fn urpd_resolved(&self, resolved: ResolvedUrpd) -> Result<Vec<u8>> {
         let ResolvedUrpd {
             pin,
+            history,
             cohort,
             ages,
             height,
@@ -209,7 +213,6 @@ impl Query {
         let pin = self.read_pin(pin);
         let weights = self.urpd_weights(ages, height, weight)?;
         let plugins = self.plugins();
-        let history = plugins.utxo_set.urpd()?;
         let end = usize::from(height) + 1;
         let ceiling = history.len().min(usize::from(pin.lengths().height));
         if end > ceiling {

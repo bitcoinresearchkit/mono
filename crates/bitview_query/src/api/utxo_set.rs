@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 
+use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Date, Day1};
 use bitview_types::{UtxoChanges, UtxoOrigins, UtxoSet, UtxoSetDiff};
 use brk_types::{Bitcoin, BlockHash, Height, Sats};
-use statedb::State;
+use statedb::{Reader, View};
 use vecdb::ReadableVec;
 
 use super::json;
@@ -13,8 +14,12 @@ fn btc(sats: u64) -> Bitcoin {
     Bitcoin::from(Sats::new(sats))
 }
 
-/// The published blocks a point covers: one block, or a UTC day's blocks.
+/// The published blocks a point covers: one block, or a UTC day's blocks. It keeps the pin it was
+/// resolved under and the history opened under it, which its bodies read: the tag and the body
+/// come from one publication, and no file is opened twice.
 pub struct UtxoSetPoint {
+    pin: SafeLengths,
+    view: View,
     first: Height,
     last: Height,
     hash: BlockHash,
@@ -33,9 +38,20 @@ impl UtxoSetPoint {
         self.settled
     }
 
-    /// `state`, the set after the point, as the JSON of `UtxoSet`, written straight from its
-    /// amounts.
-    fn set_json(&self, state: &State) -> Result<Vec<u8>> {
+    /// A reader of the point's history through the blocks its pin publishes: the point lies
+    /// within them.
+    fn reader(&self) -> Result<Reader<'_>> {
+        Ok(self.view.reader(usize::from(self.pin.lengths().height))?)
+    }
+
+    /// The set after block `last`, as the JSON of `UtxoSet`, written straight from its amounts.
+    pub fn set_json(&self) -> Result<Vec<u8>> {
+        // The reader goes before the body is written: it may share the updater's live state,
+        // which the next block then would have to copy.
+        let state = self.reader()?.state_at(usize::from(self.last) + 1)?;
+        if state.hash() != *self.hash {
+            return Err(Error::updating());
+        }
         let (amounts, total) = (state.amounts(), state.total());
         let mut body = Vec::with_capacity(256 + 16 * amounts.len());
         json::open(&mut body, self.last, &self.hash, &self.date)?;
@@ -65,76 +81,15 @@ impl UtxoSetPoint {
         Ok(body)
     }
 
-    /// The point's exclusive end, once a reader of `history` blocks covers it.
-    fn end_within(&self, history: usize) -> Result<usize> {
-        let end = usize::from(self.last) + 1;
-        if end > history {
-            return Err(Error::updating());
-        }
-        Ok(end)
-    }
-}
-
-impl Query {
-    pub fn utxo_set_point_latest(&self) -> Result<UtxoSetPoint> {
-        let pin = self.pin_safe_lengths()?;
-        let end = self.utxo_set_end(&pin)?;
-        if end == 0 {
-            return Err(Error::NotFound("No published UTXO set".into()));
-        }
-        let last = Height::from(end - 1);
-        self.utxo_set_point(last, last, false)
-    }
-
-    pub fn utxo_set_point_height(&self, height: Height) -> Result<UtxoSetPoint> {
-        let pin = self.pin_safe_lengths()?;
-        check_bound(&pin, height, pin.lengths().height)?;
-        if usize::from(height) >= self.utxo_set_end(&pin)? {
-            return Err(Error::NotFound(format!("Block {height} is not published")));
-        }
-        self.utxo_set_point(height, height, pin.lengths().is_settled(height))
-    }
-
-    pub fn utxo_set_point_date(&self, date: Date) -> Result<UtxoSetPoint> {
-        let pin = self.pin_safe_lengths()?;
-        let end = self.utxo_set_end(&pin)?;
-        let day = Day1::try_from(date)?;
-        let (heights, settled) = self.day_heights(day, end, &pin)?;
-        self.utxo_set_point(
-            Height::from(heights.start),
-            Height::from(heights.end - 1),
-            settled,
-        )
-    }
-
-    /// The set after block `point.last`, as the JSON of `UtxoSet`.
-    pub fn utxo_set(&self, point: &UtxoSetPoint) -> Result<Vec<u8>> {
-        let pin = self.pin_safe_lengths()?;
-        let view = self.plugins().utxo_set.view()?;
-        // The reader goes before the body is written: it may share the updater's live state,
-        // which the next block then would have to copy.
-        let state = {
-            let reader = view.reader(usize::from(pin.lengths().height))?;
-            reader.state_at(point.end_within(reader.len())?)?
-        };
-        if state.hash() != *point.hash {
-            return Err(Error::updating());
-        }
-        point.set_json(&state)
-    }
-
-    /// What blocks `point.first` through `point.last` changed, read from their journals alone, as
-    /// the JSON of `UtxoSetDiff`.
-    pub fn utxo_set_diff(&self, point: &UtxoSetPoint) -> Result<Vec<u8>> {
-        let pin = self.pin_safe_lengths()?;
-        let view = self.plugins().utxo_set.view()?;
-        let reader = view.reader(usize::from(pin.lengths().height))?;
-        let end = point.end_within(reader.len())?;
-        let first = usize::from(point.first);
+    /// What blocks `first` through `last` changed, read from their journals alone, as the JSON
+    /// of `UtxoSetDiff`.
+    pub fn diff_json(&self) -> Result<Vec<u8>> {
+        let reader = self.reader()?;
+        let first = usize::from(self.first);
         let mut diffs = reader.diffs(first)?;
         let mut created = UtxoChanges::default();
         let mut spent = BTreeMap::<u32, (u64, u64)>::new();
-        for height in first..end {
+        for height in first..=usize::from(self.last) {
             let diff = diffs.advance()?.data()?;
             created.height.push(Height::from(height));
             created.count.push(diff.created.count);
@@ -145,7 +100,7 @@ impl Query {
                 *sats += amount.sats;
             }
         }
-        if diffs.hash() != Some(*point.hash) {
+        if diffs.hash() != Some(*self.hash) {
             return Err(Error::updating());
         }
         let mut removed = UtxoChanges::default();
@@ -155,22 +110,68 @@ impl Query {
             removed.supply.push(btc(sats));
         }
         Ok(serde_json::to_vec(&UtxoSetDiff {
-            first: point.first,
-            last: point.last,
-            hash: point.hash,
-            date: point.date,
+            first: self.first,
+            last: self.last,
+            hash: self.hash,
+            date: self.date,
             created,
             spent: removed,
         })?)
     }
+}
 
-    /// Blocks published both by the chain and by the UTXO set's history.
-    fn utxo_set_end(&self, pin: &ReadPin) -> Result<usize> {
-        let view = self.plugins().utxo_set.view()?;
-        Ok(view.reader(usize::from(pin.lengths().height))?.len())
+impl Query {
+    pub fn utxo_set_point_latest(&self) -> Result<UtxoSetPoint> {
+        let pin = self.pin_safe_lengths()?;
+        let (view, end) = self.utxo_set_view(&pin)?;
+        if end == 0 {
+            return Err(Error::NotFound("No published UTXO set".into()));
+        }
+        let last = Height::from(end - 1);
+        self.utxo_set_point(pin, view, last, last, false)
     }
 
-    fn utxo_set_point(&self, first: Height, last: Height, settled: bool) -> Result<UtxoSetPoint> {
+    pub fn utxo_set_point_height(&self, height: Height) -> Result<UtxoSetPoint> {
+        let pin = self.pin_safe_lengths()?;
+        check_bound(&pin, height, pin.lengths().height)?;
+        let (view, end) = self.utxo_set_view(&pin)?;
+        if usize::from(height) >= end {
+            return Err(Error::NotFound(format!("Block {height} is not published")));
+        }
+        let settled = pin.lengths().is_settled(height);
+        self.utxo_set_point(pin, view, height, height, settled)
+    }
+
+    pub fn utxo_set_point_date(&self, date: Date) -> Result<UtxoSetPoint> {
+        let pin = self.pin_safe_lengths()?;
+        let (view, end) = self.utxo_set_view(&pin)?;
+        let day = Day1::try_from(date)?;
+        let (heights, settled) = self.day_heights(day, end, &pin)?;
+        self.utxo_set_point(
+            pin,
+            view,
+            Height::from(heights.start),
+            Height::from(heights.end - 1),
+            settled,
+        )
+    }
+
+    /// The UTXO set's history, opened once for a request, and the blocks both it and the chain
+    /// publish under `pin`.
+    fn utxo_set_view(&self, pin: &ReadPin) -> Result<(View, usize)> {
+        let view = self.plugins().utxo_set.view()?;
+        let end = view.len_within(usize::from(pin.lengths().height));
+        Ok((view, end))
+    }
+
+    fn utxo_set_point(
+        &self,
+        pin: ReadPin,
+        view: View,
+        first: Height,
+        last: Height,
+        settled: bool,
+    ) -> Result<UtxoSetPoint> {
         let hash = self
             .indexer()
             .vecs()
@@ -186,6 +187,8 @@ impl Query {
             .collect_one(last)
             .data()?;
         Ok(UtxoSetPoint {
+            pin: pin.into_inner(),
+            view,
             first,
             last,
             hash,
