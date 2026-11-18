@@ -2522,16 +2522,19 @@
 
       /* (Its legend's latest values, after each name, as the chart's.) */
       #quick .quick-legend {
+        display: flex;
         flex-wrap: wrap;
         gap: 6px 16px;
         height: auto;
         font-size: 13px;
         line-height: 18px;
-        -webkit-mask-image: none;
-        mask-image: none;
+
+        span:not(:last-child) {
+          padding-right: 0;
+        }
 
         b {
-          margin-left: 2px;
+          margin-left: 7px;
           color: var(--ink);
           font-weight: 510;
           font-variant-numeric: tabular-nums;
@@ -8634,31 +8637,43 @@
         font-variant-numeric: tabular-nums;
       }
 
+      /* (One line of whole names: each a box of its own, so the line ends on an ellipsis after the last that fits whole,
+         never on a name cut in two; a first name too long for the line is cut by its own ellipsis.) */
       .tile-legend {
-        display: flex;
-        gap: 10px;
+        display: block;
         height: 16px;
         margin-top: 2px;
         overflow: hidden;
         font-size: 12px;
         line-height: 16px;
         white-space: nowrap;
-        -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
-        mask-image: linear-gradient(90deg, #000 85%, transparent);
+        text-overflow: ellipsis;
 
         span {
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
+          display: inline-block;
+          max-width: 100%;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          vertical-align: top;
 
-          /* (Its dot its own, not an element of its own: a page of tiles writes hundreds of these.) */
+          /* (After each name but the last, inside its box: a name given up takes its gap with it, and the ellipsis
+             stands a gap clear of the last whole name, read as more to come, not as a name cut; a margin outside the
+             box stayed and pushed the ellipsis off the tile.) */
+          &:not(:last-child) {
+            padding-right: 10px;
+          }
+
+          /* (Its dot its own, not an element of its own: a page of tiles writes hundreds of these. Lifted 1px to sit
+             centred on the 12px name's x-height.) */
           &::before {
             content: "";
-            flex: none;
+            display: inline-block;
             width: 7px;
             height: 7px;
+            margin-right: 5px;
             border-radius: 50%;
             background: var(--c);
+            vertical-align: 1px;
           }
         }
       }
