@@ -248,39 +248,198 @@
         margin-top: 28px;
       }
 
-      /* Who uses Bitview: their logos in one quiet row, each a link to its site (written by showcases/home.mjs). */
+      /* Who uses Bitview: their logos, each a link to its site (written by showcases/home.mjs from
+         assets/used-by/list.js). Each logo is its shape alone in the page's ink, at one height (its list entry's scale
+         evens out how big it reads), lit to the ink on hover rather than the accent, so no logo takes a colour that isn't
+         its own. Still, it's one wrapped row; with motion allowed it drifts by, with a pause beside its label. */
       .used-by {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 10px 16px;
-        margin-top: 36px;
+        margin-top: 40px;
+
+        .head {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          margin-bottom: 6px;
+        }
 
         .label {
           margin: 0;
         }
 
+        /* The drift's pause: a toggle button drawn as its icon (pause while it drifts, play once pressed), there only
+           while the strip can move and the page's script can work it (its own `hidden` until then). Its box (44 px to
+           a finger) overhangs the label's line rather than growing it (and above the strip it overhangs). Paused, a
+           walk through the logos by keyboard still leaves the strip at its start. */
+        .pause {
+          display: none;
+          width: 28px;
+          height: 28px;
+          margin-block: -6px;
+          padding: 0;
+          border: 0;
+          border-radius: 6px;
+          outline-offset: 0;
+          background: none;
+          color: var(--soft);
+          cursor: pointer;
+          transition: color 0.3s;
+
+          @media (pointer: coarse) {
+            position: relative;
+            z-index: 1;
+            width: 44px;
+            height: 44px;
+            margin: -14px -8px;
+          }
+
+          &:hover,
+          &:focus-visible {
+            color: var(--ink);
+          }
+
+          /* (The icon on its own layer: a mask on the button would clip its focus ring.) */
+          &::before {
+            content: "";
+            display: block;
+            height: 100%;
+            background: currentColor;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect x='9.5' y='9' width='3' height='10' rx='1'/%3E%3Crect x='15.5' y='9' width='3' height='10' rx='1'/%3E%3C/svg%3E") center / 28px no-repeat;
+
+            @media (forced-colors: active) {
+              forced-color-adjust: none;
+              background: ButtonText;
+            }
+          }
+
+          &[aria-pressed="true"]::before {
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpath d='M10.5 8.6v10.8a.8.8 0 0 0 1.2.7l8.6-5.4a.8.8 0 0 0 0-1.4l-8.6-5.4a.8.8 0 0 0-1.2.7Z'/%3E%3C/svg%3E");
+          }
+        }
+
+        .strip {
+          --height: 24px;
+          --gap: 64px;
+          --fade: 32px;
+          padding-block: 6px;
+        }
+
         ul {
           display: flex;
           flex-wrap: wrap;
-          gap: 10px;
-          margin: 0;
+          align-items: center;
+          gap: 8px 40px;
+          margin: 0 -4px;
           padding: 0;
           list-style: none;
+
+          &[aria-hidden] {
+            display: none;
+          }
         }
 
         a {
-          display: block;
-          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          height: 44px;
+          padding-inline: 4px;
+          border-radius: 6px;
+          color: var(--soft);
+          font: 600 17px/1 var(--sans);
+          letter-spacing: -0.01em;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: color 0.3s;
+
+          &:hover,
+          &:focus-visible {
+            color: var(--ink);
+          }
         }
 
-        img {
-          display: block;
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          outline: 1px solid var(--hair);
-          outline-offset: -1px;
+        .logo {
+          flex: none;
+          height: calc(var(--height) * var(--scale));
+          background: currentColor;
+          mask: var(--logo) center / contain no-repeat;
+
+          /* (Forced colours would paint the mask's ground as the page's, hiding it: kept, and set to the links' forced
+             colour, which the kept element no longer inherits.) */
+          @media (forced-colors: active) {
+            forced-color-adjust: none;
+            background: LinkText;
+          }
+        }
+
+        /* The drift: the list there twice, the track moved by half, so it loops without a seam; 9 s a user (written as
+           --users), so a longer list keeps about the same pace (a count, not the track's width, which CSS can't time
+           an animation by). It rests under the pointer. From the keyboard it stands still at its start and
+           shows one logo to a view, centred, so the next is always wholly out of view and focus scrolls to it: a browser
+           leaves a link half in view where it is, and a paused track can't bring back a link carried off its left edge
+           (both measured in Chromium and WebKit). */
+        @media (prefers-reduced-motion: no-preference) {
+          /* (Clipped, not hidden: a clip isn't a scroll container, so the offset the keyboard mode scrolled to is
+             dropped when focus leaves, rather than kept under the drift as a blank.) */
+          .pause:not([hidden]) {
+            display: block;
+          }
+
+          &:has(.pause[aria-pressed="true"]) .track {
+            animation-play-state: paused;
+          }
+
+          .strip {
+            overflow: clip;
+            container-type: inline-size;
+            mask: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+
+            &:hover .track {
+              animation-play-state: paused;
+            }
+
+            &:has(:focus-visible) {
+              overflow-x: auto;
+              scrollbar-width: none;
+
+              .track {
+                animation: none;
+              }
+
+              ul {
+                gap: 0;
+                padding: 0;
+              }
+
+              li {
+                display: flex;
+                justify-content: center;
+                width: 100cqi;
+              }
+            }
+          }
+
+          .track {
+            display: flex;
+            width: max-content;
+            animation: used-by calc(var(--users) * 9s) linear infinite;
+          }
+
+          ul {
+            flex-wrap: nowrap;
+            gap: var(--gap);
+            margin: 0;
+            padding: 0 calc(var(--gap) / 2);
+
+            &[aria-hidden] {
+              display: flex;
+            }
+          }
+        }
+      }
+
+      @keyframes used-by {
+        to {
+          transform: translateX(-50%);
         }
       }
 
@@ -839,7 +998,7 @@
           <a class="button" href="https://bitview.space">Open the public instance ↗</a>
         </div>
         <!-- used by -->
-        <div class="used-by" id="used-by"><p class="label">Used by</p><ul><li><a href="https://www.checkonchain.com/"><img src="/assets/used-by/checkonchain.png" width="32" height="32" alt="Checkonchain" title="Checkonchain" /></a></li><li><a href="https://newhedge.io/"><img src="/assets/used-by/newhedge.png" width="32" height="32" alt="Newhedge" title="Newhedge" /></a></li><li><a href="https://qfilabs.substack.com/"><img src="/assets/used-by/qfilabs.png" width="32" height="32" alt="QFI Labs" title="QFI Labs" /></a></li><li><a href="https://thebitcoinlayer.com/"><img src="/assets/used-by/thebitcoinlayer.png" width="32" height="32" alt="The Bitcoin Layer" title="The Bitcoin Layer" /></a></li><li><a href="https://papanglabs.com/"><img src="/assets/used-by/papanglabs.svg" width="32" height="32" alt="Papang Labs" title="Papang Labs" /></a></li><li><a href="https://atreidis.app/"><img src="/assets/used-by/atreidis.png" width="32" height="32" alt="Atreidis" title="Atreidis" /></a></li><li><a href="https://sparrowwallet.com/"><img src="/assets/used-by/sparrowwallet.png" width="32" height="32" alt="Sparrow Wallet" title="Sparrow Wallet" /></a></li><li><a href="https://www.lookintobitcoin.com/"><img src="/assets/used-by/lookintobitcoin.png" width="32" height="32" alt="LookIntoBitcoin" title="LookIntoBitcoin" /></a></li></ul></div>
+        <div class="used-by" id="used-by"><div class="head"><p class="label" id="used-by-label">Used by</p><button class="pause" type="button" aria-pressed="false" aria-label="Pause the logos" hidden></button></div><div class="strip"><div class="track" style="--users: 8"><ul aria-labelledby="used-by-label"><li><a href="https://sparrowwallet.com/"><span class="logo" style="--logo: url(/assets/used-by/sparrowwallet.png); --scale: 1.1; aspect-ratio: 1"></span>Sparrow Wallet</a></li><li><a href="https://www.lookintobitcoin.com/" aria-label="Look Into Bitcoin"><span class="logo" style="--logo: url(/assets/used-by/lookintobitcoin.png); --scale: 0.85; aspect-ratio: 8.238"></span></a></li><li><a href="https://www.checkonchain.com/" aria-label="Checkonchain"><span class="logo" style="--logo: url(/assets/used-by/checkonchain.svg); --scale: 1.15; aspect-ratio: 4.271"></span></a></li><li><a href="https://newhedge.io/" aria-label="Newhedge"><span class="logo" style="--logo: url(/assets/used-by/newhedge.svg); --scale: 0.85; aspect-ratio: 7.191"></span></a></li><li><a href="https://thebitcoinlayer.com/" aria-label="The Bitcoin Layer"><span class="logo" style="--logo: url(/assets/used-by/thebitcoinlayer.png); --scale: 1.3; aspect-ratio: 2.375"></span></a></li><li><a href="https://qfilabs.substack.com/"><span class="logo" style="--logo: url(/assets/used-by/qfilabs.png); --scale: 1; aspect-ratio: 1"></span>QFI Labs</a></li><li><a href="https://papanglabs.com/"><span class="logo" style="--logo: url(/assets/used-by/papanglabs.svg); --scale: 0.85; aspect-ratio: 1.573"></span>Papang Labs</a></li><li><a href="https://atreidis.app/"><span class="logo" style="--logo: url(/assets/used-by/atreidis.svg); --scale: 1; aspect-ratio: 0.88"></span>Atreidis</a></li></ul><ul aria-hidden="true"><li><a href="https://sparrowwallet.com/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/sparrowwallet.png); --scale: 1.1; aspect-ratio: 1"></span>Sparrow Wallet</a></li><li><a href="https://www.lookintobitcoin.com/" aria-label="Look Into Bitcoin" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/lookintobitcoin.png); --scale: 0.85; aspect-ratio: 8.238"></span></a></li><li><a href="https://www.checkonchain.com/" aria-label="Checkonchain" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/checkonchain.svg); --scale: 1.15; aspect-ratio: 4.271"></span></a></li><li><a href="https://newhedge.io/" aria-label="Newhedge" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/newhedge.svg); --scale: 0.85; aspect-ratio: 7.191"></span></a></li><li><a href="https://thebitcoinlayer.com/" aria-label="The Bitcoin Layer" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/thebitcoinlayer.png); --scale: 1.3; aspect-ratio: 2.375"></span></a></li><li><a href="https://qfilabs.substack.com/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/qfilabs.png); --scale: 1; aspect-ratio: 1"></span>QFI Labs</a></li><li><a href="https://papanglabs.com/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/papanglabs.svg); --scale: 0.85; aspect-ratio: 1.573"></span>Papang Labs</a></li><li><a href="https://atreidis.app/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/atreidis.svg); --scale: 1; aspect-ratio: 0.88"></span>Atreidis</a></li></ul></div></div></div>
         <!-- /used by -->
 
         <dl class="specs" aria-label="Bitview, measured">
@@ -998,6 +1157,13 @@ fn main() -&gt; Result&lt;()&gt; {
         block.addEventListener("scroll", cuts, { passive: true });
         new ResizeObserver(cuts).observe(block);
       }
+      // The logos' pause, a toggle (its pressed state is what the strip's CSS reads); without script, no button, and
+      // the strip still rests under the pointer.
+      const pause = document.querySelector(".used-by .pause");
+      pause.hidden = false;
+      pause.addEventListener("click", () => {
+        pause.ariaPressed = String(pause.ariaPressed !== "true");
+      });
     </script>
   </body>
 </html>

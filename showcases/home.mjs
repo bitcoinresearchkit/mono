@@ -3,7 +3,7 @@
 // description), and what it can't take from them checked: every app in the repository on it, every Studio chart and
 // section it or another page links to in Studio's sitemap, every series it draws on the server, the pool logos' list
 // every page draws from (assets/pools/logos.js) against that folder's files; who uses Bitview (assets/used-by/list.js)
-// against its logos, and written where it's shown (docs/README.md, /dev's row, /api's line). With --pictures, its pictures made
+// against its logos, and written where it's shown (docs/README.md, /dev's strip, /api's line). With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
@@ -277,37 +277,83 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
   if (files.symmetricDifference(listed).size) problems.push("assets/pools/logos.js isn't the folder's logos: run crates/bitview_primitives/pools.sh");
 }
 
-// ── Who uses Bitview (assets/used-by/list.js), written where it's shown: the README, the project page's row, the API
+// ── Who uses Bitview (assets/used-by/list.js), written where it's shown: the README, the project page's strip, the API
 // page's line; and the list checked against its folder's logos ──
 
 {
-  const { USERS } = /** @type {typeof import("./assets/used-by/list.js")} */ (await import(join(HERE, "assets", "used-by", "list.js")));
-  const files = new Set(readdirSync(join(HERE, "assets", "used-by")).filter((file) => file !== "list.js"));
-  if (files.symmetricDifference(new Set(USERS.map((user) => user.logo))).size) problems.push("assets/used-by/list.js isn't the folder's logos: each logo listed once, each listed logo there");
-  /** Text for HTML, an attribute's too. */
-  const escape = (/** @type {string} */ text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-  const links = (/** @type {string} */ folder, /** @type {number} */ size) =>
-    USERS.map(({ name, url, logo }) => `<a href="${escape(url)}"><img src="${folder}/${logo}" width="${size}" height="${size}" alt="${escape(name)}" title="${escape(name)}" /></a>`);
-  const [a, b] = USERS.map((user) => escape(user.name));
-  /** Each block replaced whole between its markers, exactly one of each in its file. @type {[string, string][]} */
-  const blocks = [
-    [join(HERE, "..", "docs", "README.md"), `**Used by**\n\n${links("../showcases/assets/used-by", 48).join("\n")}\n`],
-    [join(HERE, "dev", "index.html"), `<div class="used-by" id="used-by"><p class="label">Used by</p><ul>${links("/assets/used-by", 32).map((link) => `<li>${link}</li>`).join("")}</ul></div>`],
-    [join(HERE, "api", "index.html"), `<template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by ${a}, ${b} and others →</a></p></template>`],
+  const FOLDER = join(HERE, "assets", "used-by");
+  const { USERS } = /** @type {typeof import("./assets/used-by/list.js")} */ (await import(join(FOLDER, "list.js")));
+  const files = new Set(readdirSync(FOLDER).filter((file) => file !== "list.js" && !file.startsWith(".")));
+  const listed = USERS.flatMap(({ logo, dark }) => (dark ? [logo, dark] : [logo]));
+  /** A logo's width over its height, from its file: a PNG's header, an SVG's viewBox; NaN for anything else. */
+  const ratio = (/** @type {string} */ file) => {
+    const bytes = readFileSync(join(FOLDER, file));
+    if (file.endsWith(".png")) return bytes.readUInt32BE(0) === 0x89504e47 ? bytes.readUInt32BE(16) / bytes.readUInt32BE(20) : NaN;
+    const box = bytes.toString().match(/viewBox="[\d.-]+[ ,]+[\d.-]+[ ,]+([\d.]+)[ ,]+([\d.]+)"/);
+    return box ? Number(box[1]) / Number(box[2]) : NaN;
+  };
+  const wrong = [
+    ...listed.filter((file, i) => listed.indexOf(file) !== i).map((file) => `${file} listed twice`),
+    ...[...files.difference(new Set(listed))].map((file) => `${file} not listed`),
+    ...[...new Set(listed).difference(files)].map((file) => `${file} listed but not there`),
+    ...listed.filter((file) => !/^[a-z0-9-]+\.(png|svg)$/.test(file)).map((file) => `${file} isn't a plain name.png or name.svg`),
+    ...(USERS.length < 3 ? ["fewer than three users, while the API page's line names two and others"] : []),
   ];
-  for (const [at, block] of blocks) {
-    const file = relative(join(HERE, ".."), at), was = readFileSync(at, "utf8");
-    // (Each marker on a line of its own; the block indented as the opening one is.)
-    const marked = /^( *)<!-- used by -->\n[\s\S]*?^ *<!-- \/used by -->$/gm, found = [...was.matchAll(marked)];
-    if (found.length !== 1 || was.split("<!-- used by -->").length !== 2) {
-      problems.push(`${file}: needs exactly one "<!-- used by -->" and one "<!-- /used by -->" after it, each on its own line`);
-      continue;
+  /** @type {Map<string, number>} Each file's ratio, read once every file is there and named as it should be. */
+  const ratios = new Map();
+  if (!wrong.length) {
+    for (const file of listed) ratios.set(file, ratio(file));
+    for (const [file, r] of ratios) if (!(r > 0)) wrong.push(`${file} has no size to read (a PNG, or an SVG with a viewBox)`);
+    for (const { logo, dark } of USERS)
+      if (dark && Math.abs(Number(ratios.get(dark)) / Number(ratios.get(logo)) - 1) > 0.01) wrong.push(`${dark} isn't ${logo}'s shape`);
+  }
+  if (wrong.length) problems.push(`assets/used-by/list.js isn't the folder's logos: ${wrong.join("; ")}`);
+  else {
+    /** Text for HTML, an attribute's too. */
+    const escape = (/** @type {string} */ text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+    /** Each user with its logo's ratio and its scale (1 unless set): what both writers size it by. */
+    const users = USERS.map(({ scale = 1, ...user }) => ({ ...user, scale, ratio: Number(ratios.get(user.logo)) }));
+    // The README: each logo as published, its dark one in GitHub's dark mode, 22 px high at scale 1, about GitHub's
+    // text (/dev's are 24 px beside its 17 px names), sized so nothing moves as they load, and centred on the line by
+    // `absmiddle` (GitHub keeps `align`; "middle" sits on the baseline); a mark with its name beside it (a line may
+    // still break between them: browsers allow a break beside any image, a no-break space included, and GitHub strips
+    // the styles that could stop it).
+    const readme = users.map(({ name, url, logo, dark, mark, scale, ratio }) => {
+      const at = "../showcases/assets/used-by/", height = Math.round(22 * scale), width = Math.round(height * ratio);
+      const img = `<img src="${at}${logo}" width="${width}" height="${height}" align="absmiddle" alt="${mark ? "" : escape(name)}" />`;
+      const picture = dark ? `<picture><source media="(prefers-color-scheme: dark)" srcset="${at}${dark}" />${img}</picture>` : img;
+      return `<a href="${escape(url)}">${picture}${mark ? ` ${escape(name)}` : ""}</a>`;
+    });
+    // /dev: each logo's shape in the page's ink (a mask, so one file reads on light and dark), its width from its
+    // ratio, so nothing moves as it loads; the list twice for the strip's seamless loop, the copy hidden from readers
+    // and from Tab; beside the label, the drift's pause (a toggle the page's script shows).
+    const strip = (/** @type {boolean} */ copy) =>
+      users.map(({ name, url, logo, mark, scale, ratio }) => {
+        const style = `--logo: url(/assets/used-by/${logo}); --scale: ${scale}; aspect-ratio: ${+ratio.toFixed(3)}`;
+        const label = mark ? "" : ` aria-label="${escape(name)}"`;
+        return `<li><a href="${escape(url)}"${label}${copy ? ` tabindex="-1"` : ""}><span class="logo" style="${style}"></span>${mark ? escape(name) : ""}</a></li>`;
+      }).join("");
+    const [a, b] = users.map((user) => escape(user.name));
+    /** Each block replaced whole between its markers, exactly one of each in its file. @type {[string, string][]} */
+    const blocks = [
+      [join(HERE, "..", "docs", "README.md"), `**Used by**\n\n${readme.join("&emsp;\n")}\n`],
+      [join(HERE, "dev", "index.html"), `<div class="used-by" id="used-by"><div class="head"><p class="label" id="used-by-label">Used by</p><button class="pause" type="button" aria-pressed="false" aria-label="Pause the logos" hidden></button></div><div class="strip"><div class="track" style="--users: ${users.length}"><ul aria-labelledby="used-by-label">${strip(false)}</ul><ul aria-hidden="true">${strip(true)}</ul></div></div></div>`],
+      [join(HERE, "api", "index.html"), `<template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by ${a}, ${b} and others →</a></p></template>`],
+    ];
+    for (const [at, block] of blocks) {
+      const file = relative(join(HERE, ".."), at), was = readFileSync(at, "utf8");
+      // (Each marker on a line of its own; the block indented as the opening one is.)
+      const marked = /^( *)<!-- used by -->\n[\s\S]*?^ *<!-- \/used by -->$/gm, found = [...was.matchAll(marked)];
+      if (found.length !== 1 || was.split("<!-- used by -->").length !== 2) {
+        problems.push(`${file}: needs exactly one "<!-- used by -->" and one "<!-- /used by -->" after it, each on its own line`);
+        continue;
+      }
+      const indent = found[0][1], lines = [`<!-- used by -->`, ...block.trimEnd().split("\n"), `<!-- /used by -->`];
+      const now = was.replace(marked, () => lines.map((line) => (line ? indent + line : line)).join("\n"));
+      if (now === was) continue;
+      if (check) problems.push(`${file}: "Used by" isn't assets/used-by/list.js now: run bun showcases/home.mjs`);
+      else (writeFileSync(at, now), console.log(`${file}: "Used by" written`));
     }
-    const indent = found[0][1], lines = [`<!-- used by -->`, ...block.trimEnd().split("\n"), `<!-- /used by -->`];
-    const now = was.replace(marked, () => lines.map((line) => (line ? indent + line : line)).join("\n"));
-    if (now === was) continue;
-    if (check) problems.push(`${file}: "Used by" isn't assets/used-by/list.js now: run bun showcases/home.mjs`);
-    else (writeFileSync(at, now), console.log(`${file}: "Used by" written`));
   }
 }
 

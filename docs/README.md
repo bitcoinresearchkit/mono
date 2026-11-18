@@ -14,14 +14,14 @@ Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, me
 <!-- used by -->
 **Used by**
 
-<a href="https://www.checkonchain.com/"><img src="../showcases/assets/used-by/checkonchain.png" width="48" height="48" alt="Checkonchain" title="Checkonchain" /></a>
-<a href="https://newhedge.io/"><img src="../showcases/assets/used-by/newhedge.png" width="48" height="48" alt="Newhedge" title="Newhedge" /></a>
-<a href="https://qfilabs.substack.com/"><img src="../showcases/assets/used-by/qfilabs.png" width="48" height="48" alt="QFI Labs" title="QFI Labs" /></a>
-<a href="https://thebitcoinlayer.com/"><img src="../showcases/assets/used-by/thebitcoinlayer.png" width="48" height="48" alt="The Bitcoin Layer" title="The Bitcoin Layer" /></a>
-<a href="https://papanglabs.com/"><img src="../showcases/assets/used-by/papanglabs.svg" width="48" height="48" alt="Papang Labs" title="Papang Labs" /></a>
-<a href="https://atreidis.app/"><img src="../showcases/assets/used-by/atreidis.png" width="48" height="48" alt="Atreidis" title="Atreidis" /></a>
-<a href="https://sparrowwallet.com/"><img src="../showcases/assets/used-by/sparrowwallet.png" width="48" height="48" alt="Sparrow Wallet" title="Sparrow Wallet" /></a>
-<a href="https://www.lookintobitcoin.com/"><img src="../showcases/assets/used-by/lookintobitcoin.png" width="48" height="48" alt="LookIntoBitcoin" title="LookIntoBitcoin" /></a>
+<a href="https://sparrowwallet.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/sparrowwallet-dark.png" /><img src="../showcases/assets/used-by/sparrowwallet.png" width="24" height="24" align="absmiddle" alt="" /></picture> Sparrow Wallet</a>&emsp;
+<a href="https://www.lookintobitcoin.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/lookintobitcoin-dark.png" /><img src="../showcases/assets/used-by/lookintobitcoin.png" width="157" height="19" align="absmiddle" alt="Look Into Bitcoin" /></picture></a>&emsp;
+<a href="https://www.checkonchain.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/checkonchain-dark.svg" /><img src="../showcases/assets/used-by/checkonchain.svg" width="107" height="25" align="absmiddle" alt="Checkonchain" /></picture></a>&emsp;
+<a href="https://newhedge.io/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/newhedge-dark.svg" /><img src="../showcases/assets/used-by/newhedge.svg" width="137" height="19" align="absmiddle" alt="Newhedge" /></picture></a>&emsp;
+<a href="https://thebitcoinlayer.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/thebitcoinlayer-dark.png" /><img src="../showcases/assets/used-by/thebitcoinlayer.png" width="69" height="29" align="absmiddle" alt="The Bitcoin Layer" /></picture></a>&emsp;
+<a href="https://qfilabs.substack.com/"><img src="../showcases/assets/used-by/qfilabs.png" width="22" height="22" align="absmiddle" alt="" /> QFI Labs</a>&emsp;
+<a href="https://papanglabs.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/papanglabs-dark.svg" /><img src="../showcases/assets/used-by/papanglabs.svg" width="30" height="19" align="absmiddle" alt="" /></picture> Papang Labs</a>&emsp;
+<a href="https://atreidis.app/"><img src="../showcases/assets/used-by/atreidis.svg" width="19" height="22" align="absmiddle" alt="" /> Atreidis</a>
 <!-- /used by -->
 
 See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
