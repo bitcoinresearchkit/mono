@@ -230,6 +230,10 @@
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
     <nav class="ends" aria-label="Elsewhere"><a href="/changes/">What changed</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a></nav>
     <div id="app"></div>
+    <!-- The line to who uses Bitview, set under the introduction once Scalar draws it (written by showcases/home.mjs). -->
+    <!-- used by -->
+    <template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by Checkonchain, Newhedge and others →</a></p></template>
+    <!-- /used by -->
 
     <!-- Every endpoint, from the specification of the server that serves this page. -->
     <script src="/modules/scalar-api-reference/1.75.1/dist/browser/standalone.js"></script>
@@ -333,6 +337,13 @@
           }
         `,
       });
+      // The line to who uses Bitview, under the introduction's first words once Scalar draws them, and again whenever it
+      // draws them anew (Scalar has no place of its own for it).
+      const usedBy = /** @type {Element} */ (/** @type {HTMLTemplateElement} */ (document.getElementById("used-by")).content.firstElementChild);
+      new MutationObserver(() => usedBy.isConnected || document.querySelector(".introduction-description .markdown")?.append(usedBy)).observe(
+        /** @type {HTMLElement} */ (document.getElementById("app")),
+        { childList: true, subtree: true },
+      );
     </script>
   </body>
 </html>

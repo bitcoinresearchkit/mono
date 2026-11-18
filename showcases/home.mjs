@@ -2,7 +2,8 @@
 // into the front page's FROM_APPS (its title before " · Bitview", else its launch tag's data-app; its meta
 // description), and what it can't take from them checked: every app in the repository on it, every Studio chart and
 // section it or another page links to in Studio's sitemap, every series it draws on the server, the pool logos' list
-// every page draws from (assets/pools/logos.js) against that folder's files. With --pictures, its pictures made
+// every page draws from (assets/pools/logos.js) against that folder's files; who uses Bitview (assets/used-by/list.js)
+// against its logos, and written where it's shown (docs/README.md, /dev's row, /api's line). With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
 // redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
@@ -274,6 +275,40 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
   const files = new Set(readdirSync(join(HERE, "assets", "pools")).filter((file) => file.endsWith(".svg")));
   const listed = new Set([...[...LOGOS].map((slug) => `${slug}.svg`), ...[...LIGHT].map((slug) => `${slug}.light.svg`)]);
   if (files.symmetricDifference(listed).size) problems.push("assets/pools/logos.js isn't the folder's logos: run crates/bitview_primitives/pools.sh");
+}
+
+// ── Who uses Bitview (assets/used-by/list.js), written where it's shown: the README, the project page's row, the API
+// page's line; and the list checked against its folder's logos ──
+
+{
+  const { USERS } = /** @type {typeof import("./assets/used-by/list.js")} */ (await import(join(HERE, "assets", "used-by", "list.js")));
+  const files = new Set(readdirSync(join(HERE, "assets", "used-by")).filter((file) => file !== "list.js"));
+  if (files.symmetricDifference(new Set(USERS.map((user) => user.logo))).size) problems.push("assets/used-by/list.js isn't the folder's logos: each logo listed once, each listed logo there");
+  /** Text for HTML, an attribute's too. */
+  const escape = (/** @type {string} */ text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const links = (/** @type {string} */ folder, /** @type {number} */ size) =>
+    USERS.map(({ name, url, logo }) => `<a href="${escape(url)}"><img src="${folder}/${logo}" width="${size}" height="${size}" alt="${escape(name)}" title="${escape(name)}" /></a>`);
+  const [a, b] = USERS.map((user) => escape(user.name));
+  /** Each block replaced whole between its markers, exactly one of each in its file. @type {[string, string][]} */
+  const blocks = [
+    [join(HERE, "..", "docs", "README.md"), `**Used by**\n\n${links("../showcases/assets/used-by", 48).join("\n")}\n`],
+    [join(HERE, "dev", "index.html"), `<div class="used-by" id="used-by"><p class="label">Used by</p><ul>${links("/assets/used-by", 32).map((link) => `<li>${link}</li>`).join("")}</ul></div>`],
+    [join(HERE, "api", "index.html"), `<template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by ${a}, ${b} and others →</a></p></template>`],
+  ];
+  for (const [at, block] of blocks) {
+    const file = relative(join(HERE, ".."), at), was = readFileSync(at, "utf8");
+    // (Each marker on a line of its own; the block indented as the opening one is.)
+    const marked = /^( *)<!-- used by -->\n[\s\S]*?^ *<!-- \/used by -->$/gm, found = [...was.matchAll(marked)];
+    if (found.length !== 1 || was.split("<!-- used by -->").length !== 2) {
+      problems.push(`${file}: needs exactly one "<!-- used by -->" and one "<!-- /used by -->" after it, each on its own line`);
+      continue;
+    }
+    const indent = found[0][1], lines = [`<!-- used by -->`, ...block.trimEnd().split("\n"), `<!-- /used by -->`];
+    const now = was.replace(marked, () => lines.map((line) => (line ? indent + line : line)).join("\n"));
+    if (now === was) continue;
+    if (check) problems.push(`${file}: "Used by" isn't assets/used-by/list.js now: run bun showcases/home.mjs`);
+    else (writeFileSync(at, now), console.log(`${file}: "Used by" written`));
+  }
 }
 
 // ── Every series it draws, on the server ──
