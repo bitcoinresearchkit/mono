@@ -285,3 +285,11 @@ typed_index!(
     /// Index of an output with an unrecognized script.
     UnknownScriptOutputIndex, "unknown_script_output_index", 200_000
 );
+typed_index!(
+    /// Index into the addresses plugin's sidecar of funded-address records.
+    FundedAddressIndex, "funded_address_index", 70_000_000
+);
+typed_index!(
+    /// Index into the addresses plugin's sidecar of empty-address records that do not fit inline.
+    ExtendedEmptyAddressIndex, "extended_empty_address_index", 1 << 30
+);

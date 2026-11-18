@@ -6,10 +6,7 @@ mod state;
 mod state_vecs;
 
 pub use member::{AddressVecs, ImportContext};
-pub use record::{
-    AddressState, DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData,
-    FundedAddressIndex,
-};
+pub use record::{AddressState, DecodedAddrState, EmptyAddressData, FundedAddressData};
 pub use shard::{SHARDS, shard_of};
 pub use sourced_data::{AddrOrigin, SourcedAddrData};
 pub use state::{
