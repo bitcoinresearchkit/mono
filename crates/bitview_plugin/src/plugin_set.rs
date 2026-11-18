@@ -33,12 +33,12 @@ pub trait PluginSet: Send + Sync {
 /// Writable plugin composition that participates in Bitview's update loop.
 pub trait ComputePluginSet: PluginSet {
     /// Performs the complete initial computation before reads are published.
-    fn bootstrap_compute(&mut self, context: UpdateContext<'_>) -> Result<BootstrapAction> {
-        self.compute(context)?;
-        Ok(BootstrapAction::Ready)
-    }
+    fn bootstrap_compute(&mut self, context: UpdateContext<'_>) -> Result<BootstrapAction>;
 
-    fn compute(&mut self, context: UpdateContext<'_>) -> Result<()>;
+    /// Computes one steady-state update and returns whether its chain moved: false when it
+    /// neither rolled back nor appended a block (no new block, or the reader failed at the first
+    /// one), so there is nothing to commit.
+    fn compute(&mut self, context: UpdateContext<'_>) -> Result<bool>;
 
     /// Commits the pipeline-wide publication cursor after a computation. `complete` is false
     /// after a bootstrap pass that computed only part of the composition

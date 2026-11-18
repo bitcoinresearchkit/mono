@@ -2,7 +2,7 @@ use std::{sync::Arc, thread, time::Instant};
 
 use bitview_distribution::walk::Sources;
 
-use bitview_plugin::{BootstrapAction, ComputePluginSet, PluginId, UpdateContext};
+use bitview_plugin::{BootstrapAction, ComputePlugin, ComputePluginSet, PluginId, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
 use bitview_plugin_age::{AgeConsumer, ID as AGE_ID};
 use bitview_plugin_bedrock::Dependencies as BedrockDependencies;
@@ -34,17 +34,19 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{
     DefaultPlugins,
-    timing::{Timed, log_walk, timed_compute},
+    timing::{Timed, log_compute, timed_compute},
 };
 
 const REIMPORT_THRESHOLD: u32 = 10_000;
 /// The URPD history's compute, timed apart from the UTXO set plugin that holds it.
 const URPD: PluginId = PluginId::new("urpd");
+/// The walk's own compute: what it spends outside its consumers, reading the sources, moving the
+/// origins and finding the age crossings.
+const WALK: PluginId = PluginId::new("walk");
 
 impl DefaultPlugins {
     fn compute_all(&mut self, context: UpdateContext<'_>) -> Result<()> {
         timed_compute(&mut *self.indexer, (), context)?;
-        brk_alloc::collect();
         self.compute_dependents(context)
     }
 
@@ -53,15 +55,16 @@ impl DefaultPlugins {
     /// drain, they find the state at another length than their pin and answer that it is
     /// updating. A rollback that cannot land (`roll_back_to` returns 0) leaves the state for the
     /// address plugin's compute to reset (lowering the publication to genesis first). Bootstrap
-    /// has no readers; its plugins roll back as they compute.
-    fn roll_back_reorg(&mut self, context: UpdateContext<'_>) -> Result<()> {
+    /// has no readers; its plugins roll back as they compute. Returns whether it rolled back.
+    fn roll_back_reorg(&mut self, context: UpdateContext<'_>) -> Result<bool> {
         let Some(starting) = self.indexer.reorg()? else {
-            return Ok(());
+            return Ok(false);
         };
         let _lock = context.exit().lock();
         self.addresses
             .roll_back_to(usize::from(starting.height), &self.indexer)?;
-        self.indexer.roll_back_to(&starting)
+        self.indexer.roll_back_to(&starting)?;
+        Ok(true)
     }
 
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
@@ -71,6 +74,7 @@ impl DefaultPlugins {
     /// branch spawns its own dependents and hands over its plugin as soon as it completes; every
     /// branch is joined before the composition commits.
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
+        brk_alloc::collect();
         let indexer = self.indexer.as_ref();
         let from = indexer.compute_start().height;
 
@@ -265,7 +269,8 @@ impl DefaultPlugins {
             })?;
             let start = Instant::now();
             walk.run(sources, &mut [&mut cells, &mut age, &mut profitability])?;
-            log_walk(
+            log_compute(
+                WALK,
                 start
                     .elapsed()
                     .saturating_sub(cells.walked() + age.walked() + profitability.walked()),
@@ -402,9 +407,19 @@ impl ComputePluginSet for DefaultPlugins {
         Ok(BootstrapAction::Ready)
     }
 
-    fn compute(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        self.roll_back_reorg(context)?;
-        self.compute_all(context)
+    fn compute(&mut self, context: UpdateContext<'_>) -> Result<bool> {
+        let rolled_back = self.roll_back_reorg(context)?;
+        let next = self.indexer.vecs().next_height();
+        let start = Instant::now();
+        self.indexer.compute((), context)?;
+        // Every dependent ends each update at the indexer's tip: unless the index moved, there is
+        // nothing to compute, publish or log (a reader that failed logged why).
+        if !rolled_back && self.indexer.vecs().next_height() == next {
+            return Ok(false);
+        }
+        log_compute(bitview_plugin_indexer::ID, start.elapsed());
+        self.compute_dependents(context)?;
+        Ok(true)
     }
 
     fn commit(&mut self, complete: bool) -> Result<()> {

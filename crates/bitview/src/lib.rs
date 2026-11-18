@@ -176,11 +176,14 @@ where
         let published = mempool.chain_waker();
         thread::spawn(move || {
             let facts = chain.clone();
-            let tip_facts = move |tip: &_| {
-                facts
-                    .tip_facts(tip)
-                    .inspect_err(|error| warn!(%error, %tip, "block template: the chain's facts at the tip"))
-                    .ok()
+            // `StateUpdating`: the chain moved past the tip meanwhile, and the pool follows it.
+            let tip_facts = move |tip: &_| match facts.tip_facts(tip) {
+                Ok(facts) => Some(facts),
+                Err(bitview_query::Error::StateUpdating(_)) => None,
+                Err(error) => {
+                    warn!(%error, %tip, "block template: the chain's facts at the tip");
+                    None
+                }
             };
             mempool.start_with(resolver, || chain.tip_blockhash(), tip_facts);
         });
@@ -201,15 +204,44 @@ where
 
     info!("Waiting for new blocks...");
 
+    #[cfg(feature = "full-api")]
+    let mut warmed = Instant::now();
+    // The node's tip the last update ran for: retrying it logs nothing new.
+    let mut updating_to = None;
     loop {
-        #[cfg(feature = "full-api")]
-        let mut warmed = Instant::now();
+        if server_handle.is_finished() {
+            return server_stopped(&runtime, server_handle);
+        }
         // Compare against published state, not a cached node observation: a
         // reorg can replace the tip without changing its height.
-        while query.sync(|q| q.tip_blockhash()) == client.get_best_block_hash()? {
-            if server_handle.is_finished() {
-                return server_stopped(&runtime, server_handle);
+        let best = client.get_best_block_hash()?;
+        if query.sync(|q| q.tip_blockhash()) != best {
+            if updating_to.replace(best) != Some(best) {
+                info!("Chain tip changed; updating...");
             }
+            let start = Instant::now();
+            // One that moves nothing (a block the reader can't read yet, or ever: it logged why)
+            // retries after the idle wait.
+            if update(&mut plugins, update_context)? {
+                let (height, hash) = query
+                    .sync(|q| q.tip_block())
+                    .expect("an update publishes at least genesis");
+                info!(
+                    "Updated to block {height} {hash} in {:.2?}",
+                    start.elapsed()
+                );
+                #[cfg(feature = "full-api")]
+                published.published();
+                // Full, a read not yet started is due: it will see this publication.
+                #[cfg(feature = "full-api")]
+                let _ = stale_blocks.try_send(());
+                #[cfg(feature = "full-api")]
+                {
+                    warmed = Instant::now();
+                }
+                continue;
+            }
+        } else {
             // Idle minutes leave what the next update reads on disk: read it again before it
             // goes cold, from the template the next block most likely shares.
             #[cfg(feature = "full-api")]
@@ -217,29 +249,8 @@ where
                 plugins.warm(&template.load().template_transactions());
                 warmed = Instant::now();
             }
-            sleep(Duration::from_secs(1));
         }
-
-        info!("Chain tip changed; updating...");
-
-        let start = Instant::now();
-        update(&mut plugins, update_context)?;
-        let (height, hash) = query
-            .sync(|q| q.tip_block())
-            .expect("an update publishes at least genesis");
-        info!(
-            "Updated to block {height} {hash} in {:.2?}",
-            start.elapsed()
-        );
-        #[cfg(feature = "full-api")]
-        published.published();
-        // Full, a read not yet started is due: it will see this publication.
-        #[cfg(feature = "full-api")]
-        let _ = stale_blocks.try_send(());
-
-        if server_handle.is_finished() {
-            return server_stopped(&runtime, server_handle);
-        }
+        sleep(Duration::from_secs(1));
     }
 }
 

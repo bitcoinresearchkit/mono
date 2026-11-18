@@ -140,10 +140,9 @@ impl<C: Consumer> Consumer for Timed<C> {
     }
 }
 
-/// Logs the walk's own compute, `elapsed`: what it spent outside its consumers, reading the
-/// sources, moving the origins and finding the age crossings.
-pub fn log_walk(elapsed: Duration) {
-    log(Phase::Compute, PluginId::new("walk"), elapsed);
+/// Logs a compute its caller timed.
+pub fn log_compute(plugin: PluginId, elapsed: Duration) {
+    log(Phase::Compute, plugin, elapsed);
 }
 
 fn plugin_name(plugin: PluginId) -> Cow<'static, str> {

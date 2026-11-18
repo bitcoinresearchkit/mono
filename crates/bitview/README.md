@@ -20,7 +20,10 @@ computes it before anything is served; a composition may request drop/reimport
 cycles (`BootstrapAction::Reimport`) to release transient startup memory, and such
 a partial pass commits with `complete = false`. Each later update computes the
 complete composition, then commits its pipeline-wide publication cursor
-(`ComputePluginSet::commit`), which is what readers see.
+(`ComputePluginSet::commit`), which is what readers see. One whose index neither
+rolled back nor appended a block (no new block, or one the reader can't read)
+computes and commits nothing: the last publication stands, and the runner tries
+again after its one-second idle wait.
 
 Plugin-root cleanup is intentionally destructive. The active composition owns
 the complete `<data>/plugins` directory, and bootstrap removes every entry not
