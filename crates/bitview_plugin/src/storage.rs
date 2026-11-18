@@ -102,9 +102,13 @@ impl PluginStorage {
         context: ImportContext<'_>,
         page_multiplier: usize,
     ) -> Result<Database> {
-        let db = Database::open(&self.path(context))?;
-        db.set_min_len(PAGE_SIZE * page_multiplier)?;
-        Ok(db)
+        let path = self.path(context);
+        (|| {
+            let db = Database::open(&path)?;
+            db.set_min_len(PAGE_SIZE * page_multiplier)?;
+            Ok(db)
+        })()
+        .map_err(|error: Error| error.opening_storage(&path))
     }
 
     pub fn finalize_database(self, db: &Database) -> Result<()> {

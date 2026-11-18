@@ -28,7 +28,7 @@ pub fn lock(path: &Path) -> Result<LockedFileGuard> {
 
     file.try_lock().map_err(|e| match e {
         TryLockError::Error(e) => {
-            error!("Failed to acquire database lock - if this is expected, you can try opening again (maybe wait a little)");
+            error!("Failed to acquire database lock at {}: {e}", path.display());
             Error::Io(e)
         }
         TryLockError::WouldBlock => Error::Locked,

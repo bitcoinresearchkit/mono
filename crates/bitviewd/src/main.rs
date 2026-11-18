@@ -12,13 +12,9 @@ fn main() -> ExitCode {
     match run(DefaultPlugins::import) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
+            eprintln!("Error: {error}");
             if error.is_lock_error() {
-                eprintln!(
-                    "Error: Bitview's data directory is already in use by another process.\n\
-                     Stop the other bitviewd instance and try again."
-                );
-            } else {
-                eprintln!("Error: {error}");
+                eprintln!("If another bitviewd instance holds the lock, stop it and try again.");
             }
             ExitCode::FAILURE
         }

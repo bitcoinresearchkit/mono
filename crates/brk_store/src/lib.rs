@@ -2,14 +2,13 @@
 
 use std::{
     cmp::Ordering,
-    fs,
     hash::Hash,
     marker::PhantomData,
     ops::{Bound, RangeBounds},
     path::Path,
 };
 
-use brk_error::Result;
+use brk_error::{Error, Result};
 use brk_types::{StoreValue, Version};
 use fjall::{
     Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions, ReadView, RecordBytes, config::*,
@@ -36,10 +35,12 @@ pub use pending_ingest::PendingIngest;
 const BLOCK_CACHE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 pub fn open_database(path: &Path) -> Result<Database> {
-    Ok(Database::builder(path.join("fjall"))
+    let path = path.join("fjall");
+    Database::builder(&path)
         .cache_size(BLOCK_CACHE_BYTES)
         .max_cached_files(512)
-        .open()?)
+        .open()
+        .map_err(|error| Error::from(error).opening_storage(&path))
 }
 
 #[derive(Clone)]
@@ -63,8 +64,6 @@ where
         version: Version,
         kind: Kind,
     ) -> Result<Self> {
-        fs::create_dir_all(path)?;
-
         let keyspace = checked_open(
             &path.join(format!("meta/{name}")),
             Version::new(u32::from(FORMAT_VERSION)) + version,
@@ -120,7 +119,9 @@ where
             }
         }
 
-        database.keyspace(name, || options).map_err(|e| e.into())
+        database.keyspace(name, || options).map_err(|error| {
+            Error::from(error).opening_storage(&database.keyspace_path(name))
+        })
     }
 
     #[inline]
