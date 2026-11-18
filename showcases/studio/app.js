@@ -5,7 +5,7 @@ import XKCD from "/modules/xkcd-colors/index.js";
 import { createChart, press, picture as chartPicture, Candles, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { hexToOklch, isNamed, limit, nameDistance, onCurve, SWATCHES, TONE, UNTONE, warmLift } from "/studio/color.js";
+import { hexToOklch, isNamed, nameDistance, onCurve, SWATCHES, TONE, UNTONE, warmLift } from "/studio/color.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
@@ -13,23 +13,22 @@ import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, KEY_STEPS, keycaps, keysOf, keyText, MAC,
-  NAMED_KEY, PHONE, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
 import { motionClock, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import {
-  ago, dollarsAndCents, fieldUnit, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes,
-  toTheCent, UNIT_NAMES, unitOf,
+  ago, dollarsAndCents, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes, toTheCent,
+  UNIT_NAMES, unitOf,
 } from "/studio/format.js";
-import { CHEVRON, dashGlyph, glyphSvg, ICONS, markBody } from "/studio/icons.js";
+import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
   automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
-  fittable, FLIP_APART, FORMULA_MAX, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE,
-  lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, MODES, newPaneIn, nextLetter,
-  offScale, ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, placeName, poolPath, poolSeries, resultText,
-  shapeKey, STACKS, stretchResult, toggleMember, TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, typeName, unfitted,
-  WIDTHS,
+  fittable, FLIP_APART, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE, lineTypeOf,
+  LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult,
+  toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   BACKS, BOXES, KINDS, LABEL_MAX, labelText, LINES, lookOfDrawing, MAX_STROKE, PAIRED, PEN_COLOR, POINTED, pointOf,
@@ -109,27 +108,24 @@ import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gest
 import {
   addDrawn, boxTo, bubbleColumns, cellText, closeCell, drawingMenu, drawingRows, drawnSteps, dressField,
   duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCode, heatCome, heatDays, heatExtras, heatFresh,
-  heatIn, heatLook, heatLooks, heatPump, heatRows, heatSection, heatSeries, heatWaiters, heatWants, hold, inBox,
-  logRows, moveTo, noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placingPath, pointsApart, pressAt,
-  profileHit, profileShares, profilesUnder, readingLine, removeDrawing, removeDrawings, rowsOf, setCohorts, showBox,
-  shownHeats, simplify, toggleCohort,
+  heatIn, heatLook, heatLooks, heatPump, heatRows, heatSeries, heatWaiters, heatWants, hold, inBox, logRows, moveTo,
+  noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placingPath, pointsApart, pressAt, profileHit,
+  profileShares, profilesUnder, readingLine, removeDrawing, removeDrawings, rowsOf, setCohorts, showBox, shownHeats,
+  simplify, toggleCohort,
 } from "/studio/heatmaps.js";
 import {
-  acceptSuggestion, actionsOf, addFormula, addFrom, addLevel, addStop, afterPress, assistKey, axisField, bandOf, barAt,
-  betweenField, bubbleSection, candlesField, changeSeries, chooseSuggestion, CHROMA, closestSeries, colorField,
-  colorLevels, colorModeChoices, colorPicker, colorSlot, colorSource, copyName, drawPlanes, duplicateLayer,
-  duplicateLayers, editAdded, editById, editingMany, editLayer, errorBox, eyeOf, fieldsShape, fillField, fillOf,
-  fitField, flushPick, focusKey, fold, formatMenu, fromChoices, glidesUntil, gradientEdit, hexField, hideLayers, HUES,
-  inHand, insertAtCaret, keepFocus, labelOf, layerActions, layerById, layerMenu, layersMenu, levelRows, levelsField,
-  levelSteps, lineAt, lineButtons, lineField, lineLook, lineMenu, markTyping, modeOf, modesFor, moveLayer, moveStop,
-  named, opacityField, outlineField, overShort, ownColor, paneField, paneLayers, paneMenu, paneMode, penColors,
-  periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress, placeAssist, placeOf, planeHtml,
-  planeOf, planeTarget, priceLineField, rangeOf, readNumber, readsOf, readyPage, refMenu, refPicked, removeLayer,
-  removeLayers, removeStop, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor,
-  setFit, setLineLook, setSlider, sharedBy, showEvery, showPicks, showScale, showSelection, showStop, showSuggestions,
-  slider, sliderAt, sliders, sliderTrack, soloLayer, STACK_WIDTH, stackedIn, stackOf, suggest, suggestReplacement,
-  TAG_NEEDS_LINE, toggleHidden, typeField, underColorMenu, updateCallHelp, updateFormula, updateSuggestions, vividAhead,
-  widthField,
+  acceptSuggestion, addFormula, addFrom, addLevel, addStop, afterPress, assistKey, bandOf, barAt, changeSeries,
+  chooseSuggestion, closestSeries, colorLevels, colorModeChoices, colorSlot, colorSource, copyName, drawPlanes,
+  dropSuggestions, duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, fillOf,
+  flushPick, focusKey, formatMenu, fromChoices, gradientEdit, hexField, hideLayers, HUES, inHand, insertAtCaret,
+  inspectorDue, keepFocus, labelOf, layerActions, layerById, layerMenu, layersMenu, levelRows, levelSteps, lineAt,
+  lineLook, lineMenu, markTyping, modeOf, moveLayer, moveStop, multiEdit, named, overShort, ownColor, paneLayers,
+  paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress,
+  placeAssist, placeOf, planeHtml, planeOf, planeTarget, rangeOf, readNumber, readsOf, readyPage, refMenu, removeLayer,
+  removeLayers, removeStop, renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient,
+  rewrite, setColor, setFit, setLineLook, setSlider, sharedBy, showEvery, showPicks, showSelection, showStop,
+  showSuggestions, slider, sliders, soloLayer, STACK_WIDTH, stackedIn, stackOf, suggest, suggestHere, TAG_NEEDS_LINE,
+  toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula,
 } from "/studio/inspector.js";
 import {
   APART, apartFonts, apartLayout, canvasReadable, cascades, closedAt, closedOwner, contentOf, copyLink, cutFade,
@@ -143,7 +139,7 @@ import {
 } from "/studio/menus.js";
 import {
   addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset, fullOn,
-  idsNow, isLinkHash, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu, ordersOf,
+  idsNow, isLinkHash, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu,
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
@@ -7187,8 +7183,7 @@ function layersBatch(action, anchor) {
   if (action === "edit") {
     // (One picked: its own settings, as selecting it opens them.)
     if (ids.length === 1) return select(ids[0]);
-    multiEdit = true;
-    renderInspector();
+    editPicked(true);
     /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
   } else if (action === "hide") hideLayers(ids);
   else if (action === "duplicate") {
@@ -7235,8 +7230,7 @@ function select(id, sheet = true) {
 function deselect() {
   // (Several opened together: back to the list, still picked.)
   if (editingMany()) {
-    multiEdit = false;
-    renderInspector();
+    editPicked(false);
     return void /** @type {HTMLElement | null} */ ($("layers-bar").querySelector('[data-layers-batch="edit"]'))?.focus();
   }
   const was = selected, fromSettings = $("inspector").contains(document.activeElement), peeking = document.body.hasAttribute("data-peek");
@@ -7249,201 +7243,6 @@ function deselect() {
   if (fromSettings && !peeking) /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${was}"]`))?.focus();
 }
 
-let inspected = "";
-/** Whether the inspector edits the layers picked, together (the bar's Edit), while none's selected. */
-let multiEdit = false;
-/**
- * How many levels and gradient colors the layer had as its panel was last drawn (a field kept as it's typed in only
- * while they're the same). See fieldsShape.
- */
-let inspectedShape = "";
-let expanded = false;
-/** The layer's actions as last written (written again only when they change). */
-let actionsShown = "";
-/** The panel waiting to be drawn again, a color's hex being typed in it (see renderInspector). */
-let inspectorDue = false;
-function renderInspector() {
-  // (Not under a hex being typed: its caret, its undo, what's half typed; drawn again once it's left.)
-  if (document.activeElement?.matches?.("#inspector .color-editor .hex")) return void (inspectorDue = true);
-  inspectorDue = false;
-  const layer = layerById(selected);
-  if (layer) vividAhead();
-  // (Several picked and opened together: theirs; down to one or none picked, back to the list.)
-  if (multiEdit && !editingMany()) multiEdit = false;
-  const many = editingMany() ? pickedLayers() : null, open = Boolean(layer || many);
-  // (From the list to a layer's settings or back: the one left going as the other comes (no empty frame between),
-  // the list on the left, a layer's settings on the right.)
-  if (document.body.hasAttribute("data-inspect") !== open && panelShown()) {
-    cutFade(open ? $("inspector") : $("layers-view"));
-    fadeOut(open ? $("layers-view") : $("inspector"), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${open ? -8 : 8}px)` }], MOTION.micro, true);
-  }
-  document.body.toggleAttribute("data-inspect", open);
-  const panel = $("inspector");
-  if (many) return renderMany(panel, many);
-  if (!layer) {
-    panel.innerHTML = "";
-    inspected = "";
-    return;
-  }
-  // While typing into this layer's formula or name (or a number of it: its base, a level, a gradient's place), keep
-  // the field (and its caret) as it is.
-  const active = document.activeElement;
-  // (Turned into a series meanwhile, or into a formula, it's drawn anew.)
-  // (Its levels or gradient colors taken off or added meanwhile (a field's index another one's now): drawn anew, the
-  // field too.)
-  const shape = fieldsShape(layer);
-  const typed = !panel.dataset.pressed;
-  delete panel.dataset.pressed;
-  if (typed && active && inspected === layer.id && shape === inspectedShape && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-") || /** @type {HTMLElement} */ (active).dataset.stopAt !== undefined)) {
-    updateFormula(layer);
-    // (The interval may have changed: the spans offered follow.)
-    suggestHere();
-    const fresh = actionsOf(layer);
-    if (fresh !== actionsShown) /** @type {HTMLElement} */ (panel.querySelector(".layer-actions")).outerHTML = actionsShown = fresh;
-    // (Hidden or shown meanwhile, from the list, the legend, another tab: its eye says so.)
-    const eye = $("inspector-eye");
-    if (eye && eye.dataset.hidden !== String(Boolean(layer.hidden))) eye.outerHTML = eyeOf(layer);
-    return;
-  }
-  const another = inspected !== layer.id;
-  if (another) expanded = false;
-  // (A level's field or a gradient's, those changed meanwhile: not put back by its index, another one's now.)
-  const focus = inspected === layer.id && !(shape !== inspectedShape && active?.closest?.(".levels, .gradient-hand")) ? focusKey(panel) : null;
-  inspected = layer.id;
-  inspectedShape = shape;
-  const result = resolved?.results.get(layer.id);
-  const meta = result?.info;
-  const isFormula = layer.formula !== undefined, signal = layer.type === "signal";
-  const unit = unitFor(layer, result);
-  const layerPane = /** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane)), stackOfPane = layerPane?.stack ?? "", ordered = chart.layers.filter((item) => item.pane === layer.pane).length > 1;
-  // (Under one made from layers: what it lacks, else a trend's way, and why it isn't drawn here.)
-  const fromError = layer.from ? fromShort(layer) || result?.error : "";
-  const fromSays = layer.from && !fromError ? ((unfit) => [layer.type === "trend" ? TREND_SAYS : "", unfit === "Not in a stack" ? "not drawn in a stacked pane" : unfit === ONE_SCALE ? `not drawn: ${FLIP_APART.toLowerCase()}` : unfit ? "not drawn on a percent or indexed scale" : ""].filter(Boolean).join("; "))(fromUnfit(chart, layer)) : "";
-  const sourceSection = heatLike(layer)
-    ? heatSection(layer)
-    : layer.from
-    ? `<section>
-              <h3>${typeName(layer.type)}</h3>
-              ${betweenField(layer)}
-              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${refPicked(layer)}${CHEVRON}</button></div>`}
-              ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escapeHtml(fromError || `${capitalized(fromSays)}.`)}</p>` : ""}
-            </section>`
-    : isFormula
-    ? `<section>
-              <h3>${signal ? "Signal" : "Formula"}</h3>
-              <div class="formula-editor" id="formula-editor">
-                <pre id="formula-mirror" aria-hidden="true"></pre>
-                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="${FORMULA_MAX}" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escapeHtml(((draft) => (draft && draft.over === layer.formula ? draft.text : layer.formula))(formulaDrafts.get(chart.id)?.get(layer.id)))}</textarea>
-                <div class="assist" popover="manual">
-                  <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
-                  <ul id="suggest" class="suggest" role="listbox" hidden></ul>
-                  <p id="suggest-more" class="more" hidden></p>
-                </div>
-              </div>
-              <p id="formula-status" class="formula-status"></p>
-              <details class="help"><summary>Functions and how letters work</summary>
-                <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escapeHtml(signature)}</b><span>${escapeHtml(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn; a series by its name (${escapeHtml(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
-              </details>
-              ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${refPicked(layer)}${CHEVRON}</button></div>
-              <div class="field"><span>Shown as<span class="color-now">${escapeHtml(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
-              <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
-              <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Every time it signaled; pick one to jump to it">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
-            </section>`
-    : `<section>
-              <h3>Series</h3>
-              <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Replace series, ${escapeHtml(layer.series)}" data-tip="Replace series"><code>${escapeHtml(layer.series)}</code>${ICONS.swap}</button>
-                <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
-              </div>
-              ${result?.error ? errorBox(result, layer.series ?? "") : ""}
-              ${meta?.description ? `<div class="description ${expanded ? "" : "clamped"}">${proseHtml(meta.description)}</div>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more" aria-expanded="${expanded}">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
-              ${meta ? `<div class="facts"><span class="chip">${escapeHtml(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
-            </section>`;
-  const html = `
-          <div class="inspector-head">
-            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
-            ${letterChip(layer)}
-            <input id="label" class="label-input" maxlength="120" enterkeyhint="done" value="${escapeHtml(layer.label ?? "")}" placeholder="${escapeHtml(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
-            ${eyeOf(layer)}
-            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
-          </div>
-          ${sourceSection}
-          ${layer.type === "bubbles" ? bubbleSection(layer) : ""}
-          <section>
-            <h3>Style</h3>
-            ${typeField([layer])}
-            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<label class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escapeHtml(fieldUnit(unit))}</span></label></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escapeHtml(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
-            ${colorPicker(layer)}
-            ${opacityField([layer])}
-            ${widthField([layer])}
-            ${lineField([layer])}
-            ${fillField([layer])}
-            ${candlesField([layer])}
-            ${outlineField([layer])}
-            ${priceLineField([layer])}
-            ${layer.from || placedOn(layer) || heatLike(layer) ? "" : levelsField(layer, unit, result)}
-          </section>
-          ${signal ? "" : `<section>
-            <h3>Layout</h3>
-            ${paneField([layer])}
-            ${axisField([layer])}
-            ${fitField([layer])}
-            ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escapeHtml(formatName(layer, result))}"><span class="name">${escapeHtml(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
-            <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
-            ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
-            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
-            ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
-          </section>`}
-          ${(actionsShown = actionsOf(layer))}`;
-  // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those
-  // of this layer whose stop changes alone (reading one lays the page's style out first: an edit elsewhere, none read).
-  const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
-  const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(sliderTrack(element), "::after").left, fill: getComputedStyle(sliderTrack(element), "::before").width }]));
-  rewrite(panel, html);
-  // (Its gradient's bar watched, its ticks fitted to its width: see gradientWidth.)
-  gradientRoom.disconnect();
-  ((bar) => bar && gradientRoom.observe(bar))(panel.querySelector("[data-gradient-bar]"));
-  drawKeys(panel);
-  if (isFormula) updateFormula(layer);
-  restoreFocus(panel, focus);
-  drawPlanes();
-  // Redrawn, each slider glides on from where it was to its stop, however many times it's redrawn on the way.
-  for (const element of all$("#inspector .stepper")) {
-    const from = was.get(element.id);
-    if (!from) continue;
-    const track = sliderTrack(element), handle = getComputedStyle(track, "::after").left, fill = getComputedStyle(track, "::before").width;
-    const timing = { duration: MOTION.micro, easing: MOTION.ease };
-    glidesUntil.set(element.id, performance.now() + MOTION.micro);
-    if (handle !== from.handle) track.animate({ left: [from.handle, handle] }, { ...timing, pseudoElement: "::after" });
-    if (fill !== from.fill) track.animate({ width: [from.fill, fill] }, { ...timing, pseudoElement: "::before" });
-  }
-  if (another) panel.scrollTop = 0;
-  if (result?.missing) suggestReplacement(layer);
-}
-/**
- * The inspector for several layers, opened together from the bar (see multiEdit): their letters and how many, then
- * what they all have (see typeField), each change to every one of them, in one step.
- * @param {HTMLElement} panel @param {Layer[]} layers
- */
-function renderMany(panel, layers) {
-  const key = `many:${layers.map((layer) => layer.id).join()}`, focus = inspected === key ? focusKey(panel) : null, another = inspected !== key;
-  inspected = key;
-  actionsShown = "";
-  const style = [typeField(layers), colorField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), candlesField(layers), outlineField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers), fitField(layers)].join("");
-  rewrite(panel, `
-          <div class="inspector-head">
-            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
-            <span class="many-letters">${layers.slice(0, 4).map((layer) => letterChip(layer, true)).join("")}${layers.length > 4 ? `<span class="letter rest" data-tip="${escapeHtml(layers.slice(4).map(labelOf).join(", "))}">+${layers.length - 4}</span>` : ""}</span>
-            <span class="many-name">${plural(layers.length, "layer")}<span class="many-of">${escapeHtml(layers.map(labelOf).join(", "))}</span></span>
-            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
-          </div>
-          <section><h3>Style</h3>${style}</section>
-          ${layout ? `<section><h3>Layout</h3>${layout}</section>` : ""}`);
-  drawKeys(panel);
-  restoreFocus(panel, focus);
-  drawPlanes();
-  if (another) panel.scrollTop = 0;
-}
 /** A reset appears only away from the default (tabs need none: their default is one click away). */
 const DEFAULTS = {
   opacity: { is: (layer) => layer.opacity === undefined, set: (layer) => (layer.opacity = undefined), text: (layer) => `${Math.round(defaultOpacity(layer) * 100)}%`, focus: "#opacity" },
@@ -7550,12 +7349,6 @@ $("inspector").addEventListener("focusout", (event) => {
 // (Several at different stops ("Mixed"): a key steps from the first's, and sets them all there.)
 sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inHand()), set: setSlider });
 // ── Gradients: colors by value ───────────────────────────────────────────────
-/** The width a gradient's bar is laid out at, its ticks fitted to it: kept as it changes (the panel's grip, a phone turned). */
-let gradientWidth = 0;
-const gradientRoom = new ResizeObserver((entries) => {
-  const width = entries[entries.length - 1].contentRect.width;
-  if (width && width !== gradientWidth) (gradientWidth = width), showScale();
-});
 /** Custom: the surface alone, its color picked live (the page stays open), Bitview's colors a step back. */
 function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {() => void} */ back) {
   showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
@@ -7563,30 +7356,6 @@ function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ colo
   drawPlanes();
   planeOf(target)?.focus({ preventScroll: true });
 }
-/**
- * The surface's chroma at a lightness and hue: CHROMA, the same for every hue as OKLCH means it, eased down where
- * sRGB can't hold it. sRGB's limit bends sharply at its primaries (blue's chroma nearly doubles within 5° of hue),
- * which would crease the surface: taken at its lowest, then averaged, over 12° of hue and 0.03 of lightness around
- * each point, it has no creases and never leaves sRGB, and a soft minimum eases CHROMA into it without a seam.
- * Built once on a grid (a degree by 0.005), read between its points.
- */
-let vividGrid = /** @type {Float64Array | null} */ (null);
-const VIVID_ROWS = Math.round(1 / 0.005) + 1;
-/** The surface's grid made a line at a time: its limits row by row, folded at their lowest, then averaged, then eased. */
-const vividWork = (function* () {
-  const rows = VIVID_ROWS, limits = new Float64Array(rows * 360);
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < 360; c++) limits[r * 360 + c] = limit(1 - r * 0.005, c, 12);
-    yield;
-  }
-  const smooth = yield* fold(yield* fold(limits, true), false), eased = new Float64Array(rows * 360);
-  // A soft minimum: below both, and smooth where they cross.
-  for (let r = 0; r < rows; r++) {
-    for (let i = r * 360; i < (r + 1) * 360; i++) eased[i] = -0.012 * Math.log(Math.exp(-CHROMA / 0.012) + Math.exp(-smooth[i] / 0.012));
-    yield;
-  }
-  vividGrid = eased;
-})();
 // The panel's hex: ↵ takes what reads (a #fff, an OKLCH, a name too) and leaves it, esc leaves it; left, the panel's
 // drawn again (it shows the color as it is).
 document.addEventListener("keydown", (event) => {
@@ -7655,14 +7424,6 @@ $("inspector").addEventListener("scroll", placeAssist, true);
 addEventListener("resize", placeAssist);
 viewport.addEventListener("resize", placeAssist);
 viewport.addEventListener("scroll", placeAssist);
-/** Suggestions where the caret is now (and at this interval): made again only when either changed, so an arrow's pick stays. */
-let suggestedAt = "";
-function suggestHere() {
-  const at = `${assistKey()} ${chart.index} ${resolved?.times.length ?? 0}`;
-  if (at === suggestedAt) return;
-  suggestedAt = at;
-  updateSuggestions();
-}
 document.addEventListener("selectionchange", updateCallHelp);
 document.addEventListener("input", updateCallHelp);
 document.addEventListener("focusout", () => requestAnimationFrame(updateCallHelp));
@@ -7827,13 +7588,7 @@ async function drawWhenReady(/** @type {string} */ id, /** @type {string} */ tex
   if (turn === formulaTyped && layerById(id)?.formula?.trim() !== text.trim()) editById(id, (layer) => (layer.formula = text), { coalesce: `formula:${id}` });
 }
 document.addEventListener("selectionchange", () => document.activeElement?.id === "formula" && suggestHere());
-$("inspector").addEventListener("focusout", (event) => {
-  if (event.target.id !== "formula") return;
-  suggest.controller?.abort();
-  // Out of the field, it all goes at once (a press on the popover keeps the field's focus); back in, anew.
-  suggest.away = suggestedAt = "";
-  showSuggestions([]);
-});
+$("inspector").addEventListener("focusout", (event) => event.target.id === "formula" && dropSuggestions());
 $("inspector").addEventListener("scroll", (event) => {
   if (event.target.id === "formula") $("formula-mirror").scrollTop = event.target.scrollTop;
 }, true);
@@ -7934,13 +7689,8 @@ $("inspector").addEventListener("click", (event) => {
     editLayer((layer) => DEFAULTS[reset].set(layer));
     refocus(DEFAULTS[reset].focus);
   } else if (action === "deselect") deselect();
-  else if (action === "more") {
-    expanded = !expanded;
-    const description = $("inspector").querySelector(".description");
-    description?.classList.toggle("clamped", !expanded);
-    button.textContent = expanded ? "Show less" : "Show more";
-    button.setAttribute("aria-expanded", String(expanded));
-  } else if (action === "change-series") changeSeries(selected);
+  else if (action === "more") toggleDescription(button);
+  else if (action === "change-series") changeSeries(selected);
   else if (action === "copy-name") copyName(layerById(selected)?.series ?? "");
   else if (action === "replace") {
     const layer = layerById(selected);
@@ -11453,9 +11203,9 @@ export {
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,
   drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours, editChart, edits,
   EMPTY, emptyYours, engine, EXAMPLE, exporting, firstForm, firstLook, fitMargins, flowsAt, FOLDER_ICONS, folderAgain,
-  folderMark, folderNow, footPinned, formatName, formulaFit, formulaLine, fromLetters, fromShort, fromSpan, fromUnfit,
-  galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, gesturePointer, goneLayer, goTo,
-  goToDate, goToTime, gradientWidth, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS,
+  folderMark, folderNow, footPinned, formatName, formulaDrafts, formulaFit, formulaLine, fromLetters, fromShort,
+  fromSpan, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, gesturePointer,
+  goneLayer, goTo, goToDate, goToTime, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS,
   HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright,
   hideBelt, hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
   importCharts, indexAt, indexCatalog, inLibrary, isDeleted, isOhlc, isPreview, isView, isYours, keepChart, keepDrawing,
@@ -11463,22 +11213,21 @@ export {
   layerPicks, layersBatch, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, lensAt, letterChip, letterOf,
   library, libraryEdits, libraryStep, light, linkView, listedPreviews, listOwed, LIVE, liveHeight, livePrice,
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,
-  menuNameOf, minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, multiEdit, navigations, newDraft,
-  nextHalvings, normalize, noteUse, notice, ontoData, openChart, openingView, openPalette, openView, ownerOf,
-  paintNavigator, paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending,
-  pendingRoute, phone, pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels,
-  presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart,
-  profileColor, profileLit, putViews, quick, quickHide, quickShow, quickWorks, railMenu, railMenuKept, reaching,
-  readOnly, readPresetList, recent, recentCharts, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout,
-  relist, remember, removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape,
-  reshaped, resolved, retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon, saveView, say,
-  secondColor, sectionMark, select, selected, selectingArea, seriesCount, setSingleKeys, SHARE, sharedTops,
-  SHARES_IMAGES, SHEET_SHARE, shelfRows, shelfScrolls, showGuide, showList, showLook, shownDrawings, shownOklch,
-  shownView, showPalette, showRange, showShortcuts, sideLight, sidePresets, signalShown, signedSignal, sizeChart,
-  sizeHeld, SLIDERS, SPAN, spanKey, spanParts, spotlight, STACKED_ONLY, started, startLabel, startTyping, storage,
-  studioVersion, submenus, subSetups, syncUndo, tabletHead, tagLit, takeUp, takeView, THEMES, thumbs, timeAt, timesAt,
-  toast, togglePanel, toggleSidebar, tokensMedia, tokensNow, tool, toolKept, touched, track, tree, trendShort, typingIn,
-  undoLast, undoLibrary, undoToast, UNREAD, updatePaletteKeys, updateRowChanges, used, viewed, VIEWED, viewMoving,
-  viewOn, viewsNow, viewTimes, VIVID_ROWS, vividGrid, vividWork, widest, windowTooLong, within, writeSideList, writing,
-  yourTilesSeen, zeroFit,
+  menuNameOf, minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, navigations, newDraft, nextHalvings,
+  normalize, noteUse, notice, ontoData, openChart, openingView, openPalette, openView, ownerOf, paintNavigator,
+  paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending, pendingRoute, phone,
+  pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels, presetMarks, presets,
+  presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, profileLit,
+  putViews, quick, quickHide, quickShow, quickWorks, railMenu, railMenuKept, reaching, readOnly, readPresetList, recent,
+  recentCharts, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout, relist, remember, removedNames,
+  renderBelt, renderCharts, renderLayers, renderPalette, reshape, reshaped, resolved, retryPresets, revision, ROUTED,
+  rowSizes, SANS, save, savePrefs, savePreviewsSoon, saveView, say, secondColor, sectionMark, select, selected,
+  selectingArea, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE, shelfRows, shelfScrolls,
+  showGuide, showList, showLook, shownDrawings, shownOklch, shownView, showPalette, showRange, showShortcuts, sideLight,
+  sidePresets, signalShown, signedSignal, sizeChart, sizeHeld, SLIDERS, SPAN, spanKey, spanParts, spotlight,
+  STACKED_ONLY, started, startLabel, startTyping, storage, studioVersion, submenus, subSetups, syncUndo, tabletHead,
+  tagLit, takeUp, takeView, THEMES, thumbs, timeAt, timesAt, toast, togglePanel, toggleSidebar, tokensMedia, tokensNow,
+  tool, toolKept, touched, track, tree, trendShort, typingIn, undoLast, undoLibrary, undoToast, UNREAD,
+  updatePaletteKeys, updateRowChanges, used, viewed, VIEWED, viewMoving, viewOn, viewsNow, viewTimes, widest,
+  windowTooLong, within, writeSideList, writing, yourTilesSeen, zeroFit,
 };
