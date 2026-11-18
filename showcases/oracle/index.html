@@ -953,13 +953,6 @@
           background: var(--answer);
           opacity: 1;
         }
-
-        /* Narrow, the values without their % (the axis says what they are). */
-        @media (max-width: 560px) {
-          small {
-            display: none;
-          }
-        }
       }
 
       .weights-axis {
@@ -1102,11 +1095,18 @@
         .partial i {
           opacity: 0.25;
         }
+      }
 
-        @media (max-width: 560px) {
-          small {
-            display: none;
-          }
+      /* On a phone, both bar lists: the values without their % (the axis says what they are); four characters
+         at 11px are wider than a column, so each is centred on its bar and set a hair tighter, apart down to 360px. */
+      @media (max-width: 560px) {
+        :is(.weights, .years) li > span {
+          align-self: center;
+          letter-spacing: -0.04em;
+        }
+
+        :is(.weights, .years) small {
+          display: none;
         }
       }
 
