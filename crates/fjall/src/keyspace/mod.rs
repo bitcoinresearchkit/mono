@@ -1,4 +1,5 @@
 use std::{
+    io,
     ops::RangeBounds,
     sync::{
         Arc,
@@ -11,7 +12,7 @@ use lsm_tree::{RecordBytes, Slice};
 use options::CreateOptions;
 
 use crate::{
-    Result,
+    Error, Result,
     db_config::Config,
     file::KEYSPACES_FOLDER,
     locked_file::{LockedFileGuard, LockedIter},
@@ -65,7 +66,17 @@ impl Keyspace {
     ) -> Result<Self> {
         let path = database.path.join(KEYSPACES_FOLDER).join(name);
         let compaction = options.compaction;
-        let tree = options.tree_config(&path, database).open()?;
+        let tree = options
+            .tree_config(&path, database)
+            .open()
+            .map_err(|error| match error {
+                // An I/O error carries no path: name the keyspace's folder.
+                lsm_tree::Error::Io(error) => Error::Io(io::Error::new(
+                    error.kind(),
+                    format!("{}: {error}", path.display()),
+                )),
+                error => Error::Storage(error),
+            })?;
 
         let keyspace = Self {
             inner: Arc::new(Inner {

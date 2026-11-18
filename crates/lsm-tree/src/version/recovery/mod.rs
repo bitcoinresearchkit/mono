@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
-use log::{error, info};
+use log::info;
 use xxhash_rust::xxh3;
 
 use crate::{
@@ -25,23 +25,27 @@ impl Recovery {
     pub fn load(folder: &Path) -> Result<Self> {
         let current_path = folder.join(CURRENT_VERSION_FILE);
         let bytes = fs::read(&current_path)?;
-        let magic = bytes.get(..MAGIC_BYTES.len()).ok_or(Error::Unrecoverable)?;
+        let magic = bytes
+            .get(..MAGIC_BYTES.len())
+            .ok_or(Error::Unrecoverable("manifest shorter than its magic"))?;
         if magic != MAGIC_BYTES {
-            let version = magic.last().copied().ok_or(Error::Unrecoverable)?;
+            let version = magic
+                .last()
+                .copied()
+                .ok_or(Error::Unrecoverable("manifest magic"))?;
             return Err(Error::InvalidVersion(version));
         }
         if bytes.len() < MAGIC_BYTES.len() + size_of::<u64>() + size_of::<u128>() {
-            return Err(Error::Unrecoverable);
+            return Err(Error::Unrecoverable("manifest truncated"));
         }
         let (payload, checksum) = bytes.split_at(bytes.len() - size_of::<u128>());
         if xxh3::xxh3_128(payload) != LittleEndian::read_u128(checksum) {
-            error!("Current manifest checksum mismatch");
-            return Err(Error::Unrecoverable);
+            return Err(Error::Unrecoverable("manifest checksum mismatch"));
         }
 
         let mut reader = payload
             .get(MAGIC_BYTES.len()..)
-            .ok_or(Error::Unrecoverable)?;
+            .ok_or(Error::Unrecoverable("manifest truncated"))?;
         let curr_version_id = reader.read_u64::<LittleEndian>()?;
 
         info!("Recovering current manifest at {}", current_path.display());
@@ -53,9 +57,10 @@ impl Recovery {
 
             for _ in 0..run_count {
                 let table_count = reader.read_u32::<LittleEndian>()?;
-                let capacity = usize::try_from(table_count).map_err(|_| Error::Unrecoverable)?;
+                let capacity = usize::try_from(table_count)
+                    .map_err(|_| Error::Unrecoverable("manifest run size"))?;
                 if capacity == 0 || capacity > reader.len() / TABLE_ENTRY_SIZE {
-                    return Err(Error::Unrecoverable);
+                    return Err(Error::Unrecoverable("manifest run size"));
                 }
                 let mut run = Vec::with_capacity(capacity);
 
@@ -74,7 +79,7 @@ impl Recovery {
         }
 
         if !reader.is_empty() {
-            return Err(Error::Unrecoverable);
+            return Err(Error::Unrecoverable("manifest has trailing bytes"));
         }
 
         Ok(Self {

@@ -2,7 +2,6 @@
 // This source code is licensed under both the Apache 2.0 and MIT License
 // (found in the LICENSE-* files in the repository)
 
-use log::error;
 use sfa::{Toc, TocEntry};
 
 use super::{BlockHandle, BlockOffset};
@@ -56,19 +55,13 @@ impl ParsedRegions {
             tli: toc
                 .section(b"tli")
                 .map(toc_entry_to_handle)
-                .ok_or_else(|| {
-                    error!("TLI should exist");
-                    Error::Unrecoverable
-                })?,
+                .ok_or(Error::Unrecoverable("table without its top-level index"))?,
             index: toc.section(b"index").map(toc_entry_to_handle),
             filter: toc.section(b"filter").map(toc_entry_to_handle),
             metadata: toc
                 .section(b"meta")
                 .map(toc_entry_to_handle)
-                .ok_or_else(|| {
-                    error!("Metadata should exist");
-                    Error::Unrecoverable
-                })?,
+                .ok_or(Error::Unrecoverable("table without its metadata"))?,
         })
     }
 }

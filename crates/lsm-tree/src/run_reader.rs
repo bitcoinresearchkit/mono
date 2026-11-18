@@ -48,7 +48,7 @@ impl<K: RecordBytes, V: RecordBytes> Iterator for RunReader<K, V> {
                 self.lo += 1;
                 if self.lo < self.hi {
                     let Some(table) = self.run.get(self.lo) else {
-                        return Some(Err(Error::Unrecoverable));
+                        return Some(Err(Error::Unrecoverable("run table index out of range")));
                     };
                     self.lo_reader = Some(table.range_as::<K, V, _>(..));
                 }
@@ -71,7 +71,7 @@ impl<K: RecordBytes, V: RecordBytes> DoubleEndedIterator for RunReader<K, V> {
                 self.hi -= 1;
                 if self.lo < self.hi {
                     let Some(table) = self.run.get(self.hi) else {
-                        return Some(Err(Error::Unrecoverable));
+                        return Some(Err(Error::Unrecoverable("run table index out of range")));
                     };
                     self.hi_reader = Some(table.range_as::<K, V, _>(..));
                 }

@@ -10,7 +10,6 @@ use std::{
     str::Utf8Error,
 };
 
-use log::error;
 use sfa::Error as SfaError;
 
 use crate::CompressionType;
@@ -31,8 +30,8 @@ pub enum Error {
     /// Invalid or unparsable data format version
     InvalidVersion(u8),
 
-    /// Some required files could not be recovered from disk
-    Unrecoverable,
+    /// Data on disk failed a check: which one
+    Unrecoverable(&'static str),
 
     /// Invalid enum tag
     InvalidTag((&'static str, u8)),
@@ -75,20 +74,12 @@ impl From<SfaError> for Error {
         match value {
             SfaError::Io(e) => Self::from(e),
             SfaError::ChecksumMismatch { .. } => {
-                error!("Archive ToC checksum mismatch");
-                Self::Unrecoverable
+                Self::Unrecoverable("archive ToC checksum mismatch")
             }
-            SfaError::InvalidHeader => {
-                error!("Invalid archive header");
-                Self::Unrecoverable
-            }
-            SfaError::InvalidVersion => {
-                error!("Invalid archive version");
-                Self::Unrecoverable
-            }
+            SfaError::InvalidHeader => Self::Unrecoverable("invalid archive header"),
+            SfaError::InvalidVersion => Self::Unrecoverable("invalid archive version"),
             SfaError::UnsupportedChecksumType => {
-                error!("Invalid archive checksum type");
-                Self::Unrecoverable
+                Self::Unrecoverable("unsupported archive checksum type")
             }
         }
     }

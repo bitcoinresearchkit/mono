@@ -25,12 +25,24 @@ pub enum Error {
 }
 
 impl Error {
-    /// Returns whether reopening requires rebuilding the derived database.
+    /// Returns whether reopening requires rebuilding the derived database: only for data that is
+    /// ours and fails a check. An I/O error, the lock, or a variant the tree adds later stops the
+    /// caller without deleting anything.
     #[must_use]
     pub fn is_data_error(&self) -> bool {
         match self {
             Self::InvalidVersion => true,
-            Self::Storage(error) => !matches!(error, LsmTreeError::Io(_)),
+            Self::Storage(error) => matches!(
+                error,
+                LsmTreeError::Decompress(_)
+                    | LsmTreeError::InvalidVersion(_)
+                    | LsmTreeError::Unrecoverable(_)
+                    | LsmTreeError::InvalidTag(_)
+                    | LsmTreeError::InvalidRecordLength { .. }
+                    | LsmTreeError::InvalidTrailer
+                    | LsmTreeError::InvalidHeader(_)
+                    | LsmTreeError::Utf8(_)
+            ),
             Self::Io(_) | Self::Locked => false,
         }
     }

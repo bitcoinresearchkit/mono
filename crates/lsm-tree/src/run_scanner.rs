@@ -16,7 +16,10 @@ impl<K: RecordBytes, V: RecordBytes> RunScanner<K, V> {
     pub fn culled(run: Arc<Run<Table>>, (lo, hi): (Option<usize>, Option<usize>)) -> Result<Self> {
         let lo = lo.unwrap_or_default();
         let hi = hi.unwrap_or(run.len() - 1);
-        let lo_reader = run.get(lo).ok_or(Error::Unrecoverable)?.scan::<K, V>()?;
+        let lo_reader = run
+            .get(lo)
+            .ok_or(Error::Unrecoverable("run table index out of range"))?
+            .scan::<K, V>()?;
 
         Ok(Self {
             tables: run,
@@ -46,7 +49,7 @@ impl<K: RecordBytes, V: RecordBytes> Iterator for RunScanner<K, V> {
             self.lo_reader = Some(fail_iter!(
                 self.tables
                     .get(self.lo)
-                    .ok_or(Error::Unrecoverable)
+                    .ok_or(Error::Unrecoverable("run table index out of range"))
                     .and_then(Table::scan::<K, V>)
             ));
         }

@@ -6,7 +6,7 @@ use std::{
 };
 
 use inner::Inner;
-use log::{debug, info};
+use log::{debug, info, warn};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -283,7 +283,9 @@ impl Tree {
                     let file = tables_path.join(table.id.to_string());
                     // A listed table without its file cannot be recovered.
                     if !file.try_exists()? {
-                        return Err(Error::Unrecoverable);
+                        return Err(Error::Unrecoverable(
+                            "table file listed in the manifest is missing",
+                        ));
                     }
                     let recovered = Table::recover(
                         file,
@@ -294,13 +296,15 @@ impl Tree {
                     )?;
                     // The file must hold the table the manifest lists under its name.
                     if recovered.id() != table.id {
-                        return Err(Error::Unrecoverable);
+                        return Err(Error::Unrecoverable("table file holds another table"));
                     }
                     live.insert(table.id);
                     tables.push(recovered);
                 }
                 // The manifest loader rejects empty runs.
-                level_runs.push(Arc::new(Run::new(tables).ok_or(Error::Unrecoverable)?));
+                level_runs.push(Arc::new(
+                    Run::new(tables).ok_or(Error::Unrecoverable("manifest lists an empty run"))?,
+                ));
             }
             levels.push(Level::from_runs(level_runs));
         }
@@ -309,16 +313,16 @@ impl Tree {
         let mut orphaned = Vec::new();
         for entry in fs::read_dir(&tables_path)? {
             let entry = entry?;
-            let file_name = entry.file_name();
-            if file_name == ".DS_Store" || file_name.to_string_lossy().starts_with("._") {
-                continue;
-            }
-
-            let table_id = file_name
+            // Not a table's name: Finder's, Spotlight's or Time Machine's, never ours to delete
+            // or to rebuild over.
+            let Some(table_id) = entry
+                .file_name()
                 .to_str()
-                .ok_or(Error::Unrecoverable)?
-                .parse::<u32>()
-                .map_err(|_| Error::Unrecoverable)?;
+                .and_then(|name| name.parse::<u32>().ok())
+            else {
+                warn!("Ignoring {}: not a table file", entry.path().display());
+                continue;
+            };
             if !live.contains(&table_id) {
                 orphaned.push(entry.path());
             }
