@@ -33,8 +33,7 @@ pub struct SharedState {
     /// so a client looping on them waits behind itself, not ahead of every point read.
     #[cfg(feature = "full-api")]
     pub history_query: Arc<Semaphore>,
-    pub disk_query: Arc<Semaphore>,
-    pub disk_walk: crate::api::server::LastWalk,
+    pub disk_totals: crate::api::server::DiskTotals,
     /// Oracle replays (searches, histograms at a height or a day), which read every output of their
     /// blocks: one at a time, waiting apart from other reads.
     #[cfg(feature = "full-api")]
@@ -74,6 +73,8 @@ pub struct SharedState {
     #[cfg(feature = "full-api")]
     pub mining_pools_body: Arc<PreparedJson>,
     pub data_path: PathBuf,
+    /// Inside `data_path`.
+    pub logs_path: PathBuf,
     pub website: Website,
     pub started_at: Timestamp,
     pub started_instant: Instant,

@@ -230,8 +230,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         )),
         #[cfg(feature = "full-api")]
         history_query: Arc::new(Semaphore::new(2)),
-        disk_query: Arc::new(Semaphore::new(1)),
-        disk_walk: Default::default(),
+        disk_totals: Default::default(),
         #[cfg(feature = "full-api")]
         oracle_replays: Arc::new(Semaphore::new(1)),
         #[cfg(feature = "full-api")]
@@ -265,6 +264,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         urpd_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "full-api")]
         mining_pools_body,
+        logs_path: config.logs_path(),
         data_path: config.data_path,
         website: config.website,
         started_at: Timestamp::now(),

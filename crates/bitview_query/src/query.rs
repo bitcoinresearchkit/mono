@@ -127,6 +127,12 @@ impl Query {
         self.indexer().tip_blockhash()
     }
 
+    /// How many publications came before the current one: a value derived from the published
+    /// state is good for as long as this stays the same.
+    pub fn revision(&self) -> u64 {
+        self.indexer().pin().revision()
+    }
+
     /// The published tip's height and hash, from one pin; `None` before genesis.
     pub fn tip_block(&self) -> Option<(Height, BlockHash)> {
         let pin = self.indexer().pin();

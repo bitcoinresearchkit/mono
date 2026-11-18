@@ -23,7 +23,7 @@ use crate::{
 
 mod disk;
 
-pub(crate) use disk::LastWalk;
+pub(crate) use disk::DiskTotals;
 mod logs;
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
@@ -128,7 +128,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .mcp_ignore()
                     .summary("Disk usage")
                     .description(
-                        "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
+                        "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data, as of the last indexed block: the first request after a block scans both trees and the others read its totals. The server's own logs are not counted. The two totals are independent observations, not an atomic filesystem snapshot. Directory-link cycles and excessive nesting fail without returning partial totals.",
                     )
                     .json_response::<DiskUsage>()
                     .not_modified()

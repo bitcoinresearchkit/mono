@@ -6,24 +6,16 @@ use std::{
     fs::{self, DirEntry, Metadata},
     io::{Error as IoError, ErrorKind},
     path::Path,
-    sync::atomic::{AtomicBool, Ordering},
 };
 
 // Bound recursive frames even if directories or links change during a walk.
 const MAX_DEPTH: usize = 128;
 
-fn check_cancelled(cancelled: &AtomicBool) -> Result<()> {
-    if cancelled.load(Ordering::Relaxed) {
-        return Err(IoError::new(ErrorKind::Interrupted, "disk scan cancelled").into());
-    }
-    Ok(())
-}
-
-pub fn dir_size(path: &Path, cancelled: &AtomicBool) -> Result<u64> {
-    check_cancelled(cancelled)?;
+/// Allocated bytes under `path`, leaving out the directory `skip` and everything in it.
+pub fn dir_size(path: &Path, skip: Option<&Path>) -> Result<u64> {
     let metadata = fs::metadata(path)?;
     if metadata.is_dir() {
-        dir_contents_size(path, None, cancelled)
+        dir_contents_size(path, None, skip)
     } else {
         allocated_bytes(&metadata)
     }
@@ -37,10 +29,9 @@ struct DirectoryFrame<'a> {
 
 impl DirectoryFrame<'_> {
     #[cfg(unix)]
-    fn contains(&self, _: &Path, target: &Metadata, cancelled: &AtomicBool) -> Result<bool> {
+    fn contains(&self, _: &Path, target: &Metadata) -> Result<bool> {
         let mut ancestor = Some(self);
         while let Some(directory) = ancestor {
-            check_cancelled(cancelled)?;
             let metadata = fs::metadata(directory.path)?;
             if metadata.dev() == target.dev() && metadata.ino() == target.ino() {
                 return Ok(true);
@@ -51,12 +42,10 @@ impl DirectoryFrame<'_> {
     }
 
     #[cfg(not(unix))]
-    fn contains(&self, path: &Path, _: &Metadata, cancelled: &AtomicBool) -> Result<bool> {
-        check_cancelled(cancelled)?;
+    fn contains(&self, path: &Path, _: &Metadata) -> Result<bool> {
         let target = fs::canonicalize(path)?;
         let mut ancestor = Some(self);
         while let Some(directory) = ancestor {
-            check_cancelled(cancelled)?;
             if fs::canonicalize(directory.path)? == target {
                 return Ok(true);
             }
@@ -69,9 +58,11 @@ impl DirectoryFrame<'_> {
 fn dir_contents_size(
     path: &Path,
     parent: Option<&DirectoryFrame<'_>>,
-    cancelled: &AtomicBool,
+    skip: Option<&Path>,
 ) -> Result<u64> {
-    check_cancelled(cancelled)?;
+    if skip == Some(path) {
+        return Ok(0);
+    }
     let depth = parent.map_or(0, |parent| parent.depth + 1);
     if depth > MAX_DEPTH {
         return Err(IoError::new(
@@ -87,29 +78,28 @@ fn dir_contents_size(
     };
     fs::read_dir(path)?
         .par_bridge()
-        .map(|entry| dir_entry_size(entry?, &frame, cancelled))
+        .map(|entry| dir_entry_size(entry?, &frame, skip))
         .try_reduce(|| 0, sum_bytes)
 }
 
 fn dir_entry_size(
     entry: DirEntry,
     frame: &DirectoryFrame<'_>,
-    cancelled: &AtomicBool,
+    skip: Option<&Path>,
 ) -> Result<u64> {
-    check_cancelled(cancelled)?;
     let file_type = entry.file_type()?;
     if file_type.is_dir() {
-        return dir_contents_size(&entry.path(), Some(frame), cancelled);
+        return dir_contents_size(&entry.path(), Some(frame), skip);
     }
 
     if file_type.is_symlink() {
         let path = entry.path();
         let metadata = fs::metadata(&path)?;
         return if metadata.is_dir() {
-            if frame.contains(&path, &metadata, cancelled)? {
+            if frame.contains(&path, &metadata)? {
                 return Err(IoError::new(ErrorKind::InvalidData, "directory symlink cycle").into());
             }
-            dir_contents_size(&path, Some(frame), cancelled)
+            dir_contents_size(&path, Some(frame), skip)
         } else {
             allocated_bytes(&metadata)
         };
