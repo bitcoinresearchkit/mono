@@ -294,49 +294,7 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
         root.insert("required".to_string(), Value::Array(required));
     }
 
-    let schema = standalone_schema(root, schemas)?;
-    check_validated_keywords(&schema)?;
-    Ok(schema)
-}
-
-/// Validation keywords the MCP bridge's argument validator does not implement.
-const UNVALIDATED_KEYWORDS: [&str; 7] = [
-    "const",
-    "allOf",
-    "oneOf",
-    "not",
-    "exclusiveMinimum",
-    "exclusiveMaximum",
-    "uniqueItems",
-];
-
-/// Reject an input schema the MCP bridge would validate only partially.
-fn check_validated_keywords(schema: &Value) -> io::Result<()> {
-    let Some(object) = schema.as_object() else {
-        return Ok(());
-    };
-    if let Some(keyword) = UNVALIDATED_KEYWORDS
-        .iter()
-        .find(|&&key| object.contains_key(key))
-    {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidData,
-            format!("MCP argument validation does not implement `{keyword}`"),
-        ));
-    }
-    for (key, value) in object {
-        match (key.as_str(), value) {
-            ("properties" | "$defs", Value::Object(schemas)) => {
-                schemas.values().try_for_each(check_validated_keywords)?
-            }
-            ("anyOf", Value::Array(schemas)) => {
-                schemas.iter().try_for_each(check_validated_keywords)?
-            }
-            ("items" | "additionalProperties", schema) => check_validated_keywords(schema)?,
-            _ => {}
-        }
-    }
-    Ok(())
+    standalone_schema(root, schemas)
 }
 
 /// Turn an OpenAPI schema into a self-contained JSON Schema. MCP clients must
@@ -430,7 +388,6 @@ fn normalize_input_schema(schema: &mut Value) {
 }
 
 /// Point every component reference at its local `$defs` copy and queue the component to copy.
-/// The MCP bridge resolves only local `#/$defs/<name>` references.
 fn localize_refs(value: &mut Value, pending: &mut VecDeque<String>) -> io::Result<()> {
     match value {
         Value::Object(object) => {

@@ -35,7 +35,7 @@ use rmcp::{
         },
     },
 };
-use serde_json::{Value, json};
+use serde_json::json;
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
     task::spawn_blocking,
@@ -216,15 +216,15 @@ impl ServerHandler for BitviewMcp {
             .catalog
             .operation(&name)
             .ok_or_else(|| McpError::invalid_params("Unknown tool name", None))?;
-        let arguments = Value::Object(request.arguments.unwrap_or_default());
-        operation
-            .validate_arguments(&arguments)
-            .map_err(|error| McpError::invalid_params(error, None))?;
-        let url = self
+        let fail = |message| Ok(tool_error(message, &self.state.server_name));
+        let url = match self
             .state
             .upstream
-            .prepare(operation, &arguments)
-            .map_err(|error| McpError::invalid_params(error, None))?;
+            .prepare(operation, &request.arguments.unwrap_or_default())
+        {
+            Ok(url) => url,
+            Err(error) => return fail(error),
+        };
 
         let charge = context
             .extensions
@@ -236,7 +236,6 @@ impl ServerHandler for BitviewMcp {
             "MCP POSTs get a charge slot before dispatch"
         );
         let state = Arc::clone(&self.state);
-        let fail = |message| Ok(tool_error(message, &self.state.server_name));
 
         let fetched = {
             let state = Arc::clone(&state);

@@ -946,6 +946,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- MCP: a wrong argument is answered by the API itself, as a tool result marked `isError` that names the fix (the
+  closest index and every index, the closest series ids), where the bridge answered `-32602 invalid arguments` with no
+  argument and no value. The bridge's own errors (an argument the tool doesn't have, a missing path value) are tool
+  results too, and name the argument. An unknown index lists every index beside the one meant, an unknown pool's 404
+  says where the slugs are listed, and a URL refused for its spelling says which spelling to write
 - Coinblocks created per block, documented as the circulating supply, read the step of a running total kept in
   floating point, so it missed the supply at 851,713 of 976,437 blocks, by up to 97,656 sats (block 770,393): block
   900,000 read 19,874,782.0898 coins where the supply is 19,874,782.0907. Created dollar-blocks carried the same error.

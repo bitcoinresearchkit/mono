@@ -1,7 +1,7 @@
 use std::{io::Read, time::Duration};
 
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use ureq::{Agent, BodyReader};
 
 use crate::{
@@ -44,27 +44,53 @@ impl Upstream {
         }
     }
 
-    /// The encoded upstream URL, checked against the URL limit.
-    pub fn prepare(&self, operation: &Operation, arguments: &Value) -> Result<String, String> {
+    /// The upstream URL for a tool call. The API judges the values; an error here is one only the bridge can see, and
+    /// names the argument and the fix for the model to act on.
+    pub fn prepare(
+        &self,
+        operation: &Operation,
+        arguments: &Map<String, Value>,
+    ) -> Result<String, String> {
+        let tool = &operation.tool.name;
+        let parameters = &operation.http.parameters;
+        // Dropped silently, a misspelled filter would answer with unfiltered data.
+        if let Some(unknown) = arguments.keys().find(|name| {
+            !parameters
+                .iter()
+                .any(|parameter| parameter.argument == **name)
+        }) {
+            let known = parameters
+                .iter()
+                .map(|parameter| parameter.argument.as_str())
+                .collect::<Vec<_>>();
+            return Err(if known.is_empty() {
+                format!("{tool} takes no arguments: remove `{unknown}`")
+            } else {
+                format!(
+                    "{tool} has no argument `{unknown}`: its arguments are {}",
+                    known.join(", ")
+                )
+            });
+        }
+
         let mut path = operation.http.path.clone();
         let mut query = String::new();
-
-        for parameter in &operation.http.parameters {
-            let Some(value) = arguments.get(parameter.argument.as_str()) else {
-                continue;
-            };
-            if value.is_null() {
-                continue;
+        for parameter in parameters {
+            let argument = &parameter.argument;
+            let values = match arguments.get(argument) {
+                None | Some(Value::Null) => Some(Vec::new()),
+                Some(Value::Array(values)) => values.iter().map(scalar).collect(),
+                Some(value) => scalar(value).map(|value| vec![value]),
             }
-            let values = parameter_values(value)?;
+            .ok_or_else(|| {
+                format!(
+                    "{tool}'s `{argument}` takes a string, a number or a boolean, or a list of them"
+                )
+            })?;
             match parameter.location {
                 ParameterLocation::Path => {
-                    // Client input: schema validation does not cover every shape, so check here.
                     let [value] = values.as_slice() else {
-                        return Err(format!(
-                            "path parameter {} must contain one scalar value",
-                            parameter.argument
-                        ));
+                        return Err(format!("{tool} needs one value for `{argument}`"));
                     };
                     path = path.replace(
                         &format!("{{{}}}", parameter.name),
@@ -82,16 +108,12 @@ impl Upstream {
             }
         }
 
-        if path.contains(['{', '}']) {
-            return Err("a required path parameter is missing".to_string());
-        }
         let url = format!("{}{path}{query}", self.api_url);
         if url.len() > MAX_UPSTREAM_URL_BYTES {
             return Err(format!(
-                "upstream URL exceeds the {MAX_UPSTREAM_URL_BYTES}-byte limit"
+                "{tool}'s arguments make a URL over {MAX_UPSTREAM_URL_BYTES} bytes: pass fewer or shorter values"
             ));
         }
-
         Ok(url)
     }
 
@@ -169,22 +191,13 @@ fn read_error(error: std::io::Error) -> String {
     format!("Bitview API response read failed (limit {MAX_RESPONSE_BYTES} bytes): {error}")
 }
 
-fn parameter_values(value: &Value) -> Result<Vec<String>, String> {
+/// A scalar as a URL writes it; none for an object or a nested list.
+fn scalar(value: &Value) -> Option<String> {
     match value {
-        Value::String(value) => Ok(vec![value.clone()]),
-        Value::Number(value) => Ok(vec![value.to_string()]),
-        Value::Bool(value) => Ok(vec![value.to_string()]),
-        Value::Array(values) => values
-            .iter()
-            .map(|value| match value {
-                Value::String(value) => Ok(value.clone()),
-                Value::Number(value) => Ok(value.to_string()),
-                Value::Bool(value) => Ok(value.to_string()),
-                _ => Err("URL parameter arrays may contain only scalar values".to_string()),
-            })
-            .collect(),
-        Value::Null => Ok(Vec::new()),
-        Value::Object(_) => Err("URL parameters may not be objects".to_string()),
+        Value::String(value) => Some(value.clone()),
+        Value::Number(value) => Some(value.to_string()),
+        Value::Bool(value) => Some(value.to_string()),
+        Value::Null | Value::Array(_) | Value::Object(_) => None,
     }
 }
 
