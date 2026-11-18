@@ -170,10 +170,11 @@ const HEAT_COLUMN = 2;
 /** A heatmap's or a profile's rows a ×10 in price, as it's drawn (see heatGrid). @param {Layer} layer */
 const rowsOf = (layer) => layer.rows ?? DEFAULT_ROWS;
 /**
- * Rows `n` a ×10 in price, each the same share of its price: the row a price is in (`cell`), a row's floor price
- * (`price`), and the row a floor price is (`floor`: as the URPD writes it, rounded). @param {number} n
+ * Rows `n` a ×10 in price, each the same share of its price: where a price falls among them (`at`, the row it's in
+ * and how far into it), the row it's in (`cell`), a row's floor price (`price`), and the row a floor price is
+ * (`floor`: as the URPD writes it, rounded). @param {number} n
  */
-const logRows = (n) => ({ cell: (/** @type {number} */ price) => Math.floor(n * Math.log10(price * 100)), price: (/** @type {number} */ row) => 10 ** (row / n) / 100, floor: (/** @type {number} */ price) => Math.round(n * Math.log10(price * 100)) });
+const logRows = (n) => ({ at: (/** @type {number} */ price) => n * Math.log10(price * 100), cell: (/** @type {number} */ price) => Math.floor(n * Math.log10(price * 100)), price: (/** @type {number} */ row) => 10 ** (row / n) / 100, floor: (/** @type {number} */ price) => Math.round(n * Math.log10(price * 100)) });
 /**
  * How a heatmap's rows are cut, as the URPD's `agg` says it: `rows` a ×10 in price (each the same share of its
  * price, as a cost basis is read), on a log scale or a linear one (`even`: on a log one, rows even on the scale;
@@ -388,15 +389,17 @@ const heatLooks = new Map();
 const heatCalendars = new WeakMap();
 /**
  * A timeline's days: each bar's (`g`), the day its stretch ends on (a fine interval's bars a day, one), and each
- * day's date (`days`); the last bar's, the open one: "latest".
- * @param {number[]} times
+ * day's date (`days`); the last bar's, the open one, "latest" where the timeline reaches the latest (`live`, as it
+ * does unless it says not), else its own date, a step on from its start as the bars before it step (a chunk of
+ * history ends in the past). @param {{ times: number[], live?: boolean }} data
  */
-function heatCalendar(times) {
+function heatCalendar({ times, live = true }) {
   const had = heatCalendars.get(times);
   if (had) return had;
   const g = new Int32Array(times.length), days = /** @type {string[]} */ ([]);
   for (let i = 0; i < times.length; i++) {
-    const day = i + 1 < times.length ? new Date((times[i + 1] - 1) * 1000).toISOString().slice(0, 10) : "latest";
+    const end = times[i + 1] ?? (live ? undefined : 2 * times[i] - (times[i - 1] ?? times[i]));
+    const day = end === undefined ? "latest" : new Date((end - 1) * 1000).toISOString().slice(0, 10);
     if (day !== days.at(-1)) days.push(day);
     g[i] = days.length - 1;
   }
@@ -416,7 +419,7 @@ const profileShades = (id, color, opacity) => {
   const card = rgbOf(css("--card")), own = rgbOf(color), over = (/** @type {number} */ strength) => `rgb(${own.map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
   return { id, gain: over(0.72), loss: over(0.32), dimGain: over(0.72 * PROFILE_DIM), dimLoss: over(0.32 * PROFILE_DIM) };
 };
-const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: measureOf(layer), up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
 /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
 const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
 /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -451,7 +454,7 @@ function heatShown(heat, owner, step) {
  * @param {HeatLook} look @param {Layer} layer @param {ReadPoint} point @returns {{ amount: string, at: string } | null}
  */
 function profileReading(look, layer, point) {
-  Object.assign(look, heatCalendar(/** @type {Resolved} */ (resolved).times));
+  Object.assign(look, heatCalendar(/** @type {Resolved} */ (resolved)));
   const day = profilePoint().at;
   if (day < 0 || day >= look.g.length || !look.grid) return null;
   // (Nothing it draws (its days still asked for or failed, no close to split them at, no coins: see viewProfile):
@@ -459,7 +462,7 @@ function profileReading(look, layer, point) {
   const shown = profileDays(look, look.g[day]), close = profileClose(shown), share = close > 0 ? profileShare(look, shown, close) : null;
   if (share === null) return null;
   const at = hoveredIn(layer, point, look.grid);
-  return at ? profileAt(look, at) : { amount: `${format(share, "percent")} in profit`, at: "" };
+  return at ? profileAt(look, at) : { amount: `≈${format(share, "percent")} in profit`, at: "" };
 }
 /**
  * What a profile reads at a height in its pane (see profileReading), as it's drawn: the bin there, its amount (its
@@ -536,7 +539,7 @@ function heatReading(layer, point) {
   if (!look || !grid || !resolved) return null;
   // (A profile's: its own day's, whatever day's pointed at.)
   if (look.kind === "profile") return profileReading(look, layer, point);
-  Object.assign(look, heatCalendar(resolved.times));
+  Object.assign(look, heatCalendar(resolved));
   if (point.at < 0 || point.at >= look.g.length) return null;
   const shown = heatShown(look, heatOwner(look, look.g[point.at], look.step ?? 1), look.step ?? 1), day = shown?.day;
   if (!day?.rows) return null;
@@ -556,7 +559,7 @@ function viewHeat(heat, { step, owners }, grid) {
   // (Nothing drawn: nothing wanted, nothing kept for it.)
   if (!heat.grid || !resolved || !owners.length) return void (heatWants.delete(heat.id), (heat.keep = undefined));
   // (The timeline's days as it is now: a live tick's new bar its own.)
-  Object.assign(heat, heatCalendar(resolved.times));
+  Object.assign(heat, heatCalendar(resolved));
   heat.step = step;
   const ownerAt = (/** @type {number} */ g, /** @type {number} */ by) => heatOwner(heat, g, by), keyOf = (/** @type {number} */ g) => heatKeyOf(heat, g), agg = heat.grid.agg;
   /** @type {Map<string, NonNullable<ReturnType<typeof heatWants.get>>[number]>} */
@@ -612,25 +615,22 @@ function profileDays(look, g) {
 /** The close the days shown are split at: a group's own day's, else any's. @param {ReturnType<typeof profileDays>} shown */
 const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
 /**
- * The share of the days shown's coins in profit, last moved under the close (a row by its middle), a percent;
- * none, no coins. Kept while its days, grid and close are the same: a crosshair reads the view's day too.
+ * The share of the days shown's coins in profit, last moved under the close, a percent; none, no coins. A row the
+ * close falls in counts as far as the close is into it (its coins taken as even across it): a row doesn't say which
+ * of its coins are under the close, and one side by its middle moved the share by points with the density (2024-07-08:
+ * 9.3% at 100 rows a ×10, 12.9% at 200, 11.7% at 500; this: 12.3, 12.4, 12.2, the published 11.9). Kept while its days,
+ * grid and close are the same: a crosshair reads the view's day too.
  * @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} close
  */
 function profileShare(heat, shown, close) {
   const grid = /** @type {NonNullable<HeatLook["grid"]>} */ (heat.grid), had = heat.profit;
   if (had && had.grid === grid && had.close === close && had.days.length === shown.length && shown.every((item, k) => item?.day === had.days[k])) return had.share;
   let under = 0, all = 0;
+  const at = grid.at(close);
   for (const item of shown) {
     if (!item) continue;
     const rows = item.day.rows, supply = /** @type {Float32Array} */ (item.day.supply);
-    // (The rows low to high: those under it, a run from the first.)
-    let cut = 0;
-    for (let to = rows.length; cut < to; ) {
-      const mid = (cut + to) >> 1;
-      if (grid.price(rows[mid] + 0.5) < close) cut = mid + 1;
-      else to = mid;
-    }
-    for (let k = 0; k < rows.length; k++) (all += supply[k]), k < cut && (under += supply[k]);
+    for (let k = 0; k < rows.length; k++) (all += supply[k]), (under += supply[k] * Math.min(1, Math.max(0, at - rows[k])));
   }
   const share = all > 0 ? (100 * under) / all : null;
   heat.profit = { grid, close, days: shown.map((item) => item?.day), share };
@@ -668,7 +668,7 @@ function viewProfile(heat, profile) {
   };
   const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined), shown(undefined), show([]));
   if (!grid || !resolved || !heat.cohorts.length) return none();
-  Object.assign(heat, heatCalendar(resolved.times));
+  Object.assign(heat, heatCalendar(resolved));
   const point = profilePoint();
   if (point.at < 0 || point.at >= heat.g.length) return none();
   const g = heat.g[point.at], keep = new Set(), wanted = /** @type {NonNullable<ReturnType<typeof heatWants.get>>} */ ([]);

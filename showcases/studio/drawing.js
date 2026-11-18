@@ -1,6 +1,6 @@
 // @ts-check
 // Drawing on the chart: lines, boxes, text and strokes.
-import { Custom, FAINT, inkOn } from "/modules/bitview-charts/index.js";
+import { Custom, FAINT, indexed, inkOn } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
   beltStop, boxing, capturing, chart, chosen, commit, css, draft, drawingsHidden, drawVersion, engine, hideBelt, home,
@@ -713,7 +713,7 @@ class Sketch {
     return (/** @type {number} */ value) => {
       if (!base) return "";
       const change = (100 * (value - base)) / Math.abs(base);
-      return scale.mode === "percent" ? precise(change, "%") : precise(base < 0 ? change - 100 : change + 100);
+      return scale.mode === "percent" ? precise(change, "%") : precise(indexed(change));
     };
   }
   /** Each line down's date; a selected line's or box's, each point's (and as it's drawn). */

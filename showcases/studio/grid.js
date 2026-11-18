@@ -2,7 +2,7 @@
 // The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them.
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
-import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
+import { columnWidth, indexed, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
 import { capitalized, shownStep } from "/studio/words.js";
 import {
   acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartById, chartNow, css, deleteChart, deleteFolder, dialogsShown,
@@ -467,7 +467,7 @@ async function heatSamples(doc, data, most, columns) {
   const shown = n > 1 ? previewShown(doc, data, most) : null, span = shown ? shown.to - shown.from : 0;
   if (!layers.length || !shown || !(span >= 1)) return Object.assign(/** @type {HeatSamples} */ (new Map()), { whole: true });
   // (A column past the data (a view's room after its latest), no day: left empty.)
-  const { g, days } = heatCalendar(data.times), at = Array.from({ length: columns }, (_, c) => ((i) => (i >= 0 && i < n ? days[g[i]] : null))(Math.round(shown.from + ((c + 0.5) / columns) * span)));
+  const { g, days } = heatCalendar(data), at = Array.from({ length: columns }, (_, c) => ((i) => (i >= 0 && i < n ? days[g[i]] : null))(Math.round(shown.from + ((c + 0.5) / columns) * span)));
   /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
   const extra = { wants: [], keys: new Set() };
   const want = (/** @type {string} */ cohort, /** @type {string} */ weight, /** @type {string} */ agg, /** @type {string} */ day) => {
@@ -897,7 +897,7 @@ function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @typ
             }
           }
         }
-        const text = (/** @type {{ at: number, item: any }} */ end) => (pane.stack === "percent" ? format(end.at, "percent") : end.item.mode === 2 ? format(end.at * 100, "percent") : end.item.mode >= 3 ? precise(end.at * 100 + (end.item.from < 0 ? -100 : 100)) : format(end.item.mode === 1 ? 10 ** end.at : end.at, unitFor(end.item.layer, data.results.get(end.item.layer.id))));
+        const text = (/** @type {{ at: number, item: any }} */ end) => (pane.stack === "percent" ? format(end.at, "percent") : end.item.mode === 2 ? format(end.at * 100, "percent") : end.item.mode >= 3 ? precise(indexed(end.at * 100)) : format(end.item.mode === 1 ? 10 ** end.at : end.at, unitFor(end.item.layer, data.results.get(end.item.layer.id))));
         if (most) drawn.scales.push({ y: y(most.at), text: text(most), side });
         if (least && least.at !== most?.at) drawn.scales.push({ y: y(least.at), text: text(least), side });
       }

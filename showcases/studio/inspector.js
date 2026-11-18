@@ -1150,7 +1150,7 @@ function reverseGradient(id) {
 function gradientTicks(layer, width, hand) {
   if (!width) return [];
   // (Each kept with the others of its group, or none of them.)
-  const result = resolved?.results.get(layer.id), ticks = /** @type {[number, number][][]} */ ([]), worth = hand === undefined ? null : gradientWorth(layer, hand);
+  const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), ticks = /** @type {[number, number][][]} */ ([]), worth = hand === undefined ? null : gradientWorth(layer, hand);
   // (None to write (no reference yet, values all the same): the color in hand's alone.)
   if (layer.type === "heatmap") {
     const most = heatLooks.get(layer.id)?.reference ?? 0, pnl = layer.measure === "pnl";
@@ -1172,7 +1172,7 @@ function gradientTicks(layer, width, hand) {
   const clear = (/** @type {[number, string, number, number, boolean]} */ [, , left, size], /** @type {[number, string, number, number, boolean][]} */ others) => others.every(([, , other, room]) => left >= other + room + GAP || left + size <= other - GAP);
   const own = worth && hand !== undefined ? [label(hand, worth, true)] : [], kept = [...own];
   for (const group of ticks) {
-    const shown = group.map(([at, value]) => label(at, axisLabel(value))).filter((tick) => clear(tick, own));
+    const shown = group.map(([at, value]) => label(at, axisLabel(value, "", unit))).filter((tick) => clear(tick, own));
     if (shown.every((tick) => clear(tick, kept))) kept.push(...shown);
   }
   return kept.sort((a, b) => a[0] - b[0]).map(([at, text, left, , own]) => /** @type {[number, string, number, boolean]} */ ([at, text, left, own]));

@@ -1,7 +1,7 @@
 // @ts-check
 /**
  * Chain statistics: every chart of mainnet.observer's kept under its own name, computed from Bitview's series, a day's
- * value the change of a running total and a share the ratio of two. Every count behind them is a series of its own,
+ * value the change of a running total per day, over the days each point spans, and a share the ratio of two. Every count behind them is a series of its own,
  * defined once on the server (the AntPool group, proof of work, signature bytes); these presets only combine them.
  */
 
@@ -22,9 +22,9 @@ export const CHAIN_STATISTICS = "Chain statistics";
  * @returns {SectionNode}
  */
 export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }) {
-  /** A series' change over a day. @param {NamedSeries} series */
-  const perDay = (series) => `diff(${series.name}, 1d)`;
-  /** A running total's change over a day. @param {Cumulative} total */
+  /** A series' change per day, by the days each point spans (see perday). @param {NamedSeries} series */
+  const perDay = (series) => `perday(${series.name})`;
+  /** A running total's change per day. @param {Cumulative} total */
   const daily = (total) => perDay(total.cumulative);
   /** `part` as a percentage of `whole`. @param {string} part @param {string} whole */
   const percent = (part, whole) => `100 * (${part}) / (${whole})`;
@@ -80,7 +80,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
   const underOne = underOneSatVb.map(daily).join(" + ");
 
   const work = t.blocks.work.cumulative, hashrate = t.mining.hashrate.value, difficulty = t.blocks.difficulty.value;
-  const workPerBlock = perBlock(perDay(work));
+  const workPerBlock = perBlock(daily(t.blocks.work));
 
   const pools = t.pools;
   /** Some of a day's blocks, as a share of all. @param {string} blocks */
@@ -122,7 +122,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
       ...sighash("SigHash SINGLE", "single"),
       line("Total signature count", [["ECDSA", ecdsa.count.cumulative.name], ["Schnorr", schnorr.count.cumulative.name]], 1),
       line("Signature count per day", [["ECDSA", daily(ecdsa.count)], ["Schnorr", daily(schnorr.count)]], 7),
-      line("Total ECDSA and Schnorr signature size", [["GB of ECDSA signatures", `${ecdsa.bytes.cumulative.name} / 1000000000`], ["GB of Schnorr signatures", `${schnorr.bytes.cumulative.name} / 1000000000`]], 1),
+      line("Total ECDSA and Schnorr signature size", [["ECDSA signatures", ecdsa.bytes.cumulative.name], ["Schnorr signatures", schnorr.bytes.cumulative.name]], 1),
       ...opcodes("Signature checks by opcode", ["checksig", "checksigverify", "checkmultisig", "checksigadd"]),
       ...opcodes("Timelocks by opcode", ["checklocktimeverify", "checksequenceverify"]),
       ...opcodes("Hashes by opcode", ["hash160", "sha256"]),
@@ -208,7 +208,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
       line("Inputs per outputs", [["Inputs per Outputs", `${day.inputs} / ${day.outputs}`]], 7),
     ]),
     section("Mining", [
-      line("Block time", [["block time", `1440 / ${day.blocks}`]], 7),
+      line("Block time", [["block time, 7-day average", `${t.blocks.interval.avg._1w.name} / 60`]], 1, { format: "minutes" }),
       line("Cumulative log2(work)", [["cumulative log2(work)", `ln(${work.name}) / ln(2)`]], 1),
       line("Cumulative work", [["cumulative work", work.name]], 1, { log: [1] }),
       line("Difficulty", [["difficulty", difficulty.name]], 7),

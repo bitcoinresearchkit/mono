@@ -1,7 +1,7 @@
 // @ts-check
 // What a formula is: its words, parsed, checked and computed over aligned layers.
 import { bandNames, inBands } from "/studio/bands.js";
-import { brushDrag, chart, engine, EXAMPLE, flowsAt, resolved, tree, windowTooLong, within } from "/studio/app.js";
+import { brushDrag, chart, engine, EXAMPLE, flowsAt, indexAt, resolved, timeAt, tree, windowTooLong, within } from "/studio/app.js";
 import { isSeriesName } from "/studio/catalog-walk.js";
 import { $, escapeHtml } from "/studio/dom.js";
 import { grouped } from "/studio/format.js";
@@ -30,7 +30,7 @@ const VALUES = new Set(["date", "year"]);
 
 /** The comparisons, each 1 where true, 0 where false. */
 const COMPARES = new Set(["<", ">", "<=", ">=", "==", "!="]);
-const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "flow", "abs", "macd", "macd_signal", "macd_hist", "when"]);
+const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "flow", "perday", "abs", "macd", "macd_signal", "macd_hist", "when"]);
 /** Functions whose result is a percent, whatever their input's unit. */
 const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
 /** Functions reading more than their arguments (halving cycles' epochs) or how they're written (rebase of a shift): computed each time. */
@@ -416,6 +416,27 @@ function rebaseOf(x, by, moved = false) {
   if (marks) restarts.set(out, marks);
   return out;
 }
+/**
+ * A running total's change over each point's period, per day: by the days that period holds, so a day, a week or a
+ * month each give the same rate (a total sampled at each period's end); the point still open (its period reaches past
+ * now) its change so far over the time elapsed. The first value's change is from nothing where the data is all of
+ * history (`partial`), else none: a chunk starts from a total it doesn't hold.
+ */
+function perDayOf(x, times, index, partial) {
+  const out = new Float64Array(x.length).fill(NaN), now = Date.now() / 1000;
+  let before = -1;
+  for (let i = 0; i < x.length; i++) {
+    if (!Number.isFinite(x[i])) continue;
+    // (A period ends where the next begins, the last where the client's next one does.)
+    const end = i + 1 < times.length ? times[i + 1] : timeAt(index, indexAt(index, times[i]) + 1);
+    if (before >= 0 || partial) {
+      const days = (Math.min(end, now) - (before >= 0 ? times[before + 1] : times[i])) / 86400;
+      if (days > 0) out[i] = (x[i] - (before >= 0 ? x[before] : 0)) / days;
+    }
+    before = i;
+  }
+  return out;
+}
 function shifted(x, n, f) {
   const out = new Float64Array(x.length).fill(NaN);
   let before = -1;
@@ -459,6 +480,7 @@ const FUNCTIONS = {
   change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
   diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
   flow: [2, "flow(x, span)", "calendar-year change in a cumulative total; zero before the total's first value, missing samples after it stay missing", (x, n, _p, partial) => ((first) => x.map((value, i) => value - (i - n < first && partial ? 0 : x[i - n])))(x.findIndex(Number.isFinite))],
+  perday: [1, "perday(x)", "a running total's change per day: over each point, by the days it spans (a week's or a month's own); the latest, still open, its change so far over the time elapsed", null],
   shift: [2, "shift(x, by)", "x moved later by a span, earlier by a negative one (1y to the same date a year on, 1halving as far into the next halving cycle as into its own)", null],
   cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
   drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
@@ -827,6 +849,7 @@ function evaluateAnew(node, length, ref, index, inWindow) {
           if ([n, at ?? least].some((period) => typeof period !== "number" || !Number.isInteger(period) || period < least)) throw new Error(`${signature}: ${says}`);
           return periodAlone(vec(args[0]), cycles ? vec(ref("halving_epoch", "series")) : yearsOf(vec(ref("date", "date"))), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
         }
+        if (node.f === "perday") return restarted(perDayOf(vec(args[0]), vec(ref("date", "date")), index, !FINE.has(index)), args[0]);
         // (Where one has none, none: an infinity too, a division by 0.)
         if (!run) return lift(args[0], args[1], ((most) => (/** @type {number} */ x, /** @type {number} */ y) => (Number.isFinite(x) && Number.isFinite(y) ? most(x, y) : NaN))(node.f === "min" ? Math.min : Math.max));
         if (windowed) {

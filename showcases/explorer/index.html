@@ -1948,21 +1948,24 @@
         w.times.forEach((t, i) => {
           if (t < t0 || w.lows[i] === null) return;
           const hour = Math.floor(Math.min(t, t1) / 3600);
-          hours.set(hour, Math.min(hours.get(hour) ?? Infinity, Math.max(0.05, w.lows[i])));
+          hours.set(hour, Math.min(hours.get(hour) ?? Infinity, w.lows[i]));
         });
         const points = [...hours].sort((a, b) => a[0] - b[0]).map(([hour, r]) => [Math.min(t1, hour * 3600 + 1800), r]);
         if (!points.length) return;
         const values = points.map(([, r]) => r);
-        const lo = Math.min(now, ...values) * 0.85;
+        // The scale is a log one: a rate under FLOOR, a zero too (some blocks take transactions paying nothing), is drawn
+        // at FLOOR, its figure kept as read.
+        const FLOOR = 0.05;
+        const lo = Math.max(FLOOR, Math.min(now, ...values)) * 0.85;
         const hi = Math.max(now, ...values) * 1.15;
         const x = (t) => ((t - t0) / (t1 - t0)) * W;
-        const y = (r) => H - ((Math.log(r) - Math.log(lo)) / (Math.log(hi) - Math.log(lo))) * H;
+        const y = (r) => H - ((Math.log(Math.max(r, FLOOR)) - Math.log(lo)) / (Math.log(hi) - Math.log(lo))) * H;
         const line = points.map(([t, r], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${y(r).toFixed(1)}`).join("");
         const parts = [];
-        // Each midnight a hairline, the day after it named under the chart where it has room.
-        const midnight = new Date(t1 * 1000);
-        midnight.setHours(0, 0, 0, 0);
-        for (let m = midnight.getTime() / 1000; m > t0; m -= 86400) {
+        // Each midnight a hairline, the day after it named under the chart where it has room (stepped by the calendar:
+        // a day is 23 or 25 hours where the clocks change).
+        for (const midnight = new Date(t1 * 1000); midnight.setHours(0, 0, 0, 0) / 1000 > t0; midnight.setDate(midnight.getDate() - 1)) {
+          const m = midnight.getTime() / 1000;
           parts.push(`<line x1="${x(m)}" x2="${x(m)}" y1="0" y2="${H}" style="stroke:var(--hair)"/>`);
           if (x(m) + 30 < W) parts.push(`<text x="${x(m) + 6}" y="${H + 16}">${new Date(m * 1000).toLocaleDateString("en-US", { weekday: "short" })}</text>`);
         }
@@ -1975,7 +1978,7 @@
         const dearer = values.filter((r) => r > now).length / values.length;
         const cheaper = values.filter((r) => r < now).length / values.length;
         const pct = (f) => `${nf(0).format(f * 100)}%`;
-        $("week-say").innerHTML = `Each hour's cheapest way in: <b>${rateNum(Math.min(...values))}</b> to <b>${rate(Math.max(...values))}</b>.${
+        $("week-say").innerHTML = `Each hour's estimated cheapest way in: <b>${rateNum(Math.min(...values))}</b> to <b>${rate(Math.max(...values))}</b>.${
           dearer > cheaper ? ` Now is cheaper than ${pct(dearer)} of those hours.` : cheaper > dearer ? ` Now is dearer than ${pct(cheaper)} of those hours.` : ""
         }`;
       }
@@ -2671,7 +2674,7 @@
             ? `In block ${int(k.height)}${nowS() - k.time > 365.25 * 86400 ? ` on ${day(k.time)}` : `, ${ago(k.time)}`}: ${int(k.conf)} confirmations deep.`
             : `In block ${int(k.height)}, ${ago(k.time)}: ${k.conf} of the ${SETTLE} confirmations most services wait for.`;
         k.say = k.coinbase
-          ? "New coins: the miner's reward, with no fee."
+          ? "The miner's reward, the block's new coins and its fees, with no fee of its own."
           : !block
             ? ""
             : times === null
@@ -2917,7 +2920,7 @@
         a ? `<a class="addr" href="${url.address(a)}">${esc(a)}</a>` : `<span class="addr soft">${esc(type === "op_return" ? "OP_RETURN" : type)}</span>`;
       const inputRow = (c) =>
         c.coinbase
-          ? `<li><span class="addr soft">New coins, the coinbase</span><span class="val">${btc(c.value)}</span></li>`
+          ? `<li><span class="addr soft">Block reward, subsidy and fees</span><span class="val">${btc(c.value)}</span></li>`
           : `<li>${addrLink(c.address, c.type)}<span class="val">${btc(c.value)}</span>
               <small>${c.age === null ? `<a href="${url.tx(c.from)}">from its transaction</a>` : c.unconfirmed ? "unconfirmed" : `<a href="${url.tx(c.from)}">born in ${int(c.height)}</a> · held ${span(c.age)}`}</small>
               <small>${c.pnl !== undefined && !c.unconfirmed ? `<span class="${tone(c.pnl)}">${signed(c.pnl)}</span>` : ""}</small></li>`;
@@ -3026,7 +3029,7 @@
         for (const [i, y, up, down] of labelled(inMid, 1)) {
           const c = ins[i];
           const second = c.coinbase
-            ? "new coins"
+            ? "block reward"
             : c.rest
               ? `and ${int(c.rest)} more`
               : c.pnl !== undefined && !c.unconfirmed

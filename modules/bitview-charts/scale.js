@@ -6,6 +6,9 @@
 
 /** @typedef {"linear" | "log" | "percent" | "indexed"} ScaleMode */
 
+/** An indexed scale's reading of a change of `percent` from its base: from 100, whatever the base's sign (a rise still reads as one). The one rule every reading of an indexed value follows. @param {number} percent */
+export const indexed = (percent) => 100 + percent;
+
 /** Ticks' least room between them (CSS pixels): two and a half lines of text, as the chart library marked them. */
 export const EVERY = 28;
 /**
@@ -147,15 +150,16 @@ export class Scale {
   }
 
   /**
-   * A relative scale's series read against `base` (its first value in view): its percent change from it, or 100 at it
-   * (a negative base read the other way, as the chart library did). Else, as they are.
+   * A relative scale's series read against `base` (its first value in view): its percent change from it, or 100 at it,
+   * either way (a negative base: a rise still reads as one, over |base|). Else, as they are.
    * @param {number} base
    */
   setBase(base) {
     if (!this.relative || !base || base !== base) return void ((this.#m = 1), (this.#c = 0));
     const size = Math.abs(base);
     this.#m = 100 / size;
-    this.#c = (-100 * base) / size + (this.mode === "indexed" ? (base < 0 ? -100 : 100) : 0);
+    const offset = (-100 * base) / size;
+    this.#c = this.mode === "indexed" ? indexed(offset) : offset;
   }
 
   /** Its mapping made again (see #foot). */
