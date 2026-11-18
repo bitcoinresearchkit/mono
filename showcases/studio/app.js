@@ -62,15 +62,14 @@ import {
   writeText, zoom,
 } from "/studio/chart.js";
 import {
-  aboutOf, actionable, actionsFor, activeOption, addedFrom, afterDrawn, applyScope, AROUND, browseInstead, browseRows,
-  byUse, catalogTops, chartActions, chartsPage, choose, columnsOf, commandItem, commands, dangerous, datePage,
-  drawOptions, finder, findSeries, fitScore, formulaAt, formulaError, goesOn, goUp, headMenu, insertPiece, isOwnFormula,
-  keyboard, keyboardKey, keyed, layerRow, leavePages, leaveScope, litFirst, loopError, meansOf, nodeAt, openPage,
-  optionsHtml, otherLayerRows, outOfData, palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneRow, placeOnHome,
-  pointsOf, popPage, presetPicked, preview, previewDate, rank, ranksSoon, readColor, readDate, recentRow, renderPath,
-  rowText, scalePane, searchCase, searchSeries, searchText, seriesPicked, settingChoices, settingsNow, showActions,
-  showFormula, showPage, startFinder, stepSignal, stretchOf, textWords, timesPage, typedWords, underHome, USED,
-  useScore, wayText,
+  actionable, actionsFor, activeOption, addedFrom, afterDrawn, applyScope, AROUND, browseInstead, browseRows, byUse,
+  catalogTops, chartActions, chartsPage, choose, columnsOf, commandItem, commands, dangerous, datePage, drawOptions,
+  finder, findSeries, fitScore, formulaAt, goesOn, goUp, headMenu, insertPiece, isOwnFormula, keyboard, keyboardKey,
+  keyed, layerRow, leavePages, leaveScope, litFirst, meansOf, nodeAt, openPage, optionsHtml, otherLayerRows, outOfData,
+  palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneRow, placeOnHome, pointsOf, popPage, presetPicked, preview,
+  previewDate, rank, ranksSoon, readColor, readDate, recentRow, renderPath, rowText, scalePane, searchCase,
+  searchSeries, searchText, seriesPicked, settingChoices, settingsNow, showActions, showFormula, showPage, startFinder,
+  stepSignal, stretchOf, textWords, timesPage, typedWords, underHome, USED, useScore, wayText,
 } from "/studio/command.js";
 import {
   backChip, backOf, beltPopover, beltSide, beltTabs, beltTool, boxKey, dockChoices, drawingAt, drawingById,
@@ -114,14 +113,15 @@ import {
   simplify, toggleCohort,
 } from "/studio/heatmaps.js";
 import {
-  acceptSuggestion, addFormula, addFrom, addLevel, addStop, afterPress, assistKey, bandOf, barAt, changeSeries,
-  chooseSuggestion, closestSeries, colorLevels, colorModeChoices, colorSlot, colorSource, copyName, drawPlanes,
-  dropSuggestions, duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, fillOf,
-  flushPick, focusKey, formatMenu, fromChoices, gradientEdit, hexField, hideLayers, HUES, inHand, insertAtCaret,
-  inspectorDue, keepFocus, labelOf, layerActions, layerById, layerMenu, layersMenu, levelRows, levelSteps, lineAt,
-  lineLook, lineMenu, markTyping, modeOf, moveLayer, moveStop, multiEdit, named, overShort, ownColor, paneLayers,
-  paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress,
-  placeAssist, placeOf, planeHtml, planeOf, planeTarget, rangeOf, readNumber, readsOf, readyPage, refMenu, removeLayer,
+  acceptSuggestion, addFormula, addFrom, addLevel, addStop, afterPress, applyFormula, applyFormulaLeft, assistKey,
+  bandOf, barAt, changeSeries, chooseSuggestion, closestSeries, colorLevels, colorModeChoices, colorSlot, colorSource,
+  copyName, drawPlanes, drawWhenReady, dropSuggestions, duplicateLayer, duplicateLayers, editAdded, editById,
+  editingMany, editLayer, editPicked, fillOf, flushPick, focusKey, formatMenu, formulaDrafts, formulaFieldLeft,
+  fromChoices, gradientEdit, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, keepFocus, labelOf,
+  layerActions, layerById, layerMenu, layersMenu, leaveFormula, levelRows, levelSteps, lineAt, lineLook, lineMenu,
+  markTyping, modeOf, moveLayer, moveStop, multiEdit, named, overShort, ownColor, paneLayers, paneMenu, paneMode,
+  penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress, placeAssist, placeOf,
+  planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf, readNumber, readsOf, readyPage, refMenu, removeLayer,
   removeLayers, removeStop, renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient,
   rewrite, setColor, setFit, setLineLook, setSlider, sharedBy, showEvery, showPicks, showSelection, showStop,
   showSuggestions, slider, sliders, soloLayer, STACK_WIDTH, stackedIn, stackOf, suggest, suggestHere, TAG_NEEDS_LINE,
@@ -1206,29 +1206,6 @@ const forgetView = (id) => {
 };
 /** The view a chart came with (a link's, a file's) given to the one it's alike: none, that one's forgotten. @param {string} from @param {string} to */
 const takeView = (from, to) => (viewsNow()[from] ? moveView(from, to) : forgetView(to));
-/**
- * A formula left unfinished in the panel (one that doesn't read yet), by chart id (a chart given a new id, they
- * follow) and layer: shown again with its error when its layer's open (the layer keeps the last that read), till it
- * reads and is applied, esc lets it go, or the layer's formula is changed otherwise (`over`: the formula it was
- * typed over; see pruneDrafts).
- * @type {Map<string, Map<string, { text: string, over: string }>>}
- */
-const formulaDrafts = new Map();
-/** The drafts whose formulas were changed otherwise (an edit, an undo, another tab's) let go; a chart not here now (a preset let go till it's opened again) keeps its. */
-function pruneDrafts() {
-  let shown = false;
-  for (const [id, drafts] of formulaDrafts) {
-    const doc = chartById(id) ?? (id === chart?.id ? chart : null);
-    if (doc) for (const [layer, draft] of drafts) if (doc.layers.find((item) => item.id === layer)?.formula !== draft.over) (drafts.delete(layer), (shown ||= id === chart?.id && layer === selected));
-  }
-  // (The one the panel shows let go while it's not being typed in (the panel kept as another field's focused): the
-  // field as its layer is.)
-  const field = document.getElementById("formula"), layer = layerById(selected);
-  if (!shown || !(field instanceof HTMLTextAreaElement) || document.activeElement === field || layer?.formula === undefined) return;
-  formulaTyped++;
-  field.value = layer.formula;
-  updateFormula(layer);
-}
 /** A chart given a new id (its own taken): its view, this tab's place in the history and the chart open follow. @param {Chart} doc @param {string} id */
 const rekey = (doc, id) => {
   const old = doc.id;
@@ -7436,55 +7413,8 @@ document.addEventListener("focusout", (event) => {
     else if (layer && DEFAULTS.base.is(layer)) reset?.remove();
     return;
   }
-  if (field.id !== "formula") return;
-  $("formula-editor")?.classList.remove("typing");
-  // (After the press that left it, if one did: the panel drawn anew now would lose the control pressed. Before
-  // anything leaves the chart, though: see leaveField. Left with the window too: one that reads applied, else kept
-  // as typed, a draft (see formulaDrafts), nothing lost.)
-  formulaLeft = { id: selected, text: field.value };
-  formulaTyped++;
-  afterPress(applyFormulaLeft);
+  if (field.id === "formula") formulaFieldLeft(/** @type {HTMLTextAreaElement} */ (event.target));
 });
-/** A formula left (its field blurred), waiting for the press that left it to be done: applied on the chart it was typed on. */
-let formulaLeft = /** @type {{ id: string, text: string } | null} */ (null);
-function applyFormulaLeft() {
-  const left = formulaLeft;
-  formulaLeft = null;
-  if (left) applyFormula(left.id, left.text);
-}
-/**
- * A layer's formula as typed, applied once it's left (or the page is) if it reads, as ⌘K's formula page does; one
- * that doesn't leaves the layer with the last that did, and is kept as it was typed, its error said (see
- * formulaDrafts): a tap away loses nothing.
- */
-function applyFormula(/** @type {string} */ id, /** @type {string} */ text) {
-  const layer = layerById(id);
-  if (layer?.formula === undefined) return;
-  if (layer.formula === text) return void formulaDrafts.get(chart.id)?.delete(id);
-  if (!formulaError(text) && !loopError(layer, text)) return (formulaDrafts.get(chart.id)?.delete(id), editById(id, (item) => (item.formula = text), { coalesce: `formula:${id}` }));
-  if (!formulaDrafts.has(chart.id)) formulaDrafts.set(chart.id, new Map());
-  formulaDrafts.get(chart.id)?.set(id, { text, over: layer.formula });
-  const field = /** @type {HTMLTextAreaElement | null} */ ($("formula"));
-  if (!field || selected !== id || document.activeElement === field) return;
-  // (Its error said, typing done: no draw of what was typed left to come, nor the field's own input run. The panel
-  // drawn anew meanwhile (a click that left it, on a style), the field shows it again.)
-  formulaTyped++;
-  field.value = text;
-  updateFormula(layer);
-  $("formula-editor")?.classList.remove("typing");
-}
-/** ↵ or esc in the formula: ↵ done if it reads (else it stays, saying why); esc done as it reads, or as it last read. */
-function leaveFormula(/** @type {HTMLTextAreaElement} */ field, /** @type {boolean} */ enter) {
-  const layer = layerById(selected), problem = formulaError(field.value) || (layer ? loopError(layer, field.value) : "");
-  if (problem && enter) return void ($("formula-editor")?.classList.remove("typing"), say(problem));
-  if (problem && layer?.formula !== undefined) {
-    formulaDrafts.get(chart.id)?.delete(layer.id);
-    formulaTyped++;
-    field.value = layer.formula;
-    updateFormula(layer);
-  }
-  letGo(field);
-}
 // A number's field stepped by its arrows, as a number field is: a unit (with ⇧, ten).
 $("inspector").addEventListener("keydown", (event) => {
   const field = /** @type {HTMLInputElement} */ (event.target);
@@ -7574,19 +7504,6 @@ $("inspector").addEventListener("focusin", (event) => {
   if (event.target.id !== "formula") return;
   suggestHere();
 });
-/** The last formula typed, for its draw once it's ready (a later keystroke's takes its place). */
-let formulaTyped = 0;
-/**
- * A layer's formula as typed, drawn once it's one to draw: it reads, its layers are here, its series are Bitview's
- * (this machine's catalog says; before it's up, as soon as it reads). Till then the chart keeps the last one that was.
- */
-async function drawWhenReady(/** @type {string} */ id, /** @type {string} */ text) {
-  const turn = ++formulaTyped, layer = layerById(id);
-  if (formulaError(text) || (layer && loopError(layer, text))) return;
-  const series = [...refsOf(parse(text), "series")];
-  if (finder.ready && finder.worker && series.length && (await Promise.all(series.map(aboutOf))).some((about) => !about)) return;
-  if (turn === formulaTyped && layerById(id)?.formula?.trim() !== text.trim()) editById(id, (layer) => (layer.formula = text), { coalesce: `formula:${id}` });
-}
 document.addEventListener("selectionchange", () => document.activeElement?.id === "formula" && suggestHere());
 $("inspector").addEventListener("focusout", (event) => event.target.id === "formula" && dropSuggestions());
 $("inspector").addEventListener("scroll", (event) => {
@@ -11203,11 +11120,11 @@ export {
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,
   drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours, editChart, edits,
   EMPTY, emptyYours, engine, EXAMPLE, exporting, firstForm, firstLook, fitMargins, flowsAt, FOLDER_ICONS, folderAgain,
-  folderMark, folderNow, footPinned, formatName, formulaDrafts, formulaFit, formulaLine, fromLetters, fromShort,
-  fromSpan, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, gesturePointer,
-  goneLayer, goTo, goToDate, goToTime, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS,
-  HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright,
-  hideBelt, hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
+  folderMark, folderNow, footPinned, formatName, formulaFit, formulaLine, fromLetters, fromShort, fromSpan, fromUnfit,
+  galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, gesturePointer, goneLayer, goTo,
+  goToDate, goToTime, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, HEAT_PICTURE_AGG,
+  HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright, hideBelt,
+  hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
   importCharts, indexAt, indexCatalog, inLibrary, isDeleted, isOhlc, isPreview, isView, isYours, keepChart, keepDrawing,
   keepSidePresets, keepsLeaving, keepStretch, kept, keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping,
   layerPicks, layersBatch, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, lensAt, letterChip, letterOf,
