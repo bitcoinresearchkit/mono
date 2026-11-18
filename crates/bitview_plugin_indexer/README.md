@@ -52,9 +52,10 @@ composition can roll back ahead of the update (`Indexer::reorg`,
 `Indexer::roll_back_to`) to rewind its own in-place data in the same step. If
 the source or on-disk schema is incompatible, its owned plugin directory is
 rebuilt.
-A rollback (or a rebuild beside other plugins' data) persists a rollback floor
-that the next import publishes, so dependents recompute from it even after a soft
-quit; a complete update's commit clears it.
+A rollback persists a rollback floor that the next import publishes, so
+dependents recompute from it even after a soft quit; a complete update's commit
+clears it. An import that finds the indexer empty (a new install, a rebuild, its
+folder deleted) removes every other plugin's data instead, before any opens.
 
 Dependents recompute from `Indexer::compute_start`: the update's resume point,
 lowered to that floor, fixed for the whole update. The publication only guards

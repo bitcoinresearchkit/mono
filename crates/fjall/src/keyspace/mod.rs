@@ -70,10 +70,14 @@ impl Keyspace {
             .tree_config(&path, database)
             .open()
             .map_err(|error| match error {
-                // An I/O error carries no path: name the keyspace's folder.
+                // An I/O error carries no path: name the keyspace's folder, and what to do.
                 lsm_tree::Error::Io(error) => Error::Io(io::Error::new(
                     error.kind(),
-                    format!("{}: {error}", path.display()),
+                    format!(
+                        "{}: {error}. Nothing was deleted: fix the cause (permissions, a full or \
+                         failing disk), then restart",
+                        path.display()
+                    ),
                 )),
                 error => Error::Storage(error),
             })?;

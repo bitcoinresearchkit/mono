@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::Height;
 
-/// The lowest height dependents must recompute from after a rollback or a reset. It persists
+/// The lowest height dependents must recompute from after a rollback. It persists
 /// until a complete update commits, so a soft quit between the indexer's save and the
 /// dependents' (or a bootstrap pass that computes only the indexer) can't leave their rows from
 /// orphaned or replaced blocks in place.
