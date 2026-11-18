@@ -1,114 +1,45 @@
-use std::io::Read;
-
-use crate::{ReadPin, check_bound};
-use bitcoin::{Block as BitcoinBlock, Weight, consensus::deserialize, p2p::Magic};
-use brk_reader::BlkRead;
 use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
 
-use crate::{Error, OptionData, Query, Result};
-
-// Serialized bytes cannot exceed weight: each byte contributes at least one WU.
-const MAX_BLOCK_BYTES: u64 = Weight::MAX_BLOCK.to_wu();
-
-struct RawRecord {
-    reader: BlkRead,
-    size: u64,
-    weight: u64,
-    count: u32,
-}
+use super::header::HEADER_SIZE;
+use crate::{Error, OptionData, Query, ReadPin, Result};
 
 impl Query {
-    fn open_raw_record(&self, height: Height, guard: &ReadPin) -> Result<RawRecord> {
-        let safe = guard.lengths();
-        check_bound(guard, height, safe.height)?;
-        if height >= safe.height {
-            return Err(Error::NotFound("Block not found".into()));
-        }
-        let vecs = self.indexer().vecs();
-        let position = vecs.blocks.position.collect_one(height).data()?;
-        let size = u64::from(*vecs.blocks.size.collect_one(height).data()?);
-        let weight = u64::from(*vecs.blocks.weight.collect_one(height).data()?);
-        if weight > Weight::MAX_BLOCK.to_wu() || size > weight {
-            return Err(Error::Internal("Invalid indexed block weight"));
-        }
-        let (_, count) = self.block_tx_range(height, guard)?;
-        let offset = position
-            .offset()
-            .checked_sub(8)
-            .ok_or(Error::Internal("Block position precedes its frame"))?;
-        let reader = self
-            .reader()
-            .reader_at(BlkPosition::new(position.blk_index(), offset))?;
-        Ok(RawRecord {
-            reader,
-            size,
-            weight,
-            count: count as u32,
-        })
+    /// Where the published block at `height` lies in the node's block files, and its size.
+    fn raw_record(&self, height: Height, guard: &ReadPin) -> Result<(BlkPosition, usize)> {
+        let position = self.block_position(height, guard)?;
+        let size = self.indexer().vecs().blocks.size.collect_one(height);
+        Ok((position, *size.data()? as usize))
     }
 
-    fn read_raw_record(mut reader: impl Read, size: u64, hash: &BlockHash) -> Result<Vec<u8>> {
-        let header = Self::read_raw_prefix(&mut reader, size, hash)?;
-        let mut bytes = vec![0; size as usize];
-        bytes[..80].copy_from_slice(&header);
-        reader.read_exact(&mut bytes[80..])?;
-        Ok(bytes)
-    }
-
-    fn read_raw_prefix(mut reader: impl Read, size: u64, hash: &BlockHash) -> Result<[u8; 80]> {
-        if !(81..=MAX_BLOCK_BYTES).contains(&size) {
-            return Err(Error::Internal("Invalid indexed block size"));
-        }
-        // This reader indexes Bitcoin-mainnet blk records (same magic as scan).
-        // Read framing and header together, before allocating the payload.
-        let mut prefix = [0u8; 88];
-        reader.read_exact(&mut prefix)?;
-        if prefix[..4] != Magic::BITCOIN.to_bytes()
-            || u64::from(u32::from_le_bytes(prefix[4..8].try_into().unwrap())) != size
-        {
-            return Err(Error::Internal("Block frame differs from index"));
-        }
-        Self::verify_header(&prefix[8..], hash)?;
-        Ok(prefix[8..].try_into().unwrap())
-    }
-
-    fn verify_raw_payload(bytes: &[u8], weight: u64, count: u32) -> Result<()> {
-        // Check the indexed count before a decoder allocates its transaction list.
-        Self::read_block_tx_count(&bytes[80..], count)?;
-        let block: BitcoinBlock =
-            deserialize(bytes).map_err(|_| Error::Internal("Invalid raw block payload"))?;
-        if block.weight().to_wu() != weight
-            || !block.check_merkle_root()
-            || !block.check_witness_commitment()
-        {
-            return Err(Error::Internal("Raw block commitments differ from index"));
-        }
-        Ok(())
-    }
-
-    /// Borrow the pinned immutable prefix through the complete payload read.
+    /// The block's bytes as the node stored them. The header's hash is the whole proof that the
+    /// indexed position holds the block asked for. The transactions under it are the node's own
+    /// record, served as stored: decoding them to recompute the merkle root, the witness
+    /// commitment and the weight cost about 20 ms per MB on every request.
     pub(super) fn block_raw_at_height(
         &self,
         height: Height,
         hash: &BlockHash,
         guard: &ReadPin,
     ) -> Result<Vec<u8>> {
-        let mut record = self.open_raw_record(height, guard)?;
-        let bytes = Self::read_raw_record(&mut record.reader, record.size, hash)?;
-        Self::verify_raw_payload(&bytes, record.weight, record.count)?;
+        let (position, size) = self.raw_record(height, guard)?;
+        let bytes = self.reader().read_raw_bytes(position, size)?;
+        let header = bytes
+            .first_chunk::<HEADER_SIZE>()
+            .ok_or(Error::Internal("Indexed block smaller than a header"))?;
+        Self::verify_header(header, hash)?;
         Ok(bytes)
     }
-    /// Validate framing and identity without reading or allocating the payload.
-    /// Borrows the pinned prefix; payload integrity remains a GET check.
+
+    /// The block's size, once its header is the block asked for: the transactions are not read.
     pub(super) fn block_raw_size_at_height(
         &self,
         height: Height,
         hash: &BlockHash,
         guard: &ReadPin,
     ) -> Result<u64> {
-        let mut record = self.open_raw_record(height, guard)?;
-        Self::read_raw_prefix(&mut record.reader, record.size, hash)?;
-        Ok(record.size)
+        let (position, size) = self.raw_record(height, guard)?;
+        Self::verify_header(&self.reader().read_raw_bytes(position, HEADER_SIZE)?, hash)?;
+        Ok(size as u64)
     }
 }

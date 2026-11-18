@@ -3,7 +3,7 @@ use bitcoin::{
     hashes::Hash, hex::DisplayHex,
 };
 use bitview_types::BlockHeader;
-use brk_types::{BlockHash, Height};
+use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
@@ -41,23 +41,23 @@ impl Query {
         Ok(BlockHeader::from(raw))
     }
 
+    /// Where the published block at `height` begins in the node's block files.
+    pub(super) fn block_position(&self, height: Height, guard: &ReadPin) -> Result<BlkPosition> {
+        check_bound(guard, height, guard.lengths().height)?;
+        if height >= guard.lengths().height {
+            return Err(Error::NotFound("Block not found".into()));
+        }
+        let position = self.indexer().vecs().blocks.position.collect_one(height);
+        position.data()
+    }
+
     pub(super) fn block_header_hex_at_height(
         &self,
         height: Height,
         hash: &BlockHash,
         guard: &ReadPin,
     ) -> Result<String> {
-        check_bound(guard, height, guard.lengths().height)?;
-        if height >= guard.lengths().height {
-            return Err(Error::NotFound("Block not found".into()));
-        }
-        let position = self
-            .indexer()
-            .vecs()
-            .blocks
-            .position
-            .collect_one(height)
-            .data()?;
+        let position = self.block_position(height, guard)?;
         let bytes = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
         Self::verify_header(&bytes, hash)?;
         Ok(bytes.to_lower_hex_string())

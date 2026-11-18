@@ -140,7 +140,7 @@ impl Query {
                 s
             };
 
-            let (_, decoded) = indexer.read_tx_at(position, *total_size as usize, txid)?;
+            let (_, decoded) = indexer.read_tx_at(position, *total_size as usize)?;
 
             total_inputs += decoded.input.len();
 

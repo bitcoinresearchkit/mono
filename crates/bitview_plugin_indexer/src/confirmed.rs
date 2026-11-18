@@ -1,4 +1,4 @@
-use bitcoin::{ScriptBuf, Transaction, Weight as BitcoinWeight, consensus::deserialize};
+use bitcoin::{ScriptBuf, Transaction, consensus::deserialize};
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
@@ -23,33 +23,16 @@ impl<M: StorageMode> Indexer<M> {
             .position
             .collect_one(index)
             .ok_or_else(missing)?;
-        let txid = transactions.txid.collect_one(index).ok_or_else(missing)?;
-        self.read_tx_at(position, size, txid)
+        self.read_tx_at(position, size)
     }
 
-    /// One indexed transaction from metadata the caller read, without trusting persisted
-    /// allocation lengths or accepting a different transaction at a stale/corrupt position.
-    pub fn read_tx_at(
-        &self,
-        position: BlkPosition,
-        size: usize,
-        txid: Txid,
-    ) -> Result<(Vec<u8>, Transaction)> {
-        if size == 0 || size > BitcoinWeight::MAX_BLOCK.to_wu() as usize {
-            return Err(Error::Internal(
-                "Indexed transaction size exceeds block bounds",
-            ));
-        }
+    /// One indexed transaction from the position and size the caller read. The index wrote both
+    /// from this node's block files, so the bytes there are the transaction: nothing is hashed
+    /// to check it again, as a raw block's transactions are not (`Query::block_raw_at_height`).
+    pub fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<(Vec<u8>, Transaction)> {
         let bytes = self.reader().read_raw_bytes(position, size)?;
-        let transaction: Transaction = deserialize(&bytes)
+        let transaction = deserialize(&bytes)
             .map_err(|_| Error::Internal("Invalid indexed transaction encoding"))?;
-        if Txid::from(transaction.compute_txid()) != txid
-            || transaction.weight() > BitcoinWeight::MAX_BLOCK
-        {
-            return Err(Error::Internal(
-                "Indexed transaction identity or weight mismatch",
-            ));
-        }
         Ok((bytes, transaction))
     }
 
