@@ -150,6 +150,9 @@ where
     #[cfg(not(feature = "full-api"))]
     let query = AsyncQuery::build(&plugins, None);
 
+    #[cfg(feature = "full-api")]
+    query.sync(bitview_query::Query::verify_block_positions)?;
+
     // Before the server answers: a row first served without its stale blocks can stay so on the
     // CDN.
     #[cfg(feature = "full-api")]

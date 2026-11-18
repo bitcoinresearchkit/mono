@@ -11,6 +11,19 @@ use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 pub(super) const HEADER_SIZE: usize = 80;
 
 impl Query {
+    /// Refuse a mismatched blocks directory before any stored positions are served.
+    pub fn verify_block_positions(&self) -> Result<()> {
+        let guard = self.pin_safe_lengths()?;
+        if let Some(tip) = guard.lengths().last_height() {
+            for height in [0, *tip / 4, *tip / 2, *tip - *tip / 4, *tip] {
+                let height = Height::from(height);
+                let hash = self.block_hash_by_height(height, &guard)?;
+                self.verified_header(height, &hash, &guard)?;
+            }
+        }
+        Ok(())
+    }
+
     /// The header at `height`, checked against its pinned hash like every other header read.
     pub(crate) fn read_block_header_at(
         &self,
@@ -53,7 +66,16 @@ impl Query {
     ) -> Result<Vec<u8>> {
         let position = self.block_position(height, guard)?;
         let bytes = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
-        Self::verify_header(&bytes, hash)?;
+        Self::verify_header(&bytes, hash).map_err(|error| {
+            let found = BlockHash::from(BitcoinBlockHash::hash(&bytes));
+            let path = self
+                .blocks_dir()
+                .join(format!("blk{:05}.dat", position.blk_index()));
+            std::io::Error::other(format!(
+                "{error} at height {height}: expected {hash}, found {found}, blk path {}",
+                path.display()
+            ))
+        })?;
         Ok(bytes)
     }
 
