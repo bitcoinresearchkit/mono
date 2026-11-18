@@ -808,6 +808,20 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- `/api/block/{hash}/raw` serves the block's bytes as the node's block file holds them once the 80-byte header there
+  hashes to the block asked for, instead of decoding the block to recompute its merkle root, witness commitment and
+  weight on every request (18 ms on a 1.63 MB block; first hits on 1-2 MB blocks took 35 ms at p50 on bitview.space).
+  Confirmed transaction reads (`/api/tx/{txid}`, `/hex`, `/raw`, block and address transaction pages) decode the
+  bytes at the indexed position without hashing them to compare the txid (0.62 µs per transaction, was 1.9). Bodies
+  and headers are byte-identical on a 301-block regtest chain, and raw bodies equal the node's. On purpose, the
+  header's hash is now the only check a read makes against the block files, since the index wrote its positions and
+  sizes from them: bytes changed inside a block under an intact header are served as stored (was a 500); an indexed
+  size that disagrees with the file serves the block cut short, or with the bytes that follow it; a transaction
+  position holding other bytes that still decode serves those (each was a 500). Such an answer carries the route's
+  `immutable` cache headers, so a CDN keeps it. The indexer's dust-output read (`Indexer::dust_outputs`, behind the
+  `DUST_OUTPUT` flag) reads through the same path and no longer checks that it got the transaction indexed either. A
+  header that doesn't hash to its block still answers 500, and BlindBit's `spent-index` now makes that check in
+  release builds too (it was a debug assertion)
 - `/api/urpd/{cohort}/{point}` reads the block's distribution from a stored URPD history (each block's changes, every
   cell checkpointed each 250 blocks) instead of rebuilding the UTXO set at that block and a price grid: a cold point
   read takes at most 4.4 ms at p90 (raw, any era; 12-32 ms before), and 256 distinct points at 64 at once all answer

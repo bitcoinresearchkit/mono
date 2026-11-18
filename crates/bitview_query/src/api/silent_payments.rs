@@ -3,7 +3,7 @@
 
 use std::ops::Range;
 
-use bitcoin::{Block, consensus::deserialize, hashes::Hash, hex::DisplayHex};
+use bitcoin::{Block, consensus::deserialize, hex::DisplayHex};
 use bitview_plugin_outputs::published_spend;
 use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
 use bitview_primitives::{Lengths, TxInIndex};
@@ -264,20 +264,10 @@ impl Query {
         let height = block.height.to_usize();
         let mut data = Vec::new();
         if height >= TAPROOT_ACTIVATION {
-            let vecs = self.indexer().vecs();
-            let position = vecs.blocks.position.collect_one(block.height).data()?;
-            let size = vecs.blocks.size.collect_one(block.height).data()?;
-            let bytes = self
-                .reader()
-                .read_raw_bytes(position, u32::from(size) as usize)?;
+            let bytes = self.block_raw_at_height(block.height, &block.hash, &block.pin)?;
             let parsed = deserialize::<Block>(&bytes)
                 .map_err(|_| Error::Internal("Invalid raw block payload"))?;
-            let hash = parsed.block_hash().to_byte_array();
-            debug_assert_eq!(
-                BlockHash::from(parsed.block_hash()),
-                block.hash,
-                "block {height}'s bytes"
-            );
+            let vecs = self.indexer().vecs();
             let lengths = block.pin.lengths();
             let inputs = first_span(
                 &vecs.inputs.first_txin_index,
@@ -290,7 +280,7 @@ impl Query {
                 .output_type
                 .collect_range_at(inputs.start, inputs.end);
             data.extend(
-                spent_outputs(&hash, &parsed.txdata, &input_types).map(SpentOutputHash::from),
+                spent_outputs(&block.hash, &parsed.txdata, &input_types).map(SpentOutputHash::from),
             );
         }
         Ok(BlindbitSpentIndex {

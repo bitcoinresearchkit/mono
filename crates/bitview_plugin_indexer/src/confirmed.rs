@@ -1,4 +1,4 @@
-use bitcoin::{ScriptBuf, Transaction, consensus::deserialize};
+use bitcoin::{ScriptBuf, Transaction, Weight, consensus::deserialize};
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
@@ -28,8 +28,13 @@ impl<M: StorageMode> Indexer<M> {
 
     /// One indexed transaction from the position and size the caller read. The index wrote both
     /// from this node's block files, so the bytes there are the transaction: nothing is hashed
-    /// to check it again, as a raw block's transactions are not (`Query::block_raw_at_height`).
+    /// to check it again.
     pub fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<(Vec<u8>, Transaction)> {
+        // Serialized bytes cannot exceed weight: a larger size is a corrupt column.
+        debug_assert!(
+            size as u64 <= Weight::MAX_BLOCK.to_wu(),
+            "{size} bytes at {position:?}"
+        );
         let bytes = self.reader().read_raw_bytes(position, size)?;
         let transaction = deserialize(&bytes)
             .map_err(|_| Error::Internal("Invalid indexed transaction encoding"))?;

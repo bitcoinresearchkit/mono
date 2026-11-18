@@ -18,15 +18,7 @@ impl Query {
         guard: &ReadPin,
     ) -> Result<BitcoinHeader> {
         let hash = self.block_hash_by_height(height, guard)?;
-        let position = self
-            .indexer()
-            .vecs()
-            .blocks
-            .position
-            .collect_one(height)
-            .data()?;
-        let raw = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
-        Self::verify_header(&raw, &hash)?;
+        let raw = self.verified_header(height, &hash, guard)?;
         BitcoinHeader::consensus_decode(&mut raw.as_slice())
             .map_err(|_| Error::Internal("Failed to decode block header"))
     }
@@ -51,16 +43,29 @@ impl Query {
         position.data()
     }
 
+    /// The 80 header bytes of the published block at `height`, once they hash to `hash`: the one
+    /// check that the indexed position holds the block asked for.
+    pub(super) fn verified_header(
+        &self,
+        height: Height,
+        hash: &BlockHash,
+        guard: &ReadPin,
+    ) -> Result<Vec<u8>> {
+        let position = self.block_position(height, guard)?;
+        let bytes = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
+        Self::verify_header(&bytes, hash)?;
+        Ok(bytes)
+    }
+
     pub(super) fn block_header_hex_at_height(
         &self,
         height: Height,
         hash: &BlockHash,
         guard: &ReadPin,
     ) -> Result<String> {
-        let position = self.block_position(height, guard)?;
-        let bytes = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
-        Self::verify_header(&bytes, hash)?;
-        Ok(bytes.to_lower_hex_string())
+        Ok(self
+            .verified_header(height, hash, guard)?
+            .to_lower_hex_string())
     }
 
     pub(crate) fn verify_header(bytes: &[u8], expected_hash: &BlockHash) -> Result<()> {
