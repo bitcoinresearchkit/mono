@@ -7,19 +7,20 @@
 
 use std::{marker::PhantomData, ops::Range};
 
-use bitview_compute::Quantity;
+use bitview_compute::{NumericValue, Quantity};
 use brk_oracle::FIRST_PRICE_HEIGHT;
-use brk_types::{Height, Version};
+use brk_types::{Dollars, Height, Version};
+use schemars::JsonSchema;
 use vecdb::{
-    AnyVec, DeltaAvg, DeltaChange, DeltaOp, DeltaSub, LazyVec, ReadableCloneableVec, ReadableVec,
-    VecIndex,
+    AnyVec, Convert, DeltaAvg, DeltaChange, DeltaOp, DeltaSub, LazyVec, ReadableCloneableVec,
+    ReadableVec, VecIndex, VecValue,
 };
 
-use crate::{LazyDeltaFromHeight, LazyWindowStartVec};
+use crate::{IndexSources, LazyDeltaFromHeight, LazyPerBlock, LazyWindowStartVec};
 
 /// Added to a dollar window's version: what's read from it changed (NaN where it reaches before
 /// the first price), so whatever is computed from it is again.
-pub(crate) const PRICED_VERSION: Version = Version::ONE;
+const PRICED_VERSION: Version = Version::ONE;
 
 #[inline]
 fn is_priced(height: usize) -> bool {
@@ -123,6 +124,28 @@ pub type PricedRollingAvgFromHeight<T> =
     LazyDeltaFromHeight<T, <T as Quantity>::Fract, PricedRows<DeltaAvg>>;
 /// A dollar level's change over a window: NaN until it and the value before it are priced.
 pub type PricedDeltaFromHeight<S, C> = LazyDeltaFromHeight<S, C, PricedChange>;
+
+/// A dollar window's two series, at the dollar-window version: cents by `Op` (a priced one) over
+/// `source`, and the dollars converted from them.
+pub(crate) fn priced_window<S, T, Op>(
+    cents_name: &str,
+    usd_name: &str,
+    version: Version,
+    source: &impl ReadableCloneableVec<Height, S>,
+    window_start: &impl ReadableCloneableVec<Height, Height>,
+    indexes: &IndexSources,
+) -> (LazyDeltaFromHeight<S, T, Op>, LazyPerBlock<Dollars, T>)
+where
+    S: VecValue + Default,
+    T: NumericValue + JsonSchema + Into<Dollars>,
+    Op: DeltaOp<S, T>,
+{
+    let version = version + PRICED_VERSION;
+    let cents =
+        LazyDeltaFromHeight::from_source(cents_name, version, source, window_start, indexes);
+    let usd = LazyPerBlock::from_resolutions::<Convert>(usd_name, version, &cents.resolutions);
+    (cents, usd)
+}
 
 /// `starts` clamped to the first priced height, and at most just past their own row: a row
 /// before the first price gets an empty window (an op over it counts no priced rows:

@@ -1,21 +1,17 @@
+mod avgs;
 mod complete;
 mod delta;
 mod distribution;
-mod lazy_avg_from_height;
-mod lazy_avgs_from_height;
 mod lazy_per_second_windows;
-mod lazy_sum_from_height;
-mod lazy_sums_from_height;
+mod sums;
 mod windows;
 
+pub use avgs::*;
 pub use complete::RollingComplete;
 pub use delta::*;
 pub use distribution::RollingDistribution;
-pub use lazy_avg_from_height::LazyRollingAvgFromHeight;
-pub use lazy_avgs_from_height::LazyRollingAvgsFromHeight;
 pub use lazy_per_second_windows::LazyPerSecondWindows;
-pub use lazy_sum_from_height::LazyRollingSumFromHeight;
-pub use lazy_sums_from_height::LazyRollingSumsFromHeight;
+pub use sums::*;
 pub use windows::RollingWindows;
 mod totals;
 pub use totals::RollingTotals;
