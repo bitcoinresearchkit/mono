@@ -33,9 +33,9 @@ import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "
 import { isColor } from "/studio/color.js";
 import { stopCarrying, swallowClick } from "/studio/gestures.js";
 import {
-  asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fetchWaiting, fitStrip,
-  foldedPanes, foldOf, forget, gapped, info, ink, intervalsOf, load, loads, MIN_BAR_SPACING, paintOf, periodAmount,
-  presetWindow, profiled, resolve, retryInfo, rightGap, seriesIn, SIDES, unitFor, viewName,
+  asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldedPanes, foldOf,
+  forget, gapped, info, ink, intervalsOf, load, loads, MIN_BAR_SPACING, paintOf, periodAmount, presetWindow, profiled, resolve,
+  retryInfo, rightGap, seriesIn, SIDES, unitFor, viewName,
 } from "/studio/chart.js";
 import {
   chartActions, choicePage, inputPage, openPage, renameChart, renameChartPage, searchCase, searchText, typedWords,
@@ -1216,27 +1216,13 @@ function drawPreview(doc, index = doc.index) {
   return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
 }
 /**
- * A picture's interval as asked for, else the chart's own (a series without it: one only by the day); null till its
- * series' intervals are known (the catalog indexes them just after load, see intervalsOf).
+ * A picture's interval as asked for, else the chart's own (a series without it: one only by the day): its series'
+ * intervals the catalog's (indexed just after load), else their infos' asked for first (see intervalsOf).
  * @param {Chart} doc @param {string} index
  */
-const pictureIndex = (doc, index) => index === doc.index || seriesIn(doc).every(intervalsOf) ? (supportedIntervals(doc)(index) ? index : doc.index) : null;
-/** A picture's interval (see pictureIndex), its series' info asked for first where it isn't known yet. @param {Chart} doc @param {string} index */
 async function sampleable(doc, index) {
-  return pictureIndex(doc, index) ?? (await Promise.allSettled(seriesIn(doc).map(info)), supportedIntervals(doc)(index) ? index : doc.index);
-}
-/**
- * The pictures waiting in a tile queue, their data asked for at once (see fetchWaiting): the queue draws one at a
- * time (the page kept free), but none waits on the one before it to be fetched. Asked at each of its turns, with
- * those that wait then (none: let go). Drawn already, nothing asked.
- * @param {string} queue @param {[Chart | undefined, (string | undefined)?][]} pictures each chart, and the interval its picture reads (a preset's, by the week)
- */
-function fetchPictures(queue, pictures) {
-  fetchWaiting(queue, pictures.flatMap(([doc, index = doc && previewIndex(doc)]) => {
-    if (!doc?.layers.length || !index || previews.get(doc.id)?.key === previewKey(doc)) return [];
-    const at = pictureIndex(doc, index);
-    return at ? [{ ...doc, index: at }] : [];
-  }));
+  if (index !== doc.index && !seriesIn(doc).every(intervalsOf)) await Promise.allSettled(seriesIn(doc).map(info));
+  return supportedIntervals(doc)(index) ? index : doc.index;
 }
 /** A preset's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
 const previewIndex = (/** @type {Chart} */ doc) => sampleIndex(doc, "week1", 100);
@@ -1946,16 +1932,20 @@ const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
 let galleryResting = true;
 let galleryScrolling = false;
-/** Scrolls in Home so far, and as of the last galleryStill. */
-let galleryMoves = 0, movesSeen = 0;
+/** Scrolls in Home so far. */
+let galleryMoves = 0;
 /**
- * Whether the grid's at rest and hasn't moved since this was last asked (a drawing turn ago, a trip at least): a
- * wheel's ticks each end a scroll, so between them it's at rest, but a turn always sees one of them.
+ * A drawing loop's test of whether Home is still: at rest, and not scrolled since the loop last asked (a drawing trip
+ * ago, at least). A wheel's ticks each end a scroll, so between them it's at rest; a trip always sees one of them. Its
+ * first ask, at rest is enough (a landing's scroll to a section isn't a wheel's).
  */
-function galleryStill() {
-  const still = galleryResting && galleryMoves === movesSeen;
-  movesSeen = galleryMoves;
-  return still;
+function stillness() {
+  let seen = -1;
+  return () => {
+    const still = galleryResting && (seen < 0 || galleryMoves === seen);
+    seen = galleryMoves;
+    return still;
+  };
 }
 const galleryRests = () => {
   galleryResting = true;
@@ -1977,14 +1967,10 @@ function startGalleryRest() {
     });
   });
 }
-/** The tiles waiting to be drawn, in turn: those in view, then, at rest, those ahead not tried yet in this pass. @param {Set<number>} tried */
-function* galleryWaiting(tried) {
-  yield* galleryQueue;
-  if (galleryResting) for (const frame of galleryAhead) if (frame.isConnected && frame.classList.contains("pending") && !tried.has(presetOf(frame))) yield presetOf(frame);
-}
-/** The next tile to draw (-1: none). @param {Set<number>} tried */
+/** The next tile to draw: one in view, else, at rest, one ahead not tried yet in this pass (-1: none). @param {Set<number>} tried */
 const nextGallery = (tried) => {
-  for (const i of galleryWaiting(tried)) return galleryQueue.delete(i), i;
+  for (const i of galleryQueue) return galleryQueue.delete(i), i;
+  if (galleryResting) for (const frame of galleryAhead) if (frame.isConnected && frame.classList.contains("pending") && !tried.has(presetOf(frame))) return presetOf(frame);
   return -1;
 };
 
@@ -3955,7 +3941,7 @@ function retryPlots() {
   for (const frame of failed) frame.classList.replace("failed", "pending");
   // (The recommended cards, wherever they are: on the empty chart too.)
   for (const frame of failed) ((card) => card && cardQueue.add(Number(card.dataset.template)))(/** @type {HTMLElement | null} */ (frame.closest("[data-template]")));
-  void drawCards();
+  drawCards();
   if (!home) return;
   queueYours();
   for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
@@ -3965,8 +3951,8 @@ export {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
-  duplicateCharts, fetchPictures, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryStill, galleryWaiting, go, gridActions, groupRows,
+  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
+  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows,
   groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS,
   keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder,
   movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,
@@ -3979,7 +3965,7 @@ export {
   restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews, saveThumbs, searchNow, sectionKeys,
   sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, setTheme, sheetGoes, sheetTaken, shelfSteps,
   shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey, sideMoved, sideTree,
-  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stretched,
+  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stillness, stretched,
   themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf, unstretched, until,
   updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile, yourQueue, yoursFound,
   yoursSeen, yoursShown,

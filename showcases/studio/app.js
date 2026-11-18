@@ -84,9 +84,9 @@ import {
 import {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
-  depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fetchPictures, fillRow,
+  depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
   fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryFound, galleryQueue, gallerySeen, galleryStill, galleryWaiting, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
+  galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
   isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave,
   leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder, nextCard, nextGallery,
   NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
@@ -98,7 +98,7 @@ import {
   restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews, saveThumbs, searchNow, sectionKeys,
   sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, sheetGoes, sheetTaken, shelfSteps,
   shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey, sideMoved, sideTree,
-  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stretched,
+  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stillness, stretched,
   themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf, unstretched, until,
   updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile, yourQueue, yoursFound,
   yoursSeen, yoursShown,
@@ -5713,21 +5713,19 @@ const yourTilesSeen = new IntersectionObserver((entries) => {
   for (const entry of entries) (entry.isIntersecting ? yoursSeen.add(entry.target) : yoursSeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
   queueYours();
 });
-/** A tile of yours' chart, and the interval its picture reads (a preset's, from weekly data, as the gallery's). @param {string} id @returns {[Chart | undefined, string | undefined]} */
-const yourPicture = (id) => {
-  const doc = chartById(id) ?? [...presetTiles.keys()].find((tile) => tile.id === id);
-  return [doc, doc && (presetTiles.has(doc) ? previewIndex(doc) : doc.index)];
-};
+const yoursStill = stillness();
 const drawYours = serial(async () => {
   for (const id of yourQueue) {
-    fetchPictures("yours", home ? [...yourQueue].map(yourPicture) : []);
     yourQueue.delete(id);
-    const [doc, index] = yourPicture(id);
-    // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor kept):
-    // it says so, and it's asked for again as the server answers (see paint, retryPlots).
-    if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc, index));
+    const doc = chartById(id) ?? [...presetTiles.keys()].find((tile) => tile.id === id);
+    if (!home || !doc?.layers.length) continue;
+    // Drawn already (maybe from ⌘K), it's shown where it's still waited for (a preset's, from weekly data, as the
+    // gallery's). A failed fetch isn't drawn (nor kept): it says so, and it's asked for again as the server answers
+    // (see paint, retryPlots). Home still, each waiting tile's drawing starts at once (its fetch with it); else one
+    // at a time, so a scroll doesn't ask for the tiles it passes.
+    const drawn = drawPreview(doc, presetTiles.has(doc) ? previewIndex(doc) : doc.index).then((drawing) => paint(doc.id, drawing));
+    if (!yoursStill()) await drawn;
   }
-  fetchPictures("yours", []);
 });
 /**
  * The tile last pressed on the page: of the tiles showing a chart (a preset on two shelves, the recommended's and its
@@ -5820,23 +5818,24 @@ new ResizeObserver(() => {
   for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesAhead.observe(frame);
 }).observe(homeScroller);
 startGalleryRest();
+const galleryStill = stillness();
 const drawGallery = serial(async () => {
   const tried = /** @type {Set<number>} */ (new Set());
-  /** A tile to draw: its preset read, the gallery shown, its tile waiting. @param {number} i */
-  const due = (i) => Boolean(presets?.[i] && home && !$("gallery").hidden && $("gallery").querySelector(`[data-preset="${i}"] .pending`));
   for (let i = nextGallery(tried); i >= 0; i = nextGallery(tried)) {
     tried.add(i);
-    // (Still: this one's and those in view asked for at once, then those a screen ahead once none in view waits, so
-    // as not to slow them. Not while a scroll passes tiles by, nor a finger's down: only this one, as it's drawn.)
-    fetchPictures("gallery", galleryStill() ? [i, ...(galleryQueue.size ? galleryQueue : galleryWaiting(tried))].filter(due).map((waiting) => [presetDoc(waiting)]) : []);
-    if (!due(i)) continue;
+    if (!presets?.[i] || !home || $("gallery").hidden || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
     const doc = presetDoc(i), have = previews.get(doc.id);
     // (A tile written of it as it was, kept since as opened or edited (in another tab): written again, as it is.)
     for (const tile of all$(`.tile[data-preset="${i}"]:has(> [data-open-preset])`, $("gallery"))) if (tile.querySelector("[data-plot]")?.getAttribute("data-plot") !== doc.id) writeTile(tile, i);
     if (have?.key === previewKey(doc)) paint(doc.id, have, true);
-    else await drawPreview(doc, previewIndex(doc));
+    else {
+      // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
+      // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
+      // passes, nor those it may never reach.)
+      const drawn = drawPreview(doc, previewIndex(doc));
+      if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await drawn;
+    }
   }
-  fetchPictures("gallery", []);
 });
 $("home").addEventListener("click", (event) => {
   const to = closest(event, "[data-place]"), step = closest(event, "[data-shelf-step]"), preset = closest(event, "[data-open-preset]");
@@ -6626,17 +6625,14 @@ new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"
 // (waiting cards, the room they take, until the presets are read).
 strip($("templates"));
 new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
-const drawCards = serial(async () => {
+/** The cards waiting, each one's drawing started: their fetches go together, each drawn as its data comes. */
+function drawCards() {
   for (const i of cardQueue) {
-    fetchPictures("cards", [...cardQueue].map((waiting) => [recommendedCards[waiting]?.doc]));
     cardQueue.delete(i);
     const card = recommendedCards[i];
-    if (!card || previews.get(card.doc.id)?.key === previewKey(card.doc)) continue;
-    await new Promise((done) => whenIdle(done, { timeout: 0 }));
-    await drawPreview(card.doc, previewIndex(card.doc));
+    if (card && previews.get(card.doc.id)?.key !== previewKey(card.doc)) void drawPreview(card.doc, previewIndex(card.doc));
   }
-  fetchPictures("cards", []);
-});
+}
 const cardsSeen = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;

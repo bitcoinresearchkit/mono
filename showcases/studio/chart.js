@@ -92,15 +92,12 @@ const units = new Map();
 const lastUsed = (cache, key, value) => (cache.delete(key), cache.set(key, value), value);
 /**
  * Whether the open chart holds an entry (`name@index`, `#chunk` at a fine interval): one of its series at its
- * interval, within its span; or a chart waiting to be drawn reads it (see fetchWaiting). Made for a pass over a cache
- * (its series found once).
+ * interval, within its span. Made for a pass over a cache (its series found once).
  */
 function holder() {
   const names = new Set(chart ? drawSeries(chart) : []), span = chart ? spans.get(spanKey(chart.id, chart.index)) : undefined;
-  const awaited = [...waiting.values()];
   return (/** @type {string} */ key) => {
     const [name, rest = ""] = key.split("@"), [index, k] = rest.split("#");
-    if (awaited.some((reads) => reads.has(`${name}@${index}`))) return true;
     if (!chart || index !== chart.index || !names.has(name)) return false;
     // (Its span's chunks, and the next out on either side: prefetched, they're kept till the view gets there.)
     return k === undefined || (Boolean(span) && Number(k) >= /** @type {Span} */ (span).from - 1 && Number(k) <= /** @type {Span} */ (span).to + 1);
@@ -390,41 +387,6 @@ const alignedOn = (/** @type {number} */ lo, /** @type {number[]} */ times) => {
   return aligned;
 };
 /**
- * A series with its data at a chart's interval, or why there is none: its info and its data asked for together.
- * @param {string} name @param {Chart} doc @returns {Promise<any>}
- */
-async function fetchSeries(name, doc, fresh = false) {
-  // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
-  // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
-  if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
-  // Known to lack this interval (any by date, by block only): say so without asking for its data.
-  const lacking = intervalsOf(name)?.includes(doc.index) === false;
-  const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
-  if (about.status === "rejected") return { error: about.reason };
-  const meta = about.value;
-  units.set(name, unitOf(meta.type));
-  if (!meta.indexes.includes(doc.index)) return { meta, error: { unavailable: true } };
-  if (series.status === "rejected") return { meta, error: series.reason };
-  return { meta, data: series.value };
-}
-/** What the charts waiting in each queue read (`name@index`), kept in memory till they're drawn (see holder). @type {Map<string, Set<string>>} */
-const waiting = new Map();
-/**
- * What resolve would read for the charts waiting in a queue (each at the interval it's drawn at), asked for now and
- * not waited for: the resolve that follows finds it in hand (the same requests, see info and load), a trip sooner than
- * if it waited on the one before. Kept till the queue says again what waits (none: let go).
- * @param {string} queue @param {Chart[]} docs
- */
-function fetchWaiting(queue, docs) {
-  const reads = new Set();
-  for (const doc of docs) for (const name of drawSeries(doc)) {
-    reads.add(`${name}@${doc.index}`);
-    // (Its data in hand already (the horizon's price, say), its info may not be: asked for too.)
-    if (!asked(name, doc) || !infos.has(name)) void fetchSeries(name, doc);
-  }
-  waiting.set(queue, reads);
-}
-/**
  * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
  * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
  */
@@ -433,8 +395,23 @@ async function resolve(doc, fresh = false) {
   const sources = /** @type {(Layer & { series: string })[]} */ (layers.filter((layer) => layer.series));
   const named = formulaSeries(drawing);
   if (fresh) for (const name of seriesIn(drawing)) retryInfo(name);
+  /** A series with its data at the chart's interval, or why there is none. @param {string} name @returns {Promise<any>} */
+  const fetchSeries = async (name) => {
+    // Not in the client's catalog (it holds every series): not on Bitview, said here (a name half typed in a
+    // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
+    if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
+    // Known to lack this interval (any by date, by block only): say so without asking for its data.
+    const lacking = intervalsOf(name)?.includes(doc.index) === false;
+    const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
+    if (about.status === "rejected") return { error: about.reason };
+    const meta = about.value;
+    units.set(name, unitOf(meta.type));
+    if (!meta.indexes.includes(doc.index)) return { meta, error: { unavailable: true } };
+    if (series.status === "rejected") return { meta, error: series.reason };
+    return { meta, data: series.value };
+  };
   // Each series once, however many layers and formulas read it.
-  const fetched = new Map(await Promise.all(seriesIn(drawing).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name, doc, fresh)]))));
+  const fetched = new Map(await Promise.all(seriesIn(drawing).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name)]))));
   // The timeline and each series on it, kept from the last resolve of this chart that read the same data (the same
   // fetched objects): its series keep their identity, and with them what's computed from them (formulas, windows'
   // stats, the chart's series): an edit to one layer redoes that layer only.
@@ -3205,7 +3182,7 @@ export {
   chartWidth, chipText, chunkAt, chunked, chunks, Cloud, colorChain, colorNow, colorsAt, columnBy, crossHeld, crossOn,
   crossSet, cssColor, cutsOf, dailyOf, dashFor, dataKey, datedIntervals, defaultSize, describePlot, dotLineOf,
   dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, edges, endReveal, EXACT_RANGE, fadedNow,
-  fadeLayer, failedChunks, failure, fetchWaiting, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
+  fadeLayer, failedChunks, failure, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
   fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, gapped, glide,
   glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
   keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
