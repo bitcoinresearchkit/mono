@@ -8,7 +8,7 @@ use brk_error::Result;
 use brk_exit::Exit;
 use tempfile::tempfile_in;
 use tracing::info;
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, Stamp, VecIndex, WritableVec};
 
 use super::Vecs;
 
@@ -24,12 +24,14 @@ pub(super) fn is_incomplete(vecs: &Vecs) -> bool {
 /// Build an empty inverse index in output order. Scratch files are unlinked
 /// while open, so cancellation and process termination leave nothing to clean up.
 /// Each spend needs one 8-byte scratch record, freed as its range is consumed.
-/// The caller publishes a nonzero stamp only after the entire baseline is durable.
+/// `stamp` is written with the last range, under its guard: it says the whole baseline is
+/// durable, and a quit between the two would discard a finished build.
 pub(super) fn build(
     vecs: &mut Vecs,
     inputs: &impl ReadableVec<TxInIndex, TxOutIndex>,
     input_end: usize,
     output_end: usize,
+    stamp: Stamp,
     exit: &Exit,
 ) -> Result<()> {
     // Persist the empty, unstamped state before replacing any stored ranges,
@@ -61,6 +63,7 @@ pub(super) fn build(
     })?;
 
     let mut records = vec![0; RECORD_LEN * 65_536];
+    let last = ranges.len() - 1;
     for (range, file) in ranges.into_iter().enumerate() {
         let mut file = file.into_inner().map_err(|error| error.into_error())?;
         file.rewind()?;
@@ -83,6 +86,10 @@ pub(super) fn build(
         }
 
         let _lock = exit.lock();
+        if range == last {
+            vecs.spending_txin_index
+                .stamped_write_maybe_with_changes(stamp, false)?;
+        }
         vecs.spending_txin_index.flush()?;
         info!(
             "Building spent outputs: {:.0}%",

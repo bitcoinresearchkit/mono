@@ -109,12 +109,9 @@ impl Vecs {
                 txin_index_to_txout_index,
                 first_txin(tail),
                 first_txout(tail),
+                Stamp::from(Height::from(tail)),
                 exit,
             )?;
-            let _lock = exit.lock();
-            self.spending_txin_index
-                .stamped_write_maybe_with_changes(Stamp::from(Height::from(tail)), false)?;
-            self.spending_txin_index.flush()?;
             start = tail;
         }
         for (blocks, with_changes) in undo_chunks(start..end) {
