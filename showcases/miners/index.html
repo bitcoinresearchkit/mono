@@ -336,7 +336,6 @@
         }
         td > small {
           display: block;
-          min-height: 1lh;
           color: var(--soft);
           font-size: 12px;
         }
@@ -349,9 +348,6 @@
           border-radius: 2px;
           background: linear-gradient(to right, var(--ink) calc(var(--part) * 100%), var(--faint) 0);
           vertical-align: middle;
-        }
-        .none i {
-          visibility: hidden;
         }
         /* (A row's name, its header, read as the row's first cell.) */
         tbody th {
@@ -866,7 +862,7 @@
           const slugs = [...new Set([...mined.keys(), ...columns.flatMap((column) => [...(column?.keys() ?? [])])])]
             .sort((a, b) => (mined.get(b) ?? 0) - (mined.get(a) ?? 0) || earliest(a) - earliest(b));
           const count = (value, part, under) => `<td class="num"><span>${number(value)}<i style="--part:${part}"></i></span><small>${under}</small></td>`;
-          const blank = (word) => `<td class="num"><span class="none">${word}<i></i></span><small></small></td>`;
+          const blank = (word) => `<td class="num"><span class="none">${word}</span></td>`;
           const unread = blank("unread"), never = blank("–");
           const cell = (column, slug) => {
             const entry = column?.get(slug), blocks = mined.get(slug) ?? 0;
