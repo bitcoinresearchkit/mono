@@ -90,7 +90,8 @@
         /* (Deep enough on the paper to be read as small text, 4.5:1 and more: the chapters' numbers, a pressed button.) */
         --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
         --gain: light-dark(#0a7d3e, #6ef096);
-        --loss: light-dark(#b92924, #ff6a5c);
+        /* (A loss in words stays 4.5:1 over the evidence's warmest cells under them.) */
+        --loss: light-dark(#b12420, #ff7466);
         --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
       }
@@ -1899,7 +1900,7 @@
         if (!n || !w) return;
         // (The line above, the days below: a tick at each midnight, its date where it fits.)
         const lineH = h - 18, prices = [...points.map((p) => p.p), ...(live ? [live] : [])], lo = Math.min(...prices), hi = Math.max(...prices);
-        const y = (/** @type {number} */ p) => 4 + (1 - Math.log(p / lo) / Math.log(hi / lo || 1)) * (lineH - 8);
+        const y = (/** @type {number} */ p) => 4 + (1 - Math.log(p / lo) / (Math.log(hi / lo) || 1)) * (lineH - 8);
         const path = points.map((p, i) => `${i ? "L" : "M"}${scrubX(i, w).toFixed(1)},${y(p.p).toFixed(1)}`).join("") + (live ? `L${scrubX(n, w).toFixed(1)},${y(live).toFixed(1)}` : "");
         let days = "", free = 0;
         for (let i = 1; i < n; i++) {
@@ -1911,7 +1912,9 @@
             free = dx + label.length * 6 + 12;
           }
         }
-        const mx = scrubX(k, w).toFixed(1), my = y(pt?.p ?? live ?? lo).toFixed(1);
+        // (Its dot where the line ends: now, or the last block's while no live price has come.)
+        const end = pt || live ? k : n - 1;
+        const mx = scrubX(end, w).toFixed(1), my = y(points[end]?.p ?? live).toFixed(1);
         const ghost = scrubHover === null || scrubHover === k ? "" : `<line class="scrub-hover" x1="${scrubX(scrubHover, w).toFixed(1)}" x2="${scrubX(scrubHover, w).toFixed(1)}" y1="0" y2="${lineH}"/>`;
         scrubLine.setAttribute("viewBox", `0 0 ${w} ${h}`);
         scrubLine.innerHTML = `<line class="scrub-day" x1="0" x2="${w}" y1="${lineH}" y2="${lineH}"/>${days}<path class="scrub-line" d="${path}"/>${ghost}<line class="scrub-mark" x1="${mx}" x2="${mx}" y1="0" y2="${lineH}"/><circle class="scrub-dot" cx="${mx}" cy="${my}" r="3.5"/>`;
