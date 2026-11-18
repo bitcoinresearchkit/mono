@@ -341,6 +341,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- MCP: a web page can call the server. A request carrying an `Origin` was refused with 403; now any origin is
+  allowed (the data is public and the server takes no credentials), every response header is exposed and `OPTIONS`
+  preflights are answered, reusable for a day. The server card and the AI catalog, which already allowed any
+  origin, answer by this one rule
 - Cohort market caps: every supply stock's dollar value also answers under its market-cap id, the
   same values at every index (`X_supply_usd` as `X_market_cap`, qualifiers kept: `X_market_cap_in_profit`,
   Bedrock's `X_entry_market_cap_between_p95_and_p98_floors`), 443 lazy series over existing ones, nothing stored and

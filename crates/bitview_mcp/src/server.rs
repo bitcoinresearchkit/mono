@@ -5,7 +5,7 @@ use axum::{
     body::{Body, Bytes},
     http::{
         HeaderMap, HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, ALLOW, CACHE_CONTROL, ORIGIN, VARY},
+        header::{ACCEPT, ALLOW, CACHE_CONTROL, VARY},
     },
     middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
@@ -30,7 +30,7 @@ use rmcp::{
 };
 use serde_json::json;
 use tokio::{sync::Semaphore, task::spawn_blocking, time::timeout};
-use tower_http::timeout::RequestBodyTimeoutLayer;
+use tower_http::{cors::CorsLayer, timeout::RequestBodyTimeoutLayer};
 use tracing::debug;
 
 use crate::{
@@ -119,10 +119,15 @@ pub fn router(
         .layer(middleware::from_fn(gateway_guard))
         // A POST's body may not stall: it would hold its connection.
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
+        // Any page may call and read any route: the data is public and the server takes no credentials.
+        // Outermost, so it answers every preflight itself.
+        .layer(CorsLayer::permissive().max_age(PREFLIGHT_MAX_AGE))
 }
 
 /// The longest a request body may go without sending more.
 const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long browsers may reuse a CORS preflight.
+const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
 impl BitviewMcp {
     fn server_info(&self) -> ServerConfig {
@@ -292,10 +297,6 @@ fn render(response: UpstreamResponse, server_name: &str) -> CallToolResponse {
 }
 
 async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
-    if request.method() == Method::POST && request.headers().contains_key(ORIGIN) {
-        return (StatusCode::FORBIDDEN, "Forbidden origin").into_response();
-    }
-
     // rmcp checks only a version named in `_meta`, and drops notifications unread.
     if request.method() == Method::POST
         && let Some(version) = request.headers().get(HEADER_MCP_PROTOCOL_VERSION)

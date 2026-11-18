@@ -2,13 +2,7 @@
 
 use std::net::Ipv6Addr;
 
-use axum::{
-    Router,
-    body::Bytes,
-    http::{HeaderValue, StatusCode},
-    response::{IntoResponse, Response},
-    routing::MethodRouter,
-};
+use axum::{Router, body::Bytes, routing::MethodRouter};
 use serde_json::{Value, json, to_vec};
 
 use crate::{logo, page, server::SUPPORTED_PROTOCOL_VERSIONS};
@@ -16,12 +10,6 @@ use crate::{logo, page, server::SUPPORTED_PROTOCOL_VERSIONS};
 const SERVER_CARD_MEDIA_TYPE: &str = "application/mcp-server-card+json";
 const AI_CATALOG_MEDIA_TYPE: &str = "application/ai-catalog+json";
 const CACHE_CONTROL: &str = "public, max-age=3600";
-const CORS: &[(&str, &str)] = &[
-    ("access-control-allow-origin", "*"),
-    ("access-control-allow-methods", "GET"),
-    ("access-control-allow-headers", "Content-Type, If-None-Match"),
-    ("access-control-expose-headers", "ETag"),
-];
 const SERVER_CARD_PATH: &str = "server-card";
 const AI_CATALOG_PATH: &str = "/.well-known/ai-catalog.json";
 const DESCRIPTION: &str =
@@ -45,18 +33,7 @@ pub fn server_name(display_name: &str, public_url: &str) -> String {
 
 fn document(value: &Value, media_type: &'static str) -> MethodRouter {
     let body = to_vec(value).expect("a JSON value serializes");
-    page::document(Bytes::from(body), media_type, CACHE_CONTROL, CORS).options(preflight)
-}
-
-/// Conditional requests carry `If-None-Match`, so a browser asks first.
-async fn preflight() -> Response {
-    let mut response = StatusCode::NO_CONTENT.into_response();
-    for &(name, value) in CORS {
-        response
-            .headers_mut()
-            .insert(name, HeaderValue::from_static(value));
-    }
-    response
+    page::document(Bytes::from(body), media_type, CACHE_CONTROL, &[])
 }
 
 fn server_card(display_name: &str, public_url: &str) -> Value {
