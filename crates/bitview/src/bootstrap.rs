@@ -1,14 +1,17 @@
-use std::{collections::HashSet, fs, path::Path};
+use std::{collections::HashSet, fs};
 
 use bitview_plugin::{
     BootstrapAction, ComputePluginSet, ImportContext, PluginId, PluginStorage, UpdateContext,
 };
 use brk_error::{Error, Result};
-use tracing::{info, warn};
+use tracing::info;
 
 use crate::update::bootstrap_update;
 
-fn sync_plugin_dirs(plugins_path: &Path, plugin_ids: impl Iterator<Item = PluginId>) -> Result<()> {
+fn sync_plugin_dirs(
+    context: ImportContext<'_>,
+    plugin_ids: impl Iterator<Item = PluginId>,
+) -> Result<()> {
     let mut active_ids = HashSet::new();
     for id in plugin_ids {
         if !active_ids.insert(id) {
@@ -16,27 +19,15 @@ fn sync_plugin_dirs(plugins_path: &Path, plugin_ids: impl Iterator<Item = Plugin
         }
     }
 
-    fs::create_dir_all(plugins_path)?;
+    let plugins_path = PluginStorage::plugins_path(context);
     for id in &active_ids {
         fs::create_dir_all(plugins_path.join(id.as_str()))?;
     }
-
-    for entry in fs::read_dir(plugins_path)? {
-        let entry = entry?;
-        let name = entry.file_name();
-        if active_ids.iter().any(|id| name == id.as_str()) {
-            continue;
-        }
-
-        let path = entry.path();
-        if entry.file_type()?.is_dir() {
-            fs::remove_dir_all(&path)?;
-        } else {
-            fs::remove_file(&path)?;
-        }
-        warn!("Removed unused plugin data at {}", path.display());
-    }
-    Ok(())
+    PluginStorage::remove_plugin_data(
+        context,
+        |name| active_ids.iter().any(|id| name == id.as_str()),
+        "no plugin of this build uses it",
+    )
 }
 
 /// Imports and fully computes a composition before it can be published.
@@ -56,7 +47,6 @@ pub fn bootstrap<P>(
 where
     P: ComputePluginSet,
 {
-    let plugins_path = PluginStorage::plugins_path(import_context);
     let mut needs_final_reimport = false;
 
     loop {
@@ -64,7 +54,7 @@ where
         let mut plugins = import(import_context)?;
         let mut plugin_ids = Vec::new();
         plugins.for_each_plugin(&mut |plugin| plugin_ids.push(plugin.id()));
-        sync_plugin_dirs(&plugins_path, plugin_ids.into_iter())?;
+        sync_plugin_dirs(import_context, plugin_ids.into_iter())?;
         drop(lock);
 
         match bootstrap_update(&mut plugins, update_context)? {

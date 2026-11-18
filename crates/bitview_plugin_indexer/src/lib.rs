@@ -91,23 +91,8 @@ struct ResumePoint {
 }
 
 enum ImportValidation {
-    /// Empty and without its source marker: a folder this import made.
-    New,
     Valid(Lengths),
     Reset(&'static str),
-}
-
-fn has_other_plugin_data(context: ImportContext<'_>) -> Result<bool> {
-    let path = PluginStorage::plugins_path(context);
-    if !path.try_exists()? {
-        return Ok(false);
-    }
-    for entry in fs::read_dir(path)? {
-        if entry?.file_name() != ID.as_str() {
-            return Ok(true);
-        }
-    }
-    Ok(false)
 }
 
 fn write_xor_marker(path: &Path, source_xor: XORBytes) -> Result<()> {
@@ -245,20 +230,20 @@ impl Indexer {
 
         indexer.drop_uncommitted_rows()?;
         let lengths = match indexer.validate_import(&plugin_path)? {
-            ImportValidation::New => {
-                // Dependents' rows beside a new indexer (its folder deleted, or removed after a
-                // failed import) can't be vouched for. Only a new one: a first pass stopped
-                // before its first save is still empty, beside its marker, and stays resumable.
-                // The floor before the marker, so a crash between the two lowers it again.
-                if has_other_plugin_data(context)? {
-                    indexer.floor.lower_to(Height::ZERO)?;
-                }
-                write_xor_marker(&plugin_path, reader.xor_bytes())?;
-                Lengths::default()
-            }
             ImportValidation::Valid(lengths) => lengths,
             ImportValidation::Reset(reason) => return Err(Error::InvalidData(reason)),
         };
+        // Dependents' rows beside an empty indexer (deleted, reset or not yet indexed) can't be
+        // vouched for: removed now, inside the import's lock and before any of them opens, so
+        // each restarts from its own empty data and resumes from it. A kill during the removal
+        // repeats it, as the indexer is still empty.
+        if lengths.height.is_zero() {
+            PluginStorage::remove_plugin_data(
+                context,
+                |name| name == ID.as_str(),
+                "the indexer starts from genesis",
+            )?;
+        }
         // Publish the floor a previous run left: rows past it may come from orphaned blocks.
         let published = indexer.floored(lengths);
         // The stores hold `lengths`: a lower floor leaves their views unavailable.
@@ -321,7 +306,7 @@ impl Indexer {
 
         // The node's mask, recorded beside the data indexed from its blocks.
         match XORBytes::read(plugin_path) {
-            Ok(None) if is_empty => return Ok(ImportValidation::New),
+            Ok(None) if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
             Ok(Some(marker)) if marker == reader.xor_bytes() => {}
             Ok(_) | Err(Error::WrongLength { .. }) => {
                 return Ok(ImportValidation::Reset(

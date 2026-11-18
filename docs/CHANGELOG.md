@@ -906,6 +906,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- After an indexer reset (a version change, a rebuild after an import failure, its folder deleted, or a new install
+  stopped before the indexer's first save), the start that finds the indexer empty removes every other plugin's data
+  at once and writes no rollback floor. Each plugin then resumes from its own saved data at every restart. Before, a
+  floor at genesis cut every plugin back to block 0 at each start until one whole update completed, so a Ctrl+C or a
+  restart during the first full compute after a reset threw that compute away (up to ~23.5 min on the M6 bench)
 - Silent payments: transactions whose Taproot outputs all hold less than 600 sats are left out of the index (30% of
   eligible ones, 1.7 GiB): such an output costs more to spend than it holds, and wallets skip it already. `dustLimit`
   on `/blindbit/mainnet/tweak-index` and `/tweaks` is optional and takes any value, as BlindBit takes it, and one below

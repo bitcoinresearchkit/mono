@@ -1,6 +1,7 @@
-use std::{fs, io::ErrorKind, path::PathBuf};
+use std::{ffi::OsStr, fs, io::ErrorKind, path::PathBuf};
 
 use brk_error::{Error, Result};
+use tracing::warn;
 use vecdb::{Database, PAGE_SIZE, Version};
 
 use crate::{ImportContext, PLUGIN_DATA_DIR, PluginId};
@@ -31,6 +32,29 @@ impl PluginStorage {
 
     pub fn path(self, context: ImportContext<'_>) -> PathBuf {
         Self::plugins_path(context).join(self.id.as_str())
+    }
+
+    /// Removes every entry of the plugins' folder that `keep` doesn't name, logging each with
+    /// `reason`. Only while no plugin it removes is open.
+    pub fn remove_plugin_data(
+        context: ImportContext<'_>,
+        keep: impl Fn(&OsStr) -> bool,
+        reason: &str,
+    ) -> Result<()> {
+        for entry in fs::read_dir(Self::plugins_path(context))? {
+            let entry = entry?;
+            if keep(&entry.file_name()) {
+                continue;
+            }
+            let path = entry.path();
+            if entry.file_type()?.is_dir() {
+                fs::remove_dir_all(&path)?;
+            } else {
+                fs::remove_file(&path)?;
+            }
+            warn!("Removed plugin data at {}: {reason}", path.display());
+        }
+        Ok(())
     }
 
     /// Rebuilds the whole owner once after a classified data failure. The failed import must
