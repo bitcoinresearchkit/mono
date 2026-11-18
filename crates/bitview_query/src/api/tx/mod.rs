@@ -2,13 +2,15 @@ use crate::{ReadPin, check_bound};
 use bitcoin::{
     MerkleBlock, Txid as BitcoinTxid,
     consensus::encode::serialize_hex,
-    hashes::{Hash, sha256d},
+    hashes::Hash,
     hex::DisplayHex,
 };
 use bitview_plugin_indexer::{OutputRange, SafeLengths};
 use bitview_primitives::Lengths;
 use bitview_types::{MerkleNode, MerkleProof};
-use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
+use brk_types::{
+    BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix, merkle_level,
+};
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, Result};
@@ -226,22 +228,13 @@ fn merkle_path(txids: &[Txid], pos: usize) -> Vec<MerkleNode> {
     let mut idx = pos;
 
     while hashes.len() > 1 {
-        let sibling = if idx ^ 1 < hashes.len() { idx ^ 1 } else { idx };
+        // The last hash of a level of odd length pairs with itself.
+        let sibling = (idx ^ 1).min(hashes.len() - 1);
         // Display order: reverse bytes for hex output
         let mut display = hashes[sibling];
         display.reverse();
         proof.push(MerkleNode::from(display.to_lower_hex_string()));
-
-        hashes = hashes
-            .chunks(2)
-            .map(|pair| {
-                let right = pair.last().unwrap();
-                let mut combined = [0u8; 64];
-                combined[..32].copy_from_slice(&pair[0]);
-                combined[32..].copy_from_slice(right);
-                sha256d::Hash::hash(&combined).to_byte_array()
-            })
-            .collect();
+        merkle_level(&mut hashes);
         idx /= 2;
     }
 
