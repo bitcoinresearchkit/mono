@@ -2,11 +2,12 @@ use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{Multiple, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, RatioRollingWindows, RollingWindows, ops::Quotient,
+    LazyFiatPerBlockCumulativeWithSums, LazyIndexedVec, RatioRollingWindows, RollingWindows,
+    ops::Quotient,
 };
 use brk_error::Result;
-use brk_types::{Cents, CentsSigned};
-use vecdb::{ComputeVec, Rw, StorageMode};
+use brk_types::{Cents, CentsSigned, Height};
+use vecdb::{ComputeVec, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::section::{CohortCompute, Imports, Section};
 
@@ -67,7 +68,7 @@ impl Section for Realized {
             ..
         } = *cx;
         let c = id.select(cx.columns);
-        let flow = |metric: &str, source| {
+        let flow = |metric: &str, source: &dyn ReadableCloneableVec<Height, Cents>| {
             LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name(metric),
                 v,
@@ -76,17 +77,32 @@ impl Section for Realized {
                 windows,
             )
         };
+        // Net and gross are the running totals' difference and sum: read, not stored.
+        let net_pnl = LazyIndexedVec::new(
+            &id.metric_name("net_realized_pnl_cumulative_cents_source"),
+            v,
+            &c.profit,
+            &c.loss,
+            |_, profit: Cents, loss: Cents| CentsSigned::from_difference(profit, loss),
+        );
+        let gross_pnl = LazyIndexedVec::new(
+            &id.metric_name("gross_realized_pnl_cumulative_cents_source"),
+            v,
+            &c.profit,
+            &c.loss,
+            |_, profit: Cents, loss: Cents| profit + loss,
+        );
         Ok(Self {
             profit: flow("realized_profit", &c.profit),
             loss: flow("realized_loss", &c.loss),
             net_pnl: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name("net_realized_pnl"),
                 v,
-                &c.net_pnl,
+                &net_pnl,
                 mappings,
                 windows,
             ),
-            gross_pnl: flow("gross_realized_pnl", &c.gross_pnl),
+            gross_pnl: flow("gross_realized_pnl", &gross_pnl),
             profit_to_loss: RollingWindows::import(
                 db,
                 &id.metric_name("realized_profit_to_loss"),
