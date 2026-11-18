@@ -540,30 +540,32 @@
             justify-content: space-between;
           }
 
-          /* (A finger's 44px across, the row still one line on a 375px phone: a span 42px drawn, with the 2px gap's halves
-             unseen; Max's padding brought to that width.) */
+          /* (A finger's 44px across on a touch phone, the row still one line at 375px; this block's .foot lets these
+             override the reaches set with the buttons below. Each span 42px wide, and each of them and of zoom's pair
+             reaching 1px into the 2px gap on each side, unseen.) */
           @media (pointer: coarse) {
             :is(.ranges, .zoom) button::before {
-              inset: -8px -1px;
+              inset-inline: -1px;
             }
 
             .ranges button {
               min-width: 42px;
-              padding: 0 8px;
+              padding: 0;
             }
 
-            /* (Zoom's pair still drawn 32px wide, each reaching 11px out of its side into the row's gaps; Play, whose
-               reach would meet it there, takes its 44px from the page's margin on its left instead.) */
+            /* (Zoom's pair stays 32px wide, each button reaching 11px out of its side into the row's gaps, at least 9px
+               past the pair at 375px. Play, whose reach would meet Zoom out's there, takes its 44px from the page's 16px
+               margin on its left instead.) */
             .zoom button:first-child::before {
-              left: -11px;
+              inset-inline-start: -11px;
             }
 
             .zoom button:last-child::before {
-              right: -11px;
+              inset-inline-end: -11px;
             }
 
             .replay.round::before {
-              inset: -7px 0 -7px -14px;
+              inset-inline: -14px 0;
             }
           }
         }
