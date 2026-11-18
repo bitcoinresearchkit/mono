@@ -58,6 +58,7 @@
       }
 
       .home {
+        position: relative;
         display: inline-flex;
         align-items: center;
         gap: 9px;
@@ -67,6 +68,15 @@
         img {
           width: 18px;
           height: 18px;
+        }
+
+        /* (For fingers, a reach 44px tall, unseen.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc(50% - 22px)) 0;
+          }
         }
       }
 
