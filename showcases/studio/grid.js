@@ -19,7 +19,7 @@ import {
   THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit,
 } from "/studio/app.js";
 import {
-  $, all$, closest, composing, escapeHtml, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing,
+  $, all$, closest, composing, escapeHtml, holdPage, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing,
 } from "/studio/dom.js";
 import { inSlices, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
@@ -2230,10 +2230,9 @@ function go(doc, push = true) {
 const backToHome = () => (isPreview(chart) || emptyYours(chart)) && history.state?.fromHome === true && history.state.chart === chart.id;
 // Back and Forward, between the grid and the charts opened from it.
 /**
- * Whether a dialog (⌘K, the guide, the shortcuts) is open. Each is a popover in the top layer, not a modal dialog: a
- * modal makes the whole page inert, its style worked out again at each open (and Safari's AutoFill measuring all
- * of it as ⌘K's field takes the focus); what a modal does besides, done here (the keys kept in it, esc, a click
- * beside it, Back on a phone).
+ * Whether a dialog (⌘K, the guide, the shortcuts) is open. Each is a popover in the top layer, not a modal dialog
+ * (Safari's AutoFill measures a modal's whole page as ⌘K's field takes the focus); what a modal does, done here: the
+ * page behind held inert (holdPage), the keys kept in it, esc, a click beside it, Back on a phone.
  * @param {Element} element
  */
 function isOpen(element) {
@@ -2264,6 +2263,7 @@ function showDialog(dialog) {
   if (isOpen(dialog)) return;
   dialogOpeners.set(dialog, document.activeElement);
   dialogsShown.push(dialog);
+  holdPage(dialog, true);
   dialogScrims.get(dialog)?.showPopover();
   dialog.showPopover();
 }

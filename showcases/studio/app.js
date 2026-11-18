@@ -12,8 +12,8 @@ import { initialsOf, initialsWord } from "/studio/initials.js";
 import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 import {
-  $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, KEY_STEPS, keycaps, keysOf, keyText, MAC,
-  NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
+  MAC, NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
 import { motionClock, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
@@ -131,7 +131,7 @@ import {
   APART, apartFonts, apartLayout, canvasReadable, cascades, closedAt, closedOwner, contentOf, copyLink, cutFade,
   datedView, dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle,
   fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf,
-  linksOf, measureLegends, menuGoBack, menuHidden, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade,
+  linksOf, measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade,
   openedImages, outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renderInterval,
   renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setRange, shareLink, showMenu,
   shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval, titleReads, TOO_SMALL,
@@ -8315,9 +8315,6 @@ $("palette-path").addEventListener("click", (event) => {
 
 // ── Menus and toolbar ─────────────────────────────────────────────────────
 
-// (The focus come to the page behind it all the same (a toast's button used, the toast written anew, then Tab): the
-// menu put away, as Tab in it does.)
-document.addEventListener("focusin", (event) => menuHidden && !closest(event, "#menu, .submenu, #toast, #tip") && dismissMenu());
 menuScrim.addEventListener("click", (event) => {
   event.stopPropagation();
   dismissMenu();
@@ -9905,6 +9902,7 @@ for (const dialog of all$("dialog")) {
     if (/** @type {ToggleEvent} */ (event).newState !== "closed") return;
     const to = dialogOpeners.get(dialog), at = document.activeElement;
     if (dialogsShown.includes(dialog)) dialogsShown.splice(dialogsShown.indexOf(dialog), 1);
+    holdPage(dialog, false);
     if (isOpen(scrim)) scrim.hidePopover();
     if (to instanceof HTMLElement && to.isConnected && (!at || at === document.body || dialog.contains(at))) to.focus({ preventScroll: true });
   });

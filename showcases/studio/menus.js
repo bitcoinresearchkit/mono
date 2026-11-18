@@ -8,7 +8,7 @@ import {
   SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast, UNREAD, viewsNow,
 } from "/studio/app.js";
 import { isCatalogPath, isSeriesName } from "/studio/catalog-walk.js";
-import { $, all$, closest, drawKeys, escapeHtml, KEY_STEPS, keyText, stepIn } from "/studio/dom.js";
+import { $, all$, closest, drawKeys, escapeHtml, holdPage, KEY_STEPS, keyText, stepIn } from "/studio/dom.js";
 import { clamp, uid } from "/studio/math.js";
 import { FORMATS, grouped, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
@@ -35,27 +35,6 @@ import { isMade, presetEdited, presetLink, tick } from "/studio/presets-edit.js"
 /** @import { Chart, Layer, Level } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
-/** What a phone's menu sheet hid from a screen reader (the page under it), as it was. */
-let menuHidden = /** @type {Map<Element, string | null> | null} */ (null);
-/**
- * A phone's menu sheet modal, or not: what's beside it on the page out of reach (in a dialog, it's modal already).
- * A tap there is the scrim's, Tab closes the menu; a screen reader's kept off it by aria-hidden, not inert: inert is
- * style, inherited, the whole page styled again at each open and close (the Charts page: 40-60 ms of the tap).
- */
-function menuModal(/** @type {boolean} */ on) {
-  const menu = $("menu");
-  if (on && !menuHidden && menu.parentElement === document.body) {
-    menuHidden = new Map();
-    for (const element of document.body.children) {
-      if ([menu, menuScrim, ...submenus, $("toast"), $("tip")].includes(/** @type {HTMLElement} */ (element)) || element instanceof HTMLDialogElement || element instanceof HTMLScriptElement || element.matches(".vh")) continue;
-      menuHidden.set(element, element.getAttribute("aria-hidden"));
-      element.setAttribute("aria-hidden", "true");
-    }
-  } else if (!on && menuHidden) {
-    for (const [element, was] of menuHidden) was === null ? element.removeAttribute("aria-hidden") : element.setAttribute("aria-hidden", was);
-    menuHidden = null;
-  }
-}
 /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
 const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
 /** A menu's opener let go of: its open state gone, where the menu set it (a folder's row says its own, open or not). */
@@ -103,7 +82,8 @@ function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | nu
     }
     if (menuScrim.parentElement !== host || menuScrim.nextElementSibling !== menu) host.insertBefore(menuScrim, menu);
   }
-  menuModal(phone.matches);
+  // (A sheet, from the page: the page held out of reach (in a dialog, the dialog holds it already).)
+  holdPage("menu", phone.matches && host === document.body);
   for (const button of all$("button", menu)) {
     // (One leading to another menu: its › at its end, after what it says.)
     if (button.getAttribute("aria-haspopup") === "menu" && !button.querySelector(".sub")) button.insertAdjacentHTML("beforeend", `<span class="sub">${ICONS.next}</span>`);
@@ -454,7 +434,7 @@ function hideMenu(away = null) {
     const done = (/** @type {boolean} */ gone) => scrimFade === fade && ((scrimFade = null), (menuScrim.style.pointerEvents = ""), gone && menuScrim.remove());
     fade.finished.then(() => done(true), () => done(false));
   } else if (!scrimFade) menuScrim.remove();
-  menuModal(false);
+  holdPage("menu", false);
   // (As it came: a popover settling back out; a sheet down.)
   // (A sheet from where it is; flung, as fast as it was.)
   if (away) fadeOut($("menu"), away.frames, away.duration, false, away.easing);
@@ -1726,7 +1706,7 @@ export {
   copyLink, cutFade, datedView, dismissMenu, download, downloadAll, downloadChart, downloadFolder, drawMarks, exportAs,
   exportData, exportRows, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle, fixedOrigin, flyout, focusMenu,
   fromLink, fromSketch, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf, linksOf, lookFields,
-  measureLegends, menuGoBack, menuHidden, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
+  measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
   outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renameInPlace,
   renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setMenuOwner,
   setRange, shareLink, showMenu, shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,

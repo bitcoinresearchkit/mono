@@ -165,8 +165,28 @@ function drawKeys(/** @type {ParentNode} */ root) {
 }
 /** Typing into a field (a tick isn't one: keys still do what they do). */
 const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
+/** What holds the page out of reach (an open dialog, a phone's menu sheet), and the page's parts it made inert. */
+const holders = new Set(), heldParts = /** @type {HTMLElement[]} */ ([]);
+/**
+ * The page behind what dims it (a dialog, a phone's menu sheet) inert while `holder` is open, as a modal's is: out of
+ * reach of a click, Tab, Find and a screen reader. What floats over the page stays live: the dialogs, menus, their
+ * scrims, the toast and the tip. (Inert is inherited style: the page styled again as it flips, once a hold begins and
+ * once it ends, not at each holder.)
+ * @param {unknown} holder @param {boolean} on
+ */
+function holdPage(holder, on) {
+  const was = holders.size > 0;
+  on ? holders.add(holder) : holders.delete(holder);
+  if (holders.size > 0 === was) return;
+  if (was) for (const part of heldParts.splice(0)) part.inert = false;
+  else for (const part of /** @type {HTMLCollectionOf<HTMLElement>} */ (document.body.children)) {
+    if (part.inert || part.matches("dialog, .dialog-scrim, .menu, .menu-scrim, #toast, #tip, script, .vh")) continue;
+    part.inert = true;
+    heldParts.push(part);
+  }
+}
 
 export {
-  $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, KEY_STEPS, keycaps, keysOf, keyText, MAC,
-  NAMED_KEY, PHONE, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
+  MAC, NAMED_KEY, PHONE, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 };
