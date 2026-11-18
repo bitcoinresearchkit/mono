@@ -18,9 +18,6 @@ pub use rbf::ResolvedRbf;
 /// nothing of what's pending now. It bounds the view's build too: every input of those blocks.
 const MAX_POOL_LAG: usize = 6;
 
-/// Blocks per difficulty epoch, on every network.
-const EPOCH_BLOCKS: u32 = 2016;
-
 /// A body the pool built once, shared, and its content hash as its identity.
 fn published_json((bytes, hash): JsonBody) -> Result<(Arc<[u8]>, RepresentationId)> {
     Ok((bytes, RepresentationId::Content(hash)))
@@ -214,6 +211,11 @@ impl Query {
     /// `StateUpdating` before the pool's first projection, and for the moment the pool is behind
     /// the chain's tip: never a template on an older tip.
     pub fn block_template(&self) -> Result<DatedTemplate> {
+        if !self.reader().chain().supports_block_template() {
+            return Err(Error::NotFound(
+                "Block templates are available only on mainnet and regtest".into(),
+            ));
+        }
         // The pool, then the chain's tip: a template at that tip is on the tip as read.
         let mempool = self.require_mempool()?;
         mempool.block_template(&self.tip_blockhash()).ok_or_else(|| Error::updating())
@@ -230,7 +232,8 @@ impl Query {
         }
         let height = Self::tip_height(&pin)?;
         let blocks = &self.indexer().vecs().blocks;
-        let epoch_start = Height::new(*height / EPOCH_BLOCKS * EPOCH_BLOCKS);
+        let interval = brk_types::chain().difficulty_interval;
+        let epoch_start = Height::new(*height / interval * interval);
         Ok(TipFacts {
             height,
             header: self.read_block_header_at(height, &pin)?,

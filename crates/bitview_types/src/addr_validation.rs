@@ -121,9 +121,6 @@ impl Destination {
 
 type Invalid = (String, Vec<usize>);
 
-const HRP: &str = "bc";
-const PUBKEY_PREFIX: u8 = 0x00;
-const SCRIPT_PREFIX: u8 = 0x05;
 /// Bech32's character set, a 5-bit value's character at its index.
 const CHARSET: &[u8; 32] = b"qpzry9x8gf2tvdw0s3jn54khce6mua7l";
 const CHECKSUM_LEN: usize = 6;
@@ -134,11 +131,12 @@ fn invalid(error: impl Into<String>) -> Invalid {
     (error.into(), Vec::new())
 }
 
-/// Core's `DecodeDestination` for mainnet.
+/// Core's `DecodeDestination` for the served chain.
 fn decode(s: &str) -> Result<Destination, Invalid> {
+    let expected = brk_types::chain().hrp.as_str();
     let is_bech32 = s
-        .get(..HRP.len())
-        .is_some_and(|start| start.eq_ignore_ascii_case(HRP));
+        .get(..expected.len())
+        .is_some_and(|start| start.eq_ignore_ascii_case(expected));
     if !is_bech32 {
         return decode_base58(s);
     }
@@ -149,9 +147,9 @@ fn decode(s: &str) -> Result<Destination, Invalid> {
         return Err(invalid("Empty Bech32 data section"));
     };
     let hrp = &s[..s.rfind('1').expect("a separator")].to_ascii_lowercase();
-    if hrp != HRP {
+    if hrp != expected {
         return Err(invalid(format!(
-            "Invalid or unsupported prefix for Segwit (Bech32) address (expected {HRP}, got {hrp})."
+            "Invalid or unsupported prefix for Segwit (Bech32) address (expected {expected}, got {hrp})."
         )));
     }
     match (version, checksum) {
@@ -209,21 +207,22 @@ fn decode(s: &str) -> Result<Destination, Invalid> {
 fn decode_base58(s: &str) -> Result<Destination, Invalid> {
     // Core reads a payload of at most 21 bytes with its checksum, and otherwise tries again
     // without one, at most 100 bytes, only to word the error.
+    let (pubkey, script_hash) = brk_types::chain().base58;
     match base58::decode_check(s) {
         Ok(data) if data.len() <= 21 => {
             let script = match data.as_slice() {
-                [PUBKEY_PREFIX, hash @ ..] if hash.len() == 20 => {
+                [p, hash @ ..] if *p == pubkey && hash.len() == 20 => {
                     [&[0x76, 0xa9, 0x14][..], hash, &[0x88, 0xac]].concat()
                 }
-                [SCRIPT_PREFIX, hash @ ..] if hash.len() == 20 => {
+                [p, hash @ ..] if *p == script_hash && hash.len() == 20 => {
                     [&[0xa9, 0x14][..], hash, &[0x87]].concat()
                 }
-                [PUBKEY_PREFIX | SCRIPT_PREFIX, ..] => {
+                [p, ..] if *p == pubkey || *p == script_hash => {
                     return Err(invalid("Invalid length for Base58 address (P2PKH or P2SH)"));
                 }
                 _ => return Err(invalid("Invalid or unsupported Base58-encoded address.")),
             };
-            let kind = if data[0] == PUBKEY_PREFIX {
+            let kind = if data[0] == pubkey {
                 Kind::PubkeyHash
             } else {
                 Kind::ScriptHash

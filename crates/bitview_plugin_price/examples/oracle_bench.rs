@@ -35,7 +35,10 @@ fn main() -> Result<()> {
     Budgeted::init_global(1 << 30)?;
     let connect = ConnectArgs::default();
     let client = connect.client()?;
-    let reader = Reader::new(connect.blocks_dir()?, &client)?;
+    let reader = Reader::connect(&connect, &client)?;
+    if !reader.chain().is_mainnet() {
+        return Err(Error::InvalidNetwork);
+    }
     let exit = Exit::new();
     let indexer = Indexer::import(ImportContext::new(&dir, &exit), &reader)?;
     let end = end.min(indexer.vecs().blocks.timestamp.len());

@@ -126,6 +126,9 @@ async fn forward_tx(
 }
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
+    if !brk_types::chain().is_mainnet() {
+        return router;
+    }
     router
         .api_route(
             &format!("{PREFIX}/info"),

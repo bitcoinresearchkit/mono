@@ -1,12 +1,12 @@
 #![doc = include_str!("../README.md")]
 
-#[cfg(feature = "full-api")]
-use std::{sync::mpsc::sync_channel, thread};
 use std::{
-    path::{Path, PathBuf},
+    path::Path,
     thread::sleep,
     time::{Duration, Instant},
 };
+#[cfg(feature = "full-api")]
+use std::{sync::mpsc::sync_channel, thread};
 
 use bitview_query::AsyncQuery;
 use bitview_server::{Server, ServerConfig};
@@ -45,9 +45,7 @@ const WARM_INTERVAL: Duration = Duration::from_secs(30);
 
 /// Fully resolved settings for one Bitview runner.
 pub struct RunConfig {
-    pub client: Client,
-    /// Directory containing Bitcoin Core's block files.
-    pub blocks_path: PathBuf,
+    pub reader: Reader,
     /// HTTP server and data-directory settings.
     pub server: ServerConfig,
     /// Bytes of the shared vector cache ([`DEFAULT_CACHE_BUDGET`] unless configured).
@@ -117,13 +115,11 @@ where
     P::ReadOnly: QueryPluginSet + 'static,
 {
     let RunConfig {
-        client,
-        blocks_path,
+        reader,
         server,
         cache_budget,
     } = config;
-    let reader = Reader::new(blocks_path, &client)?;
-    reader.check_network()?;
+    let client = reader.client().clone();
     Budgeted::init_global(cache_budget)?;
     let import_context = ImportContext::new(&server.data_path, &exit);
     let update_context = UpdateContext::new(&exit);
@@ -192,9 +188,13 @@ where
         };
         let chain = query.sync(bitview_query::Query::clone);
         let published = mempool.chain_waker();
+        let templates = reader.chain().supports_block_template();
         thread::spawn(move || {
             let facts = chain.clone();
             let tip_facts = move |tip: &_| {
+                if !templates {
+                    return None;
+                }
                 facts
                     .tip_facts(tip)
                     .inspect_err(|error| warn!(%error, %tip, "block template: the chain's facts at the tip"))

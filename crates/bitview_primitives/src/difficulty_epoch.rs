@@ -1,4 +1,4 @@
-use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height};
+use brk_types::Height;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -12,14 +12,14 @@ use vecdb::{Pco, PrintableIndex};
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct DifficultyEpoch(u16);
+pub struct DifficultyEpoch(u32);
 
-brk_types::impl_integer_index!(DifficultyEpoch, u16);
+brk_types::impl_integer_index!(DifficultyEpoch, u32);
 
 impl From<Height> for DifficultyEpoch {
     #[inline]
     fn from(value: Height) -> Self {
-        Self((u32::from(value) / BLOCKS_PER_DIFF_EPOCH) as u16)
+        Self(u32::from(value) / brk_types::chain().difficulty_interval)
     }
 }
 
@@ -38,7 +38,7 @@ impl PrintableIndex for DifficultyEpoch {
 impl From<f64> for DifficultyEpoch {
     #[inline]
     fn from(value: f64) -> Self {
-        Self(value.round() as u16)
+        Self(value.round() as u32)
     }
 }
 
@@ -51,6 +51,6 @@ impl From<DifficultyEpoch> for f64 {
 
 impl FromCoarserIndex<DifficultyEpoch> for Height {
     fn max_from_unbounded(coarser: DifficultyEpoch) -> usize {
-        (usize::from(coarser) + 1) * BLOCKS_PER_DIFF_EPOCH as usize - 1
+        (usize::from(coarser) + 1) * brk_types::chain().difficulty_interval as usize - 1
     }
 }

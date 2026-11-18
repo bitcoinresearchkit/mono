@@ -24,6 +24,9 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
+        if !crate::STORAGE.available() {
+            return Ok(());
+        }
         let Dependencies {
             indexer,
             blocks,

@@ -8,6 +8,7 @@ use bitview_server::{
     ServerConfig, Website,
 };
 use brk_error::{Error, Result};
+use brk_reader::Reader;
 use brk_rpc::ConnectArgs;
 use lexopt::{
     Arg::{Long, Short},
@@ -113,13 +114,13 @@ settings! {
     ]
     [
         bitcoindir: String, "<PATH>", "Bitcoin directory", "OS default";
-        blocksdir: String, "<PATH>", "Blocks directory", "<bitcoindir>/blocks";
+        blocksdir: String, "<PATH>", "Blocks directory", "<chain data dir>/blocks";
     ]
     [
         rpcconnect: String, "<HOST>", "RPC host", "localhost";
         rpcport: u16, "<PORT>", "RPC port", 8332;
         rpccookiefile: String, "<PATH>", "RPC cookie file; relative paths resolve inside <bitcoindir>",
-            "<bitcoindir>/.cookie";
+            "<chain data dir>/.cookie";
         rpcuser: String, "<USERNAME>", "RPC username";
         #[secret] rpcpassword: String, "<PASSWORD>", "RPC password";
     ]
@@ -360,24 +361,22 @@ impl Config {
     /// [`ConnectArgs::client`] must find RPC credentials.
     fn runner(&self) -> Result<RunConfig> {
         let connect_args = self.connect_args();
-        let blocks_path = connect_args.blocks_dir()?;
-        if !blocks_path.is_dir() {
-            return Err(Error::NotFound(format!(
-                "{} isn't a valid blocks directory; set --blocksdir or --bitcoindir (run with -h for help)",
-                blocks_path.display()
-            )));
-        }
+        let client = connect_args.client()?;
+        let reader = Reader::connect(&connect_args, &client)?;
         let data_path = match self.bitviewdir.as_deref() {
             // Absolute, once: every reader of the path then spells it the same way (the stores
             // keep theirs absolute, and the disk usage leaves their directory out by path).
             Some(dir) => std::path::absolute(expand_home(dir))?,
-            None => default_bitview_dir().ok_or_else(|| {
-                Error::NotFound("no home directory to put ~/.bitview in: set --bitviewdir".into())
-            })?,
+            None => default_bitview_dir()
+                .map(|dir| dir.join(reader.chain().subdir))
+                .ok_or_else(|| {
+                    Error::NotFound(
+                        "no home directory to put ~/.bitview in: set --bitviewdir".into(),
+                    )
+                })?,
         };
         Ok(RunConfig {
-            client: connect_args.client()?,
-            blocks_path,
+            reader,
             server: ServerConfig {
                 bind: self.serverbind.unwrap_or(DEFAULT_BIND),
                 port: self.serverport.unwrap_or_default(),

@@ -52,11 +52,10 @@ fn run() -> Result<()> {
         Some(height) => client.get_block_hashes_range(*height, *height)?.pop(),
         None => None,
     };
-    let network = client.get_network()?;
 
     let mode = Mode::pick(args.pretty, args.compact, args.paths.len())?;
-    let reader = Reader::new(args.connect.blocks_dir()?, &client)?;
-    reader.check_network()?;
+    let reader = Reader::connect(&args.connect, &client)?;
+    let network = reader.chain().network;
     let formatter = Formatter::new(mode, args.paths);
     let mut out = BufWriter::new(io::stdout().lock());
     for block in reader.after(before, end)? {

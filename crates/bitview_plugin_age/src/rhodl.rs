@@ -27,7 +27,7 @@ pub(crate) fn new(
         &old,
         |_, young: Cents, old: Cents| f64::from(young) / f64::from(old),
     );
-    let genesis = Timestamp::from(Date::new(2009, 1, 3));
+    let genesis = Timestamp::from(Date::from(brk_types::chain().genesis_time()));
     let weighted = LazyIndexedVec::new(
         "rhodl_ratio_source",
         version,

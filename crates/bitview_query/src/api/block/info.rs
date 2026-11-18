@@ -156,8 +156,11 @@ impl Query {
 
         if [
             blockhashes.len(),
-            pool_slugs.len(),
-            pool_block_numbers.len(),
+            if brk_types::chain().is_mainnet() {
+                pool_slugs.len()
+            } else {
+                end - begin
+            },
             segwit_txs.len(),
             segwit_sizes.len(),
             segwit_weights.len(),
@@ -233,18 +236,23 @@ impl Query {
                     .saturating_sub(u64::from(coinbase_weight));
                 let non_coinbase = u64::from(tx_count - 1);
 
-                let pool_slug = pool_slugs[i];
-                let pool = all_pools.get(pool_slug);
-                let block_number = pool_block_numbers[i];
-
                 let non_coinbase_size =
                     (size as usize).saturating_sub(HEADER_SIZE + varint_len + coinbase_total_size);
 
-                let miner_names = if pool_slug == PoolSlug::Ocean {
-                    Coinbase::datum_miner_names(&scriptsig_bytes)
-                } else {
-                    None
-                };
+                let pool = pool_slugs.get(i).map(|&slug| {
+                    let pool = all_pools.get(slug);
+                    BlockPool {
+                        id: pool.mempool_unique_id(),
+                        name: pool.name.to_string(),
+                        slug,
+                        block_number: pool_block_numbers[i],
+                        miner_names: if slug == PoolSlug::Ocean {
+                            Coinbase::datum_miner_names(&scriptsig_bytes)
+                        } else {
+                            None
+                        },
+                    }
+                });
 
                 let total_input_amt = input_volumes[i];
                 // Non-coinbase output value: input value minus fees.
@@ -266,13 +274,7 @@ impl Query {
                     ]
                     .map(mempool_fee_rate),
                     reward,
-                    pool: BlockPool {
-                        id: pool.mempool_unique_id(),
-                        name: pool.name.to_string(),
-                        slug: pool_slug,
-                        block_number,
-                        miner_names,
-                    },
+                    pool,
                     avg_fee: Sats::from(total_fees_u64.checked_div(non_coinbase).unwrap_or(0)),
                     avg_fee_rate: mempool_fee_rate(FeeRate::from(
                         total_fees_u64 as f64 * 4.0 / fee_paying_weight as f64,
@@ -324,7 +326,11 @@ impl Query {
                     expected_fees: audits[i].map(|s| s.expected_fees),
                     expected_weight: audits[i].map(|s| s.expected_weight),
                     similarity: audits[i].map(|s| s.similarity),
-                    price: prices[i],
+                    price: if brk_types::chain().is_mainnet() {
+                        prices[i]
+                    } else {
+                        Dollars::NAN
+                    },
                 };
 
                 blocks.push(BlockInfoV1 {

@@ -1,4 +1,4 @@
-use brk_types::{BLOCKS_PER_HALVING, Height};
+use brk_types::Height;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -12,14 +12,14 @@ use vecdb::{Pco, PrintableIndex};
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct HalvingEpoch(u8);
+pub struct HalvingEpoch(u32);
 
-brk_types::impl_integer_index!(HalvingEpoch, u8);
+brk_types::impl_integer_index!(HalvingEpoch, u32);
 
 impl From<Height> for HalvingEpoch {
     #[inline]
     fn from(value: Height) -> Self {
-        Self((u32::from(value) / BLOCKS_PER_HALVING) as u8)
+        Self(u32::from(value) / brk_types::chain().halving_interval)
     }
 }
 
@@ -38,7 +38,7 @@ impl PrintableIndex for HalvingEpoch {
 impl From<f64> for HalvingEpoch {
     #[inline]
     fn from(value: f64) -> Self {
-        Self(value.round() as u8)
+        Self(value.round() as u32)
     }
 }
 
@@ -51,6 +51,6 @@ impl From<HalvingEpoch> for f64 {
 
 impl FromCoarserIndex<HalvingEpoch> for Height {
     fn max_from_unbounded(coarser: HalvingEpoch) -> usize {
-        (usize::from(coarser) + 1) * BLOCKS_PER_HALVING as usize - 1
+        (usize::from(coarser) + 1) * brk_types::chain().halving_interval as usize - 1
     }
 }

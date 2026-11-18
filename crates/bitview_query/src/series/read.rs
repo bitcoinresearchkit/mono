@@ -21,7 +21,13 @@ impl SeriesRead {
         // Every plugin's rows below the published lengths stay put while the pin is held: updates
         // append past them, and only a rollback (which waits for the pin) rewrites them.
         let pin = query.pin_safe_lengths()?;
-        let bounds = pin.bounds().clone();
+        let mut bounds = pin.bounds().clone();
+        // A bulk selection only covers rows shared by every requested series.
+        for entry in &entries {
+            if !entry.available {
+                bounds.set(entry.index.name(), 0);
+            }
+        }
         let is_mutable = entries.iter().any(|entry| entry.is_mutable);
         let vecs = entries
             .into_iter()

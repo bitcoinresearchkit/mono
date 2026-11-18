@@ -24,13 +24,17 @@ const PRICED_VERSION: Version = Version::ONE;
 
 #[inline]
 fn is_priced(height: usize) -> bool {
-    height >= FIRST_PRICE_HEIGHT
+    height >= FIRST_PRICE_HEIGHT && brk_types::chain().is_mainnet()
 }
 
 /// The first priced height at or after `height`.
 #[inline]
 fn first_priced(height: usize) -> usize {
-    height.max(FIRST_PRICE_HEIGHT)
+    if brk_types::chain().is_mainnet() {
+        height.max(FIRST_PRICE_HEIGHT)
+    } else {
+        usize::MAX
+    }
 }
 
 /// The priced heights of `heights`, a suffix of them: empty at its end when none is priced.
@@ -67,7 +71,7 @@ where
 {
     #[inline]
     fn count(h: usize, start: usize) -> usize {
-        if start >= FIRST_PRICE_HEIGHT + usize::from(BEFORE) {
+        if is_priced(start.saturating_sub(usize::from(BEFORE))) {
             Op::count(h, start)
         } else {
             0

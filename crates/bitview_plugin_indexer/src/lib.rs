@@ -202,6 +202,13 @@ impl Indexer {
         let i = Instant::now();
         let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
         info!("Loaded indexer vectors in {:.2?}", i.elapsed());
+        if let Some(genesis) = vecs.blocks.blockhash.collect_one(Height::ZERO)
+            && *genesis != reader.chain().network.chain_hash().to_bytes()
+        {
+            return Err(Error::Internal(
+                "indexed genesis belongs to another network: use its own --bitviewdir",
+            ));
+        }
 
         let i = Instant::now();
         let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;

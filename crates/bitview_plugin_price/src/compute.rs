@@ -38,6 +38,24 @@ impl Vecs {
             starting_height.to_usize(),
             exit,
         )?;
+        if !crate::STORAGE.available() {
+            // Dependent plugins need one row per block. Zero is their existing pre-price
+            // placeholder. Neither historical quotes nor the oracle apply to another chain.
+            for chunk in write_chunks(committed..total_heights) {
+                for _ in chunk {
+                    self.spot.cents.height.push(brk_types::Cents::ZERO);
+                    self.oracle_bin.push(Float64::from(f64::NAN));
+                }
+                write_locked(
+                    [
+                        &mut self.spot.cents.height as &mut dyn AnyStoredVec,
+                        &mut self.oracle_bin,
+                    ],
+                    exit,
+                )?;
+            }
+            return Ok(());
+        }
         // The slow regime's shape profile is not stored, so resuming inside that regime
         // replays it from its start, once readers have left the rows it rewrites.
         if (START_HEIGHT_SLOW + 1..START_HEIGHT_FAST).contains(&committed) {

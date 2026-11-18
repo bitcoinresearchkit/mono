@@ -92,7 +92,7 @@ pub fn creation_cohorts_ahead(height: Height, timestamp: brk_types::Timestamp) -
         };
         missing.push(format!(
             "halving_epoch_{next_epoch} (from height {}, {when})",
-            next_epoch * brk_types::BLOCKS_PER_HALVING as usize
+            next_epoch * brk_types::chain().halving_interval as usize
         ));
     }
     (!missing.is_empty()).then(|| format!("Creation-period cohorts to add: {}", missing.join("; ")))

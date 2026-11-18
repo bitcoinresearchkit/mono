@@ -4,7 +4,6 @@ use bitview_default::DefaultPlugins;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_logger::init;
-use brk_reader::Reader;
 use std::process::ExitCode;
 use tracing::info;
 use vecdb::Budgeted;
@@ -28,8 +27,7 @@ fn main() -> ExitCode {
 fn run() -> Result<()> {
     let _machine_lock = quiet::acquire()?;
     let RunConfig {
-        client,
-        blocks_path,
+        reader,
         server,
         cache_budget,
     } = Config::import()?;
@@ -37,8 +35,7 @@ fn run() -> Result<()> {
     init(Some(&server.logs_path()))?;
     raise_fd_limit();
     let data_path = server.data_path;
-    let reader = Reader::new(blocks_path, &client)?;
-    reader.check_network()?;
+    let client = reader.client();
     client.wait_for_synced_node()?;
 
     let chain_height = client.get_last_height()?;

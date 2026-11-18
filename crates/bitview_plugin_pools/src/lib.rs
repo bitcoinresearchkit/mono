@@ -23,7 +23,7 @@ use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 use concentration::Concentration;
 use pool_heights::PoolHeights;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
+const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13)).mainnet_only();
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]

@@ -42,8 +42,11 @@ impl TipFacts {
     /// The next block's compact target: the tip's, or a retarget's at an epoch boundary. Mainnet
     /// rules, which Bitview indexes (no testnet minimum-difficulty blocks).
     fn next_bits(&self) -> CompactTarget {
-        let params = &Params::MAINNET;
-        if !((*self.height + 1) as u64).is_multiple_of(params.difficulty_adjustment_interval()) {
+        debug_assert!(brk_types::chain().supports_block_template());
+        let params = &Params::new(brk_types::chain().network);
+        if !((*self.height + 1) as u64)
+            .is_multiple_of(u64::from(brk_types::chain().difficulty_interval))
+        {
             return self.header.bits;
         }
         let timespan = self.header.time.saturating_sub(*self.epoch_start_time);
@@ -54,7 +57,7 @@ impl TipFacts {
     /// and BIP 54 on every network.
     fn next_mintime(&self) -> Timestamp {
         let height = u64::from(*self.height + 1);
-        let interval = Params::MAINNET.difficulty_adjustment_interval();
+        let interval = u64::from(brk_types::chain().difficulty_interval);
         let mut mintime = *self.median_time + 1;
         if height.is_multiple_of(interval) {
             mintime = mintime.max(self.header.time.saturating_sub(600));

@@ -5,7 +5,7 @@ use bitview_vecs::{
     LazyPerBlock, LazyPercentPerBlock, Resolutions,
     ops::{BlocksToDays, DifficultyToHashrate, RelativeChange},
 };
-use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height, Version};
+use brk_types::{Height, Version};
 use vecdb::{Ident, IndexVec, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use super::Vecs;
@@ -15,9 +15,10 @@ fn blocks_left_to_retarget(height: Height) -> Count {
 }
 
 /// The first block of the window, a retarget period long, that ends at `height`: the value
-/// before it is the one `BLOCKS_PER_DIFF_EPOCH` blocks earlier (none through the first period).
+/// before it is the one a retarget interval earlier (none through the first period).
 fn retarget_window_start(height: Height) -> Height {
-    Height::from(usize::from(height).saturating_sub(BLOCKS_PER_DIFF_EPOCH as usize - 1))
+    let interval = brk_types::chain().difficulty_interval as usize;
+    Height::from(usize::from(height).saturating_sub(interval - 1))
 }
 
 impl Vecs {

@@ -43,7 +43,7 @@ const DUPLICATE_COINBASES: [DuplicateCoinbase; 2] = [
 pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {
     let dup = DUPLICATE_COINBASES
         .iter()
-        .find(|dup| dup.height == height)?;
+        .find(|dup| dup.height == height && brk_types::chain().is_mainnet())?;
     Some((
         dup.overwritten_height,
         SupplyState {
@@ -57,6 +57,6 @@ pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {
 pub fn overwritten_tx_index(tx_index: TxIndex) -> Option<TxIndex> {
     DUPLICATE_COINBASES
         .iter()
-        .find(|dup| dup.tx_index == tx_index)
+        .find(|dup| dup.tx_index == tx_index && brk_types::chain().is_mainnet())
         .map(|dup| dup.overwritten_tx_index)
 }

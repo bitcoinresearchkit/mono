@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use bitcoin::{Address as BitcoinAddress, Network, ScriptBuf};
+use bitcoin::{Address as BitcoinAddress, ScriptBuf};
 use brk_error::Error;
 use derive_more::{Deref, From};
 #[cfg(feature = "schemars")]
@@ -41,7 +41,7 @@ impl TryFrom<(&ScriptBuf, OutputType)> for Address {
                 Ok(Self(bytes_to_hex(bytes.as_slice())))
             }
             _ if output_type.is_addr() => {
-                let addr = BitcoinAddress::from_script(script, Network::Bitcoin)
+                let addr = BitcoinAddress::from_script(script, crate::chain().network)
                     .map_err(|_| Error::InvalidAddress)?;
                 Ok(Self(addr.to_string()))
             }
@@ -67,7 +67,7 @@ impl FromStr for Address {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        AddressBytes::addr_to_script(s)?;
+        AddressBytes::parse_script(s, None)?;
         Ok(Self(s.to_string()))
     }
 }

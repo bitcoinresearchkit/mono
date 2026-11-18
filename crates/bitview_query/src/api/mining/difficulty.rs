@@ -1,14 +1,12 @@
 use bitview_primitives::DifficultyEpoch;
 use bitview_types::DifficultyAdjustment;
-use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height};
+use brk_types::Height;
 use vecdb::ReadableVec;
 
 use crate::{OptionData, Query, Result, TipPin};
 
 /// Target block time in seconds (10 minutes)
 const TARGET_BLOCK_TIME: u64 = 600;
-/// The early-epoch projection window, in blocks (mempool.space's quarter epoch).
-const QUARTER_EPOCH: u32 = 503;
 
 impl Query {
     /// The current epoch's difficulty-adjustment snapshot, as mempool.space computes it on
@@ -19,19 +17,21 @@ impl Query {
     /// the chain, the same on every server until the next block, and `remaining_time` is there
     /// for a reader counting from now.
     pub fn difficulty_adjustment(&self, at: &TipPin) -> Result<DifficultyAdjustment> {
+        let interval = brk_types::chain().difficulty_interval;
+        let quarter_epoch = interval / 4 - 1;
         let indexer = self.indexer();
         let plugins = self.plugins();
         let current_height = at.height;
         let current_height_u32: u32 = current_height.into();
 
         let current_epoch = DifficultyEpoch::from(current_height);
-        let blocks_into_epoch = current_height_u32 % BLOCKS_PER_DIFF_EPOCH;
+        let blocks_into_epoch = current_height_u32 % interval;
         let epoch_start_u32 = current_height_u32 - blocks_into_epoch;
         let epoch_start_height = Height::from(epoch_start_u32);
 
-        let next_retarget_height = epoch_start_u32 + BLOCKS_PER_DIFF_EPOCH;
+        let next_retarget_height = epoch_start_u32 + interval;
         let remaining_blocks = next_retarget_height - current_height_u32;
-        let progress_percent = (blocks_into_epoch as f64 / BLOCKS_PER_DIFF_EPOCH as f64) * 100.0;
+        let progress_percent = (blocks_into_epoch as f64 / interval as f64) * 100.0;
 
         let epoch_start_timestamp = plugins
             .mappings
@@ -60,7 +60,7 @@ impl Query {
         };
 
         let previous_retarget = if epoch_start_u32 > 0 {
-            let prev_epoch_start = Height::from(epoch_start_u32 - BLOCKS_PER_DIFF_EPOCH);
+            let prev_epoch_start = Height::from(epoch_start_u32 - interval);
             let prev_difficulty = indexer
                 .vecs()
                 .blocks
@@ -84,12 +84,12 @@ impl Query {
         // block intervals it covers: multiplied before dividing, a pace under a millisecond per
         // block still projects time. A span of no time (backward-stepping timestamps) projects
         // nothing: the target pace, no change.
-        let quarter_span_ms = if epoch_start_u32 > 0 && blocks_into_epoch < QUARTER_EPOCH {
+        let quarter_span_ms = if epoch_start_u32 > 0 && blocks_into_epoch < quarter_epoch {
             let quarter_start = indexer
                 .vecs()
                 .blocks
                 .timestamp
-                .collect_one(Height::from(current_height_u32 - QUARTER_EPOCH))
+                .collect_one(Height::from(current_height_u32 - quarter_epoch))
                 .data()?;
             let before_retarget = (*epoch_start_timestamp).saturating_sub(*quarter_start);
             let scaled = f64::from(before_retarget) * (1.0 + previous_retarget / 100.0);
@@ -98,7 +98,7 @@ impl Query {
             0
         };
         let projection = if quarter_span_ms > 0 {
-            Some((quarter_span_ms, u64::from(QUARTER_EPOCH)))
+            Some((quarter_span_ms, u64::from(quarter_epoch)))
         } else if observed {
             Some((elapsed_time * 1000, u64::from(blocks_into_epoch)))
         } else {
@@ -112,10 +112,14 @@ impl Query {
         // The retarget at the projected pace, as Bitcoin's rule counts it: one block more than
         // the intervals its span covers (exact at an epoch's last block). A retarget changes
         // difficulty by at most a factor of four either way.
-        let difficulty_change = projection.map_or(0.0, |(span_ms, span_blocks)| {
-            let target_ms = TARGET_BLOCK_TIME * 1000 * (span_blocks + 1);
-            ((target_ms as f64 / span_ms as f64 - 1.0) * 100.0).clamp(-75.0, 300.0)
-        });
+        let difficulty_change = projection
+            .filter(|_| {
+                !bitcoin::params::Params::new(brk_types::chain().network).no_pow_retargeting
+            })
+            .map_or(0.0, |(span_ms, span_blocks)| {
+                let target_ms = TARGET_BLOCK_TIME * 1000 * (span_blocks + 1);
+                ((target_ms as f64 / span_ms as f64 - 1.0) * 100.0).clamp(-75.0, 300.0)
+            });
 
         let expected_blocks = elapsed_time as f64 / TARGET_BLOCK_TIME as f64;
 

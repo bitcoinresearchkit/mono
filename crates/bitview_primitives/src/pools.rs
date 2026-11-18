@@ -90,14 +90,19 @@ impl Pools {
 pub fn pools() -> &'static Pools {
     static POOLS: OnceLock<Pools> = OnceLock::new();
     POOLS.get_or_init(|| {
-        let entries: Vec<JsonPoolEntry> =
-            from_str(JSON_DATA).expect("Failed to parse pools-v2.json");
+        let entries: Vec<JsonPoolEntry> = if brk_types::chain().is_mainnet() {
+            from_str(JSON_DATA).expect("Failed to parse pools-v2.json")
+        } else {
+            Vec::new()
+        };
 
         // Every PoolSlug has an entry, so `get` can't miss: the reserved ones stay empty.
         let mut pools: Vec<Pool> = (0..=usize::from(u8::MAX)).map(empty_pool).collect();
 
-        pools[0].name = "Unknown";
-        pools[0].lead = "Blocks not matched to a known mining pool.";
+        if brk_types::chain().is_mainnet() {
+            pools[0].name = "Unknown";
+            pools[0].lead = "Blocks not matched to a known mining pool.";
+        }
 
         for entry in entries {
             if TESTNET_IDS.contains(&entry.id) {

@@ -32,7 +32,11 @@ impl Query {
         let start = start_height(self, time_period, tip)?.to_usize();
         let pool_data = self.ranked_pools(start, tip)?;
 
-        let empty_blocks = self.empty_blocks_by_pool(start, &at.pin)?;
+        let empty_blocks = if pool_data.is_empty() {
+            [0; 256]
+        } else {
+            self.empty_blocks_by_pool(start, &at.pin)?
+        };
         let last_estimated_hashrate = self.hashrate_at(tip)?;
         let last_estimated_hashrate3d = self.trailing_hashrate(tip, 3)?;
         let last_estimated_hashrate1w = self.trailing_hashrate(tip, 7)?;

@@ -27,7 +27,7 @@ pub struct BlockExtras {
     /// Total block reward (subsidy + fees) in satoshis
     pub reward: Sats,
 
-    pub pool: BlockPool,
+    pub pool: Option<BlockPool>,
 
     /// Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
     #[serde(rename = "avgFee")]
