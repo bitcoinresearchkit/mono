@@ -8,6 +8,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- `config.toml` again reads `_` digit separators, hex, octal and binary integers, and quoted keys.
+
 - Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
   matching mempool.space. Descendants evicted with a replaced parent keep their replacement
   status.

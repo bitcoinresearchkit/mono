@@ -180,6 +180,10 @@ impl Config {
                 .split_once('=')
                 .ok_or_else(|| at(format!("expected `key = value`, found `{line}`")))?;
             let key = key.trim();
+            let key = ['"', '\'']
+                .into_iter()
+                .find_map(|quote| key.strip_prefix(quote)?.strip_suffix(quote))
+                .unwrap_or(key);
             let Some(setting) = setting(key) else {
                 let keys: Vec<_> = SETTINGS.iter().map(|setting| setting.key).collect();
                 return Err(at(format!("unknown setting `{key}`, expected one of {}", keys.join(", "))));
@@ -341,9 +345,9 @@ impl Config {
     }
 }
 
-/// The text of a `config.toml` value, as its setting's parsing reads it: a bare word, or a string's
-/// contents, in `'…'` as written, in `"…"` with the escapes `--dumpconfig` writes. Only a comment may
-/// follow it.
+/// The text of a `config.toml` value, as its setting's parsing reads it: a bare word, an integer
+/// through `toml_integer`, or a string's contents, in `'…'` as written, in `"…"` with the escapes
+/// `--dumpconfig` writes. Only a comment may follow it.
 fn toml_value(text: &str) -> StdResult<String, String> {
     let (value, rest) = if let Some(text) = text.strip_prefix('"') {
         let mut value = String::new();
@@ -373,13 +377,39 @@ fn toml_value(text: &str) -> StdResult<String, String> {
         if end == 0 {
             return Err("missing value".to_owned());
         }
-        (text[..end].to_owned(), &text[end..])
+        (toml_integer(&text[..end])?, &text[end..])
     };
     let rest = rest.trim_start();
     if !rest.is_empty() && !rest.starts_with('#') {
         return Err(format!("unexpected `{rest}` after the value"));
     }
     Ok(value)
+}
+
+/// A bare integer in TOML's other spellings, written in plain decimal: `_` between digits, and `0x`,
+/// `0o` or `0b` ahead of them, which files written for earlier versions may hold. Any other token
+/// is returned as written, for its setting to read.
+fn toml_integer(token: &str) -> StdResult<String, String> {
+    let (radix, digits) = [("0x", 16), ("0o", 8), ("0b", 2)]
+        .into_iter()
+        .find_map(|(prefix, radix)| Some((radix, token.strip_prefix(prefix)?)))
+        .unwrap_or((10, token.strip_prefix(['+', '-']).unwrap_or(token)));
+    // Plain decimals already parse as written. Separators cannot follow a decimal leading zero.
+    if radix == 10 && (!token.contains('_') || digits.starts_with('0')) {
+        return Ok(token.to_owned());
+    }
+    if !digits
+        .split('_')
+        .all(|group| !group.is_empty() && group.chars().all(|c| c.is_digit(radix)))
+    {
+        return Ok(token.to_owned());
+    }
+    if radix == 10 {
+        return Ok(token.replace('_', ""));
+    }
+    u64::from_str_radix(&digits.replace('_', ""), radix)
+        .map(|n| n.to_string())
+        .map_err(|error| format!("invalid integer `{token}`: {error}"))
 }
 
 fn parse_error(error: lexopt::Error) -> Error {
