@@ -56,14 +56,16 @@ impl File {
         }
     }
 
-    fn embedded(file: &'static EmbeddedFile<'static>) -> Self {
-        let (contents, hash) = &served().files[file.path()];
-        Self {
-            path: file.path().to_owned(),
+    /// The embedded site's file at `path`, read from the map of what is served: `EMBEDDED.get_file` walks every
+    /// embedded file, three times over for an address that names none.
+    fn embedded(path: &Path) -> Option<Self> {
+        let (&path, (contents, hash)) = served().files.get_key_value(path)?;
+        Some(Self {
+            path: path.to_owned(),
             contents: contents.clone(),
             hash: Some(hash),
-            content_type: content_type(file.path()),
-        }
+            content_type: content_type(path),
+        })
     }
 }
 
@@ -152,9 +154,7 @@ impl Website {
             .into_iter()
             .chain(above.map(|folder| folder.join("index.html")));
         let file = match self.filesystem_path() {
-            None => {
-                candidates.find_map(|candidate| EMBEDDED.get_file(candidate).map(File::embedded))
-            }
+            None => candidates.find_map(|candidate| File::embedded(&candidate)),
             Some(base) => {
                 let failed = |file: &Path, e: std::io::Error| {
                     error!("{}: {e}", file.display());
