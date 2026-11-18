@@ -1749,6 +1749,8 @@ function renderGallery() {
   galleryDrawn = drawn;
   gallerySpot = spot;
   listsDrawn = 0;
+  // (A grid drawn anew is a move, as a scroll is: what a key typed shows may be gone at the next, see stillness.)
+  galleryMoves++;
   galleryQueue.clear();
   gallerySeen.clear();
   galleryTilesSeen.disconnect();
@@ -1932,7 +1934,7 @@ const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
 let galleryResting = true;
 let galleryScrolling = false;
-/** Scrolls in Home so far. */
+/** Scrolls in Home so far, and its grid's drawings anew (see renderGallery). */
 let galleryMoves = 0;
 /**
  * A drawing loop's test of whether Home is still: at rest, and not scrolled since the loop last asked (a drawing trip
