@@ -13,11 +13,11 @@ macro_rules! with_range_format {
         $(#[$attr])*
         pub struct $name {
             $($body)*
-            /// Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+            /// Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
             #[serde(default)]
             pub start: Option<$crate::RangeIndex>,
 
-            /// Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+            /// Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
             #[serde(default)]
             pub end: Option<$crate::RangeIndex>,
 
