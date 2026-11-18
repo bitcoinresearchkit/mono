@@ -843,6 +843,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- The holders' transfer volume in loss, net and gross realized and unrealized pnl and supply in loss are read as the
+  difference or sum of the series they come from, 42 stored columns fewer: −124 MB on disk, the same bytes served,
+  about 0.013 ms more at p50. The first start after upgrading computes cointime's created dollar-blocks again (about
+  20 s on a Mac mini).
 - `/api/block/{hash}/raw` serves the block's bytes as the node's block file holds them once the 80-byte header there
   hashes to the block asked for, instead of decoding the block to recompute its merkle root, witness commitment and
   weight on every request: a 1-2 MB block takes 0.9 ms at p50 and 1.2 ms at p99 cold (8.2 and 12.0 before), and 0.12 ms
@@ -924,6 +928,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Coinblocks created per block, documented as the circulating supply, read the step of a running total kept in
+  floating point, so it missed the supply at 851,713 of 976,437 blocks, by up to 97,656 sats (block 770,393): block
+  900,000 read 19,874,782.0898 coins where the supply is 19,874,782.0907. Created dollar-blocks carried the same error.
+  Since 10 November. Both read the exact supply now; the running total and its window sums keep their drift of under
+  2 coinblocks in 1.4e13.
 - Studio wrote a billion as B on the axis and last-value label of its byte, weight and hash rate charts, beside a
   legend saying GB: Blockchain size read 784B next to 784 GB, and the signature size chart 253.8B next to 253.8 GB
   (77 charts), and a color gradient's ticks read 200B under a 784 GB end. Since 9 October. The axis, the label, the
