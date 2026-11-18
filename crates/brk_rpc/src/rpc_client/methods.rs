@@ -71,10 +71,11 @@ impl Client {
         Ok(Height::from(r.0))
     }
 
-    /// The bytes of the node's block and undo files, as it estimates them
-    /// (`getblockchaininfo.size_on_disk`).
-    pub fn get_blocks_size(&self) -> Result<u64> {
-        Ok(self.get_blockchain_info()?.size_on_disk)
+    /// The best chain's tip height and the node's estimate of its block and undo files' bytes
+    /// (`size_on_disk`), from one `getblockchaininfo`: one moment, one method the node must allow.
+    pub fn get_tip_height_and_blocks_size(&self) -> Result<(Height, u64)> {
+        let info = self.get_blockchain_info()?;
+        Ok((Height::from(info.blocks as u64), info.size_on_disk))
     }
 
     pub fn get_block_header_info<'a, H>(&self, hash: &'a H) -> Result<GetBlockHeaderVerbose>

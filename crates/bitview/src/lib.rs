@@ -265,8 +265,7 @@ where
 /// What the sync status and the disk usage report of the node, its tip height and the bytes of
 /// its block files: read before the server answers and at each new tip, never per request.
 fn record_node(client: &Client, query: &AsyncQuery) -> Result<()> {
-    let height = client.get_last_height()?;
-    let blocks_bytes = client.get_blocks_size()?;
+    let (height, blocks_bytes) = client.get_tip_height_and_blocks_size()?;
     query.sync(|q| q.set_node_tip(height, blocks_bytes));
     Ok(())
 }
