@@ -4,20 +4,20 @@
 // dot in its `color` (radius 3.5, times its `size`; 0: none), ringed in the chart's ground, resting on the point from
 // its side (on it: centered), several at one point stacked away from it. Its words (`text`) just past its dot (on it:
 // under it; at the timeline's ends, moved along it to stay a little within them), in the chart's one pill (a tag's):
-// its color (or `textColor`), its words dark on it, the color lifted just as far as they need to read (see lightTint),
-// its hue kept and as vivid as sRGB allows there (each hue as near itself as its words let it be). Where words crowd at
-// the view's zoom, in the order of their `priority` (a move's size, say: the biggest first; at one, the latest first),
-// one whose words would run into those of one shown before it, on its side of its series (above it; under it) or on the
-// other where the series crosses between them (a foot under it higher than a top over it), is counted in the nearest of
-// those: "2 more" on its left (room kept there where words later in that order would run into its own), quieter than
-// they are: in the chart's text color, kept legible, on a quiet tag of its separator color (zoomed in, they part; a pan
-// regroups none: the order is the data's). Its words drawn over everything, each frame (on its pane's layer over it),
-// whole within the plot and clear of its other dots and of the words placed before them (in that order, the counts
-// alone last): where its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their
-// row or out from the series, where they're still nearer their own dot than any other (none: a pill tried again without
-// its count, else left out); a count that doesn't fit between the plot's left edge and its pill's dot left out, the
-// pill kept on its dot; one whose pill's dot is past an edge of the plot, while a mark it holds is in view, shown alone
-// where the words of the one nearest that edge would be.
+// its color (or `textColor`), its words white or dark on it as a tag's, the color's lightness moved just as far as they
+// need to read (see lightTint), its hue kept and as vivid as sRGB allows there (each hue as near itself as its words
+// let it be). Where words crowd at the view's zoom, in the order of their `priority` (a move's size, say: the biggest
+// first; at one, the latest first), one whose words would run into those of one shown before it, on its side of its
+// series (above it; under it) or on the other where the series crosses between them (a foot under it higher than a top
+// over it), is counted in the nearest of those: "2 more" on its left (room kept there where words later in that order
+// would run into its own), quieter than they are: in the chart's text color, kept legible, on a quiet tag of its
+// separator color (zoomed in, they part; a pan regroups none: the order is the data's). Its words drawn over
+// everything, each frame (on its pane's layer over it), whole within the plot and clear of its other dots and of the
+// words placed before them (in that order, the counts alone last): where its edge would cut them or they'd cover a dot,
+// moved to the nearest spot that's clear, along their row or out from the series, where they're still nearer their own
+// dot than any other (none: a pill tried again without its count, else left out); a count that doesn't fit between the
+// plot's left edge and its pill's dot left out, the pill kept on its dot; one whose pill's dot is past an edge of the
+// plot, while a mark it holds is in view, shown alone where the words of the one nearest that edge would be.
 // Added to its pane on its series' side, its marks in their points' order. The room they take kept at its scale's ends
 // while its series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
 import { legible, lightTint, over } from "./color.js";
@@ -104,7 +104,7 @@ export class Marks {
     order.sort((a, b) => (marks[b].priority ?? 0) - (marks[a].priority ?? 0) || b - a);
     (this.order = Int32Array.from(order)), (this.rank = new Int32Array(marks.length));
     for (let r = 0; r < order.length; r++) this.rank[order[r]] = r;
-    // (Its words' looks: a tag's in its color, lifted where dark words wouldn't read on it.)
+    // (Its words' looks: a tag's in its color, moved where its words wouldn't read on it.)
     this.looks = marks.map((mark) => (mark.text ? lightTint(mark.textColor ?? mark.color) : null));
     // (Each one's sprite kept where its words and look stay: a chart app sets its marks again at every rebuild.)
     this.sprites = marks.map((mark, k) => (mark.text === was[k]?.text && this.looks[k] === wasLooks[k] ? wasSprites[k] : undefined));

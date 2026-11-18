@@ -130,19 +130,27 @@ function words(fill, white) {
 const lightTints = new Map();
 
 /**
- * A tag's look for words over data in `color`'s hue (see tint): dark words (see words) on its fill, the color itself
- * where they read on it (see FLOOR), else lifted (its OKLab lightness) just as far as that takes, its hue kept and its
- * chroma the most sRGB allows there (never more than its own): each hue as near itself as its words let it be, the
- * most vivid version of it under dark words, on either ground. Its opacity left out (as a tag's fill). Each color
- * worked out once.
+ * A tag's look for words over data in `color`'s hue (see tint): its words white or dark by its fill's lightness, as a
+ * tag's (see whiteReads, words), reading on it by both measures (WCAG 2's FLOOR, and APCA's, as the better of the two
+ * inks: see lc): the color itself where they do, else the nearest lightness (OKLab) where they do, darker under white
+ * words or lighter under dark ones, its hue kept and its chroma the most sRGB allows there (never more than its own):
+ * each hue as near itself as its words let it be, on either ground. Its opacity left out (as a tag's fill). Each
+ * color worked out once.
  * @param {string} color
  * @returns {{ fill: string, ink: string }}
  */
 export function lightTint(color) {
   let look = lightTints.get(color);
   if (look !== undefined) return look;
-  const seen = rgb(read(color)), [L, a0, b0] = oklab(seen), ink = words(seen, false), reads = (/** @type {number[]} */ c) => ratio(c, ink) >= FLOOR;
-  look = { fill: hex(reads(seen) ? seen : toward(L, 1, Math.atan2(b0, a0), Math.hypot(a0, b0), reads)), ink: hex(ink) };
+  const seen = rgb(read(color)), [L, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0);
+  const reads = (/** @type {number[]} */ c, /** @type {boolean} */ white) =>
+    whiteReads(c) === white && ratio(c, words(c, white)) >= FLOOR && lc(words(c, white), c) >= lc(words(c, !white), c);
+  let fill = seen;
+  if (!reads(seen, whiteReads(seen))) {
+    const darker = toward(L, 0, hue, chroma, (c) => reads(c, true)), lighter = toward(L, 1, hue, chroma, (c) => reads(c, false));
+    fill = L - oklab(darker)[0] < oklab(lighter)[0] - L ? darker : lighter;
+  }
+  look = { fill: hex(fill), ink: hex(words(fill, whiteReads(fill))) };
   if (lightTints.size > 512) lightTints.clear();
   lightTints.set(color, look);
   return look;
@@ -179,6 +187,20 @@ function toward(L, to, hue, chroma, reads) {
     else lo = mid;
   }
   return vivid(hi, hue, chroma);
+}
+
+/**
+ * APCA's lightness contrast of `text` on `back` (sRGB channels, 0 to 255), its size alone: its offsets and clamp left
+ * out, as only two inks on one fill are compared with it.
+ * @param {number[]} text @param {number[]} back
+ */
+function lc(text, back) {
+  const y = (/** @type {number[]} */ c) => {
+    const v = 0.2126729 * (c[0] / 255) ** 2.4 + 0.7151522 * (c[1] / 255) ** 2.4 + 0.072175 * (c[2] / 255) ** 2.4;
+    return v < 0.022 ? v + (0.022 - v) ** 1.414 : v;
+  };
+  const t = y(text), b = y(back);
+  return b > t ? b ** 0.56 - t ** 0.57 : t ** 0.62 - b ** 0.65;
 }
 
 /** The lightness (OKLab) white words read under (see whiteReads). */
