@@ -114,12 +114,14 @@
         position: absolute;
         left: -999px;
 
+        /* (Its ring inside its own ground: over the bar's words under it, it fell under 3:1.) */
         &:focus {
           left: 12px;
           top: 12px;
           z-index: 10;
           padding: 6px 12px;
           background: var(--card);
+          outline-offset: -4px;
         }
       }
 
