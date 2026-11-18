@@ -11,14 +11,16 @@ import {
   galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS,
   heatKnown, heldUpright, home, homeAt, homeScroll, homeScroller, importCharts, inLibrary, isPreview, isYours,
   keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith,
-  letterOf, library, libraryEdits, libraryStep, light, listedPreviews, listOwed, listStop, livePrice, loadPresets,
-  minedHalvings, mostBars, MOTION, newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset,
-  placeGallery, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts,
-  previews, previousChart, profileColor, recentCharts, redoing, reduced, relayout, relist, renderCharts, save,
+  letterOf, library, libraryEdits, libraryStep, light, listedPreviews, listOwed, livePrice, loadPresets, minedHalvings,
+  mostBars, MOTION, newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs,
+  presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews,
+  previousChart, profileColor, railMenuKept, recentCharts, redoing, reduced, relayout, relist, renderCharts, save,
   savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls, sideLight, sidePresets, started, storage,
   THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit,
 } from "/studio/app.js";
-import { $, all$, composing, escapeHtml, scrollsY, SLOP, TOUCH, typing } from "/studio/dom.js";
+import {
+  $, all$, closest, composing, escapeHtml, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing,
+} from "/studio/dom.js";
 import { inSlices, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import { format, grouped, plural, precise } from "/studio/format.js";
@@ -50,7 +52,7 @@ import {
 } from "/studio/inspector.js";
 import {
   anythingKept, chartsFile, closedOwner, cutFade, download, downloadAll, downloadChart, downloadFolder, fadeOut, fading,
-  hideMenu, keepCarriedView, menuOf, onRail, ownerNow, railed, supportedIntervals,
+  hideMenu, keepCarriedView, menuOf, onRail, ownerNow, railed, setMenuOwner, supportedIntervals,
 } from "/studio/menus.js";
 import {
   editedPreset, fromPreset, keptPreset, presetById, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex,
@@ -3806,6 +3808,78 @@ function roveList() {
   const stop = /** @type {HTMLElement | null | undefined} */ (row?.querySelector(".nav-item, .list-head-name"));
   if (stop) stop.tabIndex = 0;
 }
+/**
+ * The sidebar's list, one stop for Tab (not two a row: a long Library, a hundred): the row last on (by its key),
+ * else the open chart's, else the first; ↑ ↓ and ← → walk it from there. A row's ⋯ (a head's buttons too) by its
+ * menu key or ⇧F10, its press, a right-click.
+ */
+let listStop = "", keyMenuAt = 0;
+function startListKeys() {
+  $("chart-list").addEventListener("focusin", (event) => {
+    const target = /** @type {HTMLElement} */ (event.target);
+    if (!target.matches(".nav-item, .list-head-name")) return;
+    for (const button of all$('button[tabindex="0"]', $("chart-list"))) if (button !== target) button.tabIndex = -1;
+    target.tabIndex = 0;
+    listStop = rowKeyOf(target.closest(".chart-row, .folder-row, .list-head"));
+  });
+  // In the list, ↑ ↓ (Home, End) walk its rows rather than the layers; ⌥↑ ⌥↓ move the focused one (yours); ← → as a
+  // tree: → opens a folder (a group's head), then goes into it; ← closes it, then goes to the one it's in, as from a
+  // chart. (The heads a level above the rows.)
+  $("chart-list").addEventListener("keydown", (event) => {
+    if (composing(event) || typing(event.target)) return;
+    const rows = all$(".chart-row:not([inert]), .folder-row:not([inert]), .list-head", $("chart-list")), row = /** @type {HTMLElement | null} */ (closest(event, ".chart-row, .folder-row, .list-head"));
+    const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item, .list-head-name"));
+    const level = (/** @type {HTMLElement} */ each) => (each.classList.contains("list-head") ? -1 : depthOf(each));
+    if (!row) return;
+    // (Its menu, as a right-click on it is: the menu key, ⇧F10; the focus back on the row as it closes. The browser's
+    // own right-click from the same key, after it, not a second one.)
+    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+      const button = /** @type {HTMLElement | null} */ (row.querySelector(".nav-item, .list-head-name"));
+      if (!button) return;
+      event.preventDefault();
+      const box = button.getBoundingClientRect();
+      keyMenuAt = performance.now();
+      button.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 16, clientY: box.bottom }));
+      if (!$("menu").hidden) setMenuOwner(button);
+      return;
+    }
+    if (!event.altKey && !event.metaKey && !event.ctrlKey && ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) {
+      const at = rows.indexOf(row);
+      if (at < 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      return void first(rows[stepIn(at, Number(KEY_STEPS[event.key]), rows.length)])?.focus();
+    }
+    const folder = row.dataset.folderRow, section = row.dataset.sectionRow, group = /** @type {Group | undefined} */ (row.dataset.group), id = row.dataset.chartRow;
+    if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+      const opens = folder !== undefined || section !== undefined || group !== undefined, open = opens && !row.classList.contains("closed"), depth = level(row), at = rows.indexOf(row);
+      event.preventDefault();
+      // (On the rail, a folder's or a section's → is its menu, the focus in it, as a press shows it: they never open
+      // there.)
+      if (onRail() && (folder !== undefined || section !== undefined)) return void (event.key === "ArrowRight" && first(row) && railMenuKept(/** @type {HTMLElement} */ (first(row))));
+      if (opens && open === (event.key === "ArrowLeft")) {
+        if (folder) toggleFolder(folder);
+        else if (group) toggleGroup(group);
+        else toggleSection(/** @type {string} */ (section));
+        // (Drawn anew: its row's own again.)
+        const again = all$(".folder-row, .list-head", $("chart-list")).find((each) => (folder ? each.dataset.folderRow === folder : group ? each.dataset.group === group : each.dataset.sectionRow === section));
+        return void first(again)?.focus();
+      }
+      const toward = event.key === "ArrowRight" ? (open && rows[at + 1] && level(rows[at + 1]) > depth ? rows[at + 1] : undefined) : rows.slice(0, at).findLast((each) => level(each) < depth);
+      return void first(toward)?.focus();
+    }
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    if (folder) {
+      event.preventDefault();
+      stepFolder(folder, event.key === "ArrowUp" ? -1 : 1);
+      return void (/** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-folder-item="${folder}"]`))?.focus());
+    }
+    if (!id) return;
+    event.preventDefault();
+    stepChart(id, event.key === "ArrowUp" ? -1 : 1);
+    /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${id}"]`))?.focus();
+  });
+}
 /** The recommended charts as the charts they make, their drawings kept under stable ids. @type {{ preset: number, doc: Chart }[]} */
 let recommendedCards = [];
 function renderRecommended() {
@@ -3860,19 +3934,19 @@ export {
   duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
   forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows,
   groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS,
-  keptMarkKey, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder, movingSide,
-  naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,
+  keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder,
+  movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,
   onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf, pickChart, picked,
   placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey, presetMarkQueue,
   presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf, presetSearch, presetTiles,
   presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg, profileMark, queueYours,
   recommendedCards, recommendedDrawn, recommendedKey, recommendedPresets, renderChartPath, renderDoors, renderGallery,
   renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme, renderYours, reorderable,
-  restOf, retryFailed, retryPlots, roveList, rowKeyOf, sampleable, sampleIndex, savePreviews, saveThumbs,
-  searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, setTheme,
-  sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
-  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, stepChart, stepFolder, stepShelf,
-  stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection,
-  treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards,
-  writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
+  restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews, saveThumbs, searchNow, sectionKeys,
+  sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, setTheme, sheetGoes, sheetTaken, shelfSteps,
+  shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey, sideMoved, sideTree,
+  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stretched,
+  themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf, unstretched, until,
+  updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile, yourQueue, yoursFound,
+  yoursSeen, yoursShown,
 };
