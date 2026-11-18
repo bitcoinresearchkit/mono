@@ -12,6 +12,11 @@ use pco::{
 use super::{super::inner::CompressionStrategy, value::PcoVecValue};
 use crate::{EncodedChunk, Error, Format, Result, likely};
 
+/// PCO level of every vecdb series, kept for read speed. On live per-input chunks (40 GB, m6-2,
+/// 2026-11-17) level 8 saves 1.2-1.7% (0.47-0.69 GB) but cold page reads take +1-6 µs (+14-85%)
+/// and compression 1.5-1.9x as long; level 3 is 16% larger.
+const LEVEL: usize = 6;
+
 #[derive(Debug, Clone, Copy)]
 pub struct PcodecStrategy<T>(PhantomData<T>);
 
@@ -107,7 +112,7 @@ where
 
     fn compress_chunk(values: &[T], values_per_page: usize) -> Result<EncodedChunk> {
         let config = ChunkConfig::default()
-            .with_compression_level(6)
+            .with_compression_level(LEVEL)
             .with_enable_8_bit(true)
             .with_paging_spec(PagingSpec::EqualPagesUpTo(values_per_page));
         let file = FileCompressor::default();
