@@ -5461,9 +5461,10 @@
         }
       }
 
+      /* (Soft, not muted: on the inspector's raised ground, muted read under 4.5:1.) */
       .color-now {
         margin-left: auto;
-        color: var(--muted);
+        color: var(--soft);
         font-weight: 400;
       }
 
@@ -9638,7 +9639,8 @@
             border: 0;
             border-radius: 999px;
             padding: 0;
-            color: var(--muted);
+            /* (Soft, not muted: over the bar's glass, muted read under 4.5:1.) */
+            color: var(--soft);
             background: none;
             font: 510 10px/12px var(--sans);
             isolation: isolate;
