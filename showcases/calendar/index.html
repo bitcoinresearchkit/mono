@@ -100,6 +100,8 @@
          leading pool's own mark; a red letter for today, for the notes and for what's picked. */
       :root {
         color-scheme: light dark;
+        /* (A phone's and a touch screen's room between days: their months' width and each day's reach read it.) */
+        --day-gap: 8px;
         --app: light-dark(#f3ede2, #14120f);
         --plate: light-dark(#fbf8f2, #1c1915);
         --ink: light-dark(#1f1a14, #f0e8db);
@@ -398,9 +400,10 @@
       /* The months: one or two a row on a phone, each day a finger's size with its date, four abreast on a desk, each day its leader's mark, a whole year in a screen. */
       .months {
         display: grid;
-        /* (A phone, and any touch screen: as many months a row as fit with tiles a finger's size. A pointer's screen:
-           the year packed, four abreast on a desk.) */
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+        /* (A phone, and any touch screen: as many months a row as fit with tiles a finger's size, 36px at least (a
+           narrower screen's one month, as at 320px, less), their reach 44 with the gap. A pointer's screen: the year
+           packed, four abreast on a desk.) */
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 7 * 36px + 6 * var(--day-gap)), 1fr));
         gap: 20px clamp(16px, 2vw, 28px);
 
         @media (min-width: 640px) and (pointer: fine) {
@@ -418,10 +421,16 @@
         font-size: 12px;
       }
 
-      /* (A phone's month no wider than tiles of 42px and their gaps: past that they'd only grow heavier.) */
+      /* (A phone's and a touch screen's month no wider than tiles of 42px, past that they'd only grow heavier; on a
+         touch screen's wider rows, centred in its column, so the year has no ragged edge.) */
       .month {
         @media (max-width: 639px), (pointer: coarse) {
-          max-width: calc(7 * 42px + 6 * 8px);
+          max-width: calc(7 * 42px + 6 * var(--day-gap));
+        }
+
+        @media (min-width: 640px) and (pointer: coarse) {
+          justify-self: center;
+          width: 100%;
         }
       }
 
@@ -441,7 +450,7 @@
 
         /* (A phone's: room between its tiles, so a month reads as days, not a slab.) */
         @media (max-width: 639px), (pointer: coarse) {
-          gap: 8px;
+          gap: var(--day-gap);
         }
       }
 
@@ -511,11 +520,13 @@
         /* (A phone's tiles: the logo centered, a size down; and where there's room (36px and more), the date small in
            the corner. Smaller, as at 320px or two months a row, the logo alone.) */
         @media (max-width: 639px), (pointer: coarse) {
-          /* (A finger's reach, unseen: a clear 1px border grown into the gap round it, 44px whatever the tile is drawn at.) */
-          border: 1px solid transparent;
-          margin: -1px;
+          /* (A finger's reach, unseen: a clear border grown into the gap round it, half the gap, so each reach meets the
+             next's: 44px from a tile drawn at 36, more from a wider one; its ring 2px off what's drawn.) */
+          --reach: calc(var(--day-gap) / 2);
+          border: var(--reach) solid transparent;
+          margin: calc(-1 * var(--reach));
           background-clip: padding-box;
-          outline-offset: 1px;
+          outline-offset: calc(2px - var(--reach));
 
           /* (A phone's logo in proportion with its type, whatever its tile's size.) */
           .logo {
