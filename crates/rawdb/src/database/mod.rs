@@ -187,10 +187,10 @@ impl Database {
         self.layout_mut().promote_pending_holes();
     }
 
-    /// Cancellable wait for use inside `run_bg` closures. Returns
-    /// immediately when `sync_bg_tasks` is called.
-    pub fn bg_sleep(&self, dur: Duration) {
-        self.inner.tasks.sleep(dur);
+    /// Cancellable wait for use inside `run_bg` closures: returns whether the whole `dur`
+    /// passed, false at once when `sync_bg_tasks` is called.
+    pub fn bg_sleep(&self, dur: Duration) -> bool {
+        self.inner.tasks.sleep(dur)
     }
 
     /// Whether [`Self::compact`] has space to reclaim: false once it ran and nothing was freed

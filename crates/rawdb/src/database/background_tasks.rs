@@ -22,9 +22,11 @@ impl BackgroundTasks {
         self.handles.lock().push(thread::spawn(task));
     }
 
-    pub(crate) fn sleep(&self, duration: Duration) {
+    /// Waits `duration`, or until a join starts: returns whether the whole wait passed.
+    pub(crate) fn sleep(&self, duration: Duration) -> bool {
         self.wake
-            .wait_while_for(&mut self.joining.lock(), |joining| !*joining, duration);
+            .wait_while_for(&mut self.joining.lock(), |joining| !*joining, duration)
+            .timed_out()
     }
 
     pub(crate) fn join(&self) -> Result<()> {
