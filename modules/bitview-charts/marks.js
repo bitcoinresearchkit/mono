@@ -4,7 +4,8 @@
 // dot in its `color` (radius 3.5, times its `size`; 0: none), ringed in the chart's ground, resting on the point from
 // its side (on it: centered), several at one point stacked away from it. Its words (`text`) just past its dot (on it:
 // under it; at the timeline's ends, moved along it to stay a little within them), in the chart's one pill (a tag's):
-// its color (or `textColor`) as it is, its words on it as a tag's (see tint). Where words crowd at the view's zoom, in
+// its color (or `textColor`) as it is, its words on it as a tag's (see tint); placed past its dot, over its series,
+// outlined: on the ground, edged and worded in that color (see outlined). Where words crowd at the view's zoom, in
 // the order of their `priority` (a move's size, say: the biggest first; at one, the latest first; those without, an
 // event's name say, first, each counted only in another without), one whose words would run into those of one shown
 // before it, in a row theirs can meet at some pan (see #runs), is counted in the nearest of those: "2 more" (room kept
@@ -19,7 +20,7 @@
 // holds is in view, shown alone where the words of the one nearest that edge would be.
 // Added to its pane on its series' side, its marks in their points' order. The room they take kept at its scale's ends
 // while its series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
-import { legible, over, tint } from "./color.js";
+import { legible, outlined, over, tint } from "./color.js";
 import { pill, PILL } from "./tags.js";
 import { alike } from "./timeline.js";
 
@@ -77,9 +78,12 @@ export class Marks {
     this.looks = [];
     /** Its dots' widest reach past their points (drawn into the strips they reach), and the stacks' room at its scale's ends (see set). */
     this.dots = 0;
-    /** Each mark's words on their pill, and each count's ("n more"'s, at n), drawn once as a sprite, for the theme and
-     * pixel ratio below (made again for another): see drawOver. @type {(HTMLCanvasElement | undefined)[]} */
+    /** Each mark's words on their pill, outlined (past its dot, over its series: see drawOver), and each count's ("n
+     * more"'s, at n), drawn once as a sprite, for the theme and pixel ratio below (made again for another).
+     * @type {(HTMLCanvasElement | undefined)[]} */
     this.sprites = [];
+    /** @type {(HTMLCanvasElement | undefined)[]} */
+    this.outlinedSprites = [];
     /** @type {(HTMLCanvasElement | undefined)[]} */
     this.moreSprites = [];
     /** @type {object | null} */
@@ -101,7 +105,7 @@ export class Marks {
   /** Its marks (in their points' order). @param {Mark[]} marks */
   set(marks) {
     this.version++;
-    const was = this.marks, wasLooks = this.looks, wasSprites = this.sprites;
+    const was = this.marks, wasLooks = this.looks, wasSprites = this.sprites, wasOutlined = this.outlinedSprites;
     this.marks = marks;
     this.saidAt = NaN;
     this.measuredFont = "";
@@ -115,8 +119,9 @@ export class Marks {
     for (let r = 0; r < order.length; r++) this.rank[order[r]] = r;
     // (Its words' looks: a tag's in its color, as it is (see tint).)
     this.looks = marks.map((mark) => (mark.text ? tint(mark.textColor ?? mark.color) : null));
-    // (Each one's sprite kept where its words and look stay: a chart app sets its marks again at every rebuild.)
-    this.sprites = marks.map((mark, k) => (mark.text === was[k]?.text && this.looks[k] === wasLooks[k] ? wasSprites[k] : undefined));
+    // (Each one's sprites kept where its words and look stay: a chart app sets its marks again at every rebuild.)
+    const kept = marks.map((mark, k) => mark.text === was[k]?.text && this.looks[k] === wasLooks[k]);
+    (this.sprites = kept.map((keep, k) => (keep ? wasSprites[k] : undefined))), (this.outlinedSprites = kept.map((keep, k) => (keep ? wasOutlined[k] : undefined)));
     // (The tallest stack at a point, as drawn: each dot with its ring, each one's words with their gap, the next CLEAR
     // past them. On its point: half its dot each way, its words under it.)
     let point = -1, above = 0, below = 0, top = 0, foot = 0, dots = 0;
@@ -376,9 +381,10 @@ export class Marks {
    * as far as that takes), out from the series or past their dot, where they're still nearer their own dot than any
    * other, so they never read as another's (none: a pill tried again without its count, else left out), a count on the
    * side of its pill away from its dot (see free); one whose pill's dot is past an edge of the plot, while a mark it
-   * holds has its dot in the plot, shown alone where the words of the one nearest that edge would be. Each pill a
-   * sprite drawn once (see sprites), copied each frame onto whole device pixels: drawn anew each frame, a dense chart's
-   * words took twice as long or more (0.065 ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
+   * holds has its dot in the plot, shown alone where the words of the one nearest that edge would be. One placed past
+   * its dot, over its series, outlined: words over the data (see outlined). Each pill a sprite drawn once (see
+   * sprites), copied each frame onto whole device pixels: drawn anew each frame, a dense chart's words took twice as
+   * long or more (0.065 ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} _x0 @param {number} plot @param {number} dpr @param {{ background: string, font: string, separator: string, text: string }} theme
    * @param {(x: number, y: number, width: number, height: number) => void} drew Told each one's box (count and pill).
@@ -443,16 +449,18 @@ export class Marks {
       ORDER[q] = p;
     }
     for (let p = 0; p < boxes; p++) free(ORDER[p], p, plot, scale.height, marks[BOXES[ORDER[p] * BOX]].position === "above" ? -1 : 1);
-    if (theme !== this.spritesTheme || dpr !== this.spritesDpr) (this.spritesTheme = theme), (this.spritesDpr = dpr), (this.sprites = []), (this.moreSprites = []);
+    if (theme !== this.spritesTheme || dpr !== this.spritesDpr) (this.spritesTheme = theme), (this.spritesDpr = dpr), (this.sprites = []), (this.outlinedSprites = []), (this.moreSprites = []);
     const countFill = over(theme.separator, theme.background), countInk = legible(theme.text, countFill);
     for (let s = 0; s < boxes; s++) {
       const b = s * BOX, k = BOXES[b], left = BOXES[b + 1], words = BOXES[b + 2], end = BOXES[b + 3], right = BOXES[b + 4], top = BOXES[b + 5] - PILL / 2;
       if (k < 0) continue;
       const look = /** @type {{ fill: string, ink: string }} */ (this.looks[k]), alone = holder[k] !== k, held = said[holder[k]] - 1;
+      // (Past its dot (on its series' side of it), over its series: outlined.)
+      const past = (BOXES[b + 5] - BOXES[b + 7]) * (marks[k].position === "above" ? 1 : -1) > 0, sprites = past ? this.outlinedSprites : this.sprites;
       // (Its count where free put it: left of its pill, right of it, or alone in a pill's place; NaN: none.)
       const count = alone ? words : left < words ? left : end < right ? end + SEP : NaN;
-      if (!alone) place(g, (this.sprites[k] ??= sprite(/** @type {string} */ (marks[k].text), look.fill, look.ink, widths[k] + PAD, theme.font, dpr)), words, top, dpr);
-      if (count === count) place(g, (this.moreSprites[held] ??= sprite(MORE[held], countFill, countInk, this.#moreWidth(g, held) + PAD, theme.font, dpr)), count, top, dpr);
+      if (!alone) place(g, (sprites[k] ??= sprite(/** @type {string} */ (marks[k].text), past ? outlined(look.fill, theme.background) : look, widths[k] + PAD, theme.font, dpr)), words, top, dpr);
+      if (count === count) place(g, (this.moreSprites[held] ??= sprite(MORE[held], { fill: countFill, ink: countInk }, this.#moreWidth(g, held) + PAD, theme.font, dpr)), count, top, dpr);
       drew(left, top, right - left, PILL);
     }
   }
@@ -484,15 +492,16 @@ export class Marks {
   }
 }
 
-/** `words` on a pill (see tags.js), `width` wide (its words' and PAD), drawn once as a sprite at `dpr`.
- * @param {string} words @param {string} fill @param {string} ink @param {number} width @param {string} font @param {number} dpr */
-function sprite(words, fill, ink, width, font, dpr) {
+/** `words` on a pill (see tags.js) in `look` (its fill, its words' ink, its edge where it has one), `width` wide (its
+ * words' and PAD), drawn once as a sprite at `dpr`.
+ * @param {string} words @param {{ fill: string, ink: string, edge?: string }} look @param {number} width @param {string} font @param {number} dpr */
+function sprite(words, look, width, font, dpr) {
   const c = document.createElement("canvas");
   (c.width = Math.ceil(width * dpr)), (c.height = Math.ceil(PILL * dpr));
   const g = /** @type {CanvasRenderingContext2D} */ (c.getContext("2d"));
   g.scale(dpr, dpr);
   (g.font = font), (g.textBaseline = "middle");
-  pill(g, words, fill, ink, 0, PILL / 2, "left");
+  pill(g, words, look.fill, look.ink, 0, PILL / 2, "left", PILL, look.edge);
   return c;
 }
 

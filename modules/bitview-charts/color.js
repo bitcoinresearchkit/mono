@@ -1,7 +1,7 @@
 // @ts-check
 // Words on a color: white or black by one rule (see whiteOn), each color measured once; a tag's look (its fill as it
-// is, its words). And a fill's or a stroke's style as a vertical gradient (a fade, or colors by value, hard-edged at
-// their heights), kept till it changes.
+// is, its words), and words in a color over the data (outlined). And a fill's or a stroke's style as a vertical
+// gradient (a fade, or colors by value, hard-edged at their heights), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
@@ -44,7 +44,7 @@ export function inkOn(color) {
 const tints = new Map();
 
 /**
- * A tag's look in `color` (a series' on its axis, a mark's words over data): its fill that very color, as named, its
+ * A tag's look in `color` (a series' on its axis, a mark's words by its dot): its fill that very color, as named, its
  * opacity left out; its words white or dark (see whiteOn), with a whisper of its hue where that still reads (see
  * wordsOn). No edge: a series the ground's color is the page's choice. A see-through color, none (nothing shown).
  * Each color worked out once.
@@ -63,6 +63,18 @@ export function tint(color) {
   if (tints.size > 512) tints.clear();
   tints.set(color, look);
   return look;
+}
+
+/**
+ * Words in `color` over the data (a mark's placed over its series): a pill of the chart's `ground` (opaque), edged in
+ * that color as named (its opacity left out), its words in it, kept legible on the ground (see legible). A see-through
+ * color, none (nothing shown).
+ * @param {string} color @param {string} ground
+ * @returns {{ fill: string, ink: string, edge: string }}
+ */
+export function outlined(color, ground) {
+  const { fill } = tint(color);
+  return fill === "transparent" ? { fill, ink: fill, edge: fill } : { fill: ground, ink: legible(fill, ground), edge: fill };
 }
 
 const overs = new Map();
