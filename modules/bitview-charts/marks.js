@@ -10,7 +10,7 @@
 // first; at one, the latest first; those without, an event's name say, first, each counted only in another without),
 // one whose words would run into those of one shown before it, on its side of its series (above it; under it) or on the
 // other where the series crosses between them (a foot under it higher than a top over it), is counted in the nearest of
-// those: "2 more" on its left (room kept there where words later in that order would run into its own), quieter than
+// those: "2 more" (room kept for it on its left where words later in that order would run into its own), quieter than
 // they are: in the chart's text color, kept legible, on a quiet tag of its separator color (zoomed in, they part; a pan
 // regroups none: the order is the data's). Its words drawn over everything, each frame (on its pane's layer over it),
 // whole within the plot and clear of its other dots and of the words placed before them (in that order, the counts

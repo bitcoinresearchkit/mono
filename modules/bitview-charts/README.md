@@ -190,7 +190,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   `priority` (a move's size, say: the biggest first; at one, the latest first; those without, an event's name say,
   first, each counted only in another without), one whose words would run into those of one shown before it on its side
   (above the series; under it), or on the other where the series crosses between them, is counted in the nearest of
-  those ("2 more" on its left, room kept there where words later in that order would run into its own; quieter than they
+  those ("2 more", room kept for it on its left where words later in that order would run into its own; quieter than they
   are: in the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color laid on its ground).
   The order is the data's: a pan regroups none, only a change of spacing does (a zoom, or the plot resized, as a wider
   price axis does). Its words over everything, on its pane's layer over it, drawn each frame, whole within the plot and
