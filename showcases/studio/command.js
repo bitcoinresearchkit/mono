@@ -5,17 +5,17 @@ import { capitalized, holderName, inSentence, isLeaf, windowSaid, windowShort } 
 import { startWorker } from "/studio/workers.js";
 import {
   acrossUnfit, answers, averageFor, byBlock, byKeys, canLook, canTravel, catalogIndex, changesOf, chart, chartById,
-  chartWindow, chooseDrawings, chosen, clearLook, client, closePreview, cohortColor, colorName, commit, comparePeriods,
-  css, dateGoes, deleteChart, dismissPalette, drawingsHidden, drawTrail, editChart, engine, EXAMPLE, folderMark,
-  folderNow, formatName, formulaLine, fromSpan, goneLayer, goTo, goToDate, goToTime, HEAT_COHORTS, hideBelt,
-  hideDrawings, historyFor, home, homeAt, importCharts, indexAt, isOhlc, isPreview, isYours, keepChart, kept,
-  letterChip, library, libraryEdits, linkView, listedPreviews, magnifying, markFor, marksOf, measure, mostBars, MOTION,
-  noteUse, notice, openPalette, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, phone, prefs,
-  presets, previews, previousChart, quick, quickHide, quickShow, quickWorks, recentCharts, redoLast, reduced,
-  renderPalette, reshape, resolved, revision, say, selected, seriesCount, setSingleKeys, SHARE, sharedTops,
-  SHARES_IMAGES, SHEET_SHARE, showGuide, showLook, showPalette, showShortcuts, signalShown, STACKED_ONLY, startTyping,
-  studioVersion, tabletHead, takeUp, THEMES, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, tree,
-  trendShort, undoLast, updatePaletteKeys, used,
+  chooseDrawings, chosen, clearLook, client, closePreview, cohortColor, colorName, commit, comparePeriods, css,
+  dateGoes, deleteChart, dismissPalette, drawingsHidden, drawTrail, editChart, engine, EXAMPLE, folderMark, folderNow,
+  formatName, formulaLine, fromSpan, goneLayer, goTo, goToDate, goToTime, HEAT_COHORTS, hideBelt, hideDrawings,
+  historyFor, home, homeAt, importCharts, indexAt, isOhlc, isPreview, isYours, keepChart, kept, letterChip, library,
+  libraryEdits, linkView, listedPreviews, magnifying, markFor, marksOf, measure, mostBars, MOTION, noteUse, notice,
+  openPalette, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, phone, prefs, presets, previews,
+  previousChart, quick, quickHide, quickShow, quickWorks, recentCharts, redoLast, reduced, renderPalette, reshape,
+  resolved, revision, say, selected, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE,
+  showGuide, showLook, showPalette, showShortcuts, signalShown, STACKED_ONLY, startTyping, studioVersion, tabletHead,
+  takeUp, THEMES, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, tree, trendShort, undoLast,
+  updatePaletteKeys, used, chartWindow,
 } from "/studio/app.js";
 import { aside, isSeriesName } from "/studio/catalog-walk.js";
 import { $, drawKeys, escapeHtml, keycaps, keyText, proseHtml, TOUCH, viewport } from "/studio/dom.js";

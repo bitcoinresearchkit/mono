@@ -134,11 +134,11 @@ import {
 import {
   APART, apartFonts, apartLayout, canvasReadable, cascades, closedAt, closedOwner, contentOf, copyLink, cutFade,
   datedView, dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle,
-  fixedOrigin, flyout, fromLink, hideMenu, hideSubmenu, keepCarriedView, keepMenu, leaveTitle, letGo, linkLookOf,
+  fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf,
   linksOf, measureLegends, menuGoBack, menuHidden, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade,
-  openedImages, outlineMenuTarget, ownerNow, placeFixed, portable, qrCode, railed, readChart, renderInterval,
-  renderRanges, renderWindow, sameChart, scrolled, setApart, setMenuBack, setRange, shareLink, showMenu, shownAs,
-  startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval, switchWindow, titleReads, TOO_SMALL,
+  openedImages, outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renderInterval,
+  renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setRange, shareLink, showMenu,
+  shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval, titleReads, TOO_SMALL,
   toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
 } from "/studio/menus.js";
 import {
@@ -10032,11 +10032,9 @@ function railMenu(/** @type {HTMLElement} */ item, hover = false) {
 /** A rail row's menu kept open, the focus in it: shown already (pointed at), kept as it is; else shown, as a press does. */
 function railMenuKept(/** @type {HTMLElement} */ item) {
   if ($("menu").hidden || ownerNow() !== item) return railMenu(item);
-  keepMenu();
+  pinFlyout();
   focusMenu();
 }
-/** A menu shown kept (a flyout pressed): the focus in it, on the first row of its first level in sight (one over its menu, that one's). */
-const focusMenu = () => /** @type {HTMLElement | null | undefined} */ ([$("menu"), ...submenus].find((menu) => !menu.hidden && !menu.hasAttribute("data-covered"))?.querySelector("button:not(:disabled, [data-menu-back])"))?.focus({ preventScroll: true });
 /**
  * The name of what a menu's for, as its menu says it where it's out of sight (see menuOf): by what opened it (its
  * item, its ⋯, a right-click on it): a sidebar row's (a chart, a preset whole, a folder, a section, a group), a
@@ -10322,7 +10320,7 @@ document.addEventListener("keydown", (event) => {
     const at = document.activeElement, free = !at || at === document.body || at === ownerNow();
     if (!mod && free && upDown(event)) {
       event.preventDefault();
-      keepMenu();
+      pinFlyout();
       const items = all$("button:not(:disabled)", $("menu"));
       return void items[event.key === "ArrowDown" ? 0 : items.length - 1]?.focus();
     }
@@ -11429,10 +11427,10 @@ export {
   cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, crossMoved, css,
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,
   drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours, editChart, edits,
-  EMPTY, emptyYours, engine, EXAMPLE, exporting, firstForm, firstLook, fitMargins, flowsAt, focusMenu, FOLDER_ICONS,
-  folderAgain, folderMark, folderNow, footPinned, formatName, formulaFit, formulaLine, fromLetters, fromShort, fromSpan,
-  fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, gesturePointer, goneLayer,
-  goTo, goToDate, goToTime, gradientWidth, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS,
+  EMPTY, emptyYours, engine, EXAMPLE, exporting, firstForm, firstLook, fitMargins, flowsAt, FOLDER_ICONS, folderAgain,
+  folderMark, folderNow, footPinned, formatName, formulaFit, formulaLine, fromLetters, fromShort, fromSpan, fromUnfit,
+  galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, gesturePointer, goneLayer, goTo,
+  goToDate, goToTime, gradientWidth, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS,
   HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright,
   hideBelt, hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
   importCharts, indexAt, indexCatalog, inLibrary, isDeleted, isOhlc, isPreview, isView, isYours, keepChart, keepDrawing,

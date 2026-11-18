@@ -3,8 +3,8 @@
 import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
   atWindow, byTouch, chart, chartImage, chartShown, chartWindow, commit, css, engine, firstForm, firstLook, flowsAt,
-  focusMenu, hideTip, indexAt, isView, library, listedPreviews, loadPresets, measure, menuNameOf, MOTION, navigations,
-  normalize, notice, openingView, openView, phone, putViews, railMenu, reduced, resolved, revision, ROUTED, saveView,
+  hideTip, indexAt, isView, library, listedPreviews, loadPresets, measure, menuNameOf, MOTION, navigations, normalize,
+  notice, openingView, openView, phone, putViews, railMenu, reduced, resolved, revision, ROUTED, saveView,
   SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast, UNREAD, viewsNow,
 } from "/studio/app.js";
 import { isCatalogPath, isSeriesName } from "/studio/catalog-walk.js";
@@ -28,10 +28,10 @@ import {
   forgetSpans, inSubmenu, known, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
   resolve, rightGap, seriesIn, settled, shownDates, shownRange, subAt, viewName, whenSubmenu,
 } from "/studio/chart.js";
+import { headMenu, pageTitle } from "/studio/command.js";
 import { chartPathRows, folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
 import { focusKey, keyOf, labelOf, restoreFocus } from "/studio/inspector.js";
 import { isMade, presetEdited, presetLink, tick } from "/studio/presets-edit.js";
-import { headMenu, pageTitle } from "/studio/command.js";
 /** @import { Chart, Layer, Level } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
@@ -293,12 +293,14 @@ function startCascade() {
   $("menu").addEventListener("pointerleave", left);
   whenSubmenu((sub) => (sub.addEventListener("pointerenter", calm), sub.addEventListener("pointerleave", left)));
 }
-/** A menu shown by a pointer's resting (a closed folder's charts): it leaves the focus be, goes as the pointer does, and as a key's pressed (a tip's way). */
 /** A ⋯ opening its menu as the pointer rests on it (see hoverMenu): the menu its click shows, shown as a flyout (gone as the pointer leaves it). */
 let openingByHover = false;
+/** A menu shown by a pointer's resting (a closed folder's charts): it leaves the focus be, goes as the pointer does, and as a key's pressed (a tip's way). */
 let flyout = false;
-/** A flyout kept: the menu stays as a press shows it, no longer going with the pointer. */
-const keepMenu = () => (flyout = false);
+/** A flyout pinned: the menu stays as a press shows it, no longer going with the pointer. */
+const pinFlyout = () => (flyout = false);
+/** A menu shown kept (a flyout pressed): the focus in it, on the first row of its first level in sight (one over its menu, that one's). */
+const focusMenu = () => /** @type {HTMLElement | null | undefined} */ ([$("menu"), ...submenus].find((menu) => !menu.hidden && !menu.hasAttribute("data-covered"))?.querySelector("button:not(:disabled, [data-menu-back])"))?.focus({ preventScroll: true });
 // Hover to look, press to keep (with a mouse): a closed folder's row, its charts beside it (pressed, it opens); the
 // chart's ⋯, its menu (pressed, kept). Gone as the pointer leaves the menu (and what opened it), a moment after
 // (time enough to cross to the flyout, right beside its row).
@@ -387,7 +389,7 @@ function startFlyouts() {
   const keepFlyout = (event, anchor) => {
     if (from !== anchor || !flyout || $("menu").hidden || ownerNow() !== anchor) return false;
     event.stopImmediatePropagation();
-    flyout = false;
+    pinFlyout();
     from = null;
     focusMenu();
     return true;
@@ -1722,11 +1724,11 @@ async function drawMarks(pieces) {
 export {
   anythingKept, APART, apartFonts, apartLayout, canvasReadable, cascades, chartsFile, closedAt, closedOwner, contentOf,
   copyLink, cutFade, datedView, dismissMenu, download, downloadAll, downloadChart, downloadFolder, drawMarks, exportAs,
-  exportData, exportRows, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle, fixedOrigin, flyout, fromLink,
-  fromSketch, hideMenu, hideSubmenu, keepCarriedView, keepMenu, leaveTitle, letGo, linkLookOf, linksOf, lookFields,
+  exportData, exportRows, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle, fixedOrigin, flyout, focusMenu,
+  fromLink, fromSketch, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf, linksOf, lookFields,
   measureLegends, menuGoBack, menuHidden, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
-  outlineMenuTarget, ownerNow, placeFixed, portable, qrCode, railed, readChart, renameInPlace, renderInterval,
-  renderRanges, renderWindow, sameChart, scrolled, setApart, setMenuBack, setMenuOwner, setRange, shareLink, showMenu,
-  shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval, switchWindow, titleReads,
-  TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
+  outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renameInPlace,
+  renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setMenuOwner,
+  setRange, shareLink, showMenu, shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
+  titleReads, TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
 };
