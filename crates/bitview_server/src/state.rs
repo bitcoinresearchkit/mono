@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc, time::Instant};
+use std::{sync::Arc, time::Instant};
 
 #[cfg(feature = "full-api")]
 use axum::body::Bytes;
@@ -71,9 +71,6 @@ pub struct SharedState {
     pub urpd_bodies: Arc<Semaphore>,
     #[cfg(feature = "full-api")]
     pub mining_pools_body: Arc<PreparedJson>,
-    pub data_path: PathBuf,
-    /// Inside `data_path`.
-    pub logs_path: PathBuf,
     pub website: Website,
     pub started_at: Timestamp,
     pub started_instant: Instant,

@@ -4,6 +4,7 @@
 #[cfg(feature = "full-api")]
 mod api;
 mod r#async;
+mod disk;
 mod error;
 mod output;
 mod pin;

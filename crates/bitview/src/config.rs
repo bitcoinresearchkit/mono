@@ -312,7 +312,9 @@ impl Config {
             )));
         }
         let data_path = match self.bitviewdir.as_deref() {
-            Some(dir) => expand_home(dir),
+            // Absolute, once: every reader of the path then spells it the same way (the stores
+            // keep theirs absolute, and the disk usage leaves their directory out by path).
+            Some(dir) => std::path::absolute(expand_home(dir))?,
             None => default_bitview_dir().ok_or_else(|| {
                 Error::NotFound("no home directory to put ~/.bitview in: set --bitviewdir".into())
             })?,

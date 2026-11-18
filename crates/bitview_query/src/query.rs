@@ -24,7 +24,7 @@ use brk_types::{BlockHash, Height, TxOut, Txid, Vout};
 use rapidhash::RapidHashMap;
 use vecdb::{ReadOnlyClone, ReadableVec, Ro};
 
-use crate::{Error, OptionData, QueryPluginSet, Result, plugins::QueryPlugins};
+use crate::{Error, OptionData, QueryPluginSet, Result, disk, plugins::QueryPlugins};
 #[cfg(feature = "full-api")]
 use crate::{
     PublicationCache, ReadPin,
@@ -45,6 +45,8 @@ pub(crate) struct QueryInner<'a> {
     node_height: AtomicU32,
     /// The bytes of the node's block files, recorded with the height.
     node_blocks_bytes: AtomicU64,
+    /// The bytes Bitview's own data takes on disk as the daemon last measured them; 0 until then.
+    data_bytes: AtomicU64,
     #[cfg(feature = "full-api")]
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "full-api")]
@@ -97,6 +99,7 @@ impl Query {
                 plugins,
                 node_height: AtomicU32::new(0),
                 node_blocks_bytes: AtomicU64::new(0),
+                data_bytes: AtomicU64::new(0),
                 #[cfg(feature = "full-api")]
                 mempool: _mempool,
                 #[cfg(feature = "full-api")]
@@ -151,9 +154,24 @@ impl Query {
         self.0.node_blocks_bytes.load(Ordering::Relaxed)
     }
 
-    /// The indexer stores' directory and the bytes of their tables, as the stores track them.
-    pub fn stores_disk(&self) -> (&Path, u64) {
-        self.indexer().stores().disk()
+    /// Measures the bytes Bitview's data takes on disk and records them for
+    /// [`Query::data_bytes`]. The daemon calls it before the server answers and after each
+    /// publication, so no request reads the filesystem. The indexer stores' tables are summed
+    /// from the sizes the stores track; the rest of `data_path` is walked, `logs_path` (the
+    /// server's own logs, which grow with every request) left out.
+    pub fn record_data_bytes(&self, data_path: &Path, logs_path: &Path) -> Result<()> {
+        let (stores_path, stores_bytes) = self.indexer().stores().disk();
+        // Left out by path, or the stores would be walked and counted twice.
+        debug_assert!(stores_path.starts_with(data_path));
+        let walked = disk::dir_size(data_path, &[logs_path, stores_path])?;
+        let bytes = disk::sum_bytes(walked, stores_bytes)?;
+        self.0.data_bytes.store(bytes, Ordering::Relaxed);
+        Ok(())
+    }
+
+    /// The bytes Bitview's data takes on disk, as last measured.
+    pub fn data_bytes(&self) -> u64 {
+        self.0.data_bytes.load(Ordering::Relaxed)
     }
 
     /// The published index, from one safely published snapshot, against the node's tip as last

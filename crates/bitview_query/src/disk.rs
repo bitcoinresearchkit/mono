@@ -1,4 +1,4 @@
-use brk_error::Result;
+use brk_error::{Error, Result};
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::{
@@ -11,7 +11,8 @@ use std::{
 const MAX_DEPTH: usize = 128;
 
 /// Allocated bytes under `path`, leaving out the directories in `skip` and everything in them.
-pub fn dir_size(path: &Path, skip: &[&Path]) -> Result<u64> {
+/// Paths are compared as written: `skip` and `path` must be spelled from the same root.
+pub(crate) fn dir_size(path: &Path, skip: &[&Path]) -> Result<u64> {
     let metadata = fs::metadata(path)?;
     if metadata.is_dir() {
         dir_contents_size(path, None, skip)
@@ -77,7 +78,7 @@ fn dir_contents_size(
     };
     // One entry after the other: a few hundred of them cost less than handing them to a pool.
     fs::read_dir(path)?.try_fold(0, |total, entry| {
-        sum_bytes(total, dir_entry_size(entry?, &frame, skip)?)
+        sum_bytes(total, or_gone(dir_entry_size(entry?, &frame, skip))?)
     })
 }
 
@@ -107,7 +108,16 @@ fn dir_entry_size(
     allocated_bytes(&entry.metadata()?)
 }
 
-pub fn sum_bytes(left: u64, right: u64) -> Result<u64> {
+/// Files come and go under a running daemon (rollback files, rotated tips, a temporary being
+/// renamed): one listed and gone before it is read weighs nothing.
+fn or_gone(size: Result<u64>) -> Result<u64> {
+    match size {
+        Err(Error::IO(error)) if error.kind() == ErrorKind::NotFound => Ok(0),
+        size => size,
+    }
+}
+
+pub(crate) fn sum_bytes(left: u64, right: u64) -> Result<u64> {
     left.checked_add(right)
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "disk byte total overflow").into())
 }

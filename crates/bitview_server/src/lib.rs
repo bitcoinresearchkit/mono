@@ -263,8 +263,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         urpd_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "full-api")]
         mining_pools_body,
-        logs_path: config.logs_path(),
-        data_path: config.data_path,
         website: config.website,
         started_at: Timestamp::now(),
         started_instant: Instant::now(),

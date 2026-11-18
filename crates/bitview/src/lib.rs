@@ -3,7 +3,7 @@
 #[cfg(feature = "full-api")]
 use std::{sync::mpsc::sync_channel, thread};
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     thread::sleep,
     time::{Duration, Instant},
 };
@@ -20,7 +20,7 @@ use tokio::{
     runtime::{Builder, Runtime},
     task::JoinHandle,
 };
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 use vecdb::{Budgeted, ReadOnlyClone};
 
 mod bootstrap;
@@ -159,6 +159,8 @@ where
     query.sync(refresh_stale_blocks);
 
     record_node(&client, &query)?;
+    let (data_path, logs_path) = (server.data_path.clone(), server.logs_path());
+    record_data_bytes(&query, &data_path, &logs_path)?;
 
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
@@ -247,6 +249,11 @@ where
                 {
                     warmed = Instant::now();
                 }
+                // After the publication, so no update waits for it. A walk that fails keeps the
+                // last total.
+                if let Err(error) = record_data_bytes(&query, &data_path, &logs_path) {
+                    warn!("Disk usage not measured: {error}");
+                }
                 continue;
             }
         } else {
@@ -267,6 +274,15 @@ where
 fn record_node(client: &Client, query: &AsyncQuery) -> Result<()> {
     let (height, blocks_bytes) = client.get_tip_height_and_blocks_size()?;
     query.sync(|q| q.set_node_tip(height, blocks_bytes));
+    Ok(())
+}
+
+/// What the disk usage reports of Bitview's own data: measured before the server answers and
+/// after each publication, never per request.
+fn record_data_bytes(query: &AsyncQuery, data_path: &Path, logs_path: &Path) -> Result<()> {
+    let start = Instant::now();
+    query.sync(|q| q.record_data_bytes(data_path, logs_path))?;
+    debug!("Disk usage measured in {:.2?}", start.elapsed());
     Ok(())
 }
 
