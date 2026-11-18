@@ -49,6 +49,14 @@ export class Scale {
     this.askedBelow = 0;
     /** Fitted to nothing (its pane's series show nothing in view): its range kept, no ticks. */
     this.empty = false;
+    /**
+     * What it's fitted to in any view within indices `a` to `b`, at the most (its series' range there, widening `out`;
+     * none where that isn't known from their values alone), set by its pane (see Pane's reach); and a number that
+     * changes whenever that could give another answer (its series or their values changed, its range held or let go).
+     * @type {(time: import("./timeline.js").Timeline, a: number, b: number, out: Float64Array) => void}
+     */
+    this.reach = () => {};
+    this.reached = 0;
     // (As drawn: where its picture can be moved, it's unchanged.)
     this.drawnLo = NaN;
     this.drawnHi = NaN;

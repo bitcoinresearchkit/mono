@@ -7,17 +7,16 @@
 // its color (or `textColor`) as it is, its words on it as a tag's (see tint). Where words crowd at the view's zoom, in
 // the order of their `priority` (a move's size, say: the biggest first; at one, the latest first; those without, an
 // event's name say, first, each counted only in another without), one whose words would run into those of one shown
-// before it, on its side of its series (above it; under it) or on the other where the series crosses between them (a
-// foot under it higher than a top over it), is counted in the nearest of those: "2 more" (room kept for it on its left
-// where words later in that order would run into its own), quieter than they are: in the chart's text color, kept
-// legible, on a quiet tag of its separator color (zoomed in, they part; a pan regroups none: the order is the data's).
-// Its words drawn over everything, each frame (on its pane's layer over it), whole within the plot and clear of its
-// other dots and of the words placed before them (in that order, the counts alone last): where its edge would cut them
-// or they'd cover a dot, moved to the nearest spot that's clear, along their row or out from the series, where they're
-// still nearer their own dot than any other (none: a pill tried again without its count, else left out), a count on the
-// side of its pill away from its dot (right of it where the pill moves right or the count has no room on its left); one
-// whose pill's dot is past an edge of the plot, while a mark it holds is in view, shown alone where the words of the
-// one nearest that edge would be.
+// before it, in a row theirs can meet at some pan (see #runs), is counted in the nearest of those: "2 more" (room kept
+// for it on its left where words later in that order would run into its own), quieter than they are: in the chart's
+// text color, kept legible, on a quiet tag of its separator color (zoomed in, they part; a pan regroups none: the order
+// is the data's). Its words drawn over everything, each frame (on its pane's layer over it), whole within the plot and
+// clear of its other dots and of the words placed before them (in that order, the counts alone last): where its edge
+// would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row or out from the series,
+// where they're still nearer their own dot than any other (none: a pill tried again without its count, else left out),
+// a count on the side of its pill away from its dot (right of it where the pill moves right or the count has no room on
+// its left); one whose pill's dot is past an edge of the plot, while a mark it holds is in view, shown alone where the
+// words of the one nearest that edge would be.
 // Added to its pane on its series' side, its marks in their points' order. The room they take kept at its scale's ends
 // while its series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
 import { legible, over, tint } from "./color.js";
@@ -88,6 +87,14 @@ export class Marks {
     this.spritesDpr = 0;
     this.roomAbove = 0;
     this.roomBelow = 0;
+    /** Each mark's words' middle from its point (CSS pixels, y down), nearest and furthest, by twos (see set). */
+    this.rows = new Float64Array(0);
+    /** The scale the grouping was found for: its mode, how it's fitted (see Scale's reach) and its fewest pixels. */
+    this.saidMode = "";
+    /** @type {Function | null} */
+    this.saidReach = null;
+    this.saidReached = NaN;
+    this.saidPixels = NaN;
     this.set(marks);
   }
 
@@ -122,6 +129,16 @@ export class Marks {
       dots = Math.max(dots, dot / 2);
     }
     (this.roomAbove = Math.ceil(top)), (this.roomBelow = Math.ceil(foot)), (this.dots = dots);
+    // (Each one's words' middle from its point, y down, nearest and furthest: past the dots stacked before it at its
+    // point on its side, and the words of those shown (see #at).)
+    if (this.rows.length < 2 * marks.length) this.rows = new Float64Array(4 * marks.length);
+    for (let k = 0; k < marks.length; k++) {
+      const mark = marks[k], dot = dotOf(mark), up = mark.position === "above" ? -1 : 1;
+      let least = (mark.position === "on" ? dot / 2 : dot) + GAP + PILL / 2, most = least;
+      for (let j = k - 1; mark.position !== "on" && j >= 0 && marks[j].at === mark.at; j--)
+        if (marks[j].position === mark.position) (least += dotOf(marks[j]) + CLEAR), (most += dotOf(marks[j]) + CLEAR + (marks[j].text ? GAP + PILL : 0));
+      (this.rows[2 * k] = up < 0 ? -most : least), (this.rows[2 * k + 1] = up < 0 ? -least : most);
+    }
   }
 
   /** Never fitted to: its room is its margins. */
@@ -168,25 +185,28 @@ export class Marks {
 
   /**
    * Which marks show their words at `spacing`, and how many others' each holds: in their order (see set), each clear
-   * (CLEAR apart) of those shown before it on its side (above its series; under it), and of the other side's where the
-   * series crosses between them (by the heights its marks sit at: their tops over it, their feet under it, else its
-   * values; at one point, never), else counted in the nearest of those (room kept for its count just left of its pill
-   * where words later in the order would run into its own; drawn where free puts it); marks at one point stack, each
-   * its own. Each one's words kept CLEAR within the timeline's ends as the chart frames them whole (its first point at
-   * the plot's left, the right offset past its last), moved along their dot. Read from its points' values and the zoom,
-   * not where they're drawn: a pan or a scale's fit changes none.
-   * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {Float64Array} highs @param {Float64Array} lows @param {Float64Array} values
+   * of those shown before it (see #runs), else counted in the nearest of those it runs into (room kept for its count
+   * just left of its pill where words later in the order would run into its own; drawn where free puts it); marks at
+   * one point stack, each its own. Each one's words kept CLEAR within the timeline's ends as the chart frames them
+   * whole (its first point at the plot's left, the right offset past its last), moved along their dot. Read from its
+   * points' values, the zoom and how its scale can be fitted at it (see Scale's reach), not where they're drawn: a pan
+   * or a scale's fit changes none.
+   * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
+   * @param {Float64Array} highs @param {Float64Array} lows @param {Float64Array} values
    */
-  #say(g, time, highs, lows, values) {
-    const spacing = time.spacing, end = (time.length - 1) * spacing + time.rightOffset, version = this.series.version;
-    if (alike(spacing, this.saidAt) && alike(end, this.saidEnd) && g.font === this.saidFont && version === this.saidVersion) return;
-    (this.saidAt = spacing), (this.saidEnd = end), (this.saidFont = g.font), (this.saidVersion = version);
+  #say(g, time, scale, highs, lows, values) {
+    const spacing = time.spacing, end = (time.length - 1) * spacing + time.rightOffset, version = this.series.version, mode = scale.mode, reach = scale.reach, reached = scale.reached;
+    // (The fewest pixels its scale's range takes: its height but the shares kept at its ends and the most its marks'
+    // room can take there (see Pane's fit; another's marks keeping more there, a little less).)
+    const share = scale.height * (1 - scale.top - scale.bottom), pixels = Math.max(0, share - Math.min(share / 2, this.roomAbove + this.roomBelow));
+    if (alike(spacing, this.saidAt) && alike(end, this.saidEnd) && g.font === this.saidFont && version === this.saidVersion && mode === this.saidMode && reach === this.saidReach && reached === this.saidReached && pixels === this.saidPixels) return;
+    (this.saidAt = spacing), (this.saidEnd = end), (this.saidFont = g.font), (this.saidVersion = version), (this.saidMode = mode), (this.saidReach = reach), (this.saidReached = reached), (this.saidPixels = pixels);
     const marks = this.marks, n = marks.length, order = this.order;
     if (this.said.length < n) {
       (this.said = new Uint32Array(n * 2)), (this.offsets = new Float64Array(n * 2)), (this.shown = new Int32Array(n * 2));
       this.holder = new Int32Array(n * 2);
     }
-    if (MID.length < n) (MID = new Float64Array(n * 2)), (HEIGHT = new Float64Array(n * 2)), (ROOM = new Float64Array(n * 2));
+    if (MID.length < n) (MID = new Float64Array(n * 2)), (HEIGHT = new Float64Array(n * 2)), (ROOM = new Float64Array(n * 2)), (VIEWS = new Float64Array(n * 2));
     if (SHOWN[0].length * 32 <= n) SHOWN = [new Int32Array((n >> 4) + 1), new Int32Array((n >> 4) + 1)];
     if (g.font !== this.measuredFont) {
       if (this.widths.length < n) this.widths = new Float64Array(n * 2);
@@ -196,14 +216,19 @@ export class Marks {
     const said = this.said, widths = this.widths, holder = this.holder;
     said.fill(0, 0, n), holder.fill(-1, 0, n), SHOWN[0].fill(0), SHOWN[1].fill(0);
     // (Each one's words' middle, CLEAR within the timeline's ends (off the plot's edge at its first, clear of the axis'
-    // tags at its last), and the height it sits at.)
+    // tags at its last); the height it sits at, as its scale reads it (a log scale, its log); and the widest range its
+    // scale takes in a view with it at this zoom, as read too (none known: Infinity).)
+    const log = mode === "log", width = time.to - time.from, last = time.length - 1;
     let most = 0;
     for (let r = 0; r < order.length; r++) {
-      const k = order[r], i = marks[k].at, half = (widths[k] + PAD) / 2, position = marks[k].position;
+      const k = order[r], i = marks[k].at, half = (widths[k] + PAD) / 2, position = marks[k].position, at = position === "above" ? highs[i] : position === "below" ? lows[i] : values[i];
       MID[k] = Math.min(Math.max(i * spacing, CLEAR + half), end - CLEAR - half);
-      HEIGHT[k] = position === "above" ? highs[i] : position === "below" ? lows[i] : values[i];
+      HEIGHT[k] = log ? Math.log10(at) : at;
+      (SPAN[0] = Infinity), (SPAN[1] = -Infinity), reach(time, Math.max(0, Math.floor(i - width)), Math.min(last, Math.ceil(i + width)), SPAN);
+      VIEWS[k] = !(SPAN[0] <= SPAN[1]) ? Infinity : log ? Math.log10(SPAN[1] / SPAN[0]) : SPAN[1] - SPAN[0];
       most = Math.max(most, half);
     }
+    PIXELS = pixels;
     // (A count's room: as wide as the widest it could be, every other one held.)
     const room = order.length > 1 ? SEP + this.#moreWidth(g, order.length - 1) + PAD : 0;
     (FAR = 2 * most + 2 * CLEAR), (ROOMS = room);
@@ -254,17 +279,32 @@ export class Marks {
   }
 
   /**
-   * Whether mark k's words from `from` to `to` run into mark j's (`room` kept left of them): within CLEAR of them, on
-   * its side of the series (above it; under it, or on it) or the other where the series crosses between them (a foot
-   * under it higher than a top over it); at one point, never (they stack); nor where only one of them has a priority
-   * (an event's name against a move's size: neither ranks against the other, so neither is counted in the other).
+   * Whether mark k's words from `from` to `to` run into mark j's (`room` kept left of them): within CLEAR of them side
+   * by side, in a row theirs can come within CLEAR of at some pan (see #meet); at one point, never (they stack); nor
+   * where only one of them has a priority (an event's name against a move's size: neither ranks against the other, so
+   * neither is counted in the other).
    * @param {number} k @param {number} from @param {number} to @param {number} j @param {number} room
    */
   #runs(k, from, to, j, room) {
-    const marks = this.marks, half = (this.widths[j] + PAD) / 2, over = marks[k].position === "above";
+    const marks = this.marks, half = (this.widths[j] + PAD) / 2;
     if (marks[j].at === marks[k].at || (marks[j].priority === undefined) !== (marks[k].priority === undefined)) return false;
     if (from >= MID[j] + half + CLEAR || to + CLEAR <= MID[j] - half - room) return false;
-    return over === (marks[j].position === "above") || (over ? HEIGHT[k] < HEIGHT[j] : HEIGHT[k] > HEIGHT[j]);
+    return this.#meet(k, j);
+  }
+
+  /**
+   * Whether marks k's and j's words can come within CLEAR of each other's row (a pill and CLEAR apart, or nearer) at
+   * some pan at this zoom. In a view, k's row lies from j's by their offsets from their points (see set) less their
+   * heights' difference (d, as their scale reads them) times its pixels a unit (s): s no fewer than its fewest pixels
+   * over the widest range a view with both takes (no wider than either one's: see #say), and with no most (a narrow
+   * range, a steep stretch). So the gap runs from where it lies at that fewest on, the way d leans: they meet where
+   * it's near there, or once it's past. None known (a relative or held scale): s from 0, rows on one side always
+   * meeting, on two only where the series crosses between them (a foot under it higher than a top over it).
+   * @param {number} k @param {number} j
+   */
+  #meet(k, j) {
+    const d = HEIGHT[k] - HEIGHT[j], by = (PIXELS / Math.min(VIEWS[k], VIEWS[j])) * d || 0, rows = this.rows, near = PILL + CLEAR;
+    return (d < 0 || rows[2 * k + 1] - rows[2 * j] - by > -near) && (d > 0 || rows[2 * k] - rows[2 * j + 1] - by < near);
   }
 
   /**
@@ -297,7 +337,7 @@ export class Marks {
     // (Its points' heights: a candle's high and low, else its value; an area's, its top.)
     const values = /** @type {Float64Array} */ (series.close ?? series.upper ?? series.values), highs = series.tops?.(time) ?? values, lows = series.feet?.(time) ?? values;
     g.font = theme.font;
-    this.#say(g, time, highs, lows, values);
+    this.#say(g, time, scale, highs, lows, values);
     // (Those reaching into the strip: their dot and ring, and a pixel past for their smoothed edge; the first found by
     // halves.)
     const from = x0 - this.dots - 1, to = x1 + this.dots + 1;
@@ -348,7 +388,7 @@ export class Marks {
     if (series.hidden || !n) return;
     const values = /** @type {Float64Array} */ (series.close ?? series.upper ?? series.values), highs = series.tops?.(time) ?? values, lows = series.feet?.(time) ?? values;
     g.font = theme.font;
-    this.#say(g, time, highs, lows, values);
+    this.#say(g, time, scale, highs, lows, values);
     const said = this.said, widths = this.widths, shown = this.shown, from = this.shownFrom;
     if (BOXES.length < (n - from) * BOX) BOXES = new Float64Array((n - from) * BOX * 2);
     // (Each shown one with its dot in the plot (the first found by halves), its count just left of its pill till free
@@ -610,8 +650,9 @@ const AT = new Float64Array(2), HIT = new Float64Array(4);
 /** A frame's words (see box), the order it places them in (see drawOver), and its dots: each one's middle's x and y,
  * its reach and its mark, DOTN of them, none reaching further than REACH (see #dots): made once (grown). */
 let BOXES = new Float64Array(BOX * 16), ORDER = new Int32Array(16), DOTS = new Float64Array(64), DOTN = 0, REACH = 0;
-/** #say's state: each mark's words' middle, the height it sits at and its count's room; which marks are shown on each
- * side (above its series, under it); how far from their point words can run into others (the widest's width and
- * CLEAR twice: their middle within half of them of it, or pinned CLEAR within the timeline's start, and CLEAR apart),
- * and a count's room (made once, grown). */
-let MID = new Float64Array(64), HEIGHT = new Float64Array(64), ROOM = new Float64Array(64), SHOWN = [new Int32Array(2), new Int32Array(2)], FAR = 0, ROOMS = 0;
+/** #say's state: each mark's words' middle, the height it sits at and its count's room; the widest range its scale
+ * takes in a view with it, and that scale's fewest pixels (see #meet); which marks are shown on each side (above its
+ * series, under it); how far from their point words can run into others (the widest's width and CLEAR twice: their
+ * middle within half of them of it, or pinned CLEAR within the timeline's start, and CLEAR apart), and a count's room
+ * (made once, grown). */
+let MID = new Float64Array(64), HEIGHT = new Float64Array(64), ROOM = new Float64Array(64), VIEWS = new Float64Array(64), PIXELS = 0, SHOWN = [new Int32Array(2), new Int32Array(2)], FAR = 0, ROOMS = 0;

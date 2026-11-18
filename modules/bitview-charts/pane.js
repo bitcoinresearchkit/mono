@@ -30,6 +30,14 @@ const SLOW = 8;
 const DOTS = [2, 3], SOLID = /** @type {number[]} */ ([]);
 /** A series' room at its scale's ends, as its margins write it (made once). */
 const ROOM = new Float64Array(2);
+/**
+ * How `series` widens its scale's range over indices `a` to `b` (`positive`: a log scale's, over zero), into `out`: by
+ * its own fit where it has one (a page's own reading), else its extent.
+ * @param {Series} series @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out @param {import("./timeline.js").Timeline} time
+ */
+function widen(series, a, b, positive, out, time) {
+  series.fit ? series.fit(a, b, positive, out) : series.extent(a, b, positive, out, time);
+}
 /** A tag's room on its axis: a pill and 2 pixels between two (CSS pixels). */
 const TAG = PILL;
 /**
@@ -662,6 +670,7 @@ export class Pane {
       }
       (state.right = this.scale), (state.left = this.left);
       state.groups = groups = Array.from(scales.values());
+      for (const group of groups) group.scale.reach = (time, a, b, out) => this.#reach(time, group, a, b, out);
     }
     for (let k = 0; k < groups.length; k++) {
       const group = groups[k];
@@ -681,10 +690,11 @@ export class Pane {
     if (relative && side < 0) throw new Error("bitview-charts: an overlay reads its values as they are (linear or log)");
     out[0] = Infinity;
     out[1] = -Infinity;
-    let same = true, above = 0, below = 0;
+    let same = true, above = 0, below = 0, versions = 0;
     // (The points at least partly in view, as the chart library's strict range: the one past each edge its line runs to.)
     for (let at = 0; at < n; at++) {
       const k = indices[at], series = this.series[k];
+      versions += series.version;
       if (series.hidden) continue;
       // (The room its marks keep clear at the scale's ends: the most any asks, above and below, as the chart library's.)
       if (series.margins) {
@@ -693,7 +703,7 @@ export class Pane {
         if (ROOM[1] > below) below = ROOM[1];
       }
       if (!relative) {
-        if (auto) series.fit ? series.fit(a, b, log, out) : series.extent(a, b, log, out, time);
+        if (auto) widen(series, a, b, log, out, time);
         continue;
       }
       // (A series with no base (none in view, or 0) has no reading: neither fitted nor drawn.)
@@ -702,7 +712,7 @@ export class Pane {
       if (!Object.is(base, this.drawnBases[k])) same = false;
       if (!auto || !base || base !== base) continue;
       (own[0] = Infinity), (own[1] = -Infinity);
-      series.fit ? series.fit(a, b, false, own) : series.extent(a, b, false, own, time);
+      widen(series, a, b, false, own, time);
       if (!(own[0] <= own[1])) continue;
       scale.setBase(base);
       const lo = own[0] * scale.m + scale.c, hi = own[1] * scale.m + scale.c;
@@ -710,6 +720,7 @@ export class Pane {
       if (hi > out[1]) out[1] = hi;
     }
     if (!same) this.basesSame = false;
+    scale.reached = auto ? versions : -1;
     if (auto) (scale.askedAbove = above), (scale.askedBelow = below);
     const asked = scale.askedAbove + scale.askedBelow;
     if (asked) {
@@ -718,6 +729,18 @@ export class Pane {
     } else if (scale.above || scale.below) (scale.above = 0), (scale.below = 0);
     if (auto) scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
+  }
+
+  /**
+   * What `group`'s scale is fitted to in any view within indices `a` to `b`, at the most: its series' range there,
+   * hidden ones too (one may be shown), widening `out`. None where its fit in a view isn't known from their values
+   * alone: held, or relative (each read against its first value in view).
+   * @param {import("./timeline.js").Timeline} time @param {ScaleGroup} group @param {number} a @param {number} b @param {Float64Array} out
+   */
+  #reach(time, group, a, b, out) {
+    const scale = group.scale, auto = group.side < 0 || (group.side === 0 ? this.auto : this.leftAuto);
+    if (!auto || scale.relative) return;
+    for (const k of group.indices) widen(this.series[k], a, b, scale.mode === "log", out, time);
   }
 
   /**

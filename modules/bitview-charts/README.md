@@ -187,19 +187,21 @@ clears); avoid reflecting programmatic calls. A programmatic
   of its color (or `textColor`) as it is, its words on it as a tag's (see `inkOn`, with a whisper of its hue where that
   still reads 4.5:1, else moved toward pure white or black as far as that takes). Where words crowd at the zoom, in the
   order of their `priority` (a move's size, say: the biggest first; at one, the latest first; those without, an event's
-  name say, first, each counted only in another without), one whose words would run into those of one shown before it on
-  its side (above the series; under it), or on the other where the series crosses between them, is counted in the
-  nearest of those ("2 more", room kept for it on its left where words later in that order would run into its own;
-  quieter than they are: in the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color
-  laid on its ground). The order is the data's: a pan regroups none, only a change of spacing does (a zoom, or the plot
-  resized, as a wider price axis does). Its words over everything, on its pane's layer over it, drawn each frame, whole
-  within the plot and clear of its other dots and of the words placed before them (in their order, the counts alone
-  last): where its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear (along their row or
-  out from the series) where they're still nearer their own dot than any other, else a pill tried without its count,
-  else left out; a count on the side of its pill away from its dot (right of it where the pill moves right or the count
-  has no room on its left); one whose pill's dot is past an edge of the plot shown alone, where the words of the one it
-  holds nearest that edge would be, while a mark it holds is in view. Their room kept at the scale's ends while its
-  series has values in view (`room: false`, none); `set(marks)` after a change.
+  name say, first, each counted only in another without), one whose words would run into those of one shown before it,
+  in a row theirs can meet at some pan at that zoom (as far apart as the widest range its scale is fitted to in a view
+  with both puts them: every series on it, hidden ones too; a relative or held scale's unknown, rows on one side always
+  meeting, on two where the series crosses between them), is counted in the nearest of those ("2 more", room kept for it
+  on its left where words later in that order would run into its own; quieter than they are: in the theme's `text`
+  color, kept at 4.5:1 or more, on a quiet tag of its `separator` color laid on its ground). The order is the data's: a
+  pan regroups none, only a change of spacing does (a zoom, or the plot resized, as a wider price axis does), or of its
+  scale (its mode, its height, its series' values). Its words over everything, on its pane's layer over it, drawn each
+  frame, whole within the plot and clear of its other dots and of the words placed before them (in their order, the
+  counts alone last): where its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear (along
+  their row or out from the series) where they're still nearer their own dot than any other, else a pill tried without
+  its count, else left out; a count on the side of its pill away from its dot (right of it where the pill moves right or
+  the count has no room on its left); one whose pill's dot is past an edge of the plot shown alone, where the words of
+  the one it holds nearest that edge would be, while a mark it holds is in view. Their room kept at the scale's ends
+  while its series has values in view (`room: false`, none); `set(marks)` after a change.
 - `inkOn(color)`: white or black words on a CSS color, the chart's one rule for them (its tags', badges' and marks'
   pills'): APCA's pick, unless that falls short of WCAG 2's 4.5:1 there (its floor for small words), then the other
   (pure white's and black's ratios on a color multiply to 21, so one always reaches 4.58).
