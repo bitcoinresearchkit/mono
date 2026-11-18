@@ -190,14 +190,7 @@ impl Indexer {
     /// the import, so a reset never leaves a half-deleted directory that validation could accept.
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         reader.check_source()?;
-        STORAGE.import_with_recovery(
-            context,
-            || Self::import_inner(context, reader),
-            |error| {
-                let path = STORAGE.path(context);
-                warn!("Rebuilding indexer data at {} after an import failure: {error}", path.display());
-            },
-        )
+        STORAGE.import_with_recovery(context, || Self::import_inner(context, reader))
     }
 
     fn import_inner(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
