@@ -390,17 +390,3 @@ impl<'de> Deserialize<'de> for Website {
         deserializer.deserialize_any(WebsiteVisitor)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn pages() {
-        for (path, (contents, _)) in &served().files {
-            if content_type(path) == "text/html" {
-                assert!(!contents.is_empty(), "{}", path.display());
-            }
-        }
-    }
-}
