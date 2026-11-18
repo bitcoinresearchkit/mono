@@ -1,6 +1,6 @@
 [package]
 name = "brk_logger"
-description = "Tracing setup with daily combined and per-level log files"
+description = "Tracing setup with a console and daily log files"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,4 +13,4 @@ owo-colors = { workspace = true }
 parking_lot = { workspace = true }
 tracing = { workspace = true }
 tracing-log = "0.2"
-tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["registry", "std"] }

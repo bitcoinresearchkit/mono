@@ -2,10 +2,7 @@ use std::{collections::VecDeque, sync::LazyLock};
 
 use jiff::Timestamp;
 use parking_lot::Mutex;
-use tracing::{Event, Level, Subscriber};
-use tracing_subscriber::{Layer, layer::Context};
-
-use crate::format::text;
+use tracing::Level;
 
 /// Lines kept in memory.
 const KEPT: usize = 1_000;
@@ -67,24 +64,17 @@ static TAIL: LazyLock<Mutex<Tail>> = LazyLock::new(|| {
     })
 });
 
-/// Keeps the last `KEPT` events the filter admits.
-pub struct TailLayer;
-
-impl<S: Subscriber> Layer<S> for TailLayer {
-    fn on_event(&self, event: &Event<'_>, _: Context<'_, S>) {
-        let mut text = text(event);
-        if text.len() > MAX_TEXT {
-            text.truncate(text.floor_char_boundary(MAX_TEXT - '…'.len_utf8()));
-            text.push('…');
-        }
-        let time = Timestamp::now();
-        let level = *event.metadata().level();
-        let mut tail = TAIL.lock();
-        let seq = tail.next;
-        tail.next += 1;
-        if tail.lines.len() == KEPT {
-            tail.lines.pop_front();
-        }
-        tail.lines.push_back(Line { seq, time, level, text });
+/// Keeps a line just logged, its text cut to `MAX_TEXT`.
+pub fn push(time: Timestamp, level: Level, mut text: String) {
+    if text.len() > MAX_TEXT {
+        text.truncate(text.floor_char_boundary(MAX_TEXT - '…'.len_utf8()));
+        text.push('…');
     }
+    let mut tail = TAIL.lock();
+    let seq = tail.next;
+    tail.next += 1;
+    if tail.lines.len() == KEPT {
+        tail.lines.pop_front();
+    }
+    tail.lines.push_back(Line { seq, time, level, text });
 }

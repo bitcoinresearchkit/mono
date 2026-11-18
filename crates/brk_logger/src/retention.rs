@@ -1,6 +1,6 @@
 use std::{fs, path::Path, thread, time::Duration};
 
-use crate::rate_limit::log_file_date;
+use crate::file::log_file_date;
 
 const DAY: Duration = Duration::from_secs(24 * 60 * 60);
 /// How long a log file is kept, from its last write.

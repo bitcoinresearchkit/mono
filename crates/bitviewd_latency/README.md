@@ -11,10 +11,9 @@ One argument: the daemon's data directory (`bitviewdir`). Reads
 prints its path. It reads no configuration, creates no directories, and makes no
 RPC calls.
 
-Reads every available day's combined `YYYY-MM-DD.txt` once. If absent, reads
-that day's per-level files. Logs are streamed; durations are retained for exact
-nearest-rank percentiles, with three full slow examples per endpoint/status group.
-Memory scales with request count.
+Reads every available day's `YYYY-MM-DD.txt` once. Logs are streamed; durations are
+retained for exact nearest-rank percentiles, with three full slow examples per
+endpoint/status group. Memory scales with request count.
 
 Each HTTP status code (200, 304, 400, 404, etc.) has one table of up to 20 endpoints
 sorted by P95, a histogram and up to 20 slow request examples.

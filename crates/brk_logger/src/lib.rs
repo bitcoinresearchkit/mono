@@ -2,34 +2,32 @@
 
 use std::{backtrace::Backtrace, env, io, panic, path::Path};
 
-use format::Formatter;
+use file::LogFile;
+pub use file::log_file_date;
 pub use format::{MalformedRequestLine, RequestLine};
-use hook::HookLayer;
-use rate_limit::RateLimitedFile;
+use layer::Logger;
+pub use layer::register_hook;
 use retention::delete_old_daily;
-pub use rate_limit::log_file_date;
-use tail::TailLayer;
 pub use tail::{Line, Recent, recent, started};
-use tracing::{Event, error, field};
+use tracing::{error, field};
 use tracing_log::LogTracer;
 pub use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::{
-    filter::Targets, fmt, layer::SubscriberExt, registry as TracingSubscriberRegistry,
+    filter::Targets, layer::SubscriberExt, registry as TracingSubscriberRegistry,
     util::SubscriberInitExt,
 };
 
+mod file;
 mod format;
-mod hook;
-mod rate_limit;
+mod layer;
 mod retention;
 mod tail;
 
-/// Initialize the global tracing subscriber with a colorized console layer.
+/// Initialize the global tracing subscriber, which writes colorized lines to the console.
 ///
-/// If `dir` is `Some`, also writes daily log files to that directory:
-/// `YYYY-MM-DD.txt` for the combined log and `YYYY-MM-DD_<level>.txt` for each
-/// tracing level. The directory is created if it does not exist, and those
-/// files older than 7 days are deleted at start, then once a day.
+/// If `dir` is `Some`, it also writes each day's lines to `YYYY-MM-DD.txt` in that directory. The
+/// directory is created if it does not exist, and its log files older than 7 days are deleted at
+/// start, then once a day.
 pub fn init(dir: Option<&Path>) -> io::Result<()> {
     init_with_default_level(
         dir,
@@ -84,26 +82,13 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -
         }
     };
 
-    // Layers see an event in this order: the hook and the tail read the clock before the
-    // console and the log file write it out.
-    let registry = TracingSubscriberRegistry()
+    let file = dir.map(LogFile::new).transpose()?;
+    TracingSubscriberRegistry()
         .with(filter)
-        .with(HookLayer)
-        .with(TailLayer)
-        .with(fmt::layer().event_format(Formatter::<true>));
-
+        .with(Logger { file })
+        .init();
     if let Some(dir) = dir {
-        let writer = RateLimitedFile::new(dir)?;
-        registry
-            .with(
-                fmt::layer()
-                    .event_format(Formatter::<false>)
-                    .with_writer(writer),
-            )
-            .init();
         delete_old_daily(dir);
-    } else {
-        registry.init();
     }
 
     install_panic_hook();
@@ -122,13 +107,4 @@ fn install_panic_hook() {
         let backtrace = Backtrace::capture();
         error!(location, backtrace = %backtrace, "panic: {msg}");
     }));
-}
-
-/// Registers the process's single hook, which receives every event the filter admits; errors if
-/// one is already registered.
-pub fn register_hook<F>(hook: F) -> Result<(), &'static str>
-where
-    F: for<'a> Fn(&Event<'a>) + Send + Sync + 'static,
-{
-    hook::register(hook)
 }
