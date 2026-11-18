@@ -21,6 +21,7 @@ mod kind;
 mod meta;
 mod pending;
 mod pending_ingest;
+mod bytes;
 #[cfg(test)]
 mod tests;
 
@@ -31,6 +32,7 @@ use pending::Pending;
 pub use any::*;
 pub use kind::*;
 pub use pending_ingest::PendingIngest;
+pub use bytes::ByteStore;
 
 const BLOCK_CACHE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 

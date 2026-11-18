@@ -55,6 +55,8 @@ pub(crate) struct QueryInner<'a> {
     pub(crate) payment_chunks: parking_lot::Mutex<OracleChunks<OraclePayments>>,
     #[cfg(feature = "full-api")]
     pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
+    #[cfg(feature = "full-api")]
+    pub(crate) audits: parking_lot::RwLock<crate::api::audit::CanonicalAudits>,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(feature = "series")]
     pub(crate) bounds: ArcSwapOption<PublishedBounds>,
@@ -108,6 +110,8 @@ impl Query {
                 payment_chunks: Default::default(),
                 #[cfg(feature = "full-api")]
                 stale_blocks: Default::default(),
+                #[cfg(feature = "full-api")]
+                audits: Default::default(),
                 #[cfg(feature = "series")]
                 bounds: ArcSwapOption::empty(),
             }),
@@ -232,6 +236,11 @@ impl Query {
     #[inline]
     pub(crate) fn mempool(&self) -> Option<Arc<ReadOnlyState>> {
         self.0.mempool.as_ref().map(ReadOnlyMempool::load)
+    }
+
+    #[cfg(feature = "full-api")]
+    pub(crate) fn audit_reader(&self) -> Option<Arc<brk_mempool::audit::AuditReader>> {
+        self.0.mempool.as_ref()?.audits()
     }
 
     /// The mempool, then a pin: the pool never follows a block before the chain publishes it, so

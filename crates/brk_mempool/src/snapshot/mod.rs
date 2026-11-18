@@ -70,6 +70,13 @@ pub(crate) struct ServedBlock {
 }
 
 impl Snapshot {
+    pub(crate) fn audit_chunk(&self, txid: &Txid) -> u32 {
+        self.chunk_of[self.idx_of_txid(txid).expect("block 0 is in the snapshot").as_usize()]
+    }
+
+    pub(crate) fn audit_chunk_members(&self, chunk: u32) -> impl Iterator<Item = &SnapTx> + Clone {
+        self.chunks.members(chunk as usize).iter().map(move |index| &self.txs[index.as_usize()])
+    }
     /// `min_fee` is bitcoind's live `mempoolminfee`, the floor for
     /// every recommended-fee tier.
     /// `blocks`: every projected block, block 0 first, each member at the feerate it was packed

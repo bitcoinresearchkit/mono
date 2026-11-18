@@ -138,6 +138,8 @@ where
     // Only the chain and price reads use the mempool: without them no driver runs.
     #[cfg(feature = "full-api")]
     let mut mempool = Mempool::new(&client);
+    #[cfg(feature = "full-api")]
+    let mut audits = mempool.keep_audits(&server.data_path.join("mempool/audits"), &exit)?;
     // The RBF trees, removal reasons and first sightings outlive restarts: saved every few
     // minutes, and the last publication's at shutdown.
     #[cfg(feature = "full-api")]
@@ -157,6 +159,8 @@ where
     // CDN.
     #[cfg(feature = "full-api")]
     query.sync(refresh_stale_blocks);
+    #[cfg(feature = "full-api")]
+    query.sync(|q| q.refresh_audits(None))?;
 
     record_node(&client, &query)?;
     let (data_path, logs_path) = (server.data_path.clone(), server.logs_path());
@@ -167,7 +171,7 @@ where
     let server_handle = runtime.spawn(server.serve());
 
     #[cfg(feature = "full-api")]
-    let template = mempool.read_only_clone();
+    let pool = mempool.read_only_clone();
     #[cfg(feature = "full-api")]
     let published = {
         // The indexer first; what it can't give (a parent above its tip, or a script it reads
@@ -217,6 +221,8 @@ where
     let mut warmed = Instant::now();
     // The node's tip the last update ran for: retrying it logs nothing new.
     let mut updating_to = None;
+    #[cfg(feature = "full-api")]
+    let mut capture = None;
     loop {
         if server_handle.is_finished() {
             return server_stopped(&runtime, server_handle);
@@ -226,6 +232,8 @@ where
         let best = client.get_best_block_hash()?;
         if query.sync(|q| q.tip_blockhash()) != best {
             if updating_to.replace(best) != Some(best) {
+                #[cfg(feature = "full-api")]
+                { capture = pool.capture_audit(); }
                 info!("Chain tip changed; updating...");
                 record_node(&client, &query)?;
             }
@@ -245,6 +253,35 @@ where
                 // Full, a read not yet started is due: it will see this publication.
                 #[cfg(feature = "full-api")]
                 let _ = stale_blocks.try_send(());
+
+                #[cfg(feature = "full-api")]
+                {
+                    if let Err(error) = query.sync(|q| q.refresh_audits(None)) {
+                        warn!(%error, "block audits: canonical view refresh failed");
+                    }
+                    let audit_start = Instant::now();
+                    if let Some(capture) = capture.take() {
+                        let age = capture.age;
+                        match query.sync(|q| q.indexed_audit_block(best)) {
+                            Ok(block) => if let Some(audit) = capture.compare(&block) {
+                                let committed = audits.commit(&audit).or_else(|error| {
+                                    warn!(%error, hash = %best, "block audit write failed; verifying pair before retry");
+                                    audits.commit(&audit)
+                                });
+                                match committed {
+                                    Ok(_) => {
+                                        if let Err(error) = query.sync(|q| q.refresh_audits(Some(audit.summary))) {
+                                            warn!(%error, hash = %best, "block audit canonical publication failed");
+                                        }
+                                        info!(hash = %best, ?age, elapsed = ?audit_start.elapsed(), "Block audit committed");
+                                    }
+                                    Err(error) => warn!(%error, hash = %best, "block audit commit failed"),
+                                }
+                            } else { info!(hash = %best, "Block audit skipped: capture parent differs"); },
+                            Err(error) => warn!(%error, hash = %best, "Block audit skipped: candidate unavailable in published chain"),
+                        }
+                    } else { info!(hash = %best, "Block audit skipped: no fresh complete observation"); }
+                }
                 #[cfg(feature = "full-api")]
                 {
                     warmed = Instant::now();
@@ -257,11 +294,14 @@ where
                 continue;
             }
         } else {
+            updating_to = None;
+            #[cfg(feature = "full-api")]
+            { capture = None; }
             // Idle minutes leave what the next update reads on disk: read it again before it
             // goes cold, from the template the next block most likely shares.
             #[cfg(feature = "full-api")]
             if warmed.elapsed() >= WARM_INTERVAL {
-                plugins.warm(&template.load().template_transactions());
+                plugins.warm(&pool.load().template_transactions());
                 warmed = Instant::now();
             }
         }

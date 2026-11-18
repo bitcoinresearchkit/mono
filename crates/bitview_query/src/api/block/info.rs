@@ -78,6 +78,7 @@ impl Query {
         pin: &ReadPin,
         prices: Vec<Dollars>,
         stale: Arc<StaleBlocks>,
+        audits: Vec<Option<brk_mempool::audit::Summary>>,
     ) -> Result<impl FnOnce() -> Result<Vec<BlockInfoV1>> + '_> {
         let columns = BlockColumns::capture(self, begin, end, pin.lengths())?;
         let (begin, count) = (columns.begin, columns.len());
@@ -319,9 +320,10 @@ impl Query {
                         .filter(|orphan| orphan.hash != id)
                         .cloned()
                         .collect(),
-                    match_rate: None,
-                    expected_fees: None,
-                    expected_weight: None,
+                    match_rate: audits[i].map(|s| s.match_percent()),
+                    expected_fees: audits[i].map(|s| s.expected_fees),
+                    expected_weight: audits[i].map(|s| s.expected_weight),
+                    similarity: audits[i].map(|s| s.similarity),
                     price: prices[i],
                 };
 

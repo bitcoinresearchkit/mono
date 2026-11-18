@@ -10,7 +10,7 @@ use crate::{Error, Query, Result};
 /// Time-bucket divisor in seconds: blocks are grouped by `timestamp / div`.
 /// `div = 1` groups only equal timestamps; coarser values down-sample long
 /// windows so the response stays bounded.
-fn time_div(period: TimePeriod) -> u32 {
+pub(crate) fn time_div(period: TimePeriod) -> u32 {
     match period {
         TimePeriod::Day | TimePeriod::ThreeDays => 1,
         TimePeriod::Week => 300,

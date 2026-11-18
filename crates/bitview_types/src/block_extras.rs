@@ -131,18 +131,20 @@ pub struct BlockExtras {
     /// Stale blocks at this height the server's node knows, each server's own
     pub orphans: Vec<BlockOrphan>,
 
-    /// Share of the expected block template the block matched, from mempool.space's own audits
-    /// (always null: it needs the mempool as it was)
+    /// Match rate of this server's live pre-block observation; null for unaudited blocks.
     #[serde(rename = "matchRate")]
     pub match_rate: Option<f64>,
 
-    /// Fees of the expected block template (always null: it needs the mempool as it was)
+    /// Base fees of this server's expected block, excluding coinbase.
     #[serde(rename = "expectedFees")]
     pub expected_fees: Option<Sats>,
 
-    /// Weight of the expected block template (always null: it needs the mempool as it was)
+    /// Raw transaction weight of the expected block, excluding header and coinbase reserve.
     #[serde(rename = "expectedWeight")]
     pub expected_weight: Option<Weight>,
+
+    /// Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
+    pub similarity: Option<f64>,
 
     /// USD price at block height
     pub price: Dollars,

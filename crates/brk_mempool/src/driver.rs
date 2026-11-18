@@ -162,6 +162,8 @@ impl Mempool {
             .client
             .fetch_mempool_state(&self.rebuilder.snapshot().modified_fees)?;
         if !rpc.loaded {
+            self.read_only.observations.clear();
+            self.observed_at = None;
             return Err(Error::updating());
         }
         let tip = rpc.tip_hash;
@@ -213,9 +215,11 @@ impl Mempool {
         self.unread_cycles = 0;
         prevouts::fill(state, resolver);
         let coherent = self.client.get_best_block_hash().ok() == Some(tip);
+        let observed_at = Instant::now();
         self.rebuilder
             .tick(&self.state, rpc.min_fee, &modified_fees);
         if coherent {
+            self.observed_at = Some(observed_at);
             if gate().is_none_or(|published| published == tip) {
                 self.publish_observation(tip, tip_facts);
             } else {
@@ -352,6 +356,9 @@ impl Mempool {
         let snapshot = self.rebuilder.snapshot().clone();
         if let Some(next) = previous.updated(&self.state, tip, snapshot, tip_facts) {
             self.read_only.current.store(Arc::new(next));
+        }
+        if let Some(at) = self.observed_at {
+            self.read_only.observations.publish(at);
         }
         #[cfg(debug_assertions)]
         if let (Some(checker), Some(template)) = (&self.checker, &self.read_only.load().template) {
