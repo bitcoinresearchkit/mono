@@ -54,6 +54,25 @@ pub enum Error {
     Utf8(Utf8Error),
 }
 
+impl Error {
+    /// Whether the data on disk failed a check, so rebuilding it is the fix, rather than the
+    /// disk or the process failing. Exhaustive, so a new variant has to answer.
+    #[must_use]
+    pub fn is_data_error(&self) -> bool {
+        match self {
+            Self::Io(_) => false,
+            Self::Decompress(_)
+            | Self::InvalidVersion(_)
+            | Self::Unrecoverable(_)
+            | Self::InvalidTag(_)
+            | Self::InvalidRecordLength { .. }
+            | Self::InvalidTrailer
+            | Self::InvalidHeader(_)
+            | Self::Utf8(_) => true,
+        }
+    }
+}
+
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
         write!(f, "LsmTreeError: {self:?}")

@@ -934,10 +934,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   before
 - A file in a store's `tables` folder whose name isn't a table's (Finder, Spotlight and Time Machine leave such files)
   is ignored with a warning; before, any such file but `.DS_Store` and `._*` deleted the whole indexer and
-  re-indexed it from block 0. A store's data is rebuilt only on errors that mean it is broken, listed one by one: an
-  I/O error, the database lock, or an error kind added to the storage engine later stops bitviewd without deleting
-  anything. An I/O error while a store opens names the store's folder, and a rebuild's log line says which check
-  failed
+  re-indexed it from block 0. A store's data is rebuilt only on errors that mean it is broken: an I/O error or the
+  database lock stops bitviewd without deleting anything. An I/O error while a store opens names the store's folder,
+  and a rebuild's log line says which check failed
 - Addresses and UTXOs log a warning naming the plugin when their replay restarts from genesis over saved data (a
   version change, or saved state that can't resume at the block asked, as after a reorg deeper than 10 blocks); the
   reset had no log line of its own
