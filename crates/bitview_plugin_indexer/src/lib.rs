@@ -90,11 +90,6 @@ struct ResumePoint {
     prev_hash: Option<BlockHash>,
 }
 
-enum ImportValidation {
-    Valid(Lengths),
-    Reset(&'static str),
-}
-
 fn write_xor_marker(path: &Path, source_xor: XORBytes) -> Result<()> {
     debug_assert!(Exit::is_locked(), "source marker written outside the exit lock");
     let pending = path.join("xor.pending");
@@ -230,10 +225,7 @@ impl Indexer {
         };
 
         indexer.drop_uncommitted_rows()?;
-        let lengths = match indexer.validate_import(&plugin_path)? {
-            ImportValidation::Valid(lengths) => lengths,
-            ImportValidation::Reset(reason) => return Err(Error::InvalidData(reason)),
-        };
+        let lengths = indexer.validate_import(&plugin_path)?;
         // Dependents' rows beside an empty indexer (deleted, reset or not yet indexed) can't be
         // vouched for: removed now, inside the import's lock and before any of them opens, so
         // each restarts from its own empty data and resumes from it. A kill during the removal
@@ -279,7 +271,10 @@ impl Indexer {
         self.vecs.flush(completed_height)
     }
 
-    fn validate_import(&self, plugin_path: &Path) -> Result<ImportValidation> {
+    /// The lengths the data holds, checked against its own checkpoints and the node; or
+    /// [`Error::InvalidData`] naming the failed check, which rebuilds the indexer. An empty
+    /// indexer first records the node's mask beside it.
+    fn validate_import(&self, plugin_path: &Path) -> Result<Lengths> {
         let reader = &self.reader;
         let vec_height = self.vecs.next_height();
         let store_height = self.stores.next_height()?;
@@ -289,7 +284,7 @@ impl Indexer {
         } else if let Some(lengths) = Lengths::from_local(&self.vecs, &self.stores)? {
             lengths
         } else {
-            return Ok(ImportValidation::Reset(
+            return Err(Error::InvalidData(
                 "Indexer checkpoints are missing, inconsistent, or incomplete",
             ));
         };
@@ -300,7 +295,7 @@ impl Indexer {
             || blockhash.len() != usize::from(vec_height)
             || (blockhash.is_empty() && !self.vecs.all_empty())
         {
-            return Ok(ImportValidation::Reset(
+            return Err(Error::InvalidData(
                 "Indexer vectors stopped at different heights",
             ));
         }
@@ -310,7 +305,7 @@ impl Indexer {
             Ok(None) if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
             Ok(Some(marker)) if marker == reader.xor_bytes() => {}
             Ok(_) | Err(Error::WrongLength { .. }) => {
-                return Ok(ImportValidation::Reset(
+                return Err(Error::InvalidData(
                     "Indexer block source marker is missing, invalid, or changed",
                 ));
             }
@@ -318,7 +313,7 @@ impl Indexer {
         }
 
         if blockhash.is_empty() {
-            return Ok(ImportValidation::Valid(local_lengths));
+            return Ok(local_lengths);
         }
 
         // Below the newest blocks, which a node's crash can move and a resume reads back: a
@@ -326,15 +321,15 @@ impl Indexer {
         let height = Height::from(blockhash.len().saturating_sub(RECHECKED_BLOCKS + 1));
         let hash = blockhash.collect_one(height).expect("indexed height");
         let Some(position) = self.vecs.blocks.position.collect_one(height) else {
-            return Ok(ImportValidation::Reset("Indexer block position is missing"));
+            return Err(Error::InvalidData("Indexer block position is missing"));
         };
         if read_block_hash_at(reader, position)? != hash {
-            return Ok(ImportValidation::Reset(
+            return Err(Error::InvalidData(
                 "Indexer block positions belong to a different block source",
             ));
         }
 
-        Ok(ImportValidation::Valid(local_lengths))
+        Ok(local_lengths)
     }
 
     /// `lengths`, lowered to the rollback floor when one lies below them.
