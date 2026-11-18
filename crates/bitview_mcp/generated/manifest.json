@@ -2554,7 +2554,7 @@
               ]
             },
             "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -2573,6 +2573,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -2584,7 +2585,7 @@
               ]
             },
             "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -2603,6 +2604,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -2736,7 +2738,7 @@
               ]
             },
             "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -2755,6 +2757,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -2766,7 +2769,7 @@
               ]
             },
             "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -2785,6 +2788,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -3186,7 +3190,7 @@
       "tool": {
         "name": "get_sync_status",
         "title": "Sync status",
-        "description": "Bitcoin: Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.",
+        "description": "Bitcoin: Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.",
         "inputSchema": {
           "type": "object",
           "properties": {},

@@ -143,7 +143,7 @@ MempoolBlockDiffEntry = Union[RetainedRun, "MempoolTxSummary"]
 RawLockTime = int
 # A dimensionless ratio: a quotient or share, read as a plain number.
 Ratio = float
-# A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
+# A positional index, a YYYY-MM-DD date, or a UTC timestamp spelled YYYY-MM-DDTHH:MM:SSZ, or with exactly three millisecond digits before the Z as JavaScript's toISOString writes. Other spellings of a timestamp (an offset, lowercase, another fraction) are refused.
 RangeIndex = Union[int, str, str]
 # A mining pool's identifier, as written in URLs.
 PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "cloverpool", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd", "trustpool"]
@@ -629,7 +629,7 @@ class SyncStatus(TypedDict):
     Attributes:
         indexed_height: Height of the last indexed block
         computed_height: Height of the last computed block (series)
-        tip_height: Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without asking the node
+        tip_height: Height of the Bitcoin node's chain tip, as the server last saw it (it looks for a new tip every second)
         blocks_behind: Number of blocks behind the tip
         last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
         last_indexed_at_unix: Unix timestamp of the last indexed block
@@ -710,7 +710,7 @@ class DifficultyAdjustment(TypedDict):
     Attributes:
         progressPercent: Progress through current difficulty epoch (0-100%)
         difficultyChange: Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
-        estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds)
+        estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds): the tip block's time plus `remainingTime`, so it moves with blocks, not with the clock
         remainingBlocks: Blocks remaining until retarget
         remainingTime: Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
         previousRetarget: Previous difficulty adjustment (%)
@@ -823,7 +823,7 @@ class Health(TypedDict):
         uptime_seconds: Uptime in seconds
         indexed_height: Height of the last indexed block
         computed_height: Height of the last computed block (series)
-        tip_height: Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without asking the node
+        tip_height: Height of the Bitcoin node's chain tip, as the server last saw it (it looks for a new tip every second)
         blocks_behind: Number of blocks behind the tip
         last_indexed_at: Human-readable timestamp of the last indexed block (ISO 8601)
         last_indexed_at_unix: Unix timestamp of the last indexed block
@@ -1026,7 +1026,7 @@ class PricePoint(TypedDict):
     A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
 
     Attributes:
-        time: Unix timestamp
+        time: Unix timestamp: a historical close's, or for the current price when it was derived (the mempool publication counted in it, else the tip block's time)
         USD: BTC/USD price
     """
     time: Timestamp
@@ -1101,9 +1101,9 @@ class DiskUsage(TypedDict):
     """
     Attributes:
         brk: Human-readable brk data size (e.g., "48.8 GiB")
-        brk_bytes: brk data size in bytes
-        bitcoin: Human-readable Bitcoin blocks directory size
-        bitcoin_bytes: Bitcoin blocks directory size in bytes
+        brk_bytes: brk data size in bytes: the indexer stores' table files plus the allocated bytes of the other files, the server's logs left out
+        bitcoin: Human-readable size of the node's block and undo files
+        bitcoin_bytes: The node's own estimate of its block and undo files' bytes (`size_on_disk`)
         ratio: Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
     """
     brk: str
@@ -6251,7 +6251,7 @@ class BitviewClient(BitviewClientBase):
     def get_health(self) -> Health:
         """Health check.
 
-        Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
+        Local health and query-readiness check. Returns server identity, uptime, and the sync status of `GET /api/server/sync`, without a bitcoind round-trip. `status` says the server answers, whatever `blocks_behind` is. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached.
 
         Endpoint: `GET /health`"""
         return self.get_json('/health')
@@ -6265,7 +6265,7 @@ class BitviewClient(BitviewClientBase):
     def get_sync_status(self) -> SyncStatus:
         """Sync status.
 
-        Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
+        Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.
 
         Endpoint: `GET /api/server/sync`"""
         return self.get_json('/api/server/sync')
@@ -6285,7 +6285,7 @@ class BitviewClient(BitviewClientBase):
     def get_disk_usage(self) -> DiskUsage:
         """Disk usage.
 
-        Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+        Returns the bytes Bitview's data takes on disk and the bytes of the node's block files. Bitview's total is its indexer stores' table files as the stores track them, plus the allocated bytes (file lengths on non-Unix platforms) of every other file in its data directory, the server's own logs left out, measured when the server starts and after each indexed block. The node's total is its own estimate (`getblockchaininfo`'s `size_on_disk`: block and undo files, without its block index), as of the node's last new tip. No request reads the filesystem or asks the node. The ETag is made from both totals.
 
         Endpoint: `GET /api/server/disk`"""
         return self.get_json('/api/server/disk')
@@ -7168,7 +7168,7 @@ class BitviewClient(BitviewClientBase):
     def post_tx(self, body: str) -> Txid:
         """Broadcast transaction.
 
-        Submit a raw transaction as hexadecimal text (at most 8,000,000 request bytes, including whitespace). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.
+        Submit a raw transaction as hexadecimal text (at most 800,000 request bytes, including whitespace: a standard transaction's largest size). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
 

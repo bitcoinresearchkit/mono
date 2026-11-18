@@ -570,7 +570,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/disk",
         summary: "Disk usage",
-        description: "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.",
+        description: "Returns the bytes Bitview's data takes on disk and the bytes of the node's block files. Bitview's total is its indexer stores' table files as the stores track them, plus the allocated bytes (file lengths on non-Unix platforms) of every other file in its data directory, the server's own logs left out, measured when the server starts and after each indexed block. The node's total is its own estimate (`getblockchaininfo`'s `size_on_disk`: block and undo files, without its block index), as of the node's last new tip. No request reads the filesystem or asks the node. The ETag is made from both totals.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -619,7 +619,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/health",
         summary: "Health check",
-        description: "Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.",
+        description: "Local health and query-readiness check. Returns server identity, uptime, and the sync status of `GET /api/server/sync`, without a bitcoind round-trip. `status` says the server answers, whatever `blocks_behind` is. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -965,8 +965,8 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
@@ -983,8 +983,8 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesList", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
@@ -1013,8 +1013,8 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
@@ -1092,7 +1092,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/sync",
         summary: "Sync status",
-        description: "Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.",
+        description: "Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1379,7 +1379,7 @@ pub static COMMANDS: &[Command] = &[
         method: "POST",
         path: "/api/tx",
         summary: "Broadcast transaction",
-        description: "Submit a raw transaction as hexadecimal text (at most 8,000,000 request bytes, including whitespace). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*",
+        description: "Submit a raw transaction as hexadecimal text (at most 800,000 request bytes, including whitespace: a standard transaction's largest size). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*",
         path_parameters: &[
         ],
         query_parameters: &[
