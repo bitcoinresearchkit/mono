@@ -172,8 +172,8 @@
       }
       /* fill too: the flow's labels are SVG text. */
       .gain {
-        color: var(--profit);
-        fill: var(--profit);
+        color: var(--profit-text);
+        fill: var(--profit-text);
       }
       .lost {
         color: var(--loss);
@@ -548,6 +548,7 @@
         gap: 6px;
       }
       .step {
+        position: relative;
         display: inline-grid;
         place-items: center;
         width: 32px;
@@ -561,6 +562,20 @@
         svg {
           width: 15px;
           height: 15px;
+        }
+      }
+      /* (A finger's reach, 44px, unseen: half the 6px gap toward the other step, the rest outward.) */
+      @media (pointer: coarse) {
+        .step::before {
+          content: "";
+          position: absolute;
+          inset: -6px -3px;
+        }
+        .step:first-child::before {
+          inset-inline-start: -9px;
+        }
+        .step:last-child::before {
+          inset-inline-end: -9px;
         }
       }
       .step:disabled {
