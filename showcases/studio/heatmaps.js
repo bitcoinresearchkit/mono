@@ -5,9 +5,8 @@ import { capitalized, inSentence } from "/studio/words.js";
 import {
   boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
   css, draft, edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatAt, heatCohort,
-  heatKnown, keepDrawing, keyTime, lensAt, light, menuOf, moving, notice, picks, placing, profileColor, profileLit,
-  renderBelt, reshape, reshaped, resolved, selected, startLabel, startTyping, syncUndo, takeUp, tool, toolKept,
-  undoToast, writing,
+  heatKnown, keepDrawing, keyTime, lensAt, light, moving, notice, picks, placing, profileColor, profileLit, renderBelt,
+  reshape, reshaped, resolved, selected, startLabel, startTyping, syncUndo, takeUp, tool, toolKept, undoToast, writing,
 } from "/studio/app.js";
 import { $, escapeHtml, TOUCH } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
@@ -29,6 +28,7 @@ import {
 } from "/studio/drawing.js";
 import { isOpen, onClosed } from "/studio/grid.js";
 import { editById, gradientTable, keepFocus, layerById, modeOf, showScale } from "/studio/inspector.js";
+import { menuOf } from "/studio/menus.js";
 import { refocus } from "/studio/presets-edit.js";
 /** @import { ChartStep } from "/studio/app.js" */
 /** @import { Chart, Drawing, DrawingKind, Layer } from "/studio/vocabulary.js" */

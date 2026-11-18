@@ -6,11 +6,10 @@ import {
   acrossUnfit, afterHands, byBlock, byTouch, chart, chooseDrawings, chosen, clearLayerPicks, client, cohortName,
   colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit, fromLetters,
   fromShort, fromUnfit, gradientWidth, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks, layersBatch,
-  letterChip, markFor, markPicks, memberable, menuOf, minedHalvings, MOTION, multiEdit, notice, openPalette, ownerOf,
+  letterChip, markFor, markPicks, memberable, minedHalvings, MOTION, multiEdit, notice, openPalette, ownerOf,
   paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt,
-  renderInspector, renderLayers, reshape, resolved, secondColor, select, selected, seriesCount, showList, showMenu,
-  shownOklch, signedSignal, SLIDERS, STACKED_ONLY, toast, track, tree, undoToast, VIVID_ROWS, vividGrid, vividWork,
-  widest,
+  renderInspector, renderLayers, reshape, resolved, secondColor, select, selected, seriesCount, showList, shownOklch,
+  signedSignal, SLIDERS, STACKED_ONLY, toast, track, tree, undoToast, VIVID_ROWS, vividGrid, vividWork, widest,
 } from "/studio/app.js";
 import { isSeriesName } from "/studio/catalog-walk.js";
 import { $, all$, closest, escapeHtml, keyText, SLOP, viewport } from "/studio/dom.js";
@@ -45,7 +44,7 @@ import {
 } from "/studio/formulas.js";
 import { fillSlot, isOpen, recommendedCards } from "/studio/grid.js";
 import { HEAT_FADE, heatAmount, heatFelt, heatGrid, heatLooks, heatName, heatPath } from "/studio/heatmaps.js";
-import { exportData, scrolled } from "/studio/menus.js";
+import { exportData, menuOf, scrolled, showMenu } from "/studio/menus.js";
 import { presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
