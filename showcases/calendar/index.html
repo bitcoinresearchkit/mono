@@ -221,6 +221,19 @@
         }
       }
 
+      /* (Until the script has framed where we are, a year or a day from a link, what's laid out by it unseen: its first
+         frame comes after the page's, which knows neither. It first shows in place, after 4s whatever happens.) */
+      .page:has(#current:empty) :is(.stepper, .sheet) {
+        visibility: hidden;
+        animation: shown 0s 4s forwards;
+      }
+
+      @keyframes shown {
+        to {
+          visibility: visible;
+        }
+      }
+
       /* ── Header: the brand, the page, the year (or day) and a step either way; the totals ── */
       .top {
         display: flex;
