@@ -23,7 +23,10 @@ so a returning visitor downloads the files it uses once again. An earlier releas
 late) answers the current file, revalidated, as only the current release is held. Workers start at the same files'
 second address, `/w/<release>/<path>`, and import relative to it (a worker has no import map): in WebKit, a page's
 module whose address a worker has also loaded comes from the network on each reload after (Studio's
-`showcases/studio/workers.js`). A `Filesystem` website, whose files may change while it's served, has no release.
+`showcases/studio/workers.js`): the import map's `worker/` entry supplies their address. In debug builds `Default`
+transforms `./showcases` the same way, without a release, so it checks pages in development. Pages need a literal
+`<head>` and module scripts with a `src` name a site file by its absolute path. Invalid embedded pages stop router
+initialization with every bad file named. A `Filesystem` website has no release and serves its HTML unchanged.
 
 ## Behind Cloudflare
 

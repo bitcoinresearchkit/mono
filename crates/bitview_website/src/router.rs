@@ -12,6 +12,8 @@ pub(crate) struct Site {
 /// Returns an empty router if the website is disabled.
 pub fn router(website: Website) -> Router {
     if website.is_enabled() {
+        // Validate all embedded pages at startup, including sites without page info.
+        let _ = website.release();
         let pages =
             Pages::load(&website).unwrap_or_else(|error| panic!("Website page info: {error}"));
         Router::new()

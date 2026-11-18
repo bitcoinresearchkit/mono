@@ -49,7 +49,7 @@ async function read() {
     return JSON.parse(result.text);
   } catch {
     const [{ studioPresets }, { BitviewClient }, { chainFacts }] = await Promise.all([import("/studio/presets.js"), import("/modules/bitview-client/index.js"), import("/studio/facts.js")]);
-    return studioPresets(new BitviewClient({ baseUrl: location.origin }), await chainFacts(location.origin).catch(() => undefined));
+    return studioPresets(new BitviewClient(location.origin), await chainFacts(location.origin).catch(() => undefined));
   }
 }
 

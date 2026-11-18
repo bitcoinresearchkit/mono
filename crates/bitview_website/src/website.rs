@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
-    fmt::Write,
-    fmt::{Formatter, Result as FmtResult},
+    fmt::{Formatter, Result as FmtResult, Write},
     fs,
     io::ErrorKind,
     path::{Path, PathBuf},
@@ -175,9 +174,22 @@ impl Website {
                         Err(e) => return Err(failed(&file, e)),
                     };
                     if metadata.is_file() {
-                        return fs::read(&file)
-                            .map(|contents| File::fresh(contents, file.strip_prefix(base).unwrap()))
-                            .map_err(|e| failed(&file, e));
+                        let contents = fs::read(&file).map_err(|e| failed(&file, e))?;
+                        let path = file.strip_prefix(base).unwrap();
+                        let contents = if matches!(self, Self::Default)
+                            && content_type(path) == "text/html"
+                        {
+                            let html = std::str::from_utf8(&contents)
+                                .map_err(|e| Error::internal(format!("{}: {e}", file.display())))?;
+                            versioned(html, "", |path| {
+                                !path.ends_with(".html") && base.join(path).is_file()
+                            })
+                            .map_err(|e| Error::internal(format!("{}: {e}", file.display())))?
+                            .into_bytes()
+                        } else {
+                            contents
+                        };
+                        return Ok(File::fresh(contents, path));
                     }
                 }
                 None
@@ -192,7 +204,7 @@ impl Website {
             Self::Disabled => info!("Website disabled"),
             Self::Default => {
                 if let Some(p) = self.filesystem_path() {
-                    info!("Serving website from {}", p.display());
+                    info!("Serving showcases from {}", p.display());
                 } else {
                     info!("Using embedded website");
                 }
@@ -222,26 +234,36 @@ fn served() -> &'static Served {
         }
         let release = hash(every.as_bytes());
         let is_file = |path: &str| !path.ends_with(".html") && EMBEDDED.get_file(path).is_some();
+        let mut errors = Vec::new();
         let files = files
             .into_iter()
             .zip(hashes)
-            .map(|(file, file_hash)| {
-                let served = match (
-                    content_type(file.path()),
-                    std::str::from_utf8(file.contents()),
-                ) {
-                    ("text/html", Ok(html)) => {
-                        let page = versioned(html, &release, is_file).unwrap_or_else(|| {
-                            panic!("{}: a page without <head>", file.path().display())
-                        });
-                        let page_hash = hash(page.as_bytes());
-                        (Bytes::from(page), page_hash)
-                    }
-                    _ => (Bytes::from_static(file.contents()), file_hash),
+            .filter_map(|(file, file_hash)| {
+                let result = if content_type(file.path()) == "text/html" {
+                    std::str::from_utf8(file.contents())
+                        .map_err(|e| e.to_string())
+                        .and_then(|html| versioned(html, &release, is_file))
+                        .map(|page| {
+                            let page_hash = hash(page.as_bytes());
+                            (Bytes::from(page), page_hash)
+                        })
+                } else {
+                    Ok((Bytes::from_static(file.contents()), file_hash))
                 };
-                (file.path(), served)
+                match result {
+                    Ok(contents) => Some((file.path(), contents)),
+                    Err(e) => {
+                        errors.push(format!("{}: {e}", file.path().display()));
+                        None
+                    }
+                }
             })
             .collect();
+        assert!(
+            errors.is_empty(),
+            "Invalid website pages:\n{}",
+            errors.join("\n")
+        );
         Served { release, files }
     })
 }
@@ -249,9 +271,33 @@ fn served() -> &'static Served {
 /// A page as a release serves it: its import map first in its head, sending every module the page loads (static,
 /// dynamic, relative or absolute; addresses already a release's excepted) to the release's address, and each of the
 /// site's files it names by its path from the root (in `src`, `srcset`, `url()`, a `<link>`'s `href`, a script's
-/// string) written at the release's address. A link's (`<a href>`) stays where readers go. `None` without `<head>`.
-fn versioned(html: &str, release: &str, is_file: impl Fn(&str) -> bool) -> Option<String> {
-    let prefix = format!("/{RELEASES}{release}");
+/// string) written at the release's address. A link's (`<a href>`) stays where readers go.
+fn versioned(html: &str, release: &str, is_file: impl Fn(&str) -> bool) -> Result<String, String> {
+    for tag in html
+        .split("<script")
+        .skip(1)
+        .filter_map(|rest| rest.split('>').next())
+    {
+        if tag.contains("type=\"module\"")
+            && let Some((_, rest)) = tag.split_once(" src=\"")
+        {
+            let src = rest.split('"').next().unwrap_or_default();
+            if !src
+                .strip_prefix('/')
+                .is_some_and(|p| !p.contains(['?', '#']) && is_file(p))
+            {
+                return Err(format!("Cannot rewrite module src {src:?}"));
+            }
+        }
+    }
+    let (prefix, workers) = if release.is_empty() {
+        (String::new(), String::new())
+    } else {
+        (
+            format!("/{RELEASES}{release}"),
+            format!("/{WORKERS}{release}"),
+        )
+    };
     let mut page = String::with_capacity(html.len() + 4096);
     let mut last = 0;
     for (at, _) in html.match_indices('/') {
@@ -270,14 +316,14 @@ fn versioned(html: &str, release: &str, is_file: impl Fn(&str) -> bool) -> Optio
         }
     }
     page.push_str(&html[last..]);
-    let head = page.find("<head>")? + "<head>".len();
+    let head = page.find("<head>").ok_or("Page has no <head>")? + "<head>".len();
     page.insert_str(
         head,
         &format!(
-            r#"<script type="importmap">{{"imports":{{"/":"{prefix}/","/{RELEASES}":"/{RELEASES}"}}}}</script>"#
+            r#"<script type="importmap">{{"imports":{{"/":"{prefix}/","/{RELEASES}":"/{RELEASES}","worker/":"{workers}/"}}}}</script>"#
         ),
     );
-    Some(page)
+    Ok(page)
 }
 
 /// Whether the attribute value that `before` ends opening is a link's (`<a href="`).
@@ -342,5 +388,19 @@ impl<'de> Deserialize<'de> for Website {
         }
 
         deserializer.deserialize_any(WebsiteVisitor)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pages() {
+        for (path, (contents, _)) in &served().files {
+            if content_type(path) == "text/html" {
+                assert!(!contents.is_empty(), "{}", path.display());
+            }
+        }
     }
 }
