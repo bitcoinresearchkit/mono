@@ -10,7 +10,10 @@ use axum::{
 use bitcoin::Weight as BitcoinWeight;
 use bitview_http::CachePolicy;
 use brk_types::Txid;
-use tokio::sync::OwnedSemaphorePermit;
+use tokio::{
+    sync::OwnedSemaphorePermit,
+    time::{Instant as TimeInstant, timeout_at},
+};
 
 use crate::{AppState, Error, error::Result, params::Empty};
 
@@ -56,9 +59,15 @@ fn validate_hex(body: &str) -> Result<&str> {
 /// Submits a raw transaction, as hex, to the node: its txid once the node accepts it.
 pub async fn submit(permit: BroadcastPermit, state: &AppState, body: &str) -> Result<Txid> {
     let hex = validate_hex(body)?;
-    let result = state.node.send_raw_transaction(hex).await;
+    // Only while the node holds the submission is its outcome unknown, so only this wait says so:
+    // the request's deadline is applied here too, and answers before the request's own timeout
+    // (`request_deadline`, which polls this handler first) with its plain one.
+    let deadline = TimeInstant::from_std(state.query.read_deadline());
+    let result = timeout_at(deadline, state.node.send_raw_transaction(hex)).await;
     drop(permit.0);
-    result.map_err(Error::from)
+    result
+        .map_err(|_| Error::submission_timeout())?
+        .map_err(Error::from)
 }
 
 pub async fn serve(

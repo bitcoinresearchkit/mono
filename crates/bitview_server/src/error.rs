@@ -95,15 +95,21 @@ impl Error {
         }
     }
 
-    pub fn timeout(action: bool) -> Self {
+    pub fn timeout() -> Self {
         Self::new(
             StatusCode::GATEWAY_TIMEOUT,
             ErrorCode::Timeout,
-            if action {
-                "Request timed out; submission outcome may be unknown"
-            } else {
-                "Request timed out waiting for available data or capacity"
-            },
+            "Request timed out waiting for available data or capacity",
+        )
+    }
+
+    /// The deadline passed while the node held a submission: it may have taken it or not.
+    #[cfg(feature = "full-api")]
+    pub(crate) fn submission_timeout() -> Self {
+        Self::new(
+            StatusCode::GATEWAY_TIMEOUT,
+            ErrorCode::Timeout,
+            "Request timed out; submission outcome may be unknown",
         )
     }
 
