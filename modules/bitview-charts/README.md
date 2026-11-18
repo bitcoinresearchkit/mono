@@ -184,23 +184,25 @@ clears); avoid reflecting programmatic calls. A programmatic
   high), `"below"` it (its low) or `"on"` it: a dot in its color (radius 3.5, times `size`; 0: none), ringed in the
   ground, resting on the point from its side (on it: centered), several at a point stacked away from it; its words just
   past its dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill
-  of its color (or `textColor`), its words white or dark on it as a tag's (where APCA turns), the color's lightness
-  moved just as far as they need to read by both WCAG 2 (4.5:1, its floor for small words) and APCA (the words it
-  picks), its hue kept and as vivid as sRGB allows there. Where words crowd at the zoom, in the order of their
-  `priority` (a move's size, say: the biggest first; at one, the latest first; those without, an event's name say,
-  first, each counted only in another without), one whose words would run into those of one shown before it on its side
-  (above the series; under it), or on the other where the series crosses between them, is counted in the nearest of
-  those ("2 more", room kept for it on its left where words later in that order would run into its own; quieter than they
-  are: in the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color laid on its ground).
-  The order is the data's: a pan regroups none, only a change of spacing does (a zoom, or the plot resized, as a wider
-  price axis does). Its words over everything, on its pane's layer over it, drawn each frame, whole within the plot and
-  clear of its other dots and of the words placed before them (in their order, the counts alone last): where its edge
-  would cut them or they'd cover a dot, moved to the nearest spot that's clear (along their row or out from the series)
-  where they're still nearer their own dot than any other, else a pill tried without its count, else left out; a count
-  on the side of its pill away from its dot (right of it where the pill moves right or the count has no room on its
-  left); one whose pill's dot is past an edge of the plot shown alone, where the words of the one it holds nearest that
-  edge would be, while a mark it holds is in view. Their room kept at the scale's ends while its series has values in
-  view (`room: false`, none); `set(marks)` after a change.
+  of its color (or `textColor`) as it is, its words on it as a tag's (see `inkOn`, with a whisper of its hue where that
+  still reads 4.5:1, else moved toward pure white or black as far as that takes). Where words crowd at the zoom, in the
+  order of their `priority` (a move's size, say: the biggest first; at one, the latest first; those without, an event's
+  name say, first, each counted only in another without), one whose words would run into those of one shown before it on
+  its side (above the series; under it), or on the other where the series crosses between them, is counted in the
+  nearest of those ("2 more", room kept for it on its left where words later in that order would run into its own;
+  quieter than they are: in the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color
+  laid on its ground). The order is the data's: a pan regroups none, only a change of spacing does (a zoom, or the plot
+  resized, as a wider price axis does). Its words over everything, on its pane's layer over it, drawn each frame, whole
+  within the plot and clear of its other dots and of the words placed before them (in their order, the counts alone
+  last): where its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear (along their row or
+  out from the series) where they're still nearer their own dot than any other, else a pill tried without its count,
+  else left out; a count on the side of its pill away from its dot (right of it where the pill moves right or the count
+  has no room on its left); one whose pill's dot is past an edge of the plot shown alone, where the words of the one it
+  holds nearest that edge would be, while a mark it holds is in view. Their room kept at the scale's ends while its
+  series has values in view (`room: false`, none); `set(marks)` after a change.
+- `inkOn(color)`: white or black words on a CSS color, the chart's one rule for them (its tags', badges' and marks'
+  pills'): APCA's pick, unless that falls short of WCAG 2's 4.5:1 there (its floor for small words), then the other
+  (pure white's and black's ratios on a color multiply to 21, so one always reaches 4.58).
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

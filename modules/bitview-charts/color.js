@@ -1,7 +1,7 @@
 // @ts-check
-// Words on a color: white or black, by its lightness (where APCA turns for a gray: see whiteReads), each color measured
-// once; a series' tag (its fill, its words). And a fill's or a stroke's style as a vertical gradient (a
-// fade, or colors by value, hard-edged at their heights), kept till it changes.
+// Words on a color: white or black by one rule (see whiteOn), each color measured once; a tag's look (its fill as it
+// is, its words). And a fill's or a stroke's style as a vertical gradient (a fade, or colors by value, hard-edged at
+// their heights), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
@@ -31,11 +31,11 @@ export function solid(color) {
   return full;
 }
 
-/** White or black, whichever reads better on `color` (see whiteReads). @param {string} color */
+/** White or black words on `color` (see whiteOn). @param {string} color */
 export function inkOn(color) {
   let text = ink.get(color);
   if (text !== undefined) return text;
-  text = whiteReads(rgb(read(color))) ? "#ffffff" : "#000000";
+  text = whiteOn(rgb(read(color))) ? "#ffffff" : "#000000";
   if (ink.size > 512) ink.clear();
   ink.set(color, text);
   return text;
@@ -44,9 +44,10 @@ export function inkOn(color) {
 const tints = new Map();
 
 /**
- * A tag's look for a series in `color`: its fill that very color (the line's); its words white or dark by the fill's
- * lightness (see whiteReads, words). No edge: a series the ground's color is the page's choice. A see-through color,
- * none (nothing shown). Each color worked out once.
+ * A tag's look in `color` (a series' on its axis, a mark's words over data): its fill that very color, as named, its
+ * opacity left out; its words white or dark (see whiteOn), with a whisper of its hue where that still reads (see
+ * wordsOn). No edge: a series the ground's color is the page's choice. A see-through color, none (nothing shown).
+ * Each color worked out once.
  * @param {string} color
  * @returns {{ fill: string, ink: string }}
  */
@@ -57,7 +58,7 @@ export function tint(color) {
   if (seen[3] === 0) look = { fill: "transparent", ink: "transparent" };
   else {
     const fill = rgb(seen);
-    look = { fill: hex(fill), ink: hex(words(fill, whiteReads(fill))) };
+    look = { fill: hex(fill), ink: hex(wordsOn(fill)) };
   }
   if (tints.size > 512) tints.clear();
   tints.set(color, look);
@@ -118,42 +119,15 @@ function ratio(x, y) {
 const FLOOR = 4.5;
 
 /**
- * Words on `fill` (sRGB channels, 0 to 255), white or dark (`white`), each given back a whisper of the fill's hue in
- * OKLCH (lightness 0.97 or 0.24, chroma 0.06 at most, the fill's hue: as much as sRGB allows there), as sRGB channels.
- * @param {number[]} fill @param {boolean} white
+ * Words on `fill` (sRGB channels, 0 to 255), white or dark (see whiteOn), given back a whisper of its hue in OKLCH
+ * (lightness 0.97 or 0.24, chroma 0.06 at most, the fill's hue: as much as sRGB allows there); where that falls short
+ * of FLOOR on it, moved toward pure white or black just as far as that takes (see toward), as sRGB channels.
+ * @param {number[]} fill
  */
-function words(fill, white) {
-  const [, a, b] = oklab(fill);
-  return vivid(white ? 0.97 : 0.24, Math.atan2(b, a), Math.min(0.06, Math.hypot(a, b)));
-}
-
-const lightTints = new Map();
-
-/**
- * A tag's look for words over data in `color`'s hue (see tint): its words white or dark by its fill's lightness, as a
- * tag's (see whiteReads, words), reading on it by both measures (WCAG 2's FLOOR, and APCA's, as the better of the two
- * inks: see lc): the color itself where they do, else the nearest lightness (OKLab) where they do, darker under white
- * words or lighter under dark ones, its hue kept and its chroma the most sRGB allows there (never more than its own):
- * each hue as near itself as its words let it be, on either ground. Its opacity left out (as a tag's fill). Each
- * color worked out once.
- * @param {string} color
- * @returns {{ fill: string, ink: string }}
- */
-export function lightTint(color) {
-  let look = lightTints.get(color);
-  if (look !== undefined) return look;
-  const seen = rgb(read(color)), [L, a0, b0] = oklab(seen), hue = Math.atan2(b0, a0), chroma = Math.hypot(a0, b0);
-  const reads = (/** @type {number[]} */ c, /** @type {boolean} */ white) =>
-    whiteReads(c) === white && ratio(c, words(c, white)) >= FLOOR && lc(words(c, white), c) >= lc(words(c, !white), c);
-  let fill = seen;
-  if (!reads(seen, whiteReads(seen))) {
-    const darker = toward(L, 0, hue, chroma, (c) => reads(c, true)), lighter = toward(L, 1, hue, chroma, (c) => reads(c, false));
-    fill = L - oklab(darker)[0] < oklab(lighter)[0] - L ? darker : lighter;
-  }
-  look = { fill: hex(fill), ink: hex(words(fill, whiteReads(fill))) };
-  if (lightTints.size > 512) lightTints.clear();
-  lightTints.set(color, look);
-  return look;
+function wordsOn(fill) {
+  const white = whiteOn(fill), [, a, b] = oklab(fill), hue = Math.atan2(b, a), chroma = Math.min(0.06, Math.hypot(a, b)), L = white ? 0.97 : 0.24;
+  const reads = (/** @type {number[]} */ c) => ratio(c, fill) >= FLOOR, ink = vivid(L, hue, chroma);
+  return reads(ink) ? ink : toward(L, white ? 1 : 0, hue, chroma, reads);
 }
 
 /**
@@ -203,18 +177,19 @@ function lc(text, back) {
   return b > t ? b ** 0.56 - t ** 0.57 : t ** 0.62 - b ** 0.65;
 }
 
-/** The lightness (OKLab) white words read under (see whiteReads). */
-const TURN = 0.7157;
+/** Pure white and black, as sRGB channels. */
+const WHITE = [255, 255, 255], BLACK = [0, 0, 0];
 
 /**
- * Whether white words read better than black on `back` (sRGB channels, 0 to 255): by its lightness (OKLab), white under
- * 0.7157 (where APCA turns for a gray, #a4a4a4), so a color of one lightness goes one way whatever its hue (APCA itself
- * gave a light salmon or lavender white words; WCAG 2's ratio gets mid blues and purples wrong). Studio's own words
- * on a color the same.
+ * Whether words on `back` (sRGB channels, 0 to 255) are white, the chart's one rule for words on a color (its tags',
+ * its marks' pills', Studio's): APCA's pick of white or black (see lc), unless that ink falls short of FLOOR on it
+ * (WCAG 2's ratio), even pure; then the other, which never does (pure white's and black's ratios on one color
+ * multiply to 21, so the better is 4.58 or more).
  * @param {number[]} back
  */
-function whiteReads(back) {
-  return oklab(back)[0] < TURN;
+function whiteOn(back) {
+  const white = lc(WHITE, back) >= lc(BLACK, back);
+  return ratio(white ? WHITE : BLACK, back) >= FLOOR ? white : !white;
 }
 
 /** sRGB channels (0 to 255) from linear ones, or a read color's first three. @param {ArrayLike<number>} c */
