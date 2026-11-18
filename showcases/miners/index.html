@@ -584,8 +584,10 @@
           line-height: 1.35;
         }
       }
-      /* Where seven columns don't fit: a pool's row is its name over its blocks, then the five counts, each over its bar. */
-      @container matrix (max-width: 879px) {
+      /* Where seven columns don't fit: a pool's row is its name over its blocks, then the five counts, each over its bar.
+         (The wide table needs 852 px to keep today's longest pool name on one line in the page's own Inter, measured; a
+         longer name wraps at its spaces until it fits.) */
+      @container matrix (width < 852px) {
         .matrix {
           &,
           thead,
