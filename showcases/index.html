@@ -2,6 +2,42 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- (Its first reads, started here, ahead of launch.js, the fonts and its script: round() reads each by its name, taking the
+         very request started here, so a failed one fails there as it would have. Not <link rel="preload" as="fetch">: WebKit's
+         fetch() doesn't take what it preloaded and asks again.) -->
+    <script>
+      {
+        const first = {
+          prices: "/api/v1/prices",
+          fees: "/api/v1/fees/precise",
+          tip: "/api/blocks/tip/height",
+          blocks: "/api/v1/blocks",
+          pools: "/api/v1/mining/pools/1w",
+          inProfit: "/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1",
+          count: "/api/series/count",
+          disk: "/api/server/disk",
+          sync: "/api/server/sync",
+          health: "/health",
+        };
+        const send = (path) => fetch(path, { signal: AbortSignal.timeout(10_000) });
+        const kept = new Map(Object.values(first).map((path) => [path, send(path)]));
+        // (Handled here too, so only the read that takes one reports its failure.)
+        kept.forEach((reply) => reply.catch(() => {}));
+        let firstRound = true;
+        window.bitviewFirst = first;
+        window.bitviewRead = (path) => {
+          // (Only the first round's: what a later round reads is fetched then, never answered by a kept one.)
+          if (firstRound) (firstRound = false), setTimeout(() => kept.clear());
+          const reply = kept.get(path) ?? send(path);
+          kept.delete(path);
+          return reply;
+        };
+      }
+    </script>
+    <!-- (Its fonts and module, ahead of launch.js too: WebKit's parser reads a link past a script only once that script has loaded.) -->
+    <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/assets/fonts/Lilex.core.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="modulepreload" href="/assets/pools/logos.js" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -2725,7 +2761,8 @@
 
       // ── Live rows: the latest blocks, the week's pools, the charts, the topics ──
 
-      const read = (/** @type {string} */ path, kind = "json") => fetch(path, { signal: AbortSignal.timeout(10_000) }).then((r) => {
+      const early = /** @type {Record<string, string>} */ (/** @type {any} */ (window).bitviewFirst);
+      const read = (/** @type {string} */ path, kind = "json") => /** @type {Promise<Response>} */ (/** @type {any} */ (window).bitviewRead(path)).then((r) => {
         if (!r.ok) throw new Error(String(r.status));
         return kind === "json" ? r.json() : r.text();
       });
@@ -3036,7 +3073,7 @@
         if (reading) return;
         reading = true;
         const parts = [
-          part("price-panel", read("/api/v1/prices"), (p) => {
+          part("price-panel", read(early.prices), (p) => {
             $("price").textContent = dollars(p.USD);
             facts.oracle = `<b>${dollars(p.USD)}</b> read from the chain just now`;
             facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
@@ -3044,29 +3081,29 @@
             refresh("stack");
           }).then((ok) => ok || forget("oracle", "stack")),
           // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
-          part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
-          read("/api/blocks/tip/height", "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
-          read("/api/v1/blocks").then((list) => {
+          part("fees-panel", read(early.fees), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
+          read(early.tip, "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
+          read(early.blocks).then((list) => {
             drawBlocks(list);
             answered("blocks-title", blocks, true);
             const b = list[0];
             if (b) facts.calendar = `Block <b>${grouped(b.height)}</b> by ${b.extras?.pool?.name ?? "an unknown pool"}, ${ago(b.timestamp)}`;
             refresh("calendar");
           }, () => (answered("blocks-title", blocks, false), forget("calendar"))),
-          rounds % 10 ? null : read("/api/v1/mining/pools/1w").then((d) => (drawPools(d), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
-          rounds % 10 ? null : read("/api/series/bulk?series=supply_in_profit_share,circulating_supply&index=day1&start=-1").then(([share, supply]) => {
+          rounds % 10 ? null : read(early.pools).then((d) => (drawPools(d), answered("pools-title", pools, true)), () => (answered("pools-title", pools, false), forget("globe"))),
+          rounds % 10 ? null : read(early.inProfit).then(([share, supply]) => {
             const pct = share.data.at(-1), coins = supply.data.at(-1);
             if (pct != null && coins != null) facts.trail = `<b>${pct.toFixed(1)}%</b> of ${short(coins)} coins in profit today`;
             refresh("trail");
           }, () => forget("trail")),
-          counted ? null : read("/api/series/count").then((c) => {
+          counted ? null : read(early.count).then((c) => {
             facts.studio = `<b>${grouped(c.distinct)}</b> series to chart`;
             refresh("studio");
             document.querySelectorAll(".catalog-count").forEach((e) => (e.textContent = `${grouped(c.distinct)} series`));
             counted = true;
           }, () => {}),
-          rounds % 20 ? null : read("/api/server/disk").then((d) => (disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`), () => {}),
-          Promise.allSettled([read("/api/server/sync"), read("/health")]).then(([s, h]) => {
+          rounds % 20 ? null : read(early.disk).then((d) => (disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`), () => {}),
+          Promise.allSettled([read(early.sync), read(early.health)]).then(([s, h]) => {
             [sync, health] = [s.status === "fulfilled" ? s.value : null, h.status === "fulfilled" ? h.value : null];
             showServer();
           }),

@@ -8,7 +8,7 @@
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
 // server's too, and the touch icons at /apple-touch-icon.png and its -precomposed twin) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
 // page's head checked as a link to it previews and a search engine reads it, the sitemap (sitemap.xml) written from
-// the rows, fallback fonts kept inline in every page that uses them, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
+// the rows, every preloaded file there, fallback fonts kept inline in every page that uses them, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
@@ -96,6 +96,12 @@ const git = Bun.spawnSync(["git", "ls-files", "*/index.html"], { cwd: HERE });
 if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().decode(git.stderr).trim()}): the apps on the front page unchecked`);
 // (Every page git knows, but one deleted and not yet committed as such.)
 const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(HERE, file)));
+
+// ── Every file a page preloads, there (a font or module renamed would leave the hint asking for nothing) ──
+
+for (const [file, page] of [[relative(HERE, PAGE), html], ...pages.map((file) => [file, readFileSync(join(HERE, file), "utf8")])])
+  for (const { rel, href } of tags(page, "link"))
+    if ((rel === "preload" || rel === "modulepreload") && href?.startsWith("/") && !existsSync(join(HERE, href.split("?")[0]))) problems.push(`${file}: preloads ${href}, no such file`);
 // ── Metric-matched local faces, kept inline while the web fonts load ──
 
 const fallbackFonts = `/* fallback fonts */
