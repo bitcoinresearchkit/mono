@@ -158,7 +158,8 @@ pub(crate) fn compute_sats(
                     },
                 )
             });
-            let _lock = exit.lock();
+            // No lock: a push only buffers, and the journal drops what no commit covers when it
+            // opens.
             created.push(
                 hashes.collect_one(Height::from(h)).data()?.to_bytes(),
                 Amount {

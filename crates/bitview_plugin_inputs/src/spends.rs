@@ -80,8 +80,8 @@ pub(crate) fn compute(
             h as u32,
             spent.iter().map(|(&origin, amount)| (origin, amount.count)),
         );
+        // No lock: a push only buffers, and the journal drops what no commit covers when it opens.
         if h >= journaled {
-            let _lock = exit.lock();
             debug_assert_eq!(h, spends.end());
             spends.push(hash.to_bytes(), spent.iter().map(|(&h, &a)| (h, a)))?;
         }
