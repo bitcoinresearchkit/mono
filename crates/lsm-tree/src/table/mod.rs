@@ -32,6 +32,10 @@ use crate::{
     },
 };
 
+/// sfa 1.0's trailer, kept private by its reader: magic, format version, checksum type, and the
+/// table of contents' checksum, position and length.
+const SFA_TRAILER_LEN: u64 = 4 + 1 + 1 + 16 + 8 + 8;
+
 pub mod block;
 pub mod block_index;
 mod bound;
@@ -245,6 +249,11 @@ impl Table {
         let mut file = File::open(&file_path)?;
         let file_path = Arc::new(file_path);
 
+        // sfa seeks back over its trailer, which a shorter file (left empty or cut by a crash or
+        // a full disk) fails with an I/O error, as if the disk had: say it is the data.
+        if file.metadata()?.len() < SFA_TRAILER_LEN {
+            return Err(Error::Unrecoverable("table file shorter than its trailer"));
+        }
         let trailer = Reader::from_reader(&mut file)?;
 
         let regions = ParsedRegions::parse_from_toc(trailer.toc())?;
