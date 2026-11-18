@@ -12,11 +12,11 @@
 // text color, kept legible, on a quiet tag of its separator color (zoomed in, they part; a pan regroups none: the order
 // is the data's). Its words drawn over everything, each frame (on its pane's layer over it), whole within the plot and
 // clear of its other dots and of the words placed before them (in that order, the counts alone last): where its edge
-// would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row or out from the series,
-// where they're still nearer their own dot than any other (none: a pill tried again without its count, else left out),
-// a count on the side of its pill away from its dot (right of it where the pill moves right or the count has no room on
-// its left); one whose pill's dot is past an edge of the plot, while a mark it holds is in view, shown alone where the
-// words of the one nearest that edge would be.
+// would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row, out from the series or
+// past their dot (on its other side), where they're still nearer their own dot than any other (none: a pill tried again
+// without its count, else left out), a count on the side of its pill away from its dot (right of it where the pill
+// moves right or the count has no room on its left); one whose pill's dot is past an edge of the plot, while a mark it
+// holds is in view, shown alone where the words of the one nearest that edge would be.
 // Added to its pane on its series' side, its marks in their points' order. The room they take kept at its scale's ends
 // while its series has values in view (`room` false: none, the page's range alone). Its series hidden, none drawn.
 import { legible, over, tint } from "./color.js";
@@ -372,13 +372,13 @@ export class Marks {
    * its separator color as laid on its ground (it may hold any kind of mark): a line it crosses covered, not cut off.
    * Only those with their dot in the plot, each whole within it and clear of its other dots (another mark's, of another
    * color maybe) and of the words placed before them (in their order: see set; the counts alone last): where its edge
-   * would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row (off their dot only as
-   * far as that takes) or out from the series, where they're still nearer their own dot than any other, so they never
-   * read as another's (none: a pill tried again without its count, else left out), a count on the side of its pill
-   * away from its dot (see free); one whose pill's dot is past an edge of the plot, while a mark it holds has its dot
-   * in the plot, shown alone where the words of the one nearest that edge would be. Each pill a sprite drawn once (see
-   * sprites), copied each frame onto whole device pixels: drawn anew each frame, a dense chart's words took twice as
-   * long or more (0.065 ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
+   * would cut them or they'd cover a dot, moved to the nearest spot that's clear, along their row (off their dot only
+   * as far as that takes), out from the series or past their dot, where they're still nearer their own dot than any
+   * other, so they never read as another's (none: a pill tried again without its count, else left out), a count on the
+   * side of its pill away from its dot (see free); one whose pill's dot is past an edge of the plot, while a mark it
+   * holds has its dot in the plot, shown alone where the words of the one nearest that edge would be. Each pill a
+   * sprite drawn once (see sprites), copied each frame onto whole device pixels: drawn anew each frame, a dense chart's
+   * words took twice as long or more (0.065 ms a frame against 0.025 in WebKit, 0.17 against 0.09 in Chromium).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} _x0 @param {number} plot @param {number} dpr @param {{ background: string, font: string, separator: string, text: string }} theme
    * @param {(x: number, y: number, width: number, height: number) => void} drew Told each one's box (count and pill).
@@ -520,11 +520,11 @@ function box(s, k, left, words, end, right, y, x, dot) {
 
 /**
  * The `s`-th words (see box) moved where they're clear (see hit) and whole within the plot (`plot` wide, `height`
- * tall), their count on the side of their pill away from its dot: where they are (just within its edge, where that
- * cuts them; the count right of the pill where it has no room on its left), else the nearest spot along their row,
- * either way (the count left of the pill as it moves left, right of it as it moves right), or out from their series
- * (`out`: up, -1; down, 1) where they still read as their own dot's (see ours); none, a pill tried again without its
- * count; else left out.
+ * tall), their count on the side of their pill away from its dot: where they are (just within its edge, where that cuts
+ * them; the count right of the pill where it has no room on its left), else the nearest spot along their row, either
+ * way (the count left of the pill as it moves left, right of it as it moves right), out from their series (`out`: up,
+ * -1; down, 1), or past their dot on its other side (over their series), from as far from it as their row is on, where
+ * they still read as their own dot's (see ours); none, a pill tried again without its count; else left out.
  * @param {number} s @param {number} placed @param {number} plot @param {number} height @param {number} out
  */
 function free(s, placed, plot, height, out) {
@@ -544,12 +544,15 @@ function free(s, placed, plot, height, out) {
       while (c <= most && c - was < byA && hit(s, c, width, y, placed)) c = HIT[1];
       const byC = c <= most && c - was < byA && ours(s, c, y) ? c - was : Infinity, best = Math.min(byA, byC);
       const start = flip ? left : left + cw, off = Math.abs(start - was);
-      let away = y;
-      while (away >= PILL / 2 && away <= height - PILL / 2 && off + Math.abs(away - y) <= best && hit(s, left, width, away, placed)) away = out < 0 ? HIT[2] : HIT[3];
-      const byAway = away >= PILL / 2 && away <= height - PILL / 2 && off + Math.abs(away - y) <= best && ours(s, start, away) ? off + Math.abs(away - y) : Infinity;
+      // (Out from the series from their row; then past their dot, from as far on its other side, where that's nearer.)
+      let byAway = Infinity;
+      for (let w = 0, dir = out, row = y; w < 2; w++, dir = -out, row = 2 * BOXES[b + 7] - y) {
+        const limit = Math.min(best, byAway);
+        while (row >= PILL / 2 && row <= height - PILL / 2 && off + Math.abs(row - y) <= limit && hit(s, left, width, row, placed)) row = dir < 0 ? HIT[2] : HIT[3];
+        if (row >= PILL / 2 && row <= height - PILL / 2 && off + Math.abs(row - y) <= limit && ours(s, start, row)) (byAway = off + Math.abs(row - y)), (to = row);
+      }
       least = Math.min(byA, byC, byAway);
-      if (least === byAway) to = away;
-      else (flip = least !== byA), (left = flip ? c : a);
+      if (least !== byAway) (flip = least !== byA), (left = flip ? c : a), (to = y);
     }
     if (least < Infinity) {
       const words = flip ? left : left + cw;

@@ -197,11 +197,12 @@ clears); avoid reflecting programmatic calls. A programmatic
   scale (its mode, its height, its series' values). Its words over everything, on its pane's layer over it, drawn each
   frame, whole within the plot and clear of its other dots and of the words placed before them (in their order, the
   counts alone last): where its edge would cut them or they'd cover a dot, moved to the nearest spot that's clear (along
-  their row or out from the series) where they're still nearer their own dot than any other, else a pill tried without
-  its count, else left out; a count on the side of its pill away from its dot (right of it where the pill moves right or
-  the count has no room on its left); one whose pill's dot is past an edge of the plot shown alone, where the words of
-  the one it holds nearest that edge would be, while a mark it holds is in view. Their room kept at the scale's ends
-  while its series has values in view (`room: false`, none); `set(marks)` after a change.
+  their row, out from the series, or past their dot on its other side, over the series) where they're still nearer their
+  own dot than any other, else a pill tried without its count, else left out; a count on the side of its pill away from
+  its dot (right of it where the pill moves right or the count has no room on its left); one whose pill's dot is past an
+  edge of the plot shown alone, where the words of the one it holds nearest that edge would be, while a mark it holds is
+  in view. Their room kept at the scale's ends while its series has values in view (`room: false`, none); `set(marks)`
+  after a change.
 - `inkOn(color)`: white or black words on a CSS color, the chart's one rule for them (its tags', badges' and marks'
   pills'): APCA's pick, unless that falls short of WCAG 2's 4.5:1 there (its floor for small words), then the other
   (pure white's and black's ratios on a color multiply to 21, so one always reaches 4.58).
