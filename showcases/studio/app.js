@@ -4,12 +4,41 @@ import XKCD from "/modules/xkcd-colors/index.js";
 // (Studio's chart library: bitview-charts.)
 import { createChart, press, picture as chartPicture, Candles, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
-import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
+import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
+import { hexToOklch, isNamed, limit, nameDistance, onCurve, SWATCHES, TONE, UNTONE, warmLift } from "/studio/color.js";
+import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
-import { catalogWalk } from "/studio/catalog-walk.js";
+import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
+import {
+  $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, KEY_STEPS, keycaps, keysOf, keyText, MAC,
+  NAMED_KEY, PHONE, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+} from "/studio/dom.js";
+import { motionClock, whenIdle } from "/studio/timing.js";
+import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
+import {
+  ago, dollarsAndCents, fieldUnit, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes,
+  toTheCent, UNIT_NAMES, unitOf,
+} from "/studio/format.js";
+import { CHEVRON, dashGlyph, glyphSvg, ICONS, markBody } from "/studio/icons.js";
+import {
+  automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
+  fittable, FLIP_APART, FORMULA_MAX, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE,
+  lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, MODES, newPaneIn, nextLetter,
+  offScale, ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, placeName, poolPath, poolSeries, resultText,
+  shapeKey, STACKS, stretchResult, toggleMember, TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, typeName, unfitted,
+  WIDTHS,
+} from "/studio/vocabulary.js";
+import {
+  BACKS, BOXES, KINDS, LABEL_MAX, labelText, LINES, lookOfDrawing, MAX_STROKE, PAIRED, PEN_COLOR, POINTED, pointOf,
+  presetSize, SIZE_NAMES, SIZE_SHORT, SIZES, TEXT_SIZE, THROUGH, TOOLS,
+} from "/studio/tools.js";
+import {
+  AVERAGES, CADENCE, CHUNK, FINE, FINE_STEP, fitsFrom, flowFits, HALVING_BLOCKS, INTERVAL_DAYS, INTERVAL_LABEL,
+  INTERVAL_ORDER, intervalFits, INTERVALS, KNOWN_HALVINGS, MOST_CHUNKS, RANGES, spanDays, windowPoints,
+} from "/studio/intervals.js";
 // (Studio's functions, by what they do, in modules of their own; what runs at its start runs from here, in order. The
 // state written from several of its sections, and its own sections' state (library, toast, live, ...), is kept here.)
 import {
@@ -36,13 +65,13 @@ import {
 import {
   aboutOf, actionable, actionsFor, activeOption, addedFrom, afterDrawn, applyScope, AROUND, browseInstead, browseRows,
   byUse, catalogTops, chartActions, chartsPage, choose, columnsOf, commandItem, commands, dangerous, datePage,
-  drawOptions, finder, findSeries, fitScore, formulaAt, formulaError, goesOn, goUp, headMenu, insertPiece,
-  isOwnFormula, keyboard, keyboardKey, keyed, layerRow, leavePages, leaveScope, litFirst, loopError, meansOf,
-  MONTH_NAMES, nodeAt, openPage, optionsHtml, otherLayerRows, outOfData, pageTitle, palette, PALETTE_PAGE, paletteKeys,
-  paletteMenuGone, paneRow, placeOnHome, pointsOf, popPage, presetPicked, preview, previewDate, rank, ranksSoon,
-  readColor, readDate, recentRow, renderPath, rowText, scalePane, searchCase, searchSeries, searchText, seriesPicked,
-  settingChoices, settingsNow, showActions, showFormula, showPage, startFinder, stepSignal, stretchOf, textWords,
-  timesPage, typedWords, underHome, USED, useScore, wayText,
+  drawOptions, finder, findSeries, fitScore, formulaAt, formulaError, goesOn, goUp, headMenu, insertPiece, isOwnFormula,
+  keyboard, keyboardKey, keyed, layerRow, leavePages, leaveScope, litFirst, loopError, meansOf, nodeAt, openPage,
+  optionsHtml, otherLayerRows, outOfData, pageTitle, palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneRow,
+  placeOnHome, pointsOf, popPage, presetPicked, preview, previewDate, rank, ranksSoon, readColor, readDate, recentRow,
+  renderPath, rowText, scalePane, searchCase, searchSeries, searchText, seriesPicked, settingChoices, settingsNow,
+  showActions, showFormula, showPage, startFinder, stepSignal, stretchOf, textWords, timesPage, typedWords, underHome,
+  USED, useScore, wayText,
 } from "/studio/command.js";
 import {
   backChip, backOf, beltPopover, beltSide, beltTabs, beltTool, boxKey, dockChoices, drawingAt, drawingById,
@@ -52,8 +81,7 @@ import {
   tagShapes, tickOn, timeLine, toggleBelt, turnBelt, upright, wordsIn, wordsOn,
 } from "/studio/drawing.js";
 import {
-  and, bandSum, dragBrush, either, FUNCTIONS, isBandSum, or, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere,
-  windowsOf,
+  bandSum, dragBrush, FUNCTIONS, isBandSum, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere, windowsOf,
 } from "/studio/formulas.js";
 import {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
@@ -98,10 +126,10 @@ import {
   penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress, placeAssist, placeOf,
   planeHtml, planeOf, planeTarget, priceLineField, rangeOf, readNumber, readsOf, readyPage, refMenu, refPicked,
   removeLayer, removeLayers, removeStop, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient,
-  rewrite, setColor, setFit, setLineLook, setSlider, sharedBy, showEvery, showPicks, showScale, showSelection,
-  showStop, showSuggestions, slider, sliderAt, sliders, sliderTrack, soloLayer, spaceAt, STACK_WIDTH, stackedIn,
-  stackOf, suggest, suggestReplacement, TAG_NEEDS_LINE, toggleHidden, typeField, underColorMenu, updateCallHelp,
-  updateFormula, updateSuggestions, vividAhead, widthField,
+  rewrite, setColor, setFit, setLineLook, setSlider, sharedBy, showEvery, showPicks, showScale, showSelection, showStop,
+  showSuggestions, slider, sliderAt, sliders, sliderTrack, soloLayer, STACK_WIDTH, stackedIn, stackOf, suggest,
+  suggestReplacement, TAG_NEEDS_LINE, toggleHidden, typeField, underColorMenu, updateCallHelp, updateFormula,
+  updateSuggestions, vividAhead, widthField,
 } from "/studio/inspector.js";
 import {
   APART, apartFonts, apartLayout, calledBy, canvasReadable, cascades, contentOf, copyLink, cutFade, datedView,
@@ -127,6 +155,8 @@ import {
 /** @import { HeatLook } from "/studio/heatmaps.js" */
 /** @import { Landing } from "/studio/gestures.js" */
 /** @import { Preset } from "/studio/presets-edit.js" */
+/** @import { End } from "/studio/tools.js" */
+/** @import { Chart, Drawing, DrawingKind, Folder, Layer, Pane } from "/studio/vocabulary.js" */
 
 document.getElementById("page-info")?.remove();
 
@@ -139,11 +169,9 @@ for (const element of document.querySelectorAll(".server-host")) element.textCon
 /** @type {HTMLElement} */ (document.getElementById("live")).dataset.tip = SERVER_HOST;
 const tree = client.series;
 /**
- * Charts keep a series' dotted catalog path with its name, so a rename still finds it. (A series by its name and its
- * intervals: its endpoints, `by`, are made when first read, not for every series a walk passes.)
+ * The series at a path, by its current name (charts keep a series' dotted catalog path with its name, so a rename
+ * still finds it); nothing if the path is gone. @param {string} path
  */
-const isLeaf = (node) => Boolean(node) && typeof node.name === "string" && typeof node.indexes === "function";
-/** The series at a path, by its current name; nothing if the path is gone. @param {string} path */
 function nameAt(path) {
   const node = nodeAt(path.split("."));
   return isLeaf(node) ? node.name : null;
@@ -159,13 +187,6 @@ let seriesCount = 0;
 const byBlock = new Set();
 /** Series the catalog lists under more than one top folder (a folder's place among them isn't theirs: see catalogTops). @type {Set<string>} */
 const sharedTops = new Set();
-/** Read catalog children without caching them on their parents (a normal walk would retain tens of megabytes). */
-const aside = (/** @type {any} */ node, /** @type {string} */ key) => Reflect.get(node, key, {});
-
-/** @type {(id: string) => any} */
-const $ = (id) => document.getElementById(id);
-/** A phone's layout, as a media query: the screen narrow, or low (a phone on its side). */
-const PHONE = "(max-width: 760px), (max-height: 500px)";
 /**
  * The tokens, kept for what they change with (the theme, the device's light or dark, a phone's layout): one asked
  * for after any of those changed, every one the page sets is read again, in one go (the page's style resolved once,
@@ -204,87 +225,6 @@ const css = (name) => {
   if (!tokens.has(name)) readTokens([name]);
   return tokens.get(name);
 };
-const uid = () => Math.random().toString(36).slice(2, 10);
-/** A key that's part of an IME's composing (a candidate confirmed, put away): the IME's, not the page's. (Safari's
- * confirming Enter comes after the composition ends, as key 229.) @param {KeyboardEvent} event */
-const composing = (event) => event.isComposing || event.keyCode === 229;
-/** A short fingerprint of a text (two FNV-1a passes, as letters and digits): the same text, the same one. */
-const hashOf = (/** @type {string} */ text) => {
-  let a = 0x811c9dc5, b = 0x050c5d1f;
-  for (let k = 0; k < text.length; k++) {
-    const c = text.charCodeAt(k);
-    a = Math.imul(a ^ c, 0x01000193);
-    b = Math.imul(b ^ c, 0x5bd1e995);
-  }
-  return (a >>> 0).toString(36) + (b >>> 0).toString(36);
-};
-/** The element an event came from, or its nearest ancestor matching `selector`. @returns {HTMLElement | null} */
-const closest = (event, selector) => /** @type {HTMLElement} */ (event.target)?.closest?.(selector) ?? null;
-/** An arrow up or down. @param {KeyboardEvent} event */
-function upDown(event) {
-  return event.key === "ArrowUp" || event.key === "ArrowDown";
-}
-/** A delete's keys, Backspace or Delete. @param {KeyboardEvent} event */
-function erasing(event) {
-  return event.key === "Backspace" || event.key === "Delete";
-}
-/** @returns {HTMLElement[]} */
-const all$ = (selector, root = /** @type {ParentNode} */ (document)) => [...root.querySelectorAll(selector)];
-const escape = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-/**
- * The server's words (a series' description: Markdown) as HTML: its paragraphs, lists and fenced blocks; inline, code,
- * strong, emphasis and links to the web. Anything else stays text, escaped: never markup of its own.
- */
-function proseHtml(/** @type {string} */ markdown) {
-  // (Code first: what's in it is as written.)
-  const inline = (/** @type {string} */ text) => text.split(/(`[^`]+`)/).map((part, i) => (i % 2 ? `<code>${escape(part.slice(1, -1))}</code>` : escape(part)
-    .replace(/\*\*(?=\S)(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(?=\S)([^*]+?)\*/g, "<em>$1</em>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'))).join("");
-  // (Line by line: a fenced block whole, blank lines and all; a list's items together, a line under one going on
-  // with it; the rest paragraphs, a blank line between them.)
-  const html = /** @type {string[]} */ ([]), lines = markdown.trim().split("\n");
-  let paragraph = /** @type {string[]} */ ([]), list = /** @type {{ tag: string, items: string[] } | null} */ (null);
-  const close = () => {
-    if (paragraph.length) html.push(`<p>${inline(paragraph.join(" "))}</p>`);
-    if (list) html.push(`<${list.tag}>${list.items.map((item) => `<li>${inline(item)}</li>`).join("")}</${list.tag}>`);
-    paragraph = [];
-    list = null;
-  };
-  for (let at = 0; at < lines.length; at++) {
-    const line = lines[at], fence = /^\s*(`{3,})/.exec(line), item = /^\s*([-*+]|\d+\.)\s+/.exec(line);
-    if (fence) {
-      close();
-      const code = [];
-      for (at++; at < lines.length && !(/^`+$/.test(lines[at].trim()) && lines[at].trim().length >= fence[1].length); at++) code.push(lines[at]);
-      html.push(`<pre><code>${escape(code.join("\n"))}</code></pre>`);
-    } else if (!line.trim()) close();
-    else if (item) {
-      const tag = /\d/.test(item[1]) ? "ol" : "ul";
-      if (paragraph.length || list?.tag !== tag) close();
-      (list ??= { tag, items: [] }).items.push(line.slice(item[0].length));
-    } else if (list) list.items[list.items.length - 1] += ` ${line.trim()}`;
-    else paragraph.push(line.trim());
-  }
-  close();
-  return html.join("");
-}
-const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
-/** How far an arrow, Home or End moves a place in a row: one on or back, or to an end. */
-const KEY_STEPS = /** @type {Record<string, number | undefined>} */ ({ ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1, Home: -Infinity, End: Infinity });
-/**
- * A place `step` on from `at` in a row of `n` (±Infinity: its ends): from none (-1), as from just before its first
- * going on, just past its last going back; past an end, round (`wrap`) or held there.
- */
-const stepIn = (/** @type {number} */ at, /** @type {number} */ step, /** @type {number} */ n, wrap = false) => {
-  if (!Number.isFinite(step)) return step < 0 ? 0 : n - 1;
-  const to = (at < 0 ? (step > 0 ? -1 : n) : at) + step;
-  return wrap ? ((to % n) + n) % n : clamp(to, 0, n - 1);
-};
-/** Series names are plain identifiers; anything else never reaches an API path. */
-const isSeriesName = (name) => typeof name === "string" && /^[a-z0-9_]{1,200}$/.test(name);
-/** A series' path in the catalog: its keys, dotted. */
-const isCatalogPath = (path) => typeof path === "string" && /^\w{1,80}(\.\w{1,80}){0,15}$/.test(path);
 const reducedAsked = matchMedia("(prefers-reduced-motion: reduce)");
 /**
  * A Back or Forward whose motion the system played already (iOS's swipe from the screen's edge: the page before slid
@@ -308,44 +248,6 @@ function stillStep(shown) {
   requestAnimationFrame(() => setTimeout(() => requestAnimationFrame(() => at === stillSteps && ((stepShown = false), document.documentElement.removeAttribute("data-still")))));
 }
 /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
-/**
- * A motion's clock, called once a frame (its own frames, timed here: the view's glides, the logo, …): the frame's time,
- * unless the browser rounds it (resisting fingerprinting: 16.67 ms; two frames of a 120 Hz screen sharing one, the
- * motion would stand still in one, leap in the next): then on from the last by the frames' own pace, never past the
- * clock's next tick. @returns {(now?: number) => number}
- */
-function motionClock() {
-  let first = -1, last = 0, frames = 0, seen = -1, rounded = false;
-  return (now = performance.now()) => {
-    // (Rounded, as two frames given one time show; else the frame's own time, always.)
-    rounded ||= now === seen;
-    seen = now;
-    // (Its first frame, or one after a while without (a still logo waking, a tab back in sight): its pace measured
-    // anew from there.)
-    if (first < 0 || now - last > 100) return ((first = last = now), (frames = 0), now);
-    frames++;
-    if (!rounded) return (last = now);
-    // (On by the frames' own pace, within the tick the rounded time stands for: behind it by more, the clock's own
-    // taken again (a rounded time ahead, jumped to at once, leaves the next frame next to standing still); ahead,
-    // held at its end, never back.)
-    const pace = now > first ? Math.min(1000 / 60, (now - first) / frames) : 1000 / 120, next = last + pace;
-    return (last = next < now - 1000 / 60 ? now : Math.min(next, now + 1000 / 60));
-  };
-}
-/**
- * A motion's time since it began, by its clock: its first frame counted a step on (shown moved, never where it began:
- * a time rounded, or one before the motion was asked for, would stand it still a frame; one motion taking over
- * another, halt it). @returns {(now?: number) => number}
- */
-function motionTime() {
-  const clock = motionClock();
-  let start = -1;
-  return (now) => {
-    now = clock(now);
-    if (start < 0) start = now - 1000 / 120;
-    return now - start;
-  };
-}
 const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout"), wordsWait: parseFloat(css("--words-wait")), wordsIn: parseFloat(css("--words-in")) };
 const phone = matchMedia(PHONE);
 /** Whether the sidebar's list is owed: not written while the layout's a phone's, where it never shows (see renderCharts; here, as charts are listed at the start). */
@@ -357,8 +259,6 @@ let rowSizes = readRowSizes();
 phone.addEventListener("change", () => ((rowSizes = readRowSizes()), chart && renderLayers()));
 // (The sidebar's list as the rail, or whole in a phone's sheet: see onRail.)
 phone.addEventListener("change", () => renderCharts());
-/** What of the page shows (a keyboard over it, iOS's, shortens it; every browser Studio runs in has one). */
-const viewport = /** @type {VisualViewport} */ (window.visualViewport);
 // (Never scrolled above its top. WebKit can leave it there, an installed app turned on an iPhone Duo's inner screen
 // keeping the upright status bar's room (iOS 27.2): what's drawn and what's touched then part by that much, a tap
 // landing on what's above it. Put back, the page is what WebKit leaves it, every tap where it lands.)
@@ -367,12 +267,6 @@ addEventListener("scroll", () => scrollY < 0 && scrollTo(0, 0));
 const heldUpright = matchMedia("not all and (max-height: 500px) and (min-width: 568px)");
 /** Whether a phone's sheet is whole (the page behind it dimmed, out of reach): upright, dragged up; on its side, a column beside the chart, never. */
 const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize === "full";
-/** A device of fingers (no hover): its words "tap", not "click". */
-const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
-/** How far a finger moves and still taps, or holds (iOS's own, some 10pt): past it, a scroll (or a sheet's pull). */
-const SLOP = 10;
-/** Whether an element scrolls up and down: its content taller than it, and let scroll. @param {Element} element */
-const scrollsY = (element) => element.scrollHeight > element.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(element).overflowY);
 // Hover's looks, a pointer's that hovers only (every :hover in the style is so): iOS keeps what a finger tapped
 // hovered till the next tap, a button lit as if still pressed, a swatch as if picked. As the device is now (a mouse
 // put to a tablet), as the style's own touch rules are.
@@ -388,247 +282,10 @@ client.getVersion().then((said) => {
   studioVersion = typeof said === "string" ? said : "";
   $("home-version").textContent = studioVersion;
 }).catch(() => {});
-/** A Mac's keys (⌘, ⌥), else a PC's (Ctrl, Alt): as shortcuts are written. */
-const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
-/**
- * A shortcut as this platform writes it: ⌘Z on a Mac; Ctrl+Z, Ctrl+Shift+Z, Alt+↑ elsewhere. The erase key by its
- * name, as esc and space are (its symbol reads as a box in a keycap's box): delete on a Mac, Backspace elsewhere.
- */
-const keyText = (/** @type {string} */ text) => {
-  const named = text.replace(/⌫/g, MAC ? "delete" : "Backspace");
-  return MAC ? named : named.replace(/[⌘⇧⌥⌃]+/g, (mods, at) => {
-    const names = [["⌘⌃", "Ctrl"], ["⌥", "Alt"], ["⇧", "Shift"]].filter(([glyphs]) => [...glyphs].some((glyph) => mods.includes(glyph))).map(([, name]) => name);
-    const next = named[at + mods.length];
-    return `${names.join("+")}${next && !" -".includes(next) ? "+" : ""}`;
-  });
-};
-/** "⇧ ⌘ Z" reads ⇧⌘Z; alternatives like "[ ]" keep their space. */
-const keysOf = (kbd) => {
-  const keys = kbd.split(" ");
-  return keyText(keys.slice(0, -1).every((key) => "⌘⇧⌥⌃".includes(key)) ? keys.join("") : keys.join(" "));
-};
-/** The same, as keycaps: one for a modified key, one per alternative. */
-const keycaps = (kbd) => ((keys) => (keys.length === 2 && keys.every((key) => /^[A-Z]$/.test(key)) ? `<span class="sequence"><kbd>${keys[0]}</kbd><span class="then" aria-hidden="true">then</span><kbd>${keys[1]}</kbd></span>` : keys.map((key) => `<kbd>${escape(key)}</kbd>`).join("")))(keysOf(kbd).split(" "));
-
-const svg = (body, size = 16) => `<svg viewBox="0 0 16 16" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-const ICONS = {
-  plus: svg('<path d="M8 3v10M3 8h10"/>'),
-  computer: svg('<rect x="1.5" y="2.5" width="13" height="8.5" rx="1.8"/><path d="M5.5 14h5M8 11v3"/>'),
-  sun: svg('<circle cx="8" cy="8" r="2.75"/><path d="M8 1.5v1.2M8 13.3v1.2M1.5 8h1.2M13.3 8h1.2M3.4 3.4l.85.85M11.75 11.75l.85.85M3.4 12.6l.85-.85M11.75 4.25l.85-.85"/>'),
-  moon: svg('<path d="M7.8 2.3A6 6 0 1 0 13.98 8.84A4.6 4.6 0 0 1 7.8 2.3Z"/>'),
-  formula: svg('<path d="M10.5 2.5c-1.7 0-2.3.8-2.6 2.4L6.4 12c-.3 1.5-.9 2-2.4 2"/><path d="M4.8 6.5H10"/>'),
-  charts: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="m4.5 10.5 2.2-2.6 1.8 1.6 3-3.5"/>'),
-  grid: svg('<rect x="2" y="2" width="5" height="5" rx="1.2"/><rect x="9" y="2" width="5" height="5" rx="1.2"/><rect x="2" y="9" width="5" height="5" rx="1.2"/><rect x="9" y="9" width="5" height="5" rx="1.2"/>'),
-  browse: svg('<circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/>'),
-  keyboard: svg('<rect x="1.5" y="3.5" width="13" height="9" rx="1.8"/><path d="M4.5 6.5h.01M7 6.5h.01M9.5 6.5h.01M12 6.5h.01M5 9.5h6"/>'),
-  sidebar: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/>'),
-  arrowUp: svg('<path d="M8 13V3M4 7l4-4 4 4"/>', 14),
-  arrowDown: svg('<path d="M8 3v10M4 9l4 4 4-4"/>', 14),
-  // (Its page: a row's, View's wherever it's offered.)
-  arrowRight: svg('<path d="M3 8h10M9 4l4 4-4 4"/>', 14),
-  axis: svg('<path d="M12 2.5v11M12 5h2M12 8h2M12 11h2"/><path d="M2 11 4.6 7.6l2.2 1.9L9.3 5"/>'),
-  swap: svg('<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8"/><path d="M13 10.5H3.5M6 8l-2.5 2.5L6 13"/>', 14),
-  panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
-  pane: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 9h12"/>'),
-  more: svg('<circle cx="3.5" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12.5" cy="8" r=".9" fill="currentColor"/>', 14),
-  next: svg('<path d="M6 3.5 10.5 8 6 12.5"/>', 12),
-  back: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>', 14),
-  left: svg('<path d="M10 3.5 5.5 8l4.5 4.5"/>'),
-  presets: svg('<rect x="2" y="4.5" width="9.5" height="9" rx="1.8"/><path d="M5 2.5h7.2c1 0 1.8.8 1.8 1.8V11"/><path d="m4.3 11.2 1.9-2.2 1.5 1.3 1.6-2"/>'),
-  right: svg('<path d="M6 3.5 10.5 8 6 12.5"/>'),
-  pencil: svg('<path d="m10.5 2.5 3 3-8 8H2.5v-3z"/><path d="m8.5 4.5 3 3"/>', 14),
-  sliders: svg('<path d="M2.5 5h6.5M12.5 5h1M2.5 11h1M7 11h6.5"/><circle cx="10.75" cy="5" r="1.75"/><circle cx="5.25" cy="11" r="1.75"/>', 14),
-  undo: svg('<path d="M5.5 3.5 2.5 6.5l3 3"/><path d="M2.5 6.5h7a4 4 0 0 1 0 8h-2"/>', 14),
-  redo: svg('<path d="m10.5 3.5 3 3-3 3"/><path d="M13.5 6.5h-7a4 4 0 0 0 0 8h2"/>', 14),
-  halvings: svg('<path d="M2 4h4v4h4v4h4"/>', 14),
-  eye: svg('<path d="M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8Z"/><circle cx="8" cy="8" r="2"/>', 14),
-  // (The eye's own outline and pupil, cut where the slash covers them.)
-  eyeOff: svg('<path d="M1.5 8C1.5 8 2.6 5.93 4.6 4.6M7.11 3.57C7.4 3.53 7.69 3.5 8 3.5C12.1 3.5 14.5 8 14.5 8C14.5 8 14.07 8.8 13.27 9.73M11.4 11.41C10.46 12.04 9.32 12.5 8 12.5C3.9 12.5 1.5 8 1.5 8"/><path d="M9.41 9.41A2 2 0 0 1 6.59 6.59"/><path d="m2 2 12 12"/>', 14),
-  close: svg('<path d="m4 4 8 8M12 4l-8 8"/>', 14),
-  copy: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/>', 14),
-  duplicate: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5M9.5 7.5v4M7.5 9.5h4"/>', 14),
-  chain: svg('<path d="M6.6 9.4 9.4 6.6"/><path d="M7.3 4.6 8.4 3.5a2.65 2.65 0 0 1 3.75 3.75L11 8.4"/><path d="M8.7 11.4 7.6 12.5a2.65 2.65 0 0 1-3.75-3.75L5 7.6"/>', 14),
-  link: svg('<path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>', 14),
-  trash: svg('<path d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6"/>', 14),
-  // (Flipped: a shape and its mirror across a dotted axis, left for right, top for bottom.)
-  flipX: svg('<path d="M6 4.5 1.5 11.5H6zM10 4.5l4.5 7H10zM8 2v1M8 5.5v1M8 9.5v1M8 13v1"/>', 14),
-  flipY: svg('<path d="M4.5 6 11.5 1.5V6zM4.5 10l7 4.5V10zM2 8h1M5.5 8h1M9.5 8h1M13 8h1"/>', 14),
-  folder: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/>', 15),
-  folderOpen: svg('<path d="M2.5 13a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3.6l1.6 1.6h4.8a1 1 0 0 1 1 1V7"/><path d="M2.5 13h9.4a1 1 0 0 0 .93-.63l1.8-4.5A.64.64 0 0 0 14.04 7H5.1a1 1 0 0 0-.93.63L2.5 13Z"/>', 15),
-  folderOut: svg('<path d="M7.5 13h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1v2.4"/><path d="M12 14.5v-5M9.8 11.7 12 9.5l2.2 2.2"/>', 15),
-  // (A preset section's own, and a folder's to pick: see FOLDER_ICONS.)
-  candles: svg('<path d="M5 2.5v2M5 11v2.5M11 3.5v2.5M11 11v2M3.5 4.5h3v6.5h-3zM9.5 6h3v5h-3z"/>', 15),
-  scale: svg('<path d="M8 2.5v11M5 13.5h6M3 4.5h10M3 4.5 1.5 9h3zM13 4.5 11.5 9h3z"/>', 15),
-  coins: svg('<path d="M3 4.5c0-1.1 2.2-2 5-2s5 .9 5 2-2.2 2-5 2-5-.9-5-2zM3 4.5V8c0 1.1 2.2 2 5 2s5-.9 5-2V4.5M3 8v3.5c0 1.1 2.2 2 5 2s5-.9 5-2V8"/>', 15),
-  people: svg('<path d="M6 3.3a2.2 2.2 0 1 0 0 4.4 2.2 2.2 0 1 0 0-4.4zM2 13c.4-2.2 2-3.5 4-3.5s3.6 1.3 4 3.5M11.2 4.2a1.8 1.8 0 1 1 0 3.6M11 9.6c1.6.1 2.8 1.3 3.1 3.1"/>', 15),
-  hourglass: svg('<path d="M4 2.5h8M4 13.5h8M5 2.5c0 3 6 3.5 6 5.5s-6 2.5-6 5.5M11 2.5c0 3-6 3.5-6 5.5s6 2.5 6 5.5"/>', 15),
-  percent: svg('<path d="M12.5 3.5l-9 9M4.5 2.7a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 1 0 0-3.6zM11.5 9.7a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 1 0 0-3.6z"/>', 15),
-  cube: svg('<path d="M8 2 13.5 5v6L8 14 2.5 11V5zM2.5 5 8 8l5.5-3M8 8v6"/>', 15),
-  dollar: svg('<path d="M8 1.5v13M11.2 3.8H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H4.8"/>', 15),
-  key: svg('<path d="M5.5 7.5a3 3 0 1 0 0 6 3 3 0 1 0 0-6zM7.6 8.4 13 3M11 5l1.8 1.8M9.5 6.5 11 8"/>', 15),
-  pickaxe: svg('<path d="M2.5 6.2C5 3.2 11 3.2 13.5 6.2M8 4.2v9.3"/>', 15),
-  nodes: svg('<path d="M8 1.9a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2zM3.5 10.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2zM12.5 10.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2zM7.2 5 4.3 10.6M8.8 5l2.9 5.6M5.1 12h5.8"/>', 15),
-  clock: svg('<path d="M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 1 0 0-11zM8 5v3l2 1.5"/>', 15),
-  layers: svg('<path d="M8 2.5 14 5.5 8 8.5 2 5.5zM2 8.5l6 3 6-3M2 11.5l6 3 6-3"/>', 15),
-  star: svg('<path d="m8 2.2 1.8 3.7 4 .6-2.9 2.8.7 4L8 11.4l-3.6 1.9.7-4-2.9-2.8 4-.6z"/>', 15),
-  flag: svg('<path d="M3.5 14V2.5M3.5 3h8l-1.8 3 1.8 3h-8"/>', 15),
-  bolt: svg('<path d="M9 1.8 3.8 9h4L7 14.2 12.2 7h-4z"/>', 15),
-  target: svg('<path d="M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 1 0 0-11zM8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 1 0 0-5z"/>', 15),
-  folderAdd: svg('<path d="M7.5 13h-5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1v2.4"/><path d="M12 9.5v5M9.5 12h5"/>', 15),
-  series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
-  recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
-  calendar: svg('<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/>', 15),
-  share: svg('<path d="M8 9.5V2M5.5 4.5 8 2l2.5 2.5"/><path d="M5.5 7H4.5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1"/>', 15),
-  upload: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
-  download: svg('<path d="M8 2.5V10M5 7l3 3 3-3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
-  image: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><circle cx="6" cy="6.5" r="1.2"/><path d="m2.5 12 3.5-3.5 2.5 2.5 2-2 3 3"/>', 14),
-  table: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M2 6.5h12M2 10h12M6.5 6.5v7"/>', 14),
-  file: svg('<path d="M4 1.5h5l3.5 3.5v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11.5a1 1 0 0 1 1-1Z"/><path d="M9 1.5V5h3.5"/>', 14),
-  check: svg('<path d="m4 8.4 2.6 2.6L12 5.4"/>', 12),
-  ruler: svg('<path d="m2 11 9-9 3 3-9 9Z"/><path d="m5 8 1.5 1.5M7 6l1 1M9 4l1.5 1.5"/>'),
-  magnifier: svg('<circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.5 3.5"/><path d="M5 7h4M7 5v4"/>'),
-  // (Zoom out: the magnifier's lens, its plus a minus.)
-  zoomOut: svg('<circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.5 3.5"/><path d="M5 7h4"/>'),
-  draw: svg('<path d="M8 13.5 4 8l2-5.5h4L12 8Z"/><path d="M8 13.5v-5"/><circle cx="8" cy="7.5" r="1"/>'),
-  ellipse: svg('<ellipse cx="8" cy="8" rx="6" ry="4.5"/>'),
-  arrow: svg('<path d="M3 13 12.5 3.5M7 3.5h5.5V9"/>'),
-  label: svg('<path d="M2.5 8h2M11.5 8h2"/><rect x="4.5" y="5" width="7" height="6" rx="1.5"/>'),
-  legend: svg('<path d="M2.5 5h2.5M7.5 5h6M2.5 11h2.5M7.5 11h4"/>'),
-  keep: svg('<path d="M4.5 2.5h7v11L8 10.6l-3.5 2.9Z"/>'),
-  home: svg('<path d="M1.8 7.6 8 2.4l6.2 5.2"/><path d="M3.6 6.3v6.5a1.2 1.2 0 0 0 1.2 1.2h6.4a1.2 1.2 0 0 0 1.2-1.2V6.3"/><path d="M6.5 14v-3.2a1.5 1.5 0 0 1 3 0V14"/>'),
-  checkbox: svg('<rect x="2.5" y="2.5" width="11" height="11" rx="3"/><path d="m5.4 8.2 1.8 1.8 3.4-3.7"/>'),
-  expand: svg('<path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/>'),
-  shrink: svg('<path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5"/>'),
-  select: svg('<path d="M2.5 5V3.5a1 1 0 0 1 1-1H5M8.5 2.5h-1M11 2.5h1.5a1 1 0 0 1 1 1V5M13.5 8.5v-1M13.5 11v1.5a1 1 0 0 1-1 1H11M7.5 13.5h1M5 13.5H3.5a1 1 0 0 1-1-1V11M2.5 7.5v1"/>'),
-  cursor: svg('<path d="M4 2.5 12.5 8.6 8.7 9.3 10.7 13.5 9.1 14.2 7.1 10 4 12.7Z"/>'),
-  opacity: svg('<circle cx="8" cy="8" r="5.5"/><path d="M8 2.5a5.5 5.5 0 0 1 0 11Z" fill="currentColor"/>'),
-  weight: svg('<path d="M3 4h10" stroke-width="1"/><path d="M3 8h10" stroke-width="1.8"/><path d="M3 12.5h10" stroke-width="2.8"/>'),
-  grip: svg('<circle cx="6" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="4" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="8" r="1" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="1" fill="currentColor" stroke="none"/>', 14),
-  trend: svg('<path d="M4.4 11.6 11.6 4.4"/><circle cx="3.2" cy="12.8" r="1.6"/><circle cx="12.8" cy="3.2" r="1.6"/>'),
-  path: svg('<path d="M4.2 10.2 6.6 5.8M8.9 5.6l2.6 3.2"/><circle cx="3.2" cy="11.9" r="1.6"/><circle cx="7.6" cy="4.1" r="1.6"/><circle cx="12.8" cy="10.3" r="1.6"/>'),
-  hline: svg('<path d="M1.5 8h4.8M9.7 8h4.8"/><circle cx="8" cy="8" r="1.6"/>'),
-  vline: svg('<path d="M8 1.5v4.8M8 9.7v4.8"/><circle cx="8" cy="8" r="1.6"/>'),
-  rect: svg('<rect x="2.5" y="3.5" width="11" height="9" rx="1"/>'),
-  text: svg('<path d="M3.5 3.5h9M8 3.5v9M6.2 12.5h3.6"/>'),
-  toTop: svg('<path d="M3 2.5h10M8 13.5V6M4.5 9.5 8 6l3.5 3.5"/>'),
-  toBottom: svg('<path d="M3 13.5h10M8 2.5V10M4.5 6.5 8 10l3.5-3.5"/>'),
-  profile: svg('<g fill="currentColor" stroke="none"><rect x="8" y="2" width="6" height="2.2" rx=".6"/><rect x="4" y="5.3" width="10" height="2.2" rx=".6"/><rect x="2" y="8.6" width="12" height="2.2" rx=".6" fill-opacity=".5"/><rect x="9" y="11.9" width="5" height="2.2" rx=".6" fill-opacity=".5"/></g>'),
-  heatmap: svg('<g fill="currentColor" stroke="none"><rect x="2.0" y="2.0" width="3.6" height="3.6" rx=".7" fill-opacity="0.25"/><rect x="6.2" y="2.0" width="3.6" height="3.6" rx=".7" fill-opacity="0.55"/><rect x="10.4" y="2.0" width="3.6" height="3.6" rx=".7" fill-opacity="0.9"/><rect x="2.0" y="6.2" width="3.6" height="3.6" rx=".7" fill-opacity="0.55"/><rect x="6.2" y="6.2" width="3.6" height="3.6" rx=".7" fill-opacity="1"/><rect x="10.4" y="6.2" width="3.6" height="3.6" rx=".7" fill-opacity="0.4"/><rect x="2.0" y="10.4" width="3.6" height="3.6" rx=".7" fill-opacity="0.9"/><rect x="6.2" y="10.4" width="3.6" height="3.6" rx=".7" fill-opacity="0.4"/><rect x="10.4" y="10.4" width="3.6" height="3.6" rx=".7" fill-opacity="0.2"/></g>'),
-  cloud: svg('<path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4v5c-2.1 2.4-3.9 2.4-6 1.4s-3.9-.6-6 1.3Z" fill="currentColor" fill-opacity=".4" stroke="none"/><path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4M2 11.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4"/>'),
-  // (A signal: a mark pointing down onto a line.)
-  signal: svg('<path d="M1.5 13.5c2.4-1.6 4-3.6 6.5-3.6s4 1.7 6.5.9" stroke-opacity=".45"/><path d="M8 2.2v5M5.9 5.1 8 7.2l2.1-2.1"/>'),
-  riding: svg('<path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4M2 11.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4" stroke-opacity=".35"/><path d="M2 11.2c2.1-1.9 3.9-2.3 6-1.3M8 4.9c2.1 1 3.9 1 6-1.4" stroke-width="1.9"/>'),
-  brush: svg('<path d="M13.6 2.4a1.15 1.15 0 0 1 0 1.65L8.9 8.75 7.25 7.1l4.7-4.7a1.15 1.15 0 0 1 1.65 0Z"/><path d="M6.9 9.1C5.3 8.6 3.9 9.4 3.7 11c-.15 1.2-.7 1.9-1.7 2.3 2.4.9 4.9.3 5.4-1.6.2-.9.05-1.8-.5-2.6Z"/>'),
-};
-/** The caret of a control that opens a list. */
-const CHEVRON = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 for (const element of all$("[data-icon]")) element.insertAdjacentHTML("afterbegin", ICONS[element.dataset.icon] ?? "");
-/**
- * A key's symbols as keycaps draw them, one family with the icons (their stroke, their ends): a font draws each its
- * own way (⌘ thin, ⇧ and ↵ uneven, some from another font), unlike each other and the icons beside them.
- */
-const KEY_GLYPHS = /** @type {Record<string, string>} */ ({
-  "⌘": '<path d="M9.8 4.6v6.8a1.6 1.6 0 1 0 1.6-1.6H4.6a1.6 1.6 0 1 0 1.6 1.6V4.6a1.6 1.6 0 1 0-1.6 1.6h6.8a1.6 1.6 0 1 0-1.6-1.6"/>',
-  "⇧": '<path d="M8 3.2 3.2 8.4h2.9V13h3.8V8.4h2.9Z"/>',
-  "⌥": '<path d="M2.8 4.5h3.1l4.2 7h3.1M9.6 4.5h3.6"/>',
-  "⌃": '<path d="M4 8.5 8 4.5l4 4"/>',
-  "↵": '<path d="M12.5 3.5V8a2 2 0 0 1-2 2H3.5M6.5 7l-3 3 3 3"/>',
-  "⇥": '<path d="M2.5 8h9M8.5 5l3 3-3 3M13.5 4v8"/>',
-  "⌫": '<path d="M6 3.5h6.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H6L1.8 8Z"/><path d="m7.6 6.2 3.6 3.6m0-3.6-3.6 3.6"/>',
-  "←": '<path d="M13 8H3M7 4 3 8l4 4"/>',
-  "→": '<path d="M3 8h10M9 4l4 4-4 4"/>',
-  "↑": '<path d="M8 13V3M4 7l4-4 4 4"/>',
-  "↓": '<path d="M8 3v10M4 9l4 4 4-4"/>',
-});
-/** Keys by their names in aria-keyshortcuts, from how they're written here (a Mac's glyphs, or "Ctrl+"). */
-const ARIA_KEYS = /** @type {Record<string, string>} */ ({ "⌘": "Meta", "⇧": "Shift", "⌥": "Alt", "⌃": "Control", ctrl: "Control", shift: "Shift", alt: "Alt", "↵": "Enter", enter: "Enter", "⌫": "Backspace", backspace: "Backspace", esc: "Escape", space: "Space", "↑": "ArrowUp", "↓": "ArrowDown", "←": "ArrowLeft", "→": "ArrowRight", "−": "-", "+": "Plus", "⇥": "Tab", tab: "Tab" });
-/** A key as aria-keyshortcuts names it ("⌘⇧Z" is Meta+Shift+Z, "Ctrl+K" Control+K); a sequence ("D L"), alternatives ("[ ]"), none. */
-function ariaKey(/** @type {string} */ text) {
-  const written = text.trim();
-  if (!written || /\s/.test(written)) return "";
-  let parts = written.length > 1 && written.includes("+") ? written.split("+").filter(Boolean) : [];
-  if (!parts.length) {
-    let rest = written;
-    while (rest.length > 1 && "⌘⇧⌥⌃".includes(rest[0])) (parts.push(rest[0]), (rest = rest.slice(1)));
-    parts.push(rest);
-  }
-  // (A Mac's ⌫ is written "delete": Backspace.)
-  return parts.map((part) => (part.toLowerCase() === "delete" ? (MAC ? "Backspace" : "Delete") : ARIA_KEYS[part] ?? ARIA_KEYS[part.toLowerCase()] ?? (part.length === 1 ? part.toUpperCase() : part))).join("+");
-}
-/** A key that isn't a single one (a letter, a digit, a sign): with ⌘, ⌥ or ⌃, or named (esc, ⌫, ↵, an arrow). */
-const NAMED_KEY = /[⌘⌥⌃]|esc|⌫|↵|[←→↑↓]|delete|backspace|ctrl|alt/i;
-/**
- * Each keycap under `root`: one on a control said as its shortcut, not its name; one with ⇧ or ↵ in it drawn
- * (once), each beside its glyph for a screen reader; a single key marked (gone while those are off).
- */
-function drawKeys(/** @type {ParentNode} */ root) {
-  for (const key of root.querySelectorAll("kbd")) {
-    const text = key.textContent ?? "";
-    key.toggleAttribute("data-single", !NAMED_KEY.test(text));
-    // (A key on a control isn't part of its name, said as its shortcut instead: "Collapse", not "Collapse backslash".)
-    // (Not where a key isn't the control's own: a drawing tool's comes after D, ⌘K's rows are found by typing.)
-    const control = !key.hasAttribute("aria-hidden") ? key.closest('button, a, [role="option"], [role="menuitem"]') : null;
-    if (control) {
-      key.setAttribute("aria-hidden", "true");
-      const name = control.matches('[role="option"], .belt-tools button') ? "" : ariaKey(text);
-      if (name && !control.hasAttribute("aria-keyshortcuts")) control.setAttribute("aria-keyshortcuts", name);
-    }
-    if (![...text].some((glyph) => KEY_GLYPHS[glyph]) || key.querySelector(".key")) continue;
-    key.textContent = "";
-    for (const glyph of text) {
-      if (KEY_GLYPHS[glyph]) key.insertAdjacentHTML("beforeend", `<svg class="key" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KEY_GLYPHS[glyph]}</svg><span class="vh">${glyph}</span>`);
-      else key.append(glyph);
-    }
-  }
-  // (A key shown only in a control's tip, its data-kbd, said as its shortcut too: Undo's ⌘Z, Full screen's ⇧F.)
-  for (const control of /** @type {HTMLElement[]} */ ([...root.querySelectorAll("[data-kbd]:not([aria-keyshortcuts])")])) {
-    const name = control.matches('[role="option"]') ? "" : ariaKey(keysOf(control.dataset.kbd ?? ""));
-    if (name) control.setAttribute("aria-keyshortcuts", name);
-  }
-}
-const glyphSvg = (/** @type {string} */ body) => `<svg class="glyph" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
-/** Each chart type, drawn on whole pixels at 16×12: crisp at any pixel density. Candles as on the chart: filled when falling, hollow when rising. */
-const glyph = (type) => {
-  const body = {
-    line: '<path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    dots: '<circle cx="2.5" cy="9.5" r="1.5"/><circle cx="5.5" cy="6.5" r="1.5"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="11.5" cy="5.5" r="1.5"/><circle cx="14.5" cy="2.5" r="1.5"/>'.replaceAll("/>", ' fill="currentColor"/>'),
-    area: '<path d="M1.5 9.5l4-4 3 3 6-6V11h-13z" fill="currentColor" opacity=".25"/><path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    histogram: '<rect x="1" y="6" width="2" height="5" rx=".5" fill="currentColor"/><rect x="5" y="2" width="2" height="9" rx=".5" fill="currentColor"/><rect x="9" y="5" width="2" height="6" rx=".5" fill="currentColor"/><rect x="13" y="3" width="2" height="8" rx=".5" fill="currentColor"/>',
-    baseline: '<path d="M1 6.5h14" stroke="currentColor" stroke-dasharray="2 2" opacity=".5"/><path d="M1.5 4.5l3-2.5 4 5.5 2.5 2 3.5-1.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-    candles: '<path d="M4.5 3v8M11.5 1v2.5M11.5 8.5V10" stroke="currentColor"/><rect x="2" y="5" width="5" height="5" rx=".5" fill="currentColor"/><rect x="9.5" y="3.5" width="4" height="5" rx=".5" fill="none" stroke="currentColor"/>',
-    bubbles: '<circle cx="4.5" cy="7.5" r="2.5" fill="currentColor" fill-opacity=".35" stroke="currentColor"/><circle cx="11" cy="5.5" r="4" fill="currentColor" fill-opacity=".35" stroke="currentColor"/>',
-  }[type] ?? (type === "signal" ? markBody("above", "currentColor") : "");
-  return glyphSvg(body);
-};
-/** A signal's mark, drawn at 16×12 as the chart has it: an arrow down onto its layer, up to it, or a dot on it. */
-const markBody = (/** @type {string | undefined} */ place, /** @type {string} */ color) => (place === "shade" ? `<rect x="4.5" y="1" width="7" height="10" rx="1" fill="${color}" fill-opacity=".4"/>` : place === "on" ? `<circle cx="8" cy="6" r="3.2" fill="${color}"/>` : place === "below" ? `<path d="M8 2 12.5 7H9.6v3.5H6.4V7H3.5Z" fill="${color}"/>` : `<path d="M8 10 3.5 5h2.9V1.5h3.2V5h2.9Z" fill="${color}"/>`);
-/** A line shape, drawn on whole pixels at 16×12. */
-const shapeGlyph = (shape) => glyphSvg(`<path d="${{ straight: "M1.5 9.5l4-4 3 3 6-6", steps: "M1.5 9.5h3v-4h4v3h3v-6h3", curved: "M1.5 9.5C4 9.5 4 5 6.5 5s2.5 3.5 5 3.5 2-6 3-6" }[shape]}" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
-/** An outline: a line over its band. */
-const OUTLINE_GLYPH = glyphSvg('<path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="4" opacity=".3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
-/** A line style, its dashes drawn on whole pixels at 16×12. */
-const dashGlyph = (dash, gap) => glyphSvg(`${Array.from({ length: Math.floor((14 + gap) / (dash + gap)) }, (_, k) => `<rect x="${1 + k * (dash + gap)}" y="5" width="${dash}" height="2" fill="currentColor"/>`).join("")}`);
 
-// ── Vocabulary ────────────────────────────────────────────────────────────
+// ── Vocabulary, as the page's state has it (the rest, stateless, in the leaf modules) ─
 
-/** @type {[string, [string, string][]][]} */
-const INTERVALS = [
-  ["Minutes", [["minute10", "10m"], ["minute30", "30m"]]],
-  ["Hours", [["hour1", "1h"], ["hour4", "4h"], ["hour12", "12h"]]],
-  ["Days", [["day1", "1D"], ["day3", "3D"], ["week1", "1W"]]],
-  ["Months", [["month1", "1M"], ["month3", "3M"], ["month6", "6M"]]],
-  ["Years", [["year1", "1Y"], ["year10", "10Y"]]],
-];
-const INTERVAL_ORDER = INTERVALS.flatMap(([, items]) => items.map(([id]) => id));
-/** A source's declared sampling ceiling, shared by interval controls and document normalization. */
-const intervalFits = (/** @type {string | undefined} */ limit, /** @type {string} */ index) => !limit || INTERVAL_ORDER.indexOf(index) <= INTERVAL_ORDER.indexOf(limit);
-const INTERVAL_LABEL = Object.fromEntries(INTERVALS.flatMap(([, items]) => items));
-/** Each interval by its label as the picker shows it ("1W"), read in any case (no two alike: minutes are 10m and 30m alone). */
-const INTERVAL_OF_FIELD = Object.fromEntries(Object.entries(INTERVAL_LABEL).map(([id, label]) => [String(label).toLowerCase(), id]));
-/** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes. */
-const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12"]);
-/** A fine interval's step, in seconds. */
-const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200 };
 /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first). */
 const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
 /** Each index's times from its first, as far as they've been asked for: the same for every series at it, made once. @type {Map<string, number[]>} */
@@ -641,27 +298,6 @@ function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @
   return times.slice(start, start + count);
 }
 const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
-/** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
-const CHUNK = 8000;
-/**
- * At most this many chunks at first (a preset's): the widest view (the chart shows four points a pixel at most, a
- * few thousand) and room beyond each side to reach out from. Reaching out adds to them: what's loaded stays while
- * the chart stays at that interval, up to the most held at once.
- */
-const FIRST_CHUNKS = 3;
-/** A draw redoes every held chunk, so reaching farther drops the far end (long out of view by then). */
-const MOST_CHUNKS = 12;
-/**
- * Extra chunks share one budget across series and intervals (about 140 KB each, 550 KB as candles); least
- * recently used go first.
- */
-const KEPT_CHUNKS = 150;
-/** The range presets: four spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
-const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]];
-/** A range's days (Max, or none, 0). */
-const rangeDays = (/** @type {string} */ id) => RANGES.find(([range]) => range === id)?.[2] ?? 0;
-/** The range a chart starts on, and a link that names none opens on: two cycles, the last 8 years (user, 2026-10-12). */
-const DEFAULT_RANGE = "8y";
 /**
  * Every color as the theme shows it, Bitview's and any picked alike (they're kept as the dark shows them): on the
  * dark, as it is; on the light, its lightness turned over along one curve: white as black and black as white,
@@ -671,15 +307,6 @@ const DEFAULT_RANGE = "8y";
  * counterpart. (The page's ink is its own: white or black.)
  */
 let light = false;
-const TONE = /** @type {[number, number][]} */ ([[0, 1], [0.5, 0.64], [0.75, 0.58], [1, 0]]);
-/** A piecewise-linear curve's value at x, its knots in order of x (clamped at its ends). */
-function onCurve(/** @type {[number, number][]} */ knots, /** @type {number} */ x) {
-  const i = clamp(knots.findIndex(([at]) => at >= x), 1, knots.length - 1), [x0, y0] = knots[i - 1], [x1, y1] = knots[i];
-  return clamp(y0 + ((x - x0) * (y1 - y0)) / (x1 - x0), Math.min(y0, y1), Math.max(y0, y1));
-}
-const UNTONE = /** @type {[number, number][]} */ (TONE.map(([x, y]) => [y, x]).reverse());
-/** On the light, how much lighter than the curve a warm hue is (yellow the most), by how vivid it is (a gray, none). */
-const warmLift = (/** @type {number} */ c, /** @type {number} */ h) => (h > 55 && h < 120 ? 0.1 * Math.sin(((h - 55) / 65) * Math.PI) * Math.min(1, c / 0.1) : 0);
 const toned = (/** @type {number[]} */ [l, c, h]) => /** @type {[number, number, number]} */ (light ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
 /** A color's lightness, chroma and hue as shown (the page's ink, as it is). */
 const shownOklch = (/** @type {string} */ color) => (color === "ink" ? oklchOf(color) : toned(oklchOf(color)));
@@ -689,14 +316,6 @@ function kept(/** @type {string} */ color) {
   const [l, c, h] = oklchOf(color), back = +onCurve(UNTONE, l - warmLift(c, h)).toFixed(3);
   return c < 0.0005 ? `oklch(${back} 0 0)` : `oklch(${back} ${+c.toFixed(4)} ${+h.toFixed(1)})`;
 }
-/** Bitview's colors as the color menu lists them: the two neutrals, then the hues around the wheel from red. */
-const SWATCHES = ["ink", "gray", "red", "orange", "amber", "yellow", "avocado", "lime", "green", "emerald", "teal", "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose"];
-/** New layers take these in turn, far apart on the wheel. */
-const PALETTE = ["ink", "orange", "blue", "green", "purple", "red", "teal", "yellow", "sky", "pink", "lime", "gray"];
-const OKLCH_TEXT = /^oklch\((0|1|0?\.\d+) (0|0?\.\d+) (\d{1,3}(\.\d+)?)\)$/;
-const isNamed = (color) => color === "ink" || Object.hasOwn(OKLCH, color);
-/** Whether a value is a color a layer can have (checked on everything read back or imported). */
-const isColor = (color) => typeof color === "string" && (isNamed(color) || /^#[0-9a-f]{6}$/i.test(color) || (OKLCH_TEXT.test(color) && Number(color.split(" ")[2].slice(0, -1)) <= 360));
 /**
  * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
  * takes the nearest one's name.
@@ -704,11 +323,6 @@ const isColor = (color) => typeof color === "string" && (isNamed(color) || /^#[0
  */
 let names = null;
 const namesAt = () => (names ??= XKCD.map(([name, hex]) => { const [l, c, h] = hexToOklch(hex); return { name, l, c, h }; }));
-/** In OKLCH, names follow hue first (hue weighted by chroma, so a near-gray's hardly matters). */
-function nameDistance(l1, c1, h1, l2, c2, h2) {
-  const dh = 2 * Math.sqrt(c1 * c2) * Math.sin(((h1 - h2) * Math.PI) / 360);
-  return (l1 - l2) ** 2 + 2 * (c1 - c2) ** 2 + 3 * dh ** 2;
-}
 /** Bitview's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
 const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalized(key));
 /** Each color's name as found (by the theme it's shown in: see colorName), a few hundred kept. */
@@ -731,25 +345,6 @@ function colorName(color) {
   colorNames.set(key, capitalized(best.name));
   return capitalized(best.name);
 }
-/** The types whose second color is kept as picked, one color or two: a trend's (on a support), a cloud's (its second over). */
-const TWO_KEPT = new Set(["trend", "cloud"]);
-/** The types in two colors, rising and falling (above and below zero), that can be in one (`colors: 1`): candles, bubbles. */
-const TWO_OR_ONE = new Set(["candles", "bubbles"]);
-/** Whether a layer's candles are hollow, as usual: hollow when rising, filled when falling (else all filled). @param {Layer} layer */
-const hollowOf = (layer) => layer.hollow !== "none";
-/** A layer's second color: a baseline's or bars' under their base (red, unset; bars of one color, theirs); a trend's on a support, a cloud's where its second is over (its own, unset). */
-const belowOf = (layer) => ((layer.type === "histogram" || TWO_OR_ONE.has(layer.type) || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
-/**
- * A cloud colored by its layers, its colors theirs: its first one's where that's over, its second's where that is
- * (to an edge, its one layer's; in its edit, and as every edit's chart is normalized: they follow).
- * @param {Layer} layer @param {Chart | null} [doc]
- */
-const layersColors = (layer, doc) => {
-  const [first, second] = (layer.from ?? []).flatMap((id) => ((item) => (item ? [item] : []))(doc?.layers.find((one) => one.id === id)));
-  if (first) layer.color = first.color;
-  if (second) layer.colorBelow = second.color;
-  else delete layer.colorBelow;
-};
 /** A second color, given one the first time (a trend's, a cloud's): a cloud's second layer's, else one apart from its first. @param {Layer} layer */
 const secondColor = (layer) => ((other) => (other && other !== layer.color ? other : layer.color === "red" ? "green" : "red"))(layer.type === "cloud" ? ownerOf(layer)?.layers.find((item) => item.id === layer.from?.[1])?.color : undefined);
 /**
@@ -759,45 +354,6 @@ const secondColor = (layer) => ((other) => (other && other !== layer.color ? oth
  * @type {Map<string, { to: string, kind: string, before: Record<string, any>, after: Record<string, any> }>}
  */
 const looksLeft = new Map();
-const LOOK_KEYS = /** @type {const} */ (["color", "colorBelow", "colorFrom", "byLevels", "byGradient"]);
-/** A holder group's URPD: a heatmap (its days as columns) or a profile (a day's, at the chart's right edge). @param {{ type?: string }} layer */
-const heatLike = (layer) => layer.type === "heatmap" || layer.type === "profile";
-/**
- * Whether a layer reads two ways, over and under (a baseline over its base, a heatmap's unrealized P&L in profit or
- * in loss): green over red by default (see kindLook). @param {{ type?: string, measure?: string }} layer
- */
-const twoSided = (layer) => layer.type === "baseline" || (layer.type === "heatmap" && signedMeasure(layer));
-/** A binned layer's measure: its coins (the default), their worth, or their unrealized P&L. @param {{ measure?: string }} layer */
-const measureOf = (layer) => layer.measure ?? DEFAULT_MEASURE;
-/** Whether a binned layer's amounts can be negative: its unrealized P&L's. @param {{ measure?: string }} layer */
-const signedMeasure = (layer) => measureOf(layer) === "pnl";
-/** A binned layer's amounts' unit, by its measure (see measureOf): coins, else dollars. @param {string} measure */
-const measureUnit = (measure) => (measure === DEFAULT_MEASURE ? "btc" : "usd");
-/**
- * A heatmap of an amount's steps, as the website drew heat: inferno, its 4 colors that mixed (see gradientTable)
- * come nearest it (0.023 apart in OKLab at most, at 64 places: about what an eye tells apart).
- */
-const HEAT_GRADIENT = /** @type {[number, string][]} */ ([[0, "#000004"], [20, "#420a68"], [81, "#fcaa15"], [100, "#fcffa4"]]);
-/** A layer's kind, as its first look goes (see kindLook): two-sided, a heatmap of an amount, or neither. @param {{ type?: string, measure?: string }} layer */
-const kindOf = (layer) => (twoSided(layer) ? "sided" : layer.type === "heatmap" ? "heat" : "");
-/**
- * A layer's own first color, where its kind has one (else the next free, see nextColor): two-sided, green (red its
- * own below); a heatmap's, orange (its gradient's off). @param {{ type?: string, measure?: string }} layer
- */
-const kindColor = (layer) => ({ sided: "green", heat: "orange" })[kindOf(layer)] ?? null;
-/**
- * The look a layer's kind starts it with, onto `layer` (as `next`, its kind, reads): its color (kindColor); two-sided,
- * its own red below, no gradient; a heatmap of an amount, colored by its gradient (its own kept, else HEAT_GRADIENT's).
- * @param {Layer} layer @param {{ type?: string, measure?: string }} next
- */
-function kindLook(layer, next) {
-  const color = kindColor(next), kind = kindOf(next);
-  if (color) layer.color = color;
-  if (kind === "sided") delete layer.colorBelow, delete layer.byGradient;
-  if (kind === "heat") (layer.byGradient = true), (layer.gradient ??= structuredClone(HEAT_GRADIENT));
-}
-/** A layer's shape, as its look follows it: its type, a heatmap's P&L its own (see reshape). @param {Layer} layer */
-const shapeKey = (layer) => (layer.type === "heatmap" && layer.measure === "pnl" ? "heatmap:pnl" : layer.type);
 /**
  * A layer's shape changed (its type, a heatmap's measure, by `edit`): what the shape it leaves took or set (two
  * sides' green and red, colors from another layer or by its levels it drops), unchanged since, back as it was
@@ -826,62 +382,8 @@ const reshape = (layer, edit) => {
   // (Colored by its levels again: one added meanwhile, its color.)
   if (layer.byLevels && BY_LEVELS.has(type)) colorLevels(layer);
 };
-/** OKLCH to sRGB: its chroma lowered until it fits, so hue and lightness hold. @returns {string} */
-function oklchToHex(l, c, h) {
-  const wanted = oklchToLinear(l, c, h), rgb = inside(wanted) ? wanted : oklchToLinear(l, limit(l, h), h);
-  return `#${rgb.map((v) => Math.round(gamma(clamp(v, 0, 1)) * 255).toString(16).padStart(2, "0")).join("")}`;
-}
-/** OKLCH to linear sRGB (outside 0–1 where sRGB can't show it). @returns {[number, number, number]} */
-function oklchToLinear(l, c, h) {
-  return labToLinear(l, c * Math.cos((h * Math.PI) / 180), c * Math.sin((h * Math.PI) / 180));
-}
-/** OKLab to linear sRGB, written into `out` (a search reuses one). @returns {[number, number, number]} */
-function labToLinear(l, a, b, out = /** @type {[number, number, number]} */ ([0, 0, 0])) {
-  const L = (l + 0.3963377774 * a + 0.2158037573 * b) ** 3, M = (l - 0.1055613458 * a - 0.0638541728 * b) ** 3, S = (l - 0.0894841775 * a - 1.291485548 * b) ** 3;
-  out[0] = 4.0767416621 * L - 3.3077115913 * M + 0.2309699292 * S;
-  out[1] = -1.2684380046 * L + 2.6097574011 * M - 0.3413193965 * S;
-  out[2] = -0.0041960863 * L - 0.7034186147 * M + 1.707614701 * S;
-  return out;
-}
-/** Whether sRGB shows it (as plain comparisons: a picker's surface asks ~900,000 times, a phone without its JIT). */
-const inside = (/** @type {number[]} */ rgb) => rgb[0] >= -1e-4 && rgb[0] <= 1 + 1e-4 && rgb[1] >= -1e-4 && rgb[1] <= 1 + 1e-4 && rgb[2] >= -1e-4 && rgb[2] <= 1 + 1e-4;
-const gamma = (x) => (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055);
-/** The most chroma sRGB holds at a lightness and hue, found by halving; kept. */
-const maxChromas = new Map();
-function maxChroma(l, h) {
-  const key = `${l.toFixed(3)}:${h.toFixed(1)}`;
-  if (maxChromas.has(key)) return maxChromas.get(key);
-  const most = limit(l, h);
-  if (maxChromas.size > 20000) maxChromas.clear();
-  maxChromas.set(key, most);
-  return most;
-}
-/** The same, found by halving `steps` times, unkept. */
-function limit(l, h, steps = 16) {
-  const cos = Math.cos((h * Math.PI) / 180), sin = Math.sin((h * Math.PI) / 180), rgb = /** @type {[number, number, number]} */ ([0, 0, 0]);
-  let low = 0, high = 0.4;
-  for (let k = 0; k < steps; k++) {
-    const mid = (low + high) / 2;
-    if (inside(labToLinear(l, mid * cos, mid * sin, rgb))) low = mid;
-    else high = mid;
-  }
-  return low;
-}
-/** sRGB hex to OKLCH (colors kept as hex, the names' own). @returns {[number, number, number]} */
-function hexToOklch(hex) {
-  const [r, g, b] = [1, 3, 5].map((i) => { const x = parseInt(hex.slice(i, i + 2), 16) / 255; return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; });
-  const L = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b), M = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b), S = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-  const l = 0.2104542553 * L + 0.793617785 * M - 0.0040720468 * S, a = 1.9779984951 * L - 2.428592205 * M + 0.4505937099 * S, bb = 0.0259040371 * L + 0.7827717662 * M - 0.808675766 * S;
-  return [l, Math.hypot(a, bb), (((Math.atan2(bb, a) * 180) / Math.PI) + 360) % 360];
-}
-/** The types of a layer made from layers. @type {[string, string][]} */
-const FROM_TYPES = [["cloud", "Cloud"], ["trend", "Trend"]];
-/** What a trend makes of its layers, said. */
-const TREND_SAYS = "Follows the lowest until the layer that flips it touches it, then the highest until that layer touches it, and so on";
 /** Whether a signal shows: itself shown, on a layer there and shown (hidden with it, else). @param {Layer} layer @param {Chart} [doc] */
 const signalShown = (layer, doc = chart) => layer.type === "signal" && !layer.hidden && ((on) => Boolean(on && !on.hidden))(doc.layers.find((item) => item.id === layer.ref));
-/** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc */
-const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && !placedOn(other) && !heatLike(other));
 /**
  * The layer a new signal is marked on: the first its formula reads that can be (by its letter, else by the series it
  * names, in its order), else the first that can be; of those, a shown one before a hidden one (its marks seen).
@@ -896,13 +398,6 @@ const markFor = (doc, formula) => {
     return can[0];
   }
 };
-/**
- * How a signal shows: marks where it turns up (a condition: true), over its layer (pointing down at it), under it
- * (pointing up), on it, a down one mirrored; or, shaded, its stretches up or down, its layer's pane's height.
- */
-const MARK_PLACES = /** @type {[string, string, string, string][]} */ ([["above", "Above", "above", "down"], ["below", "Below", "below", "up"], ["on", "On it", "on", "circle"], ["shade", "Shaded", "", ""]]);
-/** A place's name as a choice says it: "Above the layer", "Shaded". @param {string} place */
-const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
 /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
 const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !placedOn(layer) && !heatLike(layer) && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
 /** A trend's reference by default: a price on its scale (candles, a series named so), else the first of those there; none there, none. @param {Chart} doc @param {Layer} trend */
@@ -952,22 +447,6 @@ const marksOf = (layer, values, reference = resolved?.results.get(layer.ref ?? "
   if (!own) return [];
   return changesOf(values).flatMap((change) => (drawn(change.at) && (change.to || (layer.results && stretchResult(change, reference) !== undefined)) ? [change.at] : []));
 };
-/**
- * What a stretch a change ends made, by the layer it's marked on: that layer's change over it, up; the opposite, down
- * (the state was right: more); none for one of neither, one begun before a change, or a value there not above 0 (or
- * not finite: a formula's division by 0).
- * @param {{ at: number, was: number, since: number }} change @param {Result | null | undefined} reference
- */
-const stretchResult = (change, reference) => {
-  const values = reference && measured(reference);
-  if (!values) return undefined;
-  const from = values[change.since], to = values[change.at];
-  return change.was && change.since >= 0 && from > 0 && to > 0 && Number.isFinite(from) && Number.isFinite(to) ? change.was * (to / from - 1) : undefined;
-};
-/** Measurements belong to the result, even if its view shares a vector with another layer's formula. */
-const measured = (/** @type {Result} */ result) => result.measurement ?? result.values;
-/** A stretch's result, said: +10.2%, −4.1%; ten times or more, as a growth reads: 840×. */
-const resultText = (/** @type {number} */ result) => (result >= 9 ? `${precise(1 + result)}×` : `${result < 0 ? "−" : "+"}${precise(Math.abs(result) * 100)}%`);
 /** A signal's stretches' results, compounded: what following it made, by its layer (none, none). @param {Layer} layer */
 const resultsOf = (layer) => {
   const values = resolved?.results.get(layer.id)?.values, own = resolved?.results.get(layer.ref ?? "");
@@ -978,8 +457,6 @@ const resultsOf = (layer) => {
 };
 /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
 const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden while ${labelOf(on)} is hidden` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in the loaded range" : ""}${layer.results && resolved?.results.get(on.id)?.measurement ? " · Returns from raw values" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
-/** A layer's type, by its name: every type's (those drawn from a series, from layers, a signal, bubbles, a heatmap). */
-const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["bubbles", "Bubbles"], ["heatmap", "Heatmap"], ["profile", "Profile"]].find(([id]) => id === type)?.[1] ?? type;
 /**
  * (Here, before the library's read: its profiles normalized as it is, see normalize.)
  * The URPD's cohorts (`GET /api/urpd`), named as the presets name them (see words.js): each its id, its name as
@@ -1017,45 +494,6 @@ const cohortName = (/** @type {string} */ id) => heatCohort(id)?.shown ?? id;
 const cohortWho = (/** @type {string} */ id) => heatCohort(id)?.who ?? id;
 /** A holder group's short name, where its list says what it is (a profile's, under Holders or Age bands: "Short-term", "1h–1d"). @param {string} id */
 const cohortShort = (id) => heatCohort(id)?.brief ?? id;
-/** A heatmap's measures: what its cells say (each day's URPD has all three: one switched, nothing's asked again), named, then short (its settings' tabs); the first, unsaid, the default. */
-const HEAT_MEASURES = /** @type {[string, string, string][]} */ ([["supply", "Supply", "Supply"], ["capital", "Capital", "Capital"], ["pnl", "Unrealized P&L", "P&L"]]), DEFAULT_MEASURE = HEAT_MEASURES[0][0];
-/** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
-const HEAT_WEIGHTS = /** @type {[string, string][]} */ ([["", "Every coin"], ["wakefulness", "Awake"], ["mobility", "Mobile"]]);
-/** A profile's views: its bars, or its amounts summed from the close outward. */
-const PROFILE_VIEWS = /** @type {[string, string][]} */ ([["bars", "Bars"], ["cumulative", "Cumulative"]]);
-/** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one; one unsaid, the default's. */
-const HEAT_ROWS = [100, 200, 500], DEFAULT_ROWS = 200;
-/** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
-const GRADIENT_MOST = 4, GRADIENT_LEAST = 2;
-/**
- * A series' looks, its Type's choices. Those made of other layers (a cloud, a trend, a signal, bubbles on a layer) are
- * kinds of their own, added as such (Add a cloud, As bubbles on…), not a look to switch to.
- * @type {[string, string][]}
- */
-const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
-/** The types drawn as a line: a dash and a shape apply. */
-const LINED = new Set(["line", "area", "baseline", "trend"]);
-/** The types an outline edges (the chart's background about what's drawn: the library's `outline`): what a series is drawn as, and a trend's line. */
-const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend", "bubbles"]);
-/** The crosshair's dot on a line: its radius and its edge's width (a lit bubble's ring clears it, see lightBubble). */
-const MARKER = { radius: 3, border: 2 };
-/**
- * Bubbles' largest, across (8 to 48 pixels by 4, 24 if none), and the share of it under which none is drawn (none
- * to 25% by 1%, 5% if none): their sliders' stops.
- */
-const BUBBLE_SIZES = Array.from({ length: 11 }, (_, i) => 8 + 4 * i), BUBBLE_SIZE = 24, BUBBLE_HIDES = Array.from({ length: 26 }, (_, i) => i / 100), BUBBLE_HIDE = 0.05;
-/** A share under which bubbles aren't drawn, in words. */
-const hideText = (/** @type {number} */ share) => (share ? `${Math.round(share * 100)}%` : "None");
-/** Whether a layer's values aren't drawn at their own height on its scale: a signal's (marks on its layer), bubbles' (sized on theirs). @param {Layer} layer */
-const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
-/**
- * Whether a layer can stay out of its axis' fit (`fit` false): one whose values widen its scale (not a heatmap's
- * rows, marks or bubbles on another layer, nor a cloud on a scale of its own, from its pane's edge to edge).
- * @param {Layer} layer
- */
-const fittable = (layer) => !placedOn(layer) && !heatLike(layer) && !(layer.type === "cloud" && edgesOf(layer).length === 2 && !cloudLayers(layer).length);
-/** A visible layer whose values participate in its pane's framing. @param {Layer} layer */
-const framesAxis = (layer) => !layer.hidden && layer.fit !== false && (heatLike(layer) || fittable(layer));
 /**
  * Whether a layer is a running total: a series that is one (its info's accumulation, `cumulative`: read before
  * it's drawn, see resolve), or a formula of them through affine arithmetic (their sums and differences, by
@@ -1105,89 +543,10 @@ function cumulativeLayer(/** @type {Chart} */ doc, /** @type {Layer} */ layer) {
   };
   return role(layer) === "total";
 }
-/**
- * Whether a layer's linear axis is framed automatically, by its series' role: its axis' only framing layer, fitted,
- * not stacked (explicit fitting and stacks already state their rule).
- * @param {Chart} doc @param {Layer} layer @param {boolean} stacked
- */
-const automaticZero = (doc, layer, stacked) => {
-  if (stacked || layer.fit === "zero" || !framesAxis(layer) || !(layer.series || layer.formula)) return false;
-  return doc.layers.every((other) => other.id === layer.id || !framesAxis(other) || other.pane !== layer.pane || other.side !== layer.side);
-};
 /** One visible running total includes its origin; explicit fitting and stacks keep their own rule. */
 const zeroFit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {number} */ mode, /** @type {boolean} */ stacked) => mode === 0 && (stacked || layer.fit === "zero" || (automaticZero(doc, layer, stacked) && cumulativeLayer(doc, layer)));
-/**
- * Whether a layer's out of its axis' fit as drawn (the chart's, the previews'): its `fit` false, where another shown
- * on its pane's side frames that axis (one fitted, or a heatmap: alone, on the price's closes). None: it is.
- * @param {Chart} doc @param {Layer} layer
- */
-const unfitted = (doc, layer) => layer.fit === false && doc.layers.some((other) => other !== layer && framesAxis(other) && other.pane === layer.pane && other.side === layer.side);
-/** Whether a layer has a series' look, its Type one of TYPES: none made from layers, placed on one, or a heatmap. @param {Layer} layer */
-const seriesLooked = (layer) => !layer.from && !placedOn(layer) && !heatLike(layer);
-/** A line's dashes (a layer's `dash`, a drawing's): solid, dotted, dashed, long dashes, sparse dots. */
-const LINE_STYLE = { Solid: 0, Dotted: 1, Dashed: 2, LargeDashed: 3, SparseDotted: 4 };
-/** How a line runs between its points (a layer's `shape`): straight, in steps, curved. */
-const LINE_TYPE = { Simple: 0, WithSteps: 1, Curved: 2 };
-/** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
-const SHAPES = [["straight", "Straight", LINE_TYPE.Simple], ["steps", "Steps", LINE_TYPE.WithSteps], ["curved", "Curved", LINE_TYPE.Curved]];
-const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LINE_TYPE.Simple;
-/** A type's two colors, where it has two: what each is called. */
-const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], candles: ["Rising", "Falling"], trend: ["Resistance", "Support"], signal: ["Up", "Down"], bubbles: ["Above zero", "Below zero"] };
 /** Whether a signal has a down state (below 0) in what's drawn: its second color, the down one's, then offered. @param {Layer} layer */
 const signedSignal = (layer) => layer.type === "signal" && Boolean(resolved?.results.get(layer.id)?.values?.some((/** @type {number} */ value) => value < 0));
-/**
- * How a layer's colors can be chosen, by its type (see colorModeOf): one color; two ("sides": a baseline's or bars'
- * above and below their base, a trend's on resistance and on support, a cloud's by which of its two is over); a
- * cloud's its layers' own ("layers", see layersColors); four (bars', MACD's: each side's own, paler
- * where a bar falls back toward the base); by its levels; from another layer, date by date. A baseline's are its two,
- * candles' two, rising and falling (their one, a choice).
- * @type {Record<string, string[]>}
- */
-const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], bubbles: ["sides", "one"], signal: ["one"], heatmap: ["one", "gradient"] };
-/** The types that can take their colors from another layer, and those that can be colored by their levels. */
-const COLORED_FROM = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("from")));
-const BY_LEVELS = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("levels")));
-/**
- * A layer's ways of coloring: its type's, but a cloud's two colors (which of its two is over) only between two layers
- * alone (an edge, or a third: no "the other one"), and its layers' only where it has some (its pane's two edges alone
- * have none). @param {Layer} layer
- */
-const modesOf = (layer) => (COLOR_MODES[layer.type] ?? ["one"]).filter((mode) => layer.type !== "cloud" || (mode === "sides" ? cloudLayers(layer).length === 2 && !edgesOf(layer).length : mode !== "layers" || cloudLayers(layer).length > 0));
-/**
- * The chart's line styles, lightest to most broken up: each with its name, and its dash and gap as drawn on whole
- * pixels at 16×12 (in the proportions the chart dashes them).
- * @type {[number, string, number, number][]}
- */
-const DASHES = [
-  [LINE_STYLE.Solid, "Solid", 14, 0],
-  [LINE_STYLE.LargeDashed, "Long dashes", 6, 2],
-  [LINE_STYLE.Dashed, "Dashed", 3, 2],
-  [LINE_STYLE.Dotted, "Dotted", 2, 2],
-  [LINE_STYLE.SparseDotted, "Sparse dots", 2, 4],
-];
-const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
-/** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
-const STACKS = [["", "Off", "Each at its own value"], ["stack", "Stacked", "Each on the ones before"], ["percent", "100%", "As shares of them all"]];
-/** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
-const MODES = [
-  { chip: "Linear", name: "Linear", tip: "Linear" },
-  { chip: "Log", name: "Log", tip: "Logarithmic" },
-  { chip: "Percent", name: "Percent", tip: "Change since the first value in view" },
-  { chip: "Indexed", name: "Indexed", tip: "Indexed to 100 at the first value in view" },
-];
-/** @type {[string, string][]} */
-/** The formats a layer can be read in, by hand (Automatic: its unit's), in groups: each group's first starts it. */
-const FORMATS = [
-  ["auto", "Automatic"],
-  ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"],
-  ["percent", "Percent"], ["ratio", "Multiple ×"], ["count", "Count"], ["number", "Number"],
-  ["days", "Days"], ["seconds", "Seconds"], ["persecond", "Per second"], ["perday", "Per day"],
-  ["bytes", "Bytes"], ["vbytes", "Virtual bytes"], ["weight", "Weight units"], ["sigops", "Signature operations"],
-  ["hashrate", "Hash rate"], ["difficulty", "Difficulty"], ["feerate", "Fee rate"], ["hashprice", "Hash price"], ["hashvalue", "Hash value"],
-  ["coindays", "Coin days"], ["coinblocks", "Coin blocks"], ["dollarblocks", "Dollar blocks"], ["dollardays", "Dollar days per coin"],
-];
-/** The formats that start a group in the format menu. */
-const FORMAT_GROUPS = new Set(["usd", "percent", "days", "bytes", "hashrate", "coindays"]);
 /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
 /** `tip`: its name as its tip, where the letter stands alone for it (several layers' heads). */
 /** Each letter's tone (see letterChip), by its color, the theme and the tokens. @type {Map<string, string>} */
@@ -1205,91 +564,12 @@ function letterChip(layer, tip = false) {
     if (letterTones.size > 500) letterTones.clear();
     letterTones.set(key, tone);
   }
-  return `<span class="letter" style="--c:${escape(color)};--t:${escape(tone)}"${tip ? ` data-tip="${escape(labelOf(layer))}"` : ""}>${escape(layer.letter)}</span>`;
+  return `<span class="letter" style="--c:${escapeHtml(color)};--t:${escapeHtml(tone)}"${tip ? ` data-tip="${escapeHtml(labelOf(layer))}"` : ""}>${escapeHtml(layer.letter)}</span>`;
 }
 /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
 const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
-const UNIT_SIGNS = {
-  usd: "USD", btc: "BTC", sats: "sats", percent: "%", ratio: "×", days: "days", seconds: "s", persecond: "/s", perday: "/day", bytes: "B", vbytes: "vB",
-  weight: "WU", sigops: "sigops", hashrate: "H/s", feerate: "sat/vB", hashprice: "$/PH/s/day", hashvalue: "sat/PH/s/day", coindays: "coin days",
-  coinblocks: "coin blocks", dollarblocks: "$ × blocks", dollardays: "$ × days/₿",
-};
-/**
- * A unit after a field's number: a ratio's left out (a × there reads as a button that clears it), and one longer
- * than the field keeps room for ("sat/vB": "$/PH/s/day" would run under the number).
- */
-const fieldUnit = (/** @type {string} */ unit) => ((sign) => (unit === "ratio" || sign.length > 6 ? "" : sign))(UNIT_SIGNS[/** @type {keyof typeof UNIT_SIGNS} */ (unit)] ?? "");
-/** Each unit's name (its format's, where it has one, as the menu says it). */
-const UNIT_NAMES = { ...Object.fromEntries(FORMATS.slice(1)), ratio: "Multiple" };
-/**
- * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
- * band) in its pane and on its axis, the others in a pane of their own. One layer each, but where it's a pair by
- * its nature (a band's two edges, MACD's line and signal), named so and said as two (no surprise: a percentile
- * is one line, the 95th; another, an edit of its formula away). Each is a formula like any, its window to change
- * in it.
- * @type {{ id: string, label: string, text: string, formulas: string[], over: boolean }[]}
- */
-const STARTERS = [
-  { id: "sma", label: "Moving average", text: "Its mean over a span", formulas: ["sma(X, 200d)"], over: true },
-  { id: "ema", label: "Exponential average", text: "Its mean, weighting recent values more", formulas: ["ema(X, 200d)"], over: true },
-  { id: "bands", label: "Deviation bands", text: "Two lines, two standard deviations above and below its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
-  { id: "percentile", label: "Percentile", text: "Its 95th percentile over a span", formulas: ["percentile(X, 95, 1y)"], over: true },
-  { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["median(X, 1y)"], over: true },
-  { id: "zscore", label: "Z-score", text: "How many standard deviations it is from its rolling mean", formulas: ["zscore(X, 1y)"], over: false },
-  { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
-  { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["highest(X)"], over: true },
-  { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
-  { id: "rsi", label: "RSI", text: "Its relative strength, 0 to 100, over its last 14 points", formulas: ["rsi(X)"], over: false },
-  { id: "macd", label: "MACD and signal", text: "Two lines, its MACD and its signal (12, 26, 9)", formulas: ["macd(X)", "macd_signal(X)"], over: false },
-  { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
-  { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
-];
-/** Line widths in pixels, by halves up to 5: the width slider's stops (the chart draws halves crisply on dense screens). */
-const WIDTHS = Array.from({ length: 10 }, (_, i) => (i + 1) / 2);
-/** Opacities, by 5%: the opacity sliders' stops, a layer's, a drawing's and an area's fill's (each kind's default among them, see fillOf). */
-const OPACITIES = Array.from({ length: 20 }, (_, i) => (i + 1) / 20);
-/** A layer's opacity: its own, else its type's (a cloud's fill a fifth, under what it spans; solid at 100%). */
-const defaultOpacity = (/** @type {{ type?: string }} */ layer) => (layer.type === "cloud" ? 0.2 : 1), opacityOf = (/** @type {Layer} */ layer) => layer.opacity ?? defaultOpacity(layer);
-/**
- * A window's units in days (a month and a year on average, a halving its 210,000 blocks at ten minutes each), the
- * letters formulas write them with, and each interval in days.
- */
-const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25, halving: (210_000 * 600) / 86400 };
-const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year", halving: "halving" };
-const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
-/** Calendar-total differences need aligned whole-year samples. */
-const flowFits = (/** @type {number} */ days, /** @type {string} */ index) => {
-  const periods = days / INTERVAL_DAYS[index], whole = Math.round(periods);
-  return (index === "year1" || index === "year10") && whole > 0 && Math.abs(periods - whole) < 1e-9;
-};
 /** Whether a formula's calendar-total differences (flow) can be read at an interval (see flowFits). @param {string} formula @param {string} index */
 const flowsAt = (formula, index) => windowsOf(formula).every(({ days, flow }) => !flow || flowFits(days, index));
-/** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
-const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
-const spanDays = (/** @type {string} */ span) => {
-  const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|halving|[hdwy])$/.exec(span));
-  return Number(n) * SPAN_DAYS[SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (letter)]];
-};
-/** Formula-picker spans; a third field also offers that span as a pane average. @type {[string, string, string?][]} */
-const SPANS = [["12h", "half a day"], ["1d", "a day"], ["7d", "a week", "7-day average"], ["30d", "a month", "30-day average"], ["90d", "a quarter", "90-day average"], ["200d", "about six and a half months"], ["1y", "a year", "1-year average"], ["2y", "two years"], ["1halving", "a halving cycle"], ["4y", "four years"]];
-const AVERAGES = Object.fromEntries(SPANS.flatMap(([span, , average]) => average ? [[span, average]] : []));
-/** A distribution has many values per date, rather than a temporal measurement to average.
- * @param {Chart} doc @param {Pane} pane
- */
-const averageBlocked = (doc, pane) => doc.layers.some((layer) => layer.pane === pane.id && heatLike(layer)) ? "This pane contains a heatmap or profile (including hidden layers): it needs raw values" : "";
-/** Whether a window is longer than `x`'s values reach (from its first to its last), so none fits. */
-const outreaches = (/** @type {Vector} */ x, /** @type {number} */ points) => {
-  const first = x.findIndex(Number.isFinite), last = x.findLastIndex(Number.isFinite);
-  return first >= 0 && last - first < points;
-};
-/**
- * The first interval coarser than `index` a window fits at (where what a chart surely loads at first holds it: at
- * 1D and up, all of history; at a finer one, a whole chunk beside the newest), for a window of `days` (Infinity: all
- * of history).
- */
-const fitsFrom = (/** @type {number} */ days, /** @type {string} */ index) => /** @type {string} */ (INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(index) + 1).find((other) => !FINE.has(other) || windowPoints(days, other) < CHUNK));
-/** An error said short where it's glanced at (the legend, a row: what to do), and in full where there's room. */
-const failing = (/** @type {string} */ detail, /** @type {string} */ short) => Object.assign(new Error(detail), { short });
 /**
  * Why a window gives nothing: more than a fine interval loads (`beyond` the timeline), naming where it fits ("Needs
  * 4h+"); else longer than the data (a value a span back, `shift`, further back than all of history is, anywhere).
@@ -1309,278 +589,9 @@ function averageFor(doc, pane, span = pane?.average ?? "") {
     : FINE.has(doc.index) && points >= CHUNK ? windowTooLong("Average", span, days, doc.index, true, false).message : "");
   return { span, active: disabled ? "" : span, name: disabled ? "" : AVERAGES[span], points, disabled };
 }
-const CADENCE = { minute10: "Every 10 minutes", minute30: "Every 30 minutes", hour1: "Hourly", hour4: "Every 4 hours", hour12: "Every 12 hours", day1: "Daily", day3: "Every 3 days", week1: "Weekly", month1: "Monthly", month3: "Quarterly", month6: "Every 6 months", year1: "Yearly", year10: "By decade" };
 
 // ── Units and formatting ──────────────────────────────────────────────────
 
-/** Each value type Bitview has, by the unit it's in (a type not here, or a bare number, a plain number). */
-const TYPE_UNITS = {
-  Dollars: "usd", OHLCDollars: "usd", Bitcoin: "btc", Sats: "sats", Percent: "percent", Multiple: "ratio",
-  Count: "count", CountFract: "count", CountSigned: "count", Height: "count", Epoch: "count", Halving: "count",
-  Days: "days", Seconds: "seconds", SecondsFract: "seconds", PerSecond: "persecond", PerDay: "perday",
-  Bytes: "bytes", BytesFract: "bytes", VSize: "vbytes", Weight: "weight", WeightFract: "weight", SigOps: "sigops",
-  Hashrate: "hashrate", Difficulty: "difficulty", FeeRate: "feerate", HashPrice: "hashprice", HashValue: "hashvalue",
-  Work: "number", ExpectedCount: "count",
-  CoinDays: "coindays", CoinBlocks: "coinblocks", DollarBlocks: "dollarblocks", DollarDaysPerCoin: "dollardays",
-};
-/** A series' unit, by its value type as Bitview names it (Dollars, Bitcoin, Percent, Bytes…). */
-const unitOf = (/** @type {string} */ type) => TYPE_UNITS[/** @type {keyof typeof TYPE_UNITS} */ (type)] ?? "number";
-
-const SI = ["", "K", "M", "B", "T", "P", "E", "Z", "Y"];
-/** A number with an SI letter from a thousand up, in at most `room` characters (the sign aside). */
-function compact(value, digits = 3, room = 6) {
-  const sign = value < 0 ? "−" : "", abs = Math.abs(value), small = abs < 1000 ? trim(abs, digits, room) : "";
-  // (By the value as written: 999.6 rounds to a thousand, written 1K.)
-  if (small && Number(small) < 1000) return sign + small;
-  let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3));
-  if (Number(trim(abs / 1000 ** tier, digits)) >= 1000 && tier < SI.length - 1) tier++;
-  return `${sign}${trim(abs / 1000 ** tier, digits, room - 1)}${SI[tier]}`;
-}
-/**
- * Round 100 and up to integers; below, try `digits` significant digits in `room` characters (sign aside; powers
- * of ten if tight).
- */
-function trim(value, digits, room = 6) {
-  const abs = Math.abs(value), sign = value < 0 ? "−" : "";
-  if (abs === 0) return "0";
-  if (abs >= 100) return sign + abs.toFixed(0);
-  const bare = (text) => (text.includes(".") ? text.replace(/\.?0+$/, "") : text);
-  for (let p = digits; p >= 1; p--) {
-    // Past a hundred places (beyond toFixed, and any room), only as a power of ten.
-    const places = Math.max(0, p - 1 - Math.floor(Math.log10(abs)));
-    const plain = places <= 100 ? bare(abs.toFixed(places)) : "";
-    if (plain && plain.length <= room) return sign + plain;
-    const power = abs.toExponential(p - 1).replace(/\.?0+e/, "e");
-    if (power.length <= room) return sign + power;
-  }
-  return sign + abs.toExponential(0);
-}
-const grouped = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
-/** Dollars to the cent, as a live price is read: $97,123.45. */
-const toTheCent = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const dollarsAndCents = (/** @type {number} */ value) => `$${toTheCent.format(value)}`;
-
-/**
- * A value in its unit, as the legend and the panel write it: its figure as everywhere (precise, by the value, not
- * the unit), the unit's sign around it.
- */
-function format(value, unit) {
-  if (value === undefined || value === null || !Number.isFinite(value)) return "—";
-  // (A signal's state: above 0 up, below down, at 0 off.)
-  if (unit === "signal") return value > 0 ? "Up" : value < 0 ? "Down" : "Off";
-  // (A true minus, as the ruler writes it, outside the unit's sign: −$1,234.)
-  const text = precise(Math.abs(value)), sign = value < 0 && text !== "0" ? "−" : "";
-  // (A unit said with an SI prefix (H/s, B, vB, WU) takes the figure's letter onto it: 976.1 EH/s, 1.587 MB,
-  // 3.927 MWU, a thousand's k, a billion's G.)
-  const prefixed = (/** @type {string} */ symbol) => (/[A-Z]$/.test(text) ? `${sign}${text.slice(0, -1)} ${({ B: "G", K: "k" })[text.slice(-1)] ?? text.slice(-1)}${symbol}` : `${sign}${text} ${symbol}`);
-  switch (unit) {
-    case "usd":
-      return `${sign}$${text}`;
-    case "btc":
-      return `${sign}₿${text}`;
-    case "sats":
-      return `${sign}${text} sat`;
-    case "percent":
-      return `${sign}${text}%`;
-    case "ratio":
-      return `${sign}${text}×`;
-    case "days":
-      return `${sign}${text} ${text === "1" ? "day" : "days"}`;
-    case "seconds":
-      return `${sign}${text} s`;
-    case "persecond":
-      return `${sign}${text}/s`;
-    case "perday":
-      return `${sign}${text}/day`;
-    case "bytes":
-      return prefixed("B");
-    case "vbytes":
-      return prefixed("vB");
-    case "weight":
-      return prefixed("WU");
-    case "sigops":
-      return `${sign}${text} sigops`;
-    case "hashrate":
-      return prefixed("H/s");
-    case "feerate":
-      return `${sign}${text} sat/vB`;
-    case "hashprice":
-      return `${sign}$${text}/PH/s/day`;
-    case "hashvalue":
-      return `${sign}${text} sat/PH/s/day`;
-    case "coindays":
-      return `${sign}${text} coin days`;
-    case "coinblocks":
-      return `${sign}${text} coin blocks`;
-    case "dollarblocks":
-      return `${sign}$${text} × blocks`;
-    case "dollardays":
-      return `${sign}$${text} × days/₿`;
-    default:
-      return `${sign}${text}`;
-  }
-}
-/** An axis label is at most this many characters, its sign aside; the price scales at most that wide, and a sign. */
-const AXIS_CHARS = 6;
-/** The axes' labels, by value and suffix: the chart asks for the same ticks every frame of a move. */
-const axisLabels = new Map();
-/**
- * Axes omit units because a scale can mix them (the legend gives each; a percent-change scale's % belongs to
- * all).
- */
-function axisLabel(value, suffix = "") {
-  const key = `${value}${suffix}`, known = axisLabels.get(key);
-  if (known !== undefined) return known;
-  if (axisLabels.size > 4000) axisLabels.clear();
-  // The library steps its ticks by subtraction: the zero one can come out as 6e-17. Below the scales' least move,
-  // it's 0.
-  // (Its sign aside, as a precise figure's: −0.0002 as 0.0002, not 2e-4 beside it.)
-  const shown = Math.abs(value) < 5e-10 ? 0 : value, sign = shown < 0 ? "−" : "";
-  const label = `${sign}${compact(Math.abs(shown), 3, AXIS_CHARS - suffix.length)}${suffix}`;
-  axisLabels.set(key, label);
-  return label;
-}
-/**
- * An axis's tick labels, axisLabel's, each read as its tick: where three digits write one off (zoomed in close,
- * 100.05 and 100.1 both "100"; 1.605T "1.61T"), the fewest digits that write each within a hundredth of the
- * ticks' least gap, letters as axisLabel's, a letter's decimals alike (100.00, 100.05; 99.8K, 100.0K), each in its
- * own unit (900 under 1.0K, 250K under 1.00M: not 0.9K, 0.25M), while they fit the scale's width; past it, a tick
- * written as the one before is left blank.
- */
-function axisTicks(/** @type {number[]} */ values, suffix = "") {
-  const labels = values.map((value) => axisLabel(value, suffix));
-  let gap = Infinity, most = 0;
-  for (let i = 1; i < values.length; i++) (gap = Math.min(gap, Math.abs(values[i] - values[i - 1]))), (most = Math.max(most, Math.abs(values[i] - values[i - 1])));
-  if (!gap) return labels;
-  const near = (/** @type {number[]} */ read) => read.every((value, i) => Math.abs(value - values[i]) <= gap / 100);
-  const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.replace(/^−/, "").length <= AXIS_CHARS && !text.includes("e"));
-  // (Ticks evenly apart (a linear scale's), a letter's decimals alike: 2.50M beside 2.75M, not 2.5M; 1.0K beside
-  // 1.1K. Each one's own letter: 900 under 1.0K, not 0.9K. A log scale's decades each as they are: 300, 30, 0.3.)
-  const evened = (/** @type {string[]} */ texts) => {
-    const parts = texts.map((text) => /^(−?)(\d+)(?:\.(\d+))?([A-Z]?)(.*)$/.exec(text)), places = /** @type {Map<string, number>} */ (new Map());
-    if (parts.some((part) => !part)) return texts;
-    for (const part of /** @type {RegExpExecArray[]} */ (parts)) places.set(part[4], Math.max(places.get(part[4]) ?? 0, (part[3] ?? "").length));
-    return /** @type {RegExpExecArray[]} */ (parts).map(([, sign, whole, decimals = "", letter, rest]) => `${sign}${whole}${places.get(letter) ? `.${decimals.padEnd(/** @type {number} */ (places.get(letter)), "0")}` : ""}${letter}${rest}`);
-  };
-  if (near(labels.map(readLabel))) return most - gap <= gap / 100 ? ((even) => (fit(even) ? even : labels))(evened(labels)) : labels;
-  for (let digits = 4; digits <= 9; digits++) {
-    // (With letters, as axisLabel's; where those are too long (12.345K), in plain digits (12345).)
-    for (const lettered of [true, false]) {
-      const parts = values.map((value) => {
-        const abs = Math.abs(value) < 5e-10 ? 0 : Math.abs(value), sign = abs && value < 0 ? "−" : "";
-        let tier = abs && lettered ? clamp(Math.floor(Math.log10(abs) / 3), 0, SI.length - 1) : 0;
-        if (lettered && Number((abs / 1000 ** tier).toPrecision(digits)) >= 1000 && tier < SI.length - 1) tier++;
-        return { sign, tier, mantissa: Number((abs / 1000 ** tier).toPrecision(digits)) };
-      });
-      if (!near(parts.map(({ sign, tier, mantissa }) => (sign ? -1 : 1) * mantissa * 1000 ** tier))) break;
-      const places = /** @type {Map<number, number>} */ (new Map());
-      for (const { tier, mantissa } of parts) places.set(tier, Math.max(places.get(tier) ?? 0, (String(mantissa).split(".")[1] ?? "").length));
-      const even = parts.map(({ sign, tier, mantissa }) => `${sign}${mantissa.toFixed(places.get(tier))}${SI[tier]}${suffix}`);
-      if (fit(even)) return even;
-      const bare = parts.map(({ sign, tier, mantissa }) => `${sign}${mantissa}${SI[tier]}${suffix}`);
-      if (fit(bare)) return bare;
-    }
-  }
-  // (Too close to part in the scale's width (100.001, 100.002): a label only where it reads true for its tick (one
-  // rounded onto its neighbor's value, blank), each the same as the one before left blank.)
-  // (None reads true: each the same as the one before left blank, as before.)
-  const kept = labels.map((label, i) => Math.abs(readLabel(label) - values[i]) <= gap / 2);
-  if (!kept.some(Boolean)) return labels.map((label, i) => (i && label === labels[i - 1] ? "" : label));
-  let said = "";
-  return labels.map((label, i) => (kept[i] && label !== said ? (said = label) : ""));
-}
-/** A label's value as written (its sign, digits and letter; a suffix after). */
-function readLabel(/** @type {string} */ label) {
-  const [, sign, digits, letter] = /^(−?)([\d.]+(?:e[-+]?\d+)?)([A-Z]?)/.exec(label) ?? [];
-  return digits === undefined ? NaN : (sign ? -1 : 1) * Number(digits) * 1000 ** Math.max(0, SI.indexOf(letter));
-}
-/** Four significant digits, as written (decimal rounding: 823.05 is 823.1), no grouping: precise's figures under a thousand. */
-const figures = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4, useGrouping: false });
-/** Four digits down to one, with a power of ten, rounded as figures are (see scientific). */
-const SCIENTIFIC = [4, 3, 2, 1].map((digits) => new Intl.NumberFormat("en-US", { notation: "scientific", maximumSignificantDigits: digits }));
-/**
- * A value with a power of ten, rounded as figures are (0.00012345 is 1.235e-4), in as many of four digits as PRECISE
- * holds (1.23e-10): too small, or too large, for figures there. @param {number} abs
- */
-function scientific(abs) {
-  let text = "";
-  for (const format of SCIENTIFIC) if ((text = format.format(abs).replace("E", "e")).length <= PRECISE.length) break;
-  return text;
-}
-/** The widest a precise figure is, its sign and suffix aside (0.001234, 1.234e-5, 123,456). */
-const PRECISE = "0.000000";
-/**
- * A value at the widest each of precise's forms writes (its figures read as zeros, see widest): a fraction's
- * (0.001234: a smaller one as wide, 1.234e-5), thousands grouped, a letter's. What a reading's room is measured by,
- * whatever its value.
- */
-const WIDEST_VALUES = [0.001234, 888_888, 888.8e6];
-/**
- * One value, the same text everywhere (legend, panel, axis, crosshair and drawings), with its unit affixed by
- * format: four significant digits, thousands whole and grouped, millions and up lettered, never wider than
- * PRECISE (its sign and suffix aside): a smaller fraction said shorter, its four digits kept (1.234e-5).
- * @param {number} value @param {string} [suffix]
- */
-function precise(value, suffix = "") {
-  const key = `p${value}|${suffix}`, known = axisLabels.get(key);
-  if (known !== undefined) return known;
-  if (axisLabels.size > 4000) axisLabels.clear();
-  const abs = Math.abs(value), sign = value < 0 && abs ? "−" : "";
-  // (A thousand and up in four digits and a letter: 123.5M, 1.235B.)
-  const lettered = (/** @type {number} */ n) => {
-    let tier = Math.min(SI.length - 1, Math.floor(Math.log10(n) / 3)), written = figures.format(n / 1000 ** tier);
-    if (Number(written) >= 1000 && tier < SI.length - 1) written = figures.format(n / 1000 ** ++tier);
-    return `${written}${SI[tier]}`;
-  };
-  // (Each threshold by the value as written: 999,999.6 is a million.)
-  const text = Math.round(abs) >= 1e6 ? lettered(abs) : abs >= 999.95 ? grouped.format(abs) : figures.format(abs);
-  // (Too wide (a small fraction, past the last letter's thousands), with a power of ten: 1.235e-4, 1.235e30.)
-  const fit = text.length <= PRECISE.length ? text : abs >= 999.95 ? lettered(abs) : "";
-  const label = `${sign}${fit && fit.length <= PRECISE.length ? fit : scientific(abs)}${suffix}`;
-  axisLabels.set(key, label);
-  return label;
-}
-function duration(seconds) {
-  const days = Math.abs(seconds) / 86400;
-  if (days * 24 < 1) return plural(Math.max(1, Math.round(days * 1440)), "minute");
-  if (days < 2) return plural(Math.round(days * 24), "hour");
-  if (days < 90) return `${Math.round(days)} days`;
-  if (days < 730) return `${Math.round(days / 30.44)} months`;
-  return `${(days / 365.25).toFixed(1)} years`;
-}
-
-/** Relative change between two values, unsigned: "12.34%", or "17.25×" once it has grown tenfold; null when it has no meaning. */
-function growth(from, to) {
-  if (!(from > 0) || !(to >= 0)) return null;
-  const ratio = to / from;
-  return { up: ratio >= 1, text: ratio >= 10 ? `${precise(ratio)}×` : `${precise(Math.abs(ratio - 1) * 100)}%` };
-}
-
-/** An unsigned difference in a unit: percentages differ by points, ratios by plain numbers. */
-const amount = (delta, unit) => (unit === "percent" ? `${precise(Math.abs(delta))} pt` : format(Math.abs(delta), unit === "ratio" ? "number" : unit));
-
-/** Words of series names and catalog folders, written the way people write them. */
-const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "vocdd", "hodl", "rbf", "cpfp", "tx", "pnl"]);
-const WORDS = { addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs" };
-/** A percentile as said, its decimal point an underscore or a dot: "p5" 5th percentile, "p0_1" 0.1st, "p99_9" 99.9th. */
-const percentileWord = (text) => ((p) => p && `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"} percentile`)(/^p(\d+(?:[._]\d+)?)$/.exec(text)?.[1].replace("_", "."));
-const word = (text) => WORDS[text] ?? percentileWord(text) ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
-const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
-/** A series id as words, a percentile's decimal point kept: "supply_in_loss_rarity_p99_9" …rarity 99.9th percentile. */
-const humanize = (name) => capitalized(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").split("_").filter(Boolean).map(word).join(" "));
-/** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole, "p99_5ToP99_9" 99.5th percentile to 99.9th percentile. */
-const humanizeKey = (key) => capitalized(key.replace(/^_/, "").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
-function ago(time) {
-  const minutes = Math.round((Date.now() - time) / 60000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.round(minutes / 60);
-  if (hours < 48) return `${hours}h ago`;
-  return `${Math.round(hours / 24)}d ago`;
-}
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-/** Whether a window over time is told with its times: at a fine interval, two days or less. */
-const showsTimes = (from, to, fine) => fine && to - from < 2 * 86400;
 /**
  * A window over time, as tight as it reads: years shortened (’23), times only within two days, a year both ends
  * share said once ("1 Mar", "12 Jun ’26"; each end stands at its own edge of the navigator's window); its points as
@@ -1604,182 +615,18 @@ function spanParts(from, to, index = shownIndex()) {
   if (sameMonth && a.getUTCDate() === b.getUTCDate()) return [`${day(b)} ${year(b)}`];
   return [day(a), `${day(b)} ${year(b)}`];
 }
-/** A month as the page writes it: "Sep 2022" (`whole`: "September 2022"), in UTC. */
-const monthYear = (/** @type {number} */ time, whole = false) => {
-  const at = new Date(time * 1000);
-  return `${whole ? capitalized(MONTH_NAMES[at.getUTCMonth()]) : MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
-};
-/** A date as the page writes it: "25 Sep 2022" (and "14:30", for fine intervals), in UTC. */
-const dateLabel = (/** @type {number} */ time, /** @type {boolean} */ fine) => {
-  const at = new Date(time * 1000), day = `${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
-  return fine ? `${day}, ${String(at.getUTCHours()).padStart(2, "0")}:${String(at.getUTCMinutes()).padStart(2, "0")}` : day;
-};
 
 // ── Formulas ──────────────────────────────────────────────────────────────
 
-/** Functions whose window takes two points at least. */
-const TWO_POINTS = new Set(["stdev", "zscore", "volatility", "chop", "rsi", "stochrsi", "stochrsi_k", "stochrsi_d", "macd", "macd_signal", "macd_hist"]);
-/** The language's own values, each point's: its date and its year (year(…) a function besides). */
-const VALUES = new Set(["date", "year"]);
-
-/** The comparisons, each 1 where true, 0 where false. */
-const COMPARES = new Set(["<", ">", "<=", ">=", "==", "!="]);
 /** A formula on a series by its name, the way a new formula on an empty chart starts. */
 const EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
 
-const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "flow", "abs", "macd", "macd_signal", "macd_hist", "when"]);
-/** Functions whose result is a percent, whatever their input's unit. */
-const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
-/** Functions reading more than their arguments (halving cycles' epochs) or how they're written (rebase of a shift): computed each time. */
-const UNSHARED = new Set(["halving", "shift", "rebase"]);
-/** Each operator on two numbers. @type {Record<string, (x: number, y: number) => number>} */
-const POINTWISE = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "==": either((x, y) => x === y), "!=": either((x, y) => x !== y), "&": and, "|": or };
-
 // ── Charts: the document ──────────────────────────────────────────────────
 
-/**
- * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, maxInterval?: string, color: string,
- *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, fit?: false | "zero", size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
- *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
- *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
- *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: string[], cumulative?: true, cohortColors?: Record<string, string>, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
- *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
- *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
- *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
- *   or the highest, flipping when its reference (`ref`: a layer's id, one of one value, not one of them) touches it
- *   (see trendOf). Short of what it needs, it says so.
- *   A signal ("signal"): a formula read as a state, up (above 0), down (below) or off (0; a condition is up where
- *   true), marked on another layer (`ref`, the first that can carry marks if none) where it turns up or down, `place`
- *   (above it, unset; below; on it: an up mark's, a down one's mirrored), or shaded while up or down ("shade"); up
- *   in its color, down in its second (`colorBelow`, red unset). `results`: each stretch's result on the mark that ends it (see
- *   stretchResult).
- *   Bubbles ("bubbles"): its values as bubbles on another layer (`ref`, the first that can carry them if none;
- *   none, "": along its pane's middle), each date's at that layer's value there, its area its own value's size (see
- *   Bubbles): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
- *   sized against all of its history (unset: what's in view); above zero in its color, below in its second
- *   (`colorBelow`, red unset; `colors` 1, its one).
- *   `fit` "zero": a linear axis includes zero; false: its axis framed without it (see fittable), drawn where its values are, past the plot's edge if
- *   they're far: a spike, a far tail.
- *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
- *   bars', a cloud's or a trend's (not a baseline's, nor candles').
- *   `byLevels`: colored by its levels instead: above each, that level's color; under them all, its own (a line's,
- *   dots', an area's or bars'; never with `colorFrom`). A line or an area by height, parted where it crosses a level
- *   (stacked, at its total, date by date); dots and bars each by their own value.
- *   `byGradient`: colored by its value instead, date by date, along its `gradient`: its stops (2 to 4, each where it
- *   is from 0% to 100% of the way from its lowest value to its highest, and its color), mixed between them; past its
- *   outer ones, theirs. Its lowest and highest of all its history (at a fine interval, of what it holds), or
- *   (`upToDate`) of its history up to each date (no hindsight). A heatmap's: by its cells' strength (see
- *   heatColor). Its gradient kept while it's colored otherwise. Never with `colorFrom`, `byLevels`, `byLayers`.
- *   `byLayers`: a cloud's, colored by its layers: each one's own where it's over, following them (its `color` and
- *   `colorBelow` theirs, see layersColors; never with `colorFrom`).
- *   `colors`: bars' (their two, above and below their base, unset): 1, their one; 4, MACD's, each side's own where a
- *   bar grows from the base, fainter where it fades back toward it (`colorFading` above, `colorBelowFading` below;
- *   unset, each side's color fainter: see fadingOf). A trend's or a cloud's 1: its one, its second (`colorBelow`) kept. Colors
- *   picked stay, whichever way it's colored.
- * @typedef {{ value: number, color?: string, dash?: number, line?: false, tag?: boolean, name?: string }} Level A line
- *   across at a value: its color (else its layer's) and its line style (else long dashes; `line` false, none: its band
- *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
- *   in its color in place of the number (see bandOf; under them all, the layer's `underName`). A baseline's base draws
- *   one too (`baseLine`: gray, in sparse dots).
- * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean, average?: string }} Pane `reverse`:
- *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
- * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
- *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
- * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], made?: string, drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
- * @typedef {"trend" | "path" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
- * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
- *   opacity?: number, start?: End, end?: End, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
- *   Drawn on a layer,
- *   on its scale: each point a time (unix
- *   seconds) and a value as the layer reads; it goes with its layer. A trend line's or a path's `start` and `end` (its
- *   first point's, its last's): an arrowhead there, or on past it to the plot's edge (see ENDS). A path: a line through
- *   two points or more, in their order. A text is a tag at its point (its middle), as a line's label is:
- *   one size whatever the zoom (`size`, a preset; a line's label's too). A line's `label` sits `at` a share of the
- *   way along it: a trend line's, from its first point to its second; a line across's, across the plot; down, down it.
- */
-
-const TOOLS = /** @type {Record<DrawingKind, { name: string, noun: string, verb: string, key: string, tip: string, keys: string, icon: string }>} */ ({
-  trend: { name: "Trend line", noun: "trend line", verb: "Draw a trend line", key: "L", tip: `Drag, or ${CLICK} its two ends`, keys: "Arrows to each end, ↵ to place it", icon: ICONS.trend },
-  path: { name: "Path", noun: "path", verb: "Draw a path", key: "P", tip: `${capitalized(CLICK)} each of its points, the last again to finish`, keys: "Arrows to each point, ↵ to place it, ↵ again to finish", icon: ICONS.path },
-  hline: { name: "Horizontal line", noun: "horizontal line", verb: "Draw a horizontal line", key: "H", tip: `${capitalized(CLICK)} at its value`, keys: "Arrows to its value, ↵ to place it", icon: ICONS.hline },
-  vline: { name: "Vertical line", noun: "vertical line", verb: "Draw a vertical line", key: "V", tip: `${capitalized(CLICK)} at its date`, keys: "Arrows to its date, ↵ to place it", icon: ICONS.vline },
-  rect: { name: "Rectangle", noun: "rectangle", verb: "Draw a rectangle", key: "R", tip: `Drag, or ${CLICK} two corners`, keys: "Arrows to each corner, ↵ to place it", icon: ICONS.rect },
-  ellipse: { name: "Ellipse", noun: "ellipse", verb: "Draw an ellipse", key: "E", tip: `Drag, or ${CLICK} two corners`, keys: "Arrows to each corner, ↵ to place it", icon: ICONS.ellipse },
-  text: { name: "Text", noun: "text", verb: "Write on the chart", key: "T", tip: `${capitalized(CLICK)} where it goes, then type`, keys: "Arrows to where it goes, ↵, then type", icon: ICONS.text },
-  brush: { name: "Brush", noun: "stroke", verb: "Draw with the brush", key: "B", tip: "Draw freely", keys: "Draw freely, with a pointer", icon: ICONS.brush },
-  ruler: { name: "Ruler", noun: "ruler", verb: "Measure a change", key: "M", tip: "Drag across the chart to measure a change", keys: "Arrows to each end, ↵ to place it", icon: ICONS.ruler },
-});
-const KINDS = /** @type {DrawingKind[]} */ (Object.keys(TOOLS));
-/** What the magnifier shows, as its tool's hint says it (by touch, under the finger). */
-const LENS_SAYS = `the chart under ${TOUCH ? "your finger" : "the pointer"} at twice the size`;
-/** The kinds placed by two points: a line's ends, a box's corners. */
-const PAIRED = new Set(["trend", "rect", "ellipse", "ruler"]);
-/** The kinds drawn through their points, one to the next (a trend line's two, a path's as many): its ends' looks, its segments. */
-const THROUGH = new Set(["trend", "path"]);
-/** The kinds held by each of their points (reshaped by one, told on the axes): two-point kinds' and a path's. */
-const POINTED = new Set([...PAIRED, "path"]);
-/** The kinds that are boxes: taken by their corners, resized. */
-const BOXES = new Set(["rect", "ellipse", "ruler"]);
-/** The lines, each with a label it can carry (double-clicked on), slid along it. */
-const LINES = new Set(["trend", "hline", "vline"]);
-/** A label as kept: one line, 80 characters at most. */
-const LABEL_MAX = 80, labelText = (/** @type {string} */ text) => text.replace(/\s+/g, " ").trim().slice(0, LABEL_MAX);
-/**
- * The halvings: each block a multiple of 210,000 cut the reward in half; these, as they were mined (210,000 to
- * 840,000). The next, a block every ten minutes from the tip's: an estimate, drawn as one.
- */
-const KNOWN_HALVINGS = [1354116278, 1468082773, 1589225023, 1713571767], HALVING_BLOCKS = 210_000;
 /** The halvings mined so far: those known, and any since, placed from the tip's time back (a block each ten minutes). */
 const minedHalvings = () => [...KNOWN_HALVINGS, ...Array.from({ length: Math.max(0, Math.floor(liveHeight / HALVING_BLOCKS) - KNOWN_HALVINGS.length) }, (_, k) => (liveAt || Date.now() / 1000) - (liveHeight - (KNOWN_HALVINGS.length + k + 1) * HALVING_BLOCKS) * 600)];
 /** The halvings to come, the next `count`, estimated (a block each ten minutes from the tip): each its number and time. */
 const nextHalvings = (count = 3) => (liveHeight ? Array.from({ length: count }, (_, k) => ((n) => ({ n, time: Date.now() / 1000 + (n * HALVING_BLOCKS - liveHeight) * 600 }))(Math.floor(liveHeight / HALVING_BLOCKS) + 1 + k)) : []);
-/** At most this many drawings, a stroke at most this many points: all of it still fits in a link (two megabytes at most). */
-const MAX_DRAWINGS = 100, MAX_STROKE = 300;
-/** A drawing's point as kept: its time to the second, its value as it is (any rounding moves it on a scale zoomed in far enough). */
-const pointOf = (/** @type {number} */ time, /** @type {number} */ value) => /** @type {[number, number]} */ ([Math.round(time), value]);
-/**
- * A trend line's ends, each its own (its first point's, its second's): at its point, an arrowhead there, or on past it
- * to the chart's edge. @typedef {"arrow" | "extend"} End @type {[End | "", string, string][]}
- */
-const ENDS = [["", "Plain", "Ends at its point"], ["arrow", "Arrow", "An arrowhead at its point"], ["extend", "Extended", "On past its point, to the chart's edge"]];
-const isEnd = (/** @type {unknown} */ value) => value === "arrow" || value === "extend";
-
-/** Words' sizes, in pixels (a text's, a line's label's): presets, one size whatever the zoom; Medium unless chosen. */
-const SIZES = [11, 13, 16, 22], TEXT_SIZE = 13;
-const SIZE_NAMES = { 11: "Small", 13: "Medium", 16: "Large", 22: "Huge" }, SIZE_SHORT = { 11: "S", 13: "M", 16: "L", 22: "XL" };
-/** What's behind words (a text's, a line's label's): nothing (a line breaks around them), a border, a soft fill of their color (and a border), or their color, the words in contrast. */
-const BACKS = [["", "None", "Just the words"], ["outline", "Outline", "A border around the words"], ["soft", "Soft", "On a soft fill of its color"], ["soft-outline", "Soft, outlined", "On a soft fill, a border around"], ["solid", "Solid", "On its color, the words in contrast"]];
-/** The preset nearest a size (between two, the larger). */
-const presetSize = (/** @type {number} */ size) => SIZES.reduce((best, each) => (Math.abs(each - size) <= Math.abs(best - size) ? each : best));
-/** The pen's color at first: an annotation's, apart from the colors layers take first (ink, orange, blue, green). */
-const PEN_COLOR = "yellow";
-function lookOfDrawing(kind, input) {
-  return {
-    color: isColor(input?.color) ? input.color : PEN_COLOR,
-    width: WIDTHS.includes(input?.width) ? input.width : 1.5,
-    dash: DASHES.some(([dash]) => dash === input?.dash) ? input.dash : 0,
-    ...(kind !== "ruler" && OPACITIES.includes(input?.opacity) && input.opacity < 1 ? { opacity: input.opacity } : {}),
-    ...(THROUGH.has(kind) && isEnd(input?.start) ? { start: input.start } : {}),
-    ...(THROUGH.has(kind) && isEnd(input?.end) ? { end: input.end } : {}),
-    ...((kind === "text" || LINES.has(kind)) && Number.isFinite(input?.size) ? { size: presetSize(input.size) } : {}),
-    ...((kind === "text" || LINES.has(kind)) && BACKS.some(([back]) => back && back === input?.back) ? { back: input.back } : {}),
-  };
-}
-
-const letterAt = (n) => (n < 26 ? String.fromCharCode(65 + n) : String.fromCharCode(64 + Math.floor(n / 26)) + String.fromCharCode(65 + (n % 26)));
-/** @param {Chart} doc */
-function nextLetter(doc) {
-  // Letters still mentioned by a formula stay taken: a new layer never silently becomes what a formula reads.
-  const used = new Set(doc.layers.map((layer) => layer.letter));
-  for (const layer of doc.layers) for (const [ref] of (layer.formula ?? "").matchAll(/(?<![A-Za-z0-9_])[A-Z]{1,2}(?![A-Za-z0-9_])/g)) used.add(ref);
-  for (let n = 0; ; n++) if (!used.has(letterAt(n))) return letterAt(n);
-}
-/** @param {Chart} doc */
-function nextColor(doc) {
-  const used = doc.layers.map((layer) => layer.color);
-  return PALETTE.find((color) => !used.includes(color)) ?? PALETTE[doc.layers.length % PALETTE.length];
-}
-
 /**
  * A series' first look: as the presets draw it most (its color, its type: see looksOf); else
  * by what Bitview says it is (its type, from what's known of it: an added one's, asked for; a link's, if it's been
@@ -1806,11 +653,6 @@ const seriesLook = (name, asked) => {
 const firstForm = (name, asked) => (({ look, told }) => ({ ...(look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(told?.colors ? { colors: told.colors } : {}) }))(seriesLook(name, asked));
 /** Whether Bitview says a series is open-high-low-close (its type, as known: asked for already). */
 const isOhlc = (/** @type {string} */ name) => /^OHLC/.test(known.get(name)?.type ?? "");
-/** @param {Partial<Layer>} spec @param {Chart} doc @returns {Layer} */
-function makeLayer(spec, doc) {
-  return { id: uid(), letter: nextLetter(doc), color: nextColor(doc), type: "line", width: 1.5, dash: 0, pane: doc.panes[0]?.id ?? "", side: "right", ...spec };
-}
-
 /** Layers removed this session, by chart and letter: a formula still naming one says what it was. */
 const removedNames = new Map();
 /** Why a letter names no layer, where one was removed: "Realized price (B) was removed". */
@@ -1819,26 +661,6 @@ const goneLayer = (/** @type {Chart} */ doc, /** @type {string} */ letter) => ((
 const ownerOf = (layer) => ((docs) => docs.find((doc) => doc?.layers.includes(layer)) ?? docs.find((doc) => doc?.layers.some((item) => item.id === layer.id)))([chart, ...previewCharts, ...library.charts, ...library.presets]);
 /** The layers it's made from, by their letters, in its order. @param {{ from?: string[] }} layer @param {Chart | null} [doc] */
 const fromLetters = (layer, doc = ownerOf(/** @type {Layer} */ (layer))) => (layer.from ?? []).flatMap((id) => ((item) => (item ? [item.letter] : []))(doc?.layers.find((one) => one.id === id)));
-/** A cloud's edges, either of its two or both: its pane's top, its bottom (from the other up to there, or down to it). */
-const EDGES = ["top", "bottom"];
-const edgesOf = (/** @type {{ from?: string[] }} */ layer) => EDGES.filter((edge) => layer.from?.includes(edge));
-/** An edge, by name: what it's said as, and its icon. */
-const EDGE_NAMES = /** @type {Record<string, string>} */ ({ top: "The pane's top", bottom: "The pane's bottom" });
-const edgeIcon = (/** @type {string} */ edge) => (edge === "top" ? ICONS.toTop : ICONS.toBottom);
-/** Members as given that can be: layers there, none made from layers (a cloud's edges too), each once. @param {Chart} doc @param {Iterable<string>} members */
-const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from && !placedOn(item) && !heatLike(item)));
-/**
- * What it's made from, as kept (membersOf): a cloud's all, as given (two, its colors say which one's over), a
- * trend's in the chart's order. @param {Chart} doc @param {Iterable<string>} members
- */
-const fromOf = (doc, members, type = "") => ((ids) => (type === "cloud" ? ids : doc.layers.filter((item) => ids.includes(item.id)).map((item) => item.id)))(membersOf(doc, members, type === "cloud"));
-/** A cloud's layers, its pane's edges aside. @param {{ from?: string[] }} layer */
-const cloudLayers = (layer) => (layer.from ?? []).filter((id) => !EDGES.includes(id));
-/**
- * Members with one ticked on or off, in the chart's order (a cloud's pane's edges after its layers): picked, they
- * read as the chart does. @param {Chart} doc @param {Iterable<string>} members @param {string} member
- */
-const toggleMember = (doc, members, member) => ((set) => (set.has(member) ? set.delete(member) : set.add(member), [...doc.layers.map((layer) => layer.id), ...EDGES].filter((id) => set.has(id))))(new Set(members));
 /** What it's made from, as written: its layers' letters, a cloud's edges as said ("the top"). @param {Layer} layer @param {Chart | null} [doc] */
 const fromSpan = (layer, doc = ownerOf(layer)) => (layer.from ?? []).flatMap((id) => (EDGES.includes(id) ? [`the ${id}`] : ((item) => (item ? [item.letter] : []))(doc?.layers.find((one) => one.id === id)))).join(", ");
 /**
@@ -1851,23 +673,12 @@ const fromShort = (layer, doc = chart) => {
   // (Their values read as one: on one scale, what flips a trend too.)
   return ids.length < 2 ? (layer.type === "cloud" ? "Pick what it's between" : "Select two layers") : members.some((other) => !oneScale(other, first)) ? ONE_SCALE : layer.type !== "trend" || doc?.layers.some((other) => !other.from && !placedOn(other) && !ids.includes(other.id) && (!first || oneScale(other, first))) ? "" : layer.ref && doc?.layers.some((other) => other.id === layer.ref) ? FLIP_APART : TREND_FLIP;
 };
-/** Whether two layers are on one scale (their pane, their side): a cloud or a trend reads its layers' values as one. @param {Layer} a @param {Layer} b */
-const oneScale = (a, b) => a.pane === b.pane && a.side === b.side;
-/** A cloud's or a trend's first layer (not an edge), none if it has none. @param {Chart} doc @param {{ from?: string[] }} layer */
-const placedBy = (doc, layer) => doc.layers.find((other) => other.id === layer.from?.find((id) => !EDGES.includes(id))) ?? null;
-/** The layers a layer goes with: a cloud's or a trend's (not its pane's edges), a signal's own; else none. @param {Layer | null | undefined} layer */
-const goesWith = (layer) => (layer && placedOn(layer) ? (layer.ref ? [layer.ref] : []) : (layer?.from ?? []).filter((id) => !EDGES.includes(id)));
-/** Whether a layer goes where its layers go: a cloud or a trend of any (one of its pane's edges alone, or of none, is put), a signal marked on one. @param {Layer | null | undefined} layer */
-const follows = (layer) => goesWith(layer).length > 0;
 /**
  * Whether a layer can be one a cloud or a trend (`self`, made; none: to be made) is between: not made from layers, not
  * a signal, not one reading it (a loop), on one scale with `on` (one it'd be with: its first, the other of a cloud's
  * two; none, any). @param {Layer} item
  */
 const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && !placedOn(item) && !heatLike(item) && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
-/** Whether some of a cloud's or a trend's layers (what flips it too) are on another scale than it: their values not one's. @param {Chart} doc @param {Layer} layer */
-const offScale = (doc, layer) => [...(layer.from ?? []), ...(layer.type === "trend" && layer.ref ? [layer.ref] : [])].some((id) => ((other) => other && !oneScale(other, layer))(doc.layers.find((item) => item.id === id)));
-const TREND_FLIP = "Needs a third layer, such as a price, to flip it", ONE_SCALE = "Not on one scale", FLIP_APART = "What flips it is on another scale";
 /** A trend's room on the chart: three layers not made from layers on one scale (two it rides, one to flip it), else why not. */
 const trendShort = () => {
   const bases = chart.layers.filter((layer) => !layer.from && !placedOn(layer));
@@ -1890,30 +701,12 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  * @param {Chart} doc @param {Layer} layer
  */
 const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
-
-const MAX_PANES = 12, MAX_LEVELS = 12;
-/** Layers enough that a chart's build takes more than a frame or two on a phone without its JIT (six daily series, some 36,000 points: ~100 ms): see draw. */
-const MANY_LAYERS = 6;
-/** A formula's length at most: typed, as read from a link or a file. */
-const FORMULA_MAX = 2000;
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
  * @param {Chart} doc @param {string} unit
  */
 const paneShowing = (doc, unit) => doc.panes.find((candidate) => !candidate.stack && doc.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
-/** A new pane, or the last one once a chart has as many as it can hold. @param {Chart} doc */
-function newPaneIn(doc) {
-  if (doc.panes.length >= MAX_PANES) return doc.panes[doc.panes.length - 1];
-  const pane = { id: uid(), mode: 0 };
-  doc.panes.push(pane);
-  return pane;
-}
-
-/** @returns {Chart} */
-function blankChart(title = "") {
-  return { id: uid(), title, index: "day1", range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
-}
 /** Charts started empty in their stead, nothing else there (a first visit, the last one deleted): the person's own from their first edit (a link's preview is kept only by Keep). */
 const drafts = new WeakSet();
 /**
@@ -1936,11 +729,6 @@ const touchPreview = (doc) => void (touched.add(doc), asideDirty.add(doc));
  * so a reload, or a tab the phone put away, finds it again (till it's saved or closed). @param {Chart} doc
  */
 const keepAsideOpened = (doc) => void (isPreview(doc) && !drafts.has(doc) && (asideDirty.add(doc), save()));
-
-/** Pools mempool renamed (old slug, new): their key and their series' ids both change, so neither finds the other below. */
-const POOLS_RENAMED = /** @type {[string, string][]} */ ([["btccom", "cloverpool"]]);
-const poolSeries = (/** @type {string} */ name) => POOLS_RENAMED.reduce((n, [from, to]) => (n.startsWith(`pool_${from}_`) ? `pool_${to}_${n.slice(from.length + 6)}` : n), name);
-const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from, to]) => (p.startsWith(`pools.${from}.`) ? `pools.${to}.${p.slice(from.length + 7)}` : p), path);
 /** A chart saved or linked under a pool's old name, on its new one. @param {Layer} layer */
 function followPool(layer) {
   if (layer.series) layer.series = poolSeries(layer.series);
@@ -2278,7 +1066,7 @@ const FOLDER_ICONS = ["candles", "scale", "coins", "people", "hourglass", "perce
 /** A name's first letter, as a folder's mark shows it. */
 const letterOf = (/** @type {string} */ name) => ([...name.trim()][0] ?? "?").toUpperCase();
 /** A folder's mark, wherever it's listed (the sidebar, the rail, menus): its icon if it has one, else its first letter. */
-const folderMark = (/** @type {Folder} */ folder) => (folder.icon && ICONS[folder.icon] ? `<span class="chart-mark section-mark" aria-hidden="true">${ICONS[folder.icon]}</span>` : `<span class="chart-mark folder-mark" aria-hidden="true">${escape(letterOf(folder.name))}</span>`);
+const folderMark = (/** @type {Folder} */ folder) => (folder.icon && ICONS[folder.icon] ? `<span class="chart-mark section-mark" aria-hidden="true">${ICONS[folder.icon]}</span>` : `<span class="chart-mark folder-mark" aria-hidden="true">${escapeHtml(letterOf(folder.name))}</span>`);
 /** A preset section's mark: a top one's own icon; else a folder's, open or closed. */
 const sectionMark = (/** @type {PresetNode | null | undefined} */ node, open = false) => (node?.icon ? `<span class="chart-mark section-mark">${ICONS[node.icon]}</span>` : `<span class="chart-mark folder-glyph">${open ? ICONS.folderOpen : ICONS.folder}</span>`);
 function foldersOf(/** @type {any} */ stored, /** @type {Chart[]} */ charts) {
@@ -2490,26 +1278,6 @@ function inLibrary(doc) {
   return library.charts.some((other) => other.id === doc.id);
 }
 /**
- * Work for a moment the page is idle, given how long it has: at the latest after `timeout` ms. Without idle
- * callbacks (Safari), after `settle` ms, with a slice of 8.
- * @param {(deadline: { timeRemaining: () => number }) => void} work
- */
-const whenIdle = (work, { timeout = 1000, settle = 40 } = {}) => void ("requestIdleCallback" in window ? requestIdleCallback(work, { timeout }) : setTimeout(() => {
-  const end = performance.now() + 8;
-  work({ timeRemaining: () => Math.max(0, end - performance.now()) });
-}, settle));
-/**
- * Work in steps, a slice of them in an idle moment (`deadline`): as long as its time lasts, 2 to 8 ms (one step at
- * least: a callback timed out has none left), none of it a long task (a phone's engine without a JIT), the rest
- * asked for (`again`) in the next; none (asked now), all at once. `step` does one, true once there's none left.
- * @param {{ timeRemaining: () => number } | undefined} deadline @param {() => boolean} step
- * @param {(deadline: { timeRemaining: () => number }) => void} again
- */
-function inSlices(deadline, step, again) {
-  const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
-  while (!step()) if (performance.now() >= until) return void whenIdle(again);
-}
-/**
  * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
  * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
  * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
@@ -2617,8 +1385,6 @@ let chartChanged = false;
 /** The sidebar's groups, in its order (Home's doors too), each its name and its page. @typedef {"recent" | "previews" | "library" | "presets"} Group */
 const GROUPS = /** @type {Group[]} */ (["recent", "previews", "library", "presets"]);
 const GROUP_OF = /** @type {Record<Group, [string, Place]>} */ ({ recent: ["Recent", { recent: true }], previews: ["Previews", { previews: true }], library: ["Library", { folder: "" }], presets: ["Presets", { path: [] }] });
-/** A group's mark, before its name (on the rail, its head): the previews', what's looked at; your Library's, what's kept; the presets'. */
-const GROUP_MARK = /** @type {Record<Group, string>} */ ({ recent: "recent", previews: "eye", library: "keep", presets: "presets" });
 /** Preferences as stored, read (each its default where it's missing or isn't one). */
 function readPrefs(/** @type {any} */ stored) {
   return {
@@ -3383,16 +2149,6 @@ function within({ from, to }, keep = "middle", most = mostBars()) {
 function ontoData(range) {
   const shift = engine.time.length ? engine.time.held(range.from, range.to) : 0;
   return shift ? { from: range.from + shift, to: range.to + shift } : null;
-}
-/** The first of sorted times at or after a time (their count, past the last). @param {ArrayLike<number>} times @param {number} time */
-function lowerBound(times, time) {
-  let lo = 0, hi = times.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (times[mid] < time) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
 }
 /** An edge back on the chart: the bar holding its time (past the data, counted by the calendar), and the bars from there. */
 const logicalOf = (/** @type {[number, number]} */ [time, bars], /** @type {number[]} */ times, /** @type {string} */ index) => (time > /** @type {number} */ (times.at(-1)) ? times.length - 1 + indexAt(index, time) - indexAt(index, /** @type {number} */ (times.at(-1))) : Math.max(0, lowerBound(times, time + 1) - 1)) + bars;
@@ -4493,6 +3249,8 @@ const pending = () => drawVersion > (resolved?.version ?? 0);
 /** A build asked for (see buildSoon): its frame's request (-1: run at once, a hidden tab's), and whether it fits the view anew. */
 let buildAsked = 0, buildRefit = false;
 
+/** Layers enough that a chart's build takes more than a frame or two on a phone without its JIT (six daily series, some 36,000 points: ~100 ms): see draw. */
+const MANY_LAYERS = 6;
 /**
  * Cached data keeps each edit's rebuild cheap (missing data fetched first).
  * @returns {Promise<boolean>} whether it drew (a newer draw can take its place)
@@ -6046,14 +4804,14 @@ function renderBelt() {
   const tools = BELT_TOOLS.map((each) => {
     const { name, tip = name, key, kbd, icon } = beltTool(each);
     // (The ways of looking, the magnifier and the drawings' eye, apart from the ways of drawing.)
-    return `${each === "magnifier" ? '<i class="belt-rule"></i>' : ""}<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" data-tip="${escape(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+    return `${each === "magnifier" ? '<i class="belt-rule"></i>' : ""}<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" data-tip="${escapeHtml(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
   }).join("") + (chart.drawings?.length ? `<button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings (they're kept)"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
-  const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escape(label)}" data-tip="${escape(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
+  const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escapeHtml(label)}" data-tip="${escapeHtml(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
   // Each look shown as the first drawing that has it has it; set, it's set on each that has it.
   const has = (/** @type {string} */ part) => [...kinds].some((each) => hasLook(each, part));
   const context = !kinds.size ? "" : [
     ...(has("color") ? [
-      button("color", `Color: ${colorName(look("color").color)}`, `<i class="swatch" style="--c:${escape(cssColor(look("color").color))}"></i>`),
+      button("color", `Color: ${colorName(look("color").color)}`, `<i class="swatch" style="--c:${escapeHtml(cssColor(look("color").color))}"></i>`),
       button("opacity", `Opacity: ${Math.round((look("opacity").opacity ?? 1) * 100)}%`, ICONS.opacity),
     ] : []),
     ...(has("width") ? [button("width", `Width: ${look("width").width}px`, ICONS.weight), button("dash", `Line style: ${dashOf(look("dash").dash)[1]}`, dashGlyph(dashOf(look("dash").dash)[2], dashOf(look("dash").dash)[3]))] : []),
@@ -6085,7 +4843,7 @@ function renderBelt() {
   // The tools, then what's in hand; drawings selected, only theirs (esc, or a click on the chart, and the tools are back).
   const html = `<button type="button" class="grip" id="belt-grip" aria-haspopup="menu" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           <div class="belt-row ${drawings.length || context ? "" : "spread"}">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
-          ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escape(tool ? `Next ${TOOLS[tool].noun}` : drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
+          ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escapeHtml(tool ? `Next ${TOOLS[tool].noun}` : drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
           ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}`;
   // (Its words set in place: the plot taking the focus or giving it up, as a belt's button is pressed, changes only
   // them, and the button pressed stays the one clicked.)
@@ -6856,7 +5614,6 @@ function patchNode(live, a, b) {
 }
 
 // ── Mini charts: each chart's own shape, and each layer's, from their data ───────────────────────
-const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
 /**
  * A chart's mark: up to three lines, each with its kind (none: a line), its second color and its base; a heatmap's
  * wash, bubbles' dots (see validMark); and each layer's own, with its base (a baseline's, bars'), in hundredths of
@@ -7002,8 +5759,6 @@ function goTo(/** @type {Place} */ place) {
   if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
 }
 let galleryShown = GALLERY_PAGE;
-/** A shelf's steps, a page of tiles back and on (see stepShelf). */
-const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
 $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
 // (A keyboard's focus come into it (Tab, the arrows, a menu's way back to its tile), for the keys to reach each; not
 // one put there by a click's or a tap's way back from its chart: that wrote its row whole, 15 ms on a desktop.)
@@ -7433,7 +6188,7 @@ function renderCharts() {
 function writeSideList(current) {
   listOwed = false;
   /** A preview's row, its × (but the open one with nothing to go back to). */
-  const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
+  const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${chartMark(doc)}<span class="label">${escapeHtml(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escapeHtml(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
   // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
   // a chart, till something's in it.)
   // (On the rail, folders never open: each a door to what's in it, see railMenu.)
@@ -7444,8 +6199,8 @@ function writeSideList(current) {
   if (recentDrawn && recentOrder !== recentDrawn) (sideHeld = true), sideLight(null);
   recentDrawn = recentOrder;
   const row = (/** @type {Chart} */ doc, depth = 0) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
-            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}">${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span></button>
-            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}" data-tip="More">${ICONS.more}</button>
+            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}">${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escapeHtml(titleOf(doc))}</span></button>
+            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escapeHtml(titleOf(doc))}" data-tip="More">${ICONS.more}</button>
           </div>`;
   /** @type {[string, string][]} */
   const parts = [
@@ -7456,7 +6211,7 @@ function writeSideList(current) {
     // The charts last opened first (the open one at their top, lit), under their head; then the previews under
     // theirs, then your charts under theirs (told apart; none, no heads), a new chart first among yours (where it'll
     // be once something's in it).
-    ...(recents.length ? [sideHead("recent", recents.length, false), ...(groupShut("recent") ? [] : recents.map((item) => /** @type {[string, string]} */ ([`recent:${item.id}`, `<div class="chart-row" data-recent-row="${item.id}" style="--depth: 0"><button type="button" class="nav-item chart-item" data-open-recent="${item.id}" data-tip="${escape(titleOf(item.doc))}">${recentMark(item)}<span class="label">${escape(titleOf(item.doc))}</span></button></div>`])))] : []),
+    ...(recents.length ? [sideHead("recent", recents.length, false), ...(groupShut("recent") ? [] : recents.map((item) => /** @type {[string, string]} */ ([`recent:${item.id}`, `<div class="chart-row" data-recent-row="${item.id}" style="--depth: 0"><button type="button" class="nav-item chart-item" data-open-recent="${item.id}" data-tip="${escapeHtml(titleOf(item.doc))}">${recentMark(item)}<span class="label">${escapeHtml(titleOf(item.doc))}</span></button></div>`])))] : []),
     ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
     // (Yours under their name, always: closed, it's the way to open them again.)
     sideHead("library", library.charts.length, Boolean(current && !isPreview(current) && current.preset === undefined)),
@@ -7468,9 +6223,9 @@ function writeSideList(current) {
       if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
       const folder = item, closed = folder.closed || rail, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
       return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escape(folder.name)}">${folderMark(folder)}<span class="label">${escape(folder.name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
-              <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ folder: folder.id }))}" aria-label="View ${escape(folder.name)}" data-tip="View">${ICONS.arrowRight}</button>
-              <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}" data-tip="More">${ICONS.more}</button>
+              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(folder.name)}">${folderMark(folder)}<span class="label">${escapeHtml(folder.name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
+              <button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify({ folder: folder.id }))}" aria-label="View ${escapeHtml(folder.name)}" data-tip="View">${ICONS.arrowRight}</button>
+              <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escapeHtml(folder.name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
     })]),
     ...presetParts(),
@@ -7749,7 +6504,7 @@ dragToReorder($("chart-list"), {
   // (A row's → and ⋯ pressed: theirs, not a drag.)
   refuse: (event) => Boolean(closest(event, ".chart-go, .chart-more")),
   idOf: sideId,
-  label: (id) => (id.startsWith("f:") ? ((folder) => (folder ? `${folderMark(folder)}<span class="name">${escape(folder.name)}</span>` : ""))(folderById(id.slice(2))) : chartLabel(id.slice(2))),
+  label: (id) => (id.startsWith("f:") ? ((folder) => (folder ? `${folderMark(folder)}<span class="name">${escapeHtml(folder.name)}</span>` : ""))(folderById(id.slice(2))) : chartLabel(id.slice(2))),
   landing: (x, y, ids) => {
     const places = placesFor(ids), under = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-folder-row]"));
     const onto = under && places.includes(under) ? under : null;
@@ -8040,8 +6795,6 @@ function missedRoute(address) {
   }
   notice(missedSaid(address));
 }
-/** Share links open this copy, whose storage belongs to its origin. */
-const ORIGIN = `${location.origin}/studio`;
 /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
 let started = false;
 // (Nothing acted on before then (no chart open yet, a link still being read): a key, a press or a click, let go of,
@@ -8254,7 +7007,6 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
 // Read once the page has settled: the recommended cards fill in, and ⌘K finds them at once.
 renderRecommended();
 void loadPresets().catch(() => {});
-const PANE_SETTINGS = new Set(["scale", "stack", "order", "average"]);
 document.addEventListener("fullscreenchange", () => !document.fullscreenElement && fullOn() && setFull(false));
 // (Full screen slides the header up by its own height, as it is: a phone's, a desktop's.)
 new ResizeObserver(([entry]) => /** @type {HTMLElement} */ (document.querySelector(".app")).style.setProperty("--head-height", `${entry.borderBoxSize[0].blockSize}px`)).observe(/** @type {HTMLElement} */ (document.querySelector(".card-head")));
@@ -8327,15 +7079,15 @@ function writeLayers() {
         // its tip, under its name, when either's cut short.)
         const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : heatLike(layer) ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
         // (Its letter heading its second line, its mark leading the row: see .row-mark.)
-        const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}><span class="sub-letter">${letterChip(layer)}</span>${escape(subText)}</span>`;
+        const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escapeHtml(result.detail)}"` : ""}><span class="sub-letter">${letterChip(layer)}</span>${escapeHtml(subText)}</span>`;
         return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
-                <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
-                <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
-                  <span class="row-mark" style="--c:${escape(ink(layer.color))}">${seriesMark(layer)}</span>
-                  <span class="row-text"><span class="name">${escape(viewName(chart, layer))}</span>${sub}</span>
+                <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escapeHtml(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escapeHtml(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
+                <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escapeHtml(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
+                  <span class="row-mark" style="--c:${escapeHtml(ink(layer.color))}">${seriesMark(layer)}</span>
+                  <span class="row-text"><span class="name">${escapeHtml(viewName(chart, layer))}</span>${sub}</span>
                   <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}<span class="row-note"></span></span>
                 </button>
-                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
+                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escapeHtml(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
       })(layer)]))];
     return { key: pane.id, open: `<section class="pane-group" data-pane="${pane.id}">`, rows };
@@ -8363,7 +7115,7 @@ function writeLayers() {
 // Layers dragged: before a layer (or after, on its lower half), in its pane; or below, into a new pane.
 dragToReorder($("layer-list"), {
   item: ".layer-row[data-layer]",
-  label: (id) => ((layer) => (layer ? `${letterChip(layer)}<span class="name">${escape(labelOf(layer))}</span>` : ""))(layerById(id)),
+  label: (id) => ((layer) => (layer ? `${letterChip(layer)}<span class="name">${escapeHtml(labelOf(layer))}</span>` : ""))(layerById(id)),
   idOf: (row) => /** @type {string} */ (row.dataset.layer),
   carried: (id) => (layerPicks.has(id) ? chart.layers.filter((layer) => layerPicks.has(layer.id)).map((layer) => layer.id) : [id]),
   pick: (id) => !layerPicks.has(id) && pickLayer(id),
@@ -8491,8 +7243,6 @@ $("layers-bar").addEventListener("click", (event) => {
   if (button?.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
   else if (button) layersBatch(/** @type {string} */ (button.dataset.layersBatch), button);
 });
-/** The icons by their markup: an action's, named as a command names its own. */
-const iconNames = new Map(Object.entries(ICONS).map(([name, markup]) => [markup, name]));
 
 // ── Inspector ─────────────────────────────────────────────────────────────
 /** A layer selected, its settings shown (on a phone, in its sheet; `sheet` false: one just added, left as it is there). */
@@ -8612,14 +7362,14 @@ function renderInspector() {
               <h3>${typeName(layer.type)}</h3>
               ${betweenField(layer)}
               ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${refPicked(layer)}${CHEVRON}</button></div>`}
-              ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalized(fromSays)}.`)}</p>` : ""}
+              ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escapeHtml(fromError || `${capitalized(fromSays)}.`)}</p>` : ""}
             </section>`
     : isFormula
     ? `<section>
               <h3>${signal ? "Signal" : "Formula"}</h3>
               <div class="formula-editor" id="formula-editor">
                 <pre id="formula-mirror" aria-hidden="true"></pre>
-                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="${FORMULA_MAX}" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(((draft) => (draft && draft.over === layer.formula ? draft.text : layer.formula))(formulaDrafts.get(chart.id)?.get(layer.id)))}</textarea>
+                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="${FORMULA_MAX}" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escapeHtml(((draft) => (draft && draft.over === layer.formula ? draft.text : layer.formula))(formulaDrafts.get(chart.id)?.get(layer.id)))}</textarea>
                 <div class="assist" popover="manual">
                   <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
                   <ul id="suggest" class="suggest" role="listbox" hidden></ul>
@@ -8628,28 +7378,28 @@ function renderInspector() {
               </div>
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
-                <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
+                <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escapeHtml(signature)}</b><span>${escapeHtml(what)}</span></button>`).join("")}</div>
+                <p>Capital letters are layers as drawn; a series by its name (${escapeHtml(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
               </details>
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${refPicked(layer)}${CHEVRON}</button></div>
-              <div class="field"><span>Shown as<span class="color-now">${escape(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
+              <div class="field"><span>Shown as<span class="color-now">${escapeHtml(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
               <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
               <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Every time it signaled; pick one to jump to it">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
             </section>`
     : `<section>
               <h3>Series</h3>
-              <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Replace series, ${escape(layer.series)}" data-tip="Replace series"><code>${escape(layer.series)}</code>${ICONS.swap}</button>
+              <div class="source-name"><button type="button" class="source-pick" data-action="change-series" aria-label="Replace series, ${escapeHtml(layer.series)}" data-tip="Replace series"><code>${escapeHtml(layer.series)}</code>${ICONS.swap}</button>
                 <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
               </div>
               ${result?.error ? errorBox(result, layer.series ?? "") : ""}
               ${meta?.description ? `<div class="description ${expanded ? "" : "clamped"}">${proseHtml(meta.description)}</div>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more" aria-expanded="${expanded}">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
-              ${meta ? `<div class="facts"><span class="chip">${escape(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
+              ${meta ? `<div class="facts"><span class="chip">${escapeHtml(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
             </section>`;
   const html = `
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
             ${letterChip(layer)}
-            <input id="label" class="label-input" maxlength="120" enterkeyhint="done" value="${escape(layer.label ?? "")}" placeholder="${escape(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
+            <input id="label" class="label-input" maxlength="120" enterkeyhint="done" value="${escapeHtml(layer.label ?? "")}" placeholder="${escapeHtml(labelOf({ ...layer, label: "" }))}" aria-label="Layer name" spellcheck="false" />
             ${eyeOf(layer)}
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
@@ -8658,7 +7408,7 @@ function renderInspector() {
           <section>
             <h3>Style</h3>
             ${typeField([layer])}
-            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<label class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></label></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escape(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
+            ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<label class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escapeHtml(fieldUnit(unit))}</span></label></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escapeHtml(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
             ${colorPicker(layer)}
             ${opacityField([layer])}
             ${widthField([layer])}
@@ -8674,7 +7424,7 @@ function renderInspector() {
             ${paneField([layer])}
             ${axisField([layer])}
             ${fitField([layer])}
-            ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
+            ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escapeHtml(formatName(layer, result))}"><span class="name">${escapeHtml(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
             ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
@@ -8719,8 +7469,8 @@ function renderMany(panel, layers) {
   rewrite(panel, `
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
-            <span class="many-letters">${layers.slice(0, 4).map((layer) => letterChip(layer, true)).join("")}${layers.length > 4 ? `<span class="letter rest" data-tip="${escape(layers.slice(4).map(labelOf).join(", "))}">+${layers.length - 4}</span>` : ""}</span>
-            <span class="many-name">${plural(layers.length, "layer")}<span class="many-of">${escape(layers.map(labelOf).join(", "))}</span></span>
+            <span class="many-letters">${layers.slice(0, 4).map((layer) => letterChip(layer, true)).join("")}${layers.length > 4 ? `<span class="letter rest" data-tip="${escapeHtml(layers.slice(4).map(labelOf).join(", "))}">+${layers.length - 4}</span>` : ""}</span>
+            <span class="many-name">${plural(layers.length, "layer")}<span class="many-of">${escapeHtml(layers.map(labelOf).join(", "))}</span></span>
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           <section><h3>Style</h3>${style}</section>
@@ -8836,24 +7586,6 @@ $("inspector").addEventListener("focusout", (event) => {
 // (Several at different stops ("Mixed"): a key steps from the first's, and sets them all there.)
 sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inHand()), set: setSlider });
 // ── Gradients: colors by value ───────────────────────────────────────────────
-/** The share of the height below each lightness, in thousandths of lightness: the curve, tabulated once. */
-const BELOW = (() => {
-  const below = new Float64Array(1001);
-  for (let i = 0; i < 1000; i++) below[i + 1] = below[i] + spaceAt((i + 0.5) / 1000);
-  return below.map((value) => value / below[1000]);
-})();
-/**
- * Gradients ready made, each its 4 colors that mixed (see gradientTable) come nearest it (within about what an eye
- * tells apart): matplotlib's perceptual maps, and loss to profit. A heatmap of an amount starts on the first.
- * @type {[string, string, [number, string][]][]}
- */
-const GRADIENT_PRESETS = [
-  ["inferno", "Inferno", HEAT_GRADIENT],
-  ["magma", "Magma", [[0, "#000004"], [18, "#331064"], [71, "#f8755e"], [100, "#fcfdbf"]]],
-  ["viridis", "Viridis", [[0, "#440154"], [39, "#2c768e"], [69, "#41bd72"], [100, "#fde725"]]],
-  ["plasma", "Plasma", [[0, "#0d0887"], [33, "#991a9e"], [72, "#f48b48"], [100, "#f0f921"]]],
-  ["sides", "Loss to profit", [[0, "red"], [50, "gray"], [100, "green"]]],
-];
 /** The width a gradient's bar is laid out at, its ticks fitted to it: kept as it changes (the panel's grip, a phone turned). */
 let gradientWidth = 0;
 const gradientRoom = new ResizeObserver((entries) => {
@@ -9257,8 +7989,6 @@ $("inspector").addEventListener("click", (event) => {
     draw();
   }
 });
-/** No line, as a line style's glyph: a slashed circle. */
-const NO_LINE = glyphSvg('<circle cx="8" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 8.8 10.8 3.2" stroke="currentColor" stroke-width="1.3"/>');
 document.addEventListener("contextmenu", (event) => {
   // (By touch, a sidebar row's long press: its hold shows its menu, see onHold. Not a key's (⇧F10), a mouse's, nor
   // a field's own.)
@@ -9494,7 +8224,7 @@ function drawTrail(crumbs, current) {
   if (bar.hidden) return void (bar.innerHTML = "");
   const draw = (from) => {
     const shown = from ? [["…", crumbs[from - 1][1]], ...crumbs.slice(from)] : crumbs;
-    bar.innerHTML = shown.map(([text, depth], i) => `${i ? '<i aria-hidden="true">›</i>' : ""}<button type="button" data-depth="${depth}" ${depth === current ? 'aria-current="location"' : ""} ${text === "…" ? 'aria-label="Up a level" data-tip="Up"' : ""}>${escape(String(text))}</button>`).join("");
+    bar.innerHTML = shown.map(([text, depth], i) => `${i ? '<i aria-hidden="true">›</i>' : ""}<button type="button" data-depth="${depth}" ${depth === current ? 'aria-current="location"' : ""} ${text === "…" ? 'aria-label="Up a level" data-tip="Up"' : ""}>${escapeHtml(String(text))}</button>`).join("");
   };
   let from = 0;
   bar.classList.remove("tight");
@@ -9662,7 +8392,7 @@ function renderPalette(pending = false, note = "") {
   updateCallHelp();
   const searching = Boolean(palette.query.trim());
   const list = $("palette-list");
-  const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
+  const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escapeHtml(note)}</li>` : "";
   palette.items = palette.items.filter((item) => ((palette.replacing || palette.adding) && !palette.pages.length ? item.kind === "series" || item.kind === "folder" || (palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
   // (A menu by one of its rows (its actions, on Home; a held row's), gone with them: another may take its place.)
   if (ownerNow()?.closest("#palette-list")) paletteMenuGone();
@@ -9825,12 +8555,6 @@ let paletteOpenings = 0;
 const tabletHead = matchMedia("(760px < width <= 1100px) and (height > 500px)");
 // (One of them focused as the window comes to a tablet's size: ⋯, where they are now.)
 tabletHead.addEventListener("change", () => tabletHead.matches && document.activeElement?.matches("#add, #draw-toggle") && $("chart-more").focus({ preventScroll: true }));
-/** The header's own buttons, by the ⋯ rows they'd repeat: a preview's Save, a preset's Save a copy and Reset. */
-const HEAD_OWN = new Map([["keep", "keep"], ["copy", "preset-copy"], ["reset", "preset-reset"]]);
-/** A layer row's ⌘K: what's changed most, the rest a ↵ away on its page. */
-const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "derive", "hide", "solo", "duplicate", "remove"]);
-/** A drawing's, likewise. */
-const DRAWING_QUICK = new Set(["flip-x", "flip-y", "duplicate", "remove"]);
 
 // ── Go to a date ──────────────────────────────────────────────────────────
 /** The latest Go to a date: one waiting on a draw (see goToDate) goes on only if none came since. */
@@ -10043,14 +8767,14 @@ function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ poi
   const checks = list.some((row) => row.current !== undefined);
   const html = list.map((row, i) => {
     const before = list[i - 1], apart = i > 0 && (row.apart || (row.group ?? "") !== (before.group ?? "") || (row.danger && !before.danger));
-    const head = heads && row.group && row.group !== before?.group ? `<div class="menu-group">${escape(row.group)}</div>` : "";
+    const head = heads && row.group && row.group !== before?.group ? `<div class="menu-group">${escapeHtml(row.group)}</div>` : "";
     const choice = row.current !== undefined;
-    return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.marked ? '<i class="menu-holds" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
+    return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escapeHtml(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escapeHtml(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escapeHtml(row.label)}</span>${row.marked ? '<i class="menu-holds" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escapeHtml(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escapeHtml(row.disabled || row.aside || "")}</span>` : ""}</button>`;
   }).join("");
   // (What it's for named on top wherever its name is out of sight: a row's on the rail; anything's on a phone, its
   // sheet over the page. However it's opened. Not a submenu's.)
   if (!title && !cascadeRow && (phone.matches || (onRail() && anchor.closest("#chart-list")))) title = menuNameOf(anchor);
-  const head = back ? `<div class="menu-group menu-title"><button type="button" class="cap small" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>${escape(title)}</div>` : title ? `<div class="menu-group">${escape(title)}</div>` : "";
+  const head = back ? `<div class="menu-group menu-title"><button type="button" class="cap small" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>${escapeHtml(title)}</div>` : title ? `<div class="menu-group">${escapeHtml(title)}</div>` : "";
   showMenu(anchor, `${head}${html}`, ({ pick: key, menuBack: backed }) => {
     if (backed) return back?.();
     const row = list.find((item, i) => (item.key ?? String(i)) === key);
@@ -10612,7 +9336,7 @@ $("share").addEventListener("click", () => {
     const code = qr ? (SHEET_SHARE && phone.matches ? "Scan to open it on another phone" : "Scan to open it on a phone") : "Too long for a QR code";
     say([done, code].filter(Boolean).join(". "));
     // (The chart it opens and what was done, the link; under them its code, to scan; then what else.)
-    showMenu(button, `<div class="share-pop"><div class="share-text"><p class="share-title">${escape(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}</div>${qr ?? ""}<p class="share-said">${code}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
+    showMenu(button, `<div class="share-pop"><div class="share-text"><p class="share-title">${escapeHtml(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}</div>${qr ?? ""}<p class="share-said">${code}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
       if (share === "open") window.open(url, "_blank", "noopener");
       else if (share === "copy") (await copyLink(Promise.resolve(url))) ? toast("Copied a link: it opens this chart for anyone") : notice("Couldn't copy the link");
       else if (share === "sheet") {
@@ -11199,7 +9923,7 @@ function showTip(target) {
   if (tip.parentElement !== host) host.append(tip);
   // (A tip of several lines: its first, what it is; the others, quieter, more about it.)
   const [head, ...more] = target.dataset.tip.split("\n");
-  tip.innerHTML = `<span>${escape(head)}${more.length ? `<span class="tip-more">${more.map(escape).join("<br>")}</span>` : ""}</span>${keys}`;
+  tip.innerHTML = `<span>${escapeHtml(head)}${more.length ? `<span class="tip-more">${more.map(escapeHtml).join("<br>")}</span>` : ""}</span>${keys}`;
   drawKeys(tip);
   cutFade(tip);
   tip.hidden = false;
@@ -11430,7 +10154,7 @@ function toast(text, action, done = true) {
   const replacing = element.classList.contains("visible") && !reduced.matches;
   if (replacing) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }]);
   else cutFade(element);
-  element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
+  element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escapeHtml(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escapeHtml(action.label)}</button>` : ""}`;
   element.querySelector("button")?.addEventListener("click", () => {
     element.classList.remove("visible");
     // (A Library step's Undo: it, while it's the last of them.)
@@ -11585,7 +10309,7 @@ const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
 // (Written only as it changes: it's a live region, and the same words written again at each price are said again.)
 const sayUnreached = () => ((text) => $("unreached-text").textContent !== text && ($("unreached-text").textContent = text))(navigator.onLine ? `Couldn't reach ${SERVER_HOST}` : "This device is offline");
 /** A live figure (the last block, the price, when it was last heard): its mark before it, a screen reader's word for it. @param {string} icon @param {string} name @param {string} text */
-const liveFigure = (icon, name, text) => `<span class="live-figure"><span role="img" aria-label="${name}">${icon}</span>${escape(text)}</span>`;
+const liveFigure = (icon, name, text) => `<span class="live-figure"><span role="img" aria-label="${name}">${icon}</span>${escapeHtml(text)}</span>`;
 /** Whether a screen reader was last told it's offline, or live (none yet: connecting; see updateStatus). */
 let saidLost = /** @type {boolean | null} */ (null);
 function updateStatus() {
@@ -11945,8 +10669,6 @@ for (const dialog of all$("dialog")) {
  * applied, there and then: on the chart it was typed on (another's opening).
  */
 const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), applyFormulaLeft());
-/** Typing into a field (a tick isn't one: keys still do what they do). */
-const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
 // The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
 // under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the
 // page as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page
@@ -13002,7 +11724,7 @@ function quickShow() {
   const frame = $("quick-picture");
   frame.hidden = !look;
   if (look) {
-    const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(doc, layer, `<b data-quick-value="${escape(layer.id)}"></b>`)).join("");
+    const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(doc, layer, `<b data-quick-value="${escapeHtml(layer.id)}"></b>`)).join("");
     frame.innerHTML = `<div class="tile-legend quick-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</div><div class="quick-chart"><span class="tile-plot quick-plot ${doc.layers.length ? "pending" : "blank"}"></span><div class="quick-scales"></div></div><div class="quick-ticks"></div>`;
     // (Drawn where the highlight rests: rows passed by, held ↓, ask for nothing.)
     if (doc.layers.length) requestAnimationFrame(() => quick?.key === key && void quickPicture(doc).then((made) => {
@@ -13019,8 +11741,8 @@ function quickShow() {
         value.classList.toggle("named", Boolean(color));
         if (color) value.style.setProperty("--c", color);
       }
-      /** @type {HTMLElement} */ (frame.querySelector(".quick-scales")).innerHTML = (drawn.scales ?? []).map((tag) => `<span class="${tag.side}" style="top: ${((tag.y / H) * 100).toFixed(2)}%">${escape(tag.text)}</span>`).join("");
-      /** @type {HTMLElement} */ (frame.querySelector(".quick-ticks")).innerHTML = (drawn.ticks ?? []).map((tick) => `<span style="left: ${((tick.x / W) * 100).toFixed(2)}%">${escape(tick.text)}</span>`).join("");
+      /** @type {HTMLElement} */ (frame.querySelector(".quick-scales")).innerHTML = (drawn.scales ?? []).map((tag) => `<span class="${tag.side}" style="top: ${((tag.y / H) * 100).toFixed(2)}%">${escapeHtml(tag.text)}</span>`).join("");
+      /** @type {HTMLElement} */ (frame.querySelector(".quick-ticks")).innerHTML = (drawn.ticks ?? []).map((tick) => `<span style="left: ${((tick.x / W) * 100).toFixed(2)}%">${escapeHtml(tick.text)}</span>`).join("");
     }));
   }
   arrive($("quick"));
@@ -13136,61 +11858,41 @@ async function start() {
 // input (see started).)
 navigate(start().finally(() => ((started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
 export {
-  $, acrossUnfit, afterHands, ago, all$, amount, answers, applyPanel, applyTheme, aside, asThen, averageFor, AVERAGES,
-  AXIS_CHARS, axisLabel, axisTicks, BACKS, bandLit, BELOW, belowOf, beltStop, blankChart, BOXES, boxing, BRUSH_MIN,
-  brushDrag, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, bubbleRing, buildAsked, buildChart, byBlock, byKeys,
-  byTouch, CADENCE, canLook, canTravel, capturing, cardsSeen, catalogIndex, changesOf, chart, chartAgain, chartShown,
-  chartById, chartHeight, chartImage, chartNow, chartSans, chartSize, CHEVRON, chooseDrawings, chosen, CHUNK, clamp,
-  clearLayerPicks, clearLook, client, closedOwner, closePreview, closest, CLOUD, cloudLayers, cohortColor, cohortName,
-  cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, COMPARES, composing, crossMoved, css, DASHES,
-  dashGlyph, dashOf, dataRevision, dateGoes, dateLabel, DEFAULT_MEASURE, DEFAULT_RANGE, DEFAULT_ROWS, defaultOpacity,
-  DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft, drafts, drawCards, drawGallery,
-  DRAWING_QUICK, drawingsHidden, drawKeys, drawPresetMarks,
-  drawTrail, drawVersion, drawYours, duration, EDGE_NAMES, edgeIcon, EDGES, edgesOf, editChart, edits, EMPTY,
-  emptyYours, ENDS, engine, escape, EXAMPLE, exporting, failing, fieldUnit, FINE, FINE_STEP, FIRST_CHUNKS, firstForm,
-  firstLook, fitMargins, fitsFrom, fittable, flowFits, flowsAt, FOLDER_ICONS, folderAgain, folderMark, folderNow,
-  follows, footPinned, format, FORMAT_GROUPS, formatName, FORMATS, FORMULA_MAX, formulaFit, formulaLine, fromLetters,
-  fromOf, fromShort, fromSpan, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead,
-  galleryTilesSeen, gamma, gesturePointer, glyph, glyphSvg, goesWith, goneLayer, goTo, goToDate, goToTime,
-  GRADIENT_LEAST, GRADIENT_MOST, GRADIENT_PRESETS, gradientWidth, GROUP_MARK, GROUP_OF, grouped, GROUPS, grow, growth,
-  handsHeld, hashOf, HEAD_OWN, HEAT_AGES, HEAT_COHORTS, HEAT_GRADIENT, HEAT_HOLDERS, HEAT_MEASURES, HEAT_PICTURE_AGG,
-  HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_ROWS, HEAT_TILE_COLUMNS, HEAT_WEIGHTS, heatAt, heatCohort, heatKnown,
-  heatLike, heldUpright, hexToOklch, hideBelt, hideDrawings, hideMenu, hideSubmenu, hideText, hideTip, histories, historyFor,
-  holding, hollowOf, home, homeAt, homeScroll, homeScroller, hoverTime, humanize, humanizeKey, iconNames, ICONS,
-  atWindow, chartWindow, importCharts, IN_PERCENT, indexAt, indexCatalog, inLibrary, inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL,
-  INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isDeleted, isLeaf, isNamed, isOhlc,
-  isPreview, isSeriesName, isView, isYours, keepChart, keepDrawing, KEEPS_UNIT, keepSidePresets, keepsLeaving,
-  keepStretch, kept, KEPT_CHUNKS, keptAsEdited, KEY_STEPS, keyAway, keycaps, keysNow, keyText, keyTime, keyValue,
-  kindColor, kindLook, kindOf, KINDS, labelText, labelTyping, layerPicks, layersBatch, layersColors, layoutCurve,
-  layoutOwed, leaveHome, leftView, leftWith, LENS_SAYS, lensAt, letterAt, letterChip, letterOf, library, libraryEdits,
-  libraryStep, light, limit, LINE_STYLE, LINED, LINES, linkView, listedPreviews, listOwed, listStop, LIVE, liveHeight,
-  livePrice, loadPresets, lookDoc, lookOfDrawing, lookShown, lowerBound, MAC, magnifying, makeLayer, MARK_KINDS,
-  MARK_PLACES, markable, markBody, MARKER, markFor, markPicks, marksOf, MAX_DRAWINGS, MAX_LEVELS,
-  MAX_PANES, MAX_STROKE, maxChroma, measure, measured, measureOf, measurer, measureUnit, measuring, memberable,
-  membersOf, menuBack, menuOf, menuOwner, menuPicked, menuScrim, minedHalvings, MODES, modesOf, MONTHS, monthYear,
-  morphFrom, MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, moving, multiEdit, navigations, newDraft,
-  newPaneIn, nextColor, nextHalvings, nextLetter, NO_LINE, normalize, noteUse, notice, oklchToHex, oklchToLinear,
-  ONE_SCALE, oneScale, ontoData, OPACITIES, opacityOf, openCascade, openChart, openingView, openPalette, openView,
-  ORIGIN, OUTLINE_GLYPH, OUTLINED, outreaches, ownerOf, paintNavigator, PAIRED, PAIRS, PALETTE, paletteMarksSeen,
-  paletteOnField, paletteOpenings, PANE_SETTINGS, panelShown, paneShowing, pathResume, PEN_COLOR, pending, pendingRoute, phone,
-  pickPreset, picks, placedBy, placedOn, placeGallery, placeName, placing, plural, POINTED, pointedLayer,
-  pointerOnChart, pointOf, POINTWISE, precise, PRECISE, prefs, presetLabels, presetMarks, presets, presetsFailed,
-  presetsMatching, pressedTile, previewCharts, previews, previousChart, PROFILE_VIEWS, profileColor, profileLit,
-  proseHtml, putViews, quick, QUICK, quickHide, quickShow, quickWorks, rangeDays, RANGES, reaching, readOnly,
-  readPresetList, recent, recentCharts, recover, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout,
-  remember, removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape, reshaped,
-  resolved, resultText, retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon,
-  saveView, say, scrollsY, secondColor, sectionMark, select, selected, selectingArea, seriesCount, seriesLooked,
-  setSingleKeys, shapeGlyph, SHAPES, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE, SHELF_STEPS, shelfRows,
-  shelfScrolls, showGuide, showList, showLook, showMenu, shownDrawings, shownOklch, shownView, showPalette, showRange,
-  showShortcuts, sideLight, sidePresets, signalShown, signedMeasure, signedSignal, SIZE_NAMES, sizeChart, sizeHeld,
-  SIZES, SLIDERS, SLOP, SPAN, SPAN_DAYS, SPAN_LETTERS, spanDays, spanKey, spanParts, SPANS, spotlight, STACKED_ONLY,
-  STACKS, started, STARTERS, startLabel, startTyping, stepIn, storage, stretchResult, studioVersion, submenus,
-  subSetups, SWATCHES, syncUndo, tabletHead, tagLit, takeUp, takeView, TEXT_SIZE, THEMES, THROUGH,
-  thumbs, timeAt, timesAt, toast, toggleMember, togglePanel, toggleSidebar, tokensMedia, tokensNow, tool, toolKept, TOOLS, TOUCH,
-  touched, track, tree, TREND_FLIP, trendShort, TWO_KEPT, TWO_OR_ONE, TWO_POINTS, typeName, TYPES, typing, typingIn,
-  uid, undoLast, undoLibrary, undoToast, unfitted, UNIT_NAMES, unitOf, UNREAD, UNSHARED, updatePaletteKeys,
-  updateRowChanges, used, VALUES, viewed, VIEWED, viewMoving, viewOn, viewport, viewsNow, viewTimes, VIVID_ROWS,
-  vividGrid, vividWork, whenIdle, widest, WIDEST_VALUES, WIDTHS, windowPoints, windowTooLong, within, writeSideList,
-  writing, yourTilesSeen, zeroFit,
+  acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
+  BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
+  cardsSeen, catalogIndex, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
+  chartShown, chartSize, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closedOwner,
+  closePreview, CLOUD, cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods,
+  crossMoved, css, dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette,
+  displayed, draft, drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours,
+  editChart, edits, EMPTY, emptyYours, engine, EXAMPLE, exporting, firstForm, firstLook, fitMargins, flowsAt,
+  FOLDER_ICONS, folderAgain, folderMark, folderNow, footPinned, formatName, formulaFit, formulaLine, fromLetters,
+  fromShort, fromSpan, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen,
+  gesturePointer, goneLayer, goTo, goToDate, goToTime, gradientWidth, GROUP_OF, GROUPS, grow, handsHeld, HEAT_AGES,
+  HEAT_COHORTS, HEAT_HOLDERS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt,
+  heatCohort, heatKnown, heldUpright, hideBelt, hideDrawings, hideMenu, hideSubmenu, hideTip, histories, historyFor,
+  holding, home, homeAt, homeScroll, homeScroller, hoverTime, importCharts, indexAt, indexCatalog, inLibrary, isDeleted,
+  isOhlc, isPreview, isView, isYours, keepChart, keepDrawing, keepSidePresets, keepsLeaving, keepStretch, kept,
+  keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping, layerPicks, layersBatch, layoutCurve, layoutOwed,
+  leaveHome, leftView, leftWith, lensAt, letterChip, letterOf, library, libraryEdits, libraryStep, light, linkView,
+  listedPreviews, listOwed, listStop, LIVE, liveHeight, livePrice, loadPresets, lookDoc, lookShown, magnifying, markFor,
+  markPicks, marksOf, measure, measurer, measuring, memberable, menuBack, menuOf, menuOwner, menuPicked, menuScrim,
+  minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, multiEdit, navigations, newDraft, nextHalvings,
+  normalize, noteUse, notice, ontoData, openCascade, openChart, openingView, openPalette, openView, ownerOf,
+  paintNavigator, paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending,
+  pendingRoute, phone, pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels,
+  presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart,
+  profileColor, profileLit, putViews, quick, quickHide, quickShow, quickWorks, reaching, readOnly, readPresetList,
+  recent, recentCharts, recover, redoing, redoLast, reduced, refFor, refresh, refsFor, rekey, relayout, remember,
+  removedNames, renderBelt, renderCharts, renderInspector, renderLayers, renderPalette, reshape, reshaped, resolved,
+  retryPresets, revision, ROUTED, rowSizes, SANS, save, savePrefs, savePreviewsSoon, saveView, say, secondColor,
+  sectionMark, select, selected, selectingArea, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES,
+  SHEET_SHARE, shelfRows, shelfScrolls, showGuide, showList, showLook, showMenu, shownDrawings, shownOklch, shownView,
+  showPalette, showRange, showShortcuts, sideLight, sidePresets, signalShown, signedSignal, sizeChart, sizeHeld,
+  SLIDERS, SPAN, spanKey, spanParts, spotlight, STACKED_ONLY, started, startLabel, startTyping, storage, studioVersion,
+  submenus, subSetups, syncUndo, tabletHead, tagLit, takeUp, takeView, THEMES, thumbs, timeAt, timesAt, toast,
+  togglePanel, toggleSidebar, tokensMedia, tokensNow, tool, toolKept, touched, track, tree, trendShort, typingIn,
+  undoLast, undoLibrary, undoToast, UNREAD, updatePaletteKeys, updateRowChanges, used, viewed, VIEWED, viewMoving,
+  viewOn, viewsNow, viewTimes, VIVID_ROWS, vividGrid, vividWork, widest, windowTooLong, within, writeSideList, writing,
+  yourTilesSeen, zeroFit,
 };

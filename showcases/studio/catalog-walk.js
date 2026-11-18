@@ -1,5 +1,6 @@
 // @ts-check
-// The catalog walked, shared by the page and its worker (catalog-worker.js).
+// The catalog walked, shared by the page and its worker (catalog-worker.js), and the checks on what names a series in
+// it (a name, a path) before it reaches an API path.
 
 import { isWindowKey } from "./words.js";
 
@@ -7,15 +8,26 @@ import { isWindowKey } from "./words.js";
 const windowed = (path) => path.split(".").some(isWindowKey);
 
 /**
+ * Read catalog children without caching them on their parents (a normal walk would retain tens of megabytes);
+ * catalogWalk writes it out (see there).
+ */
+const aside = (/** @type {any} */ node, /** @type {string} */ key) => Reflect.get(node, key, {});
+/** Series names are plain identifiers; anything else never reaches an API path. */
+const isSeriesName = (name) => typeof name === "string" && /^[a-z0-9_]{1,200}$/.test(name);
+/** A series' path in the catalog: its keys, dotted. */
+const isCatalogPath = (path) => typeof path === "string" && /^\w{1,80}(\.\w{1,80}){0,15}$/.test(path);
+
+/**
  * The catalog walked, a node a step (a generator: the page goes on at its own pace): its names to their dotted paths
  * as the client has them (a name in several places, its first, or its place among its windows: see windowed), those by block only (by date in none of them), and
- * those under more than one top folder (a folder's place among them isn't theirs: see app.js's catalogTops). Walked
- * on the page and in catalog-worker.js (see indexCatalog), so its leaves are told as isLeaf tells them, read as
- * `aside` reads them.
+ * those under more than one top folder (a folder's place among them isn't theirs: see command.js's catalogTops). Walked
+ * on the page and in catalog-worker.js (see indexCatalog). Its leaves are told as isLeaf (words.js) tells them and read as `aside`
+ * reads them, the two written out: a call each per node made the walk 12 to 23% slower with the JIT off (bun, a
+ * synthetic catalog of ~66,000 nodes, as a phone's worker without its JIT would run it).
  * @param {any} tree @param {readonly string[]} dated
  * @returns {Generator<void, { index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string> }>}
  */
-export function* catalogWalk(tree, dated) {
+function* catalogWalk(tree, dated) {
   const index = new Map(), byBlock = new Set(), sharedTops = new Set(), stack = [[tree, ""]];
   while (stack.length) {
     const [node, path] = /** @type {[any, string]} */ (stack.pop());
@@ -38,3 +50,5 @@ export function* catalogWalk(tree, dated) {
   }
   return { index, byBlock, sharedTops };
 }
+
+export { aside, catalogWalk, isCatalogPath, isSeriesName };

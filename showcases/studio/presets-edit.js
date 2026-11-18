@@ -7,14 +7,21 @@ import {
 import { addressSteps } from "/studio/addresses.js";
 import { windowNamed } from "/studio/words.js";
 import {
-  $, all$, applyPanel, asThen, atWindow, averageFor, AVERAGES, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
-  drawingsHidden, editChart, edits, escape, folderMark, folderNow, hashOf, histories, home, homeAt, ICONS, inSlices,
-  INTERVAL_LABEL, isDeleted, isNamed, isPreview, keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, menuOf,
-  MODES, monthYear, newDraft, newPaneIn, nextHalvings, normalize, notice, openChart, panelShown, pendingRoute,
-  pickPreset, plural, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching, previews,
-  previousChart, readOnly, readPresetList, refresh, rekey, renderCharts, resolved, retryPresets, ROUTED, save,
-  saveView, sectionMark, showPalette, STACKS, started, storage, thumbs, toast, tree, uid, undoToast, viewed, VIEWED,
+  applyPanel, asThen, atWindow, averageFor, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
+  drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, isDeleted, isPreview, keptAsEdited,
+  leaveHome, leftView, library, LIVE, loadPresets, menuOf, newDraft, nextHalvings, normalize, notice, openChart,
+  panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching,
+  previews, previousChart, readOnly, readPresetList, refresh, rekey, renderCharts, resolved, retryPresets, ROUTED, save,
+  saveView, sectionMark, showPalette, started, storage, thumbs, toast, tree, undoToast, viewed, VIEWED,
 } from "/studio/app.js";
+import { $, all$, escapeHtml } from "/studio/dom.js";
+import { inSlices } from "/studio/timing.js";
+import { monthYear, plural } from "/studio/format.js";
+import { ICONS } from "/studio/icons.js";
+import { MODES, newPaneIn, STACKS } from "/studio/vocabulary.js";
+import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
+import { isNamed } from "/studio/color.js";
+import { hashOf, uid } from "/studio/math.js";
 import { changeOver, defaultSize, figuresRoom, lastShown } from "/studio/chart.js";
 import {
   choicePage, heightRow, layerRows, listPage, palette, plotIn, sizable, slipEdits, typedWords, viewRow,
@@ -25,7 +32,7 @@ import {
 } from "/studio/grid.js";
 import { goneSaid, hideLayers, keepFocus, layerById, modesFor, movers, paneMode } from "/studio/inspector.js";
 import { contentOf, exportRows, fromSketch, keepCarriedView, lookFields, renameInPlace, validate } from "/studio/menus.js";
-/** @import { Chart, Layer, Pane } from "/studio/app.js" */
+/** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Landing } from "/studio/gestures.js" */
 /** @import { Action, Page } from "/studio/command.js" */
 
@@ -639,7 +646,7 @@ const presetRow = (/** @type {number} */ i, deep = false) => {
     actions: () => presetActions(i, "palette"),
     preview: (/** @type {HTMLElement} */ panel) => {
       const doc = presetDoc(i);
-      panel.innerHTML = `<h4 class="plain">${escape(title)}</h4><p class="description">${escape(placeNames(preset.p.slice(0, -1)).join(" › "))}</p>
+      panel.innerHTML = `<h4 class="plain">${escapeHtml(title)}</h4><p class="description">${escapeHtml(placeNames(preset.p.slice(0, -1)).join(" › "))}</p>
               ${plotIn(doc, previewIndex(doc))}<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers)}</dl></div>`;
     },
   };

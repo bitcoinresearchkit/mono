@@ -3,14 +3,21 @@
 import { Custom, FAINT } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
-  $, all$, amount, BACKS, beltStop, BOXES, boxing, capturing, chart, chosen, clamp, commit, css, dateLabel, draft,
-  drawingsHidden, drawVersion, duration, ENDS, engine, escape, FINE, glyphSvg, growth,
-  hexToOklch, hideBelt, home, ICONS, indexAt, keyText, labelTyping, LENS_SAYS, LINES, lookOfDrawing, lowerBound, MAC,
-  magnifying, MAX_DRAWINGS, measurer, measuring, minedHalvings, MOTION, moving, nextHalvings, oklchToHex, opacityOf,
-  phone, placedOn, placing, POINTED, pointOf, precise, prefs, reduced, renderBelt, reshaped, resolved, revision, SANS,
-  savePrefs, selected, selectingArea, showMenu, shownDrawings, shownOklch, takeUp, TEXT_SIZE, THROUGH, timeAt, tool,
-  TOOLS, typingIn, uid,
+  beltStop, boxing, capturing, chart, chosen, commit, css, draft, drawingsHidden, drawVersion, engine, hideBelt, home,
+  indexAt, labelTyping, magnifying, measurer, measuring, minedHalvings, MOTION, moving, nextHalvings, phone, placing,
+  prefs, reduced, renderBelt, reshaped, resolved, revision, SANS, savePrefs, selected, selectingArea, showMenu,
+  shownDrawings, shownOklch, takeUp, timeAt, tool, typingIn,
 } from "/studio/app.js";
+import { $, all$, escapeHtml, keyText, MAC } from "/studio/dom.js";
+import { clamp, lowerBound, uid } from "/studio/math.js";
+import { amount, dateLabel, duration, growth, precise } from "/studio/format.js";
+import { glyphSvg, ICONS } from "/studio/icons.js";
+import { opacityOf, placedOn } from "/studio/vocabulary.js";
+import {
+  BACKS, BOXES, ENDS, LENS_SAYS, LINES, lookOfDrawing, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS,
+} from "/studio/tools.js";
+import { FINE } from "/studio/intervals.js";
+import { hexToOklch, oklchToHex } from "/studio/color.js";
 import {
   alpha, built, colorsAt, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats, oklchOf,
   paintedLayers, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownIndex, shownSpan, unitFor, viewName,
@@ -19,7 +26,8 @@ import { nearestFinite, paneAt } from "/studio/formulas.js";
 import { layerById, slider } from "/studio/inspector.js";
 import { fitted } from "/studio/menus.js";
 import { refocus } from "/studio/presets-edit.js";
-/** @import { Drawing, DrawingKind, End, Layer } from "/studio/app.js" */
+/** @import { End } from "/studio/tools.js" */
+/** @import { Drawing, DrawingKind, Layer } from "/studio/vocabulary.js" */
 /** @import { Resolved, Result } from "/studio/chart.js" */
 
 
@@ -1004,7 +1012,7 @@ const backOf = (/** @type {string | undefined} */ back) => BACKS.find(([each]) =
 /** A background's glyph (⌘K's): a bar of words in a box as it asks. */
 const backGlyph = (/** @type {string} */ back) => glyphSvg(`${back ? `<rect x="1" y="2" width="14" height="8" rx="2.5" ${back === "outline" ? 'fill="none"' : `fill="currentColor" fill-opacity="${back === "solid" ? 1 : 0.4}"`} ${back.includes("outline") ? 'stroke="currentColor" stroke-width="1.2"' : 'stroke="none"'}/>` : ""}<path d="M4.5 6h7" stroke-width="1.6" stroke-linecap="round" ${back === "solid" ? 'style="stroke: var(--card)"' : 'stroke="currentColor"'}/>`);
 /** A background as the belt shows it: words on it, in their color. */
-const backChip = (/** @type {string} */ back, /** @type {string} */ color) => `<span class="back-chip" data-back="${back}" style="--c:${escape(cssColor(color))};--on:${contrastOn(color)}">Aa</span>`;
+const backChip = (/** @type {string} */ back, /** @type {string} */ color) => `<span class="back-chip" data-back="${back}" style="--c:${escapeHtml(cssColor(color))};--on:${contrastOn(color)}">Aa</span>`;
 /** A look as the belt shows it: with a tool in hand, the pen's; else the first selected drawing that has it's. */
 const lookFor = (/** @type {string} */ part, drawings = /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean))) => (tool ? prefs.pen : drawings.find((drawing) => hasLook(drawing.kind, part)) ?? drawings[0]);
 /** An end's name (plain, none set). */

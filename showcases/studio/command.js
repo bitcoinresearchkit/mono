@@ -1,30 +1,42 @@
 // @ts-check
 // ⌘K: series search, its pages, colors looked at, go to a date.
 import { initialsRanges } from "/studio/initials.js";
-import { capitalized, holderName, inSentence, windowSaid, windowShort } from "/studio/words.js";
+import { capitalized, holderName, inSentence, isLeaf, windowSaid, windowShort } from "/studio/words.js";
 import { startWorker } from "/studio/workers.js";
 import {
-  $, acrossUnfit, ago, answers, aside, averageFor, BACKS, belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE,
-  BUBBLE_SIZES, byBlock, byKeys, CADENCE, canLook, canTravel, catalogIndex, changesOf, chart, chartById,
-  chooseDrawings, chosen, clearLook, client, closePreview, cohortColor, colorName, commit, comparePeriods, COMPARES,
-  css, dashGlyph, dashOf, dateGoes, dateLabel, defaultOpacity, deleteChart, dismissPalette, DRAWING_QUICK,
-  drawingsHidden, drawKeys, drawTrail, editChart, ENDS, engine, escape, EXAMPLE, FINE, fittable, folderMark, folderNow,
-  follows, format, formatName, FORMULA_MAX, formulaLine, fromSpan, glyph, glyphSvg, goneLayer, goTo, goToDate,
-  goToTime, GRADIENT_LEAST, GRADIENT_MOST, grouped, HEAD_OWN, HEAT_COHORTS, heatLike, hideBelt, hideDrawings, hideMenu,
-  hideText, historyFor, hollowOf, home, homeAt, humanize, humanizeKey, ICONS, importCharts, indexAt, inSlices,
-  INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isColor, isLeaf, isOhlc, isPreview, isSeriesName, isYours, keepChart,
-  kept, keycaps, keyText, KINDS, labelText, LENS_SAYS, letterChip, library, libraryEdits, LINED, LINES, linkView,
-  listedPreviews, lowerBound, magnifying, makeLayer, MARK_PLACES, markable, markBody, markFor, marksOf, MAX_LEVELS,
-  MAX_PANES, measure, measured, MODES, modesOf, monthYear, mostBars, MOTION, newPaneIn, noteUse, notice, OPACITIES,
-  opacityOf, openPalette, OUTLINE_GLYPH, OUTLINED, paletteOnField, paletteOpenings, PANE_SETTINGS, panelShown,
-  paneShowing, pathResume, phone, placedOn, placeName, plural, prefs, presets, previews, previousChart, proseHtml,
-  quick, QUICK, quickHide, quickShow, quickWorks, RANGES, recentCharts, redoLast, reduced, renderPalette, reshape,
-  resolved, resultText, revision, say, selected, seriesCount, seriesLooked, setSingleKeys, shapeGlyph, SHAPES, SHARE,
-  sharedTops, SHARES_IMAGES, SHEET_SHARE, showGuide, showLook, showMenu, showPalette, showShortcuts, signalShown,
-  SIZE_NAMES, SIZES, STACKED_ONLY, STACKS, startTyping, stretchResult, studioVersion, SWATCHES, tabletHead, takeUp,
-  TEXT_SIZE, THEMES, THROUGH, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, TOOLS, TOUCH, tree,
-  trendShort, typeName, TYPES, undoLast, UNIT_NAMES, unitOf, updatePaletteKeys, used, VALUES, viewport, chartWindow,
+  acrossUnfit, answers, averageFor, byBlock, byKeys, canLook, canTravel, catalogIndex, changesOf, chart, chartById,
+  chooseDrawings, chosen, clearLook, client, closePreview, cohortColor, colorName, commit, comparePeriods, css,
+  dateGoes, deleteChart, dismissPalette, drawingsHidden, drawTrail, editChart, engine, EXAMPLE, folderMark, folderNow,
+  formatName, formulaLine, fromSpan, goneLayer, goTo, goToDate, goToTime, HEAT_COHORTS, hideBelt, hideDrawings,
+  hideMenu, historyFor, home, homeAt, importCharts, indexAt, isOhlc, isPreview, isYours, keepChart, kept, letterChip,
+  library, libraryEdits, linkView, listedPreviews, magnifying, markFor, marksOf, measure, mostBars, MOTION, noteUse,
+  notice, openPalette, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, phone, prefs, presets,
+  previews, previousChart, quick, quickHide, quickShow, quickWorks, recentCharts, redoLast, reduced, renderPalette,
+  reshape, resolved, revision, say, selected, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE,
+  showGuide, showLook, showMenu, showPalette, showShortcuts, signalShown, STACKED_ONLY, startTyping, studioVersion,
+  tabletHead, takeUp, THEMES, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, tree, trendShort,
+  undoLast, updatePaletteKeys, used, chartWindow,
 } from "/studio/app.js";
+import { aside, isSeriesName } from "/studio/catalog-walk.js";
+import { $, drawKeys, escapeHtml, keycaps, keyText, proseHtml, TOUCH, viewport } from "/studio/dom.js";
+import { inSlices } from "/studio/timing.js";
+import {
+  ago, dateLabel, format, grouped, humanize, humanizeKey, MONTH_NAMES, monthYear, plural, UNIT_NAMES,
+  unitOf,
+} from "/studio/format.js";
+import { dashGlyph, glyph, glyphSvg, ICONS, markBody, OUTLINE_GLYPH, shapeGlyph } from "/studio/icons.js";
+import {
+  belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
+  GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
+  MAX_PANES, measured, MODES, modesOf, newPaneIn, OPACITIES, opacityOf, OUTLINED, placedOn, placeName, resultText,
+  seriesLooked, SHAPES, STACKS, stretchResult, typeName, TYPES,
+} from "/studio/vocabulary.js";
+import {
+  BACKS, ENDS, KINDS, labelText, LENS_SAYS, LINES, SIZE_NAMES, SIZES, TEXT_SIZE, THROUGH, TOOLS,
+} from "/studio/tools.js";
+import { CADENCE, FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, RANGES } from "/studio/intervals.js";
+import { isColor, SWATCHES } from "/studio/color.js";
+import { lowerBound } from "/studio/math.js";
 import {
   baseOf, BY_BLOCK, byColor, colorsAt, cssColor, dailyOf, defaultSize, drawnWaiters, failure, fineDrawn, foldedPanes,
   glideTarget, info, ink, known, lastUsed, loads, overviewSource, paintOf, periodOf, pointLabel, presetFits,
@@ -32,8 +44,8 @@ import {
 } from "/studio/chart.js";
 import { backGlyph, backOf, beltUp, dockChoices, drawingById, drawingNames, endName, endsGlyph, showBelt } from "/studio/drawing.js";
 import {
-  bandSum, FUNCTIONS, isBandSum, parse, PERIODS_TAKEN, plainOperators, refsOf, seriesNamed, shiftSpan, shiftSpanError,
-  unfitHere,
+  bandSum, COMPARES, FUNCTIONS, isBandSum, parse, PERIODS_TAKEN, plainOperators, refsOf, seriesNamed, shiftSpan,
+  shiftSpanError, unfitHere, VALUES,
 } from "/studio/formulas.js";
 import {
   batch, chartCounts, chartKeys, chartMark, chartPick, childrenOf, clearPicks, derivedTitle, drawPreview, folderById,
@@ -62,7 +74,7 @@ import {
   copyPreset, fullOn, legendAction, LEGENDS, ordersOf, paneChip, paneRows, presetActions, presetEdited, presetIndex,
   presetPages, presetRow, presetsPage, resetPreset, scaleGroup, setFull, setLegend, setPaneMode, toggleHalvings,
 } from "/studio/presets-edit.js";
-/** @import { Chart, Layer, Pane } from "/studio/app.js" */
+/** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Result } from "/studio/chart.js" */
 /** @import { Vector } from "/studio/formulas.js" */
 /** @import { Place } from "/studio/grid.js" */
@@ -682,11 +694,11 @@ function formulaRow(item) {
   if (item.kind === "formula") {
     const text = palette.query.trim(), kept = formulaProblem.text === text && formulaProblem.editing === palette.editing ? formulaProblem.problem : "";
     const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || kept;
-    return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markFor(chart, text)) : formulaPlace(text)}</span>`}`;
+    return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escapeHtml(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escapeHtml(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escapeHtml(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escapeHtml(on.letter)}` : ""))(markFor(chart, text)) : formulaPlace(text)}</span>`}`;
   }
   const layer = item.layer ? layerById(item.layer) : null;
-  const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
-  return `${icon}<span class="item-name"><code>${escape(item.title ?? "")}</code></span>${item.text ? `<span class="item-meta">${escape(item.text)}</span>` : ""}`;
+  const icon = layer ? `<i class="dot" style="--c:${escapeHtml(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
+  return `${icon}<span class="item-name"><code>${escapeHtml(item.title ?? "")}</code></span>${item.text ? `<span class="item-meta">${escapeHtml(item.text)}</span>` : ""}`;
 }
 /** A piece into the formula: over the word it completes, else at the caret (over what's selected); a recipe, where it goes too. */
 function insertPiece(item) {
@@ -760,7 +772,7 @@ function previewFormula(panel, recipe = /** @type {any} */ (undefined)) {
       node = parse(text);
     } catch (caught) {
       const error = /** @type {Error & { unfinished?: true }} */ (caught);
-      panel.innerHTML = `<h4><code>${escape(text)}</code></h4>${error.unfinished ? `<p class="description">${escape(error.message)}.</p>` : `<div class="error-box">${escape(error.message)}</div>`}`;
+      panel.innerHTML = `<h4><code>${escapeHtml(text)}</code></h4>${error.unfinished ? `<p class="description">${escapeHtml(error.message)}.</p>` : `<div class="error-box">${escapeHtml(error.message)}</div>`}`;
       return;
     }
     const doc = structuredClone(chart);
@@ -790,7 +802,7 @@ function previewFormula(panel, recipe = /** @type {any} */ (undefined)) {
     }
     if (!result || result.error) {
       const problem = result?.detail ?? result?.error ?? "It couldn't be computed";
-      panel.innerHTML = `<h4><code>${escape(text)}</code></h4><div class="error-box">${escape(problem)}.</div>`;
+      panel.innerHTML = `<h4><code>${escapeHtml(text)}</code></h4><div class="error-box">${escapeHtml(problem)}.</div>`;
       if (recipe) return;
       // (Said on its row too, as a mistake in how it's written is, kept while it's the one typed (the row drawn
       // again, a completion offered, still says it): where there's no room for this side, a phone's, the row's the
@@ -809,21 +821,21 @@ function previewFormula(panel, recipe = /** @type {any} */ (undefined)) {
     // (A signal: where its marks are, and how many; its 0s and 1s aren't a line to look at.)
     if (layer.type === "signal") {
       const on = doc.layers.find((item) => item.id === layer?.ref);
-      return void (panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
-              <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's up or down" : "Marked where it turns up or down"} (above 0, up; below, down).</p>
-              <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
-                <div><dt>Marked on</dt><dd>${on ? escape(viewName(doc, on)) : "No layer"}</dd></div>
+      return void (panel.innerHTML = `<h4><code>${escapeHtml(text)}</code></h4>
+              <p class="description">${uses.length ? `Uses ${escapeHtml(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's up or down" : "Marked where it turns up or down"} (above 0, up; below, down).</p>
+              <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escapeHtml(layer.letter)}</h5><dl>
+                <div><dt>Marked on</dt><dd>${on ? escapeHtml(viewName(doc, on)) : "No layer"}</dd></div>
                 <div><dt>Times marked</dt><dd>${grouped.format(marksOf(layer, result.values, data?.results.get(layer.ref ?? "") ?? null).length)}</dd></div>
-                <div><dt>Average</dt><dd>${escape(average.name || "Raw")}</dd></div>
-                <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.values, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
+                <div><dt>Average</dt><dd>${escapeHtml(average.name || "Raw")}</dd></div>
+                <div><dt>Now</dt><dd>${escapeHtml(format(Array.prototype.findLast.call(result.values, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
               </dl></div>`);
     }
-    panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
-            <p class="description">${recipe ? escape(recipe.text) : uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}.</p>
+    panel.innerHTML = `<h4><code>${escapeHtml(text)}</code></h4>
+            <p class="description">${recipe ? escapeHtml(recipe.text) : uses.length ? `Uses ${escapeHtml(uses.join(", "))}` : "A constant"}.</p>
             <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
-            <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
-              <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
-              <div><dt>Average</dt><dd>${escape(average.name || "Raw")}</dd></div>
+            <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escapeHtml(layer.letter)}</h5><dl>
+              <div><dt>Unit</dt><dd>${escapeHtml(UNIT_NAMES[unit] ?? "Number")}</dd></div>
+              <div><dt>Average</dt><dd>${escapeHtml(average.name || "Raw")}</dd></div>
               <div><dt>Latest</dt><dd class="spark-caption"></dd></div>
               ${editing ? "" : `<div><dt>Goes in</dt><dd>${goesIn(goes)}</dd></div>`}
             </dl></div>`;
@@ -833,12 +845,12 @@ function previewFormula(panel, recipe = /** @type {any} */ (undefined)) {
 /** What a piece of a formula is: a layer of this chart, with its latest value; or a function. */
 function previewPiece(item) {
   const layer = item.layer ? layerById(item.layer) : null;
-  if (!layer) return `<h4><code>${escape(item.title ?? "")}</code></h4><p class="description">${escape(capitalized(item.text ?? ""))}.</p>`;
+  if (!layer) return `<h4><code>${escapeHtml(item.title ?? "")}</code></h4><p class="description">${escapeHtml(capitalized(item.text ?? ""))}.</p>`;
   const unit = unitFor(layer, resolved?.results.get(layer.id));
   const result = resolved?.results.get(layer.id), values = result && measured(result);
   const value = values?.findLast(Number.isFinite) ?? NaN;
-  return `<h4 class="plain">${escape(labelOf(layer))}</h4><p class="description">Layer ${escape(layer.letter)} of this chart. Formulas read its raw measurement.</p>
-          <div class="info"><dl><div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div><div><dt>Latest, raw</dt><dd>${escape(format(value, unit))}</dd></div></dl></div>`;
+  return `<h4 class="plain">${escapeHtml(labelOf(layer))}</h4><p class="description">Layer ${escapeHtml(layer.letter)} of this chart. Formulas read its raw measurement.</p>
+          <div class="info"><dl><div><dt>Unit</dt><dd>${escapeHtml(UNIT_NAMES[unit] ?? "Number")}</dd></div><div><dt>Latest, raw</dt><dd>${escapeHtml(format(value, unit))}</dd></div></dl></div>`;
 }
 /**
  * A long series drawn small: its lowest and highest points in each of `columns` columns, in their order (its shape,
@@ -900,10 +912,10 @@ function drawSpark(/** @type {Element} */ panel, values, unit, color = css("--in
   const [lo, hi] = rangeOf(scaled);
   const spots = columnsOf(scaled, 300).map(([i, value]) => ({ i, at: `${((i / (values.length - 1)) * 300).toFixed(1)},${(92 - ((value - lo) / (hi - lo || 1)) * 82).toFixed(1)}` })), points = spots.map((point) => point.at);
   // (Painted date by date: its line in pieces, each in its color.)
-  const line = (/** @type {string[]} */ part, /** @type {string} */ stroke) => `<polyline points="${part.join(" ")}" fill="none" stroke="${escape(stroke)}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />`;
+  const line = (/** @type {string[]} */ part, /** @type {string} */ stroke) => `<polyline points="${part.join(" ")}" fill="none" stroke="${escapeHtml(stroke)}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />`;
   const lines = tint ? byColor(spots, (point) => tint(point.i) ?? color).map((piece) => line(piece.points.map((point) => point.at), piece.color)).join("") : line(points, color);
   const fill = `spark-fill-${++sparksDrawn}`;
-  spark.innerHTML = `<defs><linearGradient id="${fill}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escape(color)}" stop-opacity=".22"/><stop offset="1" stop-color="${escape(color)}" stop-opacity="0"/></linearGradient></defs><polygon points="0,100 ${points.join(" ")} 300,100" fill="url(#${fill})"/>${lines}`;
+  spark.innerHTML = `<defs><linearGradient id="${fill}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escapeHtml(color)}" stop-opacity=".22"/><stop offset="1" stop-color="${escapeHtml(color)}" stop-opacity="0"/></linearGradient></defs><polygon points="0,100 ${points.join(" ")} 300,100" fill="url(#${fill})"/>${lines}`;
 }
 
 /** highlightMatch's pattern, by what's typed: made once a query, not for each row. */
@@ -917,7 +929,7 @@ function highlightMatch(text, query, initials = false) {
     const words = typedWords(query.replace(/_/g, " "));
     highlighting = { query, words, pattern: words.length ? new RegExp(words.map(writtenPattern).join("|"), "gi") : null };
   }
-  if (!highlighting.pattern) return escape(text);
+  if (!highlighting.pattern) return escapeHtml(text);
   const ranges = initials ? initialsRanges(text, highlighting.words) : [];
   for (const match of text.matchAll(highlighting.pattern)) ranges.push([match.index, match.index + match[0].length]);
   ranges.sort((a, b) => a[0] - b[0]);
@@ -929,10 +941,10 @@ function highlightMatch(text, query, initials = false) {
   }
   let out = "", last = 0;
   for (const [start, end] of merged) {
-    out += `${escape(text.slice(last, start))}<mark>${escape(text.slice(start, end))}</mark>`;
+    out += `${escapeHtml(text.slice(last, start))}<mark>${escapeHtml(text.slice(start, end))}</mark>`;
     last = end;
   }
-  return out + escape(text.slice(last));
+  return out + escapeHtml(text.slice(last));
 }
 
 /** The row a screen reader's on, as ⌘K's input says it: none when no row is (an empty list). */
@@ -957,19 +969,19 @@ function optionsHtml(/** @type {number} */ from, /** @type {number} */ to) {
   const more = (/** @type {any} */ item, /** @type {number} */ i, /** @type {string} */ html) => (TOUCH && actionsFor(item).length > 1 ? `${html.slice(0, -5)}<button type="button" class="cap small row-more" data-row-more="${i}" tabindex="-1" aria-label="More it does">${ICONS.more}</button></li>` : html);
   return palette.items.slice(from, to).map((item, at) => more(item, from + at, (() => {
     const i = from + at;
-    const header = item.group && item.group !== group ? `<li class="group" role="presentation" id="${(groupId = `palette-group-${i}`)}">${escape((group = item.group))}</li>` : "";
+    const header = item.group && item.group !== group ? `<li class="group" role="presentation" id="${(groupId = `palette-group-${i}`)}">${escapeHtml((group = item.group))}</li>` : "";
     const described = item.group ? ` aria-describedby="${groupId}"` : "";
     if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
     if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${item.dim || item.disabled ? "dim" : ""}${item.under ? " under" : ""}"${item.disabled ? ' aria-disabled="true"' : ""}>${rowHtml(item)}</li>`;
     const doc = item.kind === "chart" ? chartById(item.key) : null;
     if (item.kind === "series") {
       const blocked = byBlock.has(item.name), human = humanize(item.name);
-      const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
-      return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query, true) : escape(human)}</span>${end}</li>`;
+      const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${escapeHtml(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
+      return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query, true) : escapeHtml(human)}</span>${end}</li>`;
     }
     // (A command's icon by its name, or drawn already: a folder's mark.)
     const icon = item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? (item.command.icon?.startsWith("<") ? item.command.icon : ICONS.series) : doc ? chartMark(doc) : ICONS.series;
-    const name = item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
+    const name = item.kind === "folder" ? escapeHtml(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escapeHtml(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escapeHtml(titleOf(doc))) : "";
     const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : `${goesOn(item) ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : ""}${item.command.kbd && item.command.run && answers(item.command.kbd) ? keycaps(item.command.kbd) : ""}`) : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
     const idle = item.kind === "command" && !item.command.run && !item.command.current;
     return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
@@ -1010,13 +1022,13 @@ function preview() {
     const node = nodeAt(item.path);
     const keys = Object.keys(node ?? {}).filter((key) => node[key] && typeof node[key] === "object");
     const groups = keys.filter((key) => !isLeaf(node[key])).length;
-    panel.innerHTML = `<h4 class="plain">${escape(humanizeKey(item.key))}</h4>
+    panel.innerHTML = `<h4 class="plain">${escapeHtml(humanizeKey(item.key))}</h4>
             <p class="description">${[groups ? plural(groups, "group") : "", `${grouped.format(seriesUnder(node))} series`].filter(Boolean).join(" · ")}</p>
-            <ul class="contents">${keys.slice(0, 14).map((key) => `<li>${isLeaf(node[key]) ? ICONS.series : ICONS.folder}<span>${escape(isLeaf(node[key]) ? node[key].name : humanizeKey(key))}</span></li>`).join("")}${keys.length > 14 ? `<li class="rest">and ${grouped.format(keys.length - 14)} more</li>` : ""}</ul>`;
+            <ul class="contents">${keys.slice(0, 14).map((key) => `<li>${isLeaf(node[key]) ? ICONS.series : ICONS.folder}<span>${escapeHtml(isLeaf(node[key]) ? node[key].name : humanizeKey(key))}</span></li>`).join("")}${keys.length > 14 ? `<li class="rest">and ${grouped.format(keys.length - 14)} more</li>` : ""}</ul>`;
     return;
   }
   if (item.kind === "command") {
-    panel.innerHTML = `<h4 class="plain">${escape(item.command.title)}</h4><p class="description">${escape(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run && answers(item.command.kbd) ? `<div class="info"><dl><div><dt>Shortcut</dt><dd>${keycaps(item.command.kbd)}</dd></div></dl></div>` : ""}`;
+    panel.innerHTML = `<h4 class="plain">${escapeHtml(item.command.title)}</h4><p class="description">${escapeHtml(item.command.text)}${item.command.current ? " In effect now." : ""}</p>${item.command.kbd && item.command.run && answers(item.command.kbd) ? `<div class="info"><dl><div><dt>Shortcut</dt><dd>${keycaps(item.command.kbd)}</dd></div></dl></div>` : ""}`;
     return;
   }
   if (item.kind === "chart") return previewChart(panel, chartById(item.key));
@@ -1028,10 +1040,10 @@ function preview() {
  * past draws none of it).
  */
 function previewSeries(/** @type {HTMLElement} */ panel, /** @type {string} */ name, still = () => true) {
-  const head = `<h4 class="plain">${escape(humanize(name))}</h4><p class="series-id"><code>${escape(name)}</code>${((layer) => (layer ? ` · in this chart as ${escape(layer.letter)}` : ""))(home ? null : chart.layers.find((layer) => layer.series === name))}</p>`;
+  const head = `<h4 class="plain">${escapeHtml(humanize(name))}</h4><p class="series-id"><code>${escapeHtml(name)}</code>${((layer) => (layer ? ` · in this chart as ${escapeHtml(layer.letter)}` : ""))(home ? null : chart.layers.find((layer) => layer.series === name))}</p>`;
   if (byBlock.has(name)) {
     const day = dailyOf(name);
-    panel.innerHTML = `${head}<p class="description">${BY_BLOCK}.${day ? ` By day, there's ${escape(humanize(day))} (<code>${escape(day)}</code>).` : ""}</p>`;
+    panel.innerHTML = `${head}<p class="description">${BY_BLOCK}.${day ? ` By day, there's ${escapeHtml(humanize(day))} (<code>${escapeHtml(day)}</code>).` : ""}</p>`;
     return;
   }
   panel.innerHTML = `${head}<p class="description"><span class="shimmer">Loading description…</span></p>`;
@@ -1047,7 +1059,7 @@ function previewSeries(/** @type {HTMLElement} */ panel, /** @type {string} */ n
               ${meta.description ? `<div class="description clamped">${proseHtml(meta.description)}</div>` : ""}
               <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
               <div class="info"><h5>Information</h5><dl>
-                <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit])}</dd></div>
+                <div><dt>Unit</dt><dd>${escapeHtml(UNIT_NAMES[unit])}</dd></div>
                 <div><dt>Intervals</dt><dd>${meta.indexes.length}</dd></div>
                 <div><dt>Latest</dt><dd class="spark-caption"><span class="shimmer">Loading</span></dd></div>
               </dl></div>`;
@@ -1072,7 +1084,7 @@ function previewSeries(/** @type {HTMLElement} */ panel, /** @type {string} */ n
       if (!still()) return;
       drawSpark(panel, response.data.map((value) => (Array.isArray(value) ? value[3] : value)).map((value) => (value == null ? NaN : Number(value))), unit);
     } catch (error) {
-      if (still()) panel.innerHTML = `${head}<div class="error-box">${escape(failure(error))}</div>`;
+      if (still()) panel.innerHTML = `${head}<div class="error-box">${escapeHtml(failure(error))}</div>`;
     }
   })();
 }
@@ -1143,7 +1155,7 @@ function showActions(/** @type {HTMLElement | null} */ anchor = null) {
   if (actions.length < 2) return;
   // (A series', on a phone: what it is over them, as the pane beside the list shows it on a computer.)
   const detail = phone.matches && item.kind === "series";
-  showMenu(anchor, (detail ? '<div class="palette-preview menu-detail"></div>' : "") + actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}</span>` : ""}${action.page ? `<span class="sub">${ICONS.next}</span>` : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+  showMenu(anchor, (detail ? '<div class="palette-preview menu-detail"></div>' : "") + actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escapeHtml(action.label)}${action.kbd ? `<kbd>${escapeHtml(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escapeHtml(action.aside)}</span>` : ""}${action.page ? `<span class="sub">${ICONS.next}</span>` : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
   const box = detail ? /** @type {HTMLElement | null} */ ($("menu").querySelector(".menu-detail")) : null;
   if (box) previewSeries(box, item.name, () => box.isConnected && !$("menu").hidden);
 }
@@ -1429,17 +1441,17 @@ function goesOn(/** @type {any} */ item) {
 function rowHtml(item) {
   const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
   const initials = item.key?.startsWith("preset:");
-  const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : query && item.under ? item.aside.split(" › ").map((piece) => highlightMatch(piece, query, initials)).join(" › ") : escape(item.aside)) : "";
+  const aside = item.aside ? (item.mono ? `<code>${escapeHtml(item.aside)}</code>` : query && item.under ? item.aside.split(" › ").map((piece) => highlightMatch(piece, query, initials)).join(" › ") : escapeHtml(item.aside)) : "";
   const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", goesOn(item) ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
-  return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query, initials) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
+  return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query, initials) : escapeHtml(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
 }
 /** A chart's layers as ⌘K's previews list them: each by its badge and name, what it draws across. @param {Layer[]} layers */
-const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}<span class="name">${escape(labelOf(layer))}</span>${layer.hidden ? '<span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
+const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}<span class="name">${escapeHtml(labelOf(layer))}</span>${layer.hidden ? '<span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
 function previewChart(panel, doc) {
   if (!doc) return void (panel.innerHTML = "");
   // (Its edit's time; a preset not edited, where it is.)
   const at = presetIndex(doc), where = doc.updated ? `edited ${ago(doc.updated)}` : at >= 0 ? `Presets › ${placeNames(/** @type {Preset[]} */ (presets)[at].p.slice(0, -1)).join(" › ")}` : "";
-  panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${[plural(doc.layers.length, "layer"), CADENCE[doc.index], where].filter(Boolean).map(escape).join(" · ")}</p>
+  panel.innerHTML = `<h4 class="plain">${escapeHtml(titleOf(doc))}</h4><p class="description">${[plural(doc.layers.length, "layer"), CADENCE[doc.index], where].filter(Boolean).map(escapeHtml).join(" · ")}</p>
           ${plotIn(doc)}${doc.layers.length ? `<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers.slice(0, 10))}</dl></div>` : ""}`;
 }
 /**
@@ -1450,7 +1462,7 @@ function plotIn(doc, index = doc.index) {
   if (!doc.layers.length) return "";
   const drawn = previews.get(doc.id);
   if (drawn?.key !== previewKey(doc)) void drawPreview(doc, index).then((fresh) => paint(doc.id, fresh));
-  return `<span class="palette-plot ${drawn ? "" : "pending"}" data-plot="${escape(doc.id)}">${drawn ? previewSvg(drawn, `palette-plot-${doc.id}`) : ""}</span>`;
+  return `<span class="palette-plot ${drawn ? "" : "pending"}" data-plot="${escapeHtml(doc.id)}">${drawn ? previewSvg(drawn, `palette-plot-${doc.id}`) : ""}</span>`;
 }
 /** A row's preview: its own; for a page, what's in it; else its name and value. */
 function previewRow(panel, item) {
@@ -1458,13 +1470,13 @@ function previewRow(panel, item) {
   if (item.page) {
     // (A setting's own page, as it is: the way into it, `page`, goes there, its owner's page under it.)
     const page = (item.of ?? item.page)(), rows = page.input ? [] : page.rows();
-    panel.innerHTML = `<h4 class="plain">${escape(item.label)}</h4><p class="description">${escape(item.aside ?? "")}</p>${rows.length ? `<ul class="contents">${rows.slice(0, 14).map((row) => {
+    panel.innerHTML = `<h4 class="plain">${escapeHtml(item.label)}</h4><p class="description">${escapeHtml(item.aside ?? "")}</p>${rows.length ? `<ul class="contents">${rows.slice(0, 14).map((row) => {
       const doc = row.kind === "chart" ? chartById(row.key) : null;
-      return `<li>${doc ? chartMark(doc) : row.icon ?? ""}<span>${escape(doc ? titleOf(doc) : row.label)}</span></li>`;
+      return `<li>${doc ? chartMark(doc) : row.icon ?? ""}<span>${escapeHtml(doc ? titleOf(doc) : row.label)}</span></li>`;
     }).join("")}${rows.length > 14 ? `<li class="rest">and ${grouped.format(rows.length - 14)} more</li>` : ""}</ul>` : ""}`;
     return;
   }
-  panel.innerHTML = `<h4 class="plain">${escape(item.label)}</h4>${item.aside ? `<p class="description">${escape(item.aside)}</p>` : ""}`;
+  panel.innerHTML = `<h4 class="plain">${escapeHtml(item.label)}</h4>${item.aside ? `<p class="description">${escapeHtml(item.aside)}</p>` : ""}`;
 }
 /**
  * A choice among values, the one in effect checked: ↵ sets it and goes back to what it's a setting of. `preview`
@@ -1578,6 +1590,7 @@ const folderOwnPage = (/** @type {string} */ given) => ({ title: () => folderByI
 /** A chart's title, its own step wherever it's renamed from (see editChart). @param {Chart} doc @param {string} title */
 const renameChart = (doc, title) => editChart(doc, (draft) => (draft.title = title));
 
+const PANE_SETTINGS = new Set(["scale", "stack", "order", "average"]);
 /**
  * Every setting and action of this chart, its layers and its panes, as found from the search: "Realized price ·
  * Color", its value at its end. Opened, it opens within its owner's page, so ← goes back there.
@@ -1632,7 +1645,7 @@ const settingChoices = () => {
 /** Adding: what a layer can be besides a series, first on the page, in sight wherever it opens (and found by its words). */
 function otherLayerRows() {
   return [
-    { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A new layer computed from the others by their letters, with + − × ÷ and functions, or from any series by name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", leads: true, run: () => addFormula(palette.into) },
+    { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A new layer computed from the others by their letters, with + − × ÷ and functions, or from any series by name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escapeHtml(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", leads: true, run: () => addFormula(palette.into) },
     // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
     ...(chart.layers.length ? [
       { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between layers", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("cloud") },
@@ -1645,8 +1658,8 @@ function otherLayerRows() {
       { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("trend"), ...(trendShort() ? { disabled: trendShort() } : {}) },
     ] : []),
     // (A heatmap: a holder group's URPD, its own data, not made from layers.)
-    { kind: "row", key: "add:heatmap", icon: ICONS.heatmap, label: "Heatmap", aside: HEAT_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Heatmap</h4><p class="description">${escape(HEAT_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: heatAddPage },
-    { kind: "row", key: "add:profile", icon: ICONS.profile, label: "Profile", aside: PROFILE_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Profile</h4><p class="description">${escape(PROFILE_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: profileAddPage },
+    { kind: "row", key: "add:heatmap", icon: ICONS.heatmap, label: "Heatmap", aside: HEAT_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Heatmap</h4><p class="description">${escapeHtml(HEAT_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: heatAddPage },
+    { kind: "row", key: "add:profile", icon: ICONS.profile, label: "Profile", aside: PROFILE_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Profile</h4><p class="description">${escapeHtml(PROFILE_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: profileAddPage },
   ];
 }
 /** Nothing found: the two things searched, to browse instead (every series, by topic; the presets, by section), and other words to try. */
@@ -1654,7 +1667,7 @@ const browseInstead = () =>
   [
     ...(home ? [] : [{ key: "browse:series", icon: ICONS.series, label: "Browse every series", aside: "By topic", text: "Every series, in folders by topic", leads: true, run: () => openPalette({ add: true, path: [] }) }]),
     { key: "browse:presets", icon: ICONS.presets, label: "Browse the presets", aside: presets ? plural(presets.length, "chart") : "Loading…", text: "Ready-made charts, by section", page: () => presetsPage([]) },
-  ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escape(row.label)}</h4><p class="description">${text}. Or try other words, describing what the series measures.</p>`), ...row }));
+  ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escapeHtml(row.label)}</h4><p class="description">${text}. Or try other words, describing what the series measures.</p>`), ...row }));
 function browseRows() {
   const any = chart.layers.length > 0;
   return [
@@ -1699,6 +1712,8 @@ const chartsPage = () => ({ title: "Library", placeholder: "Search your Library"
 ] });
 /** Where charts go, as ⌘K's page. @param {string[]} ids @returns {Page} */
 const folderPage = (ids) => choicePage("Move to folder", () => folderChoices(chartKeys(ids)));
+/** The header's own buttons, by the ⋯ rows they'd repeat: a preview's Save, a preset's Save a copy and Reset. */
+const HEAD_OWN = new Map([["keep", "keep"], ["copy", "preset-copy"], ["reset", "preset-reset"]]);
 /**
  * The chart header's ⋯: the tools its header leaves to it first (a tablet's, Add and the drawing tools; a phone's,
  * the drawing tools: its bar has Add), then the chart's, but for those its header shows (a phone's, an edited
@@ -1772,7 +1787,7 @@ const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(({ 
 /** Adding a profile: long-term and short-term holders together first (the coins' two sides, each its color), then one group; more pressed in its settings. */
 const profileAddPage = () => choicePage("Add a profile", () => [
   { key: "lth+sth", icon: ICONS.profile, label: `${holderName("lth").brief} and ${inSentence(holderName("sth").who)}`, aside: "Each its color", verb: "Add", run: () => addHeatmap("lth", ["lth", "sth"]) },
-  ...HEAT_COHORTS.map(({ id: cohort, shown: name }) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
+  ...HEAT_COHORTS.map(({ id: cohort, shown: name }) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escapeHtml(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
 ]);
 /** @returns {Page} */
 function chartPage() {
@@ -1809,6 +1824,8 @@ const layersPage = () => ({ title: "Layers", placeholder: "Search this chart's l
   ...addRows("Add"),
   ...(chart.layers.some((layer) => layer.hidden) ? [{ kind: "row", key: "show-all", icon: ICONS.eye, label: "Show every layer", verb: "Show", group: "Add", stay: true, run: showEvery }] : []),
 ] });
+/** A layer row's ⌘K: what's changed most, the rest a ↵ away on its page. */
+const QUICK = new Set(["series", "formula", "between", "name", "type", "color", "pane", "derive", "hide", "solo", "duplicate", "remove"]);
 /** A layer, by its letter and name, with what it shows (a series, a formula): ↵ opens all it is, to change. */
 function layerRow(layer) {
   const open = () => layerPage(layer.id);
@@ -1943,7 +1960,7 @@ function layerPage(id) {
     return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : heatLike(layer) ? rows.filter((row) => !NOT_A_HEATMAP.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
   } };
 }
-const swatchOf = (color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
+const swatchOf = (color) => `<i class="swatch" style="--c:${escapeHtml(cssColor(color))}"></i>`;
 /** A color typed: a hex (#, or not; three digits or six), an OKLCH, or any color CSS reads, as a hex (opaque only). */
 function readColor(/** @type {string} */ text) {
   const typed = text.trim().toLowerCase(), hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(typed);
@@ -1969,6 +1986,8 @@ function colorRows(/** @type {string} */ current, /** @type {(color: string) => 
     } }) },
   ];
 }
+/** A drawing's row's ⌘K: what's changed most, the rest a ↵ away on its page. */
+const DRAWING_QUICK = new Set(["flip-x", "flip-y", "duplicate", "remove"]);
 /** The chart's drawings, each to open; the tools, to draw another; removing them all. @returns {Page} */
 const drawingsPage = () => ({ title: "Drawings", placeholder: "Search the drawings", rows: () => {
   const names = drawingNames();
@@ -2105,15 +2124,15 @@ function previewLayer(panel, id, color = /** @type {string | null} */ (null), /*
   if (!layer) return void (panel.innerHTML = "");
   const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
   const about = layer.series ? known.get(layer.series)?.description : null;
-  panel.innerHTML = `<h4 class="plain">${escape(viewName(chart, layer))}</h4>
-          <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? (heatLike(layer) ? heatCode(layer) : ""))}</code>`}</p>
+  panel.innerHTML = `<h4 class="plain">${escapeHtml(viewName(chart, layer))}</h4>
+          <p class="description">${layer.from ? escapeHtml(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escapeHtml(layer.series ?? layer.formula ?? (heatLike(layer) ? heatCode(layer) : ""))}</code>`}</p>
           ${about ? `<div class="description clamped">${proseHtml(about)}</div>` : ""}
-          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || heatLike(layer) ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
-          <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
-            <div><dt>Type</dt><dd>${escape(typeName(layer.type))}</dd></div>
-            <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
+          ${result?.error ? `<div class="error-box">${escapeHtml(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || heatLike(layer) ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
+          <div class="info"><h5>Layer ${escapeHtml(layer.letter)}</h5><dl>
+            <div><dt>Type</dt><dd>${escapeHtml(typeName(layer.type))}</dd></div>
+            <div><dt>Unit</dt><dd>${escapeHtml(UNIT_NAMES[unit] ?? "Number")}</dd></div>
             <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
-            <div><dt>Latest</dt><dd class="spark-caption"${layer.type === "cloud" || heatLike(layer) ? ` data-latest="${escape(layer.id)}"` : ""}>${escape(latestSaid(layer, result, unit))}</dd></div>
+            <div><dt>Latest</dt><dd class="spark-caption"${layer.type === "cloud" || heatLike(layer) ? ` data-latest="${escapeHtml(layer.id)}"` : ""}>${escapeHtml(latestSaid(layer, result, unit))}</dd></div>
           </dl></div>`;
   // (Its colors date by date, where they vary: as given, else as it's drawn; a color given, that one alone.)
   const dated = tint !== undefined ? tint : color ? null : resolved ? paintOf(chart, layer, resolved) : null;
@@ -2189,12 +2208,10 @@ function previewPane(panel, id, share = /** @type {number | null} */ (null)) {
   const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
   if (share !== null) sizes[i] = (share * others) / (1 - share);
   panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escape(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layerRows(layers) || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
 }
-
-const MONTH_NAMES = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
 /**
  * A date as typed (2021, 2021-11, nov 2021, 2021-11-10, 10 nov 2021): the span it names, a year, a month or a day,
  * in seconds, and how to say it; null if it isn't one.
@@ -2269,8 +2286,8 @@ function previewDate(panel, span) {
   // (At a fine interval, a stretch not loaded yet loads first: nothing to light or count until then.)
   const away = Boolean(span && !why && fineDrawn() && !stretchOf(span).loaded);
   const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
-  panel.innerHTML = `<h4 class="plain">${span ? escape(capitalized(span.label)) : "Go to a date"}</h4>
-          <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
+  panel.innerHTML = `<h4 class="plain">${span ? escapeHtml(capitalized(span.label)) : "Go to a date"}</h4>
+          <p class="description">${escapeHtml(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
           <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span class="spark-caption" hidden></span>
           ${span && !why && !away ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
   const source = overviewSource();
@@ -2280,7 +2297,7 @@ function previewDate(panel, span) {
   if (!span || why || away) return;
   const { first, last } = pointsOf(span), x = (i) => ((i / Math.max(1, n - 1)) * 300).toFixed(1);
   panel.querySelector(".spark")?.insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
-  $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(pointLabel(resolved.times[first]))}</dd></div><div><dt>To</dt><dd>${escape(pointLabel(resolved.times[last]))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
+  $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escapeHtml(pointLabel(resolved.times[first]))}</dd></div><div><dt>To</dt><dd>${escapeHtml(pointLabel(resolved.times[last]))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
 }
 /** Go to a date, typed in ⌘K's field: the span it names lit on the overview; ↵ takes the view there and closes ⌘K. */
 const datePage = () => inputPage({
@@ -2374,10 +2391,10 @@ export {
   browseRows, byUse, catalogTops, chartActions, chartsPage, choicePage, choose, columnsOf, commandItem, commands,
   dangerous, datePage, drawOptions, finder, findSeries, fitScore, formulaAt, formulaError, formulaSide, goesOn, goUp,
   headMenu, heightRow, inputPage, insertPiece, isOwnFormula, keyboard, keyboardKey, keyed, latestSaid, layerRow,
-  layerRows, leavePages, leaveScope, listPage, litFirst, loopError, meansOf, MONTH_NAMES, nodeAt, openPage,
-  optionsHtml, otherLayerRows, outOfData, pageTitle, palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneNames,
-  paneRow, placeOnHome, plotIn, pointsOf, popPage, presetPicked, preview, previewDate, previewLayer, pushPage, rank,
-  ranksSoon, readColor, readDate, recentRow, renameChart, renameChartPage, renderPath, rowText, scalePane, searchCase,
+  layerRows, leavePages, leaveScope, listPage, litFirst, loopError, meansOf, nodeAt, openPage, optionsHtml,
+  otherLayerRows, outOfData, pageTitle, palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneNames, paneRow,
+  placeOnHome, plotIn, pointsOf, popPage, presetPicked, preview, previewDate, previewLayer, pushPage, rank, ranksSoon,
+  readColor, readDate, recentRow, renameChart, renameChartPage, renderPath, rowText, scalePane, searchCase,
   searchSeries, searchText, seriesPicked, settingChoices, settingsNow, showActions, showFormula, showPage, sizable,
   slipEdits, startFinder, stepSignal, stretchOf, textWords, timesPage, typedWords, underHome, USED, useScore, viewRow,
   wayText,

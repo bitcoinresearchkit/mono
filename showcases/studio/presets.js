@@ -47,11 +47,9 @@
 
 /** @import { Facts } from "./facts.js" */
 import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
-import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
+import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 
-/** @param {any} n */
-const isLeaf = (n) => typeof n?.name === "string" && typeof n.indexes === "function";
 /** Whether a series can be charted: by date (Studio charts by date; some are by block only). @param {any} n */
 const byDate = (n) => isLeaf(n) && n.indexes().includes("day1");
 /** A node's children that hold something, by key (the client's own keys, in its order). @param {any} n */

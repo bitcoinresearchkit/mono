@@ -5,23 +5,34 @@ import {
   Profile, rightBlank, Scale, Shade,
 } from "/modules/bitview-charts/index.js";
 import { OKLCH } from "/studio/palette.js";
+import { hexToOklch, oklchToHex } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
-  $, all$, amount, averageFor, AXIS_CHARS, axisTicks, bandLit, belowOf, BRUSH_MIN, brushDrag, bubbleRing, buildAsked,
-  buildChart, byBlock, CADENCE, capturing, catalogIndex, changesOf, chart, chartHeight, chartSans, chartSize, CHUNK,
-  clamp, client, closest, CLOUD, cloudLayers, cohortName, commit, composing, crossMoved, css, dataRevision, dateLabel,
-  chartShown, displayed, draft, edgesOf, EMPTY, engine, escape, exporting,
-  failing, FINE, FINE_STEP, FIRST_CHUNKS, fitMargins, footPinned, format, fromShort, fromUnfit, goneLayer, grow,
-  growth, heatKnown, heatLike, hexToOklch, home, hoverTime, ICONS, indexAt, indexCatalog, INTERVAL_DAYS,
-  INTERVAL_LABEL, INTERVAL_ORDER, keepStretch, KEPT_CHUNKS, keyAway, keyText, keyTime, keyValue, layerPicks, light,
-  liveHeight, lookDoc, lookShown, lowerBound, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, MONTHS, morphFrom,
-  MOST_CHUNKS, mostBars, MOTION, motionsSized, motionTime, oklchToHex, ontoData, opacityOf, openingView, outreaches,
-  paintNavigator, panelShown, pending, placedOn, placing, pointedLayer, pointerOnChart, precise, PRECISE, profileColor,
-  profileLit, rangeDays, reaching, reduced, resolved, resultText, rowSizes, selected, shownOklch, signalShown,
-  signedMeasure, sizeChart, sizeHeld, SPAN, spanDays, spanKey, spanParts, spotlight, stretchResult, submenus,
-  subSetups, tagLit, timeAt, timesAt, tokensNow, tool, TOUCH, TWO_KEPT, unitOf, updateRowChanges, viewMoving, viewTimes, widest,
-  WIDEST_VALUES, windowTooLong, within,
+  averageFor, bandLit, BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex,
+  changesOf, chart, chartHeight, chartSans, chartSize, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
+  chartShown, displayed, draft, EMPTY, engine, exporting, fitMargins, footPinned, fromShort, fromUnfit, goneLayer, grow,
+  heatKnown, home, hoverTime, indexAt, indexCatalog, keepStretch, keyAway, keyTime, keyValue, layerPicks, light,
+  liveHeight, lookDoc, lookShown, morphFrom, mostBars, MOTION, motionsSized, ontoData, openingView, paintNavigator,
+  panelShown, pending, placing, pointedLayer, pointerOnChart, profileColor, profileLit, reaching, reduced, resolved,
+  rowSizes, selected, shownOklch, signalShown, sizeChart, sizeHeld, SPAN, spanKey, spanParts, spotlight, submenus,
+  subSetups, tagLit, timeAt, timesAt, tokensNow, tool, updateRowChanges, viewMoving, viewTimes, widest, windowTooLong,
+  within,
 } from "/studio/app.js";
+import { $, all$, closest, composing, escapeHtml, keyText, TOUCH } from "/studio/dom.js";
+import { motionTime } from "/studio/timing.js";
+import { clamp, lowerBound } from "/studio/math.js";
+import {
+  amount, AXIS_CHARS, axisTicks, dateLabel, format, growth, MONTHS, precise, PRECISE, unitOf, WIDEST_VALUES,
+} from "/studio/format.js";
+import { ICONS } from "/studio/icons.js";
+import {
+  belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
+  placedOn, resultText, signedMeasure, stretchResult, TWO_KEPT,
+} from "/studio/vocabulary.js";
+import {
+  CADENCE, CHUNK, FINE, FINE_STEP, FIRST_CHUNKS, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, KEPT_CHUNKS,
+  MOST_CHUNKS, outreaches, rangeDays, spanDays,
+} from "/studio/intervals.js";
 import { aboutOf, latestSaid } from "/studio/command.js";
 import { plotBox, PULL } from "/studio/drawing.js";
 import {
@@ -38,7 +49,7 @@ import {
 } from "/studio/inspector.js";
 import { renderRanges } from "/studio/menus.js";
 /** @import { Levels } from "/modules/bitview-charts/index.js" */
-/** @import { Chart, Layer, Pane } from "/studio/app.js" */
+/** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Vector } from "/studio/formulas.js" */
 /** @import { HeatLook } from "/studio/heatmaps.js" */
 
@@ -1474,8 +1485,8 @@ function shareAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: bool
  * ends. @param {Layer} layer
  */
 function profileKeyHtml(layer) {
-  const groups = layer.profile ?? [], color = (/** @type {string} */ cohort) => `<i style="--c:${escape(ink(profileColor(layer, cohort)))}"></i>`;
-  return `<span class="legend-key profile-key">${groups.length <= 4 ? groups.map((cohort) => `<span>${color(cohort)}<span>${escape(cohortName(cohort))}</span></span>`).join("") : `<span>${escape(cohortName(groups[0]))}</span><span class="key-strip">${groups.map(color).join("")}</span><span>${escape(cohortName(/** @type {string} */ (groups.at(-1))))}</span>`}</span>`;
+  const groups = layer.profile ?? [], color = (/** @type {string} */ cohort) => `<i style="--c:${escapeHtml(ink(profileColor(layer, cohort)))}"></i>`;
+  return `<span class="legend-key profile-key">${groups.length <= 4 ? groups.map((cohort) => `<span>${color(cohort)}<span>${escapeHtml(cohortName(cohort))}</span></span>`).join("") : `<span>${escapeHtml(cohortName(groups[0]))}</span><span class="key-strip">${groups.map(color).join("")}</span><span>${escapeHtml(cohortName(/** @type {string} */ (groups.at(-1))))}</span>`}</span>`;
 }
 /**
  * The profiles' legend items: one a bar of which is pointed at (see litCohort), the group's (its mark, its name; its
@@ -1501,7 +1512,7 @@ function paintProfileItems() {
  */
 const viewName = (doc, layer, name = labelOf(layer)) => ((average) => average.name ? `${name} · ${average.name}` : name)(averageFor(doc, doc.panes.find((pane) => pane.id === layer.pane)));
 /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
-const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(viewName(chart, layer, name))}</span>`;
+const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escapeHtml(viewName(chart, layer, name))}</span>`;
 /**
  * The layers folded into a cloud's legend item, by id (to the cloud's): a cloud by its layers' (byLayers), its lines
  * in its pane (what it's drawn from, Compass's percentiles and averages, many a group): listed as its key's colors,
@@ -1520,7 +1531,7 @@ function foldedInto(doc) {
 /** A cloud's key: its folded layers' colors (see foldedInto), each once, in its order. @param {Layer} layer */
 function cloudKeyHtml(layer) {
   const folded = foldedInto(chart), colors = [...new Set(chart.layers.filter((other) => folded.get(other.id) === layer.id && !other.hidden).map((other) => ink(other.color)))];
-  return colors.length ? `<span class="legend-key cloud-key">${colors.map((color) => `<i style="--c:${escape(color)}"></i>`).join("")}</span>` : "";
+  return colors.length ? `<span class="legend-key cloud-key">${colors.map((color) => `<i style="--c:${escapeHtml(color)}"></i>`).join("")}</span>` : "";
 }
 /** A library legend's Studio controls: one action while folded, each layer while named (including export's mode). */
 function legendAccess(/** @type {HTMLElement} */ element) {
@@ -1559,13 +1570,13 @@ function updateLegends() {
     /** A layer's item: its mark and name, its value beside them (or what's wrong). @param {Layer} layer */
     const item = (layer) => {
       const result = resolved?.results.get(layer.id);
-      const value = result?.error && !said ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
+      const value = result?.error && !said ? `<span class="legend-error"${result.detail ? ` data-tip="${escapeHtml(result.detail)}"` : ""}>${escapeHtml(result.error)}</span>`
         : fromUnfit(chart, layer) ? `<span class="legend-error">${fromUnfit(chart, layer)}</span>`
         : layer.hidden || !(result?.values || result?.heat) || (layer.type === "signal" && !signalShown(layer)) ? ""
         // (A 100% stack's band: its share, as its axis reads (its amount, the panel's).)
         : pane?.stack === "percent" && bandsOf(pane).includes(layer) ? `<span class="legend-value" data-band-share="${layer.id}" style="min-width: ${widest(["100.0%"], 510, 12)}px"></span>`
         : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
-      return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""}" data-select="${layer.id}" style="--c:${escape(ink(colorNow(layer) ?? layer.color))}">
+      return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""}" data-select="${layer.id}" style="--c:${escapeHtml(ink(colorNow(layer) ?? layer.color))}">
               <span class="legend-name">${legendNameHtml(layer)}</span>${value}
             </button>${layer.type === "profile" && !layer.hidden && layer.profile?.length ? profileKeyHtml(layer) : ""}${!layer.hidden ? cloudKeyHtml(layer) : ""}`;
     };
