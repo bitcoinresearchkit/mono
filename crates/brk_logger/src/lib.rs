@@ -75,7 +75,7 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -
                 None => default_level,
             };
             format!(
-            "{level},bitcoin=off,corepc=off,tracing=off,aide=off,fjall=off,lsm_tree=off,tower_http=off,rmcp=warn"
+            "{level},bitcoin=off,corepc=off,tracing=off,aide=off,fjall=warn,lsm_tree=warn,tower_http=off,rmcp=warn"
         )
             .parse()
             .expect("the default filter parses")
