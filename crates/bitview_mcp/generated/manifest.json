@@ -24,10 +24,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -69,10 +66,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -128,10 +122,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -191,10 +182,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -241,10 +229,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -299,10 +284,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -349,10 +331,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -390,10 +369,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -431,10 +407,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -484,10 +457,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -537,10 +507,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -578,10 +545,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -619,10 +583,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -672,10 +633,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -725,10 +683,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -766,10 +721,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -795,10 +747,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -818,10 +767,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -862,10 +808,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -917,10 +860,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -963,10 +903,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -992,10 +929,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1027,10 +961,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1056,10 +987,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1091,10 +1019,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1132,10 +1057,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1161,10 +1083,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1208,10 +1127,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1237,10 +1153,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1284,10 +1197,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1329,10 +1239,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1363,10 +1270,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1386,10 +1290,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1409,10 +1310,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1430,177 +1328,8 @@
           "type": "object",
           "properties": {
             "slug": {
-              "description": "A mining pool's identifier, as written in URLs.",
-              "type": "string",
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ]
+              "description": "A mining pool's slug, as written in URLs: `get_pools` lists them.",
+              "type": "string"
             }
           },
           "additionalProperties": false,
@@ -1609,10 +1338,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1636,177 +1362,8 @@
           "type": "object",
           "properties": {
             "slug": {
-              "description": "A mining pool's identifier, as written in URLs.",
-              "type": "string",
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ]
+              "description": "A mining pool's slug, as written in URLs: `get_pools` lists them.",
+              "type": "string"
             }
           },
           "additionalProperties": false,
@@ -1815,10 +1372,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -1842,177 +1396,8 @@
           "type": "object",
           "properties": {
             "slug": {
-              "description": "A mining pool's identifier, as written in URLs.",
-              "type": "string",
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ]
+              "description": "A mining pool's slug, as written in URLs: `get_pools` lists them.",
+              "type": "string"
             },
             "height": {
               "description": "A block height: how many blocks came before it.",
@@ -2030,10 +1415,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2062,177 +1444,8 @@
           "type": "object",
           "properties": {
             "slug": {
-              "description": "A mining pool's identifier, as written in URLs.",
-              "type": "string",
-              "enum": [
-                "unknown",
-                "blockfills",
-                "ultimuspool",
-                "terrapool",
-                "luxor",
-                "1thash",
-                "cloverpool",
-                "bitfarms",
-                "huobipool",
-                "wayicn",
-                "canoepool",
-                "btctop",
-                "bitcoincom",
-                "175btc",
-                "gbminers",
-                "axbt",
-                "asicminer",
-                "bitminter",
-                "bitcoinrussia",
-                "btcserv",
-                "simplecoinus",
-                "btcguild",
-                "eligius",
-                "ozcoin",
-                "eclipsemc",
-                "maxbtc",
-                "triplemining",
-                "coinlab",
-                "50btc",
-                "ghashio",
-                "stminingcorp",
-                "bitparking",
-                "mmpool",
-                "polmine",
-                "kncminer",
-                "bitalo",
-                "f2pool",
-                "hhtt",
-                "megabigpower",
-                "mtred",
-                "nmcbit",
-                "yourbtcnet",
-                "givemecoins",
-                "braiinspool",
-                "antpool",
-                "multicoinco",
-                "bcpoolio",
-                "cointerra",
-                "kanopool",
-                "solock",
-                "ckpool",
-                "nicehash",
-                "bitclub",
-                "bitcoinaffiliatenetwork",
-                "btcc",
-                "bwpool",
-                "exxbw",
-                "bitsolo",
-                "bitfury",
-                "21inc",
-                "digitalbtc",
-                "8baochi",
-                "mybtccoinpool",
-                "tbdice",
-                "hashpool",
-                "nexious",
-                "bravomining",
-                "hotpool",
-                "okexpool",
-                "bcmonster",
-                "1hash",
-                "bixin",
-                "tatmaspool",
-                "viabtc",
-                "connectbtc",
-                "batpool",
-                "waterhole",
-                "dcexploration",
-                "dcex",
-                "btpool",
-                "58coin",
-                "bitcoinindia",
-                "shawnp0wers",
-                "phashio",
-                "rigpool",
-                "haozhuzhu",
-                "7pool",
-                "miningkings",
-                "hashbx",
-                "dpool",
-                "rawpool",
-                "haominer",
-                "helix",
-                "bitcoinukraine",
-                "poolin",
-                "secretsuperstar",
-                "tigerpoolnet",
-                "sigmapoolcom",
-                "okpooltop",
-                "hummerpool",
-                "tangpool",
-                "bytepool",
-                "spiderpool",
-                "novablock",
-                "miningcity",
-                "binancepool",
-                "minerium",
-                "lubiancom",
-                "okkong",
-                "aaopool",
-                "emcdpool",
-                "foundryusa",
-                "sbicrypto",
-                "arkpool",
-                "purebtccom",
-                "marapool",
-                "kucoinpool",
-                "entrustcharitypool",
-                "okminer",
-                "titan",
-                "pegapool",
-                "btcnuggets",
-                "cloudhashing",
-                "digitalxmintsy",
-                "telco214",
-                "btcpoolparty",
-                "multipool",
-                "transactioncoinmining",
-                "btcdig",
-                "trickysbtcpool",
-                "btcmp",
-                "eobot",
-                "unomp",
-                "patels",
-                "gogreenlight",
-                "bitcoinindiapool",
-                "ekanembtc",
-                "canoe",
-                "tiger",
-                "1m1x",
-                "zulupool",
-                "secpool",
-                "ocean",
-                "whitepool",
-                "wiz",
-                "wk057",
-                "futurebitapollosolo",
-                "carbonnegative",
-                "portlandhodl",
-                "phoenix",
-                "neopool",
-                "maxipool",
-                "bitfufupool",
-                "gdpool",
-                "miningdutch",
-                "publicpool",
-                "miningsquared",
-                "innopolistech",
-                "btclab",
-                "parasite",
-                "redrockpool",
-                "est3lar",
-                "braiinssolo",
-                "solopoolcom",
-                "noderunners",
-                "dmnd",
-                "trustpool"
-              ]
+              "description": "A mining pool's slug, as written in URLs: `get_pools` lists them.",
+              "type": "string"
             }
           },
           "additionalProperties": false,
@@ -2241,10 +1454,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2294,10 +1504,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2323,10 +1530,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2370,10 +1574,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2399,10 +1600,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2422,10 +1620,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2445,10 +1640,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2480,10 +1672,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2638,10 +1827,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2822,10 +2008,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2876,10 +2059,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2910,10 +2090,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -2991,10 +2168,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3077,10 +2251,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3163,10 +2334,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3197,10 +2365,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3243,10 +2408,7 @@
           }
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3284,10 +2446,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3325,10 +2484,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3366,10 +2522,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3407,10 +2560,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3457,10 +2607,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3503,10 +2650,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3544,10 +2688,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3585,10 +2726,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3626,10 +2764,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3758,10 +2893,7 @@
           }
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3870,10 +3002,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3947,10 +3076,7 @@
           }
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -3976,10 +3102,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -4019,10 +3142,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -4053,10 +3173,7 @@
           "additionalProperties": false
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -4097,10 +3214,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {
@@ -4142,10 +3256,7 @@
           ]
         },
         "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
+          "readOnlyHint": true
         }
       },
       "http": {

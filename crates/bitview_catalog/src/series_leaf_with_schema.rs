@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, sync::Arc};
 
 use bitview_primitives::Index;
 use schemars::JsonSchema;
@@ -15,9 +15,9 @@ pub struct SeriesLeafWithSchema {
     /// What the values are on the wire.
     #[serde(rename = "type")]
     pub(crate) openapi_type: JsonType,
-    /// JSON Schema for the value type.
+    /// JSON Schema for the value type, shared by every leaf of the type.
     #[serde(skip)]
-    pub schema: Value,
+    pub schema: Arc<Value>,
     /// Indexes whose values can be missing (e.g. a period without blocks), written as `null`.
     #[serde(skip)]
     pub missing: BTreeSet<Index>,
@@ -27,7 +27,7 @@ pub struct SeriesLeafWithSchema {
 }
 
 impl SeriesLeafWithSchema {
-    pub fn new(leaf: SeriesLeaf, schema: Value) -> Self {
+    pub fn new(leaf: SeriesLeaf, schema: Arc<Value>) -> Self {
         let openapi_type = extract_json_type(&schema);
         Self {
             leaf,

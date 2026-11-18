@@ -1,12 +1,14 @@
 use std::{
+    any::TypeId,
     collections::{BTreeMap, BTreeSet, btree_map::Entry},
     fmt::Display,
     iter,
+    sync::{Arc, Mutex},
 };
 
 use schemars::{JsonSchema, generate::SchemaSettings};
 use serde::Serialize;
-use serde_json::to_value;
+use serde_json::{Value, to_value};
 use vecdb::{
     BytesVec, BytesVecValue, CachePolicy, CompressionStrategy, DeltaOp, Formattable, IndexVec,
     LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, PrintableIndex, RawStrategy,
@@ -181,19 +183,32 @@ where
         leaf.nullable = indexes.clone();
     }
 
-    // The values as the API writes them (schemars' default describes what deserializes).
-    // Serializing (not `Schema::to_value`) applies schemars' canonical keyword order.
-    let schema = SchemaSettings::default()
-        .for_serialize()
-        .into_generator()
-        .into_root_schema_for::<V::T>();
-    let schema_json = to_value(schema).expect("a schema serializes to JSON");
-    let mut leaf = SeriesLeafWithSchema::new(leaf, schema_json);
+    let mut leaf = SeriesLeafWithSchema::new(leaf, value_schema::<V::T>());
     if V::T::MISSING {
         leaf.missing = indexes;
     }
     leaf.undefined = V::T::UNDEFINED;
     TreeNode::Leaf(leaf)
+}
+
+/// A value type's JSON Schema, generated once and shared by every vector of the type: a catalog has hundreds of
+/// thousands of vectors over about ninety value types.
+fn value_schema<T: JsonSchema + 'static>() -> Arc<Value> {
+    static SCHEMAS: Mutex<BTreeMap<TypeId, Arc<Value>>> = Mutex::new(BTreeMap::new());
+    SCHEMAS
+        .lock()
+        .expect("no schema panicked while generated")
+        .entry(TypeId::of::<T>())
+        .or_insert_with(|| {
+            // The values as the API writes them (schemars' default describes what deserializes).
+            // Serializing (not `Schema::to_value`) applies schemars' canonical keyword order.
+            let schema = SchemaSettings::default()
+                .for_serialize()
+                .into_generator()
+                .into_root_schema_for::<T>();
+            Arc::new(to_value(schema).expect("a schema serializes to JSON"))
+        })
+        .clone()
 }
 
 /// A vec published as one series leaf. `stored` vecs also yield themselves for writes.

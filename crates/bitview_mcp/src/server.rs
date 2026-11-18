@@ -1,24 +1,17 @@
-use std::{
-    borrow::Cow,
-    future::ready,
-    sync::{Arc, OnceLock},
-    time::Duration,
-};
+use std::{borrow::Cow, future::ready, sync::Arc, time::Duration};
 
 use axum::{
     Json, Router,
     body::{Body, Bytes},
     http::{
         HeaderMap, HeaderValue, Method, Request, StatusCode,
-        header::{ACCEPT, ALLOW, CACHE_CONTROL, ORIGIN, VARY},
-        request::Parts,
+        header::{ACCEPT, ALLOW, CACHE_CONTROL, VARY},
     },
     middleware::{self, Next},
     response::{IntoResponse, Redirect, Response},
     routing::{get, post_service},
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
-use http_body_util::BodyExt;
 use rmcp::{
     ErrorData as McpError, RoleServer, ServerHandler,
     model::{
@@ -35,31 +28,23 @@ use rmcp::{
         },
     },
 };
-use serde_json::{Value, json};
-use tokio::{
-    sync::{OwnedSemaphorePermit, Semaphore},
-    task::spawn_blocking,
-    time::timeout,
-};
-use tower_http::timeout::RequestBodyTimeoutLayer;
+use serde_json::json;
+use tokio::{sync::Semaphore, task::spawn_blocking, time::timeout};
+use tower_http::{cors::CorsLayer, timeout::RequestBodyTimeoutLayer};
 use tracing::debug;
 
 use crate::{
     discovery, logo,
     manifest::Catalog,
     page,
-    upstream::{MAX_RESPONSE_BYTES, Upstream},
+    upstream::{MAX_CALLS, Upstream},
     upstream_response::UpstreamResponse,
 };
 
 const CACHE_META_KEY: &str = "org.bitcoinresearchkit/upstreamCache";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
-/// Bytes of large upstream bodies that calls may hold at once, from reading the body until the response is written.
-/// The budget allows sixteen maximum-sized bodies. Small bodies, which end within the first read, take none:
-/// their memory is bounded by the calls in flight.
-const BODY_BUDGET: u64 = 16 * MAX_RESPONSE_BYTES;
-/// The longest a call waits for its body's share of the budget.
-const BUDGET_WAIT: Duration = Duration::from_secs(5);
+/// The longest a call waits for its turn among the `MAX_CALLS` in flight.
+const TURN_WAIT: Duration = Duration::from_secs(5);
 const CATALOG_TTL_MS: u64 = 3_600_000;
 const MAX_UPSTREAM_ERROR_BYTES: usize = 2_048;
 /// The newest revision, back to the oldest one a real client still opens with: Codex and Gemini CLI
@@ -73,7 +58,7 @@ pub(crate) static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 3] = [
 struct AppState {
     catalog: Catalog,
     upstream: Upstream,
-    budget: Arc<Semaphore>,
+    calls: Arc<Semaphore>,
     display_name: String,
     public_url: String,
     server_name: String,
@@ -112,7 +97,7 @@ pub fn router(
     let state = Arc::new(AppState {
         catalog,
         upstream: Upstream::new(api_url),
-        budget: Arc::new(Semaphore::new(BODY_BUDGET as usize)),
+        calls: Arc::new(Semaphore::new(MAX_CALLS)),
         display_name,
         public_url,
         server_name,
@@ -127,21 +112,22 @@ pub fn router(
     );
 
     Router::new()
-        .route(
-            "/",
-            page::route(home)
-                .merge(post_service(service).layer(middleware::from_fn(hold_charge))),
-        )
+        .route("/", page::route(home).merge(post_service(service)))
         .route("/logo.png", get(logo::get))
         .merge(site_pages)
         .merge(discovery_routes)
         .layer(middleware::from_fn(gateway_guard))
         // A POST's body may not stall: it would hold its connection.
         .layer(RequestBodyTimeoutLayer::new(REQUEST_BODY_TIMEOUT))
+        // Any page may call and read any route: the data is public and the server takes no credentials.
+        // Outermost, so it answers every preflight itself.
+        .layer(CorsLayer::permissive().max_age(PREFLIGHT_MAX_AGE))
 }
 
 /// The longest a request body may go without sending more.
 const REQUEST_BODY_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long browsers may reuse a CORS preflight.
+const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
 
 impl BitviewMcp {
     fn server_info(&self) -> ServerConfig {
@@ -208,7 +194,7 @@ impl ServerHandler for BitviewMcp {
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        context: RequestContext<RoleServer>,
+        _context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, McpError> {
         let name = request.name;
         let operation = self
@@ -216,64 +202,32 @@ impl ServerHandler for BitviewMcp {
             .catalog
             .operation(&name)
             .ok_or_else(|| McpError::invalid_params("Unknown tool name", None))?;
-        let arguments = Value::Object(request.arguments.unwrap_or_default());
-        operation
-            .validate_arguments(&arguments)
-            .map_err(|error| McpError::invalid_params(error, None))?;
-        let url = self
+        let fail = |message| Ok(tool_error(message, &self.state.server_name));
+        let url = match self
             .state
             .upstream
-            .prepare(operation, &arguments)
-            .map_err(|error| McpError::invalid_params(error, None))?;
+            .prepare(operation, &request.arguments.unwrap_or_default())
+        {
+            Ok(url) => url,
+            Err(error) => return fail(error),
+        };
 
-        let charge = context
-            .extensions
-            .get::<Parts>()
-            .and_then(|parts| parts.extensions.get::<Charge>())
-            .cloned();
-        debug_assert!(
-            charge.is_some(),
-            "MCP POSTs get a charge slot before dispatch"
-        );
+        // A call waits for its turn here, holding no thread. The turn goes with the fetch, which runs to its end even
+        // if the client has left.
+        let turn = Arc::clone(&self.state.calls).acquire_owned();
+        let Ok(Ok(turn)) = timeout(TURN_WAIT, turn).await else {
+            return fail("Bitview MCP is busy; retry shortly".to_string());
+        };
         let state = Arc::clone(&self.state);
-        let fail = |message| Ok(tool_error(message, &self.state.server_name));
-
-        let fetched = {
-            let state = Arc::clone(&state);
-            spawn_blocking(move || state.upstream.fetch(url)).await
-        };
-        let partial = match fetched {
-            Ok(Ok(partial)) => partial,
-            Ok(Err(error)) => return fail(error),
-            Err(_) => return fail("Bitview API request task failed".to_string()),
-        };
-        // A large body reserves the most it can take before the rest is read, and waits for that room here, holding
-        // no thread.
-        let permit = if partial.is_large() {
-            let reserve = Arc::clone(&state.budget).acquire_many_owned(MAX_RESPONSE_BYTES as u32);
-            let Ok(Ok(permit)) = timeout(BUDGET_WAIT, reserve).await else {
-                return fail("Bitview MCP is busy with large responses; retry shortly".to_string());
-            };
-            Some(permit)
-        } else {
-            None
-        };
         Ok(spawn_blocking(move || {
-            let response = match partial.finish() {
-                Ok(response) => response,
-                Err(error) => return tool_error(error, &state.server_name),
-            };
-            // The reservation shrinks to the body's length, held until the response is written.
-            let permit = permit.map(|mut permit| {
-                drop(permit.split(permit.num_permits() - response.body.len()));
-                permit
-            });
-            log_cache_status(&name, &response);
-            let result = render(response, &state.server_name);
-            if let (Some(charge), Some(permit)) = (charge, permit) {
-                let _ = charge.set(permit);
+            let _turn = turn;
+            match state.upstream.fetch(url) {
+                Ok(response) => {
+                    log_cache_status(&name, &response);
+                    render(response, &state.server_name)
+                }
+                Err(error) => tool_error(error, &state.server_name),
             }
-            result
         })
         .await
         .unwrap_or_else(|_| tool_error("Bitview API request task failed", &self.state.server_name)))
@@ -281,38 +235,6 @@ impl ServerHandler for BitviewMcp {
 
     fn get_info(&self) -> ServerConfig {
         self.server_info()
-    }
-}
-
-/// A call's share of `BODY_BUDGET`, set once its body is rendered.
-type Charge = Arc<OnceLock<OwnedSemaphorePermit>>;
-
-/// Gives each MCP POST a `Charge` slot, held by every data frame of its response: Hyper may still be writing the last
-/// one after the body is dropped, and the bytes it writes are what the charge pays for.
-async fn hold_charge(mut request: Request<Body>, next: Next) -> Response {
-    let charge = Charge::default();
-    request.extensions_mut().insert(charge.clone());
-    next.run(request).await.map(|body| {
-        Body::new(body.map_frame(move |frame| {
-            let charge = charge.clone();
-            frame.map_data(|bytes| {
-                Bytes::from_owner(ChargedBytes {
-                    bytes,
-                    _charge: charge,
-                })
-            })
-        }))
-    })
-}
-
-struct ChargedBytes {
-    bytes: Bytes,
-    _charge: Charge,
-}
-
-impl AsRef<[u8]> for ChargedBytes {
-    fn as_ref(&self) -> &[u8] {
-        &self.bytes
     }
 }
 
@@ -375,10 +297,6 @@ fn render(response: UpstreamResponse, server_name: &str) -> CallToolResponse {
 }
 
 async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
-    if request.method() == Method::POST && request.headers().contains_key(ORIGIN) {
-        return (StatusCode::FORBIDDEN, "Forbidden origin").into_response();
-    }
-
     // rmcp checks only a version named in `_meta`, and drops notifications unread.
     if request.method() == Method::POST
         && let Some(version) = request.headers().get(HEADER_MCP_PROTOCOL_VERSION)

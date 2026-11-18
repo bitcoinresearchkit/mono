@@ -260,8 +260,8 @@ impl Index {
 
 impl TryFrom<&str> for Index {
     type Error = Error;
-    /// The index named exactly `value`; otherwise an error naming the index meant (a former
-    /// spelling, or the name in another case) or, failing that, every index.
+    /// The index named exactly `value`; otherwise an error naming the index meant, if any (a
+    /// former spelling, or the name in another case), and every index.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         if let Some(index) = Self::all().into_iter().find(|index| index.name() == value) {
             return Ok(index);
@@ -271,13 +271,12 @@ impl TryFrom<&str> for Index {
                 .chain(index.former_names().iter().copied())
                 .any(|name| name.eq_ignore_ascii_case(value))
         });
-        Err(Error::Parse(match meant {
-            Some(index) => format!("unknown index `{value}`, use `{index}`"),
-            None => {
-                let names: Vec<&str> = Self::all().iter().map(Self::name).collect();
-                format!("unknown index `{value}`, expected one of {}", names.join(", "))
-            }
-        }))
+        let meant = meant.map_or_else(String::new, |index| format!(", use `{index}`"));
+        let names: Vec<&str> = Self::all().iter().map(Self::name).collect();
+        Err(Error::Parse(format!(
+            "unknown index `{value}`{meant}: the indexes are {}",
+            names.join(", ")
+        )))
     }
 }
 

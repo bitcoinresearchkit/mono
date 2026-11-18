@@ -255,6 +255,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   `get_pools_hashrate_by_period` with `all` in place of `get_hashrate`, `get_difficulty_adjustments` and
   `get_pools_hashrate`; use `get_block_fee_rates_precise` (3 decimals: round it for whole sat/vB) in place of `get_block_fee_rates`.
   Clients holding the old tool list must refresh it by reconnecting the connector
+- MCP: a tool call's answer is at most 2 MiB (was 8 MiB); a larger one is a tool error saying how to ask for less.
+  Every default answer fits: the largest, a raw URPD of all coins, is 1.3 MB. At most 64 calls are in flight at once;
+  a call that waits 5 seconds for its turn is answered `busy; retry shortly`. A call waits 8 seconds for the API (was
+  15), which answers within 5
+- MCP: the tool list is a fifth smaller. Each tool carries the one annotation `readOnlyHint` (the three others said
+  nothing more), and the four pool tools take `slug` as a string that `get_pools` lists, where each spelled out all
+  167 slugs
 - The server no longer compresses anything: every response goes out uncompressed, without `Vary: Accept-Encoding`, for
   a CDN in front to compress, and an instance reached directly sends them as they are. `Accept-Encoding` is no longer
   read, so a request refusing `identity` gets the response as it is (was: 406 when it refused every encoding)
@@ -334,6 +341,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### New Features
 
+- MCP: a web page can call the server. A request carrying an `Origin` was refused with 403; now any origin is
+  allowed (the data is public and the server takes no credentials), every response header is exposed and `OPTIONS`
+  preflights are answered, reusable for a day. The server card and the AI catalog, which already allowed any
+  origin, answer by this one rule
 - Cohort market caps: every supply stock's dollar value also answers under its market-cap id, the
   same values at every index (`X_supply_usd` as `X_market_cap`, qualifiers kept: `X_market_cap_in_profit`,
   Bedrock's `X_entry_market_cap_between_p95_and_p98_floors`), 443 lazy series over existing ones, nothing stored and
@@ -861,6 +872,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- Startup builds each value type's JSON Schema once and every series of the type shares it, where it built one per
+  stored vector (476,478 for 92 distinct) and kept one per series
 - The market's 15 price moving averages (`price_sma_*`) are stored per block instead of summed from a prefix sum on
   each read, through the same rolling window the mining averages use: a full history reads in 0.144 ms at p50 (0.684
   before) and the last seven days in 0.009 ms (0.012), the same values to the cent; +7.1 MB on disk net, the 1.1 MB
@@ -950,6 +963,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- MCP: a wrong argument is answered by the API itself, as a tool result marked `isError` that names the fix (the
+  closest index and every index, the closest series ids), where the bridge answered `-32602 invalid arguments` with no
+  argument and no value. The bridge's own errors (an argument the tool doesn't have, a missing path value) are tool
+  results too, and name the argument. An unknown index lists every index beside the one meant, an unknown pool's 404
+  says where the slugs are listed, and a URL refused for its spelling says which spelling to write
 - Coinblocks created per block, documented as the circulating supply, read the step of a running total kept in
   floating point, so it missed the supply at 851,713 of 976,437 blocks, by up to 97,656 sats (block 770,393): block
   900,000 read 19,874,782.0898 coins where the supply is 19,874,782.0907. Created dollar-blocks carried the same error.

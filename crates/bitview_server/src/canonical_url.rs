@@ -3,6 +3,8 @@
 //! separate, a `%XX` written where it needn't be or in lowercase, and a hash or key that isn't
 //! in lowercase. Numbers and lists hold to one spelling in their own types.
 
+use std::iter;
+
 use axum::{
     extract::Request,
     http::Uri,
@@ -16,23 +18,28 @@ use crate::Error;
 const MIN_HEX_KEY: usize = 64;
 
 pub async fn refuse_respelled(request: Request, next: Next) -> Response {
-    if is_canonical(request.uri()) {
-        next.run(request).await
-    } else {
-        Error::bad_request("this URL has another spelling that is the only one accepted")
-            .into_response()
+    match respelling(request.uri()) {
+        None => next.run(request).await,
+        Some(fix) => Error::bad_request(format!(
+            "this URL has another spelling that is the only one accepted: {fix}"
+        ))
+        .into_response(),
     }
 }
 
-fn is_canonical(uri: &Uri) -> bool {
-    is_canonical_text(uri.path())
-        && uri
-            .query()
-            .is_none_or(|query| !query.split('&').any(str::is_empty) && is_canonical_text(query))
-}
-
-fn is_canonical_text(text: &str) -> bool {
-    !has_needless_escape(text) && !has_uppercase_hex_key(text)
+/// How to write a URL that isn't in its one spelling.
+fn respelling(uri: &Uri) -> Option<&'static str> {
+    let query = uri.query();
+    let texts = || iter::once(uri.path()).chain(query);
+    if query.is_some_and(|query| query.split('&').any(str::is_empty)) {
+        Some("remove the `?` or `&` that separates nothing")
+    } else if texts().any(has_needless_escape) {
+        Some("write `%XX` in uppercase, and only for a character that needs it")
+    } else if texts().any(has_uppercase_hex_key) {
+        Some("write hashes and keys in lowercase")
+    } else {
+        None
+    }
 }
 
 /// `~` isn't counted: browsers' `URLSearchParams` always writes it as `%7E`.
