@@ -36,8 +36,8 @@ extern "C" fn signal_handler(_sig: c_int) {
     }
 }
 
-/// On first signal, a background thread acquires the write lock (waiting only for the
-/// current critical section to finish), runs cleanup callbacks, and exits.
+/// On first signal, a background thread closes the lock (waiting only for the current critical
+/// sections to finish), runs cleanup callbacks, and exits.
 /// Later signals change nothing: the shutdown keeps waiting.
 #[derive(Default, Clone)]
 pub struct Exit {
@@ -66,6 +66,12 @@ impl Exit {
         while SIGNAL_RECEIVED.load(Ordering::Relaxed) {
             thread::park();
         }
+    }
+
+    /// Waits until every guard has dropped and grants no new one, for good: the process can then
+    /// end without cutting a critical section. Every way out but a crash goes through here.
+    pub fn close(&self) {
+        mem::forget(self.lock.write());
     }
 
     /// Registers signal handlers and spawns a background shutdown thread.
@@ -103,14 +109,13 @@ impl Exit {
             );
         }
 
-        let lock = self.lock.clone();
-        let callbacks = self.cleanup_callbacks.clone();
+        let coordinator = self.clone();
         thread::spawn(move || {
             let mut buf = [0u8; 1];
             unsafe { read(read_fd, buf.as_mut_ptr().cast(), 1) };
             info!("Signal received, shutdown pending...");
-            let _guard = lock.write();
-            for callback in callbacks.lock().iter() {
+            coordinator.close();
+            for callback in coordinator.cleanup_callbacks.lock().iter() {
                 callback();
             }
             info!("Exiting...");

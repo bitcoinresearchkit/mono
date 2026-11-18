@@ -68,7 +68,12 @@ where
     let exit = Exit::new();
     exit.install_signal_handlers();
 
-    run_with(config, exit, import)
+    let result = run_with(config, exit.clone(), import);
+    // Past bootstrap, detached threads keep the databases open, so nothing dropped on the way
+    // here joined their background work (the indexer's ingestion, a compaction): returning now
+    // would end the process inside its critical section.
+    exit.close();
+    result
 }
 
 /// Raises the process's open-file soft limit for the daemon's stores and block
