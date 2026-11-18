@@ -345,52 +345,23 @@ fn apply_supply_delta(slot: &mut Sats, before: Sats, after: Sats) {
     }
 }
 
-impl ShardDelta for MemberState {
-    #[inline]
-    fn add_delta(&mut self, shard: Self, base: Self) {
-        self.funded.add_delta(shard.funded, base.funded);
-        self.empty.add_delta(shard.empty, base.empty);
-        self.supply.add_delta(shard.supply, base.supply);
-        self.outputs.add_delta(shard.outputs, base.outputs);
-        self.inputs.add_delta(shard.inputs, base.inputs);
-        self.activity.add_delta(shard.activity, base.activity);
-        self.reused.add_delta(shard.reused, base.reused);
-        self.respent.add_delta(shard.respent, base.respent);
-        self.exposed.add_delta(shard.exposed, base.exposed);
-    }
+/// `ShardDelta` field by field. Every field is named in the pattern, so one added to the struct
+/// and not listed here fails to compile, where a forgotten line would leave its counter still.
+macro_rules! shard_delta {
+    ($name:ident { $($field:ident),+ $(,)? }) => {
+        impl ShardDelta for $name {
+            #[inline]
+            fn add_delta(&mut self, shard: Self, base: Self) {
+                let Self { $($field),+ } = self;
+                $($field.add_delta(shard.$field, base.$field);)+
+            }
+        }
+    };
 }
 
-impl ShardDelta for BlockActivityCounts {
-    #[inline]
-    fn add_delta(&mut self, shard: Self, base: Self) {
-        self.reactivated
-            .add_delta(shard.reactivated, base.reactivated);
-        self.sending.add_delta(shard.sending, base.sending);
-        self.receiving.add_delta(shard.receiving, base.receiving);
-        self.bidirectional
-            .add_delta(shard.bidirectional, base.bidirectional);
-    }
-}
-
-impl ShardDelta for ReuseState {
-    #[inline]
-    fn add_delta(&mut self, shard: Self, base: Self) {
-        self.funded.add_delta(shard.funded, base.funded);
-        self.total.add_delta(shard.total, base.total);
-        self.supply.add_delta(shard.supply, base.supply);
-        self.output_events
-            .add_delta(shard.output_events, base.output_events);
-        self.input_events
-            .add_delta(shard.input_events, base.input_events);
-        self.active.add_delta(shard.active, base.active);
-    }
-}
-
-impl ShardDelta for ExposedState {
-    #[inline]
-    fn add_delta(&mut self, shard: Self, base: Self) {
-        self.funded.add_delta(shard.funded, base.funded);
-        self.total.add_delta(shard.total, base.total);
-        self.supply.add_delta(shard.supply, base.supply);
-    }
-}
+shard_delta!(MemberState {
+    funded, empty, supply, outputs, inputs, activity, reused, respent, exposed
+});
+shard_delta!(BlockActivityCounts { reactivated, sending, receiving, bidirectional });
+shard_delta!(ReuseState { funded, total, supply, output_events, input_events, active });
+shard_delta!(ExposedState { funded, total, supply });
