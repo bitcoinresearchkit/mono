@@ -4993,6 +4993,13 @@ function buildChart(doc, data, refit) {
     showSpan(target, EXACT_RANGE);
     setPresetShown(false);
     if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(shownSpan());
+  } else if (owed && visible) {
+    // (A range picked while this draw was on its way, at the same interval: glided to from the view as it was, as a
+    // pick with its data at hand glides, not cut to once the data's in.)
+    showDates(visible);
+    engine.render(true);
+    applyRange(doc, data, true);
+    setPresetShown(true);
   } else if (!visible || presetShown || onRange || linkOpen || owed) {
     applyRange(doc, data);
     engine.render(true);
