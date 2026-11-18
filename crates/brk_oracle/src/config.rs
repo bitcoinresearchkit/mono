@@ -65,10 +65,12 @@ impl Config {
         }
     }
 
-    /// Split a block range into sub-ranges with a single EMA configuration.
+    /// Splits a block range at the regimes' starts: the heights before the oracle, then the slow
+    /// EMA from [`START_HEIGHT_SLOW`], then the fast one from [`START_HEIGHT_FAST`].
     pub fn segments_for_range(range: Range<usize>) -> impl Iterator<Item = Range<usize>> {
-        let split = START_HEIGHT_FAST.max(range.start).min(range.end);
-        [range.start..split, split..range.end]
+        let at = |height: usize| height.clamp(range.start, range.end);
+        let (slow, fast) = (at(START_HEIGHT_SLOW), at(START_HEIGHT_FAST));
+        [range.start..slow, slow..fast, fast..range.end]
             .into_iter()
             .filter(|range| !range.is_empty())
     }
