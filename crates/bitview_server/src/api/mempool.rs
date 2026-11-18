@@ -1,13 +1,16 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap};
+use bitview_query::RepresentationId;
 use bitview_types::ReplacementNode;
 use brk_types::{
     BlockTemplate, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid,
+    Version,
 };
 
 use super::{mempool_block, mempool_txids};
 use crate::{
     AppState,
+    answer::{Answer, JSON},
     api::tags,
     extended::TransformResponseExtended,
     params::{Empty, MempoolBlockDiffParam, MempoolBlockParam},
@@ -154,8 +157,20 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/block-template",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                // Named before it's copied: a `304` costs no copy of the template.
                 state
-                    .respond_built(&headers, |q| q.block_template_json())
+                    .respond_resolved(
+                        &headers,
+                        Version::ONE,
+                        JSON,
+                        Answer::settled,
+                        |q| {
+                            let template = q.block_template()?;
+                            let identity = RepresentationId::Content(template.identity());
+                            Ok((template, identity, false))
+                        },
+                        |_, template| Ok(template.json()),
+                    )
                     .await
             },
             |op| {

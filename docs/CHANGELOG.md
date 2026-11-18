@@ -750,11 +750,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `GET /api/block-template`: the next block's template (BIP 22), built by Bitview from projected block 0, the same
   transactions in the same order, in the format pools and mining software read (`getblocktemplate`'s, with the
   height, previous block, bits, target and `mintime` from the indexed chain): a complete block once a coinbase paying
-  `coinbasevalue` and carrying `default_witness_commitment` is added. Built from block 0 as the request arrives
-  and dated then, always on the current tip (`503` for the moment after a new block, until block 0 is projected
-  on it). Bitcoin Core doesn't validate it before it is served: debug builds check every published block 0 against
-  Core (proposal mode, every check but proof of work) and panic on one it rejects, release builds ask Core nothing.
-  Its ETag follows its bytes (about 3.8 MB raw at ~4,200 transactions)
+  `coinbasevalue` and carrying `default_witness_commitment` is added. Built once per block 0 at a tip and dated
+  as the request arrives (`curtime`), always on the current tip (`503` for the moment after a new block, until
+  block 0 is projected on it). Bitcoin Core doesn't validate it before it is served: debug builds check every
+  published template as served against Core (proposal mode, every check but proof of work) and log one it rejects
+  as an error, release builds ask Core nothing. Its ETag follows its bytes, so it changes each second with
+  `curtime` (about 3.8 MB raw at ~4,200 transactions)
 - Three on-chain valuation series, in the families that own their inputs: mining rewards'
   `puell_multiple` (365 times trailing-24h USD subsidy over trailing-365-day USD subsidy), supply's
   `nvt` (market cap over trailing-24h USD transaction input value, including change), and age's

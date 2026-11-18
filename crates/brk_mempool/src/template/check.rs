@@ -1,5 +1,6 @@
 //! Debug builds' check on the packer: Core is asked whether each published template makes a
-//! valid block, as served, read back as clients read it. The dev machine's run is the check.
+//! valid block, as a request is served it (dated), read back as clients read it. The dev
+//! machine's run is the check.
 
 use std::{
     sync::{Arc, Condvar, Mutex},
@@ -71,20 +72,28 @@ impl Checker {
     }
 }
 
-/// Whether Core gave a verdict on `template`'s block. A rejection, or a template that doesn't
-/// read as `BlockTemplate`, is logged as an error for each template, and checking goes on.
-fn judged_by_core(template: &Template, client: &Client) -> bool {
+/// Whether Core gave a verdict on `template`'s block as served. A rejection, or served bytes
+/// that don't read as `BlockTemplate`, aren't `serde_json`'s writing of it or don't make a
+/// block, are logged as errors for each template, and checking goes on.
+fn judged_by_core(template: &Arc<Template>, client: &Client) -> bool {
     let started = Instant::now();
-    let template: BlockTemplate = match serde_json::from_slice(&template.json) {
+    let json = template.dated().json();
+    let template: BlockTemplate = match serde_json::from_slice(&json) {
         Ok(template) => template,
         Err(reason) => {
-            error!(%reason, "block template: the JSON doesn't read as a BlockTemplate");
+            error!(%reason, "block template: the served JSON doesn't read as a BlockTemplate");
             return true;
         }
     };
-    let proposal = proposal(&template);
-    let built = started.elapsed();
     let height = *template.height;
+    if serde_json::to_vec(&template).ok().as_deref() != Some(&json[..]) {
+        error!(height, "block template: the served JSON isn't serde_json's writing of it");
+    }
+    let Some(proposal) = proposal(&template) else {
+        error!(height, "block template: its witness commitment or bits don't read as hex");
+        return true;
+    };
+    let built = started.elapsed();
     match client.propose_block(&proposal) {
         Ok(None) => {
             debug!(
@@ -116,9 +125,8 @@ fn judged_by_core(template: &Template, client: &Client) -> bool {
 /// The block `template` describes as hex, under the least coinbase a miner could add: the BIP 34
 /// height, the witness reserved value, and outputs paying `coinbasevalue` and carrying
 /// `default_witness_commitment`.
-fn proposal(template: &BlockTemplate) -> String {
-    let commitment = ScriptBuf::from_hex(&template.default_witness_commitment)
-        .expect("the template's own hex");
+fn proposal(template: &BlockTemplate) -> Option<String> {
+    let commitment = ScriptBuf::from_hex(&template.default_witness_commitment).ok()?;
     let coinbase = Transaction {
         version: transaction::Version::TWO,
         lock_time: LockTime::ZERO,
@@ -143,11 +151,9 @@ fn proposal(template: &BlockTemplate) -> String {
     let header = Header {
         version: block::Version::from_consensus(template.version),
         prev_blockhash: template.previousblockhash.into(),
-        merkle_root: TxMerkleNode::from_byte_array(merkle_root(txids).expect("the coinbase's")),
+        merkle_root: TxMerkleNode::from_byte_array(merkle_root(txids)?),
         time: *template.curtime,
-        bits: CompactTarget::from_consensus(
-            u32::from_str_radix(&template.bits, 16).expect("the template's own hex"),
-        ),
+        bits: CompactTarget::from_consensus(u32::from_str_radix(&template.bits, 16).ok()?),
         nonce: 0,
     };
     let body: usize = template.transactions.iter().map(|tx| tx.data.len()).sum();
@@ -156,5 +162,5 @@ fn proposal(template: &BlockTemplate) -> String {
     hex.push_str(&serialize(&VarInt(template.transactions.len() as u64 + 1)).to_lower_hex_string());
     hex.push_str(&serialize(&coinbase).to_lower_hex_string());
     template.transactions.iter().for_each(|tx| hex.push_str(&tx.data));
-    hex
+    Some(hex)
 }

@@ -36,7 +36,7 @@ pub use read_only::ReadOnlyMempool;
 use snapshot::Snapshot;
 pub use state::ReadOnlyState;
 pub use steps::{TxRemoval, prevouts::rpc_resolver};
-pub use template::TipFacts;
+pub use template::{DatedTemplate, TipFacts};
 
 use snapshot::Rebuilder;
 use state::State;

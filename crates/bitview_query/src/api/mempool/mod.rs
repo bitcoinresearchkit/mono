@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use brk_mempool::{JsonBody, PendingView, ReadOnlyState, TipFacts};
+use brk_mempool::{DatedTemplate, JsonBody, PendingView, ReadOnlyState, TipFacts};
 pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
 use brk_types::{BlockHash, Height, MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
 use serde::Serialize;
@@ -210,16 +210,13 @@ impl Query {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
-    /// The next block's template (BIP 22), the pool's published block 0 dated now, with its
-    /// content identity. `StateUpdating` before the pool's first projection, and for the moment
-    /// the pool is behind the chain's tip: never a template on an older tip.
-    pub fn block_template_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
+    /// The next block's template (BIP 22), the pool's published block 0 dated now.
+    /// `StateUpdating` before the pool's first projection, and for the moment the pool is behind
+    /// the chain's tip: never a template on an older tip.
+    pub fn block_template(&self) -> Result<DatedTemplate> {
         // The pool, then the chain's tip: a template at that tip is on the tip as read.
         let mempool = self.require_mempool()?;
-        let (json, hash) = mempool
-            .block_template(&self.tip_blockhash())
-            .ok_or_else(|| Error::updating())?;
-        Ok((json, RepresentationId::Content(hash)))
+        mempool.block_template(&self.tip_blockhash()).ok_or_else(|| Error::updating())
     }
 
     /// What the next block's template needs of the indexed chain at its tip: its height and

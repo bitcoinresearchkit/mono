@@ -1,12 +1,12 @@
 //! The next block's template (BIP 22): projected block 0 at the tip it extends, built as JSON
-//! once per publication of a projection, each request refreshing only its `curtime`, as Core's
+//! once per block 0 at a tip, each request refreshing only its `curtime`, as Core's
 //! `getblocktemplate` reuses its block and refreshes the time. Core isn't asked whether its
 //! block is valid, except by debug builds, which check each published one ([`check`]).
 
 #[cfg(debug_assertions)]
 mod check;
 
-use std::io::Write;
+use std::{io::Write, sync::Arc};
 
 use bitcoin::{
     Block, CompactTarget, Target, WitnessMerkleNode, Wtxid, block::Header, hashes::Hash,
@@ -68,7 +68,7 @@ impl TipFacts {
 
 /// One projection's block 0 as a template, at the tip it was packed at.
 pub(crate) struct Template {
-    /// Dated when built; [`Self::dated_now`] rewrites the date.
+    /// Undated: `curtime`'s slot holds spaces until [`DatedTemplate::json`] writes a copy's.
     json: Box<[u8]>,
     /// Where `curtime`'s [`CURTIME_WIDTH`] bytes start in `json`.
     curtime_at: usize,
@@ -142,28 +142,39 @@ impl Template {
         )
         .expect("writes to memory");
         let hash = tag_hash(&json);
-        date(&mut json[curtime_at..][..CURTIME_WIDTH], mintime);
         Self { json: json.into(), curtime_at, mintime, hash }
     }
 
-    /// The template dated now, and its identity: the stored bytes copied, only the date
-    /// rewritten.
-    pub fn dated_now(&self) -> (Vec<u8>, u64) {
-        let mut json = self.json.to_vec();
-        let curtime = date(&mut json[self.curtime_at..][..CURTIME_WIDTH], self.mintime);
-        let mut identity = [0; 12];
-        identity[..8].copy_from_slice(&self.hash.to_le_bytes());
-        identity[8..].copy_from_slice(&curtime.to_le_bytes());
-        (json, tag_hash(&identity))
+    /// The template as a request gets it: dated now, or `mintime` if later.
+    pub fn dated(self: &Arc<Self>) -> DatedTemplate {
+        DatedTemplate { curtime: *Timestamp::now().max(self.mintime), template: Arc::clone(self) }
     }
 }
 
-/// Writes the block time to use, now or `mintime` if later, into `curtime`'s slot, and returns
-/// it.
-fn date(slot: &mut [u8], mintime: Timestamp) -> u32 {
-    let curtime = *Timestamp::now().max(mintime);
-    write!(&mut *slot, "{curtime:>CURTIME_WIDTH$}").expect("a u32 fits its slot");
-    curtime
+/// A template with its date, named before its bytes are copied: a request whose validator
+/// matches costs no copy.
+pub struct DatedTemplate {
+    template: Arc<Template>,
+    curtime: u32,
+}
+
+impl DatedTemplate {
+    /// What names the bytes: the undated bytes' hash with the date.
+    pub fn identity(&self) -> u64 {
+        let mut identity = [0; 12];
+        identity[..8].copy_from_slice(&self.template.hash.to_le_bytes());
+        identity[8..].copy_from_slice(&self.curtime.to_le_bytes());
+        tag_hash(&identity)
+    }
+
+    /// The stored bytes copied, the date written into `curtime`'s slot.
+    pub fn json(&self) -> Vec<u8> {
+        let Template { json, curtime_at, .. } = &*self.template;
+        let mut json = json.to_vec();
+        let slot = &mut json[*curtime_at..][..CURTIME_WIDTH];
+        write!(&mut *slot, "{:>CURTIME_WIDTH$}", self.curtime).expect("a u32 fits its slot");
+        json
+    }
 }
 
 /// The coinbase output script committing to `wtxids` (the coinbase's own counted as zeros) and

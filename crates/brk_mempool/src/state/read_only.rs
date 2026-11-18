@@ -31,8 +31,8 @@ pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
-    /// The projection's block 0 as a template, built with it: none when the chain's facts at
-    /// its tip couldn't be read.
+    /// The projection's block 0 as a template: none when the chain's facts at its tip couldn't
+    /// be read.
     pub(crate) template: Option<Arc<Template>>,
     /// Each past served block, by its index, with when it was last served: the current ones
     /// refreshed at each publication, a replaced one's time its replacement.
@@ -40,7 +40,7 @@ pub struct ReadOnlyState {
 }
 
 impl ReadOnlyState {
-    /// `tip_facts`: what the chain says of `tip`, read only for a new projection.
+    /// `tip_facts`: what the chain says of `tip`, read only to build a template.
     pub(crate) fn updated(
         &self,
         state: &State,
@@ -54,9 +54,22 @@ impl ReadOnlyState {
                 .pool
                 .as_ref()
                 .is_some_and(|pool| pool.matches(state, &tip, &graph));
-        let projection_changed = graph.ensure_projection().is_ok()
+        let projected = graph.ensure_projection().is_ok();
+        let projection_changed = projected
             && (self.projection_tip != Some(tip) || !Arc::ptr_eq(&self.projection, &graph));
-        if !pool_changed && !projection_changed {
+        // The template stays while the tip and block 0 do (only blocks 1+ moving), and one the
+        // tip's facts were missing for is tried again at each update.
+        let template_kept = !projected
+            || (self.projection_tip == Some(tip)
+                && self.template.is_some()
+                && block0_hash(&self.projection) == block0_hash(&graph));
+        let template = if template_kept {
+            self.template.clone()
+        } else {
+            tip_facts(&tip).map(|facts| Arc::new(Template::build(&graph.block0, &facts)))
+        };
+        let template_changed = !template_kept && (template.is_some() || self.template.is_some());
+        if !pool_changed && !projection_changed && !template_changed {
             return None;
         }
         let mut next = self.clone();
@@ -70,13 +83,12 @@ impl ReadOnlyState {
         }
         if projection_changed {
             next.publish_projection(graph, tip);
-            next.template = tip_facts(&tip)
-                .map(|facts| Arc::new(Template::build(&next.projection.block0, &facts)));
         }
+        next.template = template;
         Some(next)
     }
 
-    /// Publishes `graph`'s projection, its served blocks remembered for diffs, with no template.
+    /// Publishes `graph`'s projection, its served blocks remembered for diffs.
     pub(crate) fn publish_projection(&mut self, graph: Arc<Snapshot>, tip: BlockHash) {
         let now = Instant::now();
         // The outgoing blocks were served until now: their retention starts here.
@@ -101,7 +113,6 @@ impl ReadOnlyState {
         }
         self.projection = graph;
         self.projection_tip = Some(tip);
-        self.template = None;
     }
 
     /// The chain tip the published projection was built at (the pool's, or a newer one while the
@@ -150,4 +161,10 @@ impl ReadOnlyState {
             .find(|(_, i, past)| (*i, past.hash) == (index, hash))
             .map(|(.., past)| past.bodies.clone())
     }
+}
+
+/// Block 0's content hash, which covers each of its transactions as served (fee, weight, sigops,
+/// prevouts) in order: equal at one tip, block 0's template is too.
+fn block0_hash(snapshot: &Snapshot) -> Option<MempoolBlockHash> {
+    snapshot.served_blocks().first().map(|block| block.content.hash)
 }
