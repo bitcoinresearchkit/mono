@@ -622,12 +622,17 @@ function sepLookup(separators) {
 function splitWords(text, sep, maxLen, all = false) {
   /** @type {string[]} */
   const words = [];
+  const seen = new Set();
   let start = 0;
   for (let i = 0; i <= text.length; i++) {
     if (i < text.length && !sep[text.charCodeAt(i)]) continue;
     if (i > start) {
       const w = text.slice(start, i);
-      if (all || (w.length <= maxLen && !words.includes(w))) words.push(w);
+      if (all) words.push(w);
+      else if (w.length <= maxLen && !seen.has(w)) {
+        seen.add(w);
+        words.push(w);
+      }
     }
     start = i + 1;
   }

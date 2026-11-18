@@ -66,7 +66,7 @@ fn matches<'a>(
         limit,
     );
     if result.len() < limit {
-        let (name_words, _) = matcher.words_held(&query);
+        let name_words = matcher.words_held(&query);
         let description_config = QuickMatchConfig::new()
             .with_limit(descriptions.series_by_description.len())
             .with_union_fallback(false);

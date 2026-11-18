@@ -45,8 +45,8 @@ let exact = qm.matches_exact_with_ids_and_matched_words("name file", &config);
 // Up to four keys read per word in the word lists, never an item's text.
 let nearest = qm.nearest_ids("file_names_v2", 3); // [0]: "file_name"
 
-// How many of the query's distinct words each item holds whole, and how many it read.
-let (held, words) = qm.words_held("file name"); // ([2, 1, 0, 0], 2)
+// How many of the query's distinct words each item holds whole.
+let held = qm.words_held("file name"); // [2, 1, 0, 0]
 ```
 
 **JavaScript**

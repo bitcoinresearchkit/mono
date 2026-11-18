@@ -295,11 +295,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   word beside it (`blockcount`, `hash_rate`), or, when no name holds it, as a typo if the rest of the name then fits
   (`suply`, `price_clos`); the name is split as the search splits a query (`price.close`). Suggestions the search
   reached through a description or a word's start are gone, and the message no longer counts further matches
-  (`(N more: /api/series/search?q=…)`): with no name near, it ends `Search: /api/series/search?q=<name>`
+  (`(N more: /api/series/search?q=…)`): with no name near, it ends `Search: /api/series/search?q=<name>.`, the name
+  percent-encoded
 - quickmatch and quickmatch-js: the whole-word search (`matches_exact_with_ids_and_matched_words`,
   `matchesExactWithIdsAndMatchedWords`) returns nothing for a query of more distinct words than the fuzzy search
-  reads (twice the longest item's, plus two; it read any number). `/api/series/search` so orders the description
-  matches of a query of more than 26 words by name length alone, no longer by how many of its words each name holds
+  reads (twice the longest item's, plus two; it read any number)
 
 ### New Features
 
@@ -826,7 +826,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - quickmatch (Rust): `nearest_ids(query, limit)` answers "did you mean" for a query that names no item, from the
   word lists alone: the items holding the most of its words, at least half, shortest first (a word counts whole, a
   letter past, joined to the word beside it, or as a typo when the rest of the query then fits). `words_held(query)`
-  counts, for every item, how many of a query's distinct words it holds whole
+  counts, for every item, how many of a query's distinct words it holds whole (255 words at most)
 
 ### Performance
 

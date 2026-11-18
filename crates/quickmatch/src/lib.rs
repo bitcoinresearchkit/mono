@@ -195,11 +195,12 @@ impl<'a> QuickMatch<'a> {
         let sep = sep_table(SEPARATORS);
 
         let mut query_words: Vec<&str> = vec![];
+        let mut seen = FxHashSet::default();
         let mut too_long = false;
         for w in words(&query, &sep) {
             if !EXACT_WORDS && w.len() > self.max_word_len {
                 too_long = true;
-            } else if !query_words.contains(&w) {
+            } else if seen.insert(w) {
                 query_words.push(w);
             }
         }
@@ -431,27 +432,27 @@ impl<'a> QuickMatch<'a> {
     }
 
     /// How many of a query's distinct words each item holds whole, by position in the original
-    /// item slice, and how many distinct words it read: none of a query of more words than any
-    /// search reads (255 at most). A word also counts joined to the word beside it, the
-    /// query's or the item's ("hash rate": "hashrate", and back).
+    /// item slice: none of a query of more than 255. A word also counts joined to the word
+    /// beside it, the query's or the item's ("hash rate": "hashrate", and back).
     ///
-    /// It reads word lists and never an item's text, so its cost is bounded by the index, not
-    /// by the query.
-    pub fn words_held(&self, query: &str) -> (Vec<u8>, usize) {
-        self.held::<true>(query)
+    /// It reads word lists and never an item's text: up to three keys a word, each as a word
+    /// and as two joined.
+    pub fn words_held(&self, query: &str) -> Vec<u8> {
+        self.held::<true>(query).0
     }
 
     /// The items nearest a query that names none of them ("did you mean"): those holding the
     /// most of its words, shortest first, `limit` at most, and none unless they hold at least
     /// half of the words (fewer says nothing about what was meant). Beyond `words_held`, a
     /// word counts as the one it runs a letter past ("blocks": "block"), and the words of
-    /// three letters or more that nothing holds are read as typos, as the search reads them
-    /// ("suply": "supply"), counting together or not at all: for the items holding every
-    /// other word and, for each of them, a word it misspells. A query longer than any search
-    /// reads has none. Returns each one's position in the original item slice.
+    /// three letters or more that nothing holds are read as typos of the index's single words,
+    /// by the search's rule ("suply": "supply"), counting together or not at all: for the
+    /// items holding every other word and, for each of them, a word it misspells. A query
+    /// longer than any search reads has none. Returns each one's position in the original
+    /// item slice.
     ///
-    /// Its cost is bounded as `words_held`'s: a typo is checked against the index's distinct
-    /// words, not its items.
+    /// Its cost is bounded by the index, not by the query: a typo is checked against the
+    /// index's distinct words, never an item's text.
     pub fn nearest_ids(&self, query: &str, limit: usize) -> Vec<u32> {
         let (held, distinct) = self.held::<false>(query);
         let most = held.iter().copied().max().unwrap_or(0);
@@ -471,7 +472,8 @@ impl<'a> QuickMatch<'a> {
         nearest.into_iter().map(|item| item.0).collect()
     }
 
-    /// `words_held`'s count; not `EXACT_WORDS`, `nearest_ids`'s (plurals and typos too).
+    /// `words_held`'s count, and how many distinct words it read; not `EXACT_WORDS`,
+    /// `nearest_ids`'s (plurals and typos too).
     fn held<const EXACT_WORDS: bool>(&self, query: &str) -> (Vec<u8>, usize) {
         let mut held = vec![0u8; self.items.len()];
         let query = normalize(query);
@@ -480,15 +482,12 @@ impl<'a> QuickMatch<'a> {
         }
         let sep = sep_table(SEPARATORS);
         let typed: Vec<&str> = words(&query, &sep).collect();
-        // Each distinct word's first place.
-        let mut firsts: Vec<usize> = vec![];
-        for (at, word) in typed.iter().enumerate() {
-            if !firsts.iter().any(|&first| typed[first] == *word) {
-                if firsts.len() == self.max_word_count.min(usize::from(u8::MAX)) {
-                    return (held, 0);
-                }
-                firsts.push(at);
-            }
+        // Each distinct word's first place: 255 at most, the counts' reach.
+        let mut seen = FxHashSet::default();
+        let firsts: Vec<usize> =
+            (0..typed.len()).filter(|&at| seen.insert(typed[at])).take(usize::from(u8::MAX) + 1).collect();
+        if firsts.len() > usize::from(u8::MAX) {
+            return (held, 0);
         }
 
         // The word each item last counted for (its number, from 1): once a word, whatever lists
@@ -496,7 +495,7 @@ impl<'a> QuickMatch<'a> {
         let mut counted = vec![0u8; held.len()];
         let mut whole = 0;
         let mut unknown: Vec<&str> = vec![];
-        for (number, &at) in (1..).zip(&firsts) {
+        for (number, &at) in (1..=u8::MAX).zip(&firsts) {
             let word = typed[at];
             let joined = [
                 at.checked_sub(1).map(|before| format!("{}{word}", typed[before])),
@@ -523,23 +522,29 @@ impl<'a> QuickMatch<'a> {
             }
         }
 
-        // (Typos: a word within reach holds all its letters but one an edit, and most of the
-        // index's words are passed by that.)
+        // Typos, until a word misspells nothing. A word within reach is no longer than the
+        // typed one and its edits (the search also reads a word typed partway, which here
+        // would let one long word stand for any that starts it), and holds all its letters but
+        // one an edit: most of the index's words are passed by that.
         let letters = |word: &str| word.bytes().fold(0u128, |set, byte| set | 1 << (byte & 127));
-        let misspelt: Vec<Cow<'_, [ItemId]>> = unknown
+        let misspelt: Option<Vec<Cow<'_, [ItemId]>>> = unknown
             .iter()
-            .filter_map(|word| {
+            .map(|word| {
                 let (mut typo, own) = (Typo::new(word), letters(word));
                 let lists: Vec<&[ItemId]> = self
                     .exact_words
                     .iter()
-                    .filter(|&(known, _)| (own & !letters(known)).count_ones() as usize <= typo.most && typo.of(known, &sep))
+                    .filter(|&(known, _)| {
+                        known.len() <= word.len() + typo.most
+                            && (own & !letters(known)).count_ones() as usize <= typo.most
+                            && typo.of(known, &sep)
+                    })
                     .map(|(_, items)| items.as_slice())
                     .collect();
                 Self::sorted_union(&lists)
             })
             .collect();
-        if misspelt.len() == unknown.len() {
+        if let Some(misspelt) = misspelt {
             let misspelt: Vec<&[ItemId]> = misspelt.iter().map(AsRef::as_ref).collect();
             for item in Self::intersect_lists(&misspelt).into_iter().flatten() {
                 if held[item.0 as usize] == whole {

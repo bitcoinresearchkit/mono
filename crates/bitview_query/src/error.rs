@@ -175,8 +175,17 @@ impl fmt::Display for SeriesNotFound {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "'{}' not found", self.series)?;
         if self.suggestions.is_empty() {
-            // (No name near it: the search reads descriptions too.)
-            return write!(f, ". Search: /api/series/search?q={}", self.series);
+            // (No name near it: the search reads descriptions too. The name percent-encoded,
+            // as a query value.)
+            f.write_str(". Search: /api/series/search?q=")?;
+            for byte in self.series.bytes() {
+                if byte.is_ascii_alphanumeric() || b"-._~".contains(&byte) {
+                    write!(f, "{}", char::from(byte))?;
+                } else {
+                    write!(f, "%{byte:02X}")?;
+                }
+            }
+            return f.write_str(".");
         }
 
         f.write_str(", did you mean ")?;
