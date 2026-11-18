@@ -12,7 +12,8 @@ use std::{
 };
 
 use libc::{
-    SA_RESTART, SIGINT, SIGTERM, c_int, pipe, read, sigaction, sigemptyset, write as LibcWrite,
+    SA_RESTART, SIG_IGN, SIGHUP, SIGINT, SIGTERM, c_int, pipe, read, sigaction, sigemptyset,
+    write as LibcWrite,
 };
 use log::info;
 use parking_lot::{Mutex, RwLock};
@@ -37,9 +38,10 @@ extern "C" fn signal_handler(_sig: c_int) {
     }
 }
 
-/// On first signal, a background thread closes the lock (waiting only for the current critical
-/// sections to finish), runs cleanup callbacks, and exits.
-/// Later signals change nothing: the shutdown keeps waiting.
+/// On the first SIGINT, SIGTERM or SIGHUP (a closed terminal or a dropped SSH session; not under
+/// `nohup`), a background thread closes the lock (waiting only for the current critical sections to
+/// finish), runs cleanup callbacks, and exits. Later signals change nothing: the shutdown keeps
+/// waiting.
 #[derive(Default, Clone)]
 pub struct Exit {
     lock: Arc<RwLock<()>>,
@@ -100,14 +102,17 @@ impl Exit {
             sigemptyset(&raw mut action.sa_mask);
             action.sa_flags = SA_RESTART;
 
-            assert!(
-                sigaction(SIGINT, &action, ptr::null_mut()) == 0,
-                "failed to install SIGINT handler"
-            );
-            assert!(
-                sigaction(SIGTERM, &action, ptr::null_mut()) == 0,
-                "failed to install SIGTERM handler"
-            );
+            for signal in [SIGINT, SIGTERM, SIGHUP] {
+                // Under `nohup` the process outlives its terminal: an ignored SIGHUP stays so.
+                let mut current: sigaction = mem::zeroed();
+                let ignored = signal == SIGHUP
+                    && sigaction(signal, ptr::null(), &raw mut current) == 0
+                    && current.sa_sigaction == SIG_IGN;
+                assert!(
+                    ignored || sigaction(signal, &action, ptr::null_mut()) == 0,
+                    "failed to install the handler of signal {signal}"
+                );
+            }
         }
 
         let coordinator = self.clone();
