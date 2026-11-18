@@ -186,12 +186,7 @@ impl<'a> QuickMatch<'a> {
             return vec![];
         }
 
-        let query: String = query
-            .trim()
-            .chars()
-            .filter(|c| c.is_ascii())
-            .map(|c| c.to_ascii_lowercase())
-            .collect();
+        let query = normalize(query);
 
         if query.is_empty() || (!EXACT_WORDS && query.len() > self.max_query_len) {
             return vec![];
@@ -435,6 +430,63 @@ impl<'a> QuickMatch<'a> {
         )
     }
 
+    /// The items nearest a query that names none of them ("did you mean"): those holding the
+    /// most of its words whole, shortest first, `limit` at most, and none unless they hold at
+    /// least half of the words (fewer says nothing about what was meant). A word also counts
+    /// as the one it runs a letter past ("blocks": "block") and joined to the word beside it
+    /// ("hash rate": "hashrate"). Returns each one's position in the original item slice.
+    ///
+    /// It reads the whole-word list of each query word and never an item's text, so its cost
+    /// is bounded by the index, not by the query: no prefixes, typos or ranking by position.
+    pub fn nearest_ids(&self, query: &str, limit: usize) -> Vec<u32> {
+        let query = normalize(query);
+        let sep = sep_table(SEPARATORS);
+        let typed: Vec<&str> = words(&query, &sep).take(self.max_word_count + 1).collect();
+        // (More words than any search reads: more than twice any item's, so none holds half.)
+        if typed.len() > self.max_word_count {
+            return Vec::new();
+        }
+
+        // How many of the distinct words each item holds.
+        let mut held = vec![0u8; self.items.len()];
+        let mut distinct = 0;
+        for (at, &word) in typed.iter().enumerate() {
+            if typed[..at].contains(&word) {
+                continue;
+            }
+            distinct += 1;
+            let joined = [
+                at.checked_sub(1).map(|before| format!("{}{word}", typed[before])),
+                typed.get(at + 1).map(|after| format!("{word}{after}")),
+            ];
+            let lists: Vec<&[ItemId]> = [Some(word), (word.len() >= 4).then(|| &word[..word.len() - 1])]
+                .into_iter()
+                .flatten()
+                .chain(joined.iter().flatten().map(String::as_str))
+                .filter_map(|key| self.exact_words.get(key).map(Vec::as_slice))
+                .collect();
+            for item in Self::sorted_union(&lists).iter().flat_map(|items| items.iter()) {
+                held[item.0 as usize] += 1;
+            }
+        }
+
+        let most = held.iter().copied().max().unwrap_or(0);
+        if most == 0 || 2 * usize::from(most) < distinct {
+            return Vec::new();
+        }
+        let rank = |item: &ItemId| self.item_rank[item.0 as usize];
+        let mut nearest: Vec<ItemId> = (0..held.len())
+            .filter(|&item| held[item] == most)
+            .map(|item| ItemId(item as u32))
+            .collect();
+        if limit < nearest.len() {
+            nearest.select_nth_unstable_by_key(limit, rank);
+            nearest.truncate(limit);
+        }
+        nearest.sort_unstable_by_key(rank);
+        nearest.into_iter().map(|item| item.0).collect()
+    }
+
     /// Intersection of all posting lists (empty when they are disjoint), or
     /// `None` when there are no lists, i.e. no constraint. IDs are appended in
     /// ascending order while the index builds.
@@ -627,6 +679,16 @@ impl QuickMatch<'static> {
     pub fn new_owned(items: Vec<String>) -> Self {
         Self::build(items.into_iter().map(Cow::Owned).collect())
     }
+}
+
+/// A query as the index reads it: trimmed, its ASCII letters lowercased, anything else dropped.
+fn normalize(query: &str) -> String {
+    query
+        .trim()
+        .chars()
+        .filter(|c| c.is_ascii())
+        .map(|c| c.to_ascii_lowercase())
+        .collect()
 }
 
 fn item_order(a: &str, b: &str) -> Ordering {

@@ -151,20 +151,14 @@ pub(crate) fn truncate_series_name(mut series: String) -> String {
 pub struct SeriesNotFound {
     series: String,
     suggestions: Vec<&'static str>,
-    total_matches: usize,
 }
 
 #[cfg(feature = "series")]
 impl SeriesNotFound {
-    pub(crate) fn new(
-        series: String,
-        suggestions: Vec<&'static str>,
-        total_matches: usize,
-    ) -> Self {
+    pub(crate) fn new(series: String, suggestions: Vec<&'static str>) -> Self {
         Self {
             series: truncate_series_name(series),
             suggestions,
-            total_matches,
         }
     }
 }
@@ -190,10 +184,6 @@ impl fmt::Display for SeriesNotFound {
                 f.write_str(", ")?;
             }
             write!(f, "'{suggestion}'")?;
-        }
-        let remaining = self.total_matches - self.suggestions.len();
-        if remaining > 0 {
-            write!(f, " ({remaining} more: /api/series/search?q={})", self.series)?;
         }
         f.write_str("?")
     }

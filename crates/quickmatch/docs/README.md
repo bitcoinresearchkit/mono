@@ -38,6 +38,10 @@ let results = qm.matches_with_ids_and_matched_words("file name", &config);
 
 // Whole words only, in any order.
 let exact = qm.matches_exact_with_ids_and_matched_words("name file", &config);
+
+// "Did you mean": the items holding the most of a query's words whole, shortest
+// first, and none unless they hold at least half. One list read per word.
+let nearest = qm.nearest_ids("file_names_v2", 3); // [0]: "file_name"
 ```
 
 **JavaScript**

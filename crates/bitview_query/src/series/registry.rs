@@ -287,6 +287,16 @@ impl<'a> SeriesRegistry<'a> {
         &self.catalog
     }
 
+    /// What a name no series has was most likely meant to be: three names at most, read from
+    /// the search's word lists with no search.
+    pub(crate) fn nearest_names(&self, missing: &str) -> Vec<&'a str> {
+        self.matcher
+            .nearest_ids(missing, 3)
+            .into_iter()
+            .map(|id| self.series_names[id as usize])
+            .collect()
+    }
+
     pub(crate) fn lookup_entry(&self, series: &SeriesName, index: Index) -> SeriesEntryLookup<'a> {
         let Some(series) = self.by_series.get(series.as_str()) else {
             return SeriesEntryLookup::Missing;

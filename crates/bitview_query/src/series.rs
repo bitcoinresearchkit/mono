@@ -67,15 +67,12 @@ impl Query {
         self.registry().matches(&query.q, *query.limit)
     }
 
-    /// Build the fuzzy not-found error after an exact series lookup failed.
+    /// The not-found error for a name no series has, with its nearest names: read from the
+    /// names alone, so it needs no pin and waits behind no read.
     pub fn missing_series_error(&self, series: &SeriesName) -> Error {
-        let matches = self.registry().matches(series, *SearchQuery::DEFAULT_LIMIT);
-        let total_matches = matches.len();
-        let suggestions = matches.into_iter().take(3).collect();
         Error::SeriesNotFound(SeriesNotFound::new(
             series.to_string(),
-            suggestions,
-            total_matches,
+            self.registry().nearest_names(series),
         ))
     }
 
@@ -123,6 +120,12 @@ impl Query {
         }
 
         Ok(csv)
+    }
+
+    /// Refuses a name no series has (with its nearest names) and an index the series isn't served
+    /// at. Read from the registry alone, with no pin: a route calls it before it waits at a gate.
+    pub fn check_series(&self, series: &SeriesName, index: Index) -> Result<()> {
+        self.get_entry(series, index).map(drop)
     }
 
     fn get_entry(&self, series: &SeriesName, index: Index) -> Result<SeriesEntry<'static>> {
