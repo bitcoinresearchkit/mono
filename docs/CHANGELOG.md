@@ -1009,9 +1009,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   is ignored with a warning (the storage engine's warnings and errors now reach the log; they were muted); before, any
   such file but `.DS_Store` and `._*` deleted the whole indexer and re-indexed it from block 0. A store's data is
   rebuilt only on errors that mean it is broken. Permission errors and locks stop bitviewd without triggering a
-  rebuild. An error while a store opens names the operation and folder, and says what to check, and
-  a rebuild's log line says which check failed. A table file left empty or shorter than its trailer (a crash or a full
-  disk) rebuilds the store; before, it stopped bitviewd with a bare I/O error
+  rebuild. An error while a store opens names the operation and folder and says what to check.
+  A system crash can leave a published table shorter than its trailer because writes aren't synced
+  before publication. A short table triggers an indexer rebuild and a warning that names its path
+  and the failed check. Before, it stopped bitviewd with a bare I/O error.
 - Addresses and UTXOs log a warning naming the plugin when their replay restarts from genesis over saved data (a
   version change, or saved state that can't resume at the block asked, as after a reorg deeper than 10 blocks); the
   reset had no log line of its own

@@ -74,6 +74,8 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: LevelFilter) -
                 })?,
                 None => default_level,
             };
+            // The two storage crates emit four warnings and errors: stray files, table cleanup,
+            // compaction failures and lock failures.
             let storage = level.min(LevelFilter::WARN);
             format!(
                 "{level},bitcoin=off,corepc=off,tracing=off,aide=off,fjall={storage},lsm_tree={storage},tower_http=off,rmcp=warn"

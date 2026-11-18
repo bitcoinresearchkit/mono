@@ -249,8 +249,8 @@ impl Table {
         let mut file = File::open(&file_path)?;
         let file_path = Arc::new(file_path);
 
-        // sfa seeks back over its trailer, which a shorter file (left empty or cut by a crash or
-        // a full disk) fails with an I/O error, as if the disk had: say it is the data.
+        // A system crash can leave a published table short because table writes aren't synced
+        // before publication. Sfa's trailer seek would report an I/O error for this broken data.
         if file.metadata()?.len() < SFA_TRAILER_LEN {
             return Err(Error::Unrecoverable("table file shorter than its trailer"));
         }
