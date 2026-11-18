@@ -56,7 +56,7 @@ impl Vecs {
         // chunk lies in one regime, the table before the oracle or one EMA: write_chunks splits
         // at START_HEIGHT_SLOW, a multiple of WRITE_INTERVAL, and segments_for_range at
         // START_HEIGHT_FAST, which isn't.
-        const _: () = assert!(START_HEIGHT_SLOW % WRITE_INTERVAL == 0);
+        const _: () = assert!(START_HEIGHT_SLOW.is_multiple_of(WRITE_INTERVAL));
         let start = self.spot.cents.height.len();
         // The retained oracle continues exactly where the stored prices end; otherwise it is
         // rebuilt from the last stored bin and its warmup blocks (the same state: the EMA is a
