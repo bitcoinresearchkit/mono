@@ -414,7 +414,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::TRANSACTIONS)
                     .mcp_ignore()
                     .summary("Broadcast transaction")
-                    .description("Submit a raw transaction as hexadecimal text (at most 8,000,000 request bytes, including whitespace). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*")
+                    .description("Submit a raw transaction as hexadecimal text (at most 800,000 request bytes, including whitespace: a standard transaction's largest size). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*")
                     .text_response::<Txid>()
                     .error_response::<413>("Request body too large")
             },

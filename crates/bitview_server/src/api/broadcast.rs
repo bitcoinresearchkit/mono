@@ -7,7 +7,7 @@ use axum::{
     http::request::Parts,
     response::{IntoResponse, Response},
 };
-use bitcoin::Weight as BitcoinWeight;
+use bitcoin::policy::MAX_STANDARD_TX_WEIGHT;
 use bitview_http::CachePolicy;
 use brk_types::Txid;
 use tokio::{
@@ -17,9 +17,10 @@ use tokio::{
 
 use crate::{AppState, Error, error::Result, params::Empty};
 
-// Serialized transaction bytes cannot exceed the block weight, and hex doubles them. The bound
+// The node takes no transaction over the standard weight, a serialized byte weighs at least one
+// unit, and hex doubles them: a larger body could only be refused after buffering it. The bound
 // includes surrounding whitespace, which is trimmed before validation.
-pub const MAX_BODY_BYTES: usize = BitcoinWeight::MAX_BLOCK.to_wu() as usize * 2;
+pub const MAX_BODY_BYTES: usize = MAX_STANDARD_TX_WEIGHT as usize * 2;
 
 pub struct BroadcastPermit(OwnedSemaphorePermit);
 
