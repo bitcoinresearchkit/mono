@@ -1,6 +1,12 @@
-use std::{ffi::OsStr, fs, io::ErrorKind, path::PathBuf};
+use std::{
+    ffi::OsStr,
+    fs,
+    io::{self, ErrorKind},
+    path::PathBuf,
+};
 
 use brk_error::{Error, Result};
+use brk_exit::Exit;
 use tracing::warn;
 use vecdb::{Database, PAGE_SIZE, Version};
 
@@ -34,25 +40,35 @@ impl PluginStorage {
         Self::plugins_path(context).join(self.id.as_str())
     }
 
-    /// Removes every entry of the plugins' folder that `keep` doesn't name, logging each with
-    /// `reason`. Only while no plugin it removes is open.
+    /// Removes every entry of the plugins' folder that `keep` doesn't name, saying so with
+    /// `reason` before each. Under the exit lock, while no plugin it removes is open.
     pub fn remove_plugin_data(
         context: ImportContext<'_>,
         keep: impl Fn(&OsStr) -> bool,
         reason: &str,
     ) -> Result<()> {
+        debug_assert!(
+            Exit::is_locked(),
+            "plugin data removal outside the exit lock"
+        );
         for entry in fs::read_dir(Self::plugins_path(context))? {
             let entry = entry?;
             if keep(&entry.file_name()) {
                 continue;
             }
             let path = entry.path();
-            if entry.file_type()?.is_dir() {
-                fs::remove_dir_all(&path)?;
+            warn!("Removing plugin data at {}: {reason}", path.display());
+            let removed = if entry.file_type()?.is_dir() {
+                fs::remove_dir_all(&path)
             } else {
-                fs::remove_file(&path)?;
-            }
-            warn!("Removed plugin data at {}: {reason}", path.display());
+                fs::remove_file(&path)
+            };
+            removed.map_err(|error| {
+                io::Error::new(
+                    error.kind(),
+                    format!("removing {}: {error}", path.display()),
+                )
+            })?;
         }
         Ok(())
     }
