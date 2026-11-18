@@ -915,26 +915,30 @@
         }
       }
 
-      /* ── 02: the twelve blocks, by weight ── */
-      .weights {
+      /* ── 02 and 04: the bar lists, the twelve blocks' weights and the years' accuracy ── */
+      /* The list's whole height is the scale and each bar a share of it (--h, on its li), so the tallest fills it.
+         A value hangs a --gap above its bar, out of the bar's box; the list's top margin holds the tallest one's line. */
+      :is(.weights, .years) {
+        --gap: 4px;
+        --room: calc(1lh + var(--gap));
         display: grid;
         grid-template-columns: repeat(12, minmax(0, 1fr));
-        align-items: end;
         gap: 6px;
-        height: 150px;
-        margin: 24px 0 0;
         padding: 0;
         list-style: none;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
 
         li {
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          height: 100%;
-          text-align: center;
-          font-size: 11px;
-          color: var(--faint);
-          font-variant-numeric: tabular-nums;
+          position: relative;
+        }
+
+        span {
+          position: absolute;
+          bottom: calc(var(--h) + var(--gap));
+          left: 50%;
+          translate: -50% 0;
+          white-space: nowrap;
         }
 
         small {
@@ -942,10 +946,19 @@
         }
 
         i {
-          display: block;
+          position: absolute;
+          inset: auto 0 0;
           height: var(--h);
-          margin-top: 4px;
           background: var(--heat);
+        }
+      }
+
+      .weights {
+        height: 150px;
+        margin: calc(24px + var(--room)) 0 0;
+        color: var(--faint);
+
+        i {
           opacity: 0.55;
         }
 
@@ -1057,38 +1070,14 @@
       }
 
       .years {
-        display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        align-items: end;
-        gap: 6px;
         height: 190px;
-        margin: 32px 0 0;
-        padding: 0;
-        list-style: none;
-
-        li {
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-end;
-          height: 100%;
-          font-size: 11px;
-          text-align: center;
-          font-variant-numeric: tabular-nums;
-        }
+        margin: calc(32px + var(--room)) 0 0;
 
         .v {
           color: var(--soft);
         }
 
-        small {
-          font-size: inherit;
-        }
-
         i {
-          display: block;
-          height: var(--h);
-          margin-top: 4px;
-          background: var(--heat);
           opacity: 0.5;
         }
 
@@ -1098,10 +1087,9 @@
       }
 
       /* On a phone, both bar lists: the values without their % (the axis says what they are); four characters
-         at 11px are wider than a column, so each is centred on its bar and set a hair tighter, apart down to 360px. */
+         at 11px are wider than a column, so each is set a hair tighter, apart down to 360px. */
       @media (max-width: 560px) {
         :is(.weights, .years) li > span {
-          align-self: center;
           letter-spacing: -0.04em;
         }
 
@@ -2083,16 +2071,19 @@
 
       $("weights").replaceChildren(...Array.from({ length: WINDOW }, (_, age) => {
         const weight = ALPHA * (1 - ALPHA) ** age, li = document.createElement("li");
-        li.innerHTML = `<span>${(weight * 100).toFixed(1)}<small>%</small></span><i style="--h:${((weight / ALPHA) * 100).toFixed(1)}%"></i>`;
+        li.style.setProperty("--h", `${((weight / ALPHA) * 100).toFixed(1)}%`);
+        li.innerHTML = `<span>${(weight * 100).toFixed(1)}<small>%</small></span><i></i>`;
         li.setAttribute("aria-label", `${age ? `${age} blocks back` : "The newest block"}: ${(weight * 100).toFixed(1)}%`);
         return li;
       }));
       /** Median distance from the exchanges' range, by year (brk_oracle's README, through block 952,314). */
       const YEARS = [[2015, 0.26], [2016, 0.33], [2017, 0.45], [2018, 0.18], [2019, 0.16], [2020, 0.1], [2021, 0.07], [2022, 0.07], [2023, 0.1], [2024, 0.1], [2025, 0.11], [2026, 0.1]];
+      const WORST = Math.max(...YEARS.map(([, median]) => median));
       $("years").replaceChildren(...YEARS.map(([year, median]) => {
         const li = document.createElement("li");
         if (year === 2026) li.className = "partial";
-        li.innerHTML = `<span class="v">${median.toFixed(2)}<small>%</small></span><i style="--h:${((median / 0.45) * 100).toFixed(1)}%"></i>`;
+        li.style.setProperty("--h", `${((median / WORST) * 100).toFixed(1)}%`);
+        li.innerHTML = `<span class="v">${median.toFixed(2)}<small>%</small></span><i></i>`;
         li.setAttribute("aria-label", `${year}${year === 2026 ? " so far" : ""}: ${median.toFixed(2)}%`);
         return li;
       }));
