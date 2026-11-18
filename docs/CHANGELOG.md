@@ -924,6 +924,48 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Studio wrote a billion as B on the axis and last-value label of its byte, weight and hash rate charts, beside a
+  legend saying GB: Blockchain size read 784B next to 784 GB, and the signature size chart 253.8B next to 253.8 GB
+  (77 charts), and a color gradient's ticks read 200B under a 784 GB end. Since 9 October. The axis, the label, the
+  gradient and the legend share one set of letters now: k, M, G, T for bytes, virtual bytes, weight units and hash
+  rates.
+- Studio's Block time chart read over 200 minutes after the first block of a UTC day, and 1.4 at the 1W interval,
+  when blocks came about every ten (the 7-day average was 9.8). Since 10 November. It reads the server's 7-day
+  average now, in minutes.
+- Studio's per day counts in Chain statistics read a whole week at the 1W interval, and on a new day the few blocks
+  so far at the latest point: Payments for the week of 8 July 2024 read 7,040,489, seven days' worth, and 1,005,784
+  is the day. Since 10 November. Each point now reads its change over the days it spans, so a week's point is its
+  mean per day, a closed day is its calendar day, and the latest point is its count so far over the time elapsed.
+- Explorer's week chart stepped back 24 hours a day, so for the week after clocks go forward its day lines sat an
+  hour early and the Sunday was named Saturday (Paris, 31 March 2026: Tue, Mon, Sat, Fri…). Since 5 November. Days
+  now step by the calendar, in every time zone.
+- Studio could keep showing the previous block's last point as current after a failed refresh: the block's series
+  request failed while the health check answered, and the chart stayed one block behind until the next block, around
+  ten minutes. Since 5 October. The next health check, 15 seconds on, asks again.
+- Studio's profile at the 1h interval, opened on a past date, drew today's distribution on the last bar of the
+  prices loaded so far, until the next prices came in: all coins at 15:00 UTC on 7 July 2024 read 48.65% in profit,
+  today's distribution split at today's price, where that day's own distribution has 75.4%. Since 28 October. The
+  last bar is dated from its own time now, and asks for the latest distribution only where the chart reaches the
+  tip.
+- Studio's Indexed scale started a series at −100 when its first value in view was negative, though it says 100:
+  NUPL from 20 November 2022 read −100, then −114.6, on the axis, in a drawing's values and in the big view, whose
+  highest and lowest read −49 and −114.6 where 151 and 85.4 are right. Since 30 October. All three start at 100 now,
+  85.4 the next day, and a rise still points up.
+- Studio's profile read its share of coins in profit by putting each price row wholly on one side of the close, so
+  the number moved with the Density setting: short-term holders on 8 July 2024 read 9.3%, 12.9% or 11.7% at 100, 200
+  or 500 rows, against a published 11.9%. Since 29 October. The row the close falls in now counts as far as the
+  close is into it: 12.3%, 12.4%, 12.2%, and the reading starts with ≈.
+- Explorer called a coinbase's whole reward new coins: block 840,000's 40.75 BTC were 3.125 new and 37.63 fees from
+  the block's transactions. Since 4 November. The input reads "block reward, subsidy and fees".
+- Compass kept its cost basis clouds as first read while the price kept updating, so a tab left open could show Fear
+  where a reload showed Apathy (2 November: the short-term cloud's lower edge moved from $76,744 to $76,695 across
+  126 blocks, the price sat at $76,735 between them). Since 29 October. The price and the clouds move together with
+  every block now.
+- Studio's total signature size chart read 253.8 B and 20.52 B beside names saying GB: the series was divided by a
+  billion and still typed as bytes. Since 10 November. It reads the byte series itself now, 253.8 GB and 20.52 GB.
+- Explorer's fee range for the week read 0.05 sat/vB at its cheapest where seven hours were at 0: the hourly minimum
+  was raised to 0.05 before it was counted. Since 5 November. The range starts at 0 now, and the caption says the
+  figures are estimates.
 - The pools' dollar fee averages (`pool_*_fees_avg_{24h,1w,1m,1y}_usd`) serve the same `version` however the server
   got there; after a first compute in the same process they served another number until a restart (values were
   equal). Their version and that of the market's 1w/1m/1y price ranges and moving averages change once; the market

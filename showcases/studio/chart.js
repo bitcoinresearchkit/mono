@@ -22,7 +22,7 @@ import { $, all$, closest, composing, escapeHtml, keyText, TOUCH } from "/studio
 import { motionTime } from "/studio/timing.js";
 import { clamp, lowerBound } from "/studio/math.js";
 import {
-  amount, AXIS_CHARS, axisTicks, dateLabel, format, growth, MONTHS, precise, PRECISE, unitOf, WIDEST_VALUES,
+  amount, AXIS_CHARS, axisTicks, dateLabel, format, growth, MONTHS, precise, PRECISE, SI_UNITS, unitOf, WIDEST_VALUES,
 } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
 import {
@@ -112,6 +112,21 @@ function prune(cache, most, held = holder()) {
  * again on each edit).
  */
 const askedAt = new Map();
+/**
+ * The series (as askedAt's keys) whose latest refresh failed, their older points still held: the first poll that
+ * answers asks again, as a first load's failure is (see retryFailed); not each edit, which a server that's down
+ * would meet again and again.
+ * @type {Set<string>}
+ */
+const behind = new Set();
+/** Whether a refresh of one of the chart's series failed and is still to be asked again (see behind). @param {Chart} doc */
+function refreshFailed(doc) {
+  const names = new Set(drawSeries(doc));
+  return [...behind].some((key) => {
+    const [name, rest] = key.split("@");
+    return names.has(name) && rest.split("#")[0] === doc.index;
+  });
+}
 /** Whether a chart's latest points in memory (of the latest two chunks, those it holds) were asked before the latest block. @param {Chart} doc */
 function stale(doc) {
   if (!liveHeight) return false;
@@ -162,9 +177,10 @@ function load(name, index, fresh = false, span = /** @type {Span | null} */ (nul
 function cachedLoad(cache, /** @type {string} */ key, /** @type {boolean} */ fresh, /** @type {number} */ most, make, failed = () => {}) {
   const cached = cache.get(key);
   if (cached && !fresh) return lastUsed(cache, key, cached);
-  const request = make(cached), result = cached ? request.catch(() => cached) : request;
+  const request = make(cached), result = cached ? request.then((value) => (behind.delete(key), value), () => (behind.add(key), cached)) : request;
   if (cached) lastUsed(cache, key, result);
-  else (request.catch(failed), cache.set(key, result));
+  // (A held one let go of meanwhile (pruned, forgotten): a new load starts over, nothing behind.)
+  else (behind.delete(key), request.catch(failed), cache.set(key, result));
   prune(cache, most);
   return result;
 }
@@ -813,6 +829,10 @@ function chartGround() {
  * past it: the margin over the top stays blank). Tags and crosshair readings use the same value writer.
  */
 const VALUE_FORMAT = { value: (/** @type {number} */ value) => precise(value), ticks: (/** @type {number[]} */ values) => axisTicks(values) };
+/** The same for each unit of SI's letters (bytes, weight, hash rate…), as it writes them: a thousand's k, a billion's G (253.8G beside the legend's 253.8 GB). */
+const SI_FORMATS = Object.fromEntries([...SI_UNITS].map((unit) => [unit, { value: (/** @type {number} */ value) => precise(value, "", unit), ticks: (/** @type {number[]} */ values) => axisTicks(values, "", unit) }]));
+/** How values in these units (a layer's, or a pane side's layers') are written: SI's letters where every one is in a unit of them, else the plain ones. @param {string[]} units */
+const valueFormatOf = (units) => (units.length && units.every((unit) => SI_UNITS.has(unit)) ? SI_FORMATS[units[0]] : VALUE_FORMAT);
 const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
 /** How a % or indexed scale writes its changes: in percent. */
 const PERCENT_FORMAT = { value: (/** @type {number} */ value) => precise(value, "%"), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
@@ -2464,7 +2484,7 @@ class Heat {
     this.closes = closes;
     this.line.setValues(closes);
     if (this.grid) {
-      const g = resolved ? heatCalendar(resolved.times).g : new Int32Array(0);
+      const g = resolved ? heatCalendar(resolved).g : new Int32Array(0);
       this.grid.setColumns(Int32Array.from(closes, (close, i) => (close === close && i < g.length ? g[i] : -1)));
     }
     this.redraw();
@@ -2642,7 +2662,7 @@ function valueSlot(layer, size, lines = false) {
     // (Up as far as the writer goes; down, nearly all.)
     const changes = [...WIDEST_VALUES, -WIDEST_VALUES[0], -99.99].map(fromClose);
     const hovered = layer.cumulative ? changes.flatMap((change) => amounts.map((amount) => `${change} ${amount}`)) : lines ? amounts : amounts.flatMap((amount) => binnedAt(layer).map((at) => readingLine({ amount, at })));
-    const shares = [100, 88.88, WIDEST_VALUES[0]].map((share) => `${format(share, "percent")} in profit`);
+    const shares = [100, 88.88, WIDEST_VALUES[0]].map((share) => `≈${format(share, "percent")} in profit`);
     const width = widest([...hovered, ...(layer.type === "profile" ? shares : [])], 510, size);
     measured.set(key, width);
     return width;
@@ -3166,11 +3186,11 @@ export {
   noValues, oklchOf, overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries,
   paintSig, paletteOf, PANE, paneBox, paneRect, PERCENT_FORMAT, periodAmount, periodOf, pinCross, placeBrush,
   placeFoot, placeFull, placePlotKeys, pointLabel, prefetch, presetFits, presetShown, presetSpan, presetWindow,
-  pressed, PROFILE_DIM, profiled, rangeAt, reachOut, readPoint, rescan, resolve, respot, retryInfo, reveal, rightGap, setReserve,
+  pressed, PROFILE_DIM, profiled, rangeAt, reachOut, readPoint, refreshFailed, rescan, resolve, respot, retryInfo, reveal, rightGap, setReserve,
   samePaint, sayValue, SCALE_MODES, seriesIn, seriesPane, seriesScale, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownRange, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
   stopGlide, stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, subAt, tagAt, unitFor, units, updateLegends,
-  updateReadout, updateValues, VALUE_FORMAT, valueAt, valueSlot, valuesSoon, viewName, viewRange, WHEEL_QUIET,
+  updateReadout, updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, viewRange, WHEEL_QUIET,
   whenSubmenu, windows, writeText, zoom,
 };

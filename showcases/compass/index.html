@@ -1806,23 +1806,42 @@
       const cloudIds = (/** @type {"long" | "short"} */ cloud, which = coins, by = basis) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => BASES[by].stats.map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
       /** Every series read, by id: a switch of coins reads only its clouds'. @type {Map<string, Promise<Answer>>} */
       const answers = new Map();
-      /** The series the page needs for some coins and a basis, by id, each read once. */
+      /**
+       * The series the page needs for some coins and a basis, by id, current to the chain's tip: one not read is read
+       * whole, one read at an earlier block read again from its last day on (every block moves the last day of each,
+       * the price's and the clouds' alike, so they are read together or not at all).
+       */
       async function readAll(which = coins, by = basis) {
+        // (The tip asked before the series: a block between only has the next ask read them again.)
+        const tip = await (await get("/api/blocks/tip/hash")).text();
         const ids = [SERIES.close, SERIES.high, SERIES.low, ...cloudIds("long", which, by), ...cloudIds("short", which, by), ...SERIES.floors, ...SERIES.ceilings];
-        for (const id of ids) if (!answers.has(id)) answers.set(id, read(id).catch((error) => (answers.delete(id), Promise.reject(error))));
+        for (const id of ids) {
+          const held = answers.get(id);
+          answers.set(id, (held ? held.then((answer) => (answer.tip === tip ? answer : renew(id, answer, tip))) : read(id).then((answer) => ({ ...answer, tip }))).catch((error) => (answers.delete(id), Promise.reject(error))));
+        }
         return Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await answers.get(id)])));
       }
+      /** A series read at an earlier block, joined to its last day onward as the server has it now. */
+      async function renew(/** @type {string} */ id, /** @type {Answer} */ held, /** @type {string} */ tip) {
+        const last = held.start + held.data.length - 1, tail = await read(id, last);
+        return { start: held.start, data: held.data.slice(0, last - held.start).concat(tail.data), tip };
+      }
 
-      /** @typedef {{ start: number, data: (number | null)[] }} Answer */
+      /** @typedef {{ start: number, data: (number | null)[], tip?: string }} Answer `tip`: the block (its hash) it was read at */
       /** The first day read: the price begins in July 2010, nothing before it counts. */
       const START = (Date.UTC(2010, 6, 1) - EPOCH) / DAY;
-      /** A series by id, from START (or a later day). */
-      async function read(/** @type {string} */ id, from = START) {
-        const response = await fetch(`/api/series/${id}/day1?start=${from}`).catch((error) => {
+      /** A request answered, or why it wasn't, in the page's words: an error's body is never taken for the answer. */
+      async function get(/** @type {string} */ url) {
+        const response = await fetch(url).catch((error) => {
           throw error instanceof TypeError ? new Error("this server couldn't be reached") : error;
         });
+        if (response.ok) return response;
         const body = await response.json().catch(() => null);
-        if (!response.ok) throw new Error(body?.error?.message ?? `the server answered ${response.status}`);
+        throw new Error(body?.error?.message ?? `the server answered ${response.status}`);
+      }
+      /** A series by id, from START (or a later day). */
+      async function read(/** @type {string} */ id, from = START) {
+        const body = await (await get(`/api/series/${id}/day1?start=${from}`)).json().catch(() => null);
         if (!Array.isArray(body?.data)) throw new Error("the server's answer couldn't be read");
         return /** @type {Answer} */ (body);
       }
@@ -3685,36 +3704,35 @@
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-basis]"))) button.addEventListener("click", () => choose(coins, /** @type {Basis} */ (button.dataset.basis)));
 
-      // ── Live: today's price read every 10 seconds, today's state and trend with it; once the server has a new
-      // day (with its first block), every series read again ──
+      // ── Live: every 10 seconds, today's price, and with a new block every series' last day (a new day's too, once
+      // the server has its first block), today's state and trend with them ──
 
       const LIVE = 10_000;
       let living = false;
+      /** The block and price the days shown were made from. */
+      let liveKey = "";
       async function live() {
         const was = days;
         if (!was || living || switching || document.hidden) return;
         living = true;
         try {
-          /** @type {Days} */
-          let computed;
-          if (Math.floor((Date.now() - EPOCH) / DAY) > was.last) {
-            // (Until the new day's there, only asked whether it is: its price alone, from that day.)
-            if (!(await read(SERIES.close, was.last + 1)).data.length) return;
-            answers.clear();
-            computed = compute(await readAll());
-          } else {
-            const response = await fetch("/api/oracle/price");
-            const price = response.ok ? Number(await response.text()) : NaN, answered = await readAll();
-            const [close, high, low] = [SERIES.close, SERIES.high, SERIES.low].map((id) => answered[id]), today = (/** @type {Answer} */ a) => was.last - a.start;
-            if (!(price > 0) || close.data[today(close)] === price) return;
+          const [answered, response] = await Promise.all([readAll(), fetch("/api/oracle/price")]);
+          const [close, high, low] = [SERIES.close, SERIES.high, SERIES.low].map((id) => answered[id]);
+          // (A new day not in yet, in the clock's and not the server's: nothing to show before its first block.)
+          if (Math.floor((Date.now() - EPOCH) / DAY) > close.start + close.data.length - 1) return;
+          const price = response.ok ? Number(await response.text()) : NaN, key = `${close.tip}|${price}`;
+          if (key === liveKey) return;
+          if (price > 0) {
             // (Today's close, and its high and low so far: kept in what's read, so a switch of coins keeps them too.)
+            const today = (/** @type {Answer} */ a) => a.data.length - 1;
             close.data[today(close)] = price;
             high.data[today(high)] = Math.max(high.data[today(high)] ?? price, price);
             low.data[today(low)] = Math.min(low.data[today(low)] ?? price, price);
-            computed = compute(answered);
           }
+          const computed = compute(answered);
           // (Something else changed the days meanwhile, or the new ones have none: left as they are.)
           if (days !== was || switching || computed.first < 0) return;
+          liveKey = key;
           use(computed, false);
           show();
         } catch {

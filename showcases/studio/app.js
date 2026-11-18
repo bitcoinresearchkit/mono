@@ -53,12 +53,12 @@ import {
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
   overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries, paintSig, paletteOf,
   PANE, paneRect, PERCENT_FORMAT, periodAmount, pinCross, placeBrush, placeFoot, placeFull, placePlotKeys, pointLabel,
-  prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, reachOut, readPoint, rescan, resolve, respot,
+  prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, reachOut, readPoint, refreshFailed, rescan, resolve, respot,
   retryInfo, reveal, rightGap, samePaint, sayValue, SCALE_MODES, seriesPane, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, setReserve, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard, stopGlide,
   stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, tagAt, unitFor, units, updateLegends, updateReadout,
-  updateValues, VALUE_FORMAT, valueAt, valueSlot, valuesSoon, viewName, viewRange, WHEEL_QUIET, whenSubmenu, windows,
+  updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, viewRange, WHEEL_QUIET, whenSubmenu, windows,
   writeText, zoom,
 } from "/studio/chart.js";
 import {
@@ -3455,7 +3455,7 @@ function buildChart(doc, data, refit) {
     // its values: the legend's, the crosshair's.)
     const signal = layer.type === "signal";
     // (Its values written as its scale writes them: a 100% stack's in percent.)
-    const format = shares.has(layer.pane) ? SHARE_FORMAT : VALUE_FORMAT;
+    const format = shares.has(layer.pane) ? SHARE_FORMAT : valueFormatOf([unitFor(layer, result)]);
     layerFormats.set(layer.id, format.value);
     const lineWidth = /** @type {any} */ (layer.width ?? (stack ? STACK_WIDTH : undefined));
     // (A standard series' look, the library's: shown or not; its value's tag reading the axis where it sits (a
@@ -3713,9 +3713,11 @@ function buildChart(doc, data, refit) {
     // nothing: it has nothing shown (none of its ticks, as its scale's empty; written nowhere where it's held).)
     // (Its values written as its layers' are, on a side with a series of its scale (none on a scale of its own): a
     // 100% stack's in percent; a side with none, the library's own. A % or indexed scale's changes in percent.)
-    const format = folded.has(pane.id) ? NO_FORMAT : shares.has(pane.id) ? SHARE_FORMAT : VALUE_FORMAT;
+    const fixed = folded.has(pane.id) ? NO_FORMAT : shares.has(pane.id) ? SHARE_FORMAT : null;
     panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
     for (const side of SIDES) {
+      // (A side's ticks in the letters of its layers' unit, SI's for bytes and hash rates.)
+      const format = fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
       panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
       if (!keep) panes[i].setRange(undefined, undefined, side);
       const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
@@ -10285,11 +10287,15 @@ async function checkLive() {
   // (A layer that couldn't load (bitview.space away a while): asked for again as it answers, not at the next block,
   // ten minutes on; drawn once, a new block's draw if one came. Not while it's still being drawn (a slow answer
   // never overtaken), nor under a menu (its button kept). Under the Charts page, once it's back: see leaveHome.)
-  const retry = Boolean(chart && !home && settled() && resolved?.failed.length && $("menu").hidden) && retryFailed(/** @type {Resolved} */ (resolved), chart.index);
+  const idle = Boolean(chart && !home && settled() && $("menu").hidden);
+  const retry = idle && Boolean(resolved?.failed.length) && retryFailed(/** @type {Resolved} */ (resolved), chart.index);
+  // (A refresh that failed, its series' older points held: asked again at once too, not at the next block. A draw
+  // for it asks the tails afresh.)
+  const behind = idle && !retry && refreshFailed(chart);
   // (Each answer: back from offline, and how long ago the last block came, said anew.)
   updateStatus();
   const height = health.computedHeight;
-  if (!Number.isInteger(height) || height === liveHeight) return void (retry && draw());
+  if (!Number.isInteger(height) || height === liveHeight) return void (retry ? draw() : behind && draw(false, true));
   const first = !liveHeight;
   liveHeight = height;
   liveAt = Number.isFinite(health.lastIndexedAtUnix) ? health.lastIndexedAtUnix : 0;

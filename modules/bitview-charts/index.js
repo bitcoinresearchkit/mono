@@ -33,7 +33,7 @@ export { Marks } from "./marks.js";
 export { Levels } from "./levels.js";
 export { Legend } from "./legend.js";
 export { picture } from "./picture.js";
-export { Scale } from "./scale.js";
+export { Scale, indexed } from "./scale.js";
 export { compact } from "./format.js";
 export { channels, inkOn } from "./color.js";
 
