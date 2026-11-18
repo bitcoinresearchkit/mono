@@ -25,7 +25,7 @@ import {
 } from "/studio/intervals.js";
 import { isColor, PALETTE } from "/studio/color.js";
 import {
-  forgetSpans, inSubmenu, known, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
+  forgetSpans, inSubmenu, intervalsOf, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
   resolve, rightGap, seriesIn, settled, shownDates, shownRange, subAt, viewName, whenSubmenu,
 } from "/studio/chart.js";
 import { headMenu, pageTitle } from "/studio/command.js";
@@ -781,7 +781,7 @@ function letGo(field) {
 const NO_INTERVAL = "Not every series or formula in this chart supports it";
 /** The intervals every series the chart reads has (those known so far). */
 function supportedIntervals(/** @type {Chart} */ doc = chart) {
-  const lists = seriesIn(doc).map((name) => known.get(name)?.indexes).filter(Boolean), formulas = doc.layers.flatMap((layer) => layer.formula ? [layer.formula] : []);
+  const lists = seriesIn(doc).map(intervalsOf).filter((ids) => ids !== undefined), formulas = doc.layers.flatMap((layer) => layer.formula ? [layer.formula] : []);
   return (id) => doc.layers.every((layer) => intervalFits(layer.maxInterval, id)) && lists.every((indexes) => indexes.includes(id)) && formulas.every((formula) => flowsAt(formula, id));
 }
 function stepInterval(delta) {

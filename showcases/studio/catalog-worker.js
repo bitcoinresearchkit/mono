@@ -10,8 +10,10 @@ onmessage = ({ data: dated }) => {
     const steps = catalogWalk(new BitviewClient(location.origin).series, dated);
     let step = steps.next();
     while (!step.done) step = steps.next();
-    const { index, byBlock, sharedTops } = step.value;
-    postMessage({ text: JSON.stringify([[...index], [...byBlock], [...sharedTops]]) });
+    const { index, intervals, sharedTops } = step.value;
+    // (Each series' intervals by their list's place: the few lists, not one each.)
+    const lists = [...new Set(intervals.values())];
+    postMessage({ text: JSON.stringify([[...index], lists, [...index.keys()].map((name) => lists.indexOf(intervals.get(name))), [...sharedTops]]) });
   } catch (error) {
     postMessage({ error: String(error) });
   }

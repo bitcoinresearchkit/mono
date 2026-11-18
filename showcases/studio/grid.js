@@ -33,9 +33,9 @@ import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "
 import { isColor } from "/studio/color.js";
 import { stopCarrying, swallowClick } from "/studio/gestures.js";
 import {
-  ask, asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldedPanes, foldOf,
-  forget, gapped, info, ink, load, loads, MIN_BAR_SPACING, paintOf, periodAmount, presetWindow, profiled, resolve,
-  retryInfo, rightGap, seriesIn, SIDES, unitFor, viewName,
+  asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fetchWaiting, fitStrip,
+  foldedPanes, foldOf, forget, gapped, info, ink, intervalsOf, load, loads, MIN_BAR_SPACING, paintOf, periodAmount,
+  presetWindow, profiled, resolve, retryInfo, rightGap, seriesIn, SIDES, unitFor, viewName,
 } from "/studio/chart.js";
 import {
   chartActions, choicePage, inputPage, openPage, renameChart, renameChartPage, searchCase, searchText, typedWords,
@@ -1216,33 +1216,28 @@ function drawPreview(doc, index = doc.index) {
   return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
 }
 /**
- * A picture's interval as asked for, else the chart's own (a series without it: one only by the day), its series'
- * intervals known first. Its data is asked for meanwhile at the one it's likely to be (the one asked, unless what's
- * known rules it out): the resolve that follows finds it in hand, not a trip after the intervals came.
+ * A picture's interval as asked for, else the chart's own (a series without it: one only by the day); null till its
+ * series' intervals are known (the catalog indexes them just after load, see intervalsOf).
  * @param {Chart} doc @param {string} index
  */
+const pictureIndex = (doc, index) => index === doc.index || seriesIn(doc).every(intervalsOf) ? (supportedIntervals(doc)(index) ? index : doc.index) : null;
+/** A picture's interval (see pictureIndex), its series' info asked for first where it isn't known yet. @param {Chart} doc @param {string} index */
 async function sampleable(doc, index) {
-  const at = (/** @type {string} */ id) => (ask({ ...doc, index: id }), id);
-  if (index === doc.index || !supportedIntervals(doc)(index)) return at(doc.index);
-  at(index);
-  await Promise.allSettled(seriesIn(doc).map(info));
-  return supportedIntervals(doc)(index) ? index : at(doc.index);
+  return pictureIndex(doc, index) ?? (await Promise.allSettled(seriesIn(doc).map(info)), supportedIntervals(doc)(index) ? index : doc.index);
 }
 /**
- * A tile's picture's data asked for as soon as it waits, not when its turn comes: the queues draw one at a time (the
- * page kept free), but none waits on the one before it to be fetched (a trip each). Drawn already, or asked for
- * already as it is: nothing asked (a queue asks at each turn, for those that came meanwhile).
- * @param {Chart | undefined} doc @param {string} [index] the interval its picture reads (a preset's, by the week)
+ * The pictures waiting in a tile queue, their data asked for at once (see fetchWaiting): the queue draws one at a
+ * time (the page kept free), but none waits on the one before it to be fetched. Asked at each of its turns, with
+ * those that wait then (none: let go). Drawn already, nothing asked.
+ * @param {string} queue @param {[Chart | undefined, (string | undefined)?][]} pictures each chart, and the interval its picture reads (a preset's, by the week)
  */
-function askPicture(doc, index = doc && previewIndex(doc)) {
-  if (!doc?.layers.length || !index) return;
-  const key = previewKey(doc), asked = `${key}@${index}`;
-  if (previews.get(doc.id)?.key === key || picturesAsked.get(doc) === asked) return;
-  picturesAsked.set(doc, asked);
-  void sampleable(doc, index);
+function fetchPictures(queue, pictures) {
+  fetchWaiting(queue, pictures.flatMap(([doc, index = doc && previewIndex(doc)]) => {
+    if (!doc?.layers.length || !index || previews.get(doc.id)?.key === previewKey(doc)) return [];
+    const at = pictureIndex(doc, index);
+    return at ? [{ ...doc, index: at }] : [];
+  }));
 }
-/** What each tile's picture was asked for as (see askPicture). @type {WeakMap<Chart, string>} */
-const picturesAsked = new WeakMap();
 /** A preset's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
 const previewIndex = (/** @type {Chart} */ doc) => sampleIndex(doc, "week1", 100);
 /**
@@ -1951,13 +1946,24 @@ const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead
 // finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.)
 let galleryResting = true;
 let galleryScrolling = false;
+/** Scrolls in Home so far, and as of the last galleryStill. */
+let galleryMoves = 0, movesSeen = 0;
+/**
+ * Whether the grid's at rest and hasn't moved since this was last asked (a drawing turn ago, a trip at least): a
+ * wheel's ticks each end a scroll, so between them it's at rest, but a turn always sees one of them.
+ */
+function galleryStill() {
+  const still = galleryResting && galleryMoves === movesSeen;
+  movesSeen = galleryMoves;
+  return still;
+}
 const galleryRests = () => {
   galleryResting = true;
   drawGallery();
 };
 /** Home's listeners that tell whether the grid's at rest, added where app.js's start comes to them. */
 function startGalleryRest() {
-  $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true), { capture: true, passive: true });
+  $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true, galleryMoves++), { capture: true, passive: true });
   $("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
   // (A press keeps the grid from rest till its release; a press cancelled or lost, till the next frame unless a
   // scroll's begun by then, whose end then says.)
@@ -3956,11 +3962,11 @@ function retryPlots() {
   void drawGallery();
 }
 export {
-  aheadOf, allShelfSteps, arrive, askPicture, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
+  aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
-  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWaiting, go, gridActions, groupRows,
+  duplicateCharts, fetchPictures, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
+  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryStill, galleryWaiting, go, gridActions, groupRows,
   groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS,
   keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder,
   movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,

@@ -48,7 +48,7 @@ import {
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
   fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
   glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
-  keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
+  intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, lookKey,
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
   overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries, paintSig, paletteOf,
@@ -82,11 +82,11 @@ import {
   bandSum, dragBrush, FUNCTIONS, isBandSum, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere, windowsOf,
 } from "/studio/formulas.js";
 import {
-  aheadOf, allShelfSteps, arrive, askPicture, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
+  aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
-  depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
+  depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fetchPictures, fillRow,
   fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryFound, galleryQueue, gallerySeen, galleryWaiting, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
+  galleryFound, galleryQueue, gallerySeen, galleryStill, galleryWaiting, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
   isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave,
   leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder, nextCard, nextGallery,
   NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
@@ -180,6 +180,8 @@ function nameAt(path) {
 let catalogIndex = /** @type {Map<string, string> | null} */ (null);
 /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
 let seriesCount = 0;
+/** Each name the client knows, to the intervals (by date) it's charted at: indexed with catalogIndex. @type {Map<string, readonly string[]> | null} */
+let catalogIntervals = null;
 /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
 const byBlock = new Set();
 /** Series the catalog lists under more than one top folder (a folder's place among them isn't theirs: see catalogTops). @type {Set<string>} */
@@ -1280,7 +1282,7 @@ function inLibrary(doc) {
   return library.charts.some((other) => other.id === doc.id);
 }
 /**
- * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
+ * The catalog indexed (`catalogIndex`, `catalogIntervals`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
  * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
  * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
  * series added) has the rest done here at once, never waiting on the worker or an idle moment: a hidden tab's are
@@ -1289,10 +1291,11 @@ function inLibrary(doc) {
 const indexCatalog = (() => {
   const walk = catalogWalk(tree, INTERVAL_ORDER);
   /** What it found, the catalog's: the first to come, the worker's or the page's own. */
-  const take = (/** @type {{ index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string> }} */ found) => {
+  const take = (/** @type {{ index: Map<string, string>, intervals: Map<string, readonly string[]>, sharedTops: Set<string> }} */ found) => {
     if (catalogIndex) return;
     catalogIndex = found.index;
-    for (const name of found.byBlock) byBlock.add(name);
+    catalogIntervals = found.intervals;
+    for (const [name, ids] of found.intervals) if (!ids.length) byBlock.add(name);
     for (const name of found.sharedTops) sharedTops.add(name);
     seriesCount = catalogIndex.size - byBlock.size;
     $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
@@ -1327,8 +1330,8 @@ const indexCatalog = (() => {
       done();
       let found = null;
       try {
-        const [index, block, shared] = JSON.parse(data.text);
-        found = { index: new Map(index), byBlock: new Set(block), sharedTops: new Set(shared) };
+        const [index, lists, at, shared] = JSON.parse(data.text);
+        found = { index: new Map(index), intervals: new Map(index.map((/** @type {[string, string]} */ [name], /** @type {number} */ i) => [name, lists[at[i]]])), sharedTops: new Set(shared) };
       } catch {}
       found ? take(found) : here();
     };
@@ -3296,7 +3299,7 @@ async function draw(refit = false, fresh = false) {
     spanned.clear();
   }
   // (Counted against the span it'll draw: see above.)
-  const unasked = drawSeries(doc).filter((name) => !asked(name, doc) && known.get(name)?.indexes.includes(doc.index) !== false).length;
+  const unasked = drawSeries(doc).filter((name) => !asked(name, doc) && intervalsOf(name)?.includes(doc.index) !== false).length;
   const showLoading = unasked > 0 && (first || !resolved);
   $("progress").hidden = !(unasked > 0 && !showLoading);
   if (showLoading) {
@@ -5717,13 +5720,14 @@ const yourPicture = (id) => {
 };
 const drawYours = serial(async () => {
   for (const id of yourQueue) {
-    for (const waiting of yourQueue) askPicture(...yourPicture(waiting));
+    fetchPictures("yours", home ? [...yourQueue].map(yourPicture) : []);
     yourQueue.delete(id);
     const [doc, index] = yourPicture(id);
     // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor kept):
     // it says so, and it's asked for again as the server answers (see paint, retryPlots).
     if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc, index));
   }
+  fetchPictures("yours", []);
 });
 /**
  * The tile last pressed on the page: of the tiles showing a chart (a preset on two shelves, the recommended's and its
@@ -5821,9 +5825,10 @@ const drawGallery = serial(async () => {
   /** A tile to draw: its preset read, the gallery shown, its tile waiting. @param {number} i */
   const due = (i) => Boolean(presets?.[i] && home && !$("gallery").hidden && $("gallery").querySelector(`[data-preset="${i}"] .pending`));
   for (let i = nextGallery(tried); i >= 0; i = nextGallery(tried)) {
-    // (Those in view asked for at once; those a screen ahead once none in view waits, so as not to slow them.)
-    for (const waiting of galleryQueue.size ? galleryQueue : galleryWaiting(tried)) if (due(waiting)) askPicture(presetDoc(waiting));
     tried.add(i);
+    // (Still: this one's and those in view asked for at once, then those a screen ahead once none in view waits, so
+    // as not to slow them. Not while a scroll passes tiles by, nor a finger's down: only this one, as it's drawn.)
+    fetchPictures("gallery", galleryStill() ? [i, ...(galleryQueue.size ? galleryQueue : galleryWaiting(tried))].filter(due).map((waiting) => [presetDoc(waiting)]) : []);
     if (!due(i)) continue;
     const doc = presetDoc(i), have = previews.get(doc.id);
     // (A tile written of it as it was, kept since as opened or edited (in another tab): written again, as it is.)
@@ -5831,6 +5836,7 @@ const drawGallery = serial(async () => {
     if (have?.key === previewKey(doc)) paint(doc.id, have, true);
     else await drawPreview(doc, previewIndex(doc));
   }
+  fetchPictures("gallery", []);
 });
 $("home").addEventListener("click", (event) => {
   const to = closest(event, "[data-place]"), step = closest(event, "[data-shelf-step]"), preset = closest(event, "[data-open-preset]");
@@ -6622,13 +6628,14 @@ strip($("templates"));
 new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
 const drawCards = serial(async () => {
   for (const i of cardQueue) {
-    for (const waiting of cardQueue) askPicture(recommendedCards[waiting]?.doc);
+    fetchPictures("cards", [...cardQueue].map((waiting) => [recommendedCards[waiting]?.doc]));
     cardQueue.delete(i);
     const card = recommendedCards[i];
     if (!card || previews.get(card.doc.id)?.key === previewKey(card.doc)) continue;
     await new Promise((done) => whenIdle(done, { timeout: 0 }));
     await drawPreview(card.doc, previewIndex(card.doc));
   }
+  fetchPictures("cards", []);
 });
 const cardsSeen = new IntersectionObserver((entries) => {
   for (const entry of entries) {
@@ -11131,7 +11138,7 @@ navigate(start().finally(() => ((started = true), (document.documentElement.data
 export {
   acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
   BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
-  cardsSeen, catalogIndex, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
+  cardsSeen, catalogIndex, catalogIntervals, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
   chartShown, chartSize, CHART_TEXT, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
   cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, crossMoved, css,
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,

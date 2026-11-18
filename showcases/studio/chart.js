@@ -8,7 +8,7 @@ import { OKLCH } from "/studio/palette.js";
 import { hexToOklch, oklchToHex } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
-  averageFor, bandLit, BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex,
+  averageFor, bandLit, BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex, catalogIntervals,
   changesOf, chart, chartHeight, chartSans, chartSize, CHART_TEXT, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
   chartShown, displayed, draft, EMPTY, engine, exporting, fitMargins, footPinned, fromShort, fromUnfit, goneLayer, grow,
   heatKnown, home, hoverTime, indexAt, indexCatalog, keepStretch, keyAway, keyTime, keyValue, layerPicks, light,
@@ -75,6 +75,11 @@ function info(name) {
   }
   return request;
 }
+/**
+ * The intervals a series is charted at: the catalog's (indexed just after load), else its info's; undefined while
+ * neither has come (or it's in neither). @param {string} name @returns {readonly string[] | undefined}
+ */
+const intervalsOf = (name) => catalogIntervals?.get(name) ?? known.get(name)?.indexes;
 /** Forgets a failed info request, so the next ask tries again; one in flight is left alone. */
 function retryInfo(name) {
   if (!failedInfos.delete(name)) return;
@@ -87,12 +92,15 @@ const units = new Map();
 const lastUsed = (cache, key, value) => (cache.delete(key), cache.set(key, value), value);
 /**
  * Whether the open chart holds an entry (`name@index`, `#chunk` at a fine interval): one of its series at its
- * interval, within its span. Made for a pass over a cache (its series found once).
+ * interval, within its span; or a chart waiting to be drawn reads it (see fetchWaiting). Made for a pass over a cache
+ * (its series found once).
  */
 function holder() {
   const names = new Set(chart ? drawSeries(chart) : []), span = chart ? spans.get(spanKey(chart.id, chart.index)) : undefined;
+  const awaited = [...waiting.values()];
   return (/** @type {string} */ key) => {
     const [name, rest = ""] = key.split("@"), [index, k] = rest.split("#");
+    if (awaited.some((reads) => reads.has(`${name}@${index}`))) return true;
     if (!chart || index !== chart.index || !names.has(name)) return false;
     // (Its span's chunks, and the next out on either side: prefetched, they're kept till the view gets there.)
     return k === undefined || (Boolean(span) && Number(k) >= /** @type {Span} */ (span).from - 1 && Number(k) <= /** @type {Span} */ (span).to + 1);
@@ -390,7 +398,7 @@ async function fetchSeries(name, doc, fresh = false) {
   // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
   if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
   // Known to lack this interval (any by date, by block only): say so without asking for its data.
-  const lacking = byBlock.has(name) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
+  const lacking = intervalsOf(name)?.includes(doc.index) === false;
   const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
   if (about.status === "rejected") return { error: about.reason };
   const meta = about.value;
@@ -399,11 +407,23 @@ async function fetchSeries(name, doc, fresh = false) {
   if (series.status === "rejected") return { meta, error: series.reason };
   return { meta, data: series.value };
 }
+/** What the charts waiting in each queue read (`name@index`), kept in memory till they're drawn (see holder). @type {Map<string, Set<string>>} */
+const waiting = new Map();
 /**
- * What resolve would read for a chart, asked for now and not waited for: the resolve that follows finds it in hand
- * (the same requests, see info and load), a trip sooner than if it waited on what came before. @param {Chart} doc
+ * What resolve would read for the charts waiting in a queue (each at the interval it's drawn at), asked for now and
+ * not waited for: the resolve that follows finds it in hand (the same requests, see info and load), a trip sooner than
+ * if it waited on the one before. Kept till the queue says again what waits (none: let go).
+ * @param {string} queue @param {Chart[]} docs
  */
-const ask = (doc) => void Promise.all(drawSeries(doc).map((name) => fetchSeries(name, doc)));
+function fetchWaiting(queue, docs) {
+  const reads = new Set();
+  for (const doc of docs) for (const name of drawSeries(doc)) {
+    reads.add(`${name}@${doc.index}`);
+    // (Its data in hand already (the horizon's price, say), its info may not be: asked for too.)
+    if (!asked(name, doc) || !infos.has(name)) void fetchSeries(name, doc);
+  }
+  waiting.set(queue, reads);
+}
 /**
  * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
  * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
@@ -3162,7 +3182,7 @@ function prefetch() {
   }
 }
 /** A series the server has at an interval, by chunks: not one a formula half names, nor one without it. */
-const chunked = (name, index) => !((catalogIndex && !catalogIndex.has(name)) || (known.get(name) && !known.get(name).indexes.includes(index)));
+const chunked = (name, index) => !(catalogIndex && !catalogIndex.has(name)) && intervalsOf(name)?.includes(index) !== false;
 /**
  * At a fine interval, the view close to either end of what's loaded, at rest (drawn mid-gesture, the view would
  * leap): the next chunk out, older as it goes back, newer back to the latest (what's loaded stays, up to the most
@@ -3180,14 +3200,14 @@ function reachOut() {
   if (side) void grow(span, side);
 }
 export {
-  alpha, amountOn, applyRange, ask, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
+  alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
   build, built, BY_BLOCK, byColor, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme,
   chartWidth, chipText, chunkAt, chunked, chunks, Cloud, colorChain, colorNow, colorsAt, columnBy, crossHeld, crossOn,
   crossSet, cssColor, cutsOf, dailyOf, dashFor, dataKey, datedIntervals, defaultSize, describePlot, dotLineOf,
   dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, edges, endReveal, EXACT_RANGE, fadedNow,
-  fadeLayer, failedChunks, failure, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
+  fadeLayer, failedChunks, failure, fetchWaiting, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
   fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, gapped, glide,
-  glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu,
+  glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
   keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads, lookKey,
   mapResult, marginsOf, markLegends, markSignals, menuPicks, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT,
