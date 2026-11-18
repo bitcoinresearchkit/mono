@@ -46,4 +46,6 @@ pub struct GetBlockchainInfo {
     pub chain: String,
     pub blocks: i64,
     pub headers: i64,
+    /// The node's estimate of its block and undo files' bytes.
+    pub size_on_disk: u64,
 }

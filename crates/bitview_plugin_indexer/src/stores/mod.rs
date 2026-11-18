@@ -122,6 +122,11 @@ impl Stores {
     }
 
     #[inline]
+    /// The stores' directory and the bytes of their tables, as the database tracks them.
+    pub fn disk(&self) -> (&Path, u64) {
+        (self.db.path(), self.db.disk_space())
+    }
+
     pub fn utxos(&self) -> &Utxos {
         &self.utxos
     }

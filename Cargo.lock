@@ -1108,7 +1108,6 @@ dependencies = [
  "brk_types",
  "derive_more",
  "jiff",
- "rayon",
  "schemars",
  "serde",
  "serde_json",

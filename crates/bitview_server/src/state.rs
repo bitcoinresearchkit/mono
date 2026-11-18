@@ -33,7 +33,6 @@ pub struct SharedState {
     /// so a client looping on them waits behind itself, not ahead of every point read.
     #[cfg(feature = "full-api")]
     pub history_query: Arc<Semaphore>,
-    pub disk_totals: crate::api::server::DiskTotals,
     /// Oracle replays (searches, histograms at a height or a day), which read every output of their
     /// blocks: one at a time, waiting apart from other reads.
     #[cfg(feature = "full-api")]

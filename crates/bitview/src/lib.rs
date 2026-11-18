@@ -158,6 +158,8 @@ where
     #[cfg(feature = "full-api")]
     query.sync(refresh_stale_blocks);
 
+    record_node(&client, &query)?;
+
     let runtime = Builder::new_multi_thread().enable_all().build()?;
     let server = runtime.block_on(Server::bind(&query, server))?;
     let server_handle = runtime.spawn(server.serve());
@@ -223,10 +225,7 @@ where
         if query.sync(|q| q.tip_blockhash()) != best {
             if updating_to.replace(best) != Some(best) {
                 info!("Chain tip changed; updating...");
-                // What the sync status reports as the node's tip: read here, once a new tip,
-                // never per request.
-                let height = client.get_last_height()?;
-                query.sync(|q| q.set_node_height(height));
+                record_node(&client, &query)?;
             }
             let start = Instant::now();
             // One that moves nothing (a block the reader can't read yet, or ever: it logged why)
@@ -261,6 +260,15 @@ where
         }
         sleep(Duration::from_secs(1));
     }
+}
+
+/// What the sync status and the disk usage report of the node, its tip height and the bytes of
+/// its block files: read before the server answers and at each new tip, never per request.
+fn record_node(client: &Client, query: &AsyncQuery) -> Result<()> {
+    let height = client.get_last_height()?;
+    let blocks_bytes = client.get_blocks_size()?;
+    query.sync(|q| q.set_node_tip(height, blocks_bytes));
+    Ok(())
 }
 
 /// A failed read keeps the list as it was.

@@ -168,6 +168,17 @@ impl Tree {
         self.versions.guard().level(0).map_or(0, Level::run_count)
     }
 
+    /// Returns the bytes of the published tables' files, as recorded when each was written: no
+    /// file is read.
+    #[must_use]
+    pub fn disk_space(&self) -> u64 {
+        self.versions
+            .guard()
+            .iter_tables()
+            .map(Table::file_size)
+            .sum()
+    }
+
     /// Runs leveled compaction until no eligible work remains.
     ///
     /// # Errors

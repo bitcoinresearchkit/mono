@@ -1,5 +1,4 @@
 use brk_error::Result;
-use rayon::iter::{ParallelBridge, ParallelIterator};
 #[cfg(unix)]
 use std::os::unix::fs::MetadataExt;
 use std::{
@@ -11,8 +10,8 @@ use std::{
 // Bound recursive frames even if directories or links change during a walk.
 const MAX_DEPTH: usize = 128;
 
-/// Allocated bytes under `path`, leaving out the directory `skip` and everything in it.
-pub fn dir_size(path: &Path, skip: Option<&Path>) -> Result<u64> {
+/// Allocated bytes under `path`, leaving out the directories in `skip` and everything in them.
+pub fn dir_size(path: &Path, skip: &[&Path]) -> Result<u64> {
     let metadata = fs::metadata(path)?;
     if metadata.is_dir() {
         dir_contents_size(path, None, skip)
@@ -58,9 +57,9 @@ impl DirectoryFrame<'_> {
 fn dir_contents_size(
     path: &Path,
     parent: Option<&DirectoryFrame<'_>>,
-    skip: Option<&Path>,
+    skip: &[&Path],
 ) -> Result<u64> {
-    if skip == Some(path) {
+    if skip.contains(&path) {
         return Ok(0);
     }
     let depth = parent.map_or(0, |parent| parent.depth + 1);
@@ -76,16 +75,16 @@ fn dir_contents_size(
         parent,
         depth,
     };
-    fs::read_dir(path)?
-        .par_bridge()
-        .map(|entry| dir_entry_size(entry?, &frame, skip))
-        .try_reduce(|| 0, sum_bytes)
+    // One entry after the other: a few hundred of them cost less than handing them to a pool.
+    fs::read_dir(path)?.try_fold(0, |total, entry| {
+        sum_bytes(total, dir_entry_size(entry?, &frame, skip)?)
+    })
 }
 
 fn dir_entry_size(
     entry: DirEntry,
     frame: &DirectoryFrame<'_>,
-    skip: Option<&Path>,
+    skip: &[&Path],
 ) -> Result<u64> {
     let file_type = entry.file_type()?;
     if file_type.is_dir() {
@@ -108,7 +107,7 @@ fn dir_entry_size(
     allocated_bytes(&entry.metadata()?)
 }
 
-fn sum_bytes(left: u64, right: u64) -> Result<u64> {
+pub fn sum_bytes(left: u64, right: u64) -> Result<u64> {
     left.checked_add(right)
         .ok_or_else(|| IoError::new(ErrorKind::InvalidData, "disk byte total overflow").into())
 }

@@ -5,11 +5,12 @@ use serde::{Deserialize, Serialize};
 pub struct DiskUsage {
     /// Human-readable brk data size (e.g., "48.8 GiB")
     pub brk: String,
-    /// brk data size in bytes
+    /// brk data size in bytes: the indexer stores' table files plus the allocated bytes of the
+    /// other files, the server's logs left out
     pub brk_bytes: u64,
-    /// Human-readable Bitcoin blocks directory size
+    /// Human-readable size of the node's block and undo files
     pub bitcoin: String,
-    /// Bitcoin blocks directory size in bytes
+    /// The node's own estimate of its block and undo files' bytes (`size_on_disk`)
     pub bitcoin_bytes: u64,
     /// Ratio of BRK bytes to Bitcoin bytes; zero when Bitcoin bytes are zero.
     pub ratio: f64,

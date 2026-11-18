@@ -2,7 +2,7 @@ use std::{
     path::Path,
     sync::{
         Arc,
-        atomic::{AtomicU32, Ordering},
+        atomic::{AtomicU32, AtomicU64, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -43,6 +43,8 @@ pub(crate) struct QueryInner<'a> {
     plugins: QueryPlugins<'a>,
     /// The node's tip height as the daemon last recorded it; 0 until then.
     node_height: AtomicU32,
+    /// The bytes of the node's block files, recorded with the height.
+    node_blocks_bytes: AtomicU64,
     #[cfg(feature = "full-api")]
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "full-api")]
@@ -94,6 +96,7 @@ impl Query {
                 registry,
                 plugins,
                 node_height: AtomicU32::new(0),
+                node_blocks_bytes: AtomicU64::new(0),
                 #[cfg(feature = "full-api")]
                 mempool: _mempool,
                 #[cfg(feature = "full-api")]
@@ -127,12 +130,6 @@ impl Query {
         self.indexer().tip_blockhash()
     }
 
-    /// How many publications came before the current one: a value derived from the published
-    /// state is good for as long as this stays the same.
-    pub fn revision(&self) -> u64 {
-        self.indexer().pin().revision()
-    }
-
     /// The published tip's height and hash, from one pin; `None` before genesis.
     pub fn tip_block(&self) -> Option<(Height, BlockHash)> {
         let pin = self.indexer().pin();
@@ -141,10 +138,22 @@ impl Query {
             .map(|height| (height, pin.tip()))
     }
 
-    /// Records the node's tip height for [`Query::sync_status`]. The daemon reads it when the
-    /// node's tip changes, so no request asks the node.
-    pub fn set_node_height(&self, height: Height) {
+    /// Records the node's tip height for [`Query::sync_status`] and the bytes of its block files
+    /// for the disk usage. The daemon reads them before the server answers and when the node's
+    /// tip changes, so no request asks the node.
+    pub fn set_node_tip(&self, height: Height, blocks_bytes: u64) {
         self.0.node_height.store(*height, Ordering::Relaxed);
+        self.0.node_blocks_bytes.store(blocks_bytes, Ordering::Relaxed);
+    }
+
+    /// The bytes of the node's block and undo files, as it last reported them.
+    pub fn node_blocks_bytes(&self) -> u64 {
+        self.0.node_blocks_bytes.load(Ordering::Relaxed)
+    }
+
+    /// The indexer stores' directory and the bytes of their tables, as the stores track them.
+    pub fn stores_disk(&self) -> (&Path, u64) {
+        self.indexer().stores().disk()
     }
 
     /// The published index, from one safely published snapshot, against the node's tip as last
@@ -152,8 +161,7 @@ impl Query {
     pub fn sync_status(&self) -> Result<SyncStatus> {
         let guard = self.pin_safe_lengths()?;
         let indexed_height = guard.lengths().last_height().ok_or_else(|| Error::updating())?;
-        // Nothing is recorded while the node's tip is the published one, and an update can
-        // publish past the last record: the tip is never below what is indexed.
+        // An update can publish past the last record: the tip is never below what is indexed.
         let tip_height =
             Height::new(self.0.node_height.load(Ordering::Relaxed)).max(indexed_height);
         let blocks_behind = Height::from(tip_height.saturating_sub(*indexed_height));

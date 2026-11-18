@@ -152,6 +152,11 @@ impl Keyspace {
         Ok(self.iter().next().transpose()?.is_none())
     }
 
+    /// The bytes of this keyspace's published tables.
+    pub(crate) fn disk_space(&self) -> u64 {
+        self.inner.tree.disk_space()
+    }
+
     /// Runs leveled compaction until no eligible work remains.
     #[doc(hidden)]
     pub(crate) fn compact(&self) -> Result<()> {

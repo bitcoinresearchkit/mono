@@ -22,8 +22,6 @@ use crate::{
 };
 
 mod disk;
-
-pub(crate) use disk::DiskTotals;
 mod logs;
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
@@ -128,7 +126,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .mcp_ignore()
                     .summary("Disk usage")
                     .description(
-                        "Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data, as of the last indexed block: the first request after a block scans both trees and the others read its totals. The server's own logs are not counted. The two totals are independent observations, not an atomic filesystem snapshot. Directory-link cycles and excessive nesting fail without returning partial totals.",
+                        "Returns the bytes Bitview's data takes on disk and the bytes of the node's block files. Bitview's total is its indexer stores' table files as the stores track them, plus the allocated bytes (file lengths on non-Unix platforms) of every other file in its data directory, the server's own logs left out. The node's total is its own estimate (`getblockchaininfo`'s `size_on_disk`: block and undo files, without its block index), as of the node's last new tip. The ETag is made from both totals.",
                     )
                     .json_response::<DiskUsage>()
                     .not_modified()

@@ -70,6 +70,13 @@ impl Client {
         let r: GetBlockCount = self.0.call_with_retry("getblockcount", &NO_ARGS)?;
         Ok(Height::from(r.0))
     }
+
+    /// The bytes of the node's block and undo files, as it estimates them
+    /// (`getblockchaininfo.size_on_disk`).
+    pub fn get_blocks_size(&self) -> Result<u64> {
+        Ok(self.get_blockchain_info()?.size_on_disk)
+    }
+
     pub fn get_block_header_info<'a, H>(&self, hash: &'a H) -> Result<GetBlockHeaderVerbose>
     where
         &'a H: Into<&'a BitcoinBlockHash>,

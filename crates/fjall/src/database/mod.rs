@@ -58,6 +58,34 @@ impl Database {
         })
     }
 
+    /// The database's directory.
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.inner.config.path
+    }
+
+    /// The bytes of the published tables of every keyspace open in this process, from memory: no
+    /// file is read. The few small files beside them (markers, the lock) are not counted.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a keyspace lock is poisoned.
+    #[must_use]
+    pub fn disk_space(&self) -> u64 {
+        let keyspaces = self
+            .inner
+            .keyspaces
+            .lock()
+            .expect("keyspace registry lock is poisoned");
+        keyspaces
+            .values()
+            .filter_map(|slot| {
+                let keyspace = slot.lock().expect("keyspace slot lock is poisoned");
+                keyspace.as_ref().map(Keyspace::disk_space)
+            })
+            .sum()
+    }
+
     /// Opens or creates `name` using the supplied immutable-table policy.
     ///
     /// The policy closure is evaluated only on the first successful open in this process.
