@@ -29,19 +29,18 @@ static SIGNAL_PIPE: AtomicI32 = AtomicI32::new(-1);
 
 type CleanupCallback = Box<dyn Fn() + Send + Sync>;
 
-/// Sets the flag and wakes the shutdown thread on the first signal; only async-signal-safe calls
-/// run here, so the thread does the logging.
+/// Sets the flag and wakes the shutdown thread; only async-signal-safe calls run here, so the
+/// thread does the logging.
 extern "C" fn signal_handler(_sig: c_int) {
-    if !SIGNAL_RECEIVED.swap(true, Ordering::Relaxed) {
-        let fd = SIGNAL_PIPE.load(Ordering::Relaxed);
-        unsafe { LibcWrite(fd, b"x".as_ptr().cast(), 1) };
-    }
+    SIGNAL_RECEIVED.store(true, Ordering::Relaxed);
+    let fd = SIGNAL_PIPE.load(Ordering::Relaxed);
+    unsafe { LibcWrite(fd, b"x".as_ptr().cast(), 1) };
 }
 
 /// On the first SIGINT, SIGTERM or SIGHUP (a closed terminal or a dropped SSH session; not under
 /// `nohup`), a background thread closes the lock (waiting only for the current critical sections to
 /// finish), runs cleanup callbacks, and exits. Later signals change nothing: the shutdown keeps
-/// waiting.
+/// waiting, and says so.
 #[derive(Default, Clone)]
 pub struct Exit {
     lock: Arc<RwLock<()>>,
@@ -117,9 +116,18 @@ impl Exit {
 
         let coordinator = self.clone();
         thread::spawn(move || {
-            let mut buf = [0u8; 1];
-            unsafe { read(read_fd, buf.as_mut_ptr().cast(), 1) };
+            let signaled = move || {
+                let mut buf = [0u8; 1];
+                unsafe { read(read_fd, buf.as_mut_ptr().cast(), 1) == 1 }
+            };
+            signaled();
             info!("Signal received, shutdown pending...");
+            // A silent wait reads as a hang and invites a kill.
+            thread::spawn(move || {
+                while signaled() {
+                    info!("Still shutting down: waiting for the write in progress to finish");
+                }
+            });
             coordinator.close();
             for callback in coordinator.cleanup_callbacks.lock().iter() {
                 callback();
