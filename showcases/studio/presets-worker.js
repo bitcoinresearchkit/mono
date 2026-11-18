@@ -11,7 +11,7 @@ onmessage = async ({ data: kept }) => {
     const [{ studioPresets }, { BitviewClient }, { factsKey }, read] = await Promise.all([import("./presets.js"), import("../modules/bitview-client/index.js"), facts, come]);
     const said = factsKey(read);
     if (kept !== null && (!said || said === kept)) return postMessage({});
-    postMessage({ text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: location.origin }), read)), said, client: BitviewClient.HASH });
+    postMessage({ text: JSON.stringify(studioPresets(new BitviewClient(location.origin), read)), said, client: BitviewClient.HASH });
   } catch (error) {
     postMessage({ error: String(error) });
   }
