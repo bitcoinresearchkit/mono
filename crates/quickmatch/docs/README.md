@@ -39,9 +39,14 @@ let results = qm.matches_with_ids_and_matched_words("file name", &config);
 // Whole words only, in any order.
 let exact = qm.matches_exact_with_ids_and_matched_words("name file", &config);
 
-// "Did you mean": the items holding the most of a query's words whole, shortest
-// first, and none unless they hold at least half. One list read per word.
+// "Did you mean": the items holding the most of a query's words, shortest first,
+// and none unless they hold at least half. A word counts whole, a letter past
+// ("names"), joined to the one beside it, or as a typo when the rest then fits.
+// Up to four keys read per word in the word lists, never an item's text.
 let nearest = qm.nearest_ids("file_names_v2", 3); // [0]: "file_name"
+
+// How many of the query's distinct words each item holds whole, and how many it read.
+let (held, words) = qm.words_held("file name"); // ([2, 1, 0, 0], 2)
 ```
 
 **JavaScript**

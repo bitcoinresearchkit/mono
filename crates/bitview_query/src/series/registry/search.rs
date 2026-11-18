@@ -1,5 +1,5 @@
 use quickmatch::{QuickMatch, QuickMatchConfig};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use super::{DescriptionSearch, SeriesId, SeriesRegistry, normalize::normalize};
 
@@ -66,14 +66,7 @@ fn matches<'a>(
         limit,
     );
     if result.len() < limit {
-        let name_words: FxHashMap<_, _> = matcher
-            .matches_exact_with_ids_and_matched_words(
-                &query,
-                &QuickMatchConfig::new().with_limit(names.len()),
-            )
-            .into_iter()
-            .map(|(id, count)| (SeriesId(id), count))
-            .collect();
+        let (name_words, _) = matcher.words_held(&query);
         let description_config = QuickMatchConfig::new()
             .with_limit(descriptions.series_by_description.len())
             .with_union_fallback(false);
@@ -137,7 +130,7 @@ fn rank_descriptions(
     matches: Vec<(u32, u32)>,
     descriptions: &DescriptionSearch,
     names: &[&str],
-    name_words: &FxHashMap<SeriesId, u32>,
+    name_words: &[u8],
     limit: usize,
 ) -> Vec<SeriesId> {
     // Among matching descriptions, prefer names with fewer unrelated words.
@@ -153,7 +146,7 @@ fn rank_descriptions(
                     (
                         id,
                         rank,
-                        name_words.get(&id).copied().unwrap_or(0) as usize,
+                        usize::from(name_words[id.as_usize()]),
                         name.split('_').count(),
                     )
                 })

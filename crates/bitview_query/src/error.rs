@@ -171,11 +171,12 @@ impl SeriesNotFound {
 }
 
 impl fmt::Display for SeriesNotFound {
-    /// A sentence or a question, whole.
+    /// Whole: a question, or a sentence and where to search.
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "'{}' not found", self.series)?;
         if self.suggestions.is_empty() {
-            return f.write_str(".");
+            // (No name near it: the search reads descriptions too.)
+            return write!(f, ". Search: /api/series/search?q={}", self.series);
         }
 
         f.write_str(", did you mean ")?;

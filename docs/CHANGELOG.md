@@ -290,6 +290,16 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   computed again (about 85 minutes on the benchmark Mac mini, the indexer about 60 of them)
 - `brk_rpc`: `Client::fetch_mempool_state` takes the previous modified fees and returns the `MempoolObservation`, with
   the modified fees it reads (it was `fetch_mempool_state_ranked`; the form that read them only to drop them is gone)
+- A missing series' 404 takes its "did you mean" from the names alone: the series holding the most of the missing
+  name's words, at least half of them, shortest first. A word counts whole, a letter past (`blocks`), joined to the
+  word beside it (`blockcount`, `hash_rate`), or, when no name holds it, as a typo if the rest of the name then fits
+  (`suply`, `price_clos`); the name is split as the search splits a query (`price.close`). Suggestions the search
+  reached through a description or a word's start are gone, and the message no longer counts further matches
+  (`(N more: /api/series/search?q=…)`): with no name near, it ends `Search: /api/series/search?q=<name>`
+- quickmatch and quickmatch-js: the whole-word search (`matches_exact_with_ids_and_matched_words`,
+  `matchesExactWithIdsAndMatchedWords`) returns nothing for a query of more distinct words than the fuzzy search
+  reads (twice the longest item's, plus two; it read any number). `/api/series/search` so orders the description
+  matches of a query of more than 26 words by name length alone, no longer by how many of its words each name holds
 
 ### New Features
 
@@ -813,6 +823,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - A 400 for an index or query parameter spelled as v0.11 and v0.12 also read it names its fix: ``unknown index `day`,
   use `day1` `` (any former spelling, or the name in another case), ``unknown field `from`, use `start` `` (`from`,
   `to`, `count`, `metrics` and the rest, where the route reads the new name). Still refused: one spelling per answer
+- quickmatch (Rust): `nearest_ids(query, limit)` answers "did you mean" for a query that names no item, from the
+  word lists alone: the items holding the most of its words, at least half, shortest first (a word counts whole, a
+  letter past, joined to the word beside it, or as a typo when the rest of the query then fits). `words_held(query)`
+  counts, for every item, how many of a query's distinct words it holds whole
 
 ### Performance
 
@@ -882,6 +896,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   deletes, and each batch's per-block apply beside the next batch's loading (49 s of a 603 s recompute)
 - The default vector cache is 1 GiB (was 2), leaving the rest to the page cache: a full sync on a 16 GB host 4,910 s
   (was 4,995), peak memory 8.6 GB (was 9.7)
+- `GET /api/series/search` with a long query: 0.25 ms at 100 bytes of real words and 0.4 ms at 1,000 (137 ms and
+  330 ms; the search itself over the 31,054 series, medians on a loaded Mac). How many of the query's words each
+  name holds, which orders description matches, is counted from the word lists (it was a second whole-word search,
+  ranking every name that held any of the words)
+- A missing series name's 404 reads its suggestions from the search's word lists: 35 µs at the median of 397 real
+  missing names, 0.13 ms at most (it ran the whole series search: 2 to 19 ms a miss on prod, over a second for a
+  long name of real words)
 
 ### Bug Fixes
 

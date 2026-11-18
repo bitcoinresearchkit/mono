@@ -288,10 +288,10 @@ impl<'a> SeriesRegistry<'a> {
     }
 
     /// What a name no series has was most likely meant to be: three names at most, read from
-    /// the search's word lists with no search.
+    /// the search's word lists with no search, the name split as the search splits a query.
     pub(crate) fn nearest_names(&self, missing: &str) -> Vec<&'a str> {
         self.matcher
-            .nearest_ids(missing, 3)
+            .nearest_ids(&normalize::normalize(missing), 3)
             .into_iter()
             .map(|id| self.series_names[id as usize])
             .collect()

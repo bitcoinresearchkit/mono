@@ -30,9 +30,6 @@ match position, item length, then text. Identical items tie-break by original ID
 with no prefixes or typos. Set `unionFallback` to `false` to require every query word: one the index doesn't hold and that is no typo of anything leaves no results.
 The best-tier method returns only results with the highest matched-word count,
 subject to the same limit. Union fallback defaults to `true`.
-`nearestIds(query, limit)` answers "did you mean" for a query that names no item: the IDs of the items holding the
-most of its words whole, shortest first, and none unless they hold at least half of them. A word also counts as the one
-it runs a letter past and joined to the word beside it. It reads one list per word: no prefixes, typos or positions.
 
 ## Development and releases
 

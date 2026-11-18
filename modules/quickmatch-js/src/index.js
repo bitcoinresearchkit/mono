@@ -344,57 +344,6 @@ export class QuickMatch {
   }
 
   /**
-   * The items nearest a query that names none of them ("did you mean"): those
-   * holding the most of its words whole, shortest first, `limit` at most, and
-   * none unless they hold at least half of the words (fewer says nothing about
-   * what was meant). A word also counts as the one it runs a letter past
-   * ("blocks": "block") and joined to the word beside it ("hash rate":
-   * "hashrate"). It reads the whole-word list of each query word and never an
-   * item's text: no prefixes, typos or ranking by position.
-   * @param {string} query @param {number} limit
-   * @returns {number[]} Original zero-based item IDs.
-   */
-  nearestIds(query, limit) {
-    const typed = splitWords(normalize(query), this._sepLookup, Infinity, true);
-    // (More words than any search reads: more than twice any item's, so none holds half.)
-    if (typed.length > this.maxWords) return [];
-
-    // How many of the distinct words each item holds.
-    const held = new Uint8Array(this.items.length);
-    let distinct = 0;
-    let most = 0;
-    typed.forEach((word, at) => {
-      if (typed.indexOf(word) !== at) return;
-      distinct++;
-      const keys = [word];
-      if (word.length >= 4) keys.push(word.slice(0, -1));
-      if (at > 0) keys.push(typed[at - 1] + word);
-      if (at + 1 < typed.length) keys.push(word + typed[at + 1]);
-      /** @type {Uint32Array[]} */
-      const lists = [];
-      for (const key of keys) {
-        const list = this._wordPostings(key);
-        if (list) lists.push(list);
-      }
-      const holding = this._merge(lists);
-      for (let i = 0; holding && i < holding.length; i++) {
-        if (++held[holding[i]] > most) most = held[holding[i]];
-      }
-    });
-    if (most === 0 || 2 * most < distinct) return [];
-
-    const { items } = this;
-    /** @type {number[]} */
-    const nearest = [];
-    for (let item = 0; item < held.length; item++) {
-      if (held[item] === most) nearest.push(item);
-    }
-    return nearest
-      .sort((a, b) => items[a].length - items[b].length || (items[a] < items[b] ? -1 : items[a] > items[b] ? 1 : a - b))
-      .slice(0, limit);
-  }
-
-  /**
    * @private
    * @param {string} query
    * @param {QuickMatchConfig} config
@@ -413,7 +362,7 @@ export class QuickMatch {
     if (!q || (!exactWords && q.length > this.maxQueryLen)) return [];
 
     const qwords = splitWords(q, sep, exactWords ? Infinity : this.maxWordLen);
-    if (!qwords.length || (!exactWords && qwords.length > this.maxWords)) return [];
+    if (!qwords.length || qwords.length > this.maxWords) return [];
     // (Every word asked for: one too long for anything to hold leaves nothing.)
     if (!exactWords && !config.unionFallback && splitWords(q, sep, Infinity).length !== qwords.length) return [];
 
