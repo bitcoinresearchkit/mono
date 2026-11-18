@@ -807,6 +807,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- The holders' transfer volume in loss, net and gross realized and unrealized pnl and supply in loss are read as the
+  difference or sum of the series they come from, 42 stored columns fewer: −124 MB on disk, the same bytes served,
+  about 0.013 ms more at p50. The first start after upgrading computes cointime's created dollar-blocks again (about
+  20 s on a Mac mini).
 - `/api/urpd/{cohort}/{point}` reads the block's distribution from a stored URPD history (each block's changes, every
   cell checkpointed each 250 blocks) instead of rebuilding the UTXO set at that block and a price grid: a cold point
   read takes at most 4.4 ms at p90 (raw, any era; 12-32 ms before), and 256 distinct points at 64 at once all answer
@@ -862,6 +866,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Coinblocks created per block, documented as the circulating supply, read the step of a running total kept in
+  floating point, so it missed the supply at 851,713 of 976,437 blocks, by up to 97,656 sats (block 770,393): block
+  900,000 read 19,874,782.0898 coins where the supply is 19,874,782.0907. Created dollar-blocks carried the same error.
+  Since 10 November. Both read the exact supply now; the running total and its window sums keep their drift of under
+  2 coinblocks in 1.4e13.
 - Studio wrote a billion as B on the axis and last-value label of its byte, weight and hash rate charts, beside a
   legend saying GB: Blockchain size read 784B next to 784 GB, and the signature size chart 253.8B next to 253.8 GB
   (77 charts), and a color gradient's ticks read 200B under a 784 GB end. Since 9 October. The axis, the label, the
