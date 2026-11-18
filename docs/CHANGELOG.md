@@ -300,6 +300,19 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - quickmatch and quickmatch-js: the whole-word search (`matches_exact_with_ids_and_matched_words`,
   `matchesExactWithIdsAndMatchedWords`) returns nothing for a query of more distinct words than the fuzzy search
   reads (twice the longest item's, plus two; it read any number)
+- A timestamp range bound (`start`, `end`) is written to the second, `2025-08-15T00:00:00Z`, or to the millisecond as
+  JavaScript's `toISOString()` writes it, `2025-08-15T00:00:00.000Z`. Any other spelling of an instant answers 400
+  naming the two (an offset such as `+00:00`, a lowercase `t` or `z`, a space for the `T`, a fraction of other than
+  three digits): each was read, and cached as one more answer to the same question. Every timestamp bound in eight
+  days of bitview.space's requests was one of the two
+- `POST /api/tx` and BlindBit's broadcast refuse a body over 800,000 bytes with 413 before reading it (was
+  8,000,000): a standard transaction in hex is at most that, and the node refused anything larger after the server
+  had buffered and sent it
+- `/api/server/disk`: `bitcoin_bytes` is the node's own `size_on_disk`, its block and undo files (was the allocated
+  bytes of its blocks directory, which also holds the block index and preallocated space: 0.025% more on a full
+  node), and `brk_bytes` counts the stores' tables by their length (was allocated blocks: 0.001% apart). Both are as
+  of the last block: `brk_bytes` measured at start and after each indexed block, `bitcoin_bytes` read at the node's
+  last new tip
 
 ### New Features
 
@@ -876,7 +889,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   on them held the tip, transactions and addresses behind it (the tip took 1.2-1.75 s under such a flood; now ~1 ms)
 - The mining statistics are tagged by the chain's tip: a revalidation answers 304 before building (`/blocks/*/all`'s
   304s took 31-46 ms; now under 1 ms)
-- `/api/server/disk` requests that waited for a walk already running take its totals instead of walking again
+- `/api/server/disk` answers from two recorded numbers: the daemon measures the data directory at start and after
+  each indexed block (about 3 ms on a dev build), and no request reads the filesystem or asks the node. Each
+  request walked both directories: 44 ms at p50 and up to 2.4 s over eight days on bitview.space's servers (2,768
+  requests)
+- `/api/server/sync` reads the node's height as the daemon recorded it at the last new tip (checked every second)
+  instead of asking the node on a connection of its own per request: 0.5-0.8 ms from 1.8-2.8 on a dev build
 - A URPD's price distribution is built without hashing, sorting or reordering its prices, and each age range as one run
   of blocks: 15-22 ms → 5-6 ms for a recent block, and one dependency fewer (`rustc-hash` in `bitview_urpd`)
 - A mempool rebuild linearizes only the components that changed since the last one: idle at 44.6k transactions, 4.5%
@@ -1013,8 +1031,16 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - No home directory needed with `--bitviewdir` and `--bitcoindir` (it panicked without `HOME`); without one, the
   missing default is an error naming the flag
 - The RPC password no longer shows when the connection settings or a client are printed for debugging
-- A request body (a transaction broadcast, an MCP call) that sends nothing for 10 seconds fails: a stalled one held
-  its admission permit
+- An MCP call's body that sends nothing for 10 seconds fails: a stalled one held its admission permit. A transaction
+  broadcast's body is bounded by the request deadline, as before (504 after 5 s)
+- The first broadcast after a quiet period gets the node's answer: it answered 500 for a transaction that never left
+  the server, sent on a connection the node had closed after 30 idle seconds. Each broadcast opens its own
+  connection, up to four at once
+- A `POST` that passes its deadline before the node holds the transaction answers 504 "Request timed out waiting for
+  available data or capacity"; only a broadcast the node already holds says its outcome may be unknown (every
+  timed-out `POST` said so, a transaction never sent included)
+- `/api/server/sync` answers when the node doesn't (was 500), from the height recorded at the node's last new tip
+- `/health` reports the node's `tip_height` and the real `blocks_behind` (they were the indexed height and 0)
 - Clients that stop reading large chain responses (256 KiB or more) hold up only other large ones: eight of them
   made every transaction, block, address and BlindBit read answer 504. A connection that takes nothing for 3 seconds
   is closed, within a waiting read's deadline; slow readers keep theirs, as any progress starts it over. The accept queue is 4096, capped by the kernel
