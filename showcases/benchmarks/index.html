@@ -163,12 +163,13 @@
         }
       }
 
-      /* (For fingers: the bar's links and the machines a 44px reach each, unseen, and the machines' rows apart for it; a
-         pointer sees none.) */
+      /* (For fingers: the bar's links, the machines and each run's commit a 44px reach each, unseen, and the machines'
+         rows apart for it; a pointer sees none.) */
       @media (pointer: coarse) {
         .bar a,
         .tabs button,
-        .detail-head label {
+        .detail-head label,
+        .pick {
           position: relative;
 
           &::before {
@@ -541,9 +542,11 @@
           text-align: right;
           white-space: nowrap;
 
+          /* (A label's floor, 11px: not running text.) */
           small {
             margin-left: 6px;
             color: var(--faint);
+            font-size: 11px;
           }
         }
       }
@@ -599,6 +602,14 @@
           &:focus-visible {
             outline: 2px solid var(--accent);
             outline-offset: 2px;
+          }
+        }
+
+        /* (For fingers: a row 44px tall, so its commit's reach fits in it; the rest of the row still picks it on a click,
+           its numbers left to select.) */
+        @media (pointer: coarse) {
+          td {
+            padding-block: calc((44px - 1lh) / 2);
           }
         }
 
