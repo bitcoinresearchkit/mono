@@ -49,18 +49,6 @@ impl Activity {
         mappings: &Mappings,
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let value = |metric: &str,
-                     sats: &dyn ReadableCloneableVec<Height, Sats>,
-                     cents: &CachedSeries<Height, Cents>| {
-            LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-                &id.metric_name(metric),
-                v,
-                sats,
-                cents,
-                mappings,
-                windows,
-            )
-        };
         let coindays_destroyed = LazyPerBlockCumulativeRolling::from_cumulative_source(
             &id.metric_name("coindays_destroyed"),
             v,
@@ -78,16 +66,24 @@ impl Activity {
             |_, volume: Sats, in_profit: Sats| volume - in_profit,
         );
         Ok(Self {
-            transfer_volume: value("transfer_volume", &c.volume_sats, &c.volume_cents),
-            transfer_volume_in_profit: value(
-                "transfer_volume_in_profit",
+            transfer_volume: volume(
+                &id.metric_name("transfer_volume"), v, &c.volume_sats, &c.volume_cents, mappings, windows,
+            ),
+            transfer_volume_in_profit: volume(
+                &id.metric_name("transfer_volume_in_profit"),
+                v,
                 &c.volume_profit_sats,
                 &c.volume_profit_cents,
+                mappings,
+                windows,
             ),
-            transfer_volume_in_loss: value(
-                "transfer_volume_in_loss",
+            transfer_volume_in_loss: volume(
+                &id.metric_name("transfer_volume_in_loss"),
+                v,
                 &volume_loss_sats,
                 &c.volume_loss_cents,
+                mappings,
+                windows,
             ),
             coindays_destroyed,
             dormancy: RollingWindows::import(db, &id.metric_name("dormancy"), v, mappings)?,
@@ -111,4 +107,17 @@ impl Activity {
         }
         Ok(())
     }
+}
+
+fn volume(
+    name: &str,
+    version: Version,
+    sats: &impl ReadableCloneableVec<Height, Sats>,
+    cents: &CachedSeries<Height, Cents>,
+    mappings: &Mappings,
+    windows: &Windows<&LazyWindowStartVec>,
+) -> LazyValuePerBlockCumulativeRolling {
+    LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
+        name, version, sats, cents, mappings, windows,
+    )
 }
