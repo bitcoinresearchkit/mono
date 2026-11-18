@@ -11,15 +11,18 @@ Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, me
   indexer and analytics plugin graph, query layer, REST server, showcases, and
   generated clients.
 
+<!-- used by -->
 **Used by**
 
-<a href="https://x.com/_checkonchain"><img src="https://pbs.twimg.com/profile_images/2090310945637855234/YA09g3v9_400x400.jpg" width="50" alt="Checkonchain" title="Checkonchain" style="border-radius:50%" /></a>
-<a href="https://x.com/newhedge_io"><img src="https://pbs.twimg.com/profile_images/1575960313916178448/taaprZ6q_400x400.jpg" width="50" alt="Newhedge" title="Newhedge" style="border-radius:50%" /></a>
-<a href="https://x.com/qfilabs"><img src="https://pbs.twimg.com/profile_images/2087768325904322560/z2xeJsWy_400x400.jpg" width="50" alt="QFI Labs" title="QFI Labs" style="border-radius:50%" /></a>
-<a href="https://x.com/TheBitcoinLayer"><img src="https://pbs.twimg.com/profile_images/1674609666507112449/yP-mZb5H_400x400.jpg" width="50" alt="The Bitcoin Layer" title="The Bitcoin Layer" style="border-radius:50%" /></a>
-<a href="https://x.com/PapangLabs"><img src="https://pbs.twimg.com/profile_images/2090676888054231040/mIX07S9f_400x400.jpg" width="50" alt="Papang Labs" title="Papang Labs" style="border-radius:50%" /></a>
-<a href="https://x.com/atreidis_app"><img src="https://pbs.twimg.com/profile_images/2050569617890783232/S8T4kt6w_400x400.png" width="50" alt="Atreidis" title="Atreidis" style="border-radius:50%" /></a>
-<a href="https://x.com/SparrowWallet"><img src="https://pbs.twimg.com/profile_images/1299262054977556481/p8Za-LLX_400x400.jpg" width="50" alt="Sparrow Wallet" title="Sparrow Wallet" style="border-radius:50%" /></a>
+<a href="https://www.checkonchain.com/"><img src="../showcases/assets/used-by/checkonchain.png" width="48" height="48" alt="Checkonchain" title="Checkonchain" /></a>
+<a href="https://newhedge.io/"><img src="../showcases/assets/used-by/newhedge.png" width="48" height="48" alt="Newhedge" title="Newhedge" /></a>
+<a href="https://qfilabs.substack.com/"><img src="../showcases/assets/used-by/qfilabs.png" width="48" height="48" alt="QFI Labs" title="QFI Labs" /></a>
+<a href="https://thebitcoinlayer.com/"><img src="../showcases/assets/used-by/thebitcoinlayer.png" width="48" height="48" alt="The Bitcoin Layer" title="The Bitcoin Layer" /></a>
+<a href="https://papanglabs.com/"><img src="../showcases/assets/used-by/papanglabs.svg" width="48" height="48" alt="Papang Labs" title="Papang Labs" /></a>
+<a href="https://atreidis.app/"><img src="../showcases/assets/used-by/atreidis.png" width="48" height="48" alt="Atreidis" title="Atreidis" /></a>
+<a href="https://sparrowwallet.com/"><img src="../showcases/assets/used-by/sparrowwallet.png" width="48" height="48" alt="Sparrow Wallet" title="Sparrow Wallet" /></a>
+<a href="https://www.lookintobitcoin.com/"><img src="../showcases/assets/used-by/lookintobitcoin.png" width="48" height="48" alt="LookIntoBitcoin" title="LookIntoBitcoin" /></a>
+<!-- /used by -->
 
 See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 
