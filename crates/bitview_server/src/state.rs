@@ -5,6 +5,7 @@ use axum::body::Bytes;
 #[cfg(feature = "full-api")]
 use bitview_query::{PublicationCache, RepresentationId};
 use bitview_query::AsyncQuery;
+#[cfg(feature = "full-api")]
 use brk_rpc::AsyncClient;
 use derive_more::Deref;
 use jiff::Timestamp;
@@ -57,6 +58,8 @@ pub struct SharedState {
     pub broadcast_requests: Arc<Semaphore>,
     /// Transaction, block and address-history bodies: taken by the large ones only, once built.
     pub chain_bodies: Arc<Semaphore>,
+    /// Where broadcasts go: the only requests that ask the node.
+    #[cfg(feature = "full-api")]
     pub node: AsyncClient,
     #[cfg(feature = "series")]
     pub series_bodies: Arc<SeriesBodies>,

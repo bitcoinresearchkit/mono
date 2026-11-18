@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::Duration};
 
 use bitcoin::Txid as BitcoinTxid;
 use brk_error::{Error, Result};
-use brk_types::{Height, Txid};
+use brk_types::Txid;
 use http_body_util::{BodyExt, Full, Limited};
 use hyper::{
     Request, StatusCode,
@@ -52,17 +52,6 @@ impl AsyncClient {
             cookie,
             authorization: RwLock::new(header),
         })
-    }
-
-    pub async fn get_last_height(&self) -> Result<Height> {
-        let height: u64 = self
-            .call(Bytes::from_static(
-                br#"{"jsonrpc":"2.0","id":1,"method":"getblockcount","params":[]}"#,
-            ))
-            .await?;
-        let height = u32::try_from(height)
-            .map_err(|_| Error::Internal("node height exceeds supported range"))?;
-        Ok(Height::new(height))
     }
 
     /// Submits once. A transport failure after the request left, or dropping the call then,

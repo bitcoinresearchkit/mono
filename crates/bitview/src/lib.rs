@@ -220,6 +220,10 @@ where
         if query.sync(|q| q.tip_blockhash()) != best {
             if updating_to.replace(best) != Some(best) {
                 info!("Chain tip changed; updating...");
+                // What the sync status reports as the node's tip: read here, once a new tip,
+                // never per request.
+                let height = client.get_last_height()?;
+                query.sync(|q| q.set_node_height(height));
             }
             let start = Instant::now();
             // One that moves nothing (a block the reader can't read yet, or ever: it logged why)

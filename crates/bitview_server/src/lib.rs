@@ -249,6 +249,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         #[cfg(feature = "full-api")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
         chain_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
+        #[cfg(feature = "full-api")]
         node: query
             .run(|query| Ok(query.client().asynchronous()?))
             .await?,

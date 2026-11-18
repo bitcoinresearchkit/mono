@@ -31,7 +31,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/health",
         get_with(
             async |_: Empty, RequestState(state): RequestState| -> Result<Response> {
-                let sync = state.query.read(|q| q.local_sync_status()).await?;
+                let sync = state.query.read(|q| q.sync_status()).await?;
                 let uptime = state.started_instant.elapsed();
                 let timestamp = Timestamp::now().to_string();
                 let mut response = Json(Health {
@@ -52,7 +52,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::SERVER)
                     .mcp_ignore()
                     .summary("Health check")
-                    .description("Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.")
+                    .description("Local health and query-readiness check. Returns server identity, uptime, and the sync status of `GET /api/server/sync`, without a bitcoind round-trip. `status` says the server answers, whatever `blocks_behind` is. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached.")
                     .json_response::<Health>()
             },
         ),
@@ -74,11 +74,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     .api_route(
         "/api/server/sync",
         get_with(
-            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                let tip_height = state.node.get_last_height().await?;
-                Ok(state
-                    .respond(&headers, state.chain(), move |q| {
-                        let sync = q.sync_status(tip_height)?;
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Response {
+                state
+                    .respond(&headers, state.chain(), |q| {
+                        let sync = q.sync_status()?;
                         // computed_height and blocks_behind derive from these heights;
                         // last_indexed_at derives from the Unix timestamp.
                         let tag = format!(
@@ -87,15 +86,15 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         );
                         Ok(Answer::ready(tag, Content::json(&sync)?))
                     })
-                    .await)
+                    .await
             },
             |op| {
                 op.id("get_sync_status")
                     .tag(tags::SERVER)
                     .summary("Sync status")
                     .description(
-                        "Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. \
-                        The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.",
+                        "Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: \
+                        it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.",
                     )
                     .json_response::<SyncStatus>()
                     .not_modified()

@@ -1,6 +1,9 @@
 use std::{
     path::Path,
-    sync::Arc,
+    sync::{
+        Arc,
+        atomic::{AtomicU32, Ordering},
+    },
     time::{Duration, Instant},
 };
 
@@ -38,6 +41,8 @@ pub(crate) struct QueryInner<'a> {
     #[cfg(feature = "series")]
     registry: &'a SeriesRegistry<'a>,
     plugins: QueryPlugins<'a>,
+    /// The node's tip height as the daemon last recorded it; 0 until then.
+    node_height: AtomicU32,
     #[cfg(feature = "full-api")]
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "full-api")]
@@ -88,6 +93,7 @@ impl Query {
                 #[cfg(feature = "series")]
                 registry,
                 plugins,
+                node_height: AtomicU32::new(0),
                 #[cfg(feature = "full-api")]
                 mempool: _mempool,
                 #[cfg(feature = "full-api")]
@@ -129,21 +135,21 @@ impl Query {
             .map(|height| (height, pin.tip()))
     }
 
-    /// Build sync status entirely from one safely published local snapshot.
-    pub fn local_sync_status(&self) -> Result<SyncStatus> {
-        self.sync_status_from(None)
+    /// Records the node's tip height for [`Query::sync_status`]. The daemon reads it when the
+    /// node's tip changes, so no request asks the node.
+    pub fn set_node_height(&self, height: Height) {
+        self.0.node_height.store(*height, Ordering::Relaxed);
     }
 
-    /// Build sync status with the given external tip height. Both indexed and
-    /// computed heights use one safely published pipeline snapshot.
-    pub fn sync_status(&self, tip_height: Height) -> Result<SyncStatus> {
-        self.sync_status_from(Some(tip_height))
-    }
-
-    fn sync_status_from(&self, tip_height: Option<Height>) -> Result<SyncStatus> {
+    /// The published index, from one safely published snapshot, against the node's tip as last
+    /// recorded.
+    pub fn sync_status(&self) -> Result<SyncStatus> {
         let guard = self.pin_safe_lengths()?;
         let indexed_height = guard.lengths().last_height().ok_or_else(|| Error::updating())?;
-        let tip_height = tip_height.unwrap_or(indexed_height);
+        // Nothing is recorded while the node's tip is the published one, and an update can
+        // publish past the last record: the tip is never below what is indexed.
+        let tip_height =
+            Height::new(self.0.node_height.load(Ordering::Relaxed)).max(indexed_height);
         let blocks_behind = Height::from(tip_height.saturating_sub(*indexed_height));
         let last_indexed_at_unix = self
             .indexer()
