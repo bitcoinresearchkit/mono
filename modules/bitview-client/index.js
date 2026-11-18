@@ -7163,7 +7163,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "7e65d7fcbb2773ddf7e95e41a552329d5627b34c5f1dd00db8fa4b99c694ce79";
+  static HASH = "d5848a8229dbe81955e6e192ff7061b8caeffda83f18ba2b49285c0408385edd";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

@@ -4,7 +4,7 @@ const _isBrowser = typeof window !== 'undefined' && 'caches' in window;
 const _runIdle = (/** @type {VoidFunction} */ fn) => (globalThis.requestIdleCallback ?? setTimeout)(fn);
 const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
-/** How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most
+/** How long a server that is gone is passed over: a misconfigured `bitview-origin` costs at most
  * one retried request per period, and a restarted server is taken back after it. */
 const _REFUSE_MS = 600_000;
 
@@ -325,8 +325,10 @@ class BitviewClientBase {
   /**
    * Fetch `path` from the pinned server, else the configured URL. When several servers answer
    * one URL, each names itself in `bitview-origin` and the requests after go to it, so what one
-   * server minted (a diff's `since`) stays with it. A pinned server that fails (network, timeout,
-   * 5xx) is passed over, and the request goes through the configured URL again.
+   * server minted (a diff's `since`) stays with it. Whatever such an answer says, 5xx included, is
+   * the server's own and goes to the caller; a server that fails to answer (network, timeout) or
+   * answers without the header is gone: it is passed over and a GET goes through the configured
+   * URL again. A POST is never sent twice.
    * @param {string} path
    * @param {RequestInit} init
    * @param {AbortSignal} [signal]
@@ -335,15 +337,25 @@ class BitviewClientBase {
   async _fetch(path, init, signal) {
     const pinned = this._pinned;
     if (pinned) {
+      /** @type {Response | undefined} */
+      let res;
+      let failure;
       try {
-        const res = await fetch(`${pinned}${path}`, { ...init, signal: this._signal(signal) });
-        if (res.status < 500) return this._follow(res);
-        await res.body?.cancel();
+        res = await fetch(`${pinned}${path}`, { ...init, signal: this._signal(signal) });
       } catch (e) {
         if (signal?.aborted) throw e;
+        failure = e;
       }
-      this._refused.set(pinned, Date.now() + _REFUSE_MS);
-      if (this._pinned === pinned) this._pinned = null;
+      const named = res?.headers.has('bitview-origin');
+      if (!named) {
+        this._refused.set(pinned, Date.now() + _REFUSE_MS);
+        if (this._pinned === pinned) this._pinned = null;
+      }
+      if (named || init.method === 'POST') {
+        if (!res) throw failure;
+        return this._follow(res);
+      }
+      await res?.body?.cancel();
     }
     return this._follow(await fetch(`${this.baseUrl}${path}`, { ...init, signal: this._signal(signal) }));
   }

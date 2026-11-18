@@ -7,8 +7,9 @@ class BitviewError(Exception):
         self.code = code
 
 
-def _response_error(status: int, data: bytes) -> BitviewError:
-    """The server's error body as a BitviewError; a body this client can't read keeps its text."""
+def _response_error(status: int, data: bytes, url: str) -> BitviewError:
+    """The server's error body as a BitviewError; a body this client can't read is named by its
+    status and URL, and a redirect is one of these: the client follows none."""
     text = data.decode(errors="replace")
     try:
         detail = json.loads(text).get("error")
@@ -18,7 +19,7 @@ def _response_error(status: int, data: bytes) -> BitviewError:
         detail = {}
     message = detail.get("message")
     return BitviewError(
-        message if isinstance(message, str) else (text or f"HTTP {status}"),
+        message if isinstance(message, str) else f"HTTP {status} from {url}",
         status,
         detail.get("code"),
     )
@@ -29,16 +30,17 @@ def _segment(value: Any) -> str:
     return quote(str(value), safe='')
 
 
-# How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most one
+# How long a server that is gone is passed over: a misconfigured `bitview-origin` costs at most one
 # retried request per period, and a restarted server is taken back after it.
 _REFUSE_SECONDS = 600.0
 
 
 class BitviewClientBase:
     """When several servers answer one URL, each names itself in `bitview-origin` and the requests
-    after go to it, so what one server minted (a diff's `since`) stays with it. A pinned server
-    that fails (network, timeout, 5xx) is passed over, and the request goes through the configured
-    URL again."""
+    after go to it, so what one server minted (a diff's `since`) stays with it. Whatever such an
+    answer says, 5xx included, is the server's own and goes to the caller; a server that fails to
+    answer (network, timeout) or answers without the header is gone: it is passed over and a GET
+    goes through the configured URL again. A POST is never sent twice."""
 
     def __init__(self, base_url: str, timeout: float = 30.0):
         self._base = base_url.rstrip('/')
@@ -61,7 +63,9 @@ class BitviewClientBase:
         A kept connection the server has since closed fails without the server being down, so
         that failure (the peer's reset or close) is retried once on a fresh connection."""
         parsed = urlparse(server)
-        headers = {"Content-Type": content_type} if content_type else {}
+        headers = {"Accept-Encoding": "gzip"}
+        if content_type:
+            headers["Content-Type"] = content_type
         while True:
             reused = self._conn is not None and self._conn_server == server
             try:
@@ -72,7 +76,10 @@ class BitviewClientBase:
                     self._conn_server = server
                 self._conn.request(method, parsed.path + path, body=body, headers=headers)
                 res = self._conn.getresponse()
-                return res.status, res.read(), res.getheader("bitview-origin")
+                data = res.read()
+                if res.getheader("Content-Encoding") == "gzip":
+                    data = gzip.decompress(data)
+                return res.status, data, res.getheader("bitview-origin")
             except (HTTPException, OSError) as e:
                 self.close()
                 if not (reused and isinstance(e, (ConnectionResetError, BrokenPipeError))):
@@ -85,24 +92,26 @@ class BitviewClientBase:
         body: Optional[str] = None,
         content_type: Optional[str] = None,
     ) -> bytes:
-        """`path` from the pinned server, else the configured URL."""
-        answer = None
+        """`path` from the pinned server, else the configured URL; any answer but a 2xx raises."""
         pinned = self._pinned
-        if pinned:
-            try:
-                answer = self._exchange(pinned, method, path, body, content_type)
-            except BitviewError:
-                pass
-            if answer is None or answer[0] >= 500:
-                answer = None
-                self._refused[pinned] = monotonic() + _REFUSE_SECONDS
-                self._pinned = None
-        if answer is None:
-            answer = self._exchange(self._base, method, path, body, content_type)
-        status, data, origin = answer
+        server = pinned or self._base
+        failure = None
+        try:
+            status, data, origin = self._exchange(server, method, path, body, content_type)
+        except BitviewError as e:
+            if not pinned:
+                raise
+            failure = e
+        if pinned and (failure or not origin):
+            self._refused[pinned] = monotonic() + _REFUSE_SECONDS
+            self._pinned = None
+            if method == "GET":
+                return self._request(method, path, body, content_type)
+            if failure:
+                raise failure
         self._follow(origin)
-        if status >= 400:
-            raise _response_error(status, data)
+        if not 200 <= status < 300:
+            raise _response_error(status, data, server + path)
         return data
 
     def _follow(self, origin: Optional[str]) -> None:
@@ -379,9 +388,14 @@ AnySeriesData = SeriesData[Any]
 AnyDateSeriesData = DateSeriesData[Any]
 
 
+def _read_series(cls: type, raw: Dict[str, Any]) -> Any:
+    """`cls` from an answer's own fields: one the server adds is left out, one it drops is None."""
+    return cls(**{field.name: raw.get(field.name) for field in fields(cls)})
+
+
 def _series_data(raw: Dict[str, Any]) -> AnySeriesData:
     """Series data with its helpers (and dates, for a date-based index)."""
-    return (DateSeriesData if raw['index'] in _CALENDARS else SeriesData)(**raw)
+    return _read_series(DateSeriesData if raw['index'] in _CALENDARS else SeriesData, raw)
 
 
 def _contiguous(key: slice) -> slice:
@@ -432,10 +446,10 @@ class _EndpointConfig:
         return _EndpointConfig(self.client, self.name, self.index, start, end, limit)
 
     def get_series(self) -> SeriesData[Any]:
-        return SeriesData(**self.client.get_json(self._build_path()))
+        return _read_series(SeriesData, self.client.get_json(self._build_path()))
 
     def get_date_series(self) -> DateSeriesData[Any]:
-        return DateSeriesData(**self.client.get_json(self._build_path()))
+        return _read_series(DateSeriesData, self.client.get_json(self._build_path()))
 
     def get_csv(self) -> str:
         return self.client.get_text(self._build_path(format='csv'))
