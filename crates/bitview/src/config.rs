@@ -29,22 +29,38 @@ pub const DEFAULT_CACHE_BUDGET: usize = 1 << 30;
 /// One setting: `key = value` in `config.toml`, `--key <VALUE>` as a flag.
 struct Setting {
     key: &'static str,
+    /// Whether the setting's value is omitted from dumps and diagnostics.
+    secret: bool,
     /// Parses its text into its field.
     set: fn(&mut Config, &str) -> StdResult<(), String>,
 }
 
-/// Declares every setting once, as `key: type, value, help[, default];` (rustc's `options!` is the model):
-/// `Config` holds each as an `Option` field, `SETTINGS` is what the flags and `config.toml` set them
-/// through, and `print_settings` writes their lines of `--help`, a blank line before each group.
+impl Setting {
+    /// Some parser errors include the input that failed.
+    fn diagnostic(&self, detail: impl FnOnce() -> String) -> String {
+        if self.secret {
+            "malformed value (a secret, not shown)".to_owned()
+        } else {
+            detail()
+        }
+    }
+}
+
+/// Declares every setting once, as `[#[secret]] key: type, value, help[, default];` (rustc's `options!`
+/// is the model): `Config` holds each as an `Option` field, `SETTINGS` is what the flags and
+/// `config.toml` set them through, and `print_settings` writes their lines of `--help`, a blank line
+/// before each group.
 macro_rules! settings {
-    ($([$($key:ident: $type:ty, $value:literal, $help:literal $(, $default:expr)?;)*])*) => {
-        #[derive(Debug, Default, Serialize)]
+    ($([$($(#[$secret:ident])? $key:ident: $type:ty, $value:literal, $help:literal $(, $default:expr)?;)*])*) => {
+        // A derived `Debug` would include secret fields.
+        #[derive(Default, Serialize)]
         pub struct Config {
             $($($key: Option<$type>,)*)*
         }
 
         static SETTINGS: &[Setting] = &[$($(Setting {
             key: stringify!($key),
+            secret: secret!($($secret)?),
             set: |config, text| store(&mut config.$key, text),
         },)*)*];
 
@@ -60,6 +76,16 @@ macro_rules! settings {
                 )*
             )*
         }
+    };
+}
+
+/// Whether a setting's declaration starts with `#[secret]`; any other attribute doesn't compile.
+macro_rules! secret {
+    () => {
+        false
+    };
+    (secret) => {
+        true
     };
 }
 
@@ -95,7 +121,7 @@ settings! {
         rpccookiefile: String, "<PATH>", "RPC cookie file; relative paths resolve inside <bitcoindir>",
             "<bitcoindir>/.cookie";
         rpcuser: String, "<USERNAME>", "RPC username";
-        rpcpassword: String, "<PASSWORD>", "RPC password";
+        #[secret] rpcpassword: String, "<PASSWORD>", "RPC password";
     ]
 }
 
@@ -116,7 +142,9 @@ impl Config {
         for (setting, value) in flags {
             // Worded as lexopt words a value its parsing rejects.
             (setting.set)(&mut config, &value).map_err(|error| {
-                Error::Parse(format!("--{}: cannot parse argument {value:?}: {error}", setting.key))
+                let problem =
+                    setting.diagnostic(|| format!("cannot parse argument {value:?}: {error}"));
+                Error::Parse(format!("--{}: {problem}", setting.key))
             })?;
         }
         if dump {
@@ -153,9 +181,10 @@ impl Config {
                         return Err(parse_error(arg.unexpected()));
                     };
                     let value = parser.value().map_err(parse_error)?;
-                    let value = value
-                        .string()
-                        .map_err(|error| Error::Parse(format!("--{}: {error}", setting.key)))?;
+                    let value = value.string().map_err(|error| {
+                        let problem = setting.diagnostic(|| error.to_string());
+                        Error::Parse(format!("--{}: {problem}", setting.key))
+                    })?;
                     flags.push((setting, value));
                 }
                 _ => return Err(parse_error(arg.unexpected())),
@@ -176,38 +205,61 @@ impl Config {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            let (key, value) = line
-                .split_once('=')
-                .ok_or_else(|| at(format!("expected `key = value`, found `{line}`")))?;
+            // A malformed assignment can contain a secret before the first `=`.
+            let malformed = || at("expected `key = value`".to_owned());
+            let (key, value) = line.split_once('=').ok_or_else(malformed)?;
             let key = key.trim();
             let key = ['"', '\'']
                 .into_iter()
                 .find_map(|quote| key.strip_prefix(quote)?.strip_suffix(quote))
                 .unwrap_or(key);
             let Some(setting) = setting(key) else {
+                if key.is_empty()
+                    || !key
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'_' | b'-'))
+                {
+                    return Err(malformed());
+                }
                 let keys: Vec<_> = SETTINGS.iter().map(|setting| setting.key).collect();
-                return Err(at(format!("unknown setting `{key}`, expected one of {}", keys.join(", "))));
+                return Err(at(format!(
+                    "unknown setting `{key}`, expected one of {}",
+                    keys.join(", ")
+                )));
             };
             if !seen.insert(key) {
                 return Err(at(format!("`{key}` is set twice")));
             }
-            let text = toml_value(value.trim()).map_err(|problem| at(format!("{key}: {problem}")))?;
-            (setting.set)(&mut config, &text)
-                .map_err(|error| at(format!("{key}: cannot parse {text:?}: {error}")))?;
+            let text = toml_value(value.trim()).map_err(|error| {
+                let problem = setting.diagnostic(|| error);
+                at(format!("{key}: {problem}"))
+            })?;
+            (setting.set)(&mut config, &text).map_err(|error| {
+                let problem = setting.diagnostic(|| format!("cannot parse {text:?}: {error}"));
+                at(format!("{key}: {problem}"))
+            })?;
         }
         Ok(config)
     }
 
     /// Print the settings given, in `config.toml` and as flags, the flags first, as
     /// `config.toml` lines, defaults left out: each is a string, a number or a boolean, which
-    /// JSON writes as TOML does.
+    /// JSON writes as TOML does. A secret gets a comment line saying it is set.
     fn dump(&self) -> Result<()> {
         let Value::Object(settings) = to_value(self).map_err(|e| Error::Parse(e.to_string()))?
         else {
             unreachable!("a struct serializes to an object");
         };
         for (key, value) in settings {
-            if !value.is_null() {
+            if value.is_null() {
+                continue;
+            }
+            if setting(&key)
+                .expect("serialized settings are declared")
+                .secret
+            {
+                println!("# {key} is set (a secret, not shown)");
+            } else {
                 println!("{key} = {value}");
             }
         }
