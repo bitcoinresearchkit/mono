@@ -79,7 +79,9 @@ impl Chunks {
 
     /// One component's chunk range, by component index.
     fn component(&self, index: usize) -> (usize, usize) {
-        let start = index.checked_sub(1).map_or(0, |previous| self.components[previous] as usize);
+        let start = index
+            .checked_sub(1)
+            .map_or(0, |previous| self.components[previous] as usize);
         (start, self.components[index] as usize)
     }
 
@@ -90,8 +92,7 @@ impl Chunks {
     }
 }
 
-/// The projected blocks, block 0 first (none of the `excluded`), each member with the feerate it
-/// was packed at.
+/// The projected blocks, block 0 first, each member with the feerate it was packed at.
 pub struct Projection {
     pub blocks: Vec<Vec<(TxIndex, FeeRate)>>,
     /// Whether the last block is a catch-all: what was left past the others, more than a block
@@ -102,17 +103,15 @@ pub struct Projection {
 pub fn partition(
     txs: &[SnapTx],
     chunks: &Chunks,
-    excluded: &[bool],
     num_blocks: usize,
     cache: &mut ChunkCache,
 ) -> Projection {
     debug_assert!(num_blocks > 0);
-    debug_assert_eq!(txs.len(), excluded.len());
     let mut kept = ChunkCache::default();
-    let projection = pack(txs, chunks.clone(), excluded.to_vec(), num_blocks, cache, &mut kept);
+    let projection = pack(txs, chunks.clone(), num_blocks, cache, &mut kept);
     *cache = kept;
     #[cfg(debug_assertions)]
-    check_order(txs, excluded, &projection.blocks);
+    check_order(txs, &projection.blocks);
     projection
 }
 
@@ -173,7 +172,9 @@ impl Candidate {
 
 /// Appends the candidates of the chunks pushed since the last, component by component.
 fn push_candidates(txs: &[SnapTx], chunks: &Chunks, cands: &mut Vec<Candidate>) {
-    let first = chunks.components.partition_point(|&end| end as usize <= cands.len());
+    let first = chunks
+        .components
+        .partition_point(|&end| end as usize <= cands.len());
     for component in first..chunks.components.len() {
         let (from, to) = chunks.component(component);
         debug_assert_eq!(from, cands.len());
@@ -231,7 +232,12 @@ fn split(
     for &component in touched {
         is_touched[component] = true;
         rest.clear();
-        rest.extend(chunks.span(chunks.component(component)).iter().filter(|m| !consumed[m.as_usize()]));
+        rest.extend(
+            chunks
+                .span(chunks.component(component))
+                .iter()
+                .filter(|m| !consumed[m.as_usize()]),
+        );
         for piece in pieces(txs, &rest, consumed) {
             let linearized = cache.linearized(txs, &piece, &mut ids, &mut graph, kept);
             for positions in linearized.chunks() {
@@ -249,11 +255,10 @@ fn split(
     pending.sort_by(|&a, &b| cands[a].order(&cands[b]));
 }
 
-/// The blocks from `chunks`, `consumed` holding the withheld.
+/// The blocks from `chunks`, in mining order.
 fn pack(
     txs: &[SnapTx],
     mut chunks: Chunks,
-    mut consumed: Vec<bool>,
     num_blocks: usize,
     cache: &mut ChunkCache,
     kept: &mut ChunkCache,
@@ -262,19 +267,9 @@ fn pack(
     let mut overflow = false;
     let mut cands = Vec::with_capacity(chunks.chunks.len());
     push_candidates(txs, &chunks, &mut cands);
-    // The withheld: components they took whole leave, ones they took part of split.
-    let mut pending = Vec::new();
-    let mut touched = Vec::new();
-    for component in 0..chunks.components.len() {
-        let range = chunks.component(component);
-        let members = chunks.span(range);
-        match members.iter().filter(|m| consumed[m.as_usize()]).count() {
-            0 => pending.extend(range.0..range.1),
-            taken if taken < members.len() => touched.push(component),
-            _ => {}
-        }
-    }
-    split(txs, &mut chunks, &mut cands, &mut pending, &touched, &consumed, cache, kept);
+    let mut consumed = vec![false; txs.len()];
+    let mut pending: Vec<_> = (0..cands.len()).collect();
+    pending.sort_unstable_by(|&a, &b| cands[a].order(&cands[b]));
     let mut deferred = Vec::new();
     while !pending.is_empty() {
         let last = blocks.len() + 1 == num_blocks;
@@ -353,7 +348,10 @@ fn pack(
             .iter()
             .flat_map(|&index| {
                 let rate = cands[index].rate;
-                chunks.members(index).iter().map(move |&member| (member, rate))
+                chunks
+                    .members(index)
+                    .iter()
+                    .map(move |&member| (member, rate))
             })
             .collect();
         let mut selected = vec![false; chunks.components.len()];
@@ -364,7 +362,6 @@ fn pack(
             .collect();
         if last || block.is_empty() {
             // The last slot, or a pool no finite block can take: preserve the backlog contract.
-            // Withheld members were already excluded before partition and remain omitted.
             for &index in &pending {
                 for &member in chunks.members(index) {
                     if !consumed[member.as_usize()] {
@@ -382,9 +379,21 @@ fn pack(
         deferred.clear();
         // What the block took part of splits; the equal-rate prefixes of its pieces start anew.
         selected_components.retain(|&component| {
-            chunks.span(chunks.component(component)).iter().any(|m| !consumed[m.as_usize()])
+            chunks
+                .span(chunks.component(component))
+                .iter()
+                .any(|m| !consumed[m.as_usize()])
         });
-        split(txs, &mut chunks, &mut cands, &mut pending, &selected_components, &consumed, cache, kept);
+        split(
+            txs,
+            &mut chunks,
+            &mut cands,
+            &mut pending,
+            &selected_components,
+            &consumed,
+            cache,
+            kept,
+        );
     }
     Projection { blocks, overflow }
 }
@@ -392,14 +401,17 @@ fn pack(
 /// Whether every parent of a chunk's `members` is placed or one of them.
 fn ready(txs: &[SnapTx], members: &[TxIndex], consumed: &[bool]) -> bool {
     members.iter().all(|m| {
-        txs[m.as_usize()].parents.iter().all(|p| consumed[p.as_usize()] || members.contains(p))
+        txs[m.as_usize()]
+            .parents
+            .iter()
+            .all(|p| consumed[p.as_usize()] || members.contains(p))
     })
 }
 
 /// Every member comes after its parents: earlier blocks' or its own block's earlier.
 #[cfg(debug_assertions)]
-fn check_order(txs: &[SnapTx], excluded: &[bool], blocks: &[Vec<(TxIndex, FeeRate)>]) {
-    let mut placed = excluded.to_vec();
+fn check_order(txs: &[SnapTx], blocks: &[Vec<(TxIndex, FeeRate)>]) {
+    let mut placed = vec![false; txs.len()];
     for &(m, _) in blocks.iter().flatten() {
         let t = &txs[m.as_usize()];
         debug_assert!(

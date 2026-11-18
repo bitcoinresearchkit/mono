@@ -42,16 +42,20 @@ from the node's UTXO set (`gettxout`, the mempool's spends not counted), so no `
 needed. When Core refuses a block template (in initial sync, or with no peers), the tip is
 `getbestblockhash`'s and the packer's first block stands in for block 0.
 
-A failed poll, one whose tip moved mid-poll, or one not at the chain's published tip publishes
-nothing: readers keep the last publication. Otherwise membership and projection advance
-independently. The projection (`fees`, `block_stats`, `mempool_block_source`,
-`resolve_mempool_block_diff`) advances with every poll whose whole template is loaded.
-Membership (every other read, CPFP and RBF included, and `tip()`) advances only when the poll's
-view is complete: the template holds no transactions absent from the raw listing and every
-listed transaction is loaded (the per-cycle fetch cap can defer some). One loaded publication
-can therefore pair a newer projection with older membership. In builds that unwind (the
-workspace's release profile aborts on panic instead), a panic mid-cycle restores the private
-state from the last publication before the next one.
+Failed polls leave the last publication in place. A cycle takes one listing and fetches missing
+entries and bodies in batches of 2,000. The next cycle reuses completed pairs still on its listing.
+A cycle that newly misses a listed transaction's pair publishes nothing, so a replacement chain
+caught mid-fetch settles on the next listing, but never two cycles in a row: otherwise a cycle
+publishes without its misses and their descendants, which enter once paired, and one missed in two
+cycles in a row is logged once. Under steady churn (a new miss every cycle) publication goes out
+every other cycle, and a transaction a chain replaced on a cycle right after a hold, buried then,
+stays vanished.
+Unread blocks are retried before fetching bodies, ten cycles at most: what the unread blocks
+mined then reads vanished. A panic on an unwinding build restores private state from the last
+publication.
+
+Restored pending records are trusted while Core still lists their txids. A same-txid witness swap
+during downtime is accepted without refreshing the restored body.
 
 ## Read API
 
@@ -83,9 +87,10 @@ On a loaded `ReadOnlyState`:
   pooled, so never a spend without the output it spends). An address's unspent outputs follow
   the outpoints, known before: while an input resolves, its stats can lag its UTXO list.
 - `rbf_for_tx` and `recent_replacements_json` expose replacement relationships at the caller's
-  tip. A tree holds 4,096 transactions at most; a listed one, 163 (the listing holds about what
+  tip. Direct input conflicts form the tree. Descendants evicted with a replaced parent keep their
+  removal reason. A tree holds 4,096 transactions at most; a listed one, 163 (the listing holds about what
   one tree may), past which it comes cut (`truncated`). The recent trees are walked once per
-  publication (twice mempool.space's 25, spares for those the caller's chain can't serve yet),
+  graveyard revision (twice mempool.space's 25, spares for those the caller's chain can't serve yet),
   and the listing, as the caller enriches it, is encoded once per publication and reader tip.
 
 ## Projection and fee tiers
@@ -109,13 +114,12 @@ eight blocks in all, mempool.space's count, the last a catch-all; empty trailing
 projected.
 Priority metadata is observed independently of membership. A failed priority RPC or parse retains
 the last valid ranking map with a warning while other data updates; an unsupported method uses
-base-fee compatibility. Paid rates and totals always use base fees. Listed transactions not loaded
-yet, and their descendants, are left out of every block. Block 0 is also served as the next
-block's template (`/api/block-template`, BIP 22), built once per projection and dated per
+base-fee compatibility. Paid rates and totals always use base fees. Block 0 is also served as the
+next block's template (`/api/block-template`, BIP 22), built once per publication and dated per
 request (`curtime`). Debug builds ask Core whether each published template, as a request is
 served it, makes a valid block (`getblocktemplate` proposal mode) and log one it rejects as an
-error; release builds ask Core nothing. Each projected member's
-fee statistics use the feerate it was packed at, and every
+error; release builds ask Core nothing. Each projected member's fee statistics use the feerate it
+was packed at, and every
 effective feerate is fee over the sigop-adjusted weight's exact quarter (Core's chunk feerates,
 mempool.space's effective ones); a block's `blockVSize` is its weight over 4. Maps keyed by addresses,
 txids or outpoints are seeded per process (rapidhash), so crafted keys cannot collide them.
@@ -130,6 +134,5 @@ offsets.
 
 Each publication pairs one membership observation with the graph built from it. Each poll
 brackets its fetch and prevout resolution with best-block hashes; an observation whose tip moved
-is not published. Membership (address balances and pages, lookups) follows the listing alone and
-publishes every cycle. These are consistency checks on sampled observations, not a claim that a
-JSON-RPC batch is atomic.
+is not published. Membership (address balances and pages, lookups) and the projection use the
+same listing and paired bodies. Core samples the calls in a JSON-RPC batch separately.

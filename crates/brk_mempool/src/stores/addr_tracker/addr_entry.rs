@@ -108,7 +108,9 @@ impl Leaves {
     }
 
     fn flatten(leaves: &[Arc<Vec<AddrTx>>]) -> LeavesIter<'_> {
-        leaves.iter().flat_map(|leaf: &Arc<Vec<AddrTx>>| leaf.iter())
+        leaves
+            .iter()
+            .flat_map(|leaf: &Arc<Vec<AddrTx>>| leaf.iter())
     }
 }
 

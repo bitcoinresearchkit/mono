@@ -8,7 +8,25 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
+  matching mempool.space. Descendants evicted with a replaced parent keep their replacement
+  status.
+
+- Mempool updates reuse matched entries and bodies across polls. A poll that newly misses a listed
+  transaction's pair waits one cycle, never two in a row; otherwise it publishes without its misses
+  and their descendants, so misses hold publication back one cycle at most. Restored
+  pending records are trusted while listed. A same-txid witness swap during downtime is accepted
+  without refreshing the saved body.
+
 ### Breaking Changes
+
+- Older binaries cannot load a mempool graveyard containing a tag-3 inherited replacement.
+
+- `GET /api/mempool-blocks/{index}/diff/{since}` no longer always echoes `since`: a `since` the server
+  doesn't hold (aged out, another server's, or from before a restart) is answered from no copy with
+  `since` `"0"`, every entry new, so the client replaces its copy and drops what it cached for
+  transactions not in `order`. Before, such a diff echoed `since` with an empty `removed`, so what was
+  cached for departed transactions stayed. `MempoolBlockHash` (Rust) no longer implements `Default`.
 
 - `bitview-client` JavaScript query parameters now belong in the final options object; path parameters
   stay positional. For example, `client.getUrpd(cohort, point, agg, weight, { signal, cache })`

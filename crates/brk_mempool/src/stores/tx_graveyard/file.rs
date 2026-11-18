@@ -124,7 +124,10 @@ impl GraveyardFile {
         pool: Option<&ReadOnlyTxStore>,
         taken: Instant,
     ) -> Result<()> {
-        let mut saved = self.saved.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut saved = self
+            .saved
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if pool.is_none() && (saved.pool || saved.taken.is_some_and(|last| last >= taken)) {
             return Ok(());
         }
@@ -166,8 +169,11 @@ fn encode<'a>(
     let now = Moment::now();
     // Oldest first: loading buries them back in order. The pending heads of replacement trees
     // last, taken now (vanished, as far as a restart knows).
-    let mut tombstones: Vec<TxTombstone> =
-        graveyard.tombstones.iter().map(|(_, tomb)| tomb.clone()).collect();
+    let mut tombstones: Vec<TxTombstone> = graveyard
+        .tombstones
+        .iter()
+        .map(|(_, tomb)| tomb.clone())
+        .collect();
     tombstones.sort_unstable_by_key(|tomb| tomb.removed_at);
     let mut heads: Vec<Txid> = tombstones
         .iter()
@@ -203,8 +209,8 @@ fn encode<'a>(
         match tomb.removal {
             TxRemoval::Mined => out.u8(0),
             TxRemoval::Vanished => out.u8(1),
-            TxRemoval::Replaced { by } => {
-                out.u8(2);
+            TxRemoval::Replaced { by, direct } => {
+                out.u8(if direct { 2 } else { 3 });
                 out.bytes(&bitcoin::Txid::from(by).to_byte_array());
             }
         }
@@ -310,7 +316,8 @@ fn read_record(input: &mut Reader) -> Result<TxRecord> {
     // As bounded as the node's entries, and never below what its weight and the sigops its body
     // shows make it.
     let vsize = VSize::new(vsize);
-    if !vsize.bounds_entry(weight) || vsize < tx.total_sigop_cost.adjust_vsize(VSize::from(weight)) {
+    if !vsize.bounds_entry(weight) || vsize < tx.total_sigop_cost.adjust_vsize(VSize::from(weight))
+    {
         return Err(Error::Parse(format!("vsize {vsize}, weight {weight}")));
     }
     let entry = TxEntry {
@@ -360,8 +367,9 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
         let removal = match input.u8()? {
             0 => TxRemoval::Mined,
             1 => TxRemoval::Vanished,
-            2 => TxRemoval::Replaced {
+            tag @ (2 | 3) => TxRemoval::Replaced {
                 by: Txid::from(bitcoin::Txid::from_byte_array(input.array()?)),
+                direct: tag == 2,
             },
             tag => return Err(Error::Parse(format!("removal {tag}"))),
         };

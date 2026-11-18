@@ -9,7 +9,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 /// transaction bodies. Opaque token, distinct from HTTP ETag formatting: pass back to
 /// `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
 /// A decimal string, since JavaScript numbers can't hold every 64-bit value.
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, From, Into)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, From, Into)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "schemars", schemars(with = "String", extend("pattern" = "^[0-9]+$"), example = &"9007199254740993"))]
 pub struct MempoolBlockHash(u64);
@@ -30,6 +30,7 @@ impl<'de> Deserialize<'de> for MempoolBlockHash {
 }
 
 impl MempoolBlockHash {
+    /// No copy: the `since` of a diff from nothing.
     pub const ZERO: Self = Self(0);
 
     pub const fn new(value: u64) -> Self {

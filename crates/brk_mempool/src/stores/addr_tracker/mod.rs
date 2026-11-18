@@ -28,7 +28,10 @@ impl AddrTracker {
     /// A transaction entering the pool: its outputs fold in, and its inputs already resolved.
     pub fn add(&mut self, record: &TxRecord) {
         let tx = &record.tx;
-        self.resolve(record, tx.input.iter().filter_map(|txin| txin.prevout.as_ref()));
+        self.resolve(
+            record,
+            tx.input.iter().filter_map(|txin| txin.prevout.as_ref()),
+        );
         let at = AddrTx::from(record);
         for txout in &tx.output {
             if let Some(bytes) = txout.addr_bytes() {

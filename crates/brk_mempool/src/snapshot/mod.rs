@@ -15,12 +15,8 @@ use std::{
 
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
-use brk_types::{
-    FeeRate, MempoolBlock, MempoolBlockHash, TagHasher, Transaction,
-    Txid,
-};
+use brk_types::{FeeRate, MempoolBlock, MempoolBlockHash, TagHasher, Transaction, Txid};
 use builder::KeyIndex;
-use rapidhash::RapidHashSet;
 pub use rebuilder::Rebuilder;
 use serde_json::to_vec;
 pub use snap_tx::SnapTx;
@@ -39,9 +35,6 @@ pub struct Snapshot {
     /// ([`partition`]). Empty only for a default snapshot.
     pub(crate) block_stats: Vec<BlockStats>,
     pub(crate) fees: fees::FeeView,
-    /// Whether its view was complete (every listed transaction loaded or stuck): its fee tiers
-    /// are its own. A rebuild reuses it only for a view alike.
-    complete: bool,
     min_fee: FeeRate,
     key_to_idx: KeyIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
@@ -52,8 +45,6 @@ pub struct Snapshot {
     /// holding more than a block (what's left, mempool.space's catch-all).
     served: Vec<ServedBlock>,
     content_revision: u64,
-    /// The listed txids not loaded when it was built: a rebuild from the same view reuses it.
-    unloaded: RapidHashSet<Txid>,
     /// The node's signed modified fees it ranked by: a rebuild under the same ones reuses it.
     pub(crate) modified_fees: Box<[(Txid, i64)]>,
     /// The served bodies of the fee tiers and every block's stats, serialized by the
@@ -80,36 +71,28 @@ impl Snapshot {
     /// `min_fee` is bitcoind's live `mempoolminfee`, the floor for
     /// every recommended-fee tier.
     /// `blocks`: every projected block, block 0 first, each member at the feerate it was packed
-    /// at. `held_fees`: an incomplete view's predecessor's tiers ([`fees::FeeView`]).
-    #[allow(clippy::too_many_arguments)]
+    /// at. Only complete observations become snapshots.
     pub(crate) fn build(
         txs: Vec<SnapTx>,
         blocks: &[Vec<(TxIndex, FeeRate)>],
         key_to_idx: KeyIndex,
         chunks: partition::Chunks,
         min_fee: FeeRate,
-        held_fees: Option<&fees::FeeView>,
     ) -> Self {
         let chunk_of = chunks.chunk_of(txs.len());
         let block_stats = BlockStats::for_blocks(blocks, &txs);
-        let fees = fees::FeeView::new(
-            &block_stats,
-            held_fees,
-            min_fee,
-        );
+        let fees = fees::FeeView::new(&block_stats, min_fee);
         Self {
             txs,
             block0: Box::default(),
             block_stats,
             fees,
-            complete: held_fees.is_none(),
             min_fee,
             key_to_idx,
             chunks,
             chunk_of,
             served: Vec::new(),
             content_revision: 0,
-            unloaded: RapidHashSet::default(),
             modified_fees: Box::default(),
             fees_json: OnceLock::new(),
             precise_fees_json: OnceLock::new(),
@@ -119,13 +102,16 @@ impl Snapshot {
 
     /// mempool.space's `/api/v1/fees/recommended` body.
     pub(crate) fn fees_json(&self) -> Result<JsonBody> {
-        self.ensure_fees()?;
-        Ok(self.fees_json.get_or_init(|| json::body(&self.fees.whole)).clone())
+        self.ensure_projection()?;
+        Ok(self
+            .fees_json
+            .get_or_init(|| json::body(&self.fees.whole))
+            .clone())
     }
 
     /// mempool.space's `/api/v1/fees/precise` body.
     pub(crate) fn precise_fees_json(&self) -> Result<JsonBody> {
-        self.ensure_fees()?;
+        self.ensure_projection()?;
         Ok(self
             .precise_fees_json
             .get_or_init(|| json::body(&self.fees.precise))
@@ -165,14 +151,20 @@ impl Snapshot {
                 for digest in digests {
                     hasher.write_u64(digest);
                 }
-                let hash = MempoolBlockHash::new(hasher.finish());
-                let json = previous.get(index)
+                // Never 0: that's no copy (`MempoolBlockHash::ZERO`), the `since` of a diff from
+                // nothing.
+                let hash = MempoolBlockHash::new(hasher.finish().max(1));
+                let json = previous
+                    .get(index)
                     .filter(|block| block.content.hash == hash)
                     .and_then(|block| block.json.get())
                     .cloned()
                     .map_or_else(OnceLock::new, OnceLock::from);
                 ServedBlock {
-                    content: BlockContent { hash, bodies: bodies.into() },
+                    content: BlockContent {
+                        hash,
+                        bodies: bodies.into(),
+                    },
                     json,
                 }
             })
@@ -212,16 +204,6 @@ impl Snapshot {
 
     pub(crate) fn content_revision(&self) -> u64 {
         self.content_revision
-    }
-
-    /// Tiers from a complete view: its own, or one held over (as long as views stay incomplete,
-    /// the last one standing; Core unread, the last publication's): only before the first
-    /// complete view are there none.
-    pub(crate) fn ensure_fees(&self) -> Result<()> {
-        if !self.fees.complete {
-            return Err(QueryError::updating());
-        }
-        Ok(())
     }
 
     /// A default snapshot is not an observed empty mempool. A real publication

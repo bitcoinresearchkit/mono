@@ -12,7 +12,7 @@ impl ReadOnlyState {
     /// mempool.space's precise recommendations (`/api/v1/fees/precise`).
     pub fn precise_fees(&self) -> Result<PreciseRecommendedFees> {
         let snapshot = self.snapshot();
-        snapshot.ensure_fees()?;
+        snapshot.ensure_projection()?;
         Ok(snapshot.fees.precise.clone())
     }
 

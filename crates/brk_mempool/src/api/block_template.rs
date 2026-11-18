@@ -8,7 +8,7 @@ impl ReadOnlyState {
     /// was packed at `tip`. Core never checked the block it describes (debug builds check every
     /// published one).
     pub fn block_template(&self, tip: &BlockHash) -> Option<DatedTemplate> {
-        if self.projection_tip() != Some(*tip) {
+        if self.tip() != Some(*tip) {
             return None;
         }
         self.template.as_ref().map(|template| template.dated())

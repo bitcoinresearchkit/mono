@@ -830,12 +830,17 @@
  * A projected mempool block's changes since a prior copy identified by `since`. Returned by
  * `GET /api/mempool-blocks/{index}/diff/{since}`.
  *
- * `removed` lists txids no longer present. A changed transaction can be emitted as `New` without
- * removing its txid; absence from every retained run alone does not imply removal.
+ * `order` alone is the new block, and a `New` entry replaces what was known of its txid (a
+ * transaction whose body changed comes back as `New`, not in `removed`). `removed` lists the
+ * txids that left the block since `since`: evict what was cached for them. When the server
+ * doesn't hold the copy at `since` (aged out, another server's, or from before a restart), the
+ * diff is from no copy: `since` is `"0"`, every entry is `New` and `removed` is empty, so replace
+ * the copy and drop what was cached for txids not in `order`.
  *
  * @typedef {Object} MempoolBlockDiff
  * @property {MempoolBlockHash} hash - The block's current hash. Use as `since` on the next diff call.
- * @property {MempoolBlockHash} since - Echoed prior hash the diff was computed against.
+ * @property {MempoolBlockHash} since - The prior hash the diff was computed against: the `since` asked for, or `"0"` when the
+ *   server doesn't hold that copy (then `order` replaces it).
  * @property {MempoolBlock} stats - Stats of the new block; they can change while every transaction is retained.
  * @property {MempoolBlockDiffEntry[]} order - The new block in order. Each entry is either a run of the prior copy's transactions,
  *   `[start, count]`, or a transaction in its light shape.
@@ -7163,7 +7168,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "d5848a8229dbe81955e6e192ff7061b8caeffda83f18ba2b49285c0408385edd";
+  static HASH = "c494423161260257d487d86ac87d1abeeebabb555f806371a065acf514b7a5b2";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -9646,7 +9651,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Projected mempool block changes
    *
-   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.
+   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there, replacing what was known of its txid. Walk `order` once to rebuild, replace the cached `stats` with the response's, and evict what was cached for the txids in `removed`. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) is answered from no copy, with `since` `"0"`: every entry is new and `removed` is empty, so replace the copy and drop what was cached for txids not in `order`.
    *
    * Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
    *

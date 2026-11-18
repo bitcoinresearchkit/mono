@@ -10,8 +10,8 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     ReadOnlyState,
-    state::{BehindSlot, Pool},
     key::{OutpointKey, TxKey},
+    state::{BehindSlot, Pool},
 };
 
 /// How many reader tips past the pool's own tip keep a view. Readers of one moment share a tip, and
@@ -173,7 +173,10 @@ fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<TxKey> {
     candidates.dedup();
     let mut settled = FxHashSet::default();
     let mut conflicted = Vec::new();
-    for record in candidates.iter().filter_map(|key| pool.txs.record_by_key(key)) {
+    for record in candidates
+        .iter()
+        .filter_map(|key| pool.txs.record_by_key(key))
+    {
         let tx = &record.tx;
         let Some(spender) = tx
             .input
@@ -188,8 +191,11 @@ fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<TxKey> {
         }
     }
     while let Some(record) = conflicted.pop() {
-        for child in pool.outpoint_spends.children(&pool.txs, &record.tx) {
-            if settled.insert(child.entry.key()) {
+        for (key, child) in pool
+            .outpoint_spends
+            .children(&pool.txs, record.entry.key(), &record.tx)
+        {
+            if settled.insert(key) {
                 conflicted.push(child);
             }
         }
@@ -226,12 +232,23 @@ fn limbo(
         .txs
         .records()
         .map(|(_, record)| record)
-        .filter(|record| record.tx.input.iter().any(|input| limbo.contains(&input.txid)))
+        .filter(|record| {
+            record
+                .tx
+                .input
+                .iter()
+                .any(|input| limbo.contains(&input.txid))
+        })
         .collect();
     while let Some(record) = orphans.pop() {
         if limbo.insert(record.tx.txid) {
-            settled.insert(record.entry.key());
-            orphans.extend(pool.outpoint_spends.children(&pool.txs, &record.tx));
+            let key = record.entry.key();
+            settled.insert(key);
+            orphans.extend(
+                pool.outpoint_spends
+                    .children(&pool.txs, key, &record.tx)
+                    .map(|(_, child)| child),
+            );
         }
     }
     limbo

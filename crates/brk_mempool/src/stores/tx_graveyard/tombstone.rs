@@ -20,8 +20,15 @@ pub struct TxTombstone {
 impl TxTombstone {
     pub fn replaced_by(&self) -> Option<&Txid> {
         match &self.removal {
-            TxRemoval::Replaced { by } => Some(by),
+            TxRemoval::Replaced { by, .. } => Some(by),
             TxRemoval::Mined | TxRemoval::Vanished => None,
+        }
+    }
+
+    pub fn direct_replacer(&self) -> Option<&Txid> {
+        match &self.removal {
+            TxRemoval::Replaced { by, direct: true } => Some(by),
+            _ => None,
         }
     }
 }

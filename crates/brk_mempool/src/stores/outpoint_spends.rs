@@ -1,5 +1,6 @@
 use brk_types::{Transaction, Txid, Vin, Vout};
 use rustc_hash::FxBuildHasher;
+use smallvec::SmallVec;
 
 use crate::{
     key::{OutpointKey, TxKey},
@@ -81,17 +82,20 @@ impl OutpointSpends {
 
     /// The live spenders of `tx`'s outputs, each once, verified once against its inputs:
     /// O(outputs + their inputs), however many of `tx`'s outputs one spends.
-    pub fn children<'a>(&self, txs: &'a ReadOnlyTxStore, tx: &Transaction) -> Vec<&'a TxRecord> {
-        let parent = TxKey::from(&tx.txid);
-        let mut keys: Vec<TxKey> = (0..tx.output.len())
+    pub fn children<'a>(
+        &self,
+        txs: &'a ReadOnlyTxStore,
+        parent: TxKey,
+        tx: &'a Transaction,
+    ) -> impl Iterator<Item = (TxKey, &'a TxRecord)> {
+        let mut keys: SmallVec<[TxKey; 4]> = (0..tx.output.len())
             .filter_map(|vout| self.get(&OutpointKey::new(parent, Vout::from(vout))))
             .collect();
         keys.sort_unstable();
         keys.dedup();
-        keys.iter()
-            .filter_map(|key| txs.record_by_key(key))
-            .filter(|child| child.tx.input.iter().any(|input| input.txid == tx.txid))
-            .collect()
+        keys.into_iter()
+            .filter_map(move |key| txs.record_by_key(&key).map(|child| (key, child)))
+            .filter(move |(_, child)| child.tx.input.iter().any(|input| input.txid == tx.txid))
     }
 
     /// Mempool txs are never coinbase: every input spends an outpoint.

@@ -7,11 +7,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
-use crate::{
-    Snapshot, TipFacts,
-    snapshot::BlockContent,
-    template::Template,
-};
+use crate::{Snapshot, TipFacts, snapshot::BlockContent, template::Template};
 
 use super::{Pool, State};
 
@@ -24,13 +20,11 @@ const HISTORY_MAX: usize = 8 * 120;
 
 /// All published mempool read data. Replaced through one ArcSwap.
 ///
-/// Membership carries its own matching graph. The projection may advance independently while
-/// the listing is incomplete, withholding what can't follow the missing.
+/// Membership and projection advance together from one complete observation.
 #[derive(Clone, Default)]
 pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
     projection: Arc<Snapshot>,
-    projection_tip: Option<BlockHash>,
     /// The projection's block 0 as a template: none when the chain's facts at its tip couldn't
     /// be read.
     pub(crate) template: Option<Arc<Template>>,
@@ -46,46 +40,41 @@ impl ReadOnlyState {
         state: &State,
         tip: BlockHash,
         graph: Arc<Snapshot>,
-        membership_complete: bool,
         tip_facts: impl FnOnce(&BlockHash) -> Option<TipFacts>,
     ) -> Option<Self> {
-        let pool_changed = membership_complete
-            && !self
-                .pool
-                .as_ref()
-                .is_some_and(|pool| pool.matches(state, &tip, &graph));
-        let projected = graph.ensure_projection().is_ok();
-        let projection_changed = projected
-            && (self.projection_tip != Some(tip) || !Arc::ptr_eq(&self.projection, &graph));
-        // Each projection builds its template, and one the tip's facts were missing for is tried
+        if graph.ensure_projection().is_err() {
+            return None;
+        }
+        let changed = !self
+            .pool
+            .as_ref()
+            .is_some_and(|pool| pool.matches(state, &tip, &graph));
+        // Each publication builds its template, and one the tip's facts were missing for is tried
         // again at each update.
-        let build = projection_changed || (projected && self.template.is_none());
-        let template = if build {
-            tip_facts(&tip).map(|facts| Arc::new(Template::build(&graph.block0, &facts)))
-        } else {
-            self.template.clone()
-        };
-        if !pool_changed && !projection_changed && !(build && template.is_some()) {
+        if !changed && self.template.is_some() {
+            return None;
+        }
+        let template =
+            tip_facts(&tip).map(|facts| Arc::new(Template::build(&graph.block0, &facts)));
+        if !changed && template.is_none() {
             return None;
         }
         let mut next = self.clone();
-        if pool_changed {
+        if changed {
             next.pool = Some(Arc::new(Pool::new(
                 state,
                 tip,
                 graph.clone(),
                 self.pool.as_deref(),
             )));
-        }
-        if projection_changed {
-            next.publish_projection(graph, tip);
+            next.publish_projection(graph);
         }
         next.template = template;
         Some(next)
     }
 
     /// Publishes `graph`'s projection, its served blocks remembered for diffs.
-    pub(crate) fn publish_projection(&mut self, graph: Arc<Snapshot>, tip: BlockHash) {
+    pub(crate) fn publish_projection(&mut self, graph: Arc<Snapshot>) {
         let now = Instant::now();
         // The outgoing blocks were served until now: their retention starts here.
         let outgoing = self.projection.served_blocks();
@@ -108,13 +97,6 @@ impl ReadOnlyState {
             self.history.pop_front();
         }
         self.projection = graph;
-        self.projection_tip = Some(tip);
-    }
-
-    /// The chain tip the published projection was built at (the pool's, or a newer one while the
-    /// pool waits for a complete view).
-    pub fn projection_tip(&self) -> Option<BlockHash> {
-        self.projection_tip
     }
 
     /// The chain tip the published pool is anchored to, once one is published.
@@ -141,7 +123,7 @@ impl ReadOnlyState {
         self.pool.as_ref().ok_or_else(|| Error::updating())
     }
 
-    /// The last valid projection; its source may be newer than retained membership.
+    /// The complete publication's projection.
     pub(crate) fn snapshot(&self) -> &Arc<Snapshot> {
         &self.projection
     }

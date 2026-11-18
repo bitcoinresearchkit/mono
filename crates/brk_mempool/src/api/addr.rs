@@ -4,7 +4,9 @@ use std::{
 };
 
 use brk_error::Result;
-use brk_types::{AddressBytes, AddressMempoolStats, Sats, TagHasher, TxOut, Txid, TxidPrefix, Vout};
+use brk_types::{
+    AddressBytes, AddressMempoolStats, Sats, TagHasher, TxOut, Txid, TxidPrefix, Vout,
+};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -65,9 +67,9 @@ impl Spends<'_> {
     /// Identifies the unspent outputs read so far: the address's pending transactions, plus the
     /// spenders found. Once every outpoint was asked, that covers all of them.
     pub fn token(&self) -> u64 {
-        self.met
-            .iter()
-            .fold(self.pending.token, |token, txid| token ^ token_part(SPENDER, txid))
+        self.met.iter().fold(self.pending.token, |token, txid| {
+            token ^ token_part(SPENDER, txid)
+        })
     }
 }
 
@@ -130,7 +132,11 @@ impl SpendFilter {
 impl ReadOnlyState {
     /// The address's pending statistics, as far as known. A transaction's outputs count from its
     /// arrival, and each input once its prevout resolves.
-    pub fn addr_stats(&self, addr: &AddressBytes, view: &PendingView) -> Result<AddressMempoolStats> {
+    pub fn addr_stats(
+        &self,
+        addr: &AddressBytes,
+        view: &PendingView,
+    ) -> Result<AddressMempoolStats> {
         let state = self.pool()?.at(view.tip())?;
         let Some(entry) = state.addrs.get(addr) else {
             return Ok(AddressMempoolStats::default());
@@ -142,7 +148,12 @@ impl ReadOnlyState {
         // Take out what the view hides, walking the smaller of the two sets.
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
         let mut take_out = |record: &TxRecord| {
-            for prevout in record.tx.input.iter().filter_map(|txin| txin.prevout.as_ref()) {
+            for prevout in record
+                .tx
+                .input
+                .iter()
+                .filter_map(|txin| txin.prevout.as_ref())
+            {
                 if pays(prevout) {
                     stats.remove_spend(prevout);
                 }
@@ -227,7 +238,12 @@ impl ReadOnlyState {
 
     /// Whether the pending tx `txid` touches `addr`, as far as that is known (an input still
     /// unresolved touches none yet).
-    pub fn addr_has_tx(&self, addr: &AddressBytes, txid: &Txid, view: &PendingView) -> Result<bool> {
+    pub fn addr_has_tx(
+        &self,
+        addr: &AddressBytes,
+        txid: &Txid,
+        view: &PendingView,
+    ) -> Result<bool> {
         let state = self.pool()?.at(view.tip())?;
         let Some(record) = state.txs.record(txid).filter(|_| view.pending(txid)) else {
             return Ok(false);

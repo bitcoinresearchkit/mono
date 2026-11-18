@@ -93,11 +93,7 @@ impl Snapshot {
 
     /// [`Self::cpfp_info_at`] over the members `keep` accepts alone (what a newer block didn't
     /// settle): the piece of the seed's component left, linearized afresh.
-    fn cpfp_info_within(
-        &self,
-        seed_idx: TxIndex,
-        keep: impl Fn(TxIndex) -> bool,
-    ) -> CpfpInfo {
+    fn cpfp_info_within(&self, seed_idx: TxIndex, keep: impl Fn(TxIndex) -> bool) -> CpfpInfo {
         let seed = &self.txs[seed_idx.as_usize()];
         let mut graph = Cluster::default();
         let members = cluster::load(

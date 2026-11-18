@@ -8,7 +8,6 @@ pub struct RbfNode {
     pub value: Sats,
     pub first_seen: Timestamp,
     pub rate: FeeRate,
-    pub(crate) in_mempool: bool,
     /// Neither pending nor buried: a conflict a block confirmed without the pool seeing it (the
     /// mined replacement of what it replaced). Its txid, what it replaced and when that was seen
     /// (`first_seen`) are known here; its own facts (fee, size, value, rate, signaling) are the

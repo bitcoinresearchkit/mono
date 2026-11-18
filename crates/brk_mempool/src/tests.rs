@@ -14,47 +14,40 @@ use smallvec::SmallVec;
 use crate::{
     MempoolBlockSource, ReadOnlyState, State,
     snapshot::Rebuilder,
-    state::{Ancestry, Block},
     snapshot::{
         SnapTx, Snapshot, TxIndex,
         builder::{ChunkCache, KeyIndex},
         cluster,
         partition::{Chunks, partition},
     },
-    steps::{Confirmed, applier, preparer, prevouts},
     state::TxEntry,
-    stores::{TxGraveyard, TxStore, Upkeep, tx_store::TxRecord},
+    state::{Ancestry, Block},
     steps::TxRemoval,
+    steps::{Confirmed, applier, preparer, prevouts},
+    stores::{TxGraveyard, TxStore, Upkeep, tx_store::TxRecord},
 };
 
 /// Random pools (chains, fans, sigop-heavy transactions), the last transaction a chunk no block
-/// can hold unless the pool fits, packed after a block 0 that took an ancestor-closed prefix: each
-/// member once, after its parents, every block but the last within Core's budgets, the oversized
+/// can hold unless the pool fits: each member once, after its parents, every block but the last within Core's budgets, the oversized
 /// chunk in the last, which then holds more than a block, and packing ends whatever is left (a
 /// remainder of the oversized chunk alone included).
 #[test]
 fn projected_blocks_follow_dependencies_and_budgets() {
-    for (n, taken, fits) in [
-        (30_000, 2_000, false),
-        (60, 10, false),
-        (60, 10, true),
-        (1, 0, false),
-    ] {
+    for (n, fits) in [(30_000, false), (60, false), (60, true), (1, false)] {
         let mut txs = pool(n);
         if fits {
             let last = &mut txs[n - 1];
             last.weight = Weight::from(1_000u64);
             last.vsize = VSize::from(last.weight);
         }
-        let excluded: Vec<bool> = (0..n).map(|i| i < taken).collect();
-        let projection = partition(&txs, &chunks(&txs), &excluded, 7, &mut ChunkCache::default());
+        let projection = partition(&txs, &chunks(&txs), 7, &mut ChunkCache::default());
         let blocks = &projection.blocks;
         assert!(blocks.len() <= 7);
         assert_eq!(
             projection.overflow, !fits,
             "the last block holds more than a block"
         );
-        let mut placed = excluded.clone();
+        let mut placed = vec![false; n];
         for (b, block) in blocks.iter().enumerate() {
             let (mut weight, mut sigops) = (Weight::default(), SigOps::ZERO);
             for &(m, _) in block {
@@ -137,7 +130,6 @@ fn cpfp_answers_match_a_fresh_linearization() {
         KeyIndex::default(),
         chunks(&txs),
         FeeRate::default(),
-        None,
     );
     for i in 0..txs.len() {
         let seed = TxIndex::from(i);
@@ -186,10 +178,9 @@ fn chunks(txs: &[SnapTx]) -> Chunks {
 /// removed), knows no other block's hash, and forgets copies history evicted.
 #[test]
 fn served_blocks_publish_and_diff() {
-    let tip = BlockHash::default();
     let (a, b, c, d, e) = (body(1), body(2), body(3), body(4), body(5));
     let mut state = ReadOnlyState::default();
-    state.publish_projection(snapshot(&[&[&a], &[&b, &c, &d], &[&e]], 1), tip);
+    state.publish_projection(snapshot(&[&[&a], &[&b, &c, &d], &[&e]], 1));
     let (block0, since) = (served(&state, 0).hash(), served(&state, 1).hash());
     assert!(state.mempool_block_source(2).unwrap().is_none(), "the dump");
     assert!(
@@ -203,7 +194,7 @@ fn served_blocks_publish_and_diff() {
         fee: c.fee + Sats::from(1u64),
         ..(*c).clone()
     });
-    state.publish_projection(snapshot(&[&[&a], &[&b, &c2, &e]], 1), tip);
+    state.publish_projection(snapshot(&[&[&a], &[&b, &c2, &e]], 1));
     assert_eq!(
         served(&state, 0).hash(),
         block0,
@@ -233,9 +224,15 @@ fn served_blocks_publish_and_diff() {
         [&id(&b), &id(&c), &id(&d)],
         "its own bodies, in its order"
     );
-    assert_eq!(*bodies[1], to_value(c.fee).unwrap(), "c's body as it was then");
+    assert_eq!(
+        *bodies[1],
+        to_value(c.fee).unwrap(),
+        "c's body as it was then"
+    );
     assert_ne!(served(&state, 1).hash(), since);
-    let diff = state.resolve_mempool_block_diff(served(&state, 1), since).build();
+    let diff = state
+        .resolve_mempool_block_diff(served(&state, 1), since)
+        .build();
     let diff = to_value(&diff).unwrap();
     let order: Vec<Value> = diff["order"].as_array().unwrap().clone();
     assert_eq!(order[0], serde_json::json!([0, 1]), "b kept");
@@ -250,108 +247,36 @@ fn served_blocks_publish_and_diff() {
         serde_json::json!([txid(&d)]),
         "only d left"
     );
-    // A copy history doesn't hold diffs from nothing: every transaction new, nothing removed.
+    // A copy history doesn't hold diffs from no copy, said by `since` "0": every transaction
+    // new, nothing removed.
     let from_nothing = |state: &ReadOnlyState, index| {
-        let diff = to_value(state.resolve_mempool_block_diff(served(state, index), since).build()).unwrap();
-        diff["order"].as_array().unwrap().iter().all(Value::is_object) && diff["removed"] == serde_json::json!([])
+        let diff = to_value(
+            state
+                .resolve_mempool_block_diff(served(state, index), since)
+                .build(),
+        )
+        .unwrap();
+        diff["order"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(Value::is_object)
+            && diff["removed"] == serde_json::json!([])
+            && diff["since"] == "0"
     };
-    assert!(from_nothing(&state, 0), "block 1's hash is no copy of block 0");
+    assert!(
+        from_nothing(&state, 0),
+        "block 1's hash is no copy of block 0"
+    );
 
     // Past the history's bound (block 0 unchanged, each block 1 another pair of bodies).
     for first in 100..140 {
         for second in 140..170 {
             let block = [&body(first), &body(second)];
-            state.publish_projection(snapshot(&[&[&a], &block], 1), tip);
+            state.publish_projection(snapshot(&[&[&a], &block], 1));
         }
     }
     assert!(from_nothing(&state, 1), "evicted");
-}
-
-/// Through ingestion and `Rebuilder::tick`: no block takes an unloaded parent's child; the same
-/// view, gap included, reuses the snapshot; the gap changing alone rebuilds it, and what it
-/// withholds follows.
-#[test]
-fn rebuilds_follow_the_view_gaps() {
-    let raw = |spends: (bitcoin::Txid, u32), sequence: u32| bitcoin::Transaction {
-        version: bitcoin::transaction::Version::TWO,
-        lock_time: bitcoin::absolute::LockTime::ZERO,
-        input: vec![bitcoin::TxIn {
-            previous_output: bitcoin::OutPoint::new(spends.0, spends.1),
-            script_sig: ScriptBuf::new(),
-            sequence: bitcoin::Sequence(sequence),
-            witness: Witness::new(),
-        }],
-        output: vec![bitcoin::TxOut {
-            value: bitcoin::Amount::from_sat(1_000),
-            script_pubkey: ScriptBuf::new(),
-        }],
-    };
-    let confirmed = |seed: u8| bitcoin::Txid::from_byte_array([seed; 32]);
-    let unloaded_parent = confirmed(95);
-    // p: unrelated; c: child of a listed transaction not loaded yet.
-    let p = raw((confirmed(90), 0), 0);
-    let c = raw((unloaded_parent, 0), 0);
-    let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
-    let mut state = State::default();
-    let info = |tx: &bitcoin::Transaction| MempoolEntryInfo {
-        txid: id(tx),
-        wtxid: tx.compute_wtxid(),
-        vsize: VSize::from(Weight::from(tx.weight())),
-        weight: Weight::from(tx.weight()),
-        fee: Sats::from(1_000u64),
-        first_seen: Timestamp::now(),
-    };
-    let entries = [&p, &c].iter().map(|tx| info(tx)).collect();
-    let bodies = [&p, &c]
-        .iter()
-        .map(|&tx| (id(tx), tx.clone()))
-        .collect();
-    let live = [id(&p), id(&c), Txid::from(unloaded_parent)];
-    let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
-    applier::apply(
-        &mut state,
-        &Snapshot::default(),
-        diff,
-        &Confirmed::default(),
-    );
-
-    let mut rebuilder = Rebuilder::default();
-    let mut unloaded: RapidHashSet<Txid> = [Txid::from(unloaded_parent)].into_iter().collect();
-    let mut tick = |state: &State, unloaded: &RapidHashSet<Txid>| {
-        rebuilder.tick(state, FeeRate::default(), &[], unloaded, unloaded.is_empty());
-        let snapshot = rebuilder.snapshot().clone();
-        let later: RapidHashSet<Txid> = snapshot.served_blocks()
-            .iter()
-            .flat_map(|block| block.content.bodies.iter().map(|tx| tx.txid))
-            .collect();
-        (snapshot, later)
-    };
-    let set = |txids: &[Txid]| txids.iter().copied().collect::<RapidHashSet<Txid>>();
-    let (first, later) = tick(&state, &unloaded);
-    assert_eq!(later, set(&[id(&p)]), "c withheld");
-    let (again, _) = tick(&state, &unloaded);
-    assert!(
-        Arc::ptr_eq(&first, &again),
-        "the same view reuses its snapshot"
-    );
-
-    unloaded.clear();
-    let (loaded, later) = tick(&state, &unloaded);
-    assert!(!Arc::ptr_eq(&again, &loaded), "the unloaded gap changed");
-    assert_eq!(
-        later,
-        set(&[id(&p), id(&c)]),
-        "c follows once its parent isn't missing"
-    );
-
-    // A listed transaction stuck unloaded withholds what follows it, but holds no tiers back,
-    // even when nothing else changed since it was only missing.
-    let stuck = set(&[Txid::from(unloaded_parent)]);
-    let mut rebuilder = Rebuilder::default();
-    for ready in [false, true] {
-        rebuilder.tick(&state, FeeRate::default(), &[], &stuck, ready);
-        assert_eq!(rebuilder.snapshot().ensure_fees().is_ok(), ready);
-    }
 }
 
 /// An address's pending view, through ingestion, prevout fills and a publication: a transaction
@@ -377,7 +302,8 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
             script_pubkey: script.clone(),
         }],
     };
-    let confirmed = |seed: u8| bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([seed; 32]), 0);
+    let confirmed =
+        |seed: u8| bitcoin::OutPoint::new(bitcoin::Txid::from_byte_array([seed; 32]), 0);
     let m = raw(confirmed(80), 1_000);
     let k = raw(bitcoin::OutPoint::new(m.compute_txid(), 0), 600);
     let c = raw(confirmed(81), 700);
@@ -392,21 +318,32 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let txs = [&m, &k, &c, &d, &u, &h, &hc];
     let id = |tx: &bitcoin::Transaction| Txid::from(tx.compute_txid());
     let mut state = State::default();
-    let entries = txs
+    let new: Vec<_> = txs
         .iter()
-        .map(|tx| MempoolEntryInfo {
-            txid: id(tx),
-            wtxid: tx.compute_wtxid(),
-            vsize: VSize::from(Weight::from(tx.weight())),
-            weight: Weight::from(tx.weight()),
-            fee: Sats::from(1_000u64),
-            first_seen: Timestamp::now(),
+        .map(|&tx| {
+            let info = MempoolEntryInfo {
+                txid: id(tx),
+                wtxid: tx.compute_wtxid(),
+                vsize: VSize::from(Weight::from(tx.weight())),
+                weight: Weight::from(tx.weight()),
+                fee: Sats::from(1_000u64),
+                first_seen: Timestamp::now(),
+            };
+            (info, tx.clone())
         })
         .collect();
-    let bodies = txs.iter().map(|&tx| (id(tx), tx.clone())).collect();
-    let live: Vec<Txid> = txs.iter().map(|tx| id(tx)).collect();
-    let diff = preparer::prepare(&live, entries, bodies, &Confirmed::default(), &state);
-    applier::apply(&mut state, &Snapshot::default(), diff, &Confirmed::default());
+    let live = txs
+        .iter()
+        .map(|tx| crate::key::TxKey::from(&id(tx)))
+        .collect();
+    let diff = preparer::prepare(&live, new, &Confirmed::default(), &state);
+    applier::apply(
+        &mut state,
+        &Snapshot::default(),
+        diff,
+        &Confirmed::default(),
+        |txid| live.contains(&crate::key::TxKey::from(txid)),
+    );
     let funding = TxOut::from((script.clone(), Sats::from(5_000u64)));
     let addr = funding.addr_bytes().unwrap();
     prevouts::fill(&mut state, |holes: &[(Txid, Vout)]| {
@@ -415,18 +352,23 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
             .filter(|(txid, _)| *txid != Txid::from(confirmed(83).txid))
             .map(|&hole| (hole, funding.clone()))
             .collect::<RapidHashMap<_, _>>()
-    }, &RapidHashSet::default());
+    });
     let mut rebuilder = Rebuilder::default();
     let tip = BlockHash::default();
     let hash = |seed: u8| BlockHash::from(bitcoin::BlockHash::from_byte_array([seed; 32]));
     // The tip's block mined what h spends, after its coinbase.
     let spent_by_h = Txid::from(confirmed(83).txid);
-    let tip_block = Block { hash: tip, txids: Arc::from([txid(9), spent_by_h]) };
-    state.ancestry.follow(tip, &[Block::unread(hash(4)), tip_block]);
+    let tip_block = Block {
+        hash: tip,
+        txids: Arc::from([txid(9), spent_by_h]),
+    };
+    state
+        .ancestry
+        .follow(tip, &[Block::unread(hash(4)), tip_block]);
     let mut publish = |state: &State, previous: &ReadOnlyState| {
-        rebuilder.tick(state, FeeRate::default(), &[], &RapidHashSet::default(), true);
+        rebuilder.tick(state, FeeRate::default(), &[]);
         previous
-            .updated(state, tip, rebuilder.snapshot().clone(), true, |_| None)
+            .updated(state, tip, rebuilder.snapshot().clone(), |_| None)
             .expect("published")
     };
     let read = publish(&state, &ReadOnlyState::default());
@@ -437,8 +379,13 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     assert_eq!(stats.tx_count, 5);
     assert_eq!(u64::from(stats.funded_txo_sum), 2_800);
     assert_eq!(u64::from(stats.spent_txo_sum), 3 * 5_000 + 1_000 + 700);
-    assert!(!read.addr_has_tx(&addr, &id(&h), &at).unwrap(), "what it spends isn't known yet");
-    let other = TxOut::from((other_script.clone(), Sats::ZERO)).addr_bytes().unwrap();
+    assert!(
+        !read.addr_has_tx(&addr, &id(&h), &at).unwrap(),
+        "what it spends isn't known yet"
+    );
+    let other = TxOut::from((other_script.clone(), Sats::ZERO))
+        .addr_bytes()
+        .unwrap();
     let stats = read.addr_stats(&other, &at).unwrap();
     assert_eq!(stats.tx_count, 2, "h's output, and hc spending it");
     assert_eq!(u64::from(stats.funded_txo_sum), 50 + 25);
@@ -449,7 +396,10 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let to_spend = |outpoint: bitcoin::OutPoint| (Txid::from(outpoint.txid), Vout::from(0usize));
     let reader = BlockHash::from(bitcoin::BlockHash::from_byte_array([2; 32]));
     let spends = || -> brk_error::Result<_> {
-        Ok([(to_spend(confirmed(80)), id(&m)), (to_spend(confirmed(81)), conflict)])
+        Ok([
+            (to_spend(confirmed(80)), id(&m)),
+            (to_spend(confirmed(81)), conflict),
+        ])
     };
     let behind = read.view_behind(reader, 0, spends).unwrap();
     let again = read
@@ -457,11 +407,18 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
             panic!("read once for the moment")
         })
         .unwrap();
-    assert!(Arc::ptr_eq(&again, &behind), "one view for every read of that moment");
+    assert!(
+        Arc::ptr_eq(&again, &behind),
+        "one view for every read of that moment"
+    );
     let stats = read.addr_stats(&addr, &behind).unwrap();
     assert_eq!(stats.tx_count, 2, "k and u");
     assert_eq!(u64::from(stats.funded_txo_sum), 800);
-    assert_eq!(u64::from(stats.spent_txo_sum), 1_000 + 5_000, "m's output, u's input");
+    assert_eq!(
+        u64::from(stats.spent_txo_sum),
+        1_000 + 5_000,
+        "m's output, u's input"
+    );
     let page: RapidHashSet<Txid> = read
         .addr_txs(&addr, None, 10, &behind)
         .unwrap()
@@ -469,24 +426,42 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
         .map(|published| published.tx.txid)
         .collect();
     assert_eq!(page, [id(&k), id(&u)].into_iter().collect());
-    for (tx, pending) in [(&m, false), (&k, true), (&c, false), (&d, false), (&u, true)] {
+    for (tx, pending) in [
+        (&m, false),
+        (&k, true),
+        (&c, false),
+        (&d, false),
+        (&u, true),
+    ] {
         assert_eq!(read.is_pending(&id(tx), &behind).unwrap(), pending);
     }
     let utxos = read.addr_pending_utxos(&addr, usize::MAX, &behind).unwrap();
     assert_eq!(utxos.created.len(), 2, "k's and u's outputs");
     let mut spends = utxos.spends();
     assert!(spends.spent(&id(&m), Vout::from(0usize)));
-    assert_ne!(spends.token(), utxos.token, "the spenders met are part of the token");
+    assert_ne!(
+        spends.token(),
+        utxos.token,
+        "the spenders met are part of the token"
+    );
     assert!(
-        read.view_at(&BlockHash::from(bitcoin::BlockHash::from_byte_array([1; 32])))
-            .is_err(),
+        read.view_at(&BlockHash::from(bitcoin::BlockHash::from_byte_array(
+            [1; 32]
+        )))
+        .is_err(),
         "another tip"
     );
     // Past a reorg that left the pool's tip block: what only it mined (its coinbase aside) and
     // what the pool holds spending from it (h, and hc from h) are in limbo, out of the view.
     let none = || -> brk_error::Result<[((Txid, Vout), Txid); 0]> { Ok([]) };
     let forked = read.view_behind(hash(3), 1, none).unwrap();
-    for (txid, limbo) in [(spent_by_h, true), (id(&h), true), (id(&hc), true), (txid(9), false), (id(&u), false)] {
+    for (txid, limbo) in [
+        (spent_by_h, true),
+        (id(&h), true),
+        (id(&hc), true),
+        (txid(9), false),
+        (id(&u), false),
+    ] {
         assert_eq!(forked.in_limbo(&txid), limbo);
     }
     assert!(!read.is_pending(&id(&hc), &forked).unwrap());
@@ -496,13 +471,19 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let mut ancestry = Ancestry::default();
     ancestry.follow(hash(2), &[1, 2].map(|seed| Block::unread(hash(seed))));
     ancestry.follow(hash(5), &[1, 5].map(|seed| Block::unread(hash(seed))));
-    assert_eq!(ancestry.blocks(), [1, 5].map(|seed| Block::unread(hash(seed))));
+    assert_eq!(
+        ancestry.blocks(),
+        [1, 5].map(|seed| Block::unread(hash(seed)))
+    );
     ancestry.follow(hash(1), &[Block::unread(hash(1))]);
     assert_eq!(ancestry.blocks(), [Block::unread(hash(1))]);
 
     prevouts::fill(&mut state, |holes: &[(Txid, Vout)]| {
-        holes.iter().map(|&hole| (hole, funding.clone())).collect::<RapidHashMap<_, _>>()
-    }, &RapidHashSet::default());
+        holes
+            .iter()
+            .map(|&hole| (hole, funding.clone()))
+            .collect::<RapidHashMap<_, _>>()
+    });
     let read = publish(&state, &read);
     let at = read.view_at(&tip).unwrap();
     let stats = read.addr_stats(&addr, &at).unwrap();
@@ -525,10 +506,10 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     assert!(page(Some(&all[5]), 10).is_empty());
 }
 
-/// The graveyard through random burials (re-burials, chains, replacers buried and back), exhumes,
-/// blocks, late replacers, cycle ends and evictions at random later moments: its invariants hold
-/// after each. As in a cycle, a replacer with a tombstone arrives (exhumed) or is mined, and a
-/// block mines what it spends with.
+/// The graveyard through random burials (re-burials, chains, replacers buried and back, direct
+/// and inherited replacements), exhumes, blocks, tip moves and evictions at random later moments:
+/// its invariants hold after each. As in a cycle, a replacer with a tombstone arrives (exhumed) or
+/// is mined, and a block mines what it spends with.
 #[test]
 fn graveyard_invariants_hold_through_random_histories() {
     use crate::stores::Moment;
@@ -559,15 +540,23 @@ fn graveyard_invariants_hold_through_random_histories() {
         let mut hours = 0u64;
         for _ in 0..4_000 {
             let seed = next(48) as u8;
-            match next(12) {
+            match next(10) {
                 0..=4 => {
                     let removal = match next(3) {
                         0 => TxRemoval::Mined,
                         1 => TxRemoval::Vanished,
-                        _ => TxRemoval::Replaced { by: txid(next(48) as u8) },
+                        _ => TxRemoval::Replaced {
+                            by: txid(next(48) as u8),
+                            direct: next(2) == 0,
+                        },
                     };
-                    graveyard.bury(body(seed, next(40)), FeeRate::default(), removal, &mut upkeep);
-                    if let TxRemoval::Replaced { by } = removal {
+                    graveyard.bury(
+                        body(seed, next(40)),
+                        FeeRate::default(),
+                        removal,
+                        &mut upkeep,
+                    );
+                    if let TxRemoval::Replaced { by, .. } = removal {
                         graveyard.exhume(&by, &mut upkeep);
                     }
                 }
@@ -580,24 +569,21 @@ fn graveyard_invariants_hold_through_random_histories() {
                         .map(|_| txid(next(48) as u8))
                         .chain(spends.iter().map(|(_, by)| *by))
                         .collect::<Vec<_>>();
-                    let disconnected = (0..next(3)).map(|_| txid(next(48) as u8)).collect::<Vec<_>>();
+                    let disconnected = (0..next(3))
+                        .map(|_| txid(next(48) as u8))
+                        .collect::<Vec<_>>();
                     let listed = next(48) as u8;
                     let live = |id: &Txid| *id == txid(listed);
-                    graveyard.confirm(&Confirmed::of(mined, spends, disconnected), live, &mut upkeep);
+                    graveyard.confirm(
+                        &Confirmed::of(mined, spends, disconnected),
+                        live,
+                        &mut upkeep,
+                    );
                 }
                 7 => graveyard.set_confirmed_tip(
                     BlockHash::from(bitcoin::BlockHash::from_byte_array([next(4) as u8; 32])),
                     &mut upkeep,
                 ),
-                8 => {
-                    graveyard.index_vanished(&mut upkeep);
-                    let unloaded = (0..next(3)).map(|_| txid(next(48) as u8)).collect();
-                    graveyard.end_cycle(&unloaded, &mut upkeep);
-                }
-                9 => {
-                    graveyard.exhume(&txid(seed), &mut upkeep);
-                    graveyard.relink(&spending(seed, &[outpoint(next(40))]), &mut upkeep);
-                }
                 _ => {
                     hours += next(30);
                     let listed = next(48) as u8;
@@ -606,7 +592,10 @@ fn graveyard_invariants_hold_through_random_histories() {
                     graveyard.evict_old(at, live, &mut upkeep);
                 }
             }
-            assert!(graveyard.consistent(&upkeep), "graveyard invariants, history {history}");
+            assert!(
+                graveyard.consistent(&upkeep),
+                "graveyard invariants, history {history}"
+            );
         }
     }
 }
@@ -642,10 +631,13 @@ fn copy_on_write_containers_match_their_models() {
             2 => {
                 let position = model.iter().position(|(k, _)| *k == key);
                 let removed = map.swap_remove_full(&key);
-                assert_eq!(removed, position.map(|p| {
-                    let (k, v) = model.swap_remove(p);
-                    (p, k, v)
-                }));
+                assert_eq!(
+                    removed,
+                    position.map(|p| {
+                        let (k, v) = model.swap_remove(p);
+                        (p, k, v)
+                    })
+                );
             }
             _ => {
                 if let Some(value) = map.get_mut(&key) {
@@ -662,7 +654,12 @@ fn copy_on_write_containers_match_their_models() {
         }
         plain.insert(key, step);
         if step == 30_000 {
-            frozen = Some((map.clone(), model.clone(), queue.clone(), queue_model.clone()));
+            frozen = Some((
+                map.clone(),
+                model.clone(),
+                queue.clone(),
+                queue_model.clone(),
+            ));
         }
     }
     let pairs = |map: &CowIndexMap<u64, u64, FxBuildHasher>| -> Vec<(u64, u64)> {
@@ -670,9 +667,20 @@ fn copy_on_write_containers_match_their_models() {
     };
     assert_eq!(pairs(&map), model);
     assert_eq!(map.len(), model.len());
-    assert!(model.iter().enumerate().all(|(i, (k, v))| map.get_index(i) == Some((k, v))));
+    assert!(
+        model
+            .iter()
+            .enumerate()
+            .all(|(i, (k, v))| map.get_index(i) == Some((k, v)))
+    );
     assert!(queue.iter().copied().eq(queue_model.iter().copied()));
-    assert!(queue.iter().rev().copied().eq(queue_model.iter().rev().copied()));
+    assert!(
+        queue
+            .iter()
+            .rev()
+            .copied()
+            .eq(queue_model.iter().rev().copied())
+    );
     assert_eq!(plain.len(), plain.iter().count());
     let (map, model, queue, queue_model) = frozen.unwrap();
     assert_eq!(pairs(&map), model, "a clone keeps what it saw");
@@ -708,10 +716,22 @@ fn graveyard_outlives_a_restart() {
     let (mut graveyard, mut upkeep) = (TxGraveyard::default(), Upkeep::default());
     let mut buried = Vec::new();
     for (seed, removal) in [
-        (1, TxRemoval::Replaced { by: replacer }),
+        (
+            1,
+            TxRemoval::Replaced {
+                by: replacer,
+                direct: true,
+            },
+        ),
         (2, TxRemoval::Mined),
         (3, TxRemoval::Vanished),
-        (4, TxRemoval::Replaced { by: head.txid }),
+        (
+            4,
+            TxRemoval::Replaced {
+                by: head.txid,
+                direct: true,
+            },
+        ),
     ] {
         let (tx, raw) = body(seed);
         let info = MempoolEntryInfo {
@@ -723,10 +743,21 @@ fn graveyard_outlives_a_restart() {
             first_seen: Timestamp::from(1_700_000_000usize + usize::from(seed)),
         };
         buried.push(tx.txid);
-        let record = TxRecord::new(Arc::new(tx), TxEntry::new(&info, raw.total_size() as u64, true));
-        graveyard.bury(record, FeeRate::from_milli(1_234 * u64::from(seed)), removal, &mut upkeep);
+        let record = TxRecord::new(
+            Arc::new(tx),
+            TxEntry::new(&info, raw.total_size() as u64, true),
+        );
+        graveyard.bury(
+            record,
+            FeeRate::from_milli(1_234 * u64::from(seed)),
+            removal,
+            &mut upkeep,
+        );
     }
-    graveyard.set_confirmed_tip(BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])), &mut upkeep);
+    graveyard.set_confirmed_tip(
+        BlockHash::from(bitcoin::BlockHash::from_byte_array([5; 32])),
+        &mut upkeep,
+    );
     let head_info = MempoolEntryInfo {
         txid: head.txid,
         wtxid: head_raw.compute_wtxid(),
@@ -747,28 +778,56 @@ fn graveyard_outlives_a_restart() {
     assert!(pool.is_empty(), "a periodic save carries no pool");
     for txid in &buried {
         let (original, back) = (graveyard.get(txid).unwrap(), loaded.get(txid).unwrap());
-        assert_eq!(format!("{:?}", back.removal), format!("{:?}", original.removal));
+        assert_eq!(
+            format!("{:?}", back.removal),
+            format!("{:?}", original.removal)
+        );
         assert_eq!(back.chunk_rate, original.chunk_rate);
-        assert_eq!(back.record.entry.first_seen, original.record.entry.first_seen);
+        assert_eq!(
+            back.record.entry.first_seen,
+            original.record.entry.first_seen
+        );
         assert_eq!(back.record.entry.wtxid, original.record.entry.wtxid);
         assert!(back.record.entry.rbf);
-        assert_eq!(back.record.digest, original.record.digest, "the same body, prevouts too");
-        assert_eq!(back.removed_at, original.removed_at, "buried when it was, however long ago");
-        assert!(back.removed_at <= loaded.confirmed_at().unwrap(), "buried before it was told");
+        assert_eq!(
+            back.record.digest, original.record.digest,
+            "the same body, prevouts too"
+        );
+        assert_eq!(
+            back.removed_at, original.removed_at,
+            "buried when it was, however long ago"
+        );
+        assert!(
+            back.removed_at <= loaded.confirmed_at().unwrap(),
+            "buried before it was told"
+        );
     }
-    assert!(loaded.consistent(&Upkeep::of(&loaded)), "its bookkeeping rebuilt");
+    assert!(
+        loaded.consistent(&Upkeep::of(&loaded)),
+        "its bookkeeping rebuilt"
+    );
     assert_eq!(
-        loaded.predecessors_of(&replacer).map(|(txid, _)| *txid).collect::<Vec<_>>(),
+        loaded
+            .predecessors_of(&replacer)
+            .map(|(txid, _)| *txid)
+            .collect::<Vec<_>>(),
         [buried[0]],
         "the replacement's link"
     );
-    assert_eq!(loaded.confirmed_tip(), graveyard.confirmed_tip(), "the tip its blocks were told");
+    assert_eq!(
+        loaded.confirmed_tip(),
+        graveyard.confirmed_tip(),
+        "the tip its blocks were told"
+    );
     let restored_head = loaded.get(&head.entry.txid).expect("the pending head");
     assert!(matches!(restored_head.removal, TxRemoval::Vanished));
     assert_eq!(restored_head.chunk_rate, head_rate);
     assert_eq!(restored_head.record.entry.first_seen, head.entry.first_seen);
     assert_eq!(
-        loaded.predecessors_of(&head.entry.txid).map(|(txid, _)| *txid).collect::<Vec<_>>(),
+        loaded
+            .predecessors_of(&head.entry.txid)
+            .map(|(txid, _)| *txid)
+            .collect::<Vec<_>>(),
         [buried[3]]
     );
     assert_eq!(file.saved_revision(), Some(graveyard.revision()));
@@ -786,8 +845,13 @@ fn graveyard_outlives_a_restart() {
     assert!(state.graveyard.get(&head.entry.txid).is_none(), "exhumed");
     assert_eq!(state.info.count, 1);
     // No periodic save goes over the shutdown's, even of a later publication.
-    file.save(&graveyard, pending, None, taken + std::time::Duration::from_secs(1))
-        .unwrap();
+    file.save(
+        &graveyard,
+        pending,
+        None,
+        taken + std::time::Duration::from_secs(1),
+    )
+    .unwrap();
     assert_eq!(file.load().1.len(), 1, "the shutdown's pool kept");
     // Corrupt: set aside, an empty graveyard instead.
     std::fs::write(file.path(), b"not a graveyard").unwrap();
@@ -831,8 +895,18 @@ fn address_transactions_keep_page_order() {
         assert_eq!(entry.txs.len(), model.len());
         assert!(entry.txs.iter().copied().eq(model.iter().copied()));
         if let Some(cursor) = model.get(model.len() / 2) {
-            let before: Vec<AddrTx> = entry.txs.newest_before(Some(cursor)).unwrap().copied().collect();
-            let expected: Vec<AddrTx> = model.iter().filter(|t| *t < cursor).rev().copied().collect();
+            let before: Vec<AddrTx> = entry
+                .txs
+                .newest_before(Some(cursor))
+                .unwrap()
+                .copied()
+                .collect();
+            let expected: Vec<AddrTx> = model
+                .iter()
+                .filter(|t| *t < cursor)
+                .rev()
+                .copied()
+                .collect();
             assert_eq!(before, expected);
         }
     }
@@ -847,7 +921,11 @@ fn snapshot(blocks: &[&[&Arc<Transaction>]], later: usize) -> Arc<Snapshot> {
     snapshot_after(blocks, later, &Snapshot::default())
 }
 
-fn snapshot_after(blocks: &[&[&Arc<Transaction>]], later: usize, previous: &Snapshot) -> Arc<Snapshot> {
+fn snapshot_after(
+    blocks: &[&[&Arc<Transaction>]],
+    later: usize,
+    previous: &Snapshot,
+) -> Arc<Snapshot> {
     let mut txs: Vec<SnapTx> = Vec::new();
     let indexed: Vec<Vec<(TxIndex, FeeRate)>> = blocks
         .iter()
@@ -879,7 +957,6 @@ fn snapshot_after(blocks: &[&[&Arc<Transaction>]], later: usize, previous: &Snap
         KeyIndex::default(),
         Chunks::default(),
         FeeRate::default(),
-        None,
     );
     let bodies = blocks[..=later]
         .iter()
@@ -933,68 +1010,116 @@ fn body(seed: u8) -> Arc<Transaction> {
     })
 }
 
-
 /// Encoding follows complete content at the same index; history retains bodies alone.
 #[test]
 fn served_json_carries_only_complete_content_and_retires() {
     let (a, b) = (body(1), body(2));
-    let tip = BlockHash::default();
     let mut state = ReadOnlyState::default();
     let first = snapshot(&[&[&a, &b]], 0);
-    state.publish_projection(first.clone(), tip);
+    state.publish_projection(first.clone());
     let source = served(&state, 0);
     let bytes = source.json();
     let retired = Arc::downgrade(&bytes);
     let next = snapshot_after(&[&[&a, &b]], 0, &first);
-    assert!(Arc::ptr_eq(next.served_blocks()[0].json.get().unwrap(), &bytes));
-    state.publish_projection(next.clone(), tip);
+    assert!(Arc::ptr_eq(
+        next.served_blocks()[0].json.get().unwrap(),
+        &bytes
+    ));
+    state.publish_projection(next.clone());
     assert!(Arc::ptr_eq(&served(&state, 0).json(), &bytes));
     let held = state.clone();
-    state.publish_projection(snapshot_after(&[&[&b, &a]], 0, &next), tip);
+    state.publish_projection(snapshot_after(&[&[&b, &a]], 0, &next));
     drop((source, first, next, bytes));
-    assert!(retired.upgrade().is_some(), "an old reader still owns its snapshot");
+    assert!(
+        retired.upgrade().is_some(),
+        "an old reader still owns its snapshot"
+    );
     drop(held);
-    assert!(retired.upgrade().is_none(), "history never owns an encoding");
+    assert!(
+        retired.upgrade().is_none(),
+        "history never owns an encoding"
+    );
 
     let cold = snapshot(&[&[&a]], 0);
     let successor = snapshot_after(&[&[&a]], 0, &cold);
     assert!(successor.served_blocks()[0].json.get().is_none());
-    state.publish_projection(cold.clone(), tip);
+    state.publish_projection(cold.clone());
     let late = served(&state, 0).json();
-    assert!(successor.served_blocks()[0].json.get().is_none(), "late encode may miss carry");
-    state.publish_projection(successor, tip);
+    assert!(
+        successor.served_blocks()[0].json.get().is_none(),
+        "late encode may miss carry"
+    );
+    state.publish_projection(successor);
     assert_eq!(served(&state, 0).json().as_ref(), late.as_ref());
 
     let old = snapshot(&[&[&a, &b], &[&a, &b]], 1);
-    state.publish_projection(old.clone(), tip);
+    state.publish_projection(old.clone());
     let old_bytes = served(&state, 0).json();
     for changed in [
-        Arc::new(Transaction { total_sigop_cost: SigOps::new(2), ..(*a).clone() }),
-        Arc::new(Transaction { input: vec![TxIn {
-            txid: b.txid, vout: Vout::from(0u32), prevout: None,
-            script_sig: ScriptBuf::new(), witness: Witness::from_slice(&[&[1u8][..]]),
-            is_coinbase: false, sequence: u32::MAX,
-        }], ..(*a).clone() }),
-        Arc::new(Transaction { input: vec![TxIn {
-            txid: b.txid, vout: Vout::from(0u32),
-            prevout: Some(TxOut::from((ScriptBuf::new(), Sats::from(100u64)))),
-            script_sig: ScriptBuf::new(), witness: Witness::new(),
-            is_coinbase: false, sequence: u32::MAX,
-        }], ..(*a).clone() }),
+        Arc::new(Transaction {
+            total_sigop_cost: SigOps::new(2),
+            ..(*a).clone()
+        }),
+        Arc::new(Transaction {
+            input: vec![TxIn {
+                txid: b.txid,
+                vout: Vout::from(0u32),
+                prevout: None,
+                script_sig: ScriptBuf::new(),
+                witness: Witness::from_slice(&[&[1u8][..]]),
+                is_coinbase: false,
+                sequence: u32::MAX,
+            }],
+            ..(*a).clone()
+        }),
+        Arc::new(Transaction {
+            input: vec![TxIn {
+                txid: b.txid,
+                vout: Vout::from(0u32),
+                prevout: Some(TxOut::from((ScriptBuf::new(), Sats::from(100u64)))),
+                script_sig: ScriptBuf::new(),
+                witness: Witness::new(),
+                is_coinbase: false,
+                sequence: u32::MAX,
+            }],
+            ..(*a).clone()
+        }),
     ] {
         let new = snapshot_after(&[&[&changed, &b]], 0, &old);
-        assert_ne!(new.served_blocks()[0].content.hash, old.served_blocks()[0].content.hash);
-        assert!(new.served_blocks()[0].json.get().is_none(), "same txid is insufficient");
+        assert_ne!(
+            new.served_blocks()[0].content.hash,
+            old.served_blocks()[0].content.hash
+        );
+        assert!(
+            new.served_blocks()[0].json.get().is_none(),
+            "same txid is insufficient"
+        );
     }
     let reordered = snapshot_after(&[&[&b, &a]], 0, &old);
     assert!(reordered.served_blocks()[0].json.get().is_none());
     let mut stats = snapshot(&[&[&a, &b]], 0);
     let stats = Arc::get_mut(&mut stats).unwrap();
     stats.block_stats[0].total_fee += Sats::from(1u64);
-    stats.set_served(vec![(vec![a.clone(), b.clone()], vec![TxRecord::digest_of(&a), TxRecord::digest_of(&b)])], 0, old.served_blocks());
-    assert!(stats.served_blocks()[0].json.get().is_none(), "stats participate in identity");
-    assert_ne!(old.served_blocks()[0].content.hash, old.served_blocks()[1].content.hash);
-    assert!(old.served_blocks()[1].json.get().is_none(), "no carry from another index");
+    stats.set_served(
+        vec![(
+            vec![a.clone(), b.clone()],
+            vec![TxRecord::digest_of(&a), TxRecord::digest_of(&b)],
+        )],
+        0,
+        old.served_blocks(),
+    );
+    assert!(
+        stats.served_blocks()[0].json.get().is_none(),
+        "stats participate in identity"
+    );
+    assert_ne!(
+        old.served_blocks()[0].content.hash,
+        old.served_blocks()[1].content.hash
+    );
+    assert!(
+        old.served_blocks()[1].json.get().is_none(),
+        "no carry from another index"
+    );
     assert!(!old_bytes.is_empty());
 }
 
@@ -1003,27 +1128,43 @@ fn served_json_carries_only_complete_content_and_retires() {
 #[test]
 fn block_diff_reconstructs_current_bodies() {
     let (a, b, c) = (body(1), body(2), body(3));
-    let changed = Arc::new(Transaction { fee: Sats::from(7u64), ..(*b).clone() });
+    let changed = Arc::new(Transaction {
+        fee: Sats::from(7u64),
+        ..(*b).clone()
+    });
     let light = |tx: &Arc<Transaction>| to_value(MempoolTxSummary::from(&**tx)).unwrap();
     let cases: Vec<Vec<Arc<Transaction>>> = vec![
-        vec![], vec![a.clone()], vec![a.clone(), b.clone(), c.clone()],
-        vec![c.clone(), a.clone(), b.clone()], vec![a.clone(), changed],
-        vec![c.clone()], vec![b.clone(), c.clone(), body(4)],
+        vec![],
+        vec![a.clone()],
+        vec![a.clone(), b.clone(), c.clone()],
+        vec![c.clone(), a.clone(), b.clone()],
+        vec![a.clone(), changed],
+        vec![c.clone()],
+        vec![b.clone(), c.clone(), body(4)],
     ];
     for prior in &cases {
         let prior_refs: Vec<_> = prior.iter().collect();
         for current in &cases {
             let current_refs: Vec<_> = current.iter().collect();
             let mut state = ReadOnlyState::default();
-            state.publish_projection(snapshot(&[&prior_refs], 0), BlockHash::default());
+            state.publish_projection(snapshot(&[&prior_refs], 0));
             let since = served(&state, 0).hash();
-            state.publish_projection(snapshot(&[&current_refs], 0), BlockHash::default());
+            state.publish_projection(snapshot(&[&current_refs], 0));
             let source = served(&state, 0);
-            let bytes = serde_json::to_vec(&state.resolve_mempool_block_diff(source.clone(), since).build()).unwrap();
+            let bytes = serde_json::to_vec(
+                &state
+                    .resolve_mempool_block_diff(source.clone(), since)
+                    .build(),
+            )
+            .unwrap();
             let diff: Value = serde_json::from_slice(&bytes).unwrap();
             let mut rebuilt = Vec::new();
             // Equal hashes deduplicate history to its latest body array.
-            let base = if since == source.hash() { current } else { prior };
+            let base = if since == source.hash() {
+                current
+            } else {
+                prior
+            };
             for entry in diff["order"].as_array().unwrap() {
                 if let Some(run) = entry.as_array() {
                     let from = run[0].as_u64().unwrap() as usize;
@@ -1036,17 +1177,26 @@ fn block_diff_reconstructs_current_bodies() {
             assert_eq!(rebuilt, current.iter().map(light).collect::<Vec<_>>());
             let full: Value = serde_json::from_slice(&source.json()).unwrap();
             assert_eq!(diff["stats"], full["stats"]);
-            let expected_removed: Vec<_> = base.iter()
+            let expected_removed: Vec<_> = base
+                .iter()
                 .filter(|old| !current.iter().any(|tx| tx.txid == old.txid))
-                .map(|tx| to_value(tx.txid).unwrap()).collect();
+                .map(|tx| to_value(tx.txid).unwrap())
+                .collect();
             assert_eq!(diff["removed"], to_value(expected_removed).unwrap());
             if since == source.hash() {
                 // Resolve the old source against a separately built equal body array in history:
                 // same bytes through the general algorithm instead of the pointer shortcut.
-                state.publish_projection(snapshot(&[&current_refs], 0), BlockHash::default());
+                state.publish_projection(snapshot(&[&current_refs], 0));
                 let general = state.resolve_mempool_block_diff(source, since).build();
                 assert_eq!(bytes, serde_json::to_vec(&general).unwrap());
-                assert_eq!(diff["order"], if current.is_empty() { serde_json::json!([]) } else { serde_json::json!([[0, current.len()]]) });
+                assert_eq!(
+                    diff["order"],
+                    if current.is_empty() {
+                        serde_json::json!([])
+                    } else {
+                        serde_json::json!([[0, current.len()]])
+                    }
+                );
             }
         }
     }
@@ -1070,23 +1220,44 @@ fn ranked_projection_preserves_paid_fees() {
         state.insert(tx, TxEntry::new(&info, 100, false));
     }
     let mut rebuilder = Rebuilder::default();
-    let unloaded = RapidHashSet::default();
     let mut previous = None;
-    for fees in [vec![(txid(1), 3_150_000_000_000_000), (txid(2), 4_200_000_000_000_000)],
-        vec![(txid(1), i64::MAX), (txid(2), i64::MIN)], Vec::new()] {
-        rebuilder.tick(&state, FeeRate::ZERO, &fees, &unloaded, true);
+    for fees in [
+        vec![
+            (txid(1), 3_150_000_000_000_000),
+            (txid(2), 4_200_000_000_000_000),
+        ],
+        vec![(txid(1), i64::MAX), (txid(2), i64::MIN)],
+        Vec::new(),
+    ] {
+        rebuilder.tick(&state, FeeRate::ZERO, &fees);
         let snap = rebuilder.snapshot().clone();
-        if let Some(previous) = previous { assert!(!Arc::ptr_eq(&snap, &previous)); }
+        if let Some(previous) = previous {
+            assert!(!Arc::ptr_eq(&snap, &previous));
+        }
         let (ranked, _, _) = Snapshot::build_txs(&state.txs, &fees, &mut ChunkCache::default());
         let paid: u64 = ranked.iter().map(|tx| u64::from(tx.fee)).sum();
         assert_eq!(paid, 3_000);
         for tx in &ranked {
-            let expected = fees.iter().find(|(id, _)| *id == tx.txid).map_or(u64::from(tx.fee) as i64, |&(_, f)| f);
+            let expected = fees
+                .iter()
+                .find(|(id, _)| *id == tx.txid)
+                .map_or(u64::from(tx.fee) as i64, |&(_, f)| f);
             assert_eq!(tx.modified, expected);
         }
-        let first = snap.served_blocks()[0].content.bodies.first().map(|tx| tx.txid);
-        assert_eq!(first, Some(if fees.get(1).is_some_and(|&(_, fee)| fee == i64::MIN) { txid(1) } else { txid(2) }));
-        rebuilder.tick(&state, FeeRate::ZERO, &fees, &unloaded, true);
+        let first = snap.served_blocks()[0]
+            .content
+            .bodies
+            .first()
+            .map(|tx| tx.txid);
+        assert_eq!(
+            first,
+            Some(if fees.get(1).is_some_and(|&(_, fee)| fee == i64::MIN) {
+                txid(1)
+            } else {
+                txid(2)
+            })
+        );
+        rebuilder.tick(&state, FeeRate::ZERO, &fees);
         assert!(Arc::ptr_eq(rebuilder.snapshot(), &snap));
         previous = Some(snap);
     }
@@ -1110,33 +1281,61 @@ fn successive_blocks_match_fresh_surviving_pools() {
                 _ => i as i64 * 1_000_000,
             };
         }
-        // Prefix exclusion represents GBT; no exclusion represents its local fallback.
-        let mut consumed: Vec<bool> = (0..txs.len()).map(|i| i < round % 4).collect();
+        let mut consumed = vec![false; txs.len()];
         let slots = if round % 2 == 0 { 8 } else { 7 };
-        let projected = partition(&txs, &chunks(&txs), &consumed, slots, &mut ChunkCache::default());
+        let projected = partition(&txs, &chunks(&txs), slots, &mut ChunkCache::default());
         assert!(projected.blocks.len() <= slots);
         for (block_index, block) in projected.blocks.iter().enumerate() {
             let survivors: Vec<usize> = (0..txs.len()).filter(|&i| !consumed[i]).collect();
             let mut remap = vec![usize::MAX; txs.len()];
-            for (local, &old) in survivors.iter().enumerate() { remap[old] = local; }
-            let fresh: Vec<SnapTx> = survivors.iter().map(|&old| {
-                let mut tx = txs[old].clone();
-                tx.parents = tx.parents.iter().filter(|p| !consumed[p.as_usize()]).map(|p| TxIndex::from(remap[p.as_usize()])).collect();
-                tx.children = tx.children.iter().filter(|c| !consumed[c.as_usize()]).map(|c| TxIndex::from(remap[c.as_usize()])).collect();
-                tx
-            }).collect();
-            let reference = partition(&fresh, &chunks(&fresh), &vec![false; fresh.len()], slots - block_index, &mut ChunkCache::default());
-            let expected: Vec<(Txid, FeeRate)> = reference.blocks[0].iter().map(|&(m, r)| (fresh[m.as_usize()].txid, r)).collect();
-            let actual: Vec<(Txid, FeeRate)> = block.iter().map(|&(m, r)| (txs[m.as_usize()].txid, r)).collect();
+            for (local, &old) in survivors.iter().enumerate() {
+                remap[old] = local;
+            }
+            let fresh: Vec<SnapTx> = survivors
+                .iter()
+                .map(|&old| {
+                    let mut tx = txs[old].clone();
+                    tx.parents = tx
+                        .parents
+                        .iter()
+                        .filter(|p| !consumed[p.as_usize()])
+                        .map(|p| TxIndex::from(remap[p.as_usize()]))
+                        .collect();
+                    tx.children = tx
+                        .children
+                        .iter()
+                        .filter(|c| !consumed[c.as_usize()])
+                        .map(|c| TxIndex::from(remap[c.as_usize()]))
+                        .collect();
+                    tx
+                })
+                .collect();
+            let reference = partition(
+                &fresh,
+                &chunks(&fresh),
+                slots - block_index,
+                &mut ChunkCache::default(),
+            );
+            let expected: Vec<(Txid, FeeRate)> = reference.blocks[0]
+                .iter()
+                .map(|&(m, r)| (fresh[m.as_usize()].txid, r))
+                .collect();
+            let actual: Vec<(Txid, FeeRate)> = block
+                .iter()
+                .map(|&(m, r)| (txs[m.as_usize()].txid, r))
+                .collect();
             assert_eq!(actual, expected, "round {round}, block {block_index}");
-            for &(member, _) in block { assert!(!consumed[member.as_usize()]); consumed[member.as_usize()] = true; }
+            for &(member, _) in block {
+                assert!(!consumed[member.as_usize()]);
+                consumed[member.as_usize()] = true;
+            }
         }
         assert!(consumed.into_iter().all(|c| c));
     }
 }
 
 #[test]
-fn residual_siblings_split_after_local_and_gbt_boundaries() {
+fn residual_siblings_split_after_block_boundary() {
     let mut txs = pool(23);
     for (i, tx) in txs.iter_mut().enumerate() {
         let (weight, fee) = match i {
@@ -1158,16 +1357,18 @@ fn residual_siblings_split_after_local_and_gbt_boundaries() {
     txs[1].parents.push(TxIndex::from(0));
     txs[2].parents.push(TxIndex::from(0));
     let linearized = chunks(&txs);
-    let local = partition(&txs, &linearized, &vec![false; txs.len()], 8, &mut ChunkCache::default());
-    let position = |projection: &crate::snapshot::partition::Projection, member| projection.blocks.iter().position(|b| b.iter().any(|&(m, _)| m == TxIndex::from(member))).unwrap();
+    let local = partition(&txs, &linearized, 8, &mut ChunkCache::default());
+    let position = |projection: &crate::snapshot::partition::Projection, member| {
+        projection
+            .blocks
+            .iter()
+            .position(|b| b.iter().any(|&(m, _)| m == TxIndex::from(member)))
+            .unwrap()
+    };
     // tx 1 misses block 0's last 800 WU; its sibling tx 2, independent of it, still fills them.
     assert_eq!(position(&local, 0), 0);
     assert_eq!(position(&local, 2), 0);
     assert_eq!(position(&local, 1), 2);
-    let mut excluded = vec![false; txs.len()];
-    for &(m, _) in &local.blocks[0] { excluded[m.as_usize()] = true; }
-    let gbt = partition(&txs, &linearized, &excluded, 7, &mut ChunkCache::default());
-    assert_eq!(gbt.blocks, local.blocks[1..]);
 }
 
 /// Exact capacity boundaries are strict; the mining floor is inclusive and independent of the
@@ -1175,17 +1376,24 @@ fn residual_siblings_split_after_local_and_gbt_boundaries() {
 #[test]
 fn projection_keeps_strict_resources_and_signed_floor() {
     for (weight, sigops, fee, mineable) in [
-        (3_991_999, 0, 1_000_000, true), (3_992_000, 0, 1_000_000, false),
-        (400, 79_599, 1_000_000, true), (400, 79_600, 1_000_000, false),
-        (4_000, 0, 1, true), (4_004, 0, 1, false),
-        (400, 0, 0, false), (400, 0, -1, false),
+        (3_991_999, 0, 1_000_000, true),
+        (3_992_000, 0, 1_000_000, false),
+        (400, 79_599, 1_000_000, true),
+        (400, 79_600, 1_000_000, false),
+        (4_000, 0, 1, true),
+        (4_004, 0, 1, false),
+        (400, 0, 0, false),
+        (400, 0, -1, false),
     ] {
         let mut txs = pool(1);
         txs[0].weight = Weight::from(weight as u64);
         txs[0].sigops = SigOps::new(sigops);
         txs[0].modified = fee;
-        let projection = partition(&txs, &chunks(&txs), &[false], 8, &mut ChunkCache::default());
+        let projection = partition(&txs, &chunks(&txs), 8, &mut ChunkCache::default());
         assert_eq!(projection.blocks.len(), 1);
-        assert_eq!(projection.overflow, !mineable, "weight {weight}, sigops {sigops}, fee {fee}");
+        assert_eq!(
+            projection.overflow, !mineable,
+            "weight {weight}, sigops {sigops}, fee {fee}"
+        );
     }
 }

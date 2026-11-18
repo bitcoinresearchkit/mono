@@ -38,8 +38,8 @@ pub(crate) struct Pool {
     /// The recently added transactions as JSON and its hash, built by the first request (a
     /// publication with the same contents shares it too).
     pub recent_json: OnceLock<JsonBody>,
-    /// The recent replacement trees (all, then full-RBF only), walked by the first request.
-    pub recent_trees: [OnceLock<Vec<RbfNode>>; 2],
+    /// The recent replacement trees (all, then full-RBF only), shared by graveyard revision.
+    pub recent_trees: Arc<[OnceLock<Vec<RbfNode>>; 2]>,
     /// The recent listings as served, with the reader tip whose chain enriched them: the last
     /// one built, shared by every read of that moment.
     pub replacements_json: [Mutex<Option<(BlockHash, JsonBody)>>; 2],
@@ -84,11 +84,11 @@ impl Pool {
                 || Arc::new(state.outpoint_spends.clone()),
                 |pool| pool.outpoint_spends.clone(),
             );
-        let graveyard = previous
+        let (graveyard, recent_trees) = previous
             .filter(|pool| pool.graveyard.revision() == state.graveyard.revision())
             .map_or_else(
-                || Arc::new(state.graveyard.clone()),
-                |pool| pool.graveyard.clone(),
+                || (Arc::new(state.graveyard.clone()), Arc::default()),
+                |pool| (pool.graveyard.clone(), pool.recent_trees.clone()),
             );
         // The writer's ancestry when it has applied this tip's blocks, else just the tip.
         let ancestry = if state.ancestry.tip() == Some(&tip) {
@@ -108,7 +108,7 @@ impl Pool {
             info_json,
             txids_json,
             recent_json,
-            recent_trees: Default::default(),
+            recent_trees,
             replacements_json: Default::default(),
             published_at: Instant::now(),
             published_time: Timestamp::now(),
@@ -163,8 +163,6 @@ impl Pool {
             graveyard: self.graveyard.as_ref().clone(),
             upkeep: Upkeep::of(&self.graveyard),
             ancestry: self.ancestry.clone(),
-            // A panic may have abandoned a newer private witness: verify the restored records.
-            unverified: self.txs.records().map(|(_, record)| record.entry.txid).collect(),
         }
     }
 }

@@ -9,42 +9,41 @@
 
 use brk_rpc::Client;
 use brk_types::{Transaction, TxOut, Txid, Vin, Vout};
-use rapidhash::{RapidHashMap, RapidHashSet};
+use rapidhash::RapidHashMap;
 
-use crate::{
-    key::TxKey,
-    state::State,
-    stores::tx_store::TxRecord,
-};
+use crate::{key::TxKey, state::State, stores::tx_store::TxRecord};
 
 /// Fill every unfilled prevout of the pool the cycle can resolve. Same-cycle parents (pooled or
-/// retained) are filled directly. The remainder go through `resolver` in one batched call, but
-/// those whose parent is listed and not loaded yet (`unloaded`): the node's UTXO set can't have
-/// them, they fill once it loads.
-pub fn fill<F>(state: &mut State, resolver: F, unloaded: &RapidHashSet<Txid>)
+/// retained) are filled directly. The remainder go through `resolver` in one batched call.
+pub fn fill<F>(state: &mut State, resolver: F)
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
     let unresolved = state.txs.unresolved().iter().map(|key| {
-        let record = state.txs.record_by_key(key).expect("unresolved tx is pooled");
+        let record = state
+            .txs
+            .record_by_key(key)
+            .expect("unresolved tx is pooled");
         (*key, record)
     });
     let parent = |txid: &Txid| {
-        state
-            .txs
-            .get(txid)
-            .or_else(|| {
-                state
-                    .graveyard
-                    .get_unreplaced(txid)
-                    .map(|tomb| tomb.record.tx.as_ref())
-            })
+        state.txs.get(txid).or_else(|| {
+            state
+                .graveyard
+                .get_unreplaced(txid)
+                .map(|tomb| tomb.record.tx.as_ref())
+        })
     };
-    let (in_mempool, holes) = gather(unresolved, parent, unloaded);
+    let (in_mempool, holes) = gather(unresolved, parent);
     let external = resolve_external(holes, resolver);
     for (key, fills) in in_mempool.into_iter().chain(external) {
-        let record = state.txs.record_by_key(&key).expect("unresolved tx is pooled");
-        state.addrs.resolve(record, fills.iter().map(|(_, prevout)| prevout));
+        let record = state
+            .txs
+            .record_by_key(&key)
+            .expect("unresolved tx is pooled");
+        state
+            .addrs
+            .resolve(record, fills.iter().map(|(_, prevout)| prevout));
         state.txs.apply_fills(&key, fills);
     }
 }
@@ -64,12 +63,11 @@ pub fn rpc_resolver(
 
 /// Single pass over the `unresolved` records: bucket each hole into a same-cycle fill (`parent`
 /// holds it: pooled, template-only, or a retained vanished one) or an external hole (parent is
-/// confirmed or unknown); a hole whose parent is `unloaded` waits. Retained parents let the
+/// confirmed or unknown). Retained parents let the
 /// children of a just-mined parent resolve before the chain publishes its block.
 fn gather<'a, 'p>(
     unresolved: impl Iterator<Item = (TxKey, &'a TxRecord)>,
     parent: impl Fn(&Txid) -> Option<&'p Transaction>,
-    unloaded: &RapidHashSet<Txid>,
 ) -> (
     Vec<(TxKey, Vec<(Vin, TxOut)>)>,
     Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
@@ -88,7 +86,7 @@ fn gather<'a, 'p>(
                 parent(&txin.txid).and_then(|parent| parent.output.get(usize::from(txin.vout)))
             {
                 tx_fills.push((vin, out.clone()));
-            } else if !unloaded.contains(&txin.txid) {
+            } else {
                 tx_holes.push((vin, txin.txid, txin.vout));
             }
         }

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use brk_types::{FeeRate, PreciseRecommendedFees, RecommendedFees};
 
 use super::block_stats::BlockStats;
@@ -26,27 +24,15 @@ const FULL_BLOCK_VSIZE: u64 = 950_000;
 /// The recommended tiers and the blocks they stand on.
 #[derive(Default)]
 pub(crate) struct FeeView {
-    /// The view's own blocks when it is complete. An incomplete view holds back part of the pool,
-    /// so its blocks would quote too low: the last complete view's stand in for them.
-    pub stats: Arc<[BlockStats]>,
     pub whole: RecommendedFees,
     pub precise: PreciseRecommendedFees,
-    /// Whether a complete view stands behind the tiers. False only before the first one.
-    pub complete: bool,
 }
 
 impl FeeView {
-    /// `held`: an incomplete view's predecessor.
-    pub fn new(blocks: &[BlockStats], held: Option<&FeeView>, min_fee: FeeRate) -> Self {
-        let (stats, complete): (Arc<[BlockStats]>, bool) = match held {
-            None => (blocks.into(), true),
-            Some(previous) => (previous.stats.clone(), previous.complete),
-        };
+    pub fn new(blocks: &[BlockStats], min_fee: FeeRate) -> Self {
         Self {
-            whole: whole(&stats, min_fee),
-            precise: precise(&stats, min_fee),
-            stats,
-            complete,
+            whole: whole(blocks, min_fee),
+            precise: precise(blocks, min_fee),
         }
     }
 }

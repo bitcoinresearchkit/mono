@@ -41,7 +41,14 @@ impl ChunkCache {
         members.clear();
         members.extend(component.iter().map(|&m| {
             let t = &txs[m.as_usize()];
-            ((TxKey::from(&t.txid), t.sigops.adjust_weight(t.weight), t.modified), m)
+            (
+                (
+                    TxKey::from(&t.txid),
+                    t.sigops.adjust_weight(t.weight),
+                    t.modified,
+                ),
+                m,
+            )
         }));
         members.sort_unstable_by_key(|&(id, _)| id);
         let id: Box<[MemberId]> = members.iter().map(|&(id, _)| id).collect();
@@ -94,9 +101,10 @@ impl Snapshot {
                 .map(|i| modified_fees[i].1)
         };
         let mut snap_txs = Vec::with_capacity(n);
-        snap_txs.extend(txs.records().map(|(_, record)| {
-            Self::live_tx(record, modified_of(&record.entry.txid))
-        }));
+        snap_txs.extend(
+            txs.records()
+                .map(|(_, record)| Self::live_tx(record, modified_of(&record.entry.txid))),
+        );
         // Parents from the bodies' inputs, as the pool stands now (a parent can leave or
         // return after its child arrived), each checked by its full txid.
         for (i, (_, record)) in txs.records().enumerate() {
@@ -119,7 +127,8 @@ impl Snapshot {
 
     fn live_tx(record: &TxRecord, modified: Option<i64>) -> SnapTx {
         let e = &record.entry;
-        let modified = modified.unwrap_or_else(|| i64::try_from(u64::from(e.fee)).expect("bounded base fee"));
+        let modified =
+            modified.unwrap_or_else(|| i64::try_from(u64::from(e.fee)).expect("bounded base fee"));
         SnapTx {
             txid: e.txid,
             fee: e.fee,
@@ -169,7 +178,8 @@ impl Snapshot {
             for &m in &component {
                 visited[m.as_usize()] = true;
             }
-            let linearized = cache.linearized(snap_txs, &component, &mut members, &mut graph, &mut kept);
+            let linearized =
+                cache.linearized(snap_txs, &component, &mut members, &mut graph, &mut kept);
             for positions in linearized.chunks() {
                 let txs = positions.iter().map(|&p| members[p as usize].1);
                 // Ordered by modified fees, shown by what the chunk pays.

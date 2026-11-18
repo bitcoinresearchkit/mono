@@ -67,18 +67,14 @@ impl TxStore {
         self.bump_revisions(true);
     }
 
-    /// Keeps the latest arrivals by first-seen time (a poll fetches in no particular order); among
-    /// equal times, the later fetched first. A witness variant taking a record's place replaces
-    /// its sample.
+    /// Keeps the latest arrivals by first-seen time. New arrivals precede earlier samples at
+    /// equal times.
     fn sample_recent(&mut self, entry: &TxEntry, tx: &Transaction) {
         let recent = &mut self.read_only.recent;
         recent.retain(|(_, sample)| sample.txid != entry.txid);
         let at = recent.partition_point(|(seen, _)| *seen > entry.first_seen);
         if at < RECENT_CAP {
-            recent.insert(
-                at,
-                (entry.first_seen, MempoolTxSummary::from(tx)),
-            );
+            recent.insert(at, (entry.first_seen, MempoolTxSummary::from(tx)));
             recent.truncate(RECENT_CAP);
         }
     }
@@ -103,11 +99,7 @@ impl TxStore {
     /// `total_sigop_cost` (P2SH and witness components depend on prevouts). `entry.vsize` is
     /// Core's value from `MempoolEntryInfo` and is not recomputed here - the sigops shift
     /// belongs to the `Transaction`, not the entry.
-    pub fn apply_fills(
-        &mut self,
-        key: &TxKey,
-        fills: Vec<(Vin, TxOut)>,
-    ) {
+    pub fn apply_fills(&mut self, key: &TxKey, fills: Vec<(Vin, TxOut)>) {
         let record = self
             .read_only
             .records

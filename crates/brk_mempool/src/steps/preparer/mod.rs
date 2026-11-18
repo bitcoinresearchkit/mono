@@ -1,14 +1,12 @@
-//! Turn `Fetched` raws into a typed diff for the Applier. Pure CPU,
+//! Turn fetched pairs into a typed diff for the Applier. Pure CPU,
 //! borrows the private `State` for the cycle. Each new entry with a
 //! fetched body becomes a [`TxAddition`], its prevouts resolved from the
 //! pool as it stood before this cycle; the rest are filled after apply. A tx
 //! back from the graveyard keeps its first sighting; the Applier exhumes its
 //! tomb.
 //!
-//! Existing entries are not re-classified - they keep their first-sight
-//! state on the live store (a witness variant takes over a record, its
-//! sighting kept). Removals are inferred by cross-referencing
-//! inputs against the full `live_txids` set from the cycle's pull.
+//! Still-live entries keep their first sighting. Departures are classified from
+//! confirmed conflicts and the inputs of newly admitted transactions.
 
 use bitcoin::Transaction as BitcoinTransaction;
 use brk_types::{MempoolEntryInfo, Transaction, Txid, Vout};
@@ -27,39 +25,18 @@ pub use tx_addition::TxAddition;
 pub use tx_removal::TxRemoval;
 
 pub fn prepare(
-    live_txids: &[Txid],
-    new_entries: Vec<MempoolEntryInfo>,
-    mut new_txs: RapidHashMap<Txid, BitcoinTransaction>,
+    live: &FxHashSet<TxKey>,
+    new: impl IntoIterator<Item = (MempoolEntryInfo, BitcoinTransaction)>,
     confirmed: &Confirmed,
     state: &State,
 ) -> PoolDiff {
-    let live: FxHashSet<TxKey> = live_txids.iter().map(TxKey::from).collect();
-    let added: Vec<TxAddition> = new_entries
-        .iter()
-        .filter_map(|info| {
-            let tx = new_txs.remove(&info.txid)?;
-            // The entry and the body are separate calls: a witness variant replacing the one
-            // the entry describes in between leaves them unpaired (another weight). It stays
-            // unloaded until a poll fetches both of one variant.
-            (tx.compute_wtxid() == info.wtxid)
-                .then(|| TxAddition::new(info, tx, &state.txs, &state.graveyard))
-        })
+    let added: Vec<_> = new
+        .into_iter()
+        .map(|(info, tx)| TxAddition::new(&info, tx, &state.txs, &state.graveyard))
         .collect();
-    let mut removed = classify_removals(&live, &added, confirmed, state);
-    // A pooled txid fetched again is a witness variant (one a restored record's check found): its
-    // record leaves for the new body, which takes its place (and first sighting) in the same apply.
-    removed.extend(
-        added
-            .iter()
-            .map(|addition| addition.entry.key())
-            .filter(|key| live.contains(key) && state.txs.record_by_key(key).is_some())
-            .map(|key| (key, TxRemoval::Vanished)),
-    );
-
     PoolDiff {
-        listed: live,
+        removed: classify_removals(live, &added, confirmed, state),
         added,
-        removed,
     }
 }
 
@@ -71,12 +48,25 @@ fn classify_removals(
     state: &State,
 ) -> Vec<(TxKey, TxRemoval)> {
     let spent_by = build_spent_by(added);
-    state
+    let mut removed: Vec<_> = state
         .txs
         .records()
         .filter(|(key, _)| !live.contains(key))
         .map(|(key, record)| (*key, removal_reason(&record.tx, &spent_by, confirmed)))
-        .collect()
+        .collect();
+    TxRemoval::inherit(&mut removed, |key| {
+        state
+            .txs
+            .record_by_key(&key)
+            .into_iter()
+            .flat_map(move |record| {
+                state
+                    .outpoint_spends
+                    .children(&state.txs, key, &record.tx)
+                    .map(|(key, _)| key)
+            })
+    });
+    removed
 }
 
 /// Mined when a new block confirmed it. Replaced when a conflicting tx arrives this cycle or was
@@ -94,12 +84,12 @@ fn removal_reason(
         .conflicts(&tx.txid, tx.input.iter().map(|i| (&i.txid, i.vout)))
         .next()
     {
-        return TxRemoval::Replaced { by };
+        return TxRemoval::replaced(by);
     }
     tx.input
         .iter()
         .find_map(|i| spent_by.get(&(i.txid, i.vout)).copied())
-        .map_or(TxRemoval::Vanished, |by| TxRemoval::Replaced { by })
+        .map_or(TxRemoval::Vanished, TxRemoval::replaced)
 }
 
 /// The outpoints this cycle's arrivals spend, revived txs included (one can

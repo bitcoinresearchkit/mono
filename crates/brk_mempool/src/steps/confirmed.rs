@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use brk_types::{BlockHash, Txid, Vout};
 use rapidhash::{RapidHashMap, RapidHashSet};
-use tracing::{debug, warn};
+use tracing::warn;
 
 use crate::state::Block;
 
@@ -27,9 +27,8 @@ pub struct Confirmed {
     /// last, each with what it mined. Empty when the tip didn't move, on the first cycle, or when a
     /// walk stopped short.
     path: Vec<Block>,
-    /// A new block, or one a reorg took off the chain, couldn't be read: the next cycle reads the
-    /// blocks again, from the same last tip.
-    pub incomplete: bool,
+    /// Why the walk stopped early, so the driver can retry from the last tip.
+    pub error: Option<Error>,
 }
 
 impl Confirmed {
@@ -37,7 +36,7 @@ impl Confirmed {
     /// cycle didn't see. None on the first cycle (`since` unknown) or when `tip` is `since`. A
     /// reorg having taken `since` off the chain, its branch back to the fork is read first (what
     /// it mined, `disconnected`), and the new blocks back to that fork. A failed read reads them
-    /// all again next cycle, from the same last tip (`incomplete`).
+    /// all again next cycle, from the same last tip (`error`).
     pub fn since(client: &Client, tip: BlockHash, since: Option<BlockHash>) -> Self {
         let mut confirmed = Self::default();
         let Some(since) = since else {
@@ -47,8 +46,7 @@ impl Confirmed {
             return confirmed;
         }
         let failed = |mut confirmed: Self, error: Error| {
-            debug!(%error, "mempool: reading the blocks since the last cycle failed");
-            confirmed.incomplete = true;
+            confirmed.error = Some(error);
             confirmed
         };
         // Each walk stops at what it looks for, or past `MAX_BLOCKS` (a deeper reorg, a longer
@@ -124,11 +122,6 @@ impl Confirmed {
         self.disconnected.iter()
     }
 
-    /// The confirmed transaction spending `outpoint`.
-    pub fn spender(&self, outpoint: &(Txid, Vout)) -> Option<Txid> {
-        self.spends.get(outpoint).copied()
-    }
-
     /// Blocks that mined `txids`, spent `spends` (each outpoint with its spender) and took
     /// `disconnected` off the chain.
     #[cfg(test)]
@@ -142,7 +135,7 @@ impl Confirmed {
             spends: spends.into_iter().collect(),
             disconnected: disconnected.into_iter().collect(),
             path: Vec::new(),
-            incomplete: false,
+            error: None,
         }
     }
 

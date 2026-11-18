@@ -10,7 +10,9 @@ use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use arc_swap::ArcSwap;
 use brk_rpc::Client;
+use brk_types::{MempoolEntryInfo, Txid};
 use rapidhash::RapidHashMap;
+use rustc_hash::FxHashMap;
 
 mod api;
 mod chain_waker;
@@ -78,18 +80,21 @@ pub struct Mempool {
     rebuilder: Rebuilder,
     read_only: ReadOnlyMempool,
     needs_recovery: bool,
+    unread_cycles: u8,
+    /// Completed pairs held until a coherent listing can apply them.
+    fetched: RapidHashMap<Txid, (MempoolEntryInfo, bitcoin::Transaction)>,
+    /// The last deciding cycle's listed transactions without a matching entry and body, each
+    /// with whether it was logged as missed twice in a row.
+    missed: FxHashMap<Txid, bool>,
+    /// Whether that cycle held its publication back for them.
+    held_back: bool,
     chain: ChainWaker,
-    /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
-    /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
-    withheld: Option<(brk_types::BlockHash, bool)>,
+    /// The last complete observation, withheld until the chain publishes its tip.
+    withheld: Option<brk_types::BlockHash>,
     /// Debug builds' check of each published template against Core, once driven
     /// ([`Self::start_with`]).
     #[cfg(debug_assertions)]
     checker: Option<template::Checker>,
-    /// Cycles in a row whose new blocks couldn't all be read.
-    unread_cycles: u32,
-    /// Listed transactions asked for that didn't load, with how many cycles in a row.
-    failing: RapidHashMap<brk_types::Txid, u32>,
     /// Where the graveyard is kept, and when a save was last tried.
     graveyard_file: Option<(Arc<GraveyardFile>, Instant)>,
     /// The graveyard read back at start: what a recovery before the first publication restores
@@ -107,12 +112,14 @@ impl Mempool {
                 current: Arc::new(ArcSwap::from_pointee(ReadOnlyState::default())),
             },
             needs_recovery: false,
+            unread_cycles: 0,
+            fetched: RapidHashMap::default(),
+            missed: FxHashMap::default(),
+            held_back: false,
             chain: ChainWaker::default(),
             withheld: None,
             #[cfg(debug_assertions)]
             checker: None,
-            unread_cycles: 0,
-            failing: RapidHashMap::default(),
             graveyard_file: None,
             loaded_graveyard: TxGraveyard::default(),
         }
@@ -121,7 +128,7 @@ impl Mempool {
     /// Keeps the graveyard (RBF trees, removal reasons, first sightings) at `path` across
     /// restarts: read back now, the last publication's saved every few minutes while it
     /// changes. Save it at shutdown with the returned handle, which saves the pool with it: a
-    /// restart then starts from that pool, publishing after one cycle.
+    /// restart then reuses the saved bodies for txids Core still lists.
     pub fn keep_graveyard(&mut self, path: PathBuf) -> GraveyardSaver {
         let file = GraveyardFile::new(path);
         let (graveyard, pool) = file.load();

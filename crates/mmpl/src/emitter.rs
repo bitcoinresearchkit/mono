@@ -90,7 +90,7 @@ impl Emitter {
             }
             for txid in self.prev_txids.difference(now) {
                 let reason = match state.removal(txid, &tip)? {
-                    Some(TxRemoval::Replaced { by }) => LeaveReason::Replaced { by },
+                    Some(TxRemoval::Replaced { by, .. }) => LeaveReason::Replaced { by },
                     Some(TxRemoval::Mined) => LeaveReason::Mined,
                     Some(TxRemoval::Vanished) | None => LeaveReason::Vanished,
                 };
@@ -103,13 +103,10 @@ impl Emitter {
             }
         }
 
-        // The projection and the pool on one clock: one at another tip waits for the pool.
-        let current = state.projection_tip() == Some(tip);
         let mempool_block_hash = state
             .mempool_block_source(0)
             .ok()
             .flatten()
-            .filter(|_| current)
             .map(|block| block.hash());
         if let Some(hash) = mempool_block_hash
             && self.prev_mempool_block_hash != Some(hash)
@@ -123,7 +120,7 @@ impl Emitter {
                 fee: block.total_fee,
             });
         }
-        let fees = state.precise_fees().ok().filter(|_| current);
+        let fees = state.precise_fees().ok();
         if let Some(fees) = &fees
             && self.prev_fees.as_ref() != Some(fees)
         {

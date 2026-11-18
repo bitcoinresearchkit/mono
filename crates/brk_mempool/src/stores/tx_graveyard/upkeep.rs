@@ -1,12 +1,12 @@
 //! What only the writer keeps about the graveyard: when each tombstone is due ([`Retention`]), and
-//! which vanished ones may still turn out replaced ([`Linker`]). Publications never copy it.
+//! which pending heads a restart must settle. Publications never copy it.
 
 use std::{collections::BTreeMap, time::Duration};
 
 use brk_types::Txid;
 use rustc_hash::FxHashMap;
 
-use super::{Linker, Moment, TxGraveyard, TxTombstone};
+use super::{Moment, TxGraveyard, TxTombstone};
 
 /// How long a lone tombstone stays.
 const RETENTION: Duration = Duration::from_hours(1);
@@ -17,7 +17,7 @@ const TREE_RETENTION: Duration = Duration::from_hours(24);
 /// The writer's bookkeeping for one graveyard. Every change to the graveyard takes it.
 #[derive(Default)]
 pub struct Upkeep {
-    pub(super) linker: Linker,
+    pub(super) unconfirmed: Vec<(Txid, Moment)>,
     pub(super) retention: Retention,
 }
 
@@ -43,15 +43,9 @@ impl Upkeep {
             }
         }
         Self {
-            linker: Linker::after_restore(graveyard.vanished_since_confirmed()),
+            unconfirmed: graveyard.vanished_since_confirmed(),
             retention,
         }
-    }
-
-    /// For a recovery from a panic: keeps what `previous` awaited a late replacer for
-    /// ([`Linker::keep_awaited`]).
-    pub fn keep_awaited(&mut self, previous: Self) {
-        self.linker.keep_awaited(previous.linker);
     }
 }
 
@@ -106,7 +100,9 @@ impl Retention {
             Kind::Lone => &self.lone,
             Kind::Root => &self.roots,
         };
-        queue.first_key_value().map(|((due, _), txid)| (*due, *txid))
+        queue
+            .first_key_value()
+            .map(|((due, _), txid)| (*due, *txid))
     }
 
     pub fn count(&self, kind: Kind) -> usize {

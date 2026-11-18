@@ -5,8 +5,8 @@ use std::sync::Arc;
 use brk_error::Result;
 
 use brk_types::{
-    MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, MempoolTxSummary,
-    RetainedRun, Transaction, Txid,
+    MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash,
+    MempoolTxSummary, RetainedRun, Transaction, Txid,
 };
 use rapidhash::RapidHashMap;
 use serde::{Serialize, Serializer};
@@ -88,16 +88,18 @@ impl ReadOnlyState {
 
     /// Capture the past side of one diff request against `source`, a block of this
     /// publication. A `since` history doesn't hold (aged out, minted by another server or before a
-    /// restart) diffs from an empty block: every transaction new, a valid diff from any copy.
+    /// restart) diffs from no copy, answered with `since` [`MempoolBlockHash::ZERO`]: every
+    /// transaction new and none removed, so the client replaces its copy rather than patch it.
     #[must_use]
     pub fn resolve_mempool_block_diff(
         &self,
         source: MempoolBlockSource,
         since: MempoolBlockHash,
     ) -> ResolvedMempoolBlockDiff {
-        let past = self
-            .historical_block(source.index, since)
-            .unwrap_or_else(|| Arc::from([]));
+        let (since, past) = match self.historical_block(source.index, since) {
+            Some(past) => (since, past),
+            None => (MempoolBlockHash::ZERO, Arc::from([])),
+        };
         ResolvedMempoolBlockDiff {
             since,
             past,
@@ -120,7 +122,10 @@ impl ResolvedMempoolBlockDiff {
         let mut entries: Vec<MempoolBlockDiffEntry<usize>> = Vec::new();
         let removed = if Arc::ptr_eq(&past, &bodies) {
             if !bodies.is_empty() {
-                entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(0, bodies.len() as u32)));
+                entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(
+                    0,
+                    bodies.len() as u32,
+                )));
             }
             Vec::new()
         } else {
@@ -144,8 +149,7 @@ impl ResolvedMempoolBlockDiff {
                     _ => entries.push(MempoolBlockDiffEntry::New(position)),
                 }
             }
-            past
-                .iter()
+            past.iter()
                 .filter(|tx| prior_index.contains_key(&tx.txid))
                 .map(|tx| tx.txid)
                 .collect()

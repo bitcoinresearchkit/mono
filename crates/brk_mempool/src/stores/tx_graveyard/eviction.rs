@@ -39,17 +39,17 @@ impl TxGraveyard {
                 }
             }
         }
-        let listed = self
-            .predecessors_by_replacer
-            .iter()
-            .try_fold(0, |listed, (by, predecessors)| {
-                predecessors
-                    .iter()
-                    .all(|txid| {
-                        self.tombstones.get(txid).and_then(TxTombstone::replaced_by) == Some(by)
-                    })
-                    .then_some(listed + predecessors.len())
-            });
+        let listed =
+            self.predecessors_by_replacer
+                .iter()
+                .try_fold(0, |listed, (by, predecessors)| {
+                    predecessors
+                        .iter()
+                        .all(|txid| {
+                            self.tombstones.get(txid).and_then(TxTombstone::replaced_by) == Some(by)
+                        })
+                        .then_some(listed + predecessors.len())
+                });
         let retention = &upkeep.retention;
         let expected: RapidHashSet<&Txid> = self
             .tombstones

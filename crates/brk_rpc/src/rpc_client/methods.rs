@@ -31,9 +31,8 @@ const NO_ARGS: [(); 0] = [];
 /// Per-batch request count for `get_block_hashes_range`,
 /// `fetch_new_pool_data`, and `get_tx_outs`. Sized so the JSON
 /// request body stays well under a megabyte and bitcoind doesn't spend
-/// too long on a single batch before yielding results. For the mixed
-/// `getmempoolentry`+`getrawtransaction` batch this is the *txid* count:
-/// one request per `entries_only` txid, two per `full` one.
+/// too long on a single batch before yielding results. Mixed mempool batches send
+/// two requests per txid.
 const BATCH_CHUNK: usize = 2000;
 
 impl Client {
@@ -259,67 +258,64 @@ impl Client {
         })
     }
 
-    /// `getmempoolentry` for every txid of `entries_only` and `full`, plus `getrawtransaction`
-    /// for those of `full`, in mixed batches. Returns the entries and the raw-tx map keyed by
-    /// txid. Per-item -5 (NOT_FOUND — tx evicted between the listing and this call) drops
-    /// silently for either leg; transport-level failures still propagate. Chunked at
-    /// `BATCH_CHUNK` txids per round-trip.
+    /// Fetch the entries and bodies of `txids` with paired `getmempoolentry` and
+    /// `getrawtransaction` calls. Delivers matching pairs as each batch arrives. The caller
+    /// can retry missing pairs after item errors or a failed round trip.
     pub fn fetch_new_pool_data(
         &self,
-        entries_only: &[Txid],
-        full: &[Txid],
-    ) -> Result<(Vec<MempoolEntryInfo>, RapidHashMap<Txid, Transaction>)> {
-        let requests: Vec<(Txid, bool)> = entries_only
-            .iter()
-            .map(|txid| (*txid, false))
-            .chain(full.iter().map(|txid| (*txid, true)))
-            .collect();
-        let mut entries: Vec<MempoolEntryInfo> = Vec::with_capacity(requests.len());
-        let mut txs: RapidHashMap<Txid, Transaction> =
-            RapidHashMap::with_capacity_and_hasher(full.len(), Default::default());
-
-        for chunk in requests.chunks(BATCH_CHUNK) {
+        txids: &[Txid],
+        mut paired: impl FnMut(MempoolEntryInfo, Transaction),
+    ) -> Result<()> {
+        for chunk in txids.chunks(BATCH_CHUNK) {
             let mut calls = Vec::with_capacity(chunk.len() * 2);
-            for (txid, body) in chunk {
+            for txid in chunk {
                 let txid: &BitcoinTxid = txid.into();
                 let txid = txid.to_string();
                 calls.push(RpcCall::new("getmempoolentry", &(&txid,))?);
-                if *body {
-                    calls.push(RpcCall::new("getrawtransaction", &(&txid, false))?);
-                }
+                calls.push(RpcCall::new("getrawtransaction", &(&txid, false))?);
             }
 
             // The batch answers every request, a missing response as an item error.
             let mut results = self.0.call_mixed_batch(&calls)?.into_iter();
-            for (txid, body) in chunk {
-                let entry_res = results.next().expect("one result per call");
-                match entry_res.and_then(|raw| {
-                    let entry: MempoolEntry = from_str(raw.get())?;
-                    Ok(entry.into_info(*txid))
-                }) {
-                    Ok(info) => entries.push(info),
-                    Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == RPC_NOT_FOUND => {}
-                    Err(e) => {
-                        debug!(txid = %txid, error = %e, "getmempoolentry mixed batch: item failed")
+            for txid in chunk {
+                let entry = results
+                    .next()
+                    .expect("one result per call")
+                    .and_then(|raw| {
+                        let entry: MempoolEntry = from_str(raw.get())?;
+                        Ok(entry.into_info(*txid))
+                    });
+                let entry = Self::pool_item(entry, "getmempoolentry", txid);
+                let tx = results
+                    .next()
+                    .expect("one result per call")
+                    .and_then(|raw| Self::decode_raw_tx(&raw));
+                let tx = Self::pool_item(tx, "getrawtransaction", txid);
+                // A witness change between the two calls invalidates the pair.
+                match (entry, tx) {
+                    (Some(entry), Some(tx)) if tx.compute_wtxid() == entry.wtxid => {
+                        paired(entry, tx)
                     }
-                }
-                if !body {
-                    continue;
-                }
-                let raw_res = results.next().expect("one result per call");
-                match raw_res.and_then(|raw| Self::decode_raw_tx(&raw)) {
-                    Ok(tx) => {
-                        txs.insert(*txid, tx);
+                    (Some(_), Some(_)) => {
+                        debug!(%txid, "mempool RPC pair's witness changed between its calls")
                     }
-                    Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == RPC_NOT_FOUND => {}
-                    Err(e) => {
-                        debug!(txid = %txid, error = %e, "getrawtransaction mixed batch: item failed")
-                    }
+                    _ => {}
                 }
             }
         }
 
-        Ok((entries, txs))
+        Ok(())
+    }
+
+    fn pool_item<T>(result: Result<T>, method: &str, txid: &Txid) -> Option<T> {
+        match result {
+            Ok(value) => Some(value),
+            Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == RPC_NOT_FOUND => None,
+            Err(error) => {
+                debug!(method, %txid, %error, "mempool RPC batch item failed");
+                None
+            }
+        }
     }
 
     /// Whether `hash` is on the node's best chain: false off it or unknown.

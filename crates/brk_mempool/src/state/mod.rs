@@ -7,8 +7,8 @@ pub mod tx_entry;
 
 use std::sync::Arc;
 
-use brk_types::{MempoolInfo, Transaction, Txid};
 pub(crate) use ancestry::{Ancestry, Block};
+use brk_types::{MempoolInfo, Transaction, Txid};
 pub(crate) use pool::{BehindSlot, Pool};
 pub use read_only::ReadOnlyState;
 pub use tx_entry::TxEntry;
@@ -30,8 +30,6 @@ pub struct State {
     pub upkeep: Upkeep,
     /// The graveyard's confirmed tip and its newest ancestors.
     pub ancestry: Ancestry,
-    /// Records restored from a shutdown save or publication, not yet checked against Core.
-    pub unverified: Vec<Txid>,
 }
 
 impl State {
@@ -45,9 +43,7 @@ impl State {
             ..Self::default()
         };
         for TxRecord { tx, entry, .. } in pool {
-            let txid = entry.txid;
             state.insert(tx, entry);
-            state.unverified.push(txid);
         }
         state
     }
@@ -75,10 +71,6 @@ impl State {
         self.outpoint_spends.remove_spends(&record.tx, *key);
         debug_assert_eq!(self.info.count, self.txs.len());
         record
-    }
-
-    pub fn contains_all(&self, live_txids: &[Txid]) -> bool {
-        self.txs.len() == live_txids.len() && live_txids.iter().all(|txid| self.txs.contains(txid))
     }
 
     /// BIP125: a transaction signals replaceability through an unconfirmed ancestor that does
@@ -129,10 +121,12 @@ impl State {
                 continue;
             };
             let tx = &record.tx;
-            if tx.input.iter().any(|input| {
-                input.sequence < 0xffff_fffe
-                    || self.txs.entry(&input.txid).is_some_and(|parent| parent.rbf)
-            }) {
+            if signals_rbf(tx)
+                || tx
+                    .input
+                    .iter()
+                    .any(|input| self.txs.entry(&input.txid).is_some_and(|parent| parent.rbf))
+            {
                 continue;
             }
             let children = self.pooled_children(tx);
@@ -144,9 +138,16 @@ impl State {
     /// The pooled transactions spending `tx`'s outputs, each once.
     pub fn pooled_children(&self, tx: &Transaction) -> Vec<Txid> {
         self.outpoint_spends
-            .children(&self.txs, tx)
-            .into_iter()
-            .map(|child| child.entry.txid)
+            .children(&self.txs, TxKey::from(&tx.txid), tx)
+            .map(|(_, child)| child.entry.txid)
             .collect()
     }
+}
+
+/// Whether `tx` signals replaceability by its own inputs (BIP125): an entry's `rbf` also counts
+/// an unconfirmed parent's.
+pub(crate) fn signals_rbf(tx: &Transaction) -> bool {
+    tx.input
+        .iter()
+        .any(|input| bitcoin::Sequence(input.sequence).is_rbf())
 }

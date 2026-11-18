@@ -32,7 +32,11 @@ impl BlockStats {
             .iter()
             .enumerate()
             .map(|(i, block)| {
-                let percentiles = if i == 0 { NEXT_BLOCK_PERCENTILES } else { PROJECTED_PERCENTILES };
+                let percentiles = if i == 0 {
+                    NEXT_BLOCK_PERCENTILES
+                } else {
+                    PROJECTED_PERCENTILES
+                };
                 Self::compute(block.iter().rev().copied(), txs, percentiles)
             })
             .collect()

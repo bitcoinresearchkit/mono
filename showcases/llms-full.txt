@@ -519,7 +519,7 @@ Returns: JSON `MempoolBlockContent`
 
 Projected mempool block changes
 
-The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict what they cached for them. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) gets the whole block as new transactions and an empty `removed`: rebuild from `order` alone, and prune what was cached per transaction to the txids in the new `order`.
+The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there, replacing what was known of its txid. Walk `order` once to rebuild, replace the cached `stats` with the response's, and evict what was cached for the txids in `removed`. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) is answered from no copy, with `since` `"0"`: every entry is new and `removed` is empty, so replace the copy and drop what was cached for txids not in `order`.
 
 Parameters:
 - `index` (path, MempoolBlockIndex, required)
@@ -1723,7 +1723,7 @@ Returns: JSON `ServerVersion`
 ### `MempoolBlockDiff`
 
 - `hash`: `MempoolBlockHash` (required) — The block's current hash. Use as `since` on the next diff call.
-- `since`: `MempoolBlockHash` (required) — Echoed prior hash the diff was computed against.
+- `since`: `MempoolBlockHash` (required) — The prior hash the diff was computed against: the `since` asked for, or `"0"` when the server doesn't hold that copy (then `order` replaces it).
 - `stats`: `MempoolBlock` (required) — Stats of the new block; they can change while every transaction is retained.
 - `order`: `MempoolBlockDiffEntry[]` (required) — The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a transaction in its light shape.
 - `removed`: `Txid[]` (required) — Txids that left the projected block since `since` (confirmed, evicted, replaced, or moved to another block).

@@ -9,26 +9,21 @@ use std::{
 };
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, MempoolEntryInfo, TxOut, Txid, Vout};
-use rapidhash::{RapidHashMap, RapidHashSet};
+use brk_rpc::MempoolObservation;
+use brk_types::{BlockHash, TxOut, Txid, Vout};
+use rapidhash::RapidHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::{error, info, warn};
 
 use crate::{
     Mempool, State, TipFacts,
-    steps::{
-        Confirmed, Fetched, applier,
-        fetcher::{self, MAX_TX_FETCHES_PER_CYCLE},
-        preparer, prevouts,
-    },
+    key::TxKey,
+    steps::{Confirmed, applier, preparer, prevouts},
 };
 
 const PERIOD: Duration = Duration::from_millis(1000);
-/// Cycles in a row a block that won't read is tried again before it's let go.
-const MAX_UNREAD_CYCLES: u32 = 10;
-/// Cycles in a row a listed transaction asked for may fail to load before the pool publishes
-/// without it (an item error past "not found", a body never pairing with its entry): one stuck
-/// transaction never holds every publication back.
-const STUCK_AFTER: u32 = 3;
+/// Bound the cycles waiting for a block Core cannot return.
+const MAX_UNREAD_CYCLES: u8 = 10;
 /// How often a changed graveyard is saved (`Mempool::keep_graveyard`): a crash loses at most this
 /// much of it.
 const SAVE_EVERY: Duration = Duration::from_secs(300);
@@ -61,13 +56,12 @@ impl Mempool {
             let loaded = self.read_only.load().tip().is_some();
             let outcome = catch_unwind(AssertUnwindSafe(|| {
                 // The chain caught up with a withheld observation: out at once, no cycle needed.
-                if let Some((tip, membership_ready)) =
-                    self.withheld.take_if(|(tip, _)| gate() == Some(*tip))
-                {
-                    return self.publish_observation(tip, membership_ready, &tip_facts);
+                if let Some(tip) = self.withheld.take_if(|tip| gate() == Some(*tip)) {
+                    return self.publish_observation(tip, &tip_facts);
                 }
                 match self.tick_with(&resolver, gate, &tip_facts) {
-                    // A block arrived mid-fetch: the next cycle observes the new tip.
+                    // A block arrived mid-fetch, or a newly missed transaction held the cycle
+                    // back: the next cycle observes again.
                     Ok(()) | Err(Error::StateUpdating(_)) => {}
                     Err(e) => error!("mempool update failed: {e}"),
                 }
@@ -96,9 +90,14 @@ impl Mempool {
 
     /// One update published at the node's tip, for drivers without a chain to follow.
     /// `StateUpdating` when it published nothing: the tip moved mid-cycle (a block arrived, or
-    /// couldn't be read back), or the node is reloading its mempool.
+    /// couldn't be read back), a newly missed transaction held the cycle back, or the node is
+    /// reloading its mempool.
     pub fn tick(&mut self) -> Result<()> {
-        self.tick_with(prevouts::rpc_resolver(self.client.clone()), || None, |_| None)
+        self.tick_with(
+            prevouts::rpc_resolver(self.client.clone()),
+            || None,
+            |_| None,
+        )
     }
 
     /// Resolve confirmed parents with `resolver`; mempool parents are filled
@@ -129,14 +128,12 @@ impl Mempool {
     fn restore_published(&mut self) {
         self.withheld = None;
         let published = self.read_only.load();
-        let previous = std::mem::take(&mut self.state.upkeep);
         // Before the first publication, the graveyard read back, if any: the pool reloads from
         // Core, as after a crash.
         self.state = published.pool.as_ref().map_or_else(
             || State::restored(self.loaded_graveyard.clone(), Vec::new()),
             |pool| pool.restore(),
         );
-        self.state.upkeep.keep_awaited(previous);
         self.rebuilder.restore(
             published
                 .pool
@@ -158,141 +155,160 @@ impl Mempool {
     where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
-        // RPC batches are not atomic. Bracket fetch and resolution with full tips.
-        let tip_before = self.client.get_best_block_hash()?;
-        let Fetched {
+        let MempoolObservation {
             state: rpc,
             modified_fees,
-            new_entries,
-            new_txs,
-            capped,
-            requested,
-            checked,
-            recheck,
-        } = fetcher::fetch(
-            &self.client,
-            &self.state,
-            &self.failing,
-            &self.rebuilder.snapshot().modified_fees,
-        )?;
-        // The first load fills the cap every cycle until the pool publishes; after it, a full
-        // cycle means a flood of new transactions.
-        if capped && self.read_only.load().tip().is_some() {
-            warn!(
-                cap = MAX_TX_FETCHES_PER_CYCLE,
-                "mempool new-tx fetch hit the per-cycle cap"
-            );
-        }
-        // A block arriving during the fetch can leave the listing past the fetched tip: nothing
-        // of such a cycle is applied (its removals would be classified without that block). Nor
-        // while the node reloads its saved mempool: its listing lacks what it hasn't read back yet,
-        // which would read as gone (readers keep the last publication meanwhile).
-        if !rpc.loaded
-            || rpc.tip_hash != tip_before
-            || self.client.get_best_block_hash()? != tip_before
-        {
+        } = self
+            .client
+            .fetch_mempool_state(&self.rebuilder.snapshot().modified_fees)?;
+        if !rpc.loaded {
             return Err(Error::updating());
         }
-        self.apply_observation(rpc.tip_hash, &rpc.live_txids, new_entries, new_txs, checked, recheck);
-        let (unloaded, publishable) = self.track_unloaded(&rpc.live_txids, &requested);
-        prevouts::fill(&mut self.state, resolver, &unloaded);
-        let coherent_tip = self.client.get_best_block_hash().ok() == Some(tip_before);
-        self.state.graveyard.end_cycle(&unloaded, &mut self.state.upkeep);
-        self.rebuilder.tick(
-            &self.state,
-            rpc.min_fee,
-            &modified_fees,
-            &unloaded,
-            publishable,
-        );
-        if coherent_tip {
-            // Never ahead of the chain readers pair the pool with.
-            if gate().is_none_or(|published| published == rpc.tip_hash) {
-                self.publish_observation(rpc.tip_hash, publishable, tip_facts);
-            } else {
-                self.withheld = Some((rpc.tip_hash, publishable));
-            }
+        let tip = rpc.tip_hash;
+        let mut live: FxHashSet<_> = rpc.live_txids.iter().map(TxKey::from).collect();
+        self.fetched
+            .retain(|txid, _| live.contains(&TxKey::from(txid)) && !self.state.txs.contains(txid));
+        let confirmed = self.confirmed(tip)?;
+        let requested: Vec<_> = rpc
+            .live_txids
+            .into_iter()
+            .filter(|txid| !self.state.txs.contains(txid) && !self.fetched.contains_key(txid))
+            .collect();
+        self.client.fetch_new_pool_data(&requested, |entry, body| {
+            self.fetched.insert(entry.txid, (entry, body));
+        })?;
+        // Core reads the tip before its listing. Check it again before applying that listing.
+        if self.client.get_best_block_hash()? != tip {
+            return Err(Error::updating());
         }
-        Ok(coherent_tip)
-    }
+        let missed: Vec<_> = requested
+            .into_iter()
+            .filter(|txid| !self.fetched.contains_key(txid))
+            .collect();
+        self.hold_back_for(&missed)?;
 
-    /// Applies one observation at `tip` to the private state: what left and arrived, what the
-    /// blocks since the confirmed tip settled, and the restored records `checked` this cycle.
-    fn apply_observation(
-        &mut self,
-        tip: BlockHash,
-        live: &[Txid],
-        new_entries: Vec<MempoolEntryInfo>,
-        new_txs: RapidHashMap<Txid, bitcoin::Transaction>,
-        checked: usize,
-        mut recheck: RapidHashSet<Txid>,
-    ) {
-        let confirmed = Confirmed::since(&self.client, tip, self.state.graveyard.confirmed_tip());
-        let diff = preparer::prepare(live, new_entries, new_txs, &confirmed, &self.state);
-        // The preparer alone decides which entry/body pairs are usable.
-        if !recheck.is_empty() {
-            for addition in &diff.added {
-                recheck.remove(&addition.entry.txid);
-            }
-        }
-        // A panic after this point requires restoring private indexes before reuse. The private
-        // state changes from here: what was withheld no longer is it.
+        let omitted = self.omit_missed(&missed, &mut live);
+        let new = self
+            .fetched
+            .extract_if(|txid, _| omitted.is_empty() || !omitted.contains(&TxKey::from(txid)))
+            .map(|(_, pair)| pair);
+        let diff = preparer::prepare(&live, new, &confirmed, &self.state);
+        // A panic after this point requires restoring private indexes before reuse.
         self.withheld = None;
         self.needs_recovery = true;
-        applier::apply(&mut self.state, self.rebuilder.snapshot(), diff, &confirmed);
-        let unchecked = self.state.unverified.len() - checked;
-        self.state.unverified.truncate(unchecked);
-        // Polling takes from the back: retries wait behind the untried prefix. Removed records
-        // need no retry; every still-listed failure keeps its held body until a check succeeds.
-        let txs = &self.state.txs;
-        self.state.unverified.splice(0..0, recheck.into_iter().filter(|txid| txs.contains(txid)));
-        // An unread block is read again next cycle; one that never reads (pruned since) is let go
-        // after a few, what it confirmed reading as vanished.
-        self.unread_cycles = if confirmed.incomplete {
-            self.unread_cycles + 1
-        } else {
-            0
+        if !diff.removed.is_empty() && self.rebuilder.snapshot().ensure_projection().is_err() {
+            // A shutdown save restores transaction records; rebuild their chunks before burying them.
+            self.rebuilder
+                .tick(&self.state, rpc.min_fee, &modified_fees);
+        }
+        let listed = |txid: &Txid| {
+            let key = TxKey::from(txid);
+            live.contains(&key) || omitted.contains(&key)
         };
-        if self.unread_cycles == 0 || self.unread_cycles >= MAX_UNREAD_CYCLES {
-            if self.unread_cycles > 0 {
-                warn!("mempool: blocks since the last cycle unreadable, let go");
+        let state = &mut self.state;
+        let snapshot = self.rebuilder.snapshot();
+        applier::apply(state, snapshot, diff, &confirmed, listed);
+        state.graveyard.set_confirmed_tip(tip, &mut state.upkeep);
+        state.ancestry.follow(tip, confirmed.path());
+        self.unread_cycles = 0;
+        prevouts::fill(state, resolver);
+        let coherent = self.client.get_best_block_hash().ok() == Some(tip);
+        self.rebuilder
+            .tick(&self.state, rpc.min_fee, &modified_fees);
+        if coherent {
+            if gate().is_none_or(|published| published == tip) {
+                self.publish_observation(tip, tip_facts);
+            } else {
+                self.withheld = Some(tip);
             }
+        }
+        Ok(coherent)
+    }
+
+    fn confirmed(&mut self, tip: BlockHash) -> Result<Confirmed> {
+        let confirmed = Confirmed::since(&self.client, tip, self.state.graveyard.confirmed_tip());
+        if let Some(error) = &confirmed.error {
+            self.unread_cycles = self.unread_cycles.saturating_add(1);
+            if self.unread_cycles == 1 {
+                warn!(%error, "mempool: retrying unreadable blocks");
+            }
+            if self.unread_cycles < MAX_UNREAD_CYCLES {
+                return Err(Error::updating());
+            }
+            if self.unread_cycles == MAX_UNREAD_CYCLES {
+                warn!(%error, "mempool: continuing after ten cycles with unreadable blocks");
+            }
+        } else {
             self.unread_cycles = 0;
-            self.state.graveyard.set_confirmed_tip(tip, &mut self.state.upkeep);
-            self.state.ancestry.follow(tip, confirmed.path());
+        }
+        Ok(confirmed)
+    }
+
+    /// Records this cycle's `missed` (listed, without a matching entry and body) and holds its
+    /// publication back (`StateUpdating`) for a newly missed one, so a replacement chain caught
+    /// mid-fetch (A→B→C) settles on the next listing; never two cycles in a row, so neither a
+    /// transaction that never pairs nor churn holds publication back longer. Item failures are
+    /// logged at debug as they come (Core's -5, gone since the listing, is no failure).
+    /// One missed in two deciding cycles in a row is logged once, however long it stays missed.
+    fn hold_back_for(&mut self, missed: &[Txid]) -> Result<()> {
+        let last = std::mem::take(&mut self.missed);
+        let mut new = false;
+        let mut again = Vec::new();
+        for txid in missed {
+            let logged = match last.get(txid) {
+                None => {
+                    new = true;
+                    false
+                }
+                Some(&logged) => {
+                    if !logged {
+                        again.push(*txid);
+                    }
+                    true
+                }
+            };
+            self.missed.insert(*txid, logged);
+        }
+        if let Some(first) = again.first() {
+            warn!(
+                txid = %first,
+                count = again.len(),
+                "mempool: listed transactions missed twice in a row are left out, with their descendants, until they pair"
+            );
+        }
+        self.held_back = new && !self.held_back;
+        if self.held_back {
+            Err(Error::updating())
+        } else {
+            Ok(())
         }
     }
 
-    /// The listed transactions not loaded yet, and whether the pool can publish: every listed one
-    /// is loaded, or every one missing is stuck. Counts a failure for each one `requested` this
-    /// cycle that still didn't load.
-    fn track_unloaded(
-        &mut self,
-        live: &[Txid],
-        requested: &[Txid],
-    ) -> (RapidHashSet<Txid>, bool) {
-        let membership_complete = self.state.contains_all(live);
-        let unloaded: RapidHashSet<Txid> = if membership_complete {
-            RapidHashSet::default()
-        } else {
-            live.iter()
-                .filter(|txid| !self.state.txs.contains(txid))
-                .copied()
-                .collect()
-        };
-        for txid in requested.iter().filter(|txid| unloaded.contains(*txid)) {
-            let failures = self.failing.entry(*txid).or_default();
-            *failures = failures.saturating_add(1);
-            if *failures == STUCK_AFTER {
-                warn!(%txid, "mempool: a listed transaction won't load, published without it");
+    /// Takes this cycle's misses and their descendants out of `live`, returning them. Only held
+    /// pairs are walked: a pooled transaction is already published and stays, whatever its
+    /// parent; a held child of a miss waits with its pair, to enter once the parent pairs.
+    fn omit_missed(&self, missed: &[Txid], live: &mut FxHashSet<TxKey>) -> FxHashSet<TxKey> {
+        let mut omitted = FxHashSet::default();
+        if missed.is_empty() {
+            return omitted;
+        }
+        let mut children: FxHashMap<TxKey, Vec<TxKey>> = FxHashMap::default();
+        for (txid, (_, tx)) in &self.fetched {
+            for input in &tx.input {
+                children
+                    .entry(TxKey::from(&Txid::from(input.previous_output.txid)))
+                    .or_default()
+                    .push(TxKey::from(txid));
             }
         }
-        self.failing.retain(|txid, _| unloaded.contains(txid));
-        let publishable = membership_complete
-            || unloaded
-                .iter()
-                .all(|txid| self.failing.get(txid).is_some_and(|&n| n >= STUCK_AFTER));
-        (unloaded, publishable)
+        let mut stack: Vec<_> = missed.iter().map(TxKey::from).collect();
+        while let Some(key) = stack.pop() {
+            if live.remove(&key) {
+                omitted.insert(key);
+                stack.extend(children.remove(&key).into_iter().flatten());
+            }
+        }
+        omitted
     }
 
     /// Saves the last publication's graveyard when it changed since the last save that
@@ -313,32 +329,28 @@ impl Mempool {
         *tried = Instant::now();
         let file = file.clone();
         thread::spawn(move || {
-            if let Err(error) =
-                file.save(
-                    &pool.graveyard,
-                    |txid| pool.pending_head(txid),
-                    None,
-                    pool.published_at,
-                )
-            {
+            if let Err(error) = file.save(
+                &pool.graveyard,
+                |txid| pool.pending_head(txid),
+                None,
+                pool.published_at,
+            ) {
                 warn!(%error, "mempool graveyard: save failed");
             }
         });
     }
 
-    /// `membership_ready`: every listed transaction loaded, or the missing ones stuck. A new
-    /// projection's template is built with it from `tip_facts`; in debug builds Core checks it on
-    /// a thread of its own, publication never waiting on it.
+    /// Publishes membership and projection together, with block 0's template built from
+    /// `tip_facts`; in debug builds Core checks it on a thread of its own, publication never
+    /// waiting on it.
     fn publish_observation(
         &mut self,
         tip: BlockHash,
-        membership_ready: bool,
         tip_facts: impl FnOnce(&BlockHash) -> Option<TipFacts>,
     ) {
         let previous = self.read_only.load();
         let snapshot = self.rebuilder.snapshot().clone();
-        if let Some(next) = previous.updated(&self.state, tip, snapshot, membership_ready, tip_facts)
-        {
+        if let Some(next) = previous.updated(&self.state, tip, snapshot, tip_facts) {
             self.read_only.current.store(Arc::new(next));
         }
         #[cfg(debug_assertions)]
