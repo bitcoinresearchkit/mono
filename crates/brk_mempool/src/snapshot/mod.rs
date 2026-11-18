@@ -65,6 +65,8 @@ pub(crate) struct ServedBlock {
     pub content: BlockContent,
     /// The block served whole as JSON, built by the first request.
     pub json: OnceLock<Arc<[u8]>>,
+    /// The diff from no copy, shared by all clients whose base is absent from history.
+    pub full_diff_json: OnceLock<Arc<[u8]>>,
 }
 
 impl Snapshot {
@@ -151,21 +153,17 @@ impl Snapshot {
                 for digest in digests {
                     hasher.write_u64(digest);
                 }
-                // Never 0: that's no copy (`MempoolBlockHash::ZERO`), the `since` of a diff from
-                // nothing.
-                let hash = MempoolBlockHash::new(hasher.finish().max(1));
-                let json = previous
+                let hash = MempoolBlockHash::new(hasher.finish());
+                let previous = previous
                     .get(index)
-                    .filter(|block| block.content.hash == hash)
-                    .and_then(|block| block.json.get())
-                    .cloned()
-                    .map_or_else(OnceLock::new, OnceLock::from);
+                    .filter(|block| block.content.hash == hash);
                 ServedBlock {
                     content: BlockContent {
                         hash,
                         bodies: bodies.into(),
                     },
-                    json,
+                    json: previous.map(|block| block.json.clone()).unwrap_or_default(),
+                    full_diff_json: previous.map(|block| block.full_diff_json.clone()).unwrap_or_default(),
                 }
             })
             .collect();

@@ -1,8 +1,8 @@
 //! Read accessors on [`crate::ReadOnlyState`], each answering from one loaded publication.
 
-use std::sync::Arc;
+use brk_types::MempoolBlockHash;
 
-use brk_types::{MempoolBlockHash, Transaction};
+use crate::snapshot::BlockContent;
 
 pub mod addr;
 pub mod block_template;
@@ -22,15 +22,14 @@ pub use rbf::{RbfForTx, RbfNode};
 
 /// A validated past block captured for one diff request.
 pub struct ResolvedMempoolBlockDiff {
-    since: MempoolBlockHash,
-    past: Arc<[Arc<Transaction>]>,
+    past: Option<BlockContent>,
     source: MempoolBlockSource,
 }
 
 impl ResolvedMempoolBlockDiff {
     #[must_use]
     pub fn since(&self) -> MempoolBlockHash {
-        self.since
+        self.past.as_ref().map_or(MempoolBlockHash::ZERO, |past| past.hash)
     }
 
     #[must_use]

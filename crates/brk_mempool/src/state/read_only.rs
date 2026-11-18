@@ -5,7 +5,7 @@ use std::{
 };
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, MempoolBlockHash, Transaction};
+use brk_types::{BlockHash, MempoolBlockHash};
 
 use crate::{Snapshot, TipFacts, snapshot::BlockContent, template::Template};
 
@@ -128,15 +128,15 @@ impl ReadOnlyState {
         &self.projection
     }
 
-    /// Block `index`'s bodies as published under `hash`, while history keeps them.
+    /// Block `index`'s content as published under `hash`, while history keeps it.
     pub(crate) fn historical_block(
         &self,
         index: usize,
         hash: MempoolBlockHash,
-    ) -> Option<Arc<[Arc<Transaction>]>> {
+    ) -> Option<BlockContent> {
         self.history
             .iter()
             .find(|(_, i, past)| (*i, past.hash) == (index, hash))
-            .map(|(.., past)| past.bodies.clone())
+            .map(|(.., past)| past.clone())
     }
 }
