@@ -467,6 +467,10 @@
       [data-table="matrix"] {
         container: matrix / inline-size;
       }
+      /* (Three equal columns, so the list's columns stay put as its order and length change.) */
+      [data-table="unclaimed"] .rows {
+        table-layout: fixed;
+      }
       /* (Nothing moves as the tables come in: what's under a table still being read waits unseen, and shows in its
          place once every table above it is in; a section a link asked for shows at once, held in view as they fill.) */
       main:not(:has(:target)) section:has(.wait) ~ section,
