@@ -356,27 +356,37 @@
           letter-spacing: 0.04em;
           text-transform: uppercase;
 
-          span {
+          .num {
             flex: none;
             font-weight: 400;
             letter-spacing: 0;
             text-transform: none;
           }
 
-          /* (Its name opens it, what's open deeper let go: the first column's, the start.) */
+          /* (Its name opens it, what's open deeper let go: the first column's, the start. The name cut short in its own
+             box, so the button's reach isn't.) */
           button {
             min-width: 0;
-            overflow: hidden;
             padding: 0;
             font: inherit;
             letter-spacing: inherit;
             text-align: left;
-            text-overflow: ellipsis;
             text-transform: inherit;
-            white-space: nowrap;
+
+            > span {
+              display: block;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
 
             &:hover {
               color: var(--ink);
+            }
+
+            /* (Its ring round the name, clear of its letters.) */
+            &:focus-visible {
+              outline-offset: 2px;
             }
           }
         }
@@ -390,6 +400,18 @@
           overflow-y: auto;
           overscroll-behavior-y: contain;
           list-style: none;
+        }
+
+        /* (For fingers, its name's reach over its list's empty top, and under its rows when they scroll up there.) */
+        @media (pointer: coarse) {
+          h2 button,
+          .row {
+            z-index: 1;
+          }
+
+          .row {
+            position: relative;
+          }
         }
       }
 
@@ -561,6 +583,13 @@
         background: var(--pane);
         text-align: left;
 
+        /* (For fingers, room between its head and what's in it for both their reaches.) */
+        @media (pointer: coarse) {
+          &:has(> p) {
+            gap: 24px;
+          }
+        }
+
         /* (Its glyph, name and count: a way into it.) */
         > button {
           display: flex;
@@ -578,17 +607,6 @@
 
           &:hover b {
             color: var(--accent-ink);
-          }
-
-          /* (For fingers, its reach a finger's, unseen: up into the tile's padding and down into the room above what's in it.) */
-          @media (pointer: coarse) {
-            position: relative;
-
-            &::before {
-              content: "";
-              position: absolute;
-              inset: -14px 0 -8px;
-            }
           }
         }
 
@@ -639,6 +657,30 @@
 
           span {
             color: var(--faint);
+          }
+
+          /* (For fingers, each a finger's reach, unseen: a clear border round it (its words still cut short inside),
+             44px tall from its drawn height (12px type at 1.6, 2px padding up and down), 2px into the gap each side;
+             its rows as far apart as that, and its corners the drawn 6px grown by the border; up to the half pixel, so
+             its 44 never rounds to 43.) */
+          @media (pointer: coarse) {
+            --chip-reach: round(up, (44px - 12px * 1.6 - 2 * 2px) / 2, 0.5px);
+            row-gap: calc(2 * var(--chip-reach));
+
+            button {
+              border: solid transparent;
+              border-width: var(--chip-reach) 2px;
+              margin: calc(-1 * var(--chip-reach)) -2px;
+              border-radius: 8px / calc(6px + var(--chip-reach));
+              background-clip: padding-box;
+
+              /* (Its ring round the drawn chip, inside the clear border, where an outline would go round the reach;
+                 the outline kept, unseen, for forced colours.) */
+              &:focus-visible {
+                outline-color: transparent;
+                box-shadow: inset 0 0 0 2px var(--accent);
+              }
+            }
           }
         }
 
@@ -872,12 +914,13 @@
         }
 
         /* (On a touch screen a finger's reach, inside the strip: it scrolls sideways, which clips a reach past its
-           edges. Its buttons a little taller, each reaching the strip's whole 44px.) */
+           edges. Its buttons a little taller, each reaching the strip's whole 44px, and as wide.) */
         @media (pointer: coarse) {
           padding: 4px;
 
           button {
             position: relative;
+            min-width: 44px;
             height: 36px;
 
             &::before {
@@ -1229,7 +1272,7 @@
               padding-top: 20px;
             }
 
-            span {
+            .num {
               display: inline;
               flex: none;
               color: var(--faint);
@@ -1237,14 +1280,11 @@
               font-weight: 400;
               letter-spacing: 0;
             }
+          }
 
-            /* (Its reach a finger's, into the room under the title: padding and margin that cancel.) */
-            button {
-              position: relative;
-              z-index: 1;
-              padding: 0 0 13px;
-              margin: 0 0 -13px;
-            }
+          /* (Under the way back, the title's reach down only, into the room under it: the way back keeps its own.) */
+          .back + h2 button::before {
+            inset-block: 0 min(0px, calc(100% - 44px));
           }
 
           ul {
@@ -1326,9 +1366,9 @@
           transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
         }
       }
-      /* (A finger's reach, unseen: the brand, a series' chips and buttons, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
-      :is(a.brand, .chip, .copyable, .back, #as-api) {
+      /* (A finger's reach, unseen: the brand, a column's name, a tile's head, a series' chips and buttons, 44px tall whatever
+         they're drawn at; up and down only, into the room around them. Of no weight, so a part's own rule can shape it.) */
+      :where(a.brand, .column h2 button, .tile > button, .chip, .copyable, .back, #as-api) {
         position: relative;
 
         /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
@@ -1676,7 +1716,7 @@
         const back = depth ? `<button type="button" class="back" data-path="${escape(JSON.stringify(folder.path.slice(0, -1)))}">${ICON.back}${escape(depth > 1 ? nodeAt(folder.path.slice(0, -1)).label : "All series")}</button>` : "";
         // (The top's count is the series', each once; a folder's, what's in it.)
         const count = grouped.format(depth ? folder.count : byName.size);
-        return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2><button type="button" data-path="${escape(JSON.stringify(folder.path))}" tabindex="-1">${escape(folder.label || "All series")}</button> <span class="num">${count} series</span></h2><ul role="list">${rows}</ul></section>`;
+        return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2><button type="button" data-path="${escape(JSON.stringify(folder.path))}" tabindex="-1"><span>${escape(folder.label || "All series")}</span></button> <span class="num">${count} series</span></h2><ul role="list">${rows}</ul></section>`;
       }
       /** What a folder holds, as tiles: a folder its count and what's in it (the first few, each a way there); a series its id. */
       function overviewHtml(/** @type {Node} */ folder) {
