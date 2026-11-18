@@ -36,12 +36,12 @@ impl PluginStorage {
     /// Rebuilds the whole owner once after a classified data failure. The failed import must
     /// own all of its database handles: they are dropped before this removes the directory.
     /// Locks and other operational errors propagate without deletion. Bootstrap holds the
-    /// shutdown lock throughout; `after_reset` restores any source metadata before retrying.
+    /// shutdown lock throughout; `on_reset` reports the failure before the retry.
     pub fn import_with_recovery<T>(
         self,
         context: ImportContext<'_>,
         import: impl Fn() -> Result<T>,
-        after_reset: impl Fn(&Error) -> Result<()>,
+        on_reset: impl Fn(&Error),
     ) -> Result<T> {
         match import() {
             Err(error) if !error.is_lock_error() && error.is_data_error() => {
@@ -50,7 +50,7 @@ impl PluginStorage {
                     Err(error) if error.kind() == ErrorKind::NotFound => {}
                     Err(error) => return Err(error.into()),
                 }
-                after_reset(&error)?;
+                on_reset(&error);
                 import()
             }
             result => result,

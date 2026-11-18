@@ -30,7 +30,6 @@ impl Vecs {
             || Self::import_inner(context, mappings, windows, prices, totals),
             |error| {
                 warn!("Rebuilding address data at {} after an import failure: {error}", STORAGE.path(context).display());
-                Ok(())
             },
         )
     }
