@@ -323,8 +323,7 @@ fn errors() -> Vec<(&'static str, ServerError)> {
         ),
         query("query read timeout", QueryError::ReadTimeout),
         // Built by the server itself.
-        ("request deadline (POST)", ServerError::timeout(true)),
-        ("request deadline (GET)", ServerError::timeout(false)),
+        ("request deadline", ServerError::timeout()),
         (
             "broadcast queue full",
             ServerError::overloaded("too many pending transaction submissions"),
