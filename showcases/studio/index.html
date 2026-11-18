@@ -7735,6 +7735,9 @@
       }
 
       .home {
+        /* (The room over the page's first row: its top corner's row is placed by it too, see .home-top.) */
+        --home-room: 56px;
+        --home-top: var(--home-room);
         position: relative;
         z-index: 1;
         min-width: 0;
@@ -7767,8 +7770,6 @@
       }
 
       .home-scroll {
-        --home-room: 56px;
-        --home-top: var(--home-room);
         position: absolute;
         inset: 0;
         overflow-y: auto;
@@ -9540,7 +9541,7 @@
         /* (Its top corner's row in the row of Bitview's way back, at its end, as tall: see .home-brand. Over the touch
            rule's spacing: its buttons a finger's size already.) */
         :root .home-top {
-          top: calc(env(safe-area-inset-top) + 34px);
+          top: calc(var(--home-top) - 10px);
           right: 2px;
           gap: 4px;
 
@@ -10040,9 +10041,13 @@
           aspect-ratio: 12 / 5;
         }
 
-        .home-scroll {
-          --home-room: 44px;
+        /* (A phone's page starts at its top: its first row, Bitview's way back or a page's way up, is a finger high.) */
+        .home {
+          --home-room: 14px;
           --home-top: calc(var(--home-room) + env(safe-area-inset-top));
+        }
+
+        .home-scroll {
           --gutter: 12px;
           padding: var(--home-top) var(--gutter) calc(var(--bar-room) + 12px);
         }
