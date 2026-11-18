@@ -255,6 +255,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   `get_pools_hashrate_by_period` with `all` in place of `get_hashrate`, `get_difficulty_adjustments` and
   `get_pools_hashrate`; use `get_block_fee_rates_precise` (3 decimals: round it for whole sat/vB) in place of `get_block_fee_rates`.
   Clients holding the old tool list must refresh it by reconnecting the connector
+- MCP: a tool call's answer is at most 2 MiB (was 8 MiB); a larger one is a tool error saying how to ask for less.
+  Every default answer fits: the largest, a raw URPD of all coins, is 1.3 MB. At most 64 calls are in flight at once;
+  a call that waits 5 seconds for its turn is answered `busy; retry shortly`. A call waits 8 seconds for the API (was
+  15), which answers within 5
 - The server no longer compresses anything: every response goes out uncompressed, without `Vary: Accept-Encoding`, for
   a CDN in front to compress, and an instance reached directly sends them as they are. `Accept-Encoding` is no longer
   read, so a request refusing `identity` gets the response as it is (was: 406 when it refused every encoding)

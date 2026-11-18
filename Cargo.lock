@@ -454,7 +454,6 @@ dependencies = [
  "base64",
  "bitview_http",
  "brk_logger",
- "http-body-util",
  "percent-encoding",
  "rmcp",
  "serde",
