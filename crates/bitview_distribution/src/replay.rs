@@ -81,6 +81,8 @@ pub fn run<R: Replay>(
     replay: impl FnOnce(&mut R, &mut R::State, Range<usize>, &[Cents]) -> Result<()>,
 ) -> Result<()> {
     let live = plugin.live().take();
+    // Read before `validate`, which resets the checkpoints on a version change.
+    let had_saved = plugin.checkpoint_len() > 0;
     let resume = {
         let _lock = exit.lock();
         plugin.validate(version)?
@@ -110,7 +112,7 @@ pub fn run<R: Replay>(
     // Readers leave every row first: the reset rebuilds this plugin alone, the others resume
     // from the indexer's compute start.
     if start == 0 {
-        if plugin.checkpoint_len() > 0 {
+        if had_saved {
             match resume {
                 None => warn!("Replaying {} from genesis: its version changed", R::NAME),
                 Some(_) => warn!(
