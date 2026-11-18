@@ -906,6 +906,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- The price plugin saves its prices every 10,000 blocks instead of once at the end of its pass, so a Ctrl+C or a
+  restart during a pass from genesis resumes from the last save (a pass took 35 s on the M6 bench and 3 to 10 min on
+  a loaded Mac). A stop inside the oracle's slow regime (blocks 340,000 to 508,000) still resumes from its start, as
+  before
 - A file in a store's `tables` folder whose name isn't a table's (Finder, Spotlight and Time Machine leave such files)
   is ignored with a warning; before, any such file but `.DS_Store` and `._*` deleted the whole indexer and
   re-indexed it from block 0. A store's data is rebuilt only on errors that mean it is broken, listed one by one: an

@@ -1,4 +1,4 @@
-use bitview_compute::{prepare_computed, write_locked};
+use bitview_compute::{WRITE_INTERVAL, prepare_computed, write_chunks, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Float64;
@@ -52,62 +52,60 @@ impl Vecs {
             })?;
         }
 
-        let seed_len = total_heights.min(START_HEIGHT_SLOW);
-        let seed_start = self.spot.cents.height.len();
-        for cents in pre_oracle_prices_from(seed_start).take(seed_len.saturating_sub(seed_start)) {
-            self.spot.cents.height.push(cents);
-            self.oracle_bin
-                .push(Float64::from(cents_to_bin(f64::from(cents))));
-        }
-
-        if self.spot.cents.height.len() >= total_heights {
-            return Ok(());
-        }
-
-        let committed = self.spot.cents.height.len();
-        // The retained oracle continues exactly where the stored prices end; otherwise rebuild it
-        // from the last stored bin and its warmup blocks (the same state: the EMA is a fold of
-        // the window, newest first).
-        let mut oracle = match self.oracle.take() {
-            Some((next, oracle)) if next == committed => oracle,
-            _ => {
-                let ref_bin = f64::from(self.oracle_bin.collect_one_at(committed - 1).data()?);
-                warm_oracle(indexer, ref_bin, committed, None)?
-            }
-        };
-
-        let num_new = total_heights - committed;
-
-        // Slow cold-start EMA up to START_HEIGHT_FAST, then switch to the fast
-        // mature-market EMA. Steady-state runs start past START_HEIGHT_FAST and skip
-        // the slow segment entirely.
-        {
-            let mut processed = 0usize;
-            let mut next_progress = 10u8;
-            let mut push_ref_bin = |ref_bin| {
-                self.spot.cents.height.push(bin_to_cents(ref_bin));
-                self.oracle_bin.push(Float64::from(ref_bin));
-
-                processed += 1;
-                let progress = (processed * 100 / num_new) as u8;
-                while num_new >= 100 && progress >= next_progress {
-                    info!("Oracle price computation: {next_progress}%");
-                    next_progress += 10;
+        // Saved every WRITE_INTERVAL heights, so a stopped pass resumes from its last save. The
+        // regimes start on multiples of it, so a chunk lies in one: the table before the oracle,
+        // or one EMA.
+        const _: () = assert!(
+            START_HEIGHT_SLOW % WRITE_INTERVAL == 0 && START_HEIGHT_FAST % WRITE_INTERVAL == 0
+        );
+        let start = self.spot.cents.height.len();
+        // The retained oracle continues exactly where the stored prices end; otherwise it is
+        // rebuilt from the last stored bin and its warmup blocks (the same state: the EMA is a
+        // fold of the window, newest first).
+        let mut oracle = self
+            .oracle
+            .take()
+            .and_then(|(next, oracle)| (next == start).then_some(oracle));
+        let mut logged = 0;
+        for chunk in write_chunks(start..total_heights) {
+            if chunk.end <= START_HEIGHT_SLOW {
+                for cents in pre_oracle_prices_from(chunk.start).take(chunk.len()) {
+                    self.spot.cents.height.push(cents);
+                    self.oracle_bin
+                        .push(Float64::from(cents_to_bin(f64::from(cents))));
                 }
-            };
-
-            for segment in Config::segments_for_range(committed..total_heights) {
-                let end = segment.end;
-                feed_blocks_with(&mut oracle, indexer, segment, None, |_, _, ref_bin| {
-                    push_ref_bin(ref_bin)
+            } else {
+                let oracle = match &mut oracle {
+                    Some(oracle) => oracle,
+                    None => {
+                        let ref_bin =
+                            f64::from(self.oracle_bin.collect_one_at(chunk.start - 1).data()?);
+                        oracle.insert(warm_oracle(indexer, ref_bin, chunk.start, None)?)
+                    }
+                };
+                feed_blocks_with(oracle, indexer, chunk.clone(), None, |_, _, ref_bin| {
+                    self.spot.cents.height.push(bin_to_cents(ref_bin));
+                    self.oracle_bin.push(Float64::from(ref_bin));
                 })?;
-                if end == START_HEIGHT_FAST {
+                // Slow cold-start EMA up to START_HEIGHT_FAST, then the fast mature-market one.
+                if chunk.end == START_HEIGHT_FAST {
                     oracle.reconfigure(Config::default());
                 }
+                let tenths = (chunk.end - start) * 10 / (total_heights - start);
+                if total_heights - start > WRITE_INTERVAL && tenths > logged {
+                    logged = tenths;
+                    info!("Oracle price computation: {}%", tenths * 10);
+                }
             }
+            write_locked(
+                [
+                    &mut self.spot.cents.height as &mut dyn AnyStoredVec,
+                    &mut self.oracle_bin,
+                ],
+                exit,
+            )?;
         }
-
-        self.oracle = Some((total_heights, oracle));
+        self.oracle = oracle.map(|oracle| (total_heights, oracle));
 
         Ok(())
     }
@@ -122,15 +120,6 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let Dependencies { indexer } = dependencies;
-        let exit = context.exit();
-
-        self.compute_prices(indexer, exit)?;
-        write_locked(
-            [
-                &mut self.spot.cents.height as &mut dyn AnyStoredVec,
-                &mut self.oracle_bin,
-            ],
-            exit,
-        )
+        self.compute_prices(indexer, context.exit())
     }
 }
