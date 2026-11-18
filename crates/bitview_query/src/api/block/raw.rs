@@ -21,7 +21,7 @@ impl Query {
     /// The block's bytes as the node stored them. The header's hash is the whole proof that the
     /// indexed position holds the block asked for. The transactions under it are the node's own
     /// record, served as stored: decoding them to recompute the merkle root, the witness
-    /// commitment and the weight cost about 20 ms per MB on every request.
+    /// commitment and the weight cost about 5 ms per MB on every request.
     pub(crate) fn block_raw_at_height(
         &self,
         height: Height,
