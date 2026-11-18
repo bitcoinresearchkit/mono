@@ -325,6 +325,10 @@ fn errors() -> Vec<(&'static str, ServerError)> {
         // Built by the server itself.
         ("request deadline", ServerError::timeout()),
         (
+            "broadcast held past the deadline",
+            ServerError::submission_timeout(),
+        ),
+        (
             "broadcast queue full",
             ServerError::overloaded("too many pending transaction submissions"),
         ),

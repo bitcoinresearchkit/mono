@@ -105,7 +105,7 @@ impl Error {
 
     /// The deadline passed while the node held a submission: it may have taken it or not.
     #[cfg(feature = "full-api")]
-    pub(crate) fn submission_timeout() -> Self {
+    pub fn submission_timeout() -> Self {
         Self::new(
             StatusCode::GATEWAY_TIMEOUT,
             ErrorCode::Timeout,
