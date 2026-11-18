@@ -8,7 +8,10 @@
 //   bun showcases/studio/seo.mjs [server]          writes them, by the server's chain now
 //   bun showcases/studio/seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
 //                                                  they were written by: what the chain did since fails nothing)
-//   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone (see below)
+//   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone or old addresses changed (below)
+//
+// And moved.txt: every address a preset once had (once one a window, now that preset at it: see addresses.js) and what
+// it opens, each kept so for good, the build stopped where one changes or another place takes it.
 import { gunzipSync, gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -150,10 +153,37 @@ const files = {
   "chain-facts.json": `${factsKey(facts)}\n`,
   "sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`,
 };
+// The addresses the presets once had (a chart's `was`, see addresses.js), each with what it opens: a preset's own
+// address at its window. Kept in moved.txt, each opening the same for good: one that opens another now (renamed,
+// taken by a new place) or nothing stops the build, written over only when meant (--drop).
+if (book.clashes.length) {
+  console.error(`Old addresses another place has now, ${book.clashes.length}:\n${book.clashes.map((clash) => `  ${clash}`).join("\n")}`);
+  console.error("Name the new place otherwise: an old address is shared, and opens what it did.");
+  process.exit(1);
+}
+/** What an address opens: a preset's address (at a window, if one), a section's, or nothing. @param {string} path */
+const opens = (path) => {
+  const to = book.at.get(path);
+  if (!to) return "nothing";
+  if (!("preset" in to)) return path;
+  return to.window ? `${book.presets[to.preset]}#window=${to.window}` : book.presets[to.preset];
+};
+const moved = new Map();
+for (const [path, to] of book.at) if ("window" in to) moved.set(path, opens(path));
+const changed = written("moved.txt").split("\n").filter(Boolean).map((line) => line.split("\t")).filter(([path, to]) => opens(path) !== to);
+if (changed.length) {
+  console.error(`Moved addresses that open another place now, or nothing, ${changed.length}:\n${changed.slice(0, 12).map(([path, to]) => `  ${path}: ${to} → ${opens(path)}`).join("\n")}${changed.length > 12 ? `\n  and ${changed.length - 12} more` : ""}`);
+  if (!drop) {
+    console.error("Keep the places the presets had (a chart's `was`, presets.js), as their addresses are shared; meant to change: bun showcases/studio/seo.mjs --drop");
+    process.exit(1);
+  }
+}
+files["moved.txt"] = [...moved].sort(([a], [b]) => (a < b ? -1 : 1)).map(([path, to]) => `${path}\t${to}\n`).join("");
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
-// word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop).
+// word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop). One the address
+// book still answers (moved, above) isn't gone.
 const now = new Set(urls.map((url) => `${ORIGIN}${url}`));
-const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&")).filter((loc) => !now.has(loc));
+const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&")).filter((loc) => !now.has(loc) && !book.at.has(loc.slice(ORIGIN.length)));
 if (gone.length && !drop) {
   console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((loc) => `  ${loc}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
   console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun showcases/studio/seo.mjs --drop");

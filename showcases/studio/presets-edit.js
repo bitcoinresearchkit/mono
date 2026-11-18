@@ -5,7 +5,6 @@ import {
   presetDataset, presetInfo, sectionInfo, STUDIO_DESCRIPTION, STUDIO_ORIGIN, STUDIO_TITLE, studioApplication,
 } from "/studio/page-info.js";
 import { addressSteps } from "/studio/addresses.js";
-import { windowNamed } from "/studio/words.js";
 import {
   applyPanel, asThen, atWindow, averageFor, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
   drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, inLibrary, isDeleted, isPreview,
@@ -41,8 +40,8 @@ import {
 
 /**
  * A preset (presets.js makes them): `p` its place in their tree (its sections, then its own name), `t` its title, `c`
- * its chart as a link writes it.
- * @typedef {{ p: string[], t: string, c: { layers: any[], panes?: any[], index?: string, range?: string }, s?: string }} Preset
+ * its chart as a link writes it, `w` its places when it was one a window (see presets.js).
+ * @typedef {{ p: string[], t: string, c: { layers: any[], panes?: any[], index?: string, range?: string }, s?: string, w?: Record<string, string> }} Preset
  */
 /** The presets the empty chart offers first, by their place (seo.mjs checks each is one). */
 const RECOMMENDED = [
@@ -152,13 +151,11 @@ const addressesSoon = (deadline) => {
 /**
  * What an address opens: a preset, a place of the presets'; none, nothing of theirs. As written: its server sends the
  * other spellings of one (the slash the other way, an old /chart/ one) to it. A preset's once made one for each window
- * (…/realized-profit-share-24-hours), the preset at that window (its address then written as it is now, see presetLink).
+ * (…/realized-profit-share-24-hours, …/sma/200-days): the preset at that window (see addresses.js; its address then
+ * written as it is now, see presetLink).
  * @param {string} pathname @returns {{ path: string[] } | { preset: number, window?: string } | null}
  */
-const routeOf = (pathname) => {
-  const book = addresses(), at = pathname.slice(BASE.length), parts = at.split("-"), former = book?.at.get(parts.slice(0, -2).join("-")), span = parts.slice(-2).join(" ");
-  return book?.at.get(at) ?? (former && "preset" in former && windowNamed(span, chartWindow(freshPreset(former.preset))?.offered ?? []) ? { ...former, window: span } : null);
-};
+const routeOf = (pathname) => addresses()?.at.get(pathname.slice(BASE.length)) ?? null;
 /** An address that names nothing, said, whatever it holds (a % that isn't one, as written). @param {string} address */
 const missedSaid = (address) => `Nothing of the presets' at ${((text) => {
   try {
@@ -391,21 +388,25 @@ function prunePresets(/** @type {Chart | null} */ keep) {
 }
 /** What a chart shows, its looks aside (its trailing window too, see windowless): its series and formulas, as a set; what's made from them (a cloud, a trend) an edit of it. */
 const presetShows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(windowless(doc).layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
-/** A preset's chart's place's last name, as stored: a key that isn't one, none. */
-const presetPlaceName = (/** @type {Chart} */ doc) => {
+/** A preset's chart's place, as stored: a key that isn't one, none. @returns {string[] | undefined} */
+const presetPlace = (/** @type {Chart} */ doc) => {
   try {
     const place = JSON.parse(doc.preset ?? "");
-    return Array.isArray(place) ? place.at(-1) : undefined;
+    return Array.isArray(place) ? place : undefined;
   } catch {
     return undefined;
   }
 };
 /**
- * Which of the presets showing what a chart whose place is gone shows is it, first to last: the one of its title (at
- * their first window, see windowless: an amount and its share show the same series), of its place's name, any.
+ * Which of the presets showing what a chart whose place is gone shows is it, first to last: the one that had its place
+ * (one a window once, see addresses.js), of its title (at their first window, see windowless: an amount and its share
+ * show the same series), of its place's name, any.
  * @param {Chart} doc @returns {((i: number) => boolean)[]}
  */
-const likeness = (doc) => ((title, name) => [(i) => windowless(freshPreset(i)).title === title, (i) => /** @type {Preset[]} */ (presets)[i].p.at(-1) === name, () => true])(windowless(doc).title, presetPlaceName(doc));
+const likeness = (doc) => ((title, place = []) => {
+  const list = /** @type {Preset[]} */ (presets), name = place.at(-1) ?? "";
+  return [(i) => Object.hasOwn(list[i].w ?? {}, name) && list[i].p.length === place.length && place.slice(0, -1).every((step, k) => list[i].p[k] === step), (i) => windowless(freshPreset(i)).title === title, (i) => list[i].p.at(-1) === name, () => true];
+})(windowless(doc).title, presetPlace(doc));
 /**
  * The preset that shows what a preset's chart whose place is gone shows (a preset renamed since, moved), the likest
  * (see likeness); none, -1. @param {Chart} doc
@@ -441,7 +442,7 @@ function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = tru
   // Each to a preset of its set, the likest first (see likeness), one each.
   /** @type {Map<Chart, number>} */
   const to = new Map(), likes = lost.map(likeness);
-  for (const pass of [0, 1, 2]) {
+  for (let pass = 0; pass < (likes[0]?.length ?? 0); pass++) {
     for (const [k, doc] of lost.entries()) {
       if (to.has(doc)) continue;
       const set = presetShows(doc), at = holders.get(set) ?? [], i = at.find(likes[k][pass]);

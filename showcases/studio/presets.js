@@ -23,7 +23,9 @@
  *   hidden there: see priced).
  * @typedef {Record<string, any>} Layer
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], index?: string, range?: string, halvings?: boolean }} Sketch
- * @typedef {{ p: string[], t: string, c: Sketch, s?: string }} Preset
+ * @typedef {{ p: string[], t: string, c: Sketch, s?: string, w?: Record<string, string> }} Preset `w`: the places it
+ * had in its section when it was one preset a window, each its window as a link says it (`{ "2 years": "2y" }`): an
+ * address of one, the preset at its window (see addresses.js)
  * @typedef {{ presets: Preset[], labels: Record<string, string> }} Presets every preset, and each labeled step's shown
  * name by its place's key (`JSON.stringify(path)`, see shownStep)
  * @typedef {string | { place: string, shown: string }} Name a node's name: its place's step, and, where that says less
@@ -38,8 +40,9 @@
  * families and cutoffs read it (see Dimension), and `inWhole`, its members within their whole (see Naming)
  * @typedef {{ within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Kin
  * what a band family's options and its cutoffs' share (see family)
- * @typedef {{ name: Name, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
- * @typedef {(name: Name, title: string, layers: Layer[], options?: { index?: string, log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, window?: string, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
+ * @typedef {{ name: Name, title: string, c: Sketch, priceHidden?: boolean, was?: Record<string, string> }} ChartNode
+ * `was`: its places from when it was one chart a window, each that window's key (see Preset's `w`)
+ * @typedef {(name: Name, title: string, layers: Layer[], options?: { index?: string, log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, window?: string, windows?: string[], was?: Record<string, string>, absolute?: Layer[], absoluteLog?: boolean }) => ChartNode} ChartBuilder
  * @typedef {{ name: Name, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
  * @typedef {(name: Name, items: (ChartNode | SectionNode | null | undefined | false)[], options?: { workings?: boolean, icon?: string }) => SectionNode} SectionBuilder
@@ -47,7 +50,7 @@
 
 /** @import { Facts } from "./facts.js" */
 import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
-import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid } from "./words.js";
+import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 
 /** Whether a series can be charted: by date (Studio charts by date; some are by block only). @param {any} n */
@@ -220,12 +223,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const shownOf = (name) => (typeof name === "string" ? name : name.shown);
   /** A name with words after it, its place's and as shown ("Supply" "Supply, all time"). @param {Name} name @param {string} words @param {string} [said] */
   const extended = (name, words, said = words) => shownAs(placeOf(name) + words, shownOf(name) + said);
-  /**
-   * A window as a name, its place as its key spells it ("1 month"), shown as said ("30 days"): a chart that is one
-   * window of a named indicator (a 200-day average). A chart over one window is named without it: its window is how
-   * it's looked at (the page offers the others, see chartWindow), said in its title. @param {string} key
-   */
-  const windowed = (key) => shownAs(spanLabel(key), windowSaid(key));
 
   // ── Layers and charts ─────────────────────────────────────────────────────
 
@@ -247,10 +244,14 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
    * Over a heatmap or a cloud, the price is outlined: edged in the chart's background, read on what's under it.
    * `window`: the one window all its layers are over (`_1m`), said in its title after its measure, before the colon
-   * (see windowSaid); never in its place (see windowed).
+   * (see windowSaid); never in its place: its window is how it's looked at (the page offers the others, see
+   * chartWindow), so one chart a measure, whatever its windows. `was`: its places when it was one chart a window (see
+   * ChartNode), else, for those `windows` (its `window` alone, if none said), its place with each after it ("Supply,
+   * 1 month"), as such a chart's were.
    * @type {ChartBuilder}
    */
   const chart = (name, title, layers, options = {}) => {
+    const was = options.was ?? ((keys) => (keys.length ? Object.fromEntries(keys.map((key) => [`${placeOf(name)}, ${spanLabel(key)}`, key])) : undefined))(options.windows ?? (options.window ? [options.window] : []));
     if (options.window) title = appended(title, windowSaid(options.window));
     // Another form of the same subject: one folded companion pane, using the usual pane/visibility mechanism.
     if (options.absolute?.length) {
@@ -267,7 +268,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       const log = options.log?.includes(n) || withPrice;
       return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.average?.[n] ? { average: options.average[n] } : {}), ...(options.size?.[n] ? { size: options.size[n] } : {}) };
     });
-    return { name, title, c: { layers, panes, ...(options.index ? { index: options.index } : {}), ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
+    return { name, title, c: { layers, panes, ...(options.index ? { index: options.index } : {}), ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}), ...(was ? { was } : {}) };
   };
   /**
    * A chart of one measure, shown by it (`name`'s shown, "Share of all coins": its place's name may say less, or be
@@ -366,12 +367,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
   ];
   /**
    * A whole's parts compared: their amounts stacked, then their shares of it, as areas (`[name, title]` each chart's;
-   * `window`, both's, said in their titles). @param {[Name, string]} amounts @param {[Name, string]} shares
-   * @param {Layer[]} layers @param {string} [window] @returns {ChartNode[]}
+   * `window`, both's, said in their titles; `windows`, theirs once, see chart). @param {[Name, string]} amounts
+   * @param {[Name, string]} shares @param {Layer[]} layers @param {string} [window] @param {string[]} [windows] @returns {ChartNode[]}
    */
-  const parts = ([name, title], [shareName, shareTitle], layers, window = undefined) => {
+  const parts = ([name, title], [shareName, shareTitle], layers, window = undefined, windows = undefined) => {
     const areas = layers.map((layer) => ({ ...layer, type: "area" }));
-    return [chart(name, title, areas, { stack: { 1: "stack" }, window }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window })];
+    return [chart(name, title, areas, { stack: { 1: "stack" }, window, windows }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window, windows })];
   };
   /**
    * A count's title, from what it counts, as said inside a sentence ("coinjoin transactions": "Number of coinjoin
@@ -858,20 +859,20 @@ export function studioPresets(client, facts, report = (problem) => console.error
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
      * then as their shares of it ("Supply", "Supply share"). Titled by its name as shown (see compared); `window`: the one it's over (see chart);
      * `whole`: it's a share of the group's own whole, which names the group.
-     * @param {Name} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, shares?: boolean, level?: number, absolute?: (c: any) => any, absoluteLog?: boolean, whole?: boolean, window?: string }} [o]
+     * @param {Name} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, shares?: boolean, level?: number, absolute?: (c: any) => any, absoluteLog?: boolean, whole?: boolean, window?: string, windows?: string[] }} [o]
      * @returns {ChartNode[]}
      */
     const compare = (name, pick, o = {}) => {
       // (Read against a reference, its level across: a ratio's 1, a net's 0; the members stay lines, each its color.)
       const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] });
       if (!layers.length) return [];
-      const measure = shownOf(name), title = compared(measure, { whole: o.whole }), window = o.window;
+      const measure = shownOf(name), title = compared(measure, { whole: o.whole }), { window, windows } = o;
       if (options.disjoint && o.additive) {
         const known = options.known?.[placeOf(name)];
-        return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window).slice(0, o.shares === false ? 1 : 2);
+        return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window, windows).slice(0, o.shares === false ? 1 : 2);
       }
-      if (o.price) return [chart(name, title, [price(), ...layers], { window })];
-      return [chart(name, title, layers, { window, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];
+      if (o.price) return [chart(name, title, [price(), ...layers], { window, windows })];
+      return [chart(name, title, layers, { window, windows, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];
     };
     // (All coins' URPD (weighted as the members'): the whole the members split, or sit in; theirs, where they split it.)
     const whole = options.urpd ? HOLDERS.all.urpd : undefined;
@@ -879,14 +880,16 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const splits = Boolean(options.disjoint || options.profile);
     /**
      * Only partitions get a flow-share comparison: never normalize overlapping cutoffs to a false 100%. Over the month,
-     * as every flow opens (the page offers its other windows, see chartWindow). @param {string} where
+     * as every flow opens (the page offers its other windows, see chartWindow), each once a chart a window (`windows`).
+     * @param {string} where
      */
     const shareComparisons = (where) => !splits ? [] : FLOW_SHARES.flatMap(({ flow, places: [, place], log, section: at, pick }) => {
       const window = "_1m", total = pick(t.holders.all, window), parts = members.filter(([key, c]) => key !== "all" && byDate(pick(c, window)));
       if (at !== where || !byDate(total) || parts.length < 2) return [];
       const layers = parts.map(([key, c]) => series(flowShare(pick(c, window), total), shownOf(nameOf(key).name), { color: colors[members.findIndex(([k]) => k === key)], type: "area" }));
       const said = `Share of all ${flow}`;
-      return [...compare(capitalized(flow), (c) => pick(c, window), { additive: true, shares: false, log, window }), chart(shownAs(place, said), compared(said), layers, { stack: { 1: "stack" }, window })];
+      const windows = FLOW_WINDOWS.map(([key]) => key);
+      return [...compare(capitalized(flow), (c) => pick(c, window), { additive: true, shares: false, log, window, windows }), chart(shownAs(place, said), compared(said), layers, { stack: { 1: "stack" }, window, windows })];
     });
     /** Its members' shares of their whole, `pick`: all coins' (or capital), else the group's, `of` (which names the group). @param {string} what @param {(c: any) => any} pick */
     const shares = (what, pick) => compare(options.of ? shownAs(`Share of all ${what}`, `Share of ${options.of.name} ${what}`) : `Share of all ${what}`, pick, { whole: Boolean(options.of) });
@@ -1128,19 +1131,28 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const underTenthSatVb = [tx.fees.zeroFee.txCount, tx.fees.txCountByFeeRate.under0p1SatVb];
   const underOneSatVb = [...underTenthSatVb, ...(/** @type {const} */ (["_0p1To0p25SatVb", "_0p25To0p5SatVb", "_0p5To1SatVb"])).map((key) => tx.fees.txCountByFeeRate[key])];
 
-  /** Moving averages (`sma` or `ema`): each over the price with its ratio below, and all of them together. @param {any} node @param {string} kind */
+  /**
+   * Moving averages (`sma` or `ema`): all of them together, and one over the price with its ratio below, the 200-day
+   * (the page offers the others, see chartWindow); the 200-day SMA's ratio is the Mayer multiple, its own, with its
+   * bands. @param {any} node @param {string} kind
+   */
   const averages = (node, kind) => {
-    // (Each by its length: the shortest warm, the longest cool, as times are (recencyColor), in its own chart too.)
-    const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length));
+    // (Each by its length: the shortest warm, the longest cool, as times are (recencyColor).)
+    const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length)), long = node._200d;
+    if (!long?.ratio) throw new Error(`Moving averages: no 200-day ${kind} with its ratio`);
+    // (Each once a chart a window, named by it: those with the Mayer multiple its, the others the ratio's.)
+    const over = (/** @type {string} */ name, /** @type {Layer} */ ratio, /** @type {string} */ title, /** @type {boolean} */ mayer) => chart(name, title, [price(), series(own(long), `200-day ${kind}`, { color: colors[list.findIndex(([key]) => key === "_200d")] }), { ...ratio, pane: 2, ...around(1) }], { log: [2], was: Object.fromEntries(list.filter(([, value]) => Boolean(value.mayerMultiple) === mayer).map(([key]) => [spanLabel(key), key])) });
     return section(kind, [
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
-      ...list.map(([key, value], i) => chart(windowed(key), `${windowAdjective(key)} ${kind}${value.mayerMultiple ? " and the Mayer multiple" : ""}`, [
-        price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }),
-        // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)
-        value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price ratio", { pane: 2, ...around(1) }),
-      ], { log: [2] })),
+      over("Price ratio", series(long.ratio, "Price ratio"), `200-day ${kind}`, false),
+      long.mayerMultiple && over("Mayer multiple", series(long.mayerMultiple, "Mayer multiple", { levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }), `200-day ${kind} and the Mayer multiple`, true),
     ]);
   };
+
+  /** Whether a return's window is over years (2 years on): such a return shown as a growth multiple. @param {string} key */
+  const overYears = (key) => /y$/.test(key) && key !== "_1y";
+  /** The returns' places when they were one chart a window, as percents or, `years`, as growth (see chart's `was`). @param {boolean} years */
+  const returnsWere = (years) => Object.fromEntries(windowsOf(m.returns).filter(([key]) => overYears(key) === years).map(([key]) => [spanLabel(key), key]));
 
   // (The halving epoch and the year now, by the chain's facts: without them, the fourth and this year.)
   const epoch = Math.floor((facts?.height ?? 840_000) / 210_000), year = facts?.year ?? new Date().getUTCFullYear();
@@ -1153,19 +1165,20 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.daysBetweenMax, "Longest between", { color: "gray" })]),
       ]),
       section("Returns", [
-        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !/y$/.test(key) || key === "_1y").map(([key, value], i, all) => series(value, windowSaid(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
+        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !overYears(key)).map(([key, value], i, all) => series(value, windowSaid(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
         // (Over years, returns run from −80% to millions of percent: as growth multiples, on a log scale, 1× no change.)
-        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => /y$/.test(key) && key !== "_1y").map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowSaid(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
+        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => overYears(key)).map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowSaid(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
         // (Growth a year, compounded: what years of it made, each year alike; 4 years, a halving cycle, shown.)
         chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3), ...(span === "4y" ? {} : { hidden: true }) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray", hidden: true }]),
-        // (Each its own, as in the two above: up to a year as a percent, over years as a growth multiple, on a log scale.)
-        ...windowsOf(m.returns).map(([key, value]) => (/y$/.test(key) && key !== "_1y"
-          ? chart(windowed(key), `${windowAdjective(key)} price growth`, [price(), { formula: `1 + ${value.name} / 100`, label: `${windowAdjective(key)} growth`, format: "ratio", pane: 2, ...around(1) }], { log: [2] })
-          : chart(windowed(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })]))),
+        // (One over the price, as in the two above: the month's as a percent, 4 years' as a growth multiple, on a log
+        // scale; the page offers every other window, see chartWindow.)
+        chart("Return", "30-day price return", [price(), series(m.returns._1m, "30-day return", { pane: 2, ...baseline })], { was: returnsWere(false) }),
+        chart("Growth", "4-year price growth", [price(), { formula: `1 + ${m.returns._4y.name} / 100`, label: "4-year growth", format: "ratio", pane: 2, ...around(1) }], { log: [2], was: returnsWere(true) }),
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
-        ...entries(m.range.max).map(([key]) => chart(shownAs(`${adjective(spanLabel(key))} high and low`, `${windowAdjective(key)} high and low`), `Price's ${windowAdjective(key)} high and low`, [price(), series(m.range.max[key], "High", { color: "green" }), series(m.range.min[key], "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }])),
+        // (The month's; the page offers the others, see chartWindow.)
+        chart("High and low", "Price's 30-day high and low", [price(), series(m.range.max._1m, "High", { color: "green" }), series(m.range.min._1m, "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }], { was: Object.fromEntries(entries(m.range.max).map(([key]) => [`${adjective(spanLabel(key))} high and low`, key])) }),
       ]),
       section("Technical", [
         chart("RSI", "Relative strength index of the price", [price(), { formula: "rsi(A)", label: "RSI", pane: 2, color: "violet", levels: [{ value: 30, color: "green", dash: 3 }, { value: 70, color: "red", dash: 3 }] }]),
@@ -2027,7 +2040,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         walk(item.items, place, workings || Boolean(item.workings));
         continue;
       }
-      presets.push({ p: place, t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}) });
+      presets.push({ p: place, t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}), ...(item.was ? { w: Object.fromEntries(Object.entries(item.was).map(([name, key]) => [name, windowShort(key)])) } : {}) });
       icon = "";
     }
   };
