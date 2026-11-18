@@ -1,4 +1,4 @@
-//! The next block's template, built once per projection of block 0.
+//! The next block's template, built once per projection.
 
 use crate::{DatedTemplate, ReadOnlyState};
 use brk_types::BlockHash;

@@ -760,7 +760,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `GET /api/block-template`: the next block's template (BIP 22), built by Bitview from projected block 0, the same
   transactions in the same order, in the format pools and mining software read (`getblocktemplate`'s, with the
   height, previous block, bits, target and `mintime` from the indexed chain): a complete block once a coinbase paying
-  `coinbasevalue` and carrying `default_witness_commitment` is added. Built once per block 0 at a tip and dated
+  `coinbasevalue` and carrying `default_witness_commitment` is added. Built once per projection and dated
   as the request arrives (`curtime`), always on the current tip (`503` for the moment after a new block, until
   block 0 is projected on it). Bitcoin Core doesn't validate it before it is served: debug builds check every
   published template as served against Core (proposal mode, every check but proof of work) and log one it rejects

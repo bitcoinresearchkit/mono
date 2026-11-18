@@ -1,5 +1,5 @@
 //! The next block's template (BIP 22): projected block 0 at the tip it extends, built as JSON
-//! once per block 0 at a tip, each request refreshing only its `curtime`, as Core's
+//! once per projection, each request refreshing only its `curtime`, as Core's
 //! `getblocktemplate` reuses its block and refreshes the time. Core isn't asked whether its
 //! block is valid, except by debug builds, which check each published one ([`check`]).
 

@@ -111,10 +111,10 @@ Priority metadata is observed independently of membership. A failed priority RPC
 the last valid ranking map with a warning while other data updates; an unsupported method uses
 base-fee compatibility. Paid rates and totals always use base fees. Listed transactions not loaded
 yet, and their descendants, are left out of every block. Block 0 is also served as the next
-block's template (`/api/block-template`, BIP 22), built once per block 0 at a tip (kept while
-only blocks 1+ move) and dated per request (`curtime`). Debug builds ask Core whether each
-published template, as a request is served it, makes a valid block (`getblocktemplate` proposal
-mode) and log one it rejects as an error; release builds ask Core nothing. Each projected member's
+block's template (`/api/block-template`, BIP 22), built once per projection and dated per
+request (`curtime`). Debug builds ask Core whether each published template, as a request is
+served it, makes a valid block (`getblocktemplate` proposal mode) and log one it rejects as an
+error; release builds ask Core nothing. Each projected member's
 fee statistics use the feerate it was packed at, and every
 effective feerate is fee over the sigop-adjusted weight's exact quarter (Core's chunk feerates,
 mempool.space's effective ones); a block's `blockVSize` is its weight over 4. Maps keyed by addresses,
