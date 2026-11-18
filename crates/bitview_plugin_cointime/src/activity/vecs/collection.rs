@@ -1,7 +1,7 @@
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyRollingSumsFromHeight,
+    CumulativeState, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyRollingSumsFromHeight,
     PerBlockCumulative, PerBlockCumulativeRolling,
 };
 use brk_types::{Height, Sats};
@@ -35,12 +35,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// holding time than the window added.
     #[traversable(lead = "Concurrent liveliness: holding time spent against holding time added, over a window.")]
     pub concurrent_liveliness: LazyRatioRollingWindows<PartsPerMillion64>,
+    pub(crate) created_sat_blocks: M::WriteOnly<CumulativeState<u128>>,
 }
 
-/// Coinblocks created: each block's value is the circulating supply itself, read exactly, not
-/// a difference of the f64 running total, which drifts from it by up to half that total's
-/// spacing. The running total and the window sums stay stored, so they differ from a sum of
-/// block values by that drift (under 2 coinblocks in 1.4e13 at height 976,337).
+/// The block value reads circulating supply directly. The cumulative value rounds an exact
+/// sat-block total to coinblocks, and window sums subtract the rounded endpoints.
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(client = "Flow")]
 pub struct CoinblocksCreated<M: StorageMode = Rw> {

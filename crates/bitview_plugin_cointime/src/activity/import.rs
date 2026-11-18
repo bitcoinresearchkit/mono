@@ -114,6 +114,7 @@ impl Vecs {
             )?,
             derived: DerivedVecs::import(db, version, mappings)?,
             concurrent_liveliness,
+            created_sat_blocks: Default::default(),
         })
     }
 }
