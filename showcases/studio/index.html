@@ -9527,8 +9527,8 @@
           display: none;
         }
 
-        /* (A phone's keys: none, nor its Shortcuts.) */
-        .home-help [data-action="shortcuts"] {
+        /* (A phone's keys: none, nor its Shortcuts; nor the version, a build's name: ⌘K says it there.) */
+        .home-help :is([data-action="shortcuts"], #home-version) {
           display: none;
         }
 
