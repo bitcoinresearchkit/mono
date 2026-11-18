@@ -1,6 +1,6 @@
 // @ts-check
 // Drawing on the chart: lines, boxes, text and strokes.
-import { Custom, FAINT } from "/modules/bitview-charts/index.js";
+import { Custom, FAINT, inkOn } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
   beltStop, boxing, capturing, chart, chosen, commit, css, draft, drawingsHidden, drawVersion, engine, hideBelt, home,
@@ -19,7 +19,7 @@ import {
 import { FINE } from "/studio/intervals.js";
 import { hexToOklch, oklchToHex } from "/studio/color.js";
 import {
-  alpha, built, colorsAt, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats, oklchOf,
+  alpha, built, colorsAt, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats,
   paintedLayers, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownIndex, shownSpan, unitFor, viewName,
 } from "/studio/chart.js";
 import { nearestFinite, paneAt } from "/studio/formulas.js";
@@ -537,21 +537,8 @@ function touches(drawing, points, x, y, size, reach) {
   const box = boundsOf(drawing, points);
   return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
 }
-/**
- * Words on a color (OKLCH, as shown): white or the ink's black, by its lightness as drawn (its sRGB hex's, as the
- * library's own tags measure theirs, see its color.js): black from 0.7157, where APCA flips for a gray (#a4a4a4 and lighter),
- * so a color of one lightness goes one way whatever its hue (APCA, by luminance, split a palette of one lightness
- * by hue; WCAG's ratio overrates black on a vivid color).
- * @param {[number, number, number]} oklch
- */
-const textOn = (oklch) => (lightnessOf(oklchToHex(...oklch)) < 0.7157 ? "#ffffff" : "#08090a");
-/** A color's lightness as OKLab measures it (sRGB hex). */
-function lightnessOf(/** @type {string} */ hex) {
-  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
-  return 0.2104542553 * Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) + 0.793617785 * Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) - 0.0040720468 * Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
-}
-/** Words on a color as it's named (shown as the theme tones it). */
-const contrastOn = (/** @type {string} */ color) => textOn(shownOklch(color));
+/** Words on a color as it's named (shown as the theme tones it): white or black, by the chart library's one rule (see its color.js). */
+const contrastOn = (/** @type {string} */ color) => inkOn(oklchToHex(...shownOklch(color)));
 /** A color's luminance as WCAG reads it (sRGB hex), and two colors' contrast. */
 const luminance = (/** @type {string} */ hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
 const contrastOf = (/** @type {string} */ a, /** @type {string} */ b) => ((x, y) => (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05))(luminance(a), luminance(b));
@@ -589,11 +576,11 @@ function wordsColor(/** @type {Drawing} */ drawing, card = css("--card")) {
 }
 /** A tick on a color, in contrast, as a background image. */
 const tickOn = (/** @type {string} */ color) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.2 2.6 2.6L12 5.4' fill='none' stroke='${encodeURIComponent(contrastOn(color))}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;
-/** A label on an axis, at `at` along it, in a drawing's color as drawn (see colorOfDrawing: not toned again). @param {number} at @param {string} text @param {string} color */
+/** A label on an axis, at `at` along it, in a drawing's color as drawn (see colorOfDrawing: not toned again), its words the chart library's. @param {number} at @param {string} text @param {string} color */
 function axisTag(at, text, color) {
-  return { at, text, color, ink: textOn(oklchOf(color)) };
+  return { at, text, color };
 }
-/** @typedef {{ at: number, text: string, color: string, ink: string }} AxisTag */
+/** @typedef {{ at: number, text: string, color: string }} AxisTag */
 
 const NONE = /** @type {AxisTag[]} */ ([]);
 /** A layer whose series covers what's behind it: a cloud, an area, a baseline's fill, bars, candles. @param {Layer} layer */
@@ -666,10 +653,10 @@ class Sketch {
           if (this.shown.length) this.draw(g, sizeOf(at));
         },
         axisTags: (on, add) => {
-          if (on === side) for (const tag of this.axisTags()) if (Number.isFinite(tag.at)) add(tag.at, tag.text, tag.color, tag.ink);
+          if (on === side) for (const tag of this.axisTags()) if (Number.isFinite(tag.at)) add(tag.at, tag.text, tag.color);
         },
         timeTags: (add) => {
-          for (const tag of this.dateTags()) if (Number.isFinite(tag.at)) add(tag.at, tag.text, tag.color, tag.ink);
+          for (const tag of this.dateTags()) if (Number.isFinite(tag.at)) add(tag.at, tag.text, tag.color);
         },
       },
       { over: true },

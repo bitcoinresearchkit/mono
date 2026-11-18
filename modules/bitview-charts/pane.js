@@ -16,6 +16,7 @@ import { solid, tint, painted } from "./color.js";
 import { Tags, pill, PILL } from "./tags.js";
 import { Legend } from "./legend.js";
 import { layer } from "./layer.js";
+import { alike } from "./timeline.js";
 
 /**
  * A chart's look: its ground, its words' color, its grid's, its font; the crosshair's lines, and its badges' ground and
@@ -29,6 +30,14 @@ const SLOW = 8;
 const DOTS = [2, 3], SOLID = /** @type {number[]} */ ([]);
 /** A series' room at its scale's ends, as its margins write it (made once). */
 const ROOM = new Float64Array(2);
+/**
+ * How `series` widens its scale's range over indices `a` to `b` (`positive`: a log scale's, over zero), into `out`: by
+ * its own fit where it has one (a page's own reading), else its extent.
+ * @param {Series} series @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out @param {import("./timeline.js").Timeline} time
+ */
+function widen(series, a, b, positive, out, time) {
+  series.fit ? series.fit(a, b, positive, out) : series.extent(a, b, positive, out, time);
+}
 /** A tag's room on its axis: a pill and 2 pixels between two (CSS pixels). */
 const TAG = PILL;
 /**
@@ -48,7 +57,9 @@ const TAG = PILL;
  * from it: at index `i` (and `x` CSS pixels into the plot), `y` from the pane's top; `faint`, drawn at a fifth of its
  * opacity, its tag and price line gone (another lit over it: after a change, the chart's invalidate(true)). Drawn with
  * the chart's theme (its ground, its font: words in a pill); `behind`, drawn behind every series whatever their order (a
- * backdrop: levels across).
+ * backdrop: levels across); `drawOver`, what it draws over everything as well, on that layer, each frame (its marks'
+ * words: never in a picture a pan moves, so they can keep to the view), each box it draws told to `drew` (the layer
+ * cleared there alone at the next frame).
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -69,6 +80,7 @@ const TAG = PILL;
  *   extent(a: number, b: number, positive: boolean, out: Float64Array, time?: import("./timeline.js").Timeline): void,
  *   viewed?(time: import("./timeline.js").Timeline): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
+ *   drawOver?(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme, drew: (x: number, y: number, width: number, height: number) => void): void,
  * }} Series
  */
 
@@ -113,10 +125,22 @@ export class Pane {
     /** @type {CanvasRenderingContext2D | null} */
     this.leftG = null;
     this.leftWidth = 0;
-    /** Its layer over everything, the crosshair too (its series `over`: see draw), made as the first comes. @type {HTMLCanvasElement | null} */
+    /** Its layer over everything, the crosshair too (its series `over`, and what any draws over: see draw), made as the first comes. @type {HTMLCanvasElement | null} */
     this.overCanvas = null;
     /** @type {CanvasRenderingContext2D | null} */
     this.overG = null;
+    /** The boxes its series drew over everything at the last frame (each left, top, width, height, CSS pixels; `overCount`
+     * of them): its layer cleared there alone at the next, not whole (in WebKit, clearing it whole was most of a pan
+     * frame's time); whole where a series `over` drew (anything, anywhere). */
+    this.overBoxes = new Float64Array(64);
+    this.overCount = 0;
+    this.overWhole = true;
+    /** One box a series drew over everything (see overBoxes): made once, given to each. @param {number} x @param {number} y @param {number} width @param {number} height */
+    this.drewOver = (x, y, width, height) => {
+      if (this.overCount * 4 >= this.overBoxes.length) ((grown) => (grown.set(this.overBoxes), (this.overBoxes = grown)))(new Float64Array(this.overBoxes.length * 2));
+      const k = this.overCount++ * 4;
+      (this.overBoxes[k] = x), (this.overBoxes[k + 1] = y), (this.overBoxes[k + 2] = width), (this.overBoxes[k + 3] = height);
+    };
     /** Told when its layout changes (its left scale come or gone, its layer over it come): the chart lays itself out again. @type {() => void} */
     this.onLayout = () => {};
     /** @type {Series[]} */
@@ -193,6 +217,8 @@ export class Pane {
     this.tagStep = 0;
     /** What drawing it whole takes (ms, the last few weighed): a zoom stretches its picture only where it's slow. */
     this.wholeCost = 0;
+    /** Its picture kept as it was at the last frame, with no series `over` on it: its layer over it kept too (see drawOver). */
+    this.still = false;
     /** @type {Theme | null} */
     this.drawnTheme = null;
     this.ticks = new Float64Array(24);
@@ -227,7 +253,7 @@ export class Pane {
       if (this.leftRange) this.left.fit(this.leftRange[0], this.leftRange[1]);
       this.onLayout();
     }
-    if (series.over && !this.overCanvas) {
+    if ((series.over || series.drawOver) && !this.overCanvas) {
       // (Over the crosshair's, wherever a page puts them.)
       this.overCanvas = layer("position: absolute; left: 0; z-index: 2; display: block; pointer-events: none");
       this.overG = this.overCanvas.getContext("2d");
@@ -460,26 +486,35 @@ export class Pane {
     const over = this.overCanvas;
     if (over) {
       const ow = Math.round(this.plot * dpr);
-      if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h);
+      if (over.width !== ow || over.height !== h) (over.width = ow), (over.height = h), (this.drawnFrom = NaN);
       Object.assign(over.style, { top: `${top}px`, width: `${this.plot}px`, height: `${height}px`, transform: "" });
     }
   }
 
   /**
-   * Its series `over` (marks over everything: the crosshair too) drawn on its layer over it, whole: at each frame,
-   * wherever its picture's moved.
+   * Its series `over` (marks over everything: the crosshair too), and what any draws over, drawn on its layer over it,
+   * whole: at each frame, wherever its picture's moved.
    * @param {import("./timeline.js").Timeline} time @param {number} dpr
    */
   drawOver(time, dpr) {
-    const g = this.overG;
-    if (!g || !this.overCanvas) return;
+    const g = this.overG, over = this.overCanvas;
+    if (!g || !over || this.still) return;
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.clearRect(0, 0, this.overCanvas.width, this.overCanvas.height);
+    if (this.overWhole) g.clearRect(0, 0, over.width, over.height);
+    else {
+      // (Each out to whole device pixels and one past, for its smoothed edges.)
+      const boxes = this.overBoxes;
+      for (let k = 0; k < this.overCount * 4; k += 4) {
+        const x = Math.floor(boxes[k] * dpr) - 1, y = Math.floor(boxes[k + 1] * dpr) - 1;
+        g.clearRect(x, y, Math.ceil((boxes[k] + boxes[k + 2]) * dpr) + 1 - x, Math.ceil((boxes[k + 1] + boxes[k + 3]) * dpr) + 1 - y);
+      }
+    }
+    (this.overCount = 0), (this.overWhole = false);
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
-      if (!series.over || series.hidden) continue;
+      if (series.hidden || !(series.over || series.drawOver)) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
         const base = series.first(from);
@@ -487,7 +522,8 @@ export class Pane {
         scale.setBase(base);
       }
       if (series.faint) g.globalAlpha = FAINT;
-      series.draw(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme));
+      if (series.over) (this.overWhole = true), series.draw(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme));
+      else series.drawOver?.(g, time, scale, 0, this.plot, dpr, /** @type {Theme} */ (this.drawnTheme), this.drewOver);
       g.globalAlpha = 1;
     }
   }
@@ -634,6 +670,7 @@ export class Pane {
       }
       (state.right = this.scale), (state.left = this.left);
       state.groups = groups = Array.from(scales.values());
+      for (const group of groups) group.scale.reach = (time, a, b, out) => this.#reach(time, group, a, b, out);
     }
     for (let k = 0; k < groups.length; k++) {
       const group = groups[k];
@@ -653,10 +690,11 @@ export class Pane {
     if (relative && side < 0) throw new Error("bitview-charts: an overlay reads its values as they are (linear or log)");
     out[0] = Infinity;
     out[1] = -Infinity;
-    let same = true, above = 0, below = 0;
+    let same = true, above = 0, below = 0, versions = 0;
     // (The points at least partly in view, as the chart library's strict range: the one past each edge its line runs to.)
     for (let at = 0; at < n; at++) {
       const k = indices[at], series = this.series[k];
+      versions += series.version;
       if (series.hidden) continue;
       // (The room its marks keep clear at the scale's ends: the most any asks, above and below, as the chart library's.)
       if (series.margins) {
@@ -665,7 +703,7 @@ export class Pane {
         if (ROOM[1] > below) below = ROOM[1];
       }
       if (!relative) {
-        if (auto) series.fit ? series.fit(a, b, log, out) : series.extent(a, b, log, out, time);
+        if (auto) widen(series, a, b, log, out, time);
         continue;
       }
       // (A series with no base (none in view, or 0) has no reading: neither fitted nor drawn.)
@@ -674,7 +712,7 @@ export class Pane {
       if (!Object.is(base, this.drawnBases[k])) same = false;
       if (!auto || !base || base !== base) continue;
       (own[0] = Infinity), (own[1] = -Infinity);
-      series.fit ? series.fit(a, b, false, own) : series.extent(a, b, false, own, time);
+      widen(series, a, b, false, own, time);
       if (!(own[0] <= own[1])) continue;
       scale.setBase(base);
       const lo = own[0] * scale.m + scale.c, hi = own[1] * scale.m + scale.c;
@@ -682,6 +720,7 @@ export class Pane {
       if (hi > out[1]) out[1] = hi;
     }
     if (!same) this.basesSame = false;
+    scale.reached = auto ? versions : -1;
     if (auto) (scale.askedAbove = above), (scale.askedBelow = below);
     const asked = scale.askedAbove + scale.askedBelow;
     if (asked) {
@@ -690,6 +729,18 @@ export class Pane {
     } else if (scale.above || scale.below) (scale.above = 0), (scale.below = 0);
     if (auto) scale.fit(out[0], out[1]);
     scale.empty = auto && !(log ? out[0] > 0 && out[0] <= out[1] : out[0] <= out[1]);
+  }
+
+  /**
+   * What `group`'s scale is fitted to in any view within indices `a` to `b`, at the most: its series' range there,
+   * hidden ones too (one may be shown), widening `out`. None where its fit in a view isn't known from their values
+   * alone: held, or relative (each read against its first value in view).
+   * @param {import("./timeline.js").Timeline} time @param {ScaleGroup} group @param {number} a @param {number} b @param {Float64Array} out
+   */
+  #reach(time, group, a, b, out) {
+    const scale = group.scale, auto = group.side < 0 || (group.side === 0 ? this.auto : this.leftAuto);
+    if (!auto || scale.relative) return;
+    for (const k of group.indices) widen(this.series[k], a, b, scale.mode === "log", out, time);
   }
 
   /**
@@ -702,13 +753,13 @@ export class Pane {
   draw(time, theme, dpr, whole) {
     const g = this.g, plot = this.plot, spacing = time.spacing, shift = (this.drawnFrom - time.from) * spacing, by = Math.round(shift);
     // (Its series over it drawn apart: theirs never stale its picture, only its axes (their tags there).)
-    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, overlaid = true, shown = this.drawnHidden.length === this.series.length;
+    let versions = 0, overs = 0, fixed = false, dashed = false, immovable = false, overlaid = true, shown = this.drawnHidden.length === this.series.length, own = false;
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (shown && this.drawnHidden[k] !== (series.hidden ? 1 : 0)) shown = false;
       // (Brought up to the view first: what it draws may hang on it (bubbles sized to the largest in view).)
       if (!series.hidden) series.viewed?.(time);
-      if (series.over) overs += series.version;
+      if (series.over) (overs += series.version), (own ||= !series.hidden);
       else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
       // (An overlay's scale changed: drawn whole, as a side's is.)
       if (series.overlay && !series.overlay.unchanged) overlaid = false;
@@ -716,7 +767,7 @@ export class Pane {
     // (Its scale or its series changed (what a point on it hits with them): counted, for the crosshair's listeners.)
     if (versions !== this.drawnVersions || overs !== this.drawnOvers || !shown || !overlaid || !this.basesSame || !this.scale.unchanged || (this.left && !this.left.unchanged)) this.changes++;
     const same = !whole && overlaid && this.drawnFrom === this.drawnFrom && (!(this.scale.relative || this.left?.relative) || this.basesSame) && versions === this.drawnVersions && theme === this.drawnTheme && this.scale.unchanged && (!this.left || this.left.unchanged) && this.drawnPlot === plot;
-    const moves = same && (!fixed || !shift) && Math.abs(spacing - this.drawnSpacing) <= spacing * 1e-9 && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
+    const moves = same && (!fixed || !shift) && alike(spacing, this.drawnSpacing) && Math.abs(shift - by) < 1e-3 && Math.abs(by) < plot / 2 && Math.abs(by * dpr - Math.round(by * dpr)) < 1e-3;
     // (A zoom, where drawing it whole takes over half a frame (a browser drawing on the CPU at a large size): its last
     // sharp picture kept as the zoom began, stretched to the new spacing while it's within half to twice it. Drawn whole
     // where that's quick: sharp all along.)
@@ -728,6 +779,9 @@ export class Pane {
       if (!by) {
         // (Its series over it changed, or the point its tags read: its axes drawn again, the plot as it is.)
         if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
+        // (What's drawn over it from the view alone kept as it is too; a series `over` (a page's own, which may follow
+        // the pointer) drawn whole each frame.)
+        this.still = !own;
         return false;
       }
       // (What stays, copied to where it goes, in device pixels; then the strip come in.)
@@ -772,6 +826,7 @@ export class Pane {
     this.drawnOvers = overs;
     if (!shown) this.drawnHidden = Uint8Array.from(this.series, (series) => (series.hidden ? 1 : 0));
     this.drawnTheme = theme;
+    this.still = false;
     for (let k = 0; k < this.series.length; k++) this.drawnBases[k] = this.bases[k];
     return moves || stretches;
   }
@@ -941,41 +996,34 @@ export class Pane {
     g.stroke();
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
-      if (this.series[k].hidden || this.series[k].over) continue;
+      const series = this.series[k];
+      if (series.hidden || series.over) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
-        const base = this.series[k].first(from);
+        const base = series.first(from);
         if (!base || base !== base) continue;
         scale.setBase(base);
       }
-      if (this.series[k].faint) g.globalAlpha = FAINT;
-      this.series[k].draw(g, time, scale, x0, x1, dpr, theme);
+      if (series.faint) g.globalAlpha = FAINT;
+      series.draw(g, time, scale, x0, x1, dpr, theme);
       g.globalAlpha = 1;
-    }
-    // (Price lines: across at a line's last value, dotted, in its color there; its dots where they'd be on the timeline,
-    // so a picture moved by a pan has them where a whole draw does.)
-    g.setLineDash(DOTS);
-    g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
-    for (let k = 0; k < this.series.length; k++) {
-      const series = this.series[k], line = lineOf(series), scale = this.scaleOf(k);
-      if (!line || !line.priceLine || series.hidden || series.faint) continue;
-      const i = line.last(scale.mode === "log");
-      if (i < 0) continue;
-      if (scale.relative) {
-        const base = line.first(from);
-        if (!base || base !== base) continue;
-        scale.setBase(base);
-      }
+      // (Its price line with it, under the series after it (their lines, their marks' words): across at its line's last
+      // value, dotted, in its color there; its dots where they'd be on the timeline, so a picture moved by a pan has them
+      // where a whole draw does.)
+      const line = lineOf(series), i = line?.priceLine && !series.faint ? line.last(scale.mode === "log") : -1;
+      if (!line || i < 0) continue;
       const y = Math.round(scale.y(line.values[i]) * dpr) / dpr + 0.5 / dpr;
+      g.setLineDash(DOTS);
+      g.lineDashOffset = (x0 + time.from * time.spacing) % (DOTS[0] + DOTS[1]);
       g.strokeStyle = line.colorAt(i);
       g.lineWidth = 1;
       g.beginPath();
       g.moveTo(x0, y);
       g.lineTo(x1, y);
       g.stroke();
+      g.setLineDash(SOLID);
+      g.lineDashOffset = 0;
     }
-    g.setLineDash(SOLID);
-    g.lineDashOffset = 0;
     if (this.separated) this.#separator(g, theme, dpr, x0, x1);
     g.restore();
   }

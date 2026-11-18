@@ -9,7 +9,7 @@ import { hexToOklch, oklchToHex } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
   averageFor, bandLit, BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex,
-  changesOf, chart, chartHeight, chartSans, chartSize, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
+  changesOf, chart, chartHeight, chartSans, chartSize, CHART_TEXT, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
   chartShown, displayed, draft, EMPTY, engine, exporting, fitMargins, footPinned, fromShort, fromUnfit, goneLayer, grow,
   heatKnown, home, hoverTime, indexAt, indexCatalog, keepStretch, keyAway, keyTime, keyValue, layerPicks, light,
   liveHeight, lookDoc, lookShown, morphFrom, mostBars, MOTION, motionsSized, ontoData, openingView, paintNavigator,
@@ -771,7 +771,7 @@ function nameAxis() {
  */
 function axisWidth() {
   const context = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
-  context.font = `11px ${chartSans}`;
+  context.font = `${CHART_TEXT}px ${chartSans}`;
   return Math.ceil((Math.max(context.measureText("0".repeat(AXIS_CHARS)).width, context.measureText(`−${PRECISE}%`).width) + 16) / 4) * 4;
 }
 /** The chart's colors, the theme's (set again when it changes). */
@@ -780,7 +780,7 @@ function axisWidth() {
  * shows it (see chartGround).
  */
 function chartTheme() {
-  return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), active: css("--accent"), font: `11px ${chartSans}` };
+  return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), active: css("--accent"), font: `${CHART_TEXT}px ${chartSans}` };
 }
 /**
  * The ground under the chart as it shows: its box's and its ancestors' backgrounds up to the first that isn't
@@ -1072,18 +1072,19 @@ function markSignals(doc, data, drawn, old) {
     if (!on || !values || !own) continue;
     // (Up, at its place; down, its mirror (above and below swapped), in its second color (red, unset). Its results asked for, each
     // stretch's on the mark that ends it: one ending in neither, a dot there.)
-    const place = layer.place ?? "above", [, , position, shape] = MARK_PLACES.find(([id]) => id === place) ?? MARK_PLACES[0], op = opacityOf(layer);
-    const [, , downPosition, downShape] = MARK_PLACES.find(([id]) => id === (place === "above" ? "below" : place === "below" ? "above" : place)) ?? MARK_PLACES[0];
+    const place = layer.place ?? "above", [, , position] = MARK_PLACES.find(([id]) => id === place) ?? MARK_PLACES[0], op = opacityOf(layer);
+    const [, , downPosition] = MARK_PLACES.find(([id]) => id === (place === "above" ? "below" : place === "below" ? "above" : place)) ?? MARK_PLACES[0];
     // (On its layer's pane and side; a 100% stack's range its own, no room kept for them.)
     const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), down = alpha(ink(belowOf(layer)), op);
     const list = marked.get(on)?.list ?? marked.set(on, { list: [], pane: doc.panes.findIndex((pane) => pane.id === target?.pane), side: target?.side === "left" ? "left" : "right", room: doc.panes.find((pane) => pane.id === target?.pane)?.stack !== "percent" }).get(on).list;
     for (const change of changesOf(values)) {
-      // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark.)
-      const i = change.at, result = layer.results ? stretchResult(change, reference) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down };
+      // (Its result's words in the color of its sign (a rise in the up color, a fall in the down one), whatever the mark;
+      // where words crowd, the biggest move's kept: its layer's change over the stretch, as a log scale draws it.)
+      const i = change.at, result = layer.results ? stretchResult(change, reference) : undefined, text = result === undefined ? {} : { text: resultText(result), textColor: result >= 0 ? color : down, priority: Math.abs(Math.log1p(result * change.was)) };
       if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
-      if (change.to > 0 && !shade) list.push({ at: i, position, shape, color, ...text });
-      else if (change.to < 0 && !shade) list.push({ at: i, position: downPosition, shape: downShape, color: down, ...text });
-      else if (result !== undefined) list.push({ at: i, position: "on", shape: "circle", size: 0.5, color: change.was > 0 ? color : down, ...text });
+      if (change.to > 0 && !shade) list.push({ at: i, position, color, ...text });
+      else if (change.to < 0 && !shade) list.push({ at: i, position: downPosition, color: down, ...text });
+      else if (result !== undefined) list.push({ at: i, position: "on", color: change.was > 0 ? color : down, ...text });
     }
   }
   for (const [series, made] of markers) {

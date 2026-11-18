@@ -73,10 +73,10 @@ const TREND_SAYS = "Follows the lowest until the layer that flips it touches it,
 /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc */
 const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && !placedOn(other) && !heatLike(other));
 /**
- * How a signal shows: marks where it turns up (a condition: true), over its layer (pointing down at it), under it
- * (pointing up), on it, a down one mirrored; or, shaded, its stretches up or down, its layer's pane's height.
+ * How a signal shows: marks where it turns up (a condition: true), over its layer, under it or on it, a down one
+ * mirrored; or, shaded, its stretches up or down, its layer's pane's height.
  */
-const MARK_PLACES = /** @type {[string, string, string, string][]} */ ([["above", "Above", "above", "down"], ["below", "Below", "below", "up"], ["on", "On it", "on", "circle"], ["shade", "Shaded", "", ""]]);
+const MARK_PLACES = /** @type {[string, string, string][]} */ ([["above", "Above", "above"], ["below", "Below", "below"], ["on", "On it", "on"], ["shade", "Shaded", ""]]);
 /** A place's name as a choice says it: "Above the layer", "Shaded". @param {string} place */
 const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
 /**

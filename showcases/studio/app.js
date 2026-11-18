@@ -3004,6 +3004,8 @@ animateMark();
  */
 const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
 let chartSans = css("--sans");
+/** The size of every word on the chart (CSS pixels): its axes', its tags', its marks', its navigator's; its legends' the same (see .legend). */
+const CHART_TEXT = 12;
 // Register the page's resize work before the chart's observer, so it joins the chart's next draw.
 const resized = new ResizeObserver((entries) => {
   for (const entry of entries) if (entry.target === $("overview")) overviewBox = entry.contentRect;
@@ -4356,7 +4358,7 @@ function paintNavigator(lit) {
   context.clearRect(0, 0, w, h);
   // (Its font set once: kept by the canvas till it's resized, setting it again would work out the page's styles.)
   if (context.font !== navigatorFont) {
-    context.font = `${11 * ratio}px ${chartSans}`;
+    context.font = `${CHART_TEXT * ratio}px ${chartSans}`;
     navigatorFont = context.font;
   }
   /** @type {{ text: string, width: number, x: number }[]} */
@@ -11423,7 +11425,7 @@ export {
   acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
   BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
   cardsSeen, catalogIndex, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
-  chartShown, chartSize, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
+  chartShown, chartSize, CHART_TEXT, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
   cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, crossMoved, css,
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,
   drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours, editChart, edits,

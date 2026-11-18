@@ -22,7 +22,9 @@ chart.show(365);                                 // the last 365 points in view
 
 - `createChart(element, { theme, axis, leftAxis, timeHeight, maxSpacing, dateFormat, embedded })`: `theme` is `DARK`
   (default) or `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair` and `across`, its lines down
-  and across, `badge`, `separator`); `axis`, whether there's an axis at the right (0, none) and its width till drawn:
+  and across, `badge`, `separator`; its `font`, every word on the chart in one face and one size: axes, tags, marks,
+  the crosshair's, its legends', as `--bc-font` on `element`; `DARK` and `LIGHT`: `12px system-ui, sans-serif`);
+  `axis`, whether there's an axis at the right (0, none) and its width till drawn:
   then as wide as its labels and tags need (`axisShown`: wider at once, never narrower by itself: `fitAxes()`, or a price axis' double-click, fits them again; every point kept where it is on the screen, the axis growing over the plot's edge);
   `leftAxis`, the left one's, where a pane has a left scale (as `axis`; `leftShown`); both fields too, then `layout()`; `dateFormat`, how the crosshair writes a point's time (seconds). `timeAxis.format`, a
   page's own time labels: `(t, kind)` (kind "year", "month", "day" or "time": what the label starts) to words, "" for
@@ -117,7 +119,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   not: a tag, a row of its own, the pointer moved onto the legend), else the one the crosshair's pointer is on. Hidden ones
   left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
   over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-count`; `data-chip`,
-  `data-named`, an item's `data-pointed`).
+  `data-named`, an item's `data-pointed`), in the theme's `font`.
 
 ## Series
 
@@ -125,7 +127,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   `colors` (a `Uint8Array` of indices into `palette`) colors each segment by its first point; `breaks` (a
   `Uint8Array`, 1 at a point) stops the line after it; `tag`, its value on the axis: its last in view (the crosshair's own tag says the pointer's; written by
   `format`, else as its side writes values, given its axis's step there; a side's tags laid top to bottom, each at its
-  line or just under the one over it, the last cut off at the foot, one where lines read the same, none for a line out of the pane); `priceLine`, a dotted line across at it; `stroke: false`, no line (its tag and price
+  line or just under the one over it, the last cut off at the foot, one where lines read the same, none for a line out of the pane); `priceLine`, a dotted line across at it (drawn with it: the series added after it, their marks too, over it); `stroke: false`, no line (its tag and price
   line kept); `outline`, a color it's edged in (over a heatmap, a cloud, another line: it stands off them); `dots`, a
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);
@@ -178,12 +180,33 @@ clears); avoid reflecting programmatic calls. A programmatic
   it, downward under it), the groups stacked, each filled in its colors to the edge, as long as the longer side's
   whole; `sumsAt(y)`, each group's sum from the close to a height. Fitted by the page's `fit`, else not.
 - `Marks({ series, marks, room })`: a series' marks (a signal's turns), added to its pane on its series' side after it:
-  each `{ at, position, shape, color, text, textColor, size }` at a point (its index), `"above"` it (a candle's high),
-  `"below"` it (its low) or `"on"` it; an arrow (`"up"`, `"down"`), a `"circle"` or a `"square"` as tall as a point is
-  wide (12 to 30 pixels, times `size`; 0: none), several at a point stacked away from it; its words in a pill of the
-  ground edged in its color (or `textColor`), only where they have room at the zoom (from the latest back, one running
-  into the next one's goes without them). Their room kept at the scale's ends while its series has values in view
-  (`room: false`, none); `set(marks)` after a change.
+  each `{ at, position, color, text, textColor, size, priority }` at a point (its index), `"above"` it (a candle's
+  high), `"below"` it (its low) or `"on"` it: a dot in its color (radius 3.5, times `size`; 0: none), ringed in the
+  ground, resting on the point from its side (on it: centered), several at a point stacked away from it; its words just
+  past its dot (on it: under it; at the timeline's ends, moved along it to stay a little within them), in a tag's pill
+  of its color (or `textColor`) as it is, its words on it as a tag's (see `inkOn`, with a whisper of its hue where that
+  still reads 4.5:1, else moved toward pure white or black as far as that takes); placed past its dot, over the series,
+  outlined: a pill of the ground edged in that color, its words in it, kept at 4.5:1 or more. Where words crowd at the
+  zoom, in the order of their `priority` (a move's size, say: the biggest first; at one, the latest first; those
+  without, an event's name say, first, each counted only in another without), one whose words would run into those of
+  one shown before it, in a row theirs can meet at some pan at that zoom (as far apart as the widest range its scale is
+  fitted to in a view with both puts them: every series on it, hidden ones too; a relative or held scale's unknown, rows
+  on one side always meeting, on two where the series crosses between them), is counted in the nearest of those ("2
+  more", room kept for it on its left where words later in that order would run into its own; quieter than they are: in
+  the theme's `text` color, kept at 4.5:1 or more, on a quiet tag of its `separator` color laid on its ground). The
+  order is the data's: a pan regroups none, only a change of spacing does (a zoom, or the plot resized, as a wider price
+  axis does), or of its scale (its mode, its height, its series' values). Its words over everything, on its pane's layer
+  over it, drawn each frame, whole within the plot and clear of its other dots and of the words placed before them (in
+  their order, the counts alone last): where its edge would cut them or they'd cover a dot, moved to the nearest spot
+  that's clear (along their row, out from the series, or past their dot on its other side, over the series) where
+  they're still nearer their own dot than any other, else a pill tried without its count, else left out; a count on the
+  side of its pill away from its dot (right of it where the pill moves right or the count has no room on its left); one
+  whose pill's dot is past an edge of the plot shown alone, where the words of the one it holds nearest that edge would
+  be, while a mark it holds is in view. Their room kept at the scale's ends while its series has values in view (`room:
+  false`, none); `set(marks)` after a change.
+- `inkOn(color)`: white or black words on a CSS color, the chart's one rule for them (its tags', badges' and marks'
+  pills'): APCA's pick, unless that falls short of WCAG 2's 4.5:1 there (its floor for small words), then the other
+  (pure white's and black's ratios on a color multiply to 21, so one always reaches 4.58).
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

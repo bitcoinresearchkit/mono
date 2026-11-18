@@ -19,7 +19,7 @@ function adopt() {
   if (sheet || typeof CSSStyleSheet === "undefined") return;
   sheet = new CSSStyleSheet();
   sheet.replaceSync(`
-    :where(.bc-legend) { position: absolute; top: 4px; left: 8px; display: flex; align-items: center; gap: 2px; height: 22px; overflow: hidden; pointer-events: none; font: 12px system-ui, sans-serif; white-space: nowrap }
+    :where(.bc-legend) { position: absolute; top: 4px; left: 8px; display: flex; align-items: center; gap: 2px; height: 22px; overflow: hidden; pointer-events: none; font: var(--bc-font); white-space: nowrap }
     .bc-legend[hidden], .bc-legend > [hidden] { display: none !important }
     :where(.bc-legend[data-chip]) { pointer-events: auto; cursor: pointer; gap: 0 }
     :where(.bc-legend[data-chip] > * + *) { margin-left: -6px }

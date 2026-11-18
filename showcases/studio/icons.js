@@ -127,8 +127,12 @@ const glyph = (type) => {
   }[type] ?? (type === "signal" ? markBody("above", "currentColor") : "");
   return glyphSvg(body);
 };
-/** A signal's mark, drawn at 16×12 as the chart has it: an arrow down onto its layer, up to it, or a dot on it. */
-const markBody = (/** @type {string | undefined} */ place, /** @type {string} */ color) => (place === "shade" ? `<rect x="4.5" y="1" width="7" height="10" rx="1" fill="${color}" fill-opacity=".4"/>` : place === "on" ? `<circle cx="8" cy="6" r="3.2" fill="${color}"/>` : place === "below" ? `<path d="M8 2 12.5 7H9.6v3.5H6.4V7H3.5Z" fill="${color}"/>` : `<path d="M8 10 3.5 5h2.9V1.5h3.2V5h2.9Z" fill="${color}"/>`);
+/** A signal's mark, drawn at 16×12 as the chart has it: a dot resting on its layer (a faint line) from above, hanging under it, or on it; shaded, a band. */
+const markBody = (/** @type {string | undefined} */ place, /** @type {string} */ color) => {
+  if (place === "shade") return `<rect x="4.5" y="1" width="7" height="10" rx="1" fill="${color}" fill-opacity=".4"/>`;
+  const [line, dot] = place === "on" ? [6, 6] : place === "below" ? [2.5, 6.8] : [9.5, 5.2];
+  return `<path d="M1.5 ${line}h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4"/><circle cx="8" cy="${dot}" r="3" fill="${color}"/>`;
+};
 /** A line shape, drawn on whole pixels at 16×12. */
 const shapeGlyph = (shape) => glyphSvg(`<path d="${{ straight: "M1.5 9.5l4-4 3 3 6-6", steps: "M1.5 9.5h3v-4h4v3h3v-6h3", curved: "M1.5 9.5C4 9.5 4 5 6.5 5s2.5 3.5 5 3.5 2-6 3-6" }[shape]}" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
 /** An outline: a line over its band. */
