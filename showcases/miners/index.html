@@ -234,6 +234,24 @@
           font-size: 13px;
           text-wrap: pretty;
         }
+        /* The section's one figure, its words under it: room kept for both before they're read. */
+        .reach {
+          grid-area: 1 / 2 / 3 / 3;
+          min-width: 220px;
+          min-height: 56px;
+          margin: 0;
+          color: var(--soft);
+          font-size: 12px;
+          text-align: right;
+          b {
+            display: block;
+            color: var(--ink);
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+          }
+        }
       }
 
       /* Rows of a table: a quiet head, a hairline over each row, a finger's height. */
@@ -258,6 +276,10 @@
         .num {
           padding-right: 0;
           text-align: right;
+        }
+        /* A sum to eight places, so a column of them lines up; the zeros that say nothing, softer. */
+        .zeros {
+          color: var(--soft);
         }
       }
       .pool {
@@ -414,6 +436,34 @@
           }
         }
       }
+      /* Every block that left coins, by its day and its sum: the sums on a scale of tens. */
+      .chart {
+        margin: 0 0 28px;
+        svg {
+          display: block;
+          width: 100%;
+          height: 200px;
+          /* (The years sit under the picture's foot.) */
+          margin-bottom: 26px;
+          overflow: visible;
+        }
+        line {
+          stroke: var(--line);
+        }
+        circle {
+          fill: var(--ink);
+          opacity: 0.5;
+        }
+        text {
+          fill: var(--soft);
+          font-size: 11px;
+        }
+        figcaption {
+          margin-top: 8px;
+          color: var(--soft);
+          font-size: 12px;
+        }
+      }
       /* (Nothing moves as the tables come in: what's under a table still being read waits unseen, and shows in its
          place once every table above it is in; a section a link asked for shows at once, held in view as they fill.) */
       main:not(:has(:target)) section:has(.wait) ~ section,
@@ -431,6 +481,33 @@
       .wait {
         min-height: 220px;
         background: repeating-linear-gradient(to bottom, transparent 0 43px, var(--line) 43px 44px);
+      }
+      /* A choice between two orders. */
+      .seg {
+        display: inline-flex;
+        margin-bottom: 14px;
+        border-radius: 9px;
+        background: var(--tank);
+        button {
+          min-height: 32px;
+          padding: 0 12px;
+          border: 0;
+          border-radius: 9px;
+          background: none;
+          color: var(--soft);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 500;
+          cursor: pointer;
+          @media (hover: none) {
+            min-height: 44px;
+          }
+          &[aria-pressed="true"] {
+            background: var(--app);
+            box-shadow: inset 0 0 0 1px var(--line), 0 1px 2px rgb(0 0 0 / 0.12);
+            color: var(--ink);
+          }
+        }
       }
       /* The button for the rest of a list. */
       .more {
@@ -473,6 +550,15 @@
         .intro {
           grid-template-columns: 1fr;
           padding-top: 20px;
+        }
+        .sechead {
+          grid-template-columns: 1fr;
+          .reach {
+            grid-area: auto;
+            min-height: 52px;
+            margin-top: 12px;
+            text-align: left;
+          }
         }
         .rows {
           th,
@@ -606,7 +692,8 @@
       <section id="unclaimed">
         <div class="sechead">
           <h2>Blocks with unclaimed coins</h2>
-          <p>A miner may claim less than it's owed, and what's left is gone for good. Every block where one did. Coins lost: <b id="unclaimed-total">&nbsp;</b>.</p>
+          <p>A miner may claim less than it's owed, and what's left is gone for good. Every block where one did, by its day and by how much it left.</p>
+          <p class="reach"></p>
         </div>
         <div data-table="unclaimed" class="wait"></div>
       </section>
@@ -670,6 +757,8 @@
       });
       /** The first of the recent blocks. */
       const recentFrom = tip - RECENT;
+      /** The day number of a time (days since 2009-01-01, the day1 series' index). */
+      const dayNumber = (ms) => (ms - Date.UTC(2009, 0, 1)) / 86_400_000;
       /** The first block of day `day` (days since 2009-01-01). */
       const dayStart = (day) => (day <= 0 ? 0 : dayStarts[day - 1]);
       /** Each new thing's first block, or null before there is one, its own promise: its series' first day's, and
@@ -679,17 +768,19 @@
         firstOf("p2a_output_count_cumulative"),
         firstOf("ephemeral_dust_spending_tx_count_cumulative"),
         firstOf("bip54_coinbase_locktime_block_count_cumulative"),
-        Promise.resolve(dayStart((BIP110_ASSIGNED - Date.UTC(2009, 0, 1)) / 86_400_000) ?? null),
+        Promise.resolve(dayStart(dayNumber(BIP110_ASSIGNED)) ?? null),
       ];
-      const dateOf = (height) => {
+      /** The day a block was mined on (days since 2009-01-01). */
+      const dayOf = (height) => {
         let low = 0, high = dayStarts.length - 1;
         while (low < high) {
           const middle = (low + high) >> 1;
           if (dayStarts[middle] > height) high = middle;
           else low = middle + 1;
         }
-        return new Date(Date.UTC(2009, 0, 1 + low)).toISOString().slice(0, 10);
+        return low;
       };
+      const dateOf = (height) => new Date(Date.UTC(2009, 0, 1 + dayOf(height))).toISOString().slice(0, 10);
       const esc = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
       const number = (value) => value.toLocaleString("en-US");
       const percent = (part) => `${(part * 100).toFixed(1)}%`;
@@ -800,7 +891,11 @@
         }
       }
 
-      const amount = (btc) => (btc >= 0.001 ? `${btc.toLocaleString("en-US", { maximumFractionDigits: 8 })} BTC` : `${number(Math.round(btc * 1e8))} sat`);
+      /** A sum in bitcoin to eight places, its closing zeros apart: every row's reads against the next. */
+      const amount = (btc) => {
+        const [, digits, zeros] = btc.toFixed(8).match(/^(.*?)(0*)$/);
+        return `${digits}<span class="zeros">${zeros}</span>`;
+      };
 
       async function unclaimedTable() {
         try {
@@ -825,12 +920,41 @@
               if (value) { values.set(from + i, value); slugs.set(from + i, poolOf[i]); }
             });
           }));
-          document.getElementById("unclaimed-total").textContent = `${lost.toLocaleString("en-US", { maximumFractionDigits: 8 })} BTC`;
+          document.querySelector("#unclaimed .reach").innerHTML = `<b>${lost.toFixed(8)} BTC</b>left unclaimed by ${number(values.size)} blocks`;
+          // (The picture: a dot a block, across by its day, up by the tens in its sum, from one sat to 10^9.5, about 32 bitcoin.
+          // Places are shares of the picture's box, so it needs no redraw as the window's width changes.)
+          const days = dayStarts.length, TENS = 9.5;
+          const across = (day) => `${((day / days) * 100).toFixed(2)}%`, up = (sats) => `${(100 - (Math.log10(sats) / TENS) * 100).toFixed(2)}%`;
+          const years = [];
+          for (let year = 2010; dayNumber(Date.UTC(year, 0, 1)) < days; year += 2) years.push(`<text x="${across(dayNumber(Date.UTC(year, 0, 1)))}" y="100%" dy="16">${year}</text>`);
+          const scale = [[1, "1 sat"], [1e3, "1,000 sats"], [1e6, "0.01 BTC"], [1e9, "10 BTC"]].map(([sats, label]) => `<line x1="0" x2="100%" y1="${up(sats)}" y2="${up(sats)}" /><text x="0" y="${up(sats)}" dy="-5">${label}</text>`);
+          const dots = [...values].map(([height, btc]) => `<circle cx="${across(dayOf(height))}" cy="${up(Math.round(btc * 1e8))}" r="2.5" />`);
+          const chart = `<figure class="chart"><svg role="img" aria-label="${number(values.size)} blocks that left coins unclaimed, each by its day and its sum">${scale.join("")}${dots.join("")}${years.join("")}</svg><figcaption>Each dot is a block: across by the day it was mined, up by how much it left.</figcaption></figure>`;
           const row = (height) => `<tr><td>${when(height)}</td><td>${pool(slugs.get(height))}</td><td class="num">${amount(values.get(height))}</td></tr>`;
-          const newest = [...values.keys()].sort((a, b) => b - a);
-          const render = (rows, all) => fill("unclaimed", table([["Day and block"], ["Pool"], ["Unclaimed", true]], rows.map(row)) + (all ? "" : `<button class="more">Show all ${number(newest.length)}</button>`));
-          render(newest.slice(0, LIST_ROWS), newest.length <= LIST_ROWS);
-          document.querySelector(".more")?.addEventListener("click", () => render(newest, true));
+          // (Two orders, the largest first: two blocks hold most of the sum, and the latest are a few sats each.)
+          const orders = {
+            Largest: [...values.keys()].sort((a, b) => values.get(b) - values.get(a) || b - a),
+            Latest: [...values.keys()].sort((a, b) => b - a),
+          };
+          let order = "Largest", all = false;
+          fill("unclaimed", `${chart}<div class="seg" role="group" aria-label="Order">${Object.keys(orders).map((name) => `<button>${name}</button>`).join("")}</div><div></div>`);
+          const place = document.querySelector('[data-table="unclaimed"]'), list = place.lastElementChild;
+          const render = () => {
+            const blocks = orders[order];
+            for (const button of place.querySelectorAll(".seg button")) button.setAttribute("aria-pressed", button.textContent === order);
+            list.innerHTML = table([["Day and block"], ["Pool"], ["Unclaimed, BTC", true]], (all ? blocks : blocks.slice(0, LIST_ROWS)).map(row)) +
+              (all || blocks.length <= LIST_ROWS ? "" : `<button class="more">Show all ${number(blocks.length)}</button>`);
+          };
+          place.onclick = ({ target }) => {
+            const choice = target.closest(".seg button"), more = target.closest(".more");
+            if (choice) order = choice.textContent;
+            else if (more) all = true;
+            else return;
+            render();
+            // (The button that showed the rest is gone: the reader goes on from the first row it showed.)
+            if (more) list.querySelectorAll("tbody a")[LIST_ROWS].focus();
+          };
+          render();
         } catch (error) {
           console.error(error);
           fail("unclaimed");
