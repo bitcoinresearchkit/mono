@@ -13,6 +13,7 @@ use crate::{
 
 impl Replay for Vecs {
     type State = AddrStates;
+    const NAME: &'static str = crate::ID.as_str();
 
     fn live(&mut self) -> &mut Option<LiveState<AddrStates>> {
         &mut self.live

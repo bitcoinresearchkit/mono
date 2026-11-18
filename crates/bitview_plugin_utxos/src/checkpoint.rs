@@ -12,6 +12,7 @@ use crate::{
 
 impl Replay for Vecs {
     type State = UTXOStates;
+    const NAME: &'static str = crate::ID.as_str();
 
     fn live(&mut self) -> &mut Option<LiveState<UTXOStates>> {
         &mut self.live

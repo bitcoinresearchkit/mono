@@ -906,6 +906,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Addresses and UTXOs log a warning naming the plugin when their replay restarts from genesis over saved data (a
+  version change, or saved state that can't resume at the block asked, as after a reorg deeper than 10 blocks); the
+  reset had no log line of its own
 - After an indexer reset (a version change, a rebuild after an import failure, its folder deleted, or a new install
   stopped before the indexer's first save), the start that finds the indexer empty removes every other plugin's data
   at once and writes no rollback floor. Each plugin then resumes from its own saved data at every restart. Before, a

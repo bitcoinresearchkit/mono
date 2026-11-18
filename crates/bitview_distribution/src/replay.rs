@@ -7,6 +7,7 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_types::{BlockHash, Cents, Height, Version};
 use rayon::prelude::*;
+use tracing::warn;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
 
 /// Writer-owned replay state, retained only after a complete update succeeds.
@@ -43,6 +44,9 @@ pub fn validate_outputs<'a>(
 /// checkpoints. [`run`] owns the resume; the plugin owns its state, checkpoints and chunk loop.
 pub trait Replay {
     type State: Default;
+
+    /// The plugin's id, naming it in logs.
+    const NAME: &'static str;
 
     fn live(&mut self) -> &mut Option<LiveState<Self::State>>;
 
@@ -92,6 +96,7 @@ pub fn run<R: Replay>(
     let live = live
         .filter(|s| resume.is_some() && s.end == start && s.hash == hash && s.version == version);
     let reuse = live.is_some();
+    let wanted = start;
     let (mut state, mut prices) = live.map_or_else(Default::default, |s| (s.state, s.prices));
     if !reuse && start > 0 {
         start = {
@@ -105,6 +110,15 @@ pub fn run<R: Replay>(
     // Readers leave every row first: the reset rebuilds this plugin alone, the others resume
     // from the indexer's compute start.
     if start == 0 {
+        if plugin.checkpoint_len() > 0 {
+            match resume {
+                None => warn!("Replaying {} from genesis: its version changed", R::NAME),
+                Some(_) => warn!(
+                    "Replaying {} from genesis: its saved state can't resume at block {wanted}",
+                    R::NAME
+                ),
+            }
+        }
         let _lock = exit.lock();
         indexer.rewrite_from(Height::ZERO, || plugin.reset())?;
         state = R::State::default();

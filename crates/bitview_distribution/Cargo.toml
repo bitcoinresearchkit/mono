@@ -21,6 +21,7 @@ derive_more = { workspace = true }
 schemars = { workspace = true }
 vecdb = { workspace = true, features = ["pco"] }
 rayon = { workspace = true }
+tracing = { workspace = true }
 bitview_plugin_indexer = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 brk_exit = { workspace = true }
