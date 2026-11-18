@@ -861,6 +861,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Performance
 
+- The market's 15 price moving averages (`price_sma_*`) are stored per block instead of summed from a prefix sum on
+  each read, through the same rolling window the mining averages use: a full history reads in 0.144 ms at p50 (0.684
+  before) and the last seven days in 0.009 ms (0.012), the same values to the cent; +7.1 MB on disk net, the 1.1 MB
+  prefix sum gone. The first block after a restart takes about 1 s longer while the 15 windows are rebuilt.
 - The holders' transfer volume in loss, net and gross realized and unrealized pnl and supply in loss are read as the
   difference or sum of the series they come from, 42 stored columns fewer: −124 MB on disk, the same bytes served,
   about 0.013 ms more at p50. The first start after upgrading computes cointime's created dollar-blocks again (about

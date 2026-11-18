@@ -1,14 +1,14 @@
 use bitview_traversable::Traversable;
 
-/// Declares every EMA period once: field, id suffix and span in days.
-macro_rules! ema_periods {
+/// Declares every moving-average period once: field, id suffix and span in days.
+macro_rules! periods {
     ($($(#[$doc:meta])* $field:ident: $suffix:literal = $days:expr,)*) => {
         #[derive(Clone, Traversable)]
-        pub struct EmaVecs<T> {
+        pub struct Periods<T> {
             $($(#[$doc])* pub $field: T,)*
         }
 
-        impl<T> EmaVecs<T> {
+        impl<T> Periods<T> {
             /// One value per period from its id suffix and span in days.
             pub fn try_from_fn<E>(
                 mut create: impl FnMut(&'static str, usize) -> Result<T, E>,
@@ -22,8 +22,8 @@ macro_rules! ema_periods {
             pub fn try_map<U, E>(
                 &self,
                 mut map: impl FnMut(&'static str, &T) -> Result<U, E>,
-            ) -> Result<EmaVecs<U>, E> {
-                Ok(EmaVecs {
+            ) -> Result<Periods<U>, E> {
+                Ok(Periods {
                     $($field: map($suffix, &self.$field)?,)*
                 })
             }
@@ -36,7 +36,7 @@ macro_rules! ema_periods {
     };
 }
 
-ema_periods! {
+periods! {
     /// Uses a trailing 7-day span.
     _1w: "1w" = 7,
     /// Uses a trailing 8-day span.

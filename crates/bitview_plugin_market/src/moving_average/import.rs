@@ -1,20 +1,37 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::CentsFract;
-use bitview_vecs::{PriceWithRatio, import_cached};
+use bitview_primitives::{CentsFract, PriceRatio};
+use bitview_vecs::{LazyPerBlock, PriceWithRatio, import_cached};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Convert, Database, LazyVec, ReadableCloneableVec};
+use vecdb::{Convert, Database, Ident, LazyVec, ReadableCloneableVec};
 
-use super::{Vecs, ema_vecs::EmaVecs, sma::SmaVecs};
+use super::{
+    Vecs,
+    periods::Periods,
+    sma::{SmaVecs, StoredSma},
+};
 
 const EMA_VERSION: Version = Version::new(3);
 
 impl Vecs {
     pub(crate) fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
-        let sma_prefix_sum = import_cached(db, "price_sma_prefix_sum", version + Version::ONE)?;
-        let sma = SmaVecs::import(db, version, mappings, &sma_prefix_sum)?;
+        let sma_version = version + Version::TWO;
+        let periods = Periods::try_from_fn(|suffix, _| -> Result<_> {
+            let name = format!("price_sma_{suffix}");
+            let cents = import_cached(db, &format!("{name}_cents_source"), sma_version)?;
+            Ok(StoredSma {
+                price: PriceWithRatio::import(db, &name, sma_version, &cents, mappings)?,
+                cents,
+                window: Default::default(),
+            })
+        })?;
+        let mayer_multiple = LazyPerBlock::from_lazy::<Ident, PriceRatio>(
+            "mayer_multiple",
+            sma_version,
+            &periods._200d.price.relative.ratio,
+        );
         let ema_version = version + EMA_VERSION;
-        let ema_stored = EmaVecs::try_from_fn(|suffix, _| {
+        let ema_stored = Periods::try_from_fn(|suffix, _| {
             import_cached(db, &format!("price_ema_{suffix}_state"), ema_version)
         })?;
         let ema = ema_stored.try_map(|suffix, stored| {
@@ -28,10 +45,12 @@ impl Vecs {
             PriceWithRatio::import(db, &name, ema_version, &cents, mappings)
         })?;
         Ok(Vecs {
-            sma,
+            sma: SmaVecs {
+                periods,
+                mayer_multiple,
+            },
             ema,
             ema_stored,
-            sma_prefix_sum,
         })
     }
 }
