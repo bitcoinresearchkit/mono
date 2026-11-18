@@ -3,13 +3,13 @@
 import { press, stack as stackColumns } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
-  acrossUnfit, afterHands, byBlock, byTouch, chart, chooseDrawings, chosen, clearLayerPicks, client, cohortName,
-  colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaDrafts,
-  formulaFit, fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks,
-  layersBatch, letterChip, markFor, markPicks, marksOf, memberable, minedHalvings, MOTION, notice, openPalette, ownerOf,
-  panelShown, paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt,
-  renderLayers, reshape, resolved, secondColor, select, selected, seriesCount, showList, shownOklch, signedSignal,
-  SLIDERS, STACKED_ONLY, toast, track, tree, undoToast, widest,
+  acrossUnfit, afterHands, byBlock, byTouch, chart, chartById, chooseDrawings, chosen, clearLayerPicks, client,
+  cohortName, colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit,
+  fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks, layersBatch,
+  letterChip, markFor, markPicks, marksOf, memberable, minedHalvings, MOTION, notice, openPalette, ownerOf, panelShown,
+  paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt, renderLayers,
+  reshape, resolved, say, secondColor, select, selected, seriesCount, showList, shownOklch, signedSignal, SLIDERS,
+  STACKED_ONLY, toast, track, tree, undoToast, widest,
 } from "/studio/app.js";
 import { isSeriesName } from "/studio/catalog-walk.js";
 import { $, all$, closest, drawKeys, escapeHtml, keyText, proseHtml, SLOP, viewport } from "/studio/dom.js";
@@ -35,8 +35,8 @@ import {
   respot, retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
 } from "/studio/chart.js";
 import {
-  bothOf, choicePage, findSeries, formulaError, formulaSide, listPage, loopError, nodeAt, palette, paneNames,
-  previewLayer, pushPage,
+  aboutOf, bothOf, choicePage, finder, findSeries, formulaError, formulaSide, listPage, loopError, nodeAt, palette,
+  paneNames, previewLayer, pushPage,
 } from "/studio/command.js";
 import { beltSide, drawingById, lookFor, setLook } from "/studio/drawing.js";
 import {
@@ -47,7 +47,7 @@ import { fillSlot, isOpen, recommendedCards } from "/studio/grid.js";
 import {
   HEAT_FADE, heatAmount, heatFelt, heatGrid, heatLooks, heatName, heatPath, heatSection,
 } from "/studio/heatmaps.js";
-import { cutFade, exportData, fadeOut, menuOf, scrolled, showMenu } from "/studio/menus.js";
+import { cutFade, exportData, fadeOut, letGo, menuOf, scrolled, showMenu } from "/studio/menus.js";
 import { ordersOf, presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -1745,6 +1745,92 @@ function updateFormula(layer) {
   const label = $("label");
   if (label) label.placeholder = labelOf({ ...layer, label: "" });
 }
+/**
+ * A formula left unfinished in the panel (one that doesn't read yet), by chart id (a chart given a new id, they
+ * follow) and layer: shown again with its error when its layer's open (the layer keeps the last that read), till it
+ * reads and is applied, esc lets it go, or the layer's formula is changed otherwise (`over`: the formula it was
+ * typed over; see pruneDrafts).
+ * @type {Map<string, Map<string, { text: string, over: string }>>}
+ */
+const formulaDrafts = new Map();
+/** The drafts whose formulas were changed otherwise (an edit, an undo, another tab's) let go; a chart not here now (a preset let go till it's opened again) keeps its. */
+function pruneDrafts() {
+  let shown = false;
+  for (const [id, drafts] of formulaDrafts) {
+    const doc = chartById(id) ?? (id === chart?.id ? chart : null);
+    if (doc) for (const [layer, draft] of drafts) if (doc.layers.find((item) => item.id === layer)?.formula !== draft.over) (drafts.delete(layer), (shown ||= id === chart?.id && layer === selected));
+  }
+  // (The one the panel shows let go while it's not being typed in (the panel kept as another field's focused): the
+  // field as its layer is.)
+  const field = document.getElementById("formula"), layer = layerById(selected);
+  if (!shown || !(field instanceof HTMLTextAreaElement) || document.activeElement === field || layer?.formula === undefined) return;
+  formulaTyped++;
+  field.value = layer.formula;
+  updateFormula(layer);
+}
+/** A formula left (its field blurred), waiting for the press that left it to be done: applied on the chart it was typed on. */
+let formulaLeft = /** @type {{ id: string, text: string } | null} */ (null);
+function applyFormulaLeft() {
+  const left = formulaLeft;
+  formulaLeft = null;
+  if (left) applyFormula(left.id, left.text);
+}
+/** The formula's field left (blurred): what it holds applied once the press that left it is done. */
+function formulaFieldLeft(/** @type {HTMLTextAreaElement} */ field) {
+  $("formula-editor")?.classList.remove("typing");
+  // (After the press that left it, if one did: the panel drawn anew now would lose the control pressed. Before
+  // anything leaves the chart, though: see leaveField. Left with the window too: one that reads applied, else kept
+  // as typed, a draft (see formulaDrafts), nothing lost.)
+  formulaLeft = { id: selected, text: field.value };
+  formulaTyped++;
+  afterPress(applyFormulaLeft);
+}
+/**
+ * A layer's formula as typed, applied once it's left (or the page is) if it reads, as ⌘K's formula page does; one
+ * that doesn't leaves the layer with the last that did, and is kept as it was typed, its error said (see
+ * formulaDrafts): a tap away loses nothing.
+ */
+function applyFormula(/** @type {string} */ id, /** @type {string} */ text) {
+  const layer = layerById(id);
+  if (layer?.formula === undefined) return;
+  if (layer.formula === text) return void formulaDrafts.get(chart.id)?.delete(id);
+  if (!formulaError(text) && !loopError(layer, text)) return (formulaDrafts.get(chart.id)?.delete(id), editById(id, (item) => (item.formula = text), { coalesce: `formula:${id}` }));
+  if (!formulaDrafts.has(chart.id)) formulaDrafts.set(chart.id, new Map());
+  formulaDrafts.get(chart.id)?.set(id, { text, over: layer.formula });
+  const field = /** @type {HTMLTextAreaElement | null} */ ($("formula"));
+  if (!field || selected !== id || document.activeElement === field) return;
+  // (Its error said, typing done: no draw of what was typed left to come, nor the field's own input run. The panel
+  // drawn anew meanwhile (a click that left it, on a style), the field shows it again.)
+  formulaTyped++;
+  field.value = text;
+  updateFormula(layer);
+  $("formula-editor")?.classList.remove("typing");
+}
+/** ↵ or esc in the formula: ↵ done if it reads (else it stays, saying why); esc done as it reads, or as it last read. */
+function leaveFormula(/** @type {HTMLTextAreaElement} */ field, /** @type {boolean} */ enter) {
+  const layer = layerById(selected), problem = formulaError(field.value) || (layer ? loopError(layer, field.value) : "");
+  if (problem && enter) return void ($("formula-editor")?.classList.remove("typing"), say(problem));
+  if (problem && layer?.formula !== undefined) {
+    formulaDrafts.get(chart.id)?.delete(layer.id);
+    formulaTyped++;
+    field.value = layer.formula;
+    updateFormula(layer);
+  }
+  letGo(field);
+}
+/** The last formula typed, for its draw once it's ready (a later keystroke's takes its place). */
+let formulaTyped = 0;
+/**
+ * A layer's formula as typed, drawn once it's one to draw: it reads, its layers are here, its series are Bitview's
+ * (this machine's catalog says; before it's up, as soon as it reads). Till then the chart keeps the last one that was.
+ */
+async function drawWhenReady(/** @type {string} */ id, /** @type {string} */ text) {
+  const turn = ++formulaTyped, layer = layerById(id);
+  if (formulaError(text) || (layer && loopError(layer, text))) return;
+  const series = [...refsOf(parse(text), "series")];
+  if (finder.ready && finder.worker && series.length && (await Promise.all(series.map(aboutOf))).some((about) => !about)) return;
+  if (turn === formulaTyped && layerById(id)?.formula?.trim() !== text.trim()) editById(id, (layer) => (layer.formula = text), { coalesce: `formula:${id}` });
+}
 
 // Suggestions at the caret: for a capital, the layers; for a lowercase word, the functions, then series by name.
 const suggest = {
@@ -2753,20 +2839,22 @@ function toSeries(/** @type {string} */ id, /** @type {string} */ name) {
 }
 export {
   acceptSuggestion, addFormula, addFormulaLayer, addFrom, addHeatmap, addLevel, addSeries, addSignal, addSignalLayer,
-  addStop, afterPress, assistKey, bandOf, barAt, changeSeries, chooseSuggestion, closestSeries, cloudable, colorLevels,
-  colorModeChoices, colorModeOf, colorOf, colorSlot, colorSlots, colorSource, completeSeries, completion, completionsAt,
-  copyName, dashRow, drawPlanes, dropSuggestions, duplicateLayer, duplicateLayers, editAdded, editById, editingMany,
-  editLayer, editPicked, fadingOf, faintOf, fillOf, fitChoices, fitOf, FITS, fitsAt, flushPick, focusKey, formatChoices,
-  formatMenu, formulaInputs, fromChoices, fromPage, goneSaid, GRADIENT_STEPS, gradientCss, gradientEdit, gradientPlaces,
+  addStop, afterPress, applyFormula, applyFormulaLeft, assistKey, bandOf, barAt, changeSeries, chooseSuggestion,
+  closestSeries, cloudable, colorLevels, colorModeChoices, colorModeOf, colorOf, colorSlot, colorSlots, colorSource,
+  completeSeries, completion, completionsAt, copyName, dashRow, drawPlanes, drawWhenReady, dropSuggestions,
+  duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, fadingOf, faintOf, fillOf,
+  fitChoices, fitOf, FITS, fitsAt, flushPick, focusKey, formatChoices, formatMenu, formulaDrafts, formulaFieldLeft,
+  formulaInputs, fromChoices, fromPage, goneSaid, GRADIENT_STEPS, gradientCss, gradientEdit, gradientPlaces,
   gradientSwatch, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, isUnfinished,
-  keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, levelRows, levelSteps,
-  levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName, markTyping, modeName,
-  modeOf, modesFor, modeSwatch, moveLayer, movers, moveStop, multiEdit, named, overShort, ownColor, paneChoices,
-  paneLayers, paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint,
-  pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, rangeOf, readNumber, readsOf, readyName, readyPage,
-  recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop, renderInspector, renderLayersBar,
-  replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit, setLineLook, setSlider, sharedBy,
-  showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider, sliders, slotName, soloLayer,
-  STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestHere, TAG_NEEDS_LINE, toggleDescription,
-  toggleHidden, underColorMenu, updateCallHelp, updateFormula, usesOf, widthRow, withLevel, withoutLevel,
+  keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, leaveFormula, levelRows,
+  levelSteps, levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName,
+  markTyping, modeName, modeOf, modesFor, modeSwatch, moveLayer, movers, moveStop, multiEdit, named, overShort,
+  ownColor, paneChoices, paneLayers, paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers,
+  pickedOf, pickPoint, pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf,
+  readNumber, readsOf, readyName, readyPage, recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop,
+  renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit,
+  setLineLook, setSlider, sharedBy, showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider,
+  sliders, slotName, soloLayer, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestHere,
+  TAG_NEEDS_LINE, toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula, usesOf, widthRow,
+  withLevel, withoutLevel,
 };
