@@ -179,7 +179,8 @@ impl Walk {
     /// Walks from the lowest block a consumer has yet to compute through the sources' end. Each
     /// consumer joins at its own start, from the state it kept if the last walk left it there on
     /// this chain, restored from the origins otherwise; all save every [`WRITE_INTERVAL`] blocks
-    /// and at the end.
+    /// and at the end. `dyn`: the consumers are of different types in one list, and a call each
+    /// per block is nothing beside the block's work.
     pub fn run(&mut self, sources: Sources<'_>, consumers: &mut [&mut dyn Consumer]) -> Result<()> {
         // Where the last walk left its consumers' states, if it completed.
         let kept =
