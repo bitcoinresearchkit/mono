@@ -27,7 +27,7 @@ impl Vecs {
         let version = STORAGE.schema_version();
         let v1 = version + Version::ONE;
         let spot_price = prices.spot.cents.height.read_only_boxed_clone();
-        let activity = activity::Vecs::import(&db, version, mappings, window_starts, age)?;
+        let activity = activity::Vecs::import(&db, version, mappings, window_starts, age, &all_chain.supply)?;
         let age_ranges =
             age_range::Vecs::import(&db, version, mappings, window_starts, &spot_price, age)?;
         let supply = supply::Vecs::new(v1, mappings, &spot_price, &activity, all_chain);

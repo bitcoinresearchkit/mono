@@ -33,7 +33,7 @@ impl Vecs {
             || -> Result<()> {
                 // Activity (liveliness, vaultedness, etc.) and the age ranges are independent.
                 let (activity, age_ranges) = join(
-                    || self.activity.compute(indexer, age, holders, exit),
+                    || self.activity.compute(indexer, age, exit),
                     || self.age_ranges.compute(indexer, age, exit),
                 );
                 activity?;
