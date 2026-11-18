@@ -18,7 +18,6 @@ pub use constants::FULL_BATCH_N;
 pub use progress::Progress;
 
 pub mod data_types;
-/// for inspecting certain types of Pco metadata
 pub mod errors;
 /// structs representing stored information about how compression was done
 pub mod metadata;

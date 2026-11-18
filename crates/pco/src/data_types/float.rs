@@ -310,7 +310,6 @@ macro_rules! impl_float_number {
         }
       }
     }
-
   };
 }
 

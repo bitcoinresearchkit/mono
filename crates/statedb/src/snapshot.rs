@@ -53,7 +53,7 @@ pub(crate) fn versions(header: &[u8; HEADER]) -> (u64, u64) {
     (word(header, 48), word(header, 56))
 }
 
-/// PCO level of retained checkpoints: written once per interval and read by every restore, they
+/// PCO level of retained snapshots: written once per interval and read by every restore, they
 /// pack 11% smaller than at the default level and decompress as fast.
 pub(crate) const PACKED_LEVEL: usize = 8;
 

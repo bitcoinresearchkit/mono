@@ -10,13 +10,13 @@ use std::io::Result;
 /// speed. On live journals (m6-2, 2026-11-17) level 6 packs 6-9% smaller (0.50 of 6.4 GB) but
 /// decodes each record 12-14% slower (spends 6.4 -> 7.2 µs, URPD changes 2.9 -> 3.3 µs), and a
 /// utxo-set or URPD request decodes up to ~250 of them; level 8 decodes 36% slower.
-const LEVEL: usize = 3;
+const RECORD_LEVEL: usize = 3;
 
 /// The PCO settings of every packed column: spend rows, cell records and retained snapshots (these
 /// at `snapshot::PACKED_LEVEL`).
 pub(crate) fn config() -> ChunkConfig {
     ChunkConfig::default()
-        .with_compression_level(LEVEL)
+        .with_compression_level(RECORD_LEVEL)
         .with_mode_spec(ModeSpec::Classic)
         .with_delta_spec(DeltaSpec::NoOp)
 }

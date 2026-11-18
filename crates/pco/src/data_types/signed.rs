@@ -60,7 +60,6 @@ macro_rules! impl_signed {
       }
     }
 
-
     impl Signed for $t {
       const BITS: Bitlen = Self::BITS;
       const ZERO: Self = 0;

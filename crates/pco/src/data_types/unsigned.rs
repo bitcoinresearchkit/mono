@@ -168,7 +168,6 @@ macro_rules! impl_unsigned_number {
         join_latents(mode, primary, secondary, dst)
       }
     }
-
   };
 }
 
