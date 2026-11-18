@@ -20,6 +20,9 @@ instead of `set_len` before initialization. The ANS buffers stay empty when the
 latent variable needs no ANS (they were left uninitialized and never read).
 Output bytes are unchanged.
 
+`describers.rs` is deleted, with `Number::get_latent_describers`: nothing in
+Bitview describes chunks. `Number` is now implemented for every `NumberPriv`.
+
 Upstream fixes kept small and local:
 
 - `mode/dict.rs`: dictionary indices are validated and joined over the batch
@@ -37,7 +40,6 @@ Upstream fixes kept small and local:
   by its own delta encoding (it used the primary's for all), so a secondary
   stream without delta and without bins is rejected as corrupt instead of
   decoding zeros.
-- `describers.rs`: float types describe `Dict` mode chunks (they panicked).
 - `standalone/decompressor.rs`: `FileDecompressor::simple_decompress` is public
   so `with_max_prealloc` reaches a public entry point.
 - `chunk_latent_decompressor.rs`: a latent variable with one bin and no offset

@@ -2,13 +2,11 @@ use std::mem::MaybeUninit;
 
 use crate::compression_intermediates::Bid;
 use crate::constants::Bitlen;
-use crate::data_types::{unsigned, Number, NumberPriv};
-use crate::describers::LatentDescriber;
+use crate::data_types::{unsigned, NumberPriv};
 use crate::dyn_slices::DynLatentSlice;
 use crate::errors::PcoResult;
-use crate::metadata::per_latent_var::PerLatentVar;
-use crate::metadata::{ChunkMeta, Mode};
-use crate::{describers, ChunkConfig};
+use crate::metadata::Mode;
+use crate::ChunkConfig;
 use std::fmt::{Debug, Display};
 use std::ops::*;
 
@@ -62,13 +60,6 @@ macro_rules! impl_signed {
       }
     }
 
-    impl Number for $t {
-      fn get_latent_describers(meta: &ChunkMeta) -> PerLatentVar<LatentDescriber> {
-        describers::match_classic_mode::<Self>(meta, "")
-          .or_else(|| describers::match_int_modes::<Self::L>(meta, true))
-          .expect("invalid mode for signed type")
-      }
-    }
 
     impl Signed for $t {
       const BITS: Bitlen = Self::BITS;

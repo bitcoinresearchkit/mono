@@ -2,14 +2,12 @@ use crate::chunk_config::ModeSpec;
 use crate::compression_intermediates::Bid;
 use crate::constants::Bitlen;
 use crate::data_types::{LatentPriv, Number, NumberPriv};
-use crate::describers::LatentDescriber;
 use crate::dyn_slices::DynLatentSlice;
 use crate::errors::{PcoError, PcoResult};
-use crate::metadata::per_latent_var::PerLatentVar;
-use crate::metadata::{ChunkMeta, Mode};
+use crate::metadata::Mode;
 use crate::mode::float_mult::FloatMultConfig;
 use crate::mode::{classic, dict, float_mult, float_quant};
-use crate::{describers, sampling, ChunkConfig};
+use crate::{sampling, ChunkConfig};
 use std::fmt::{Debug, Display};
 use std::mem::MaybeUninit;
 use std::ops::*;
@@ -313,13 +311,6 @@ macro_rules! impl_float_number {
       }
     }
 
-    impl Number for $t {
-      fn get_latent_describers(meta: &ChunkMeta) -> PerLatentVar<LatentDescriber> {
-        describers::match_classic_mode::<Self>(meta, " ULPs")
-          .or_else(|| describers::match_float_modes::<Self>(meta))
-          .expect("invalid mode for float type")
-      }
-    }
   };
 }
 

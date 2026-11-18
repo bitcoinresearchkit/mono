@@ -3,13 +3,11 @@ use std::mem::MaybeUninit;
 use crate::compression_intermediates::Bid;
 use crate::constants::Bitlen;
 use crate::data_types::{Latent, LatentPriv, Number, NumberPriv};
-use crate::describers::LatentDescriber;
 use crate::dyn_slices::DynLatentSlice;
 use crate::errors::{PcoError, PcoResult};
-use crate::metadata::per_latent_var::PerLatentVar;
-use crate::metadata::{ChunkMeta, Mode};
+use crate::metadata::Mode;
 use crate::mode::{classic, dict, int_mult};
-use crate::{describers, ChunkConfig, ModeSpec};
+use crate::{ChunkConfig, ModeSpec};
 
 fn classic_bid<T: Number>() -> Bid<T> {
   Bid {
@@ -171,13 +169,6 @@ macro_rules! impl_unsigned_number {
       }
     }
 
-    impl Number for $t {
-      fn get_latent_describers(meta: &ChunkMeta) -> PerLatentVar<LatentDescriber> {
-        describers::match_classic_mode::<Self>(meta, "")
-          .or_else(|| describers::match_int_modes::<Self>(meta, false))
-          .expect("invalid mode for unsigned type")
-      }
-    }
   };
 }
 
