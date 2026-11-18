@@ -18,7 +18,7 @@
     <meta property="og:image" content="https://bitview.space/assets/cards/miners.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Miners: tables of which mining pools first did something new on Bitcoin." />
+    <meta property="og:image:alt" content="Miners: one table of what each mining pool's recent blocks do on Bitcoin." />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="preload" href="/assets/fonts/InterVariable.core.woff2" as="font" type="font/woff2" crossorigin />
@@ -75,6 +75,8 @@
         --ink: #141210;
         --dim: #6f6a61;
         --line: rgb(20 18 16 / 0.1);
+        /* (A bar's empty part.) */
+        --faint: color-mix(in srgb, var(--ink) 16%, var(--bg));
         --accent: #b86a18;
         --gutter: 16px;
         /* (The page's sides: the gutter, or a notch's inset where that's wider.) */
@@ -136,18 +138,7 @@
         color: var(--dim);
         font-size: 17px;
         max-width: 56ch;
-        margin: 0 0 12px;
-      }
-      nav.jump {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px 14px;
         margin: 0 0 28px;
-        font-size: 14px;
-      }
-      nav.jump a {
-        color: var(--dim);
-        text-underline-offset: 3px;
       }
       section {
         padding-block: 26px;
@@ -167,6 +158,176 @@
       .about a {
         color: var(--accent);
       }
+
+      /* Rows of a table: a quiet head, a hairline over each row, a finger's height. */
+      .rows {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        th {
+          padding: 0 24px 10px 0;
+          color: var(--dim);
+          font-size: 12px;
+          font-weight: 500;
+          text-align: left;
+          white-space: nowrap;
+        }
+        td {
+          height: 44px;
+          padding: 0 24px 0 0;
+          border-top: 1px solid var(--line);
+          white-space: nowrap;
+        }
+        .num {
+          padding-right: 0;
+          text-align: right;
+        }
+      }
+      .pool {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        white-space: normal;
+        /* (A name longer than a narrow column breaks inside a word, and only then.) */
+        overflow-wrap: anywhere;
+        img {
+          flex: none;
+          width: 15px;
+          height: 15px;
+          border-radius: 4px;
+        }
+      }
+      /* When something happened: its day, then its block, the two one link to the block. */
+      .when {
+        display: inline-flex;
+        white-space: nowrap;
+        align-items: baseline;
+        gap: 10px;
+        min-height: 44px;
+        line-height: 44px;
+        small {
+          color: var(--dim);
+          font-size: 12px;
+        }
+        &:hover small {
+          color: var(--ink);
+          text-decoration: underline;
+          text-underline-offset: 3px;
+        }
+      }
+      .none {
+        color: var(--dim);
+      }
+      /* Pools down, new things across: in each cell how many of the pool's recent blocks did the thing, and since when. */
+      .matrix {
+        thead th {
+          vertical-align: bottom;
+          scroll-margin-top: 16px;
+        }
+        .narrow {
+          display: none;
+        }
+        td,
+        tbody th {
+          height: 56px;
+        }
+        td > small {
+          display: block;
+          min-height: 1lh;
+          color: var(--dim);
+          font-size: 12px;
+        }
+        /* The count, and a bar of the part it is. */
+        i {
+          display: inline-block;
+          width: 48px;
+          height: 4px;
+          margin-left: 10px;
+          border-radius: 2px;
+          background: linear-gradient(to right, var(--ink) calc(var(--part) * 100%), var(--faint) 0);
+          vertical-align: middle;
+        }
+        .none i {
+          visibility: hidden;
+        }
+        /* (A row's name, its header, read as the row's first cell.) */
+        tbody th {
+          padding: 0 24px 0 0;
+          border-top: 1px solid var(--line);
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 400;
+        }
+        .all :is(th, td span) {
+          font-weight: 600;
+        }
+        /* A pool's name opens its record; the whole row does too, under a pointer or a finger. */
+        .line {
+          cursor: pointer;
+        }
+        button {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          width: 100%;
+          min-height: 44px;
+          padding: 0;
+          border: 0;
+          background: none;
+          color: inherit;
+          font: inherit;
+          text-align: left;
+          cursor: pointer;
+          &::after {
+            content: "";
+            flex: none;
+            width: 6px;
+            height: 6px;
+            border: solid var(--dim);
+            border-width: 0 1.5px 1.5px 0;
+            rotate: -45deg;
+          }
+          &[aria-expanded="true"]::after {
+            rotate: 45deg;
+          }
+        }
+        /* (A record sits under its pool's line with no rule between them.) */
+        tr:not(.line, .all) > td {
+          height: auto;
+          border: 0;
+        }
+        /* A pool's record: each thing, when it first did it and how much in all. */
+        .record {
+          display: grid;
+          grid-template-columns: 150px minmax(0, 1fr);
+          column-gap: 24px;
+          margin: 0;
+          padding: 0 0 18px 23px;
+          white-space: normal;
+          div {
+            display: grid;
+            grid-template-columns: subgrid;
+            grid-column: 1 / -1;
+            padding: 3px 0;
+          }
+          dt {
+            color: var(--dim);
+          }
+          dd {
+            margin: 0;
+          }
+          .when {
+            display: inline;
+            line-height: inherit;
+            text-decoration: underline;
+            text-decoration-color: color-mix(in srgb, currentColor 40%, transparent);
+            text-underline-offset: 0.2em;
+            small {
+              margin-left: 6px;
+            }
+          }
+        }
+      }
       /* (Nothing moves as the tables come in: what's under a table still being read waits unseen, and shows in its
          place once every table above it is in; a section a link asked for shows at once, held in view as they fill.) */
       main:not(:has(:target)) section:has(.wait) ~ section,
@@ -180,66 +341,12 @@
           visibility: visible;
         }
       }
-      /* (A table wider than a phone scrolls in its own box, never the page, out to the screen's edges.) */
-      [data-table] {
-        overflow-x: auto;
-        margin-inline: calc(-1 * var(--side-left)) calc(-1 * var(--side-right));
-        padding-inline: var(--side-left) var(--side-right);
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th {
-        text-align: left;
-        font-weight: 500;
-        color: var(--dim);
-        font-size: 13px;
-        padding: 0 10px 6px 0;
-      }
-      td {
-        padding: 7px 10px 7px 0;
-        border-top: 1px solid var(--line);
-        vertical-align: top;
-      }
-      th.num,
-      td.num {
-        text-align: right;
-        white-space: nowrap;
-      }
-      /* (Every column 10px clear of the next; the last flush with the table's edge.) */
-      :is(th, td):last-child {
-        padding-right: 0;
-      }
-      .pool {
-        display: inline-flex;
-        align-items: center;
-        gap: 7px;
-      }
-      .pool img {
-        width: 16px;
-        height: 16px;
-        border-radius: 4px;
-        flex: none;
-      }
-      .when a {
-        text-underline-offset: 3px;
-        text-decoration-color: var(--line);
-      }
-      .when small {
-        display: block;
-        color: var(--dim);
-        font-size: 12.5px;
-        white-space: nowrap;
-      }
-      .none {
-        color: var(--dim);
-      }
+      /* A table to come: its first rows' room, ruled, so what's under it moves less when it lands. */
       .wait {
-        color: var(--dim);
-        min-height: 92px;
+        min-height: 220px;
+        background: repeating-linear-gradient(to bottom, transparent 0 43px, var(--line) 43px 44px);
       }
-      button {
+      .more {
         font: inherit;
         color: var(--accent);
         background: none;
@@ -248,9 +355,9 @@
         min-height: 44px;
         cursor: pointer;
       }
-      /* (For fingers: a reach 44 about each link, unseen; the jump links' rows as far apart as that reach is tall.) */
+      /* (For fingers: the brand's reach 44, unseen. A table's links are that tall; a record's get theirs where it stacks.) */
       @media (pointer: coarse) {
-        :is(.brand, nav.jump a, td a) {
+        .brand {
           position: relative;
 
           &::before {
@@ -258,9 +365,6 @@
             position: absolute;
             inset: min(0px, calc(50% - 22px));
           }
-        }
-        nav.jump {
-          row-gap: calc(44px - 1lh);
         }
       }
       footer {
@@ -270,52 +374,148 @@
         color: var(--dim);
         font-size: 13.5px;
       }
+
+      @media (max-width: 640px) {
+        .rows {
+          th,
+          td {
+            padding-right: 14px;
+          }
+          .num {
+            padding-right: 0;
+          }
+        }
+        /* A day over its block: two short lines where one long one would push the table off the screen. */
+        .when {
+          flex-direction: column;
+          justify-content: center;
+          gap: 0;
+          line-height: 1.35;
+        }
+        /* Seven columns don't fit: a pool's row is its name over its blocks, then the five counts, each over its bar. */
+        .matrix {
+          &,
+          thead,
+          tbody,
+          tr:not(.line, .all, thead tr, [hidden]),
+          tr:not(.line, .all, thead tr) > td {
+            display: block;
+          }
+          thead tr,
+          .line,
+          .all {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) repeat(5, 42px);
+            column-gap: 5px;
+            align-items: center;
+            align-content: center;
+          }
+          th,
+          td,
+          tbody th {
+            height: auto;
+            padding: 0;
+            border: 0;
+          }
+          thead th {
+            padding-bottom: 10px;
+            font-size: 11px;
+            line-height: 1.25;
+          }
+          .wide,
+          thead th:nth-child(2),
+          td > small {
+            display: none;
+          }
+          .narrow {
+            display: inline;
+          }
+          .line,
+          .all {
+            min-height: 64px;
+            border-top: 1px solid var(--line);
+          }
+          .all > th {
+            display: flex;
+            align-items: center;
+            height: 44px;
+            border: 0;
+          }
+          /* (The pool's blocks, under its name.) */
+          td:nth-child(2) {
+            grid-area: 2 / 1;
+            padding: 0 0 8px 23px;
+            color: var(--dim);
+            font-size: 12px;
+            text-align: left;
+            span::after {
+              content: " blocks";
+            }
+            i {
+              display: none;
+            }
+          }
+          .all td:nth-child(2) {
+            padding-left: 0;
+          }
+          td:nth-child(n + 3) {
+            grid-row: 1 / 3;
+            i {
+              display: block;
+              width: 100%;
+              margin: 5px 0 0;
+            }
+          }
+          .record {
+            grid-template-columns: 1fr;
+            padding-left: 0;
+            div {
+              padding: 5px 0;
+            }
+            /* (A link here is a line from the next, so a finger's reach of 44, unseen, stays its own.) */
+            @media (pointer: coarse) {
+              .when {
+                position: relative;
+                &::after {
+                  content: "";
+                  position: absolute;
+                  inset: min(0px, calc(50% - 22px));
+                }
+              }
+            }
+          }
+        }
+      }
     </style>
   </head>
   <body>
     <header><a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a></header>
     <main>
       <h1>Miners</h1>
-      <p class="lede">What the pools have done: who first used each new kind of output, who signals an upgrade, and every block that left coins unclaimed.</p>
-      <nav class="jump" aria-label="On this page">
-        <a href="#p2a">P2A</a><a href="#ephemeral-dust">Ephemeral dust</a><a href="#bip54">BIP-54 coinbase</a><a href="#bip110">BIP-110 signaling</a><a href="#unclaimed">Unclaimed coins</a>
-      </nav>
-      <section id="p2a">
-        <h2>First P2A by pool</h2>
-        <p class="about">When each pool first mined a transaction spending or creating a pay-to-anchor output, and how many since.</p>
-        <div data-table="p2a" class="wait">Loading</div>
-      </section>
-      <section id="ephemeral-dust">
-        <h2>First ephemeral dust by pool</h2>
-        <p class="about">When each pool first mined a transaction spending ephemeral dust, and how many blocks of its have done so.</p>
-        <div data-table="ephemeral-dust" class="wait">Loading</div>
-      </section>
-      <section id="bip54">
-        <h2>First BIP-54 coinbase by pool</h2>
-        <p class="about">When each pool first mined a coinbase following BIP-54's locktime rule, and how many blocks since.</p>
-        <div data-table="bip54" class="wait">Loading</div>
-      </section>
-      <section id="bip110">
-        <h2>BIP-110 signaling blocks by pool</h2>
-        <p class="about">Blocks signaling BIP-110 on version bit 4 since the bit was assigned to it in December 2025: when each pool first did, and how many of its blocks have.</p>
-        <div data-table="bip110" class="wait">Loading</div>
+      <p class="lede">What each pool's recent blocks do, when it first did each new thing, and every block that left coins unclaimed.</p>
+      <section>
+        <h2>What each pool's recent blocks do</h2>
+        <p class="about">Of each pool's blocks among the last 2,016, about two weeks: how many spent or created a pay&#8209;to&#8209;anchor output, held a spend of ephemeral dust, followed BIP&#8209;54's coinbase rule or signaled BIP&#8209;110, and since when. A pool's row opens its record.</p>
+        <div data-table="matrix" class="wait"></div>
       </section>
       <section id="unclaimed">
         <h2>Blocks with unclaimed coins</h2>
         <p class="about">A miner may claim less than it's owed, and what's left is gone for good. Every block where one did. Coins lost: <b id="unclaimed-total">&nbsp;</b>.</p>
-        <div data-table="unclaimed" class="wait">Loading</div>
+        <div data-table="unclaimed" class="wait"></div>
       </section>
     </main>
-    <footer>Every number here is read from the chain by this server. Each height opens its block.</footer>
+    <footer>Every number here is read from the chain by this server. Each day and block opens its block.</footer>
     <script type="module">
       import { logo as poolLogo } from "/assets/pools/logos.js";
       /** Rows a single request may hold: 8-byte counts and amounts, 1-byte pools. */
       const COUNT_PAGE = 40_000, POOL_PAGE = 320_000;
       /** The pool rows of nearby blocks are read as one range, up to this gap. */
       const POOL_READ_GAP = 2016;
-      /** A long list opens on its most recent rows. */
+      /** A long list opens on its first rows. */
       const LIST_ROWS = 20;
-      /** The day BIP-110 was assigned version bit 4: its table starts there, as BIP-91 signaled on the same bit in 2017. */
+      /** The blocks "recent" means: one difficulty period, about two weeks (every new thing begins long before it). */
+      const RECENT = 2016;
+      /** The day BIP-110 was assigned version bit 4: its count starts there, as BIP-91 signaled on the same bit in 2017. */
       const BIP110_ASSIGNED = Date.UTC(2025, 11, 3);
 
       const json = async (path) => {
@@ -337,13 +537,22 @@
         // (A section a link asked for, in view, stays where it is as a table above it fills, where the browser doesn't
         // anchor the scroll itself.)
         if (target && targetTop >= 0 && targetTop < innerHeight) scrollBy(0, target.getBoundingClientRect().top - targetTop);
+        // (An address naming something the table just drew, an old section's column among them, lands on it, unless the
+        // reader has scrolled meanwhile.)
+        else if (!scrollY) {
+          const linked = document.getElementById(location.hash.slice(1));
+          if (place.contains(linked)) linked.scrollIntoView();
+        }
       };
       const fail = (name) => fill(name, '<p class="none">This table couldn’t be read from the server. Reload to try again.</p>');
 
-      /** The first day a running total is above zero. */
-      const firstDay = (id) => json(`/api/series/${id}/day1`).then(({ data }) => data.findIndex((value) => value > 0));
+      /** The first day a running total is above zero, or null while it never has been (a node still syncing). */
+      const firstDay = (id) => json(`/api/series/${id}/day1`).then(({ data }) => {
+        const day = data.findIndex((value) => value > 0);
+        return day < 0 ? null : day;
+      });
       // (What every table needs, read at once: the height each day begins at, the tip, the pools' names. Without them no
-      // table can be built, so each says so. A table's own first-day read is separate: it fails that table alone.)
+      // table can be built, so each says so. A new thing's own first-day read is separate: it fails that column alone.)
       const [dayStarts, tip, names] = await Promise.all([
         json("/api/series/block_count_cumulative/day1").then(({ data }) => data),
         json("/api/blocks/tip/height").then((height) => Math.round(height) + 1),
@@ -352,15 +561,18 @@
         for (const place of document.querySelectorAll("[data-table]")) fail(place.dataset.table);
         throw error;
       });
+      /** The first of the recent blocks. */
+      const recentFrom = tip - RECENT;
       /** The first block of day `day` (days since 2009-01-01). */
       const dayStart = (day) => (day <= 0 ? 0 : dayStarts[day - 1]);
-      /** Each table's first block, its own promise: its series' first day's, and BIP-110's assignment day's. */
-      const firstOf = (id) => firstDay(id).then(dayStart);
+      /** Each new thing's first block, or null before there is one, its own promise: its series' first day's, and
+       * BIP-110's assignment day's (null on a node not yet past that day). */
+      const firstOf = (id) => firstDay(id).then((day) => (day === null ? null : dayStart(day)));
       const firsts = [
         firstOf("p2a_output_count_cumulative"),
         firstOf("ephemeral_dust_spending_tx_count_cumulative"),
         firstOf("bip54_coinbase_locktime_block_count_cumulative"),
-        Promise.resolve(dayStart((BIP110_ASSIGNED - Date.UTC(2009, 0, 1)) / 86_400_000)),
+        Promise.resolve(dayStart((BIP110_ASSIGNED - Date.UTC(2009, 0, 1)) / 86_400_000) ?? null),
       ];
       const dateOf = (height) => {
         let low = 0, high = dayStarts.length - 1;
@@ -373,54 +585,105 @@
       };
       const esc = (text) => String(text).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
       const number = (value) => value.toLocaleString("en-US");
-      const pool = (slug) => `<span class="pool"><img src="${poolLogo(slug, false)}" alt="" />${esc(names.get(slug) ?? "Unknown miner")}</span>`;
-      const when = (height) => (height === null ? '<span class="none">–</span>' : `<span class="when"><a href="/explorer/block/${height}">${number(height)}</a><small>${dateOf(height)}</small></span>`);
-      const table = (columns, rows) => `<table><thead><tr>${columns.map(([label, kind]) => `<th${kind ? ' class="num"' : ""}>${label}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
-      const byFirst = (entries) => [...entries].sort((a, b) => a[1].first - b[1].first);
+      const percent = (part) => `${(part * 100).toFixed(1)}%`;
+      const pool = (slug) => `<span class="pool"><img src="${poolLogo(slug, false)}" alt="" width="15" height="15" />${esc(names.get(slug) ?? "Unknown miner")}</span>`;
+      const when = (height) => `<a class="when" href="/explorer/block/${height}"><time>${dateOf(height)}</time><small>${number(height)}</small></a>`;
+      const table = (columns, rows) => `<table class="rows"><thead><tr>${columns.map(([label, num]) => `<th${num ? ' class="num"' : ""}>${label}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
 
-      /** Every block's pool, as a lookup by height, from the earliest first block that could be read: one read the by-pool tables share. A failed first-day read only fails its own table. */
+      /** Every block's pool, as a lookup by height, from the earliest first block that could be read (the recent blocks
+       * at least), and how many of the recent blocks each pool mined: one read every column shares. A failed first-day
+       * read only fails its own column. */
       const pools = Promise.allSettled(firsts).then(async (results) => {
-        const from = Math.min(...results.filter((result) => result.status === "fulfilled").map((result) => result.value));
+        const from = Math.min(recentFrom, ...results.filter((result) => result.status === "fulfilled" && result.value !== null).map((result) => result.value));
         const slugs = await heights("block_pool", from, tip, POOL_PAGE);
-        return (height) => slugs[height - from];
+        const mined = new Map();
+        for (const slug of slugs.slice(recentFrom - from)) mined.set(slug, (mined.get(slug) ?? 0) + 1);
+        return { poolOf: (height) => slugs[height - from], mined };
       });
 
-      const counted = async (name, id, column, first) => {
-        try {
-          const start = await first;
-          const [rows, [baseline = 0], poolOf] = await Promise.all([heights(id, start, tip, COUNT_PAGE), start > 0 ? heights(id, start - 1, start, COUNT_PAGE) : [], pools]);
-          const added = new Map();
-          for (let i = 0; i < rows.length; i++) {
-            const value = rows[i] - (i ? rows[i - 1] : baseline);
-            if (!value) continue;
-            const slug = poolOf(start + i);
-            const entry = added.get(slug) ?? added.set(slug, { first: start + i, total: 0 }).get(slug);
-            entry.total += 1;
-          }
-          fill(name, table([["Pool"], ["First"], [column, true]], byFirst(added).map(([slug, { first, total }]) => `<tr><td>${pool(slug)}</td><td>${when(first)}</td><td class="num">${number(total)}</td></tr>`)));
-        } catch (error) {
-          console.error(error);
-          fail(name);
-        }
+      /** Each block's own count since a thing's first block, by `read` from that block on; none before there is one. */
+      const since = async (first, read) => {
+        const start = await first;
+        return { start, counts: start === null ? [] : await read(start) };
       };
+      /** A count read as it is. */
+      const each = (id, first) => since(first, (start) => heights(id, start, tip, COUNT_PAGE));
+      /** A count from the rows of a running total. */
+      const steps = (id, first) => since(first, async (start) => {
+        const [rows, [baseline = 0]] = await Promise.all([heights(id, start, tip, COUNT_PAGE), start > 0 ? heights(id, start - 1, start, COUNT_PAGE) : []]);
+        return rows.map((row, i) => row - (i ? rows[i - 1] : baseline));
+      });
+      /**
+       * The new things a pool's block can do, a column each: the old section's address, its name, its short one for a
+       * narrow screen, how to read its count in each block, what a pool's count in all counts (its blocks, or the inputs
+       * or outputs in them), and the words of its line in a pool's record.
+       */
+      const THINGS = [
+        { id: "p2a", name: "P2A spent", short: "P2A in", read: () => each("p2a_input_count", firsts[0]), unit: "inputs", did: "spent a pay&#8209;to&#8209;anchor output" },
+        { name: "P2A created", short: "P2A out", read: () => each("p2a_output_count", firsts[0]), unit: "outputs", did: "created a pay&#8209;to&#8209;anchor output" },
+        { id: "ephemeral-dust", name: "Ephemeral dust", short: "Dust", read: () => steps("ephemeral_dust_spending_tx_count_cumulative", firsts[1]), unit: "blocks", did: "mined a spend of ephemeral dust" },
+        { id: "bip54", name: "BIP&#8209;54 coinbase", short: "BIP 54", read: () => steps("bip54_coinbase_locktime_block_count_cumulative", firsts[2]), unit: "blocks", did: "followed BIP&#8209;54's coinbase locktime rule" },
+        { id: "bip110", name: "BIP&#8209;110 signal", short: "BIP 110", read: () => steps("version_bit_4_block_count_cumulative", firsts[3]), unit: "blocks", did: "signaled BIP&#8209;110 on version bit 4" },
+      ];
 
-      async function p2aTable() {
+      async function matrix() {
         try {
-          const start = await firsts[0];
-          const [spent, created, poolOf] = await Promise.all([heights("p2a_input_count", start, tip, COUNT_PAGE), heights("p2a_output_count", start, tip, COUNT_PAGE), pools]);
-          const rows = new Map();
-          for (let i = 0; i < spent.length; i++) {
-            if (!spent[i] && !created[i]) continue;
-            const slug = poolOf(start + i);
-            const row = rows.get(slug) ?? rows.set(slug, { spend: null, made: null, inputs: 0, outputs: 0 }).get(slug);
-            if (spent[i]) { row.spend ??= start + i; row.inputs += spent[i]; }
-            if (created[i]) { row.made ??= start + i; row.outputs += created[i]; }
-          }
-          const sorted = [...rows].sort((a, b) => (a[1].spend ?? Infinity) - (b[1].spend ?? Infinity) || (a[1].made ?? Infinity) - (b[1].made ?? Infinity));
-          fill("p2a", table([["Pool"], ["First spend"], ["First creation"], ["Inputs", true], ["Outputs", true]], sorted.map(([slug, row]) => `<tr><td>${pool(slug)}</td><td>${when(row.spend)}</td><td>${when(row.made)}</td><td class="num">${number(row.inputs)}</td><td class="num">${number(row.outputs)}</td></tr>`)));
+          // (Every thing read at once, beside the pools. One that can't be read leaves its column unread, the others standing.)
+          const reads = THINGS.map(({ read }) => read().catch((error) => console.error(error)));
+          const { poolOf, mined } = await pools;
+          // (Each thing by pool: its first block, its count in all, and how many of the pool's recent blocks have it.)
+          const columns = await Promise.all(reads.map(async (read, t) => {
+            const got = await read;
+            if (!got) return null;
+            const byPool = new Map();
+            got.counts.forEach((n, i) => {
+              if (!n) return;
+              const height = got.start + i, slug = poolOf(height);
+              const entry = byPool.get(slug) ?? byPool.set(slug, { first: height, total: 0, recent: 0 }).get(slug);
+              entry.total += THINGS[t].unit === "blocks" ? 1 : n;
+              if (height >= recentFrom) entry.recent += 1;
+            });
+            return byPool;
+          }));
+          // (A row for every pool that mined a recent block or ever did one of the things: the largest first, then
+          // those with no recent block by their earliest first.)
+          const earliest = (slug) => Math.min(...columns.map((column) => column?.get(slug)?.first ?? Infinity));
+          const slugs = [...new Set([...mined.keys(), ...columns.flatMap((column) => [...(column?.keys() ?? [])])])]
+            .sort((a, b) => (mined.get(b) ?? 0) - (mined.get(a) ?? 0) || earliest(a) - earliest(b));
+          const count = (value, part, under) => `<td class="num"><span>${number(value)}<i style="--part:${part}"></i></span><small>${under}</small></td>`;
+          const blank = (word) => `<td class="num"><span class="none">${word}<i></i></span><small></small></td>`;
+          const unread = blank("unread"), never = blank("–");
+          const cell = (column, slug) => {
+            const entry = column?.get(slug), blocks = mined.get(slug) ?? 0;
+            return !column ? unread : !entry ? never : count(entry.recent, blocks && entry.recent / blocks, `since ${dateOf(entry.first)}`);
+          };
+          const record = (slug) => THINGS.map(({ name, unit, did }, t) => {
+            const entry = columns[t]?.get(slug);
+            return `<div><dt>${name}</dt><dd>${!columns[t] ? "Couldn’t be read from the server." : !entry ? `Has never ${did}.` : `First ${did} on ${when(entry.first)}; ${number(entry.total)} ${unit} in all.`}</dd></div>`;
+          }).join("");
+          const every = columns.map((column) => {
+            if (!column) return unread;
+            const recent = [...column.values()].reduce((sum, entry) => sum + entry.recent, 0);
+            return count(recent, recent / RECENT, percent(recent / RECENT));
+          });
+          fill("matrix", `<table class="rows matrix"><thead><tr><th>Pool</th><th class="num">Last ${number(RECENT)} blocks</th>${THINGS.map(({ id, name, short }) => `<th class="num"${id ? ` id="${id}"` : ""}><span class="wide">${name}</span><span class="narrow">${short}</span></th>`).join("")}</tr></thead>` +
+            `<tbody><tr class="all"><th scope="row">Every pool</th>${count(RECENT, 1, "100%")}${every.join("")}</tr></tbody>` +
+            slugs.map((slug, i) => {
+              const blocks = mined.get(slug) ?? 0;
+              return `<tbody><tr class="line"><th scope="row"><button aria-expanded="false" aria-controls="record-${i}">${pool(slug)}</button></th>${count(blocks, blocks / RECENT, percent(blocks / RECENT))}${columns.map((column) => cell(column, slug)).join("")}</tr>` +
+                `<tr id="record-${i}" hidden><td colspan="${THINGS.length + 2}"><dl class="record">${record(slug)}</dl></td></tr></tbody>`;
+            }).join("") + "</table>" +
+            (columns.includes(null) ? '<p class="none">A column reads unread where its series couldn’t be read from the server. Reload to try again.</p>' : ""));
+          document.querySelector('[data-table="matrix"]').onclick = ({ target }) => {
+            const line = target.closest(".line");
+            if (!line) return;
+            const button = line.querySelector("button"), open = button.getAttribute("aria-expanded") !== "true";
+            button.setAttribute("aria-expanded", open);
+            line.nextElementSibling.hidden = !open;
+          };
         } catch (error) {
           console.error(error);
-          fail("p2a");
+          fail("matrix");
         }
       }
 
@@ -452,22 +715,16 @@
           document.getElementById("unclaimed-total").textContent = `${lost.toLocaleString("en-US", { maximumFractionDigits: 8 })} BTC`;
           const row = (height) => `<tr><td>${when(height)}</td><td>${pool(slugs.get(height))}</td><td class="num">${amount(values.get(height))}</td></tr>`;
           const newest = [...values.keys()].sort((a, b) => b - a);
-          const render = (rows, all) => fill("unclaimed", table([["Block"], ["Pool"], ["Unclaimed", true]], rows.map(row)) + (all ? "" : `<button id="more">Show all ${number(newest.length)}</button>`));
+          const render = (rows, all) => fill("unclaimed", table([["Day and block"], ["Pool"], ["Unclaimed", true]], rows.map(row)) + (all ? "" : `<button class="more">Show all ${number(newest.length)}</button>`));
           render(newest.slice(0, LIST_ROWS), newest.length <= LIST_ROWS);
-          document.getElementById("more")?.addEventListener("click", () => render(newest, true));
+          document.querySelector(".more")?.addEventListener("click", () => render(newest, true));
         } catch (error) {
           console.error(error);
           fail("unclaimed");
         }
       }
 
-      await Promise.all([
-        p2aTable(),
-        counted("ephemeral-dust", "ephemeral_dust_spending_tx_count_cumulative", "Blocks", firsts[1]),
-        counted("bip54", "bip54_coinbase_locktime_block_count_cumulative", "Blocks", firsts[2]),
-        counted("bip110", "version_bit_4_block_count_cumulative", "Blocks", firsts[3]),
-        unclaimedTable(),
-      ]);
+      await Promise.all([matrix(), unclaimedTable()]);
     </script>
   </body>
 </html>
