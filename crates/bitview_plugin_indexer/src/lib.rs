@@ -254,7 +254,7 @@ impl Indexer {
         Ok(indexer)
     }
 
-    /// A quit while the last stores commit waited leaves the vectors ahead of the stores'
+    /// A crash or a failed ingestion after the vectors' write leaves them ahead of the stores'
     /// checkpoint: roll them back to it, with the rollback floor, so dependents recompute too.
     fn drop_uncommitted_rows(&mut self) -> Result<()> {
         let Some(store_height) = self.stores.next_height()? else {
@@ -605,22 +605,18 @@ impl Indexer {
             return Ok(());
         };
 
-        let deferred_commit = {
-            let _lock = exit.lock();
-            let deferred_commit = self.stores.take_deferred_commit(completed_height);
-            self.vecs.stamped_write(completed_height)?;
-            deferred_commit
-        };
+        // One lock from the vectors' write to the stores' checkpoint: a quit waits for both, so
+        // it never leaves the vectors ahead of the stores.
+        let lock = exit.lock();
+        let deferred_commit = self.stores.take_deferred_commit(completed_height);
+        self.vecs.stamped_write(completed_height)?;
 
-        // Ingestion starts beside the dependents' compute. A quit before it takes the lock keeps
-        // the stores at their last checkpoint (import drops the vectors' newer rows); once it
-        // holds the lock, the quit waits for the new checkpoint. The commit waits for it; the
+        // Ingestion runs beside the dependents' compute, and the commit waits for it; the
         // vectors' compaction runs after the update, off the publication path.
-        let exit = exit.clone();
         let (done, ingested) = bounded(1);
         self.ingestion = Some(ingested);
         self.vecs.db().run_bg(move |_| {
-            let _lock = exit.lock();
+            let _lock = lock;
             let i = Instant::now();
             let result = deferred_commit
                 .persist()
