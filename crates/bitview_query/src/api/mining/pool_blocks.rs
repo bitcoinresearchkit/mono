@@ -18,9 +18,15 @@ pub struct ResolvedPoolBlocks {
     prices: Vec<Dollars>,
     activity_anchor: Option<BlockHash>,
     stale: Arc<StaleBlocks>,
+    settled: bool,
 }
 
 impl ResolvedPoolBlocks {
+    /// Whether the page ends below the reorg window: a later block of the pool never joins it.
+    pub fn is_settled(&self) -> bool {
+        self.settled
+    }
+
     /// Identifies the page: the extended rows' identity at the pool's last activity, and the
     /// selected heights, as a reclassification can change older rows at the same anchor.
     pub fn identity(&self) -> u64 {
@@ -46,14 +52,14 @@ impl Query {
     ) -> Result<ResolvedPoolBlocks> {
         let chain = self.blocks_window(None, 0)?;
         let tip = chain.last_height().ok_or_else(|| Error::updating())?;
-        let heights = before_height
-            .map_or(Some(tip), Height::decremented)
-            .map_or_else(Vec::new, |through| {
-                self.plugins()
-                    .pools
-                    .heights
-                    .latest_heights(slug, through.min(tip), limit)
-            });
+        let through = before_height.map_or(Some(tip), Height::decremented);
+        let settled = before_height.is_some() && through.is_none_or(|last| chain.settles(last));
+        let heights = through.map_or_else(Vec::new, |through| {
+            self.plugins()
+                .pools
+                .heights
+                .latest_heights(slug, through.min(tip), limit)
+        });
         let activity_anchor = heights
             .first()
             .map(|height| {
@@ -84,6 +90,7 @@ impl Query {
             prices,
             activity_anchor,
             stale: self.stale_blocks(),
+            settled,
         })
     }
 

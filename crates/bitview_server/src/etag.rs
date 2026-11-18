@@ -1,5 +1,10 @@
-use crate::VERSION;
 use axum::http::{HeaderMap, HeaderValue, header::ETAG};
+#[cfg(feature = "full-api")]
+use bitview_query::RepresentationId;
+#[cfg(feature = "full-api")]
+use brk_types::Version;
+
+use crate::VERSION;
 
 /// Typed weak entity tag with its validated HTTP representation. Every tag starts with the
 /// release, so a release changing a response's format never validates an older body.
@@ -7,13 +12,23 @@ use axum::http::{HeaderMap, HeaderValue, header::ETAG};
 pub struct Etag(HeaderValue);
 
 impl Etag {
-    pub fn matches(&self, headers: &HeaderMap) -> bool {
-        bitview_http::if_none_match(headers, Some(self.token()))
+    /// Names bytes by their hash: `l{hash:x}`.
+    pub fn content(hash: u64) -> Self {
+        format!("l{hash:x}").into()
     }
 
-    /// A request's tag token without the release prefix, if it is this release's.
-    pub fn unprefixed(token: &str) -> Option<&str> {
-        token.strip_prefix(VERSION.as_str())?.strip_prefix('-')
+    /// Names a representation the way it identifies itself: by its content, or by the block that
+    /// fixes it (`tx3-{version}-{hash}`, `version` bumped when its format changes).
+    #[cfg(feature = "full-api")]
+    pub fn representation(version: Version, identity: RepresentationId) -> Self {
+        match identity {
+            RepresentationId::Content(hash) => Self::content(hash),
+            RepresentationId::Block(hash) => format!("tx3-{version}-{hash}").into(),
+        }
+    }
+
+    pub fn matches(&self, headers: &HeaderMap) -> bool {
+        bitview_http::if_none_match(headers, Some(self.token()))
     }
 
     pub fn insert(&self, headers: &mut HeaderMap) {

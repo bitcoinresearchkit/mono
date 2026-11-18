@@ -1,11 +1,9 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use bitview_primitives::DifficultyEpoch;
 use bitview_types::DifficultyAdjustment;
 use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height};
 use vecdb::ReadableVec;
 
-use crate::{OptionData, Query, Result};
+use crate::{OptionData, Query, Result, TipPin};
 
 /// Target block time in seconds (10 minutes)
 const TARGET_BLOCK_TIME: u64 = 600;
@@ -16,12 +14,14 @@ impl Query {
     /// The current epoch's difficulty-adjustment snapshot, as mempool.space computes it on
     /// mainnet but with elapsed time measured to the tip block (cacheable per block).
     /// `previous_retarget` compares the current and previous epochs' first-block difficulties.
-    /// Time fields are in milliseconds; the estimated retarget date uses the wall clock.
-    pub fn difficulty_adjustment(&self) -> Result<DifficultyAdjustment> {
-        let pin = self.pin_safe_lengths()?;
+    /// Time fields are in milliseconds. The estimated retarget date counts from the tip block's
+    /// time, not the clock (where mempool.space adds to its own): the answer is a function of
+    /// the chain, the same on every server until the next block, and `remaining_time` is there
+    /// for a reader counting from now.
+    pub fn difficulty_adjustment(&self, at: &TipPin) -> Result<DifficultyAdjustment> {
         let indexer = self.indexer();
         let plugins = self.plugins();
-        let current_height = Query::tip_height(&pin)?;
+        let current_height = at.height;
         let current_height_u32: u32 = current_height.into();
 
         let current_epoch = DifficultyEpoch::from(current_height);
@@ -107,11 +107,7 @@ impl Query {
         let (span_ms, span_blocks) = projection.unwrap_or((TARGET_BLOCK_TIME * 1000, 1));
         let adjusted_time_avg_ms = span_ms / span_blocks;
         let remaining_time_ms = span_ms * u64::from(remaining_blocks) / span_blocks;
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(u64::from(*current_timestamp));
-        let estimated_retarget_date_ms = now * 1000 + remaining_time_ms;
+        let estimated_retarget_date_ms = u64::from(*current_timestamp) * 1000 + remaining_time_ms;
 
         // The retarget at the projected pace, as Bitcoin's rule counts it: one block more than
         // the intervals its span covers (exact at an epoch's last block). A retarget changes

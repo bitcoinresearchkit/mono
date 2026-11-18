@@ -36,24 +36,22 @@ use tower_http::{
 use tracing::info;
 
 use api::*;
-use cache::CacheParams;
 use stall_limit::StallLimitListener;
 use state::*;
 
+mod answer;
 mod api;
-#[cfg(feature = "full-api")]
-mod body_response;
 mod cache;
 mod canonical_url;
 mod config;
 mod error;
 mod etag;
 mod extended;
+mod gates;
 mod json_error;
 mod params;
 mod port;
 mod prepared_json;
-#[cfg(feature = "full-api")]
 mod raw_body;
 mod request_deadline;
 mod request_state;
@@ -72,7 +70,6 @@ pub use port::Port;
 
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig};
 
-#[cfg(feature = "full-api")]
 use raw_body::RawBodyPermit;
 
 #[cfg(feature = "series")]
@@ -259,7 +256,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         mempool_block_diff_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "full-api")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
-        #[cfg(feature = "full-api")]
         chain_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
         node: query
             .run(|query| Ok(query.client().asynchronous()?))

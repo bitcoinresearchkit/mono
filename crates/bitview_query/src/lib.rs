@@ -25,6 +25,8 @@ pub use output::*;
 pub(crate) use pin::check_bound;
 #[cfg(feature = "full-api")]
 pub(crate) use pin::ReadPin;
+#[cfg(feature = "full-api")]
+pub use pin::TipPin;
 pub use plugins::QueryPluginSet;
 #[cfg(feature = "full-api")]
 pub use publication_cache::PublicationCache;

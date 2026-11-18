@@ -1106,7 +1106,6 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
- "http-body",
  "jiff",
  "rayon",
  "schemars",

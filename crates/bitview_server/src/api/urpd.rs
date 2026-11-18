@@ -8,9 +8,8 @@ use bitview_types::{HeightOrDate, Urpd, UrpdCohort};
 
 use super::AppState;
 use crate::{
-    CacheParams,
+    answer::{Answer, Content, JSON},
     api::tags,
-    error::Result,
     extended::TransformResponseExtended,
     params::{Empty, UrpdCohortParam, UrpdParams, UrpdQuery},
     request_state::RequestState,
@@ -18,36 +17,31 @@ use crate::{
 
 async fn serve_urpd(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     cohort: UrpdCohort,
     point: Option<HeightOrDate>,
     query: UrpdQuery,
-) -> Result<Response> {
-    let cdn_cache_mode = state.cdn_cache_mode;
-    Ok(state
-        .respond_admitted(
-            &state.urpd_query,
-            &state.urpd_bodies,
-            headers,
-            "application/json",
-            move |q| {
-                let resolved = match point {
-                    Some(HeightOrDate::Date(date)) => {
-                        q.resolve_urpd_at(cohort, date, query.aggregation, query.weight)?
-                    }
-                    Some(HeightOrDate::Height(height)) => {
-                        q.resolve_urpd_height(cohort, height, query.aggregation, query.weight)?
-                    }
-                    None => q.resolve_urpd_latest(cohort, query.aggregation, query.weight)?,
-                };
-                // The selection alone identifies the body: a match answers 304 unreconstructed.
-                let params = CacheParams::live(format!("urpd3-{}", resolved.representation()))
-                    .stable_if(resolved.is_settled(), cdn_cache_mode);
-                Ok((resolved, params))
-            },
-            |q, resolved| Ok(q.urpd_resolved(resolved)?.into()),
-        )
-        .await?)
+) -> Response {
+    state
+        .respond(headers, state.urpd(), move |q| {
+            let resolved = match point {
+                Some(HeightOrDate::Date(date)) => {
+                    q.resolve_urpd_at(cohort, date, query.aggregation, query.weight)?
+                }
+                Some(HeightOrDate::Height(height)) => {
+                    q.resolve_urpd_height(cohort, height, query.aggregation, query.weight)?
+                }
+                None => q.resolve_urpd_latest(cohort, query.aggregation, query.weight)?,
+            };
+            // The selection alone identifies the body: a match answers 304 unreconstructed.
+            let tag = format!("urpd3-{}", resolved.representation());
+            let settled = resolved.is_settled();
+            let answer = Answer::new(tag, move |q| {
+                Ok(Content::new(JSON, q.urpd_resolved(resolved)?))
+            });
+            Ok(answer.settled(settled))
+        })
+        .await
 }
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
@@ -56,7 +50,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_content(&headers, |query| query.urpd_cohorts())
+                    .respond(&headers, state.chain(), |q| {
+                        Ok(Answer::built(Content::json(&q.urpd_cohorts()?)?))
+                    })
                     .await
             },
             |op| {
@@ -79,9 +75,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Path(params): Path<UrpdCohortParam>,
                    Query(query): Query<UrpdQuery>,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                serve_urpd(state, headers, params.cohort, None, query).await
+                   RequestState(state): RequestState| {
+                serve_urpd(state, &headers, params.cohort, None, query).await
             },
             |op| {
                 op.id("get_urpd_latest")
@@ -104,9 +99,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Path(params): Path<UrpdParams>,
                    Query(query): Query<UrpdQuery>,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                serve_urpd(state, headers, params.cohort, Some(params.point), query).await
+                   RequestState(state): RequestState| {
+                serve_urpd(state, &headers, params.cohort, Some(params.point), query).await
             },
             |op| {
                 op.id("get_urpd")

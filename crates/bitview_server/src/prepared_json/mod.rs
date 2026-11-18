@@ -1,12 +1,15 @@
-use axum::{body::Bytes, http::HeaderMap, response::Response};
+use axum::body::Bytes;
 use brk_types::tag_hash;
 
-use crate::{CacheParams, extended::ResponseExtended};
+use crate::{
+    answer::{Answer, Content, JSON},
+    etag::Etag,
+};
 
-/// Server-lifetime JSON with its validator computed once from the body.
+/// Server-lifetime JSON, named once by its bytes: `c{hash:x}`.
 pub struct PreparedJson {
     bytes: Bytes,
-    params: CacheParams,
+    tag: Etag,
 }
 
 impl PreparedJson {
@@ -16,15 +19,12 @@ impl PreparedJson {
     }
 
     pub fn from_bytes(bytes: Bytes) -> Self {
-        let hash = tag_hash(&bytes);
-        let params = CacheParams::revalidate(format!("c{hash:x}"));
-        Self { bytes, params }
+        let tag = format!("c{:x}", tag_hash(&bytes)).into();
+        Self { bytes, tag }
     }
 
-    pub fn respond(&self, headers: &HeaderMap) -> Response {
-        Response::cached_bytes(headers, &self.params, "application/json", || {
-            self.bytes.clone()
-        })
+    pub fn answer(&self) -> Answer {
+        Answer::ready(self.tag.clone(), Content::new(JSON, self.bytes.clone()))
     }
 
     #[cfg(feature = "series")]

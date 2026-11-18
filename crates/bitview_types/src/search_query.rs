@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 use crate::PageSize;
 
-#[derive(Debug, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct SearchQuery {
     /// Words to find in series names and descriptions (`realized price`, `mvrv`), in any order

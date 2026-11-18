@@ -45,6 +45,8 @@ pub(crate) struct Pool {
     pub replacements_json: [Mutex<Option<(BlockHash, JsonBody)>>; 2],
     /// When it was published: of two saves of the graveyard, the later publication's wins.
     pub published_at: Instant,
+    /// The same moment on the wall clock: the time of whatever is read off this publication.
+    pub published_time: Timestamp,
     /// The views made for readers past this pool's tip (the moment after a block), one slot per
     /// reader tip, the newest few: each is built once, its readers sharing it.
     pub behind: Mutex<Vec<(BlockHash, BehindSlot)>>,
@@ -109,6 +111,7 @@ impl Pool {
             recent_trees: Default::default(),
             replacements_json: Default::default(),
             published_at: Instant::now(),
+            published_time: Timestamp::now(),
             behind: Mutex::default(),
         }
     }

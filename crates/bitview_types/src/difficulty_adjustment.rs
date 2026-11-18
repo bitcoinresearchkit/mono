@@ -13,7 +13,8 @@ pub struct DifficultyAdjustment {
     #[schemars(example = 2.5)]
     pub difficulty_change: f64,
 
-    /// Estimated timestamp of next retarget (milliseconds)
+    /// Estimated timestamp of next retarget (milliseconds): the tip block's time plus
+    /// `remainingTime`, so it moves with blocks, not with the clock
     #[schemars(example = 1627762478000_u64)]
     pub estimated_retarget_date: u64,
 

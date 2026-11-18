@@ -2,12 +2,12 @@ use std::{collections::HashMap, sync::Arc};
 
 use bitview_plugin_price::{block_payments, block_tally, feed_blocks_with, warm_oracle};
 use bitview_primitives::Lengths;
-use bitview_types::{OracleBlock, OracleBlockPayments, OraclePayments};
+use bitview_types::{OracleBlock, OracleBlockPayments, OraclePayments, PricePoint};
 use brk_oracle::{
     Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, Search, Tally, bin_to_cents, dollars_bin_offset,
     one_dollar_bin,
 };
-use brk_types::{BlockHash, Dollars, Height};
+use brk_types::{BlockHash, Height, Timestamp};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
@@ -19,12 +19,33 @@ pub const ORACLE_PAYMENTS_CHUNK: usize = 144;
 /// A payments bucket's width, in oracle bins: a tenth, 0.115% of price.
 pub const PAYMENT_STEP: f64 = 0.1;
 
+/// The blocks an oracle answer replays, pinned: `start..end` on the chain where the last of them
+/// is `hash`. Their heights, that hash and the release name the answer before any replay, and
+/// the replay reads under the same pin.
+pub struct ResolvedOracleBlocks {
+    pin: ReadPin,
+    start: usize,
+    end: usize,
+    hash: BlockHash,
+    settled: bool,
+}
+
+impl ResolvedOracleBlocks {
+    /// The last block's hash.
+    pub fn hash(&self) -> BlockHash {
+        self.hash
+    }
+
+    /// Whether the answer is whole and its last block lies below the reorg window.
+    pub fn is_settled(&self) -> bool {
+        self.settled
+    }
+}
+
 impl Query {
-    /// The oracle at confirmed `height`: every candidate bin it scored from the block before's
-    /// answer, the bin it picked (the block's price), the smoothed histogram it scored and the
-    /// block's outputs as its filter judged them. After [`START_HEIGHT_FAST`] (before, the slow
-    /// regime's shape profile learns from each pick). Also whether `height` is settled.
-    pub fn oracle_block(&self, height: usize) -> Result<(OracleBlock, bool)> {
+    /// Confirmed block `height`, for [`Self::oracle_block`]: after [`START_HEIGHT_FAST`] (before,
+    /// the slow regime's shape profile learns from each pick), and within the oracle's prices.
+    pub fn resolve_oracle_block(&self, height: usize) -> Result<ResolvedOracleBlocks> {
         if height <= START_HEIGHT_FAST {
             return Err(Error::OutOfRange(
                 format!("the oracle's blocks: after height {START_HEIGHT_FAST}").into(),
@@ -32,7 +53,21 @@ impl Query {
         }
         let pin = self.pin_safe_lengths()?;
         check_bound(&pin, height, pin.lengths().height.to_usize())?;
-        let safe = self.check_histogram_height(height, pin.lengths())?;
+        self.check_histogram_height(height, pin.lengths())?;
+        Ok(ResolvedOracleBlocks {
+            start: height,
+            end: height + 1,
+            hash: self.block_hash_at(height)?,
+            settled: pin.lengths().is_settled(Height::from(height)),
+            pin,
+        })
+    }
+
+    /// The oracle at a confirmed block: every candidate bin it scored from the block before's
+    /// answer, the bin it picked (the block's price), the smoothed histogram it scored and the
+    /// block's outputs as its filter judged them.
+    pub fn oracle_block(&self, block: ResolvedOracleBlocks) -> Result<OracleBlock> {
+        let (height, safe) = (block.start, block.pin.lengths());
         // (The window's histogram doesn't depend on the seed: the answers do, read as stored.)
         let prev = self.seed_bin_at(height - 1)?;
         let oracle = warm_oracle(self.indexer(), prev, height + 1, Some(&safe))?;
@@ -41,19 +76,13 @@ impl Query {
             .ok_or_else(|| Error::NotFound(format!("no oracle reading at height {height}")))?;
         let bin = self.seed_bin_at(height)?;
         let tally = block_tally(self.indexer(), height, Some(&safe))?;
-        let hash = self.block_hash_at(height)?;
-        Ok((
-            reading(height, hash, search, bin, &oracle, tally, false),
-            pin.lengths().is_settled(Height::from(height)),
-        ))
+        Ok(reading(height, block.hash, search, bin, &oracle, tally, false))
     }
 
-    /// The chunk's blocks' payments (from `start`, a multiple of [`ORACLE_PAYMENTS_CHUNK`] past
-    /// [`START_HEIGHT_FAST`], else an invalid request), each read as each of the oracle's
-    /// round-dollar amounts at its exact amount in sats, counted by the price each reading implies,
-    /// in buckets of [`PAYMENT_STEP`] bins over the block's search window. The chunk at the tip
-    /// holds the blocks so far. Also whether the chunk is complete and settled.
-    pub fn oracle_payments_chunk(&self, start: usize) -> Result<(Arc<OraclePayments>, bool)> {
+    /// The payments chunk from `start` (a multiple of [`ORACLE_PAYMENTS_CHUNK`] past
+    /// [`START_HEIGHT_FAST`], else an invalid request), for [`Self::oracle_payments_chunk`]. The
+    /// chunk at the tip holds the blocks so far.
+    pub fn resolve_oracle_payments(&self, start: usize) -> Result<ResolvedOracleBlocks> {
         if !start.is_multiple_of(ORACLE_PAYMENTS_CHUNK) {
             let first = START_HEIGHT_FAST / ORACLE_PAYMENTS_CHUNK * ORACLE_PAYMENTS_CHUNK
                 + ORACLE_PAYMENTS_CHUNK;
@@ -76,15 +105,39 @@ impl Query {
                 "no oracle payments from height {start} yet"
             )));
         }
+        self.check_histogram_height(end - 1, pin.lengths())?;
+        Ok(ResolvedOracleBlocks {
+            start,
+            end,
+            hash: self.block_hash_at(end - 1)?,
+            settled: end - start == ORACLE_PAYMENTS_CHUNK
+                && pin.lengths().is_settled(Height::from(end - 1)),
+            pin,
+        })
+    }
+
+    /// A chunk's blocks' payments, each read as each of the oracle's round-dollar amounts at its
+    /// exact amount in sats, counted by the price each reading implies, in buckets of
+    /// [`PAYMENT_STEP`] bins over the block's search window.
+    pub fn oracle_payments_chunk(
+        &self,
+        chunk: ResolvedOracleBlocks,
+    ) -> Result<Arc<OraclePayments>> {
+        let ResolvedOracleBlocks {
+            pin,
+            start,
+            end,
+            hash: last,
+            settled,
+        } = chunk;
         // (Replayed once: a settled chunk for good, the others once per publication; either only
         // while its last block is still on the chain, which a rollback past settlement replaces.)
-        let last = self.block_hash_at(end - 1)?;
         let hit = self.0.payment_chunks.lock().get(start, pin.revision());
-        if let Some(hit) = hit.filter(|(payments, _)| payments.hash == last) {
-            return Ok(hit);
+        if let Some(payments) = hit.filter(|payments| payments.hash == last) {
+            return Ok(payments);
         }
         let range = start..end;
-        let safe = self.check_histogram_height(end - 1, pin.lengths())?;
+        let safe = pin.lengths();
         // (Each block's search window, from the block before's answer as stored, as
         // `oracle_block` finds it.)
         let prevs = (start - 1..end - 1)
@@ -144,8 +197,6 @@ impl Query {
                 });
             },
         )?;
-        let settled =
-            range.len() == ORACLE_PAYMENTS_CHUNK && pin.lengths().is_settled(Height::from(end - 1));
         let payments = Arc::new(OraclePayments {
             hash: last,
             step: PAYMENT_STEP,
@@ -155,7 +206,7 @@ impl Query {
             .payment_chunks
             .lock()
             .put(start, pin.revision(), settled, Arc::clone(&payments));
-        Ok((payments, settled))
+        Ok(payments)
     }
 
     /// The oracle now, from the live oracle the server keeps warm (no replay): with the mempool's
@@ -193,8 +244,14 @@ impl Query {
         ))
     }
 
-    pub fn live_price(&self) -> Result<Dollars> {
-        Ok(self.live_oracle()?.oracle.price_dollars())
+    /// The price now and when it came to be: the mempool publication blended into it, or
+    /// without one the tip block. A function of the two publications, never of the clock.
+    pub fn live_price(&self) -> Result<PricePoint> {
+        let live = self.live_oracle()?;
+        Ok(PricePoint {
+            time: live.time,
+            usd: live.oracle.price_dollars(),
+        })
     }
 
     /// The live tip oracle: the committed base, with the published pool's mempool outputs
@@ -222,8 +279,18 @@ impl Query {
             .get_or_try_init(pin.revision(), || {
                 Ok(warm_oracle(self.indexer(), seed_bin, height, Some(&safe))?)
             })?;
+        let time = match &live {
+            Some((_, _, published)) => *published,
+            None => self
+                .indexer()
+                .vecs()
+                .blocks
+                .timestamp
+                .collect_one_at(last)
+                .data()?,
+        };
         let (blended_from, mempool) = live
-            .map(|(histogram, tally)| {
+            .map(|(histogram, tally, _)| {
                 let from = oracle.ref_bin();
                 oracle.process_histogram(&histogram);
                 (from, tally)
@@ -235,6 +302,7 @@ impl Query {
             oracle,
             blended_from,
             mempool,
+            time,
             next: height,
             tip_prev,
             pin,
@@ -316,6 +384,8 @@ struct LiveOracle {
     blended_from: Option<f64>,
     /// With the mempool blended in, its outputs as the filter judged them.
     mempool: Option<Tally>,
+    /// When the reading came to be: the blended mempool's publication, else the tip block.
+    time: Timestamp,
     /// The next block's height.
     next: usize,
     /// The tip block's previous answer: where its own search started.
@@ -345,16 +415,14 @@ impl<T> Default for OracleChunks<T> {
 impl<T> OracleChunks<T> {
     const MAX: usize = 64;
 
-    fn get(&mut self, start: usize, revision: u64) -> Option<(Arc<T>, bool)> {
+    fn get(&mut self, start: usize, revision: u64) -> Option<Arc<T>> {
         self.uses += 1;
         let (read_at, used, chunk) = self.chunks.get_mut(&start)?;
-        let settled = match read_at {
-            None => true,
-            Some(read_at) if *read_at == revision => false,
-            Some(_) => return None,
-        };
+        if read_at.is_some_and(|read_at| read_at != revision) {
+            return None;
+        }
         *used = self.uses;
-        Some((Arc::clone(chunk), settled))
+        Some(Arc::clone(chunk))
     }
 
     fn put(&mut self, start: usize, revision: u64, settled: bool, chunk: Arc<T>) {

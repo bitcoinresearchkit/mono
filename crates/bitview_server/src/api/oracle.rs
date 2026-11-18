@@ -5,8 +5,8 @@ use brk_types::Dollars;
 
 use crate::{
     AppState,
+    answer::{Answer, Content},
     api::tags,
-    error::Result,
     extended::TransformResponseExtended,
     params::{Empty, HeightParam, StartParam},
     request_state::RequestState,
@@ -18,7 +18,9 @@ async fn serve_live_price(
     RequestState(state): RequestState,
 ) -> Response {
     state
-        .respond_json_content(&headers, |query| query.live_price())
+        .respond(&headers, state.chain(), |q| {
+            Ok(Answer::built(Content::json(&q.live_price()?.usd)?))
+        })
         .await
 }
 
@@ -48,7 +50,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
-                        .respond_json_content(&headers, |query| query.live_block())
+                        .respond(&headers, state.chain(), |q| {
+                            Ok(Answer::built(Content::json(&q.live_block()?)?))
+                        })
                         .await
                 },
                 |op| {
@@ -76,14 +80,17 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<HeightParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response> {
+                       RequestState(state): RequestState| {
                     let height = usize::from(path.height);
-                    Ok(state
-                        .respond_json_settled_on(&state.oracle_replays, &headers, move |q| {
-                            q.oracle_block(height)
+                    // The block names its reading: a request holding the tag replays nothing.
+                    state
+                        .respond(&headers, state.oracle(), move |q| {
+                            let block = q.resolve_oracle_block(height)?;
+                            let tag = format!("oracle-block-1-{height}-{}", block.hash());
+                            let settled = block.is_settled();
+                            Ok(Answer::json(tag, move |q| q.oracle_block(block)).settled(settled))
                         })
-                        .await)
+                        .await
                 },
                 |op| {
                     op.id("get_oracle_block")
@@ -112,14 +119,18 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<StartParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response> {
+                       RequestState(state): RequestState| {
                     let start = usize::from(path.start);
-                    Ok(state
-                        .respond_json_settled_on(&state.oracle_replays, &headers, move |q| {
-                            q.oracle_payments_chunk(start)
+                    // The chunk's last block names it, as it does its blocks so far at the tip.
+                    state
+                        .respond(&headers, state.oracle(), move |q| {
+                            let chunk = q.resolve_oracle_payments(start)?;
+                            let tag = format!("oracle-payments-1-{start}-{}", chunk.hash());
+                            let settled = chunk.is_settled();
+                            let answer = Answer::json(tag, move |q| q.oracle_payments_chunk(chunk));
+                            Ok(answer.settled(settled))
                         })
-                        .await)
+                        .await
                 },
                 |op| {
                     op.id("get_oracle_payments")

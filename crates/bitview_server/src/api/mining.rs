@@ -1,21 +1,22 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
-    body::Bytes,
     extract::Path,
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
+use bitview_query::{Query, Result as QueryResult, TipPin};
 use bitview_types::{
     BlockFeeRatesEntry, BlockFeeRatesPreciseEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry,
     BlockSizesWeights, DifficultyAdjustmentEntry, HashrateSummary, PoolDetail, PoolHashrateEntry,
     PoolInfo, PoolsSummary, RewardStats,
 };
 use brk_types::Height;
-use serde_json::to_vec;
+use serde::Serialize;
 
 use super::blocks;
 use crate::{
-    AppState, CacheParams, Error,
+    AppState, Error,
+    answer::Answer,
     api::tags,
     extended::TransformResponseExtended,
     params::{
@@ -27,27 +28,43 @@ const POOL_BLOCKS_LIMIT: usize = 100;
 
 async fn serve_pool_blocks(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     slug: SlugText,
     before_height: Option<Height>,
 ) -> Response {
     state
-        .respond_read(
-            headers,
-            "application/json",
-            move |q| {
-                let blocks =
-                    q.resolve_pool_blocks(slug.pool()?, before_height, POOL_BLOCKS_LIMIT)?;
-                let params = CacheParams::live(format!(
-                    "pool-blocks-{}-{:x}",
-                    blocks::V1_BLOCK_SCHEMA,
-                    blocks.identity()
-                ));
-                Ok((blocks, params))
-            },
-            |q, blocks| Ok(Bytes::from(to_vec(&q.pool_blocks_resolved(blocks)?)?)),
-        )
+        .respond(headers, state.chain(), move |q| {
+            let blocks = q.resolve_pool_blocks(slug.pool()?, before_height, POOL_BLOCKS_LIMIT)?;
+            let tag = format!(
+                "pool-blocks-{}-{:x}",
+                blocks::V1_BLOCK_SCHEMA,
+                blocks.identity()
+            );
+            let settled = blocks.is_settled();
+            Ok(Answer::json(tag, move |q| q.pool_blocks_resolved(blocks)).settled(settled))
+        })
         .await
+}
+
+impl AppState {
+    /// A whole-history aggregate (the mining statistics), under its own admission. Each is a
+    /// function of the published chain and the release, so the tip names it (`h{tip}`), and the
+    /// pin that reads the tip is the one `value` reads under: a request holding the tag is
+    /// answered before any of it is built (they take tens of milliseconds). Inputs `value`
+    /// would reject are checked by the caller first: a matching tag answers before it runs.
+    pub(super) async fn respond_history<T: Serialize>(
+        &self,
+        headers: &HeaderMap,
+        value: impl FnOnce(&Query, &TipPin) -> QueryResult<T> + Clone + Send + 'static,
+    ) -> Response {
+        self.respond(headers, self.history(), move |q| {
+            let at = q.pin_tip()?;
+            Ok(Answer::json(format!("h{}", at.hash()), move |q| {
+                value(q, &at)
+            }))
+        })
+        .await
+    }
 }
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
@@ -55,7 +72,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/pools",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                state.mining_pools_body.respond(&headers)
+                state.respond_now(&headers, state.mining_pools_body.answer())
             },
             |op| {
                 op.id("get_pools")
@@ -72,7 +89,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = path.time_period;
-                state.respond_json_history(headers, move |q| q.mining_pools(time_period)).await
+                state.respond_history(&headers, move |q, at| q.mining_pools(at, time_period)).await
             },
             |op| {
                 op.id("get_pool_ranking")
@@ -89,7 +106,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, RequestState(state): RequestState| {
                 match path.slug.pool() {
-                    Ok(slug) => state.respond_json_history(headers, move |q| q.pool_detail(slug)).await,
+                    Ok(slug) => state.respond_history(&headers, move |q, at| q.pool_detail(at, slug)).await,
                     Err(error) => Error::from(error).into_response(),
                 }
             },
@@ -108,7 +125,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/hashrate/pools",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                state.respond_json_history(headers, |q| q.pools_hashrate(None)).await
+                state.respond_history(&headers, |q, at| q.pools_hashrate(at, None)).await
             },
             |op| {
                 op.id("get_pools_hashrate")
@@ -126,7 +143,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = Some(path.time_period);
-                state.respond_json_history(headers, move |q| q.pools_hashrate(time_period)).await
+                state.respond_history(&headers, move |q, at| q.pools_hashrate(at, time_period)).await
             },
             |op| {
                 op.id("get_pools_hashrate_by_period")
@@ -143,7 +160,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, RequestState(state): RequestState| {
                 match path.slug.pool() {
-                    Ok(slug) => state.respond_json_history(headers, move |q| q.pool_hashrate(slug)).await,
+                    Ok(slug) => state.respond_history(&headers, move |q, at| q.pool_hashrate(at, slug)).await,
                     Err(error) => Error::from(error).into_response(),
                 }
             },
@@ -162,7 +179,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/pool/{slug}/blocks",
         get_with(
             async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, RequestState(state): RequestState| {
-                serve_pool_blocks(state, headers, path.slug, None).await
+                serve_pool_blocks(state, &headers, path.slug, None).await
             },
             |op| {
                 op.id("get_pool_blocks")
@@ -179,7 +196,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/pool/{slug}/blocks/{height}",
         get_with(
             async |headers: HeaderMap, Path(PoolSlugAndHeightParam {slug, height}): Path<PoolSlugAndHeightParam>, _: Empty, RequestState(state): RequestState| {
-                serve_pool_blocks(state, headers, slug, Some(height)).await
+                serve_pool_blocks(state, &headers, slug, Some(height)).await
             },
             |op| {
                 op.id("get_pool_blocks_from_height")
@@ -196,7 +213,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/hashrate",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                state.respond_json_history(headers, |q| q.hashrate(None)).await
+                state.respond_history(&headers, |q, at| q.hashrate(at, None)).await
             },
             |op| {
                 op.id("get_hashrate")
@@ -214,7 +231,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = Some(path.time_period);
-                state.respond_json_history(headers, move |q| q.hashrate(time_period)).await
+                state.respond_history(&headers, move |q, at| q.hashrate(at, time_period)).await
             },
             |op| {
                 op.id("get_hashrate_by_period")
@@ -230,7 +247,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/difficulty-adjustments",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                state.respond_json_history(headers, |q| q.difficulty_adjustments(None)).await
+                state.respond_history(&headers, |q, at| q.difficulty_adjustments(at, None)).await
             },
             |op| {
                 op.id("get_difficulty_adjustments")
@@ -248,7 +265,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = Some(path.time_period);
-                state.respond_json_history(headers, move |q| q.difficulty_adjustments(time_period)).await
+                state.respond_history(&headers, move |q, at| q.difficulty_adjustments(at, time_period)).await
             },
             |op| {
                 op.id("get_difficulty_adjustments_by_period")
@@ -264,7 +281,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/reward-stats/{block_count}",
         get_with(
             async |headers: HeaderMap, Path(path): Path<BlockCountParam>, _: Empty, RequestState(state): RequestState| {
-                state.respond_json_history(headers, move |q| q.reward_stats(path.block_count.get())).await
+                state.respond_history(&headers, move |q, at| q.reward_stats(at, path.block_count.get())).await
             },
             |op| {
                 op.id("get_reward_stats")
@@ -281,7 +298,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = path.time_period;
-                state.respond_json_history(headers, move |q| q.block_fees(time_period)).await
+                state.respond_history(&headers, move |q, at| q.block_fees(at, time_period)).await
             },
             |op| {
                 op.id("get_block_fees")
@@ -298,7 +315,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = path.time_period;
-                state.respond_json_history(headers, move |q| q.block_rewards(time_period)).await
+                state.respond_history(&headers, move |q, at| q.block_rewards(at, time_period)).await
             },
             |op| {
                 op.id("get_block_rewards")
@@ -315,7 +332,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = path.time_period;
-                state.respond_json_history(headers, move |q| q.block_fee_rates(time_period)).await
+                state.respond_history(&headers, move |q, at| q.block_fee_rates(at, time_period)).await
             },
             |op| {
                 op.id("get_block_fee_rates")
@@ -333,7 +350,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = path.time_period;
-                state.respond_json_history(headers, move |q| q.block_fee_rates_precise(time_period)).await
+                state.respond_history(&headers, move |q, at| q.block_fee_rates_precise(at, time_period)).await
             },
             |op| {
                 op.id("get_block_fee_rates_precise")
@@ -350,7 +367,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = path.time_period;
-                state.respond_json_history(headers, move |q| q.block_sizes_weights(time_period)).await
+                state.respond_history(&headers, move |q, at| q.block_sizes_weights(at, time_period)).await
             },
             |op| {
                 op.id("get_block_sizes_weights")

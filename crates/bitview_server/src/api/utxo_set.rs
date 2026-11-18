@@ -7,9 +7,8 @@ use brk_types::Version;
 
 use super::AppState;
 use crate::{
-    CacheParams,
+    answer::{Answer, Content, JSON},
     api::tags,
-    error::Result,
     extended::TransformResponseExtended,
     params::{Empty, HeightOrDateParam},
     request_state::RequestState,
@@ -19,34 +18,26 @@ use crate::{
 const VERSION: Version = Version::ONE;
 
 impl AppState {
-    /// The point resolves and validates first; the body is built only when needed.
+    /// The set at a point, named by the point's block (`a{version}-{block hash prefix:x}`)
+    /// before any of it is built.
     async fn respond_utxo_set(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         point: Option<HeightOrDate>,
         build: fn(&Query, &UtxoSetPoint) -> QueryResult<Vec<u8>>,
-    ) -> Result<Response> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        Ok(self
-            .respond_admitted(
-                &self.utxo_set_query,
-                &self.utxo_set_bodies,
-                headers,
-                "application/json",
-                move |q| {
-                    let point = match point {
-                        None => q.utxo_set_point_latest()?,
-                        Some(HeightOrDate::Height(height)) => q.utxo_set_point_height(height)?,
-                        Some(HeightOrDate::Date(date)) => q.utxo_set_point_date(date)?,
-                    };
-                    let params =
-                        CacheParams::activity_bound(VERSION, BlockHashPrefix::from(point.hash()))
-                            .stable_if(point.is_settled(), cdn_cache_mode);
-                    Ok((point, params))
-                },
-                move |q, point| Ok(build(q, &point)?.into()),
-            )
-            .await?)
+    ) -> Response {
+        self.respond(headers, self.utxo_set(), move |q| {
+            let point = match point {
+                None => q.utxo_set_point_latest()?,
+                Some(HeightOrDate::Height(height)) => q.utxo_set_point_height(height)?,
+                Some(HeightOrDate::Date(date)) => q.utxo_set_point_date(date)?,
+            };
+            let tag = format!("a{VERSION}-{:x}", *BlockHashPrefix::from(point.hash()));
+            let settled = point.is_settled();
+            let answer = Answer::new(tag, move |q| Ok(Content::new(JSON, build(q, &point)?)));
+            Ok(answer.settled(settled))
+        })
+        .await
     }
 }
 
@@ -56,9 +47,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap,
                    _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
-                state.respond_utxo_set(headers, None, Query::utxo_set).await
+                   RequestState(state): RequestState| {
+                state.respond_utxo_set(&headers, None, Query::utxo_set).await
             },
             |op| {
                 op.id("get_utxo_set_latest")
@@ -81,11 +71,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Path(path): Path<HeightOrDateParam>,
                    _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
+                   RequestState(state): RequestState| {
                 let point = path.point;
                 state
-                    .respond_utxo_set(headers, Some(point), Query::utxo_set)
+                    .respond_utxo_set(&headers, Some(point), Query::utxo_set)
                     .await
             },
             |op| {
@@ -112,11 +101,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Path(path): Path<HeightOrDateParam>,
                    _: Empty,
-                   RequestState(state): RequestState|
-                   -> Result<Response> {
+                   RequestState(state): RequestState| {
                 let point = path.point;
                 state
-                    .respond_utxo_set(headers, Some(point), Query::utxo_set_diff)
+                    .respond_utxo_set(&headers, Some(point), Query::utxo_set_diff)
                     .await
             },
             |op| {

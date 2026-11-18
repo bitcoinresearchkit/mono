@@ -10,11 +10,18 @@ pub struct ResolvedBlockTimestamp {
     height: Height,
     hash: BlockHash,
     timestamp: JiffTimestamp,
+    settled: bool,
 }
 
 impl ResolvedBlockTimestamp {
     pub fn hash(&self) -> BlockHash {
         self.hash
+    }
+
+    /// Whether every block the selection read lies below the reorg window, and they decide it:
+    /// no later block can be at or before the timestamp.
+    pub fn is_settled(&self) -> bool {
+        self.settled
     }
 
     /// Format the timestamp only when a response body is needed.
@@ -38,7 +45,7 @@ impl Query {
         let len = usize::from(pin.lengths().height);
         let monotonic = &mappings.timestamp.monotonic;
         let timestamps = &indexer.vecs().blocks.timestamp;
-        let (height, timestamp) = select_timestamp(
+        let (height, timestamp, decided) = select_timestamp(
             len,
             target,
             |h| monotonic.collect_one_at(h).data(),
@@ -57,6 +64,7 @@ impl Query {
             height,
             hash,
             timestamp,
+            settled: decided.is_some_and(|last| pin.lengths().is_settled(Height::from(last))),
         })
     }
 }
@@ -80,6 +88,9 @@ fn lower_bound(
     Ok(begin)
 }
 
+/// The selected height and its timestamp, then the last height the selection had to read when
+/// the blocks through it decide it whatever follows them (`None` when it read to the tip).
+///
 /// O(log n + k), not universally O(log n): the first future-skewed header can
 /// precede the MTP crossing by many blocks. Far-future inputs never scan.
 fn select_timestamp(
@@ -87,7 +98,7 @@ fn select_timestamp(
     target: Timestamp,
     mut maximum: impl FnMut(usize) -> Result<Timestamp>,
     mut raw: impl FnMut(usize) -> Result<Timestamp>,
-) -> Result<(usize, Timestamp)> {
+) -> Result<(usize, Timestamp, Option<usize>)> {
     if len == 0 {
         return Err(Error::updating());
     }
@@ -98,7 +109,7 @@ fn select_timestamp(
     let mut best = maximum(crossing - 1)?;
     let mut height = lower_bound(crossing, best, false, &mut maximum)?;
     if best == target {
-        return Ok((height, best));
+        return Ok((height, best, Some(height)));
     }
     // Before the first crossing every timestamp is <= target, so the initial
     // window is known without reading ten preceding blocks. Count above-target
@@ -112,7 +123,7 @@ fn select_timestamp(
             height = h;
         }
         if best == target {
-            break;
+            return Ok((height, best, Some(h)));
         }
         // Header consensus requires descendants to exceed previous MTP.
         // BIP113 reused that clock, rather than introducing the header rule.
@@ -122,8 +133,8 @@ fn select_timestamp(
         above += usize::from(window[slot]);
         let len = (h + 1).min(11);
         if above >= len.div_ceil(2) {
-            break;
+            return Ok((height, best, Some(h)));
         }
     }
-    Ok((height, best))
+    Ok((height, best, None))
 }

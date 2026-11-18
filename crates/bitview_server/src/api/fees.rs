@@ -1,7 +1,7 @@
 use crate::request_state::RequestState;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::http::HeaderMap;
-use brk_types::{MempoolBlock, PreciseRecommendedFees, RecommendedFees, Version};
+use brk_types::{MempoolBlock, PreciseRecommendedFees, RecommendedFees};
 
 use crate::{AppState, api::tags, extended::TransformResponseExtended, params::Empty};
 
@@ -11,7 +11,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| q.mempool_blocks_json())
+                    .respond_built(&headers, |q| q.mempool_blocks_json())
                     .await
             },
             |op| {
@@ -29,7 +29,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| q.recommended_fees_json())
+                    .respond_built(&headers, |q| q.recommended_fees_json())
                     .await
             },
             |op| {
@@ -48,7 +48,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| q.precise_fees_json())
+                    .respond_built(&headers, |q| q.precise_fees_json())
                     .await
             },
             |op| {

@@ -25,8 +25,12 @@ impl ResolvedBlocks {
 
     /// Whether the range's last block lies below the reorg window: appends never change it.
     pub fn is_settled(&self) -> bool {
-        self.last_height()
-            .is_some_and(|last| self.guard.lengths().is_settled(last))
+        self.last_height().is_some_and(|last| self.settles(last))
+    }
+
+    /// Whether block `height` lies below the reorg window of the chain the range was read at.
+    pub(crate) fn settles(&self, height: Height) -> bool {
+        self.guard.lengths().is_settled(height)
     }
 
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfo>> {
@@ -105,19 +109,6 @@ impl ResolvedBlocks {
 }
 
 impl Query {
-    /// Check one caller-supplied height against the full canonical hash without
-    /// consulting the prefix store. A miss falls back to worker resolution.
-    pub fn try_resolve_block_snapshot(
-        &self,
-        hash: &BlockHash,
-        height_hint: Height,
-    ) -> Result<Option<ResolvedBlocks>> {
-        let blocks = self.blocks_window(Some(height_hint), 1)?;
-        if blocks.last_height() != Some(height_hint) || blocks.anchor() != Some(*hash) {
-            return Ok(None);
-        }
-        Ok(Some(blocks))
-    }
 
     /// Resolve an exact canonical hash and retain the pin until
     /// the selected row is consumed. The prefix-store lookup may perform I/O.

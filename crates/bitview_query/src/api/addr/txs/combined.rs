@@ -27,6 +27,16 @@ impl ResolvedAddrTxs {
             .map(ResolvedAddrChainTxs::activity_anchor);
         page_identity(anchor, &self.mempool)
     }
+
+    /// Whether the page is all confirmed and [`ResolvedAddrChainTxs::is_settled`]: one continued
+    /// from a confirmed transaction skips the mempool.
+    pub fn is_settled(&self) -> bool {
+        self.mempool.is_empty()
+            && self
+                .chain
+                .as_ref()
+                .is_some_and(ResolvedAddrChainTxs::is_settled)
+    }
 }
 
 impl Query {

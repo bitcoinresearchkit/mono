@@ -3,15 +3,18 @@ use brk_types::{Height, TARGET_BLOCKS_PER_DAY_F64};
 use vecdb::{ReadableVec, VecIndex};
 
 use super::{epochs::difficulty_epochs, start_height};
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result, TipPin};
 
 impl Query {
     /// Network hashrate summary over `time_period`'s timestamp lookback from the tip (`None`: the
     /// full chain): every completed day's hashrate, stamped at its day's end as mempool.space
     /// does; the window's retargets; the trailing 7-day hashrate; and the tip's difficulty.
-    pub fn hashrate(&self, time_period: Option<TimePeriod>) -> Result<HashrateSummary> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+    pub fn hashrate(
+        &self,
+        at: &TipPin,
+        time_period: Option<TimePeriod>,
+    ) -> Result<HashrateSummary> {
+        let tip = at.height;
         let indexer = self.indexer();
         let plugins = self.plugins();
 

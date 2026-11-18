@@ -7,8 +7,7 @@ use std::{
 };
 
 use crate::{
-    CacheParams, Error, error::Result, extended::ResponseExtended, params::Empty,
-    request_state::RequestState,
+    AppState, Error, answer::Answer, error::Result, params::Empty, request_state::RequestState,
 };
 
 mod cancellation;
@@ -42,11 +41,7 @@ pub async fn get(
         && finished > arrived
     {
         drop(permit);
-        return Ok(Response::cached_json(
-            &headers,
-            &params(brk_bytes, bitcoin_bytes),
-            || DiskUsage::new(brk_bytes, bitcoin_bytes),
-        ));
+        return Ok(respond(&state, &headers, brk_bytes, bitcoin_bytes));
     }
     let brk_path = state.data_path.clone();
     let cancellation = Cancellation::default();
@@ -72,15 +67,13 @@ pub async fn get(
             Ok(totals)
         })
         .await?;
-    Ok(Response::cached_json(
-        &headers,
-        &params(brk_bytes, bitcoin_bytes),
-        || DiskUsage::new(brk_bytes, bitcoin_bytes),
-    ))
+    Ok(respond(&state, &headers, brk_bytes, bitcoin_bytes))
 }
 
-fn params(brk_bytes: u64, bitcoin_bytes: u64) -> CacheParams {
+fn respond(state: &AppState, headers: &HeaderMap, brk_bytes: u64, bitcoin_bytes: u64) -> Response {
     // These totals determine every DiskUsage field. Bump the representation
     // version if its fields, derivations or formatting change.
-    CacheParams::live(format!("disk1-{brk_bytes}-{bitcoin_bytes}"))
+    let tag = format!("disk1-{brk_bytes}-{bitcoin_bytes}");
+    let usage = Answer::json(tag, move |_| Ok(DiskUsage::new(brk_bytes, bitcoin_bytes)));
+    state.respond_now(headers, usage)
 }

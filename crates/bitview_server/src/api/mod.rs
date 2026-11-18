@@ -14,7 +14,10 @@ use schemars::{SchemaGenerator, generate::SchemaSettings, transform::ReplacePref
 use serde_json::Value;
 
 use super::AppState;
-use crate::{Error, error::changes_hint, extended::TransformResponseExtended, params::Empty};
+use crate::{
+    Error, error::changes_hint, extended::TransformResponseExtended, params::Empty,
+    request_state::RequestState,
+};
 
 #[cfg(feature = "full-api")]
 mod addrs;
@@ -96,8 +99,11 @@ impl ApiRoutes for ApiRouter<AppState> {
             .api_route(
                 "/openapi.json",
                 get_with(
-                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<Arc<OpenApiBodies>>| {
-                        api.full.respond(&headers)
+                    async |headers: HeaderMap,
+                           _: Empty,
+                           RequestState(state): RequestState,
+                           Extension(api): Extension<Arc<OpenApiBodies>>| {
+                        state.respond_now(&headers, api.full.answer())
                     },
                     |op| {
                         op.id("get_openapi")
@@ -113,8 +119,11 @@ impl ApiRoutes for ApiRouter<AppState> {
             .api_route(
                 "/api.json",
                 get_with(
-                    async |headers: HeaderMap, _: Empty, Extension(api): Extension<Arc<OpenApiBodies>>| {
-                        api.compact.respond(&headers)
+                    async |headers: HeaderMap,
+                           _: Empty,
+                           RequestState(state): RequestState,
+                           Extension(api): Extension<Arc<OpenApiBodies>>| {
+                        state.respond_now(&headers, api.compact.answer())
                     },
                     |op| {
                         op.id("get_api")

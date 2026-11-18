@@ -1,11 +1,11 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Query, http::HeaderMap};
 use bitview_types::{DifficultyAdjustment, HistoricalPrice, PricePoint};
-use brk_types::Timestamp;
 
 use super::historical_price;
 use crate::{
     AppState,
+    answer::{Answer, Content},
     api::tags,
     extended::TransformResponseExtended,
     params::{Empty, HistoricalPriceParam},
@@ -18,9 +18,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_content(&headers, |q| {
-                        q.difficulty_adjustment()
-                    })
+                    .respond_history(&headers, |q, at| q.difficulty_adjustment(at))
                     .await
             },
             |op| {
@@ -38,11 +36,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_content(&headers, |q| {
-                        Ok(PricePoint {
-                            time: Timestamp::now(),
-                            usd: q.live_price()?,
-                        })
+                    .respond(&headers, state.chain(), |q| {
+                        Ok(Answer::built(Content::json(&q.live_price()?)?))
                     })
                     .await
             },
@@ -62,7 +57,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Query(params): Query<HistoricalPriceParam>,
                    RequestState(state): RequestState| {
-                historical_price::serve(state, headers, params.timestamp).await
+                historical_price::serve(state, &headers, params.timestamp).await
             },
             |op| {
                 op.id("get_historical_price")

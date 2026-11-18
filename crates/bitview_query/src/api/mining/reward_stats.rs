@@ -2,18 +2,17 @@ use bitview_types::RewardStats;
 use brk_types::Height;
 use vecdb::{AnyVec, CheckedSub, ReadableVec, VecIndex, VecValue};
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result, TipPin};
 
 impl Query {
     /// Coinbase rewards, fees and transaction counts over the last `block_count` blocks (fewer
     /// near genesis). `InvalidParam` for zero, `Internal` for incomplete published data.
-    pub fn reward_stats(&self, block_count: usize) -> Result<RewardStats> {
+    pub fn reward_stats(&self, at: &TipPin, block_count: usize) -> Result<RewardStats> {
         if block_count == 0 {
             return Err(Error::InvalidParam("block_count must be at least 1".into()));
         }
 
-        let pin = self.pin_safe_lengths()?;
-        let end_block = Query::tip_height(&pin)?;
+        let end_block = at.height;
         let start_block = Height::from(end_block.to_usize().saturating_sub(block_count - 1));
         let plugins = self.plugins();
 

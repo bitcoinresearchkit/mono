@@ -1,16 +1,21 @@
-use axum::{
-    Json,
-    extract::Query,
-    response::{IntoResponse, Response},
-};
-use bitview_http::CachePolicy;
+use axum::{extract::Query, http::HeaderMap, response::Response};
 use bitview_types::{LogLevel, LogLine, Logs};
 use brk_logger::{Line, Recent};
 use tracing::Level;
 
-use crate::{Error, error::Result, params::LogsQuery};
+use crate::{
+    Error,
+    answer::{Answer, Content},
+    error::Result,
+    params::LogsQuery,
+    request_state::RequestState,
+};
 
-pub async fn get(Query(query): Query<LogsQuery>) -> Result<Response> {
+pub async fn get(
+    headers: HeaderMap,
+    Query(query): Query<LogsQuery>,
+    RequestState(state): RequestState,
+) -> Result<Response> {
     let started = brk_logger::started().as_millisecond();
     // A cursor from another process (before a restart) counts nothing here: every kept line.
     let from = match query.after.as_deref().map(cursor).transpose()? {
@@ -23,15 +28,13 @@ pub async fn get(Query(query): Query<LogsQuery>) -> Result<Response> {
         lines,
     } = brk_logger::recent(from);
     let started = started.as_millisecond();
-    let mut response = Json(Logs {
+    let logs = Logs {
         started_unix_ms: started,
         lines: lines.into_iter().map(line).collect(),
         next: format!("{started}-{next}"),
-    })
-    .into_response();
-    // A second, for browsers and the CDN alike: readers polling together share one answer.
-    CachePolicy::Revalidate.apply(response.headers_mut());
-    Ok(response)
+    };
+    // Readers polling together share one answer for a second, as any live one.
+    Ok(state.respond_now(&headers, Answer::built(Content::json(&logs)?)))
 }
 
 /// A `next`, read: the process it's of, and the `seq` it reads on from.

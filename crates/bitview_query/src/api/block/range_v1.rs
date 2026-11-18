@@ -85,46 +85,6 @@ impl ResolvedBlocksV1 {
 }
 
 impl Query {
-    /// Resolve using only already-materialized prices; otherwise retry on a worker.
-    pub fn try_resolve_blocks_v1(
-        &self,
-        start_height: Option<Height>,
-        count: u32,
-    ) -> Result<Option<ResolvedBlocksV1>> {
-        self.try_block_prices(self.blocks_window(start_height, count)?)
-    }
-
-    /// Validate a caller's height hint without performing a hash-store lookup.
-    pub fn try_resolve_block_v1(
-        &self,
-        hash: &BlockHash,
-        height_hint: Height,
-    ) -> Result<Option<ResolvedBlocksV1>> {
-        let Some(blocks) = self.try_resolve_block_snapshot(hash, height_hint)? else {
-            return Ok(None);
-        };
-        self.try_block_prices(blocks)
-    }
-
-    fn try_block_prices(&self, blocks: ResolvedBlocks) -> Result<Option<ResolvedBlocksV1>> {
-        let (begin, end) = blocks.range();
-        let prices =
-            if begin == end {
-                Vec::new()
-            } else {
-                let mut prices = Vec::with_capacity(end - begin);
-                if !self.plugins().price.spot.cents.height.read_cached_into_at(
-                    begin,
-                    end,
-                    &mut prices,
-                ) {
-                    return Ok(None);
-                }
-                prices.into_iter().map(Dollars::from).collect()
-            };
-        ResolvedBlocksV1::new(blocks, prices, self.stale_blocks()).map(Some)
-    }
-
     /// Resolve on a worker without materializing or retaining the price history.
     pub fn resolve_blocks_v1(
         &self,

@@ -20,6 +20,7 @@ pub use block::{ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1};
 pub use cpfp::ResolvedCpfp;
 pub use mempool::{MempoolBlockSource, MempoolTxids, ResolvedMempoolBlockDiff, ResolvedRbf};
 pub use mining::ResolvedPoolBlocks;
+pub use oracle::ResolvedOracleBlocks;
 pub use price::ResolvedHistoricalPrice;
 pub use silent_payments::{BlindbitBlock, BlindbitOutputs};
 pub use tx::{ResolvedConfirmedTx, ResolvedTransaction};

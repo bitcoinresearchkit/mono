@@ -10,9 +10,17 @@ pub struct ResolvedAddrChainTxs {
     txindices: Vec<TxIndex>,
     anchor_height: Option<Height>,
     activity_anchor: BlockHash,
+    settled: bool,
 }
 
 impl ResolvedAddrChainTxs {
+    /// Whether the page continues from a transaction of the address below the reorg window:
+    /// everything before it is fixed. (A first page grows with the next transaction.)
+    #[inline]
+    pub const fn is_settled(&self) -> bool {
+        self.settled
+    }
+
     /// Latest relevant block, or the resolved tip while the page is empty.
     #[inline]
     pub const fn activity_anchor(&self) -> BlockHash {
@@ -39,6 +47,7 @@ impl Query {
                 txindices: Vec::new(),
                 anchor_height: None,
                 activity_anchor: pin.tip(),
+                settled: false,
             }),
         }
     }
@@ -51,41 +60,44 @@ impl Query {
         self.addr_txs_chain_pinned(resolved, &self.pin_safe_lengths()?)
     }
 
-    /// The confirmed transactions of an address `pin` holds, oldest first: those before the
-    /// `before` cursor, or all of them. A cursor outside the address's history (unknown, or
-    /// another address's transaction) has none before it, as Esplora pages.
+    /// The confirmed transactions of an address `pin` holds, oldest first: those before
+    /// `before`, or all of them.
     pub(crate) fn addr_tx_history(
         &self,
         output_type: OutputType,
         type_index: TypeIndex,
-        before: Option<&Txid>,
+        before: Option<TxIndex>,
         pin: &SafeLengths,
     ) -> Result<impl DoubleEndedIterator<Item = brk_error::Result<TxIndex>> + '_> {
         debug_assert!(
             type_index < pin.lengths().to_type_index(output_type),
             "a found address is published"
         );
-        let before = match before {
-            Some(txid) => match self.resolve_tx_index_bounded(txid, pin) {
-                Ok(tx_index)
-                    if self.indexer().stores().addr_has_tx(
-                        output_type,
-                        type_index,
-                        tx_index,
-                    )? =>
-                {
-                    tx_index
-                }
-                // The history before the address's first transaction: nothing.
-                Ok(_) | Err(Error::UnknownTxid) => TxIndex::ZERO,
-                Err(error) => return Err(error),
-            },
-            None => pin.lengths().tx_index,
-        };
-        Ok(self
-            .indexer()
-            .stores()
-            .addr_tx_indexes_before(output_type, type_index, before)?)
+        Ok(self.indexer().stores().addr_tx_indexes_before(
+            output_type,
+            type_index,
+            before.unwrap_or(pin.lengths().tx_index),
+        )?)
+    }
+
+    /// Where `cursor` lies in the address's history `pin` holds; `None` outside it (unknown, or
+    /// another address's transaction).
+    fn addr_history_cursor(
+        &self,
+        output_type: OutputType,
+        type_index: TypeIndex,
+        cursor: &Txid,
+        pin: &SafeLengths,
+    ) -> Result<Option<TxIndex>> {
+        match self.resolve_tx_index_bounded(cursor, pin) {
+            Ok(tx_index) => Ok(self
+                .indexer()
+                .stores()
+                .addr_has_tx(output_type, type_index, tx_index)?
+                .then_some(tx_index)),
+            Err(Error::UnknownTxid) => Ok(None),
+            Err(error) => Err(error),
+        }
     }
 
     pub(crate) fn resolve_addr_chain_txs_for(
@@ -96,15 +108,27 @@ impl Query {
         limit: usize,
         pin: &ReadPin,
     ) -> Result<ResolvedAddrChainTxs> {
+        let published = pin.lengths();
+        let cursor = after_txid
+            .map(|txid| self.addr_history_cursor(output_type, type_index, &txid, pin))
+            .transpose()?;
+        let settled = match cursor.flatten() {
+            Some(cursor) => {
+                published.is_settled(self.confirmed_status_height_bounded(cursor, published)?)
+            }
+            None => false,
+        };
+        // A cursor outside the history has nothing before it, as Esplora pages.
+        let before = cursor.map(|cursor| cursor.unwrap_or(TxIndex::ZERO));
         let txindices = self
-            .addr_tx_history(output_type, type_index, after_txid.as_ref(), pin)?
+            .addr_tx_history(output_type, type_index, before, pin)?
             .rev()
             .take(limit)
             .collect::<brk_error::Result<Vec<_>>>()?;
         let anchor = txindices
             .first()
             .map(|txindex| -> Result<_> {
-                let height = self.confirmed_status_height_bounded(*txindex, pin.lengths())?;
+                let height = self.confirmed_status_height_bounded(*txindex, published)?;
                 let hash = self.block_hash_by_height(height, pin)?;
                 Ok((height, hash))
             })
@@ -118,6 +142,7 @@ impl Query {
             txindices,
             anchor_height: anchor.map(|(height, _)| height),
             activity_anchor,
+            settled,
         })
     }
 

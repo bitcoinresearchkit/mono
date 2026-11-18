@@ -2,100 +2,53 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     body::Bytes,
     extract::Path,
-    http::{HeaderMap, HeaderValue, Method, header},
+    http::{HeaderMap, Method, header},
     response::Response,
 };
-use bitview_query::{
-    Error as QueryError, Query, ResolvedBlocks, ResolvedBlocksV1, Result as QueryResult,
-};
+use bitview_query::{Error as QueryError, Query, ResolvedBlocks, Result as QueryResult};
 use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex};
-use brk_types::{BlockHash, Height, Hex, Timestamp, Transaction, Txid};
-use serde::Serialize;
-use serde_json::to_vec;
+use brk_types::{BlockHash, Height, Hex, Transaction, Txid};
 
 use crate::{
-    AppState, CacheParams, CdnCacheMode, Error,
+    AppState,
+    answer::{Answer, Content, Settle},
     api::tags,
-    etag::Etag,
-    extended::{ResponseExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
+    gates::Gate,
     params::{
         BlockHashParam, BlockHashStartIndex, BlockHashTxIndex, Empty, HeightParam, TimestampParam,
     },
-    raw_body::RawBodyPermit,
     request_state::RequestState,
 };
 
 const BLOCK_TXS_PAGE_SIZE: u32 = 25;
-const BASE_BLOCK_SCHEMA: &str = "v3";
-const HEADER_SCHEMA: &str = "header-v2";
-const RAW_SCHEMA: &str = "raw-v2";
+
+/// One way a block is sent by its hash: the name its tag carries, bumped when its format
+/// changes, and its kind once settled. The hash commits to every byte of a header, of the raw
+/// block and of a txid; the JSON forms are the server's.
+#[derive(Clone, Copy)]
+struct BlockForm {
+    name: &'static str,
+    settle: Settle,
+}
+
+impl BlockForm {
+    const JSON: Self = Self::new("v3", Answer::settled);
+    const HEADER: Self = Self::new("header-v2", Answer::committed);
+    const RAW: Self = Self::new("raw-v2", Answer::committed);
+    const TXID: Self = Self::new("txid-v2", Answer::committed);
+    const TXIDS: Self = Self::new("txids-v2", Answer::settled);
+    const TXS: Self = Self::new("txs-v2", Answer::settled);
+
+    const fn new(name: &'static str, settle: Settle) -> Self {
+        Self { name, settle }
+    }
+}
+
 /// Covers the extended rows' formulas and bundled pool catalog: bumped when either changes.
 pub const V1_BLOCK_SCHEMA: &str = "v1-5";
 
-fn recent_blocks_params(snapshot: &ResolvedBlocks, cdn_cache_mode: CdnCacheMode) -> CacheParams {
-    let tag = match snapshot.anchor() {
-        Some(hash) => format!("blocks2-{hash}"),
-        None => "blocks2-empty".to_owned(),
-    };
-    CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
-}
-
-fn blocks_v1_params(snapshot: &ResolvedBlocksV1, cdn_cache_mode: CdnCacheMode) -> CacheParams {
-    let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{:x}", snapshot.identity());
-    CacheParams::live(tag).stable_if(snapshot.is_settled(), cdn_cache_mode)
-}
-
-fn block_v1_params(
-    snapshot: &ResolvedBlocksV1,
-    cdn_cache_mode: CdnCacheMode,
-) -> QueryResult<CacheParams> {
-    let height = snapshot
-        .last_height()
-        .ok_or(QueryError::Internal("Missing resolved block"))?;
-    let identity = snapshot.identity();
-    let params = CacheParams::live(format!("block-{V1_BLOCK_SCHEMA}-{height}-{identity:x}"));
-    Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
-}
-
-fn block_params(
-    snapshot: &ResolvedBlocks,
-    schema: &str,
-    cdn_cache_mode: CdnCacheMode,
-) -> QueryResult<CacheParams> {
-    let height = snapshot
-        .last_height()
-        .ok_or(QueryError::Internal("Missing resolved block"))?;
-    let hash = snapshot
-        .anchor()
-        .ok_or(QueryError::Internal("Missing resolved block hash"))?;
-    // Availability is best-chain-only: browsers keep a second at any depth.
-    let params = CacheParams::revalidate(format!("block-{schema}-{height}-{hash}"));
-    Ok(params.stable_if(snapshot.is_settled(), cdn_cache_mode))
-}
-
-// A hint only: at most one candidate is checked against the full canonical hash.
-// Actual conditional matching still uses the complete computed ETag afterward.
-fn block_height_hint(headers: &HeaderMap, schema: &str) -> Option<Height> {
-    bitview_http::listed_etags(headers).find_map(|tag| {
-        let token = Etag::unprefixed(str::from_utf8(tag).ok()?)?;
-        let suffix = token
-            .strip_prefix("block-")?
-            .strip_prefix(schema)?
-            .strip_prefix('-')?;
-        let (height, _) = suffix.split_once('-')?;
-        height.parse::<u32>().ok().map(Height::from)
-    })
-}
-
-fn block_json_response(params: CacheParams, value: &impl Serialize) -> QueryResult<Response> {
-    let bytes = Bytes::from(to_vec(value)?);
-    Ok(AppState::assemble_response(params, bytes, |headers| {
-        headers.insert(
-            header::CONTENT_TYPE,
-            HeaderValue::from_static("application/json"),
-        );
-    }))
-}
+const MISSING_BLOCK: QueryError = QueryError::Internal("Missing resolved block");
 
 #[derive(Clone, Copy)]
 enum BlockTxSelection {
@@ -120,296 +73,132 @@ impl BlockTxSelection {
 }
 
 impl AppState {
-    async fn respond_block_tip(&self, headers: HeaderMap, hash: bool) -> Result<Response, Error> {
-        Ok(self
-            .read_admitted(move |q| {
-                let snapshot = q.resolve_blocks(None, 1)?;
-                // An empty index has no tip yet.
-                let value = if hash {
-                    snapshot.anchor().map(|hash| hash.to_string())
-                } else {
-                    snapshot.last_height().map(|height| height.to_string())
-                }
-                .ok_or_else(|| QueryError::updating())?;
-                // The owned value is the whole representation. In particular, a
-                // same-height reorg changes the hash endpoint but not the height.
-                let params = CacheParams::revalidate(format!("block-tip-v2-{value}"));
-                Ok(Response::cached_bytes(
-                    &headers,
-                    &params,
-                    "text/plain",
-                    || Bytes::from(value),
-                ))
-            })
-            .await?)
-    }
-
-    pub async fn respond_block_raw(
-        &self,
-        headers: HeaderMap,
-        hash: BlockHash,
-        method: Method,
-    ) -> Result<Response, Error> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        if let Some(height) = block_height_hint(&headers, RAW_SCHEMA)
-            && let Some(snapshot) =
-                self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
-        {
-            let params = block_params(&snapshot, RAW_SCHEMA, cdn_cache_mode)?;
-            if params.etag.matches(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
+    async fn respond_block_tip(&self, headers: &HeaderMap, hash: bool) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let snapshot = q.resolve_blocks(None, 1)?;
+            // An empty index has no tip yet.
+            let value = if hash {
+                snapshot.anchor().map(|hash| hash.to_string())
+            } else {
+                snapshot.last_height().map(|height| height.to_string())
             }
-        }
-        let budget = self.raw_block_bodies.clone();
-        Ok(self
-            .read_body(
-                &self.chain_query,
-                &self.raw_block_bodies,
-                move |q, permit| {
-                    let snapshot = q.resolve_block_snapshot(&hash)?;
-                    let params = block_params(&snapshot, RAW_SCHEMA, cdn_cache_mode)?;
-                    if params.etag.matches(&headers) {
-                        return Ok(Some(ResponseExtended::new_not_modified(&params)));
-                    }
-                    let content_headers = |headers: &mut HeaderMap| {
-                        headers.insert(
-                            header::CONTENT_TYPE,
-                            HeaderValue::from_static("application/octet-stream"),
-                        );
-                    };
-                    if method == Method::HEAD {
-                        let length = snapshot.anchor_raw_size(q)?;
-                        return Ok(Some(AppState::assemble_response(
-                            params,
-                            Bytes::new(),
-                            |headers| {
-                                content_headers(headers);
-                                headers.insert(header::CONTENT_LENGTH, length.into());
-                            },
-                        )));
-                    }
-                    let Some(permit) = permit.or_else(|| RawBodyPermit::try_acquire(&budget))
-                    else {
-                        return Ok(None);
-                    };
-                    let bytes = Bytes::from(snapshot.anchor_raw(q)?);
-                    Ok(Some(permit.response(params, bytes, content_headers)))
-                },
-            )
-            .await?)
-    }
-
-    pub async fn respond_block_timestamp(
-        &self,
-        headers: HeaderMap,
-        timestamp: Timestamp,
-    ) -> Result<Response, Error> {
-        Ok(self
-            .read_admitted(move |q| {
-                let block = q.resolve_block_by_timestamp(timestamp)?;
-                let params =
-                    CacheParams::revalidate(format!("block-timestamp-v2-{}", block.hash()));
-                if params.etag.matches(&headers) {
-                    return Ok(ResponseExtended::new_not_modified(&params));
-                }
-                block_json_response(params, &block.into_value())
-            })
-            .await?)
-    }
-
-    pub async fn respond_block_height(
-        &self,
-        headers: HeaderMap,
-        height: Height,
-    ) -> Result<Response, Error> {
-        // The owned hash is the entire representation: no second source read,
-        // retained snapshot or body cache is needed after resolution.
-        let cdn_cache_mode = self.cdn_cache_mode;
-        let respond = move |(hash, settled): (BlockHash, bool)| {
-            let body = hash.to_string();
-            let params = CacheParams::revalidate(format!("block-height-v2-{body}"))
-                .stable_if(settled, cdn_cache_mode);
-            Ok(Response::cached_bytes(
-                &headers,
-                &params,
-                "text/plain",
-                || Bytes::from(body),
-            ))
-        };
-        if let Some(hash) = self.preflight(|q| q.resolve_block_hash(height).map(Some))? {
-            return Ok(respond(hash)?);
-        }
-        Ok(self
-            .read_admitted(move |q| respond(q.resolve_block_hash(height)?))
-            .await?)
-    }
-
-    pub async fn respond_block(
-        &self,
-        headers: HeaderMap,
-        hash: BlockHash,
-    ) -> Result<Response, Error> {
-        self.respond_exact_block(
-            headers,
-            hash,
-            BASE_BLOCK_SCHEMA,
-            None,
-            |q, snapshot, params| {
-                let block = snapshot
-                    .build(q)?
-                    .pop()
-                    .ok_or(QueryError::Internal("Missing resolved block"))?;
-                block_json_response(params, &block)
-            },
-        )
-        .await
-    }
-
-    pub async fn respond_block_header(
-        &self,
-        headers: HeaderMap,
-        hash: BlockHash,
-    ) -> Result<Response, Error> {
-        self.respond_exact_block(headers, hash, HEADER_SCHEMA, None, |q, snapshot, params| {
-            let bytes = Bytes::from(snapshot.anchor_header_hex(q)?);
-            Ok(AppState::assemble_response(params, bytes, |headers| {
-                headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
+            .ok_or_else(|| QueryError::updating())?;
+            // The value is the whole representation. In particular, a same-height reorg
+            // changes the hash endpoint but not the height.
+            Ok(Answer::new(format!("block-tip-v2-{value}"), move |_| {
+                Ok(Content::text(value))
             }))
         })
         .await
     }
 
-    /// Shared exact-block selection and admission; the callback consumes a
-    /// stable snapshot and builds the response only after conditional checks.
-    async fn respond_exact_block(
+    /// An answer about the block at `hash`, which `tx_selection` must fit: named by the block
+    /// (its height and hash under the form's name) before `build` reads any of it.
+    async fn respond_block(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
+        gate: Gate<'_>,
         hash: BlockHash,
-        schema: &'static str,
+        form: BlockForm,
         tx_selection: Option<BlockTxSelection>,
-        build: impl FnOnce(&Query, ResolvedBlocks, CacheParams) -> QueryResult<Response>
-        + Clone
-        + Send
-        + 'static,
-    ) -> Result<Response, Error> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        if let Some(height) = block_height_hint(&headers, schema)
-            && let Some(snapshot) =
-                self.preflight(|q| q.try_resolve_block_snapshot(&hash, height))?
-        {
+        build: impl FnOnce(&Query, ResolvedBlocks) -> QueryResult<Content> + Clone + Send + 'static,
+    ) -> Response {
+        self.respond(headers, gate, move |q| {
+            let snapshot = q.resolve_block_snapshot(&hash)?;
             if let Some(selection) = tx_selection {
-                self.query.sync(|q| selection.validate(q, &snapshot))?;
+                selection.validate(q, &snapshot)?;
             }
-            let params = block_params(&snapshot, schema, cdn_cache_mode)?;
-            if params.etag.matches(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-        }
-
-        let bodies = self.chain_bodies.clone();
-        Ok(self
-            .read_body(&self.chain_query, &self.chain_bodies, move |q, permit| {
-                let snapshot = q.resolve_block_snapshot(&hash)?;
-                if let Some(selection) = tx_selection {
-                    selection.validate(q, &snapshot)?;
-                }
-                let params = block_params(&snapshot, schema, cdn_cache_mode)?;
-                if params.etag.matches(&headers) {
-                    return Ok(Some(ResponseExtended::new_not_modified(&params)));
-                }
-                let response = build(q, snapshot, params)?;
-                Ok(RawBodyPermit::attach_built(permit, &bodies, response))
-            })
-            .await?)
+            let height = snapshot.last_height().ok_or(MISSING_BLOCK)?;
+            let hash = snapshot.anchor().ok_or(MISSING_BLOCK)?;
+            let settled = snapshot.is_settled();
+            let tag = format!("block-{}-{height}-{hash}", form.name);
+            let answer = Answer::new(tag, move |q| build(q, snapshot));
+            Ok((form.settle)(answer, settled))
+        })
+        .await
     }
 
-    pub async fn respond_block_v1(
+    async fn respond_block_raw(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         hash: BlockHash,
-    ) -> Result<Response, Error> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        if let Some(height) = block_height_hint(&headers, V1_BLOCK_SCHEMA)
-            && let Some(snapshot) = self.preflight(|q| q.try_resolve_block_v1(&hash, height))?
-        {
-            let params = block_v1_params(&snapshot, cdn_cache_mode)?;
-            if params.etag.matches(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-        }
-
-        Ok(self
-            .read_admitted(move |q| {
-                let snapshot = q.resolve_block_v1(&hash)?;
-                let params = block_v1_params(&snapshot, cdn_cache_mode)?;
-                if params.etag.matches(&headers) {
-                    return Ok(ResponseExtended::new_not_modified(&params));
-                }
-                let block = snapshot
-                    .build(q)?
-                    .pop()
-                    .ok_or(QueryError::Internal("Missing resolved block"))?;
-                block_json_response(params, &block)
+        head: bool,
+    ) -> Response {
+        const RAW: &str = "application/octet-stream";
+        let gate = self.raw_block();
+        // A `HEAD` reads the block's length alone: it keeps no body in memory.
+        let gate = if head { gate.without_bodies() } else { gate };
+        self.respond_block(headers, gate, hash, BlockForm::RAW, None, move |q, block| {
+            Ok(if head {
+                let length = block.anchor_raw_size(q)?;
+                Content::new(RAW, Bytes::new()).with(header::CONTENT_LENGTH, length.into())
+            } else {
+                Content::new(RAW, block.anchor_raw(q)?)
             })
-            .await?)
+        })
+        .await
     }
 
-    pub async fn respond_blocks_v1(
+    /// A page of the block's transactions from `start`.
+    async fn respond_block_txs(
         &self,
-        headers: HeaderMap,
-        start_height: Option<Height>,
-    ) -> Result<Response, Error> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        if headers.contains_key(header::IF_NONE_MATCH)
-            && let Some(snapshot) = self.preflight(|q| q.try_resolve_blocks_v1(start_height, 15))?
-        {
-            let params = blocks_v1_params(&snapshot, cdn_cache_mode);
-            if params.etag.matches(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-        }
-
-        // The optimistic snapshot has been dropped before admission.
-        Ok(self
-            .read_admitted(move |q| {
-                let snapshot = q.resolve_blocks_v1(start_height, 15)?;
-                let params = blocks_v1_params(&snapshot, cdn_cache_mode);
-                if params.etag.matches(&headers) {
-                    return Ok(ResponseExtended::new_not_modified(&params));
-                }
-                block_json_response(params, &snapshot.build(q)?)
-            })
-            .await?)
+        headers: &HeaderMap,
+        hash: BlockHash,
+        start: BlockTxIndex,
+    ) -> Response {
+        self.respond_block(
+            headers,
+            self.chain(),
+            hash,
+            BlockForm::TXS,
+            Some(BlockTxSelection::Page(start)),
+            move |q, block| Content::json(&block.anchor_txs(q, start, BLOCK_TXS_PAGE_SIZE)?),
+        )
+        .await
     }
 
-    pub async fn respond_blocks(
-        &self,
-        headers: HeaderMap,
-        start_height: Option<Height>,
-    ) -> Result<Response, Error> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        if headers.contains_key(header::IF_NONE_MATCH)
-            && let Some(snapshot) =
-                self.preflight(|q| q.resolve_blocks(start_height, 10).map(Some))?
-        {
-            let params = recent_blocks_params(&snapshot, cdn_cache_mode);
-            if params.etag.matches(&headers) {
-                return Ok(ResponseExtended::new_not_modified(&params));
-            }
-        }
+    async fn respond_block_v1(&self, headers: &HeaderMap, hash: BlockHash) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let snapshot = q.resolve_block_v1(&hash)?;
+            let height = snapshot.last_height().ok_or(MISSING_BLOCK)?;
+            let tag = format!(
+                "block-{V1_BLOCK_SCHEMA}-{height}-{:x}",
+                snapshot.identity()
+            );
+            let settled = snapshot.is_settled();
+            Ok(
+                Answer::json(tag, move |q| snapshot.build(q)?.pop().ok_or(MISSING_BLOCK))
+                    .settled(settled),
+            )
+        })
+        .await
+    }
 
-        // Do not retain a pin while queued for admission. Re-resolve after admission
-        // so a concurrent update cannot attach an old tag to new rows.
-        Ok(self
-            .read_admitted(move |q| {
-                let snapshot = q.resolve_blocks(start_height, 10)?;
-                let params = recent_blocks_params(&snapshot, cdn_cache_mode);
-                if params.etag.matches(&headers) {
-                    return Ok(ResponseExtended::new_not_modified(&params));
-                }
-                block_json_response(params, &snapshot.build(q)?)
-            })
-            .await?)
+    async fn respond_blocks_v1(
+        &self,
+        headers: &HeaderMap,
+        start_height: Option<Height>,
+    ) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let snapshot = q.resolve_blocks_v1(start_height, 15)?;
+            let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{:x}", snapshot.identity());
+            let settled = snapshot.is_settled();
+            Ok(Answer::json(tag, move |q| snapshot.build(q)).settled(settled))
+        })
+        .await
+    }
+
+    async fn respond_blocks(&self, headers: &HeaderMap, start_height: Option<Height>) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let snapshot = q.resolve_blocks(start_height, 10)?;
+            let tag = match snapshot.anchor() {
+                Some(hash) => format!("blocks2-{hash}"),
+                None => "blocks2-empty".to_owned(),
+            };
+            let settled = snapshot.is_settled();
+            Ok(Answer::json(tag, move |q| snapshot.build(q)).settled(settled))
+        })
+        .await
     }
 }
 
@@ -420,9 +209,17 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_block(headers, path.hash).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block(
+                            &headers,
+                            state.chain(),
+                            path.hash,
+                            BlockForm::JSON,
+                            None,
+                            |q, block| Content::json(&block.build(q)?.pop().ok_or(MISSING_BLOCK)?),
+                        )
+                        .await
                 },
                 |op| {
                     op.id("get_block")
@@ -443,9 +240,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_block_v1(headers, path.hash).await
+                       RequestState(state): RequestState| {
+                    state.respond_block_v1(&headers, path.hash).await
                 },
                 |op| {
                     op.id("get_block_v1")
@@ -464,9 +260,17 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_block_header(headers, path.hash).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block(
+                            &headers,
+                            state.chain(),
+                            path.hash,
+                            BlockForm::HEADER,
+                            None,
+                            |q, block| Ok(Content::text(block.anchor_header_hex(q)?)),
+                        )
+                        .await
                 },
                 |op| {
                     op.id("get_block_header")
@@ -485,7 +289,15 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<HeightParam>,
                        _: Empty, RequestState(state): RequestState| {
-                    state.respond_block_height(headers, path.height).await
+                    // The hash is the whole representation.
+                    state
+                        .respond(&headers, state.chain(), move |q| {
+                            let (hash, settled) = q.resolve_block_hash(path.height)?;
+                            let tag = format!("block-height-v2-{hash}");
+                            let content = Content::text(hash.to_string());
+                            Ok(Answer::ready(tag, content).settled(settled))
+                        })
+                        .await
                 },
                 |op| {
                     op.id("get_block_hash_by_height")
@@ -506,7 +318,14 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<TimestampParam>,
                        _: Empty, RequestState(state): RequestState| {
-                    state.respond_block_timestamp(headers, path.timestamp).await
+                    state
+                        .respond(&headers, state.chain(), move |q| {
+                            let block = q.resolve_block_by_timestamp(path.timestamp)?;
+                            let settled = block.is_settled();
+                            let tag = format!("block-timestamp-v2-{}", block.hash());
+                            Ok(Answer::json(tag, move |_| Ok(block.into_value())).settled(settled))
+                        })
+                        .await
                 },
                 |op| {
                     op.id("get_block_by_timestamp")
@@ -526,9 +345,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_block_raw(headers, path.hash, method).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block_raw(&headers, path.hash, method == Method::HEAD)
+                        .await
                 },
                 |op| {
                     op.id("get_block_raw")
@@ -550,10 +370,12 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    let status = state.read_admitted(move |q| q.block_status(&path.hash)).await?;
-                    Ok(state.respond_json_content_value(&headers, status))
+                       RequestState(state): RequestState| {
+                    state
+                        .respond(&headers, state.chain(), move |q| {
+                            Ok(Answer::built(Content::json(&q.block_status(&path.hash)?)?))
+                        })
+                        .await
                 },
                 |op| {
                     op.id("get_block_status")
@@ -571,7 +393,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             "/api/blocks/tip/height",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state.respond_block_tip(headers, false).await
+                    state.respond_block_tip(&headers, false).await
                 },
                 |op| {
                     op.id("get_block_tip_height")
@@ -587,7 +409,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             "/api/blocks/tip/hash",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state.respond_block_tip(headers, true).await
+                    state.respond_block_tip(&headers, true).await
                 },
                 |op| {
                     op.id("get_block_tip_hash")
@@ -605,14 +427,19 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashTxIndex>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txid-v2", Some(BlockTxSelection::Index(path.index)), move |q, snapshot, params| {
-                        let bytes = Bytes::from(snapshot.anchor_txid(q, path.index)?.to_string());
-                        Ok(AppState::assemble_response(params, bytes, |headers| {
-                            headers.insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
-                        }))
-                    }).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block(
+                            &headers,
+                            state.chain(),
+                            path.hash,
+                            BlockForm::TXID,
+                            Some(BlockTxSelection::Index(path.index)),
+                            move |q, block| {
+                                Ok(Content::text(block.anchor_txid(q, path.index)?.to_string()))
+                            },
+                        )
+                        .await
                 },
                 |op| {
                     op.id("get_block_txid")
@@ -633,11 +460,17 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txids-v2", None, |q, snapshot, params| {
-                        block_json_response(params, &snapshot.anchor_txids(q)?)
-                    }).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block(
+                            &headers,
+                            state.chain(),
+                            path.hash,
+                            BlockForm::TXIDS,
+                            None,
+                            |q, block| Content::json(&block.anchor_txids(q)?),
+                        )
+                        .await
                 },
                 |op| {
                     op.id("get_block_txids")
@@ -659,11 +492,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashParam>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxSelection::Page(BlockTxIndex::default())), |q, snapshot, params| {
-                        block_json_response(params, &snapshot.anchor_txs(q, BlockTxIndex::default(), BLOCK_TXS_PAGE_SIZE)?)
-                    }).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block_txs(&headers, path.hash, BlockTxIndex::default())
+                        .await
                 },
                 |op| {
                     op.id("get_block_txs")
@@ -686,11 +518,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<BlockHashStartIndex>,
                        _: Empty,
-                       RequestState(state): RequestState|
-                       -> Result<Response, Error> {
-                    state.respond_exact_block(headers, path.hash, "txs-v2", Some(BlockTxSelection::Page(path.start_index)), move |q, snapshot, params| {
-                        block_json_response(params, &snapshot.anchor_txs(q, path.start_index, BLOCK_TXS_PAGE_SIZE)?)
-                    }).await
+                       RequestState(state): RequestState| {
+                    state
+                        .respond_block_txs(&headers, path.hash, path.start_index)
+                        .await
                 },
                 |op| {
                     op.id("get_block_txs_from_index")
@@ -710,7 +541,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             "/api/blocks",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state.respond_blocks(headers, None).await
+                    state.respond_blocks(&headers, None).await
                 },
                 |op| {
                     op.id("get_blocks")
@@ -728,7 +559,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<HeightParam>,
                        _: Empty, RequestState(state): RequestState| {
-                    state.respond_blocks(headers, Some(path.height)).await
+                    state.respond_blocks(&headers, Some(path.height)).await
                 },
                 |op| {
                     op.id("get_blocks_from_height")
@@ -747,7 +578,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             "/api/v1/blocks",
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state.respond_blocks_v1(headers, None).await
+                    state.respond_blocks_v1(&headers, None).await
                 },
                 |op| {
                     op.id("get_blocks_v1")
@@ -765,7 +596,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 async |headers: HeaderMap,
                        Path(path): Path<HeightParam>,
                        _: Empty, RequestState(state): RequestState| {
-                    state.respond_blocks_v1(headers, Some(path.height)).await
+                    state.respond_blocks_v1(&headers, Some(path.height)).await
                 },
                 |op| {
                     op.id("get_blocks_v1_from_height")

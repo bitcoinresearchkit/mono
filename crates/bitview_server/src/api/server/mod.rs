@@ -3,7 +3,6 @@ use std::borrow::Cow;
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     Json,
-    body::Bytes,
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
@@ -13,10 +12,11 @@ use jiff::Timestamp;
 
 use super::AppState;
 use crate::{
-    CacheParams, VERSION,
+    VERSION,
+    answer::{Answer, Content, JSON},
     api::tags,
     error::Result,
-    extended::{ResponseExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::Empty,
     request_state::RequestState,
 };
@@ -76,14 +76,18 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
                 let tip_height = state.node.get_last_height().await?;
-                let sync = state.read_admitted(move |q| q.sync_status(tip_height)).await?;
-                // computed_height and blocks_behind derive from these heights;
-                // last_indexed_at derives from the Unix timestamp.
-                let params = CacheParams::live(format!(
-                    "sync1-{}-{}-{}",
-                    sync.indexed_height, sync.tip_height, *sync.last_indexed_at_unix,
-                ));
-                Ok(Response::cached_json(&headers, &params, || sync))
+                Ok(state
+                    .respond(&headers, state.chain(), move |q| {
+                        let sync = q.sync_status(tip_height)?;
+                        // computed_height and blocks_behind derive from these heights;
+                        // last_indexed_at derives from the Unix timestamp.
+                        let tag = format!(
+                            "sync1-{}-{}-{}",
+                            sync.indexed_height, sync.tip_height, *sync.last_indexed_at_unix,
+                        );
+                        Ok(Answer::ready(tag, Content::json(&sync)?))
+                    })
+                    .await)
             },
             |op| {
                 op.id("get_sync_status")
@@ -112,6 +116,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     server restarted (and its answer has every kept line). Answers are cached for a second.",
                 )
                 .json_response::<Logs>()
+                .not_modified()
         }),
     )
     .api_route(
@@ -133,8 +138,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     )
 }
 
-async fn version(headers: HeaderMap, _: Empty) -> Response {
-    Response::cached_bytes(&headers, &CacheParams::deploy(), "application/json", || {
-        Bytes::from(format!("\"{}\"", *VERSION))
-    })
+/// The release, which every tag starts with: `d` after it.
+async fn version(headers: HeaderMap, _: Empty, RequestState(state): RequestState) -> Response {
+    let content = Content::new(JSON, format!("\"{}\"", *VERSION));
+    state.respond_now(&headers, Answer::ready("d".to_owned(), content))
 }

@@ -1,39 +1,20 @@
-use std::{future::Future, path::PathBuf, sync::Arc, time::Instant};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 #[cfg(feature = "full-api")]
-use axum::http::{HeaderValue, header};
-use axum::{
-    body::{Body, Bytes},
-    http::{HeaderMap, Response},
-    response::IntoResponse,
-};
+use axum::body::Bytes;
 #[cfg(feature = "full-api")]
-use bitview_query::PublicationCache;
-use bitview_query::{AsyncQuery, Error as QueryError, Query, RepresentationId, Result};
+use bitview_query::{PublicationCache, RepresentationId};
+use bitview_query::AsyncQuery;
 use brk_rpc::AsyncClient;
-#[cfg(feature = "full-api")]
-use brk_types::{Version, tag_hash};
 use derive_more::Deref;
 use jiff::Timestamp;
-#[cfg(feature = "full-api")]
-use serde::Serialize;
-#[cfg(feature = "full-api")]
-use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
+#[cfg(feature = "full-api")]
+use crate::prepared_json::PreparedJson;
 #[cfg(feature = "series")]
 use crate::series_bodies::SeriesBodies;
-use crate::{CacheParams, CdnCacheMode, Error, Website, extended::ResponseExtended};
-#[cfg(feature = "full-api")]
-use crate::{prepared_json::PreparedJson, raw_body::RawBodyPermit};
-
-/// What a JSON builder gives [`AppState::respond_json_built`]: the request's copy is current
-/// (decided before building), or a body and its validator.
-#[cfg(feature = "full-api")]
-enum Built {
-    Unchanged(CacheParams),
-    Body(Bytes, CacheParams),
-}
+use crate::{CdnCacheMode, Website};
 
 /// One request's state: its query (carrying the request deadline) over the server's shared state.
 #[derive(Clone, Deref)]
@@ -74,8 +55,7 @@ pub struct SharedState {
     pub mempool_block_diff_bodies: Arc<Semaphore>,
     #[cfg(feature = "full-api")]
     pub broadcast_requests: Arc<Semaphore>,
-    /// Transaction, block and address-history bodies.
-    #[cfg(feature = "full-api")]
+    /// Transaction, block and address-history bodies: taken by the large ones only, once built.
     pub chain_bodies: Arc<Semaphore>,
     pub node: AsyncClient,
     #[cfg(feature = "series")]
@@ -105,259 +85,5 @@ impl AppState {
             query,
             shared: Arc::new(shared),
         }
-    }
-
-    /// A cheap optimistic read may defer to the admitted read path, but must
-    /// never turn temporary publication loss into an HTTP error.
-    pub fn preflight<T>(&self, f: impl FnOnce(&Query) -> Result<Option<T>>) -> Result<Option<T>> {
-        match self.query.sync(f) {
-            Err(QueryError::StateUpdating(_)) => Ok(None),
-            result => result,
-        }
-    }
-
-    /// Transaction, block and address bodies. They share `chain_bodies`, so a body takes a permit
-    /// only once built, and only when large: a large one finding none free waits for one and is
-    /// built again.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_read<S: 'static>(
-        &self,
-        headers: HeaderMap,
-        content_type: &'static str,
-        select: impl FnOnce(&Query) -> Result<(S, CacheParams)> + Clone + Send + 'static,
-        build: impl FnOnce(&Query, S) -> Result<Bytes> + Clone + Send + 'static,
-    ) -> Response<Body> {
-        let budget = self.chain_bodies.clone();
-        self.read_body(&self.chain_query, &self.chain_bodies, move |q, permit| {
-            let (source, params) = select(q)?;
-            if params.etag.matches(&headers) {
-                return Ok(Some(ResponseExtended::new_not_modified(&params)));
-            }
-            let bytes = build(q, source)?;
-            Ok(RawBodyPermit::respond_built(permit, &budget, params, bytes, |h| {
-                h.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
-            }))
-        })
-        .await
-        .unwrap_or_else(|error| Error::from(error).into_response())
-    }
-
-    pub async fn read_admitted<T: Send + 'static>(
-        &self,
-        f: impl FnOnce(&Query) -> Result<T> + Send + 'static,
-    ) -> Result<T> {
-        self.query
-            .read_with_admission(Some(&self.chain_query), f)
-            .await
-    }
-
-    pub async fn read_with_admission<T: Send + 'static>(
-        &self,
-        admission: &Arc<Semaphore>,
-        f: impl FnOnce(&Query) -> Result<T> + Send + 'static,
-    ) -> Result<T> {
-        self.query.read_with_admission(Some(admission), f).await
-    }
-
-    pub async fn run_with_admission<T: Send + 'static>(
-        &self,
-        admission: &Arc<Semaphore>,
-        f: impl FnOnce(&Query) -> Result<T> + Send + 'static,
-    ) -> Result<T> {
-        let permit = admission
-            .clone()
-            .acquire_owned()
-            .await
-            .map_err(|_| QueryError::Internal("query admission closed"))?;
-        self.query
-            .run(move |q| {
-                let _permit = permit;
-                f(q)
-            })
-            .await
-    }
-
-    pub fn assemble_response(
-        params: CacheParams,
-        bytes: Bytes,
-        apply_content_headers: impl FnOnce(&mut HeaderMap),
-    ) -> Response<Body> {
-        let mut response = Response::new(Body::from(bytes));
-        let headers = response.headers_mut();
-        apply_content_headers(headers);
-        params.apply_to(headers);
-        response
-    }
-
-    /// Defer body work and content-header preparation until after revalidation.
-    pub async fn respond_with_future<H: FnOnce(&mut HeaderMap)>(
-        headers: &HeaderMap,
-        params: CacheParams,
-        body: impl Future<Output = Result<(Bytes, H)>>,
-    ) -> Response<Body> {
-        if params.etag.matches(headers) {
-            return ResponseExtended::new_not_modified(&params);
-        }
-
-        match body.await {
-            Ok((bytes, apply_content_headers)) => {
-                Self::assemble_response(params, bytes, apply_content_headers)
-            }
-            Err(error) => Error::from(error).into_response(),
-        }
-    }
-
-    /// Immediate JSON response whose validator is derived from its exact bytes.
-    #[cfg(feature = "full-api")]
-    pub fn respond_json_content_value<T: Serialize>(
-        &self,
-        headers: &HeaderMap,
-        value: T,
-    ) -> Response<Body> {
-        let bytes = Bytes::from(to_vec(&value).unwrap());
-        self.respond_json_content_bytes(headers, bytes)
-    }
-
-    /// JSON response whose representation identity is produced with its bytes.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_json_bound<B: AsRef<[u8]> + Send + 'static>(
-        &self,
-        headers: HeaderMap,
-        version: Version,
-        f: impl FnOnce(&Query) -> Result<(B, RepresentationId)> + Clone + Send + 'static,
-    ) -> Response<Body> {
-        self.respond_json_built(&self.chain_query, headers, move |q, _| {
-            let (bytes, identity) = f(q)?;
-            Ok(Built::Body(
-                // A body shared with the pool (built once per publication) isn't copied.
-                Bytes::from_owner(bytes),
-                CacheParams::representation(version, identity),
-            ))
-        })
-        .await
-    }
-
-    /// JSON whose validator comes with its bytes, or comes first: `f` answers [`Built::Unchanged`]
-    /// when the request's validator already matches, before building. Building is bounded by
-    /// `admission`; a large body then takes a `chain_bodies` permit, as in [`Self::respond_read`].
-    #[cfg(feature = "full-api")]
-    async fn respond_json_built(
-        &self,
-        admission: &Arc<Semaphore>,
-        headers: HeaderMap,
-        f: impl FnOnce(&Query, &HeaderMap) -> Result<Built> + Clone + Send + 'static,
-    ) -> Response<Body> {
-        fn json(headers: &mut HeaderMap) {
-            headers.insert(
-                header::CONTENT_TYPE,
-                HeaderValue::from_static("application/json"),
-            );
-        }
-        let budget = self.chain_bodies.clone();
-        self.read_body(admission, &self.chain_bodies, move |q, permit| {
-            let (bytes, params) = match f(q, &headers)? {
-                Built::Unchanged(params) => {
-                    return Ok(Some(ResponseExtended::new_not_modified(&params)));
-                }
-                Built::Body(bytes, params) => (bytes, params),
-            };
-            if params.etag.matches(&headers) {
-                return Ok(Some(ResponseExtended::new_not_modified(&params)));
-            }
-            Ok(RawBodyPermit::respond_built(permit, &budget, params, bytes, json))
-        })
-        .await
-        .unwrap_or_else(|error| Error::from(error).into_response())
-    }
-
-    /// A whole-history aggregate (the mining statistics), under its own admission. Each is a
-    /// function of the published chain and the release (which every tag names), so it's tagged
-    /// by the tip: a revalidation is answered before building (they take tens of milliseconds).
-    /// Anything published while one builds may be in it (a block, a rollback): then its content
-    /// tags it. Inputs `f` would reject are checked by the caller first: a matching tag would
-    /// answer before `f` runs.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_json_history<T: Serialize>(
-        &self,
-        headers: HeaderMap,
-        f: impl FnOnce(&Query) -> Result<T> + Clone + Send + 'static,
-    ) -> Response<Body> {
-        self.respond_json_built(&self.history_query, headers, move |q, headers| {
-            let (tip, revision) = q.tip_publication();
-            let params = CacheParams::live(format!("h{tip}"));
-            if params.etag.matches(headers) {
-                return Ok(Built::Unchanged(params));
-            }
-            let bytes = Bytes::from(to_vec(&f(q)?)?);
-            let params = if q.tip_publication().1 == revision {
-                params
-            } else {
-                CacheParams::live_hash(tag_hash(&bytes))
-            };
-            Ok(Built::Body(bytes, params))
-        })
-        .await
-    }
-
-    /// JSON response whose validator is derived from the exact serialized value.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_json_content<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
-    where
-        T: Serialize + Send + 'static,
-        F: FnOnce(&Query) -> Result<T> + Send + 'static,
-    {
-        self.respond_json_settled(headers, move |query| Ok((f(query)?, false)))
-            .await
-    }
-
-    /// [`Self::respond_json_content`] for a value its URL pins: settled below the reorg
-    /// window, it takes the stable CDN tier.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_json_settled<T, F>(&self, headers: &HeaderMap, f: F) -> Response<Body>
-    where
-        T: Serialize + Send + 'static,
-        F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
-    {
-        self.respond_json_settled_on(&self.chain_query, headers, f)
-            .await
-    }
-
-    /// [`Self::respond_json_settled`] under its own admission: work heavy enough to wait apart.
-    #[cfg(feature = "full-api")]
-    pub async fn respond_json_settled_on<T, F>(
-        &self,
-        admission: &Arc<Semaphore>,
-        headers: &HeaderMap,
-        f: F,
-    ) -> Response<Body>
-    where
-        T: Serialize + Send + 'static,
-        F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
-    {
-        let built = self
-            .read_with_admission(admission, move |query| {
-                let (value, settled) = f(query)?;
-                Ok((Bytes::from(to_vec(&value)?), settled))
-            })
-            .await;
-        match built {
-            Ok((bytes, settled)) => self.json_content_response(headers, bytes, settled),
-            Err(error) => Error::from(error).into_response(),
-        }
-    }
-
-    pub fn respond_json_content_bytes(&self, headers: &HeaderMap, bytes: Bytes) -> Response<Body> {
-        self.json_content_response(headers, bytes, false)
-    }
-
-    fn json_content_response(
-        &self,
-        headers: &HeaderMap,
-        bytes: Bytes,
-        settled: bool,
-    ) -> Response<Body> {
-        let params = CacheParams::live_hash(tag_hash(&bytes))
-            .stable_if(settled, self.cdn_cache_mode);
-        Response::cached_bytes(headers, &params, "application/json", || bytes)
     }
 }

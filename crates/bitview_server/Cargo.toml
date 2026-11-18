@@ -18,7 +18,6 @@ bitview_primitives = { workspace = true, features = ["storage"] }
 brk_rpc = { workspace = true, features = ["async"] }
 aide = { workspace = true }
 axum = { workspace = true }
-http-body = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "serde_json", "tokio", "vecdb"] }
 brk_logger = { workspace = true }
 bitview_query = { workspace = true, default-features = false }

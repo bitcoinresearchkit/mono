@@ -3,20 +3,22 @@ use std::convert::identity;
 use bitview_types::{BlockRewardsEntry, TimePeriod};
 
 use super::block_window::BlockWindow;
-use crate::{Query, Result};
+use crate::{Query, Result, TipPin};
 
 impl Query {
     /// Round-half-up mean coinbase rewards (subsidy + fees) in sats per time bucket over
     /// `time_period`, chronological, with the bucket's mean USD spot price (not rewards in USD:
     /// clients multiply).
-    pub fn block_rewards(&self, time_period: TimePeriod) -> Result<Vec<BlockRewardsEntry>> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+    pub fn block_rewards(
+        &self,
+        at: &TipPin,
+        time_period: TimePeriod,
+    ) -> Result<Vec<BlockRewardsEntry>> {
+        let tip = at.height;
         let bw = BlockWindow::new(self, time_period, tip)?;
         let rewards =
             bw.means_rounded(&self.plugins().mining.rewards.coinbase.block.sats, identity)?;
         let prices = bw.mean_prices(&self.plugins().price.spot.cents.height)?;
-        drop(pin);
 
         Ok(bw
             .buckets

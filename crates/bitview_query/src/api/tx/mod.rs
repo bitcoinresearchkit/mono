@@ -24,18 +24,24 @@ pub use confirmed::ResolvedConfirmedTx;
 pub use info::ResolvedTransaction;
 
 impl Query {
-    pub fn txid_by_index(&self, index: TxIndex) -> Result<Txid> {
+    /// The txid at `index`, and whether its block lies below the reorg window.
+    pub fn txid_by_index(&self, index: TxIndex) -> Result<(Txid, bool)> {
         let pin = self.pin_safe_lengths()?;
-        check_bound(&pin, index, pin.lengths().tx_index)?;
-        if index >= pin.lengths().tx_index {
-            return Err(Error::OutOfRange("Transaction index out of range".into()));
+        let published = pin.lengths();
+        check_bound(&pin, index, published.tx_index)?;
+        let out_of_range = || Error::OutOfRange("Transaction index out of range".into());
+        if index >= published.tx_index {
+            return Err(out_of_range());
         }
-        self.indexer()
+        let txid = self
+            .indexer()
             .vecs()
             .transactions
             .txid
             .collect_one(index)
-            .ok_or_else(|| Error::OutOfRange("Transaction index out of range".into()))
+            .ok_or_else(out_of_range)?;
+        let height = self.confirmed_status_height_bounded(index, published)?;
+        Ok((txid, published.is_settled(height)))
     }
 
     #[inline]

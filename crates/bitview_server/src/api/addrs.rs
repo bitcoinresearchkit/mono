@@ -1,20 +1,19 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
-    body::Bytes,
     extract::{Path, Query},
     http::HeaderMap,
     response::Response,
 };
 use bitview_primitives::BlockHashPrefix;
-use bitview_query::RepresentationId;
 use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressValidation, Utxo};
 use brk_types::{Address, Transaction, Txid, Version};
 use serde_json::to_vec;
 
 use crate::{
-    AppState, CacheParams,
+    AppState,
+    answer::{Answer, Content, JSON},
     api::tags,
-    extended::{ResponseExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::{
         AddressAfterTxidParam, AddressChainTxsQuery, AddressHashPrefixParam,
         AddressMempoolTxsQuery, AddressParam, AddressTxsQuery, Empty, ValidateAddressParam,
@@ -30,27 +29,23 @@ const TXS_PAGE: usize = 50;
 const CHAIN_PAGE: usize = 25;
 
 impl AppState {
+    /// A page of an address's confirmed transactions: named by the newest block holding one of
+    /// them (`a{version}-{block hash prefix:x}`; the tip's while it has none).
     async fn respond_addr_chain_txs(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         addr: Address,
         after_txid: Option<Txid>,
         max_txs: Option<usize>,
     ) -> Response {
-        self.respond_read(
-            headers,
-            "application/json",
-            move |q| {
-                let source =
-                    q.resolve_addr_chain_txs(&addr, after_txid, page_size(max_txs, CHAIN_PAGE))?;
-                let params = CacheParams::activity_bound(
-                    Version::ONE,
-                    BlockHashPrefix::from(&source.activity_anchor()),
-                );
-                Ok((source, params))
-            },
-            |q, source| Ok(Bytes::from(to_vec(&q.addr_txs_chain_resolved(source)?)?)),
-        )
+        self.respond(headers, self.chain(), move |q| {
+            let source =
+                q.resolve_addr_chain_txs(&addr, after_txid, page_size(max_txs, CHAIN_PAGE))?;
+            let anchor = BlockHashPrefix::from(&source.activity_anchor());
+            let settled = source.is_settled();
+            let tag = format!("a{}-{:x}", Version::ONE, *anchor);
+            Ok(Answer::json(tag, move |q| q.addr_txs_chain_resolved(source)).settled(settled))
+        })
         .await
     }
 }
@@ -64,9 +59,12 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             _: Empty,
             RequestState(state): RequestState
         | {
-            state.respond_json_content(&headers, move |q| {
-                q.addr_hash_prefix_matches(path.address_type, &path.prefix)
-            }).await
+            state
+                .respond(&headers, state.chain(), move |q| {
+                    let matches = q.addr_hash_prefix_matches(path.address_type, &path.prefix)?;
+                    Ok(Answer::built(Content::json(&matches)?))
+                })
+                .await
         }, |op| op
             .id("get_address_hash_prefix_matches")
             .tag(tags::ADDRESSES)
@@ -85,7 +83,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             RequestState(state): RequestState
         | {
             state
-                .respond_json_content(&headers, move |q| q.addr(path.addr))
+                .respond(&headers, state.chain(), move |q| {
+                    Ok(Answer::built(Content::json(&q.addr(path.addr)?)?))
+                })
                 .await
         }, |op| op
             .id("get_address")
@@ -104,7 +104,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             Query(query): Query<AddressTxsQuery>,
             RequestState(state): RequestState
         | {
-            serve_txs(state, headers, path.addr, query).await
+            serve_txs(state, &headers, path.addr, query).await
         }, |op| op
             .id("get_address_txs")
             .tag(tags::ADDRESSES)
@@ -123,7 +123,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             Query(query): Query<AddressChainTxsQuery>,
             RequestState(state): RequestState
         | {
-            state.respond_addr_chain_txs(headers, path.addr, None, query.max_txs).await
+            state.respond_addr_chain_txs(&headers, path.addr, None, query.max_txs).await
         }, |op| op
             .id("get_address_confirmed_txs")
             .tag(tags::ADDRESSES)
@@ -142,7 +142,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             RequestState(state): RequestState
         | {
             state
-                .respond_addr_chain_txs(headers, path.addr, Some(path.after_txid), query.max_txs)
+                .respond_addr_chain_txs(&headers, path.addr, Some(path.after_txid), query.max_txs)
                 .await
         }, |op| op
             .id("get_address_confirmed_txs_after")
@@ -161,17 +161,23 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             Query(query): Query<AddressMempoolTxsQuery>,
             RequestState(state): RequestState
         | {
-            state.respond_read(
-                headers,
-                "application/json",
-                move |q| {
-                    let resolved = q
-                        .resolve_addr_mempool_txs(&path.addr, page_size(query.max_txs, TXS_PAGE))?;
-                    let params = live_params(resolved.identity());
-                    Ok((resolved, params))
-                },
-                |_, resolved| Ok(Bytes::from(resolved.json())),
-            ).await
+            state
+                .respond_resolved(
+                    &headers,
+                    Version::ONE,
+                    JSON,
+                    Answer::settled,
+                    move |q| {
+                        let resolved = q.resolve_addr_mempool_txs(
+                            &path.addr,
+                            page_size(query.max_txs, TXS_PAGE),
+                        )?;
+                        let identity = resolved.identity();
+                        Ok((resolved, identity, false))
+                    },
+                    |_, resolved| Ok(resolved.json()),
+                )
+                .await
         }, |op| op
             .id("get_address_mempool_txs")
             .tag(tags::ADDRESSES)
@@ -189,7 +195,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             _: Empty,
             RequestState(state): RequestState
         | {
-            serve_utxos(state, headers, path.addr).await
+            serve_utxos(state, &headers, path.addr).await
         }, |op| op
             .id("get_address_utxos")
             .tag(tags::ADDRESSES)
@@ -204,10 +210,13 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(async |
             headers: HeaderMap,
             Path(path): Path<ValidateAddressParam>,
-            _: Empty
+            _: Empty,
+            RequestState(state): RequestState
         | -> crate::error::Result<Response> {
             let validation = AddressValidation::from_addr(path.checked()?);
-            Ok(Response::cached_json(&headers, &CacheParams::deploy(), move || validation))
+            // A function of the address and the release (which every tag starts with): `d`.
+            let answer = Answer::ready("d".to_owned(), Content::json(&validation)?);
+            Ok(state.respond_now(&headers, answer))
         }, |op| op
             .id("validate_address")
             .tag(tags::ADDRESSES)
@@ -219,52 +228,40 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     )
 }
 
-fn live_params(identity: RepresentationId) -> CacheParams {
-    CacheParams::representation(Version::ONE, identity)
-}
-
 async fn serve_txs(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     addr: Address,
     query: AddressTxsQuery,
 ) -> Response {
     state
-        .respond_read(
+        .respond_resolved(
             headers,
-            "application/json",
+            Version::ONE,
+            JSON,
+            Answer::settled,
             move |q| {
                 let resolved = q.resolve_addr_txs(
                     &addr,
                     query.after_txid,
                     page_size(query.max_txs, TXS_PAGE),
                 )?;
-                let params = live_params(resolved.identity());
-                Ok((resolved, params))
+                let (identity, settled) = (resolved.identity(), resolved.is_settled());
+                Ok((resolved, identity, settled))
             },
-            |q, resolved| Ok(Bytes::from(to_vec(&q.addr_txs_resolved(resolved)?)?)),
+            |q, resolved| Ok(to_vec(&q.addr_txs_resolved(resolved)?)?),
         )
         .await
 }
 
 /// Validate policy and select the representation in one admitted worker.
-async fn serve_utxos(state: AppState, headers: HeaderMap, addr: Address) -> Response {
+async fn serve_utxos(state: AppState, headers: &HeaderMap, addr: Address) -> Response {
     let max_utxos = state.max_utxos;
     state
-        .respond_read(
-            headers,
-            "application/json",
-            move |q| {
-                let resolved = q.resolve_addr_utxos(&addr, max_utxos)?;
-                let params =
-                    CacheParams::live(format!("addr-utxos-v3-{}", resolved.representation()));
-                Ok((resolved, params))
-            },
-            move |q, resolved| {
-                Ok(Bytes::from(to_vec(
-                    &q.addr_utxos_resolved(resolved)?,
-                )?))
-            },
-        )
+        .respond(headers, state.chain(), move |q| {
+            let resolved = q.resolve_addr_utxos(&addr, max_utxos)?;
+            let tag = format!("addr-utxos-v3-{}", resolved.representation());
+            Ok(Answer::json(tag, move |q| q.addr_utxos_resolved(resolved)))
+        })
         .await
 }

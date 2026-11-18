@@ -6,7 +6,7 @@ use bitview_plugin_indexer::SafeLengths;
 #[cfg(feature = "series")]
 use bitview_primitives::{DifficultyEpoch, HalvingEpoch, Index, Lengths};
 #[cfg(feature = "full-api")]
-use brk_types::Height;
+use brk_types::{BlockHash, Height};
 #[cfg(feature = "series")]
 use vecdb::{ReadBounds, ReadScope, ReadableVec};
 
@@ -47,6 +47,22 @@ impl Deref for ReadPin {
 
     fn deref(&self) -> &SafeLengths {
         &self.pin
+    }
+}
+
+/// The published chain pinned at its tip, for an answer that is a function of all of it: the
+/// tip's hash names the answer, and the answer is read under this same pin, so the two can't
+/// come from different publications.
+#[cfg(feature = "full-api")]
+pub struct TipPin {
+    pub(crate) pin: ReadPin,
+    pub(crate) height: Height,
+}
+
+#[cfg(feature = "full-api")]
+impl TipPin {
+    pub fn hash(&self) -> BlockHash {
+        self.pin.tip()
     }
 }
 
@@ -117,6 +133,15 @@ impl Query {
     #[cfg(feature = "full-api")]
     pub(crate) fn tip_height(pin: &SafeLengths) -> Result<Height> {
         pin.lengths().last_height().ok_or_else(|| Error::updating())
+    }
+
+    /// Pins the published chain for an answer about all of it; `StateUpdating` while nothing is
+    /// published.
+    #[cfg(feature = "full-api")]
+    pub fn pin_tip(&self) -> Result<TipPin> {
+        let pin = self.pin_safe_lengths()?;
+        let height = Self::tip_height(&pin)?;
+        Ok(TipPin { pin, height })
     }
 
     #[cfg(feature = "series")]

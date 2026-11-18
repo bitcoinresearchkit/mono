@@ -1,89 +1,71 @@
 //! Live `/api/series/*` API: catalog, search, info, single-series, bulk.
 
-use std::result::Result as StdResult;
+use std::{fmt::Write, result::Result as StdResult};
 
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
     body::Bytes,
     extract::{Path, Query},
-    http::HeaderMap,
+    http::{HeaderMap, HeaderValue, header},
     response::{IntoResponse, Response},
 };
 use bitview_catalog::TreeNode;
 use bitview_primitives::{Index, SeriesName};
-use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery};
+use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery, SeriesAnchor};
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, PaginatedSeries, Pagination, SearchQuery,
     SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
 };
 use brk_types::Version;
-use serde_json::{Value, to_vec};
+use serde_json::Value;
 
 use crate::{
-    AppState, CacheParams, Error,
+    AppState, Error,
+    answer::{Answer, Content, JSON},
     api::tags,
     error::Result,
-    extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
+    extended::TransformResponseExtended,
     params::{Empty, SeriesParam},
     request_state::RequestState,
 };
 
-pub async fn serve_list(state: AppState, headers: HeaderMap, pagination: Pagination) -> Response {
-    AppState::respond_with_future(&headers, state.series_bodies.list.clone(), async {
-        let bytes = state
-            .read_admitted(move |query| Ok(Bytes::from(to_vec(&query.series_list(pagination))?)))
-            .await?;
-        Ok((
-            bytes,
-            HeaderMapExtended::insert_content_type_application_json,
-        ))
-    })
-    .await
+pub async fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
+    let tag = state.series_bodies.list.clone();
+    state
+        .respond(headers, state.chain(), move |_| {
+            Ok(Answer::json(tag, move |q| Ok(q.series_list(pagination))))
+        })
+        .await
 }
 
-pub async fn serve_search(state: AppState, headers: HeaderMap, search: SearchQuery) -> Response {
+pub async fn serve_search(state: AppState, headers: &HeaderMap, search: SearchQuery) -> Response {
     if search.q.len() > MAX_INPUT_BYTES {
         return Error::bad_request(format!(
             "search query exceeds {MAX_INPUT_BYTES} UTF-8 bytes"
         ))
         .into_response();
     }
-    AppState::respond_with_future(&headers, state.series_bodies.search.clone(), async {
-        let bytes = state
-            .run_with_admission(&state.series_bodies.search_query, move |query| {
-                Ok(Bytes::from(to_vec(&query.search_series(&search))?))
-            })
-            .await?;
-        Ok((
-            bytes,
-            HeaderMapExtended::insert_content_type_application_json,
-        ))
-    })
-    .await
+    let tag = state.series_bodies.search.clone();
+    state
+        .respond(headers, state.series_search(), move |_| {
+            Ok(Answer::json(tag, move |q| Ok(q.search_series(&search))))
+        })
+        .await
 }
 
 const MAX_INPUT_BYTES: usize = 1024;
 
 pub async fn serve_series_info(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     series: SeriesName,
 ) -> Result<Response> {
     validate_name(&series)?;
-    if let Some(info) = state.query.sync(|q| q.resolve_series_info(&series)) {
-        return Ok(Response::cached_json(
-            &headers,
-            &state.series_bodies.info,
-            || info.into_info(),
-        ));
-    }
-
-    let error = state
-        .read_with_admission(&state.series_bodies.search_query, move |q| {
-            Ok(q.missing_series_error(&series))
-        })
-        .await?;
-    Err(error.into())
+    let Some(info) = state.query.sync(|q| q.resolve_series_info(&series)) else {
+        return Err(missing_series(&state, series).await);
+    };
+    let tag = state.series_bodies.info.clone();
+    Ok(state.respond_now(headers, Answer::json(tag, move |_| Ok(info.into_info()))))
 }
 
 fn validate_name(series: &SeriesName) -> Result<()> {
@@ -95,55 +77,92 @@ fn validate_name(series: &SeriesName) -> Result<()> {
     Ok(())
 }
 
+/// The error for a name no series has, with its nearest names: a search, admitted as one.
+async fn missing_series(state: &AppState, series: SeriesName) -> Error {
+    state
+        .query
+        .read_with_admission(Some(&state.series_bodies.search_query), move |q| {
+            Ok(q.missing_series_error(&series))
+        })
+        .await
+        .unwrap_or_else(|error| error)
+        .into()
+}
+
 pub async fn serve_latest(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     series: SeriesName,
     index: Index,
 ) -> Result<Response> {
     validate_name(&series)?;
-    let bytes = state
-        .read_with_admission(&state.series_bodies.data_query, move |q| {
-            Ok(Bytes::from(q.latest_json(&series, index)?))
+    Ok(state
+        .respond(headers, state.series_data(), move |q| {
+            Ok(Answer::built(Content::new(JSON, q.latest_json(&series, index)?)))
         })
-        .await?;
-    Ok(state.respond_json_content_bytes(&headers, bytes))
+        .await)
 }
 
 pub async fn serve_len(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     series: SeriesName,
     index: Index,
 ) -> Result<Response> {
     validate_name(&series)?;
-    let length = state
-        .read_with_admission(&state.series_bodies.data_query, move |q| {
-            q.len(&series, index)
+    Ok(state
+        .respond(headers, state.series_data(), move |q| {
+            let length = q.len(&series, index)?;
+            // The JSON number depends only on length, not on the chain tip or deploy.
+            Ok(Answer::ready(format!("len1-{length}"), Content::json(&length)?))
         })
-        .await?;
-    // The JSON number depends only on length, not on the chain tip or deploy.
-    let params = CacheParams::live(format!("len1-{length}"));
-    Ok(Response::cached_json(&headers, &params, || length))
+        .await)
 }
 
 pub async fn serve_version(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     series: SeriesName,
     index: Index,
 ) -> Result<Response> {
     validate_name(&series)?;
-    if let Some(version) = state.query.sync(|q| q.find_version(&series, index))? {
-        let params = CacheParams::live(format!("sv1-{version}"));
-        return Ok(Response::cached_json(&headers, &params, || version));
+    let Some(version) = state.query.sync(|q| q.find_version(&series, index))? else {
+        return Err(missing_series(&state, series).await);
+    };
+    let answer = Answer::ready(format!("sv1-{version}"), Content::json(&version)?);
+    Ok(state.respond_now(headers, answer))
+}
+
+/// What names resolved rows, and whether they are settled:
+/// - historical: `s{v}-r{start}-{end}-{anchor:x}`, the anchor being the last block the rows
+///   depend on (for calendar indexes, the following period's first block): stable across
+///   appends, changed by any reorg replacing those rows. Settled.
+/// - tip: `s{v}-t{tip_hash:x}`. Changes per block, reorg-safe.
+fn series_tag(query: &ResolvedQuery) -> (String, bool) {
+    let v = u32::from(query.version());
+    let range = query.range();
+    match query.anchor() {
+        SeriesAnchor::Historical(hash) => (
+            format!("s{v}-r{}-{}-{:x}", range.start, range.end, *hash),
+            true,
+        ),
+        SeriesAnchor::Tip(hash) => (format!("s{v}-t{:x}", *hash), false),
     }
-    let error = state
-        .read_with_admission(&state.series_bodies.search_query, move |q| {
-            Ok(q.missing_series_error(&series))
-        })
-        .await?;
-    Err(error.into())
+}
+
+/// `Content-Disposition` for a download named `filename`.
+fn attachment(filename: &str) -> HeaderValue {
+    if filename.is_ascii() && !filename.contains('"') && !filename.contains('\\') {
+        let quoted = format!("attachment; filename=\"{filename}\"");
+        if let Ok(value) = HeaderValue::try_from(quoted) {
+            return value;
+        }
+    }
+    let mut value = String::from("attachment; filename*=UTF-8''");
+    for byte in filename.bytes() {
+        write!(value, "%{byte:02X}").unwrap();
+    }
+    HeaderValue::try_from(value).expect("ASCII attachment header")
 }
 
 /// Shared response pipeline for formatted series data.
@@ -152,7 +171,7 @@ pub async fn serve_version(
 /// pin. Matching validators skip filename and body preparation.
 pub async fn serve(
     state: AppState,
-    headers: HeaderMap,
+    headers: &HeaderMap,
     params: SeriesSelection,
     to_bytes: impl FnOnce(&BrkQuery, ResolvedQuery) -> StdResult<Bytes, QueryError>
     + Clone
@@ -161,33 +180,23 @@ pub async fn serve(
 ) -> Result<Response> {
     params.series.iter().try_for_each(validate_name)?;
     let max_weight = state.max_weight;
-    let cdn_cache_mode = state.cdn_cache_mode;
-    state
-        .read_with_admission(&state.series_bodies.data_query, move |q| {
+    Ok(state
+        .respond(headers, state.series_data(), move |q| {
             let resolved = q.resolve(params, max_weight)?;
-            let cache_params = CacheParams::series(&resolved, cdn_cache_mode);
-            if cache_params.etag.matches(&headers) {
-                return Ok(Response::new_not_modified(&cache_params));
-            }
-            let csv_filename = match resolved.format() {
-                Format::CSV => Some(resolved.csv_filename()),
-                Format::JSON => None,
-            };
-            let bytes = to_bytes(q, resolved)?;
-            Ok(AppState::assemble_response(
-                cache_params,
-                bytes,
-                move |h| match csv_filename {
-                    Some(filename) => {
-                        h.insert_content_disposition_attachment(&filename);
-                        h.insert_content_type_text_csv();
+            let (tag, settled) = series_tag(&resolved);
+            let answer = Answer::new(tag, move |q| {
+                Ok(match resolved.format() {
+                    Format::CSV => {
+                        let filename = attachment(&resolved.csv_filename());
+                        Content::new("text/csv", to_bytes(q, resolved)?)
+                            .with(header::CONTENT_DISPOSITION, filename)
                     }
-                    None => h.insert_content_type_application_json(),
-                },
-            ))
+                    Format::JSON => Content::new(JSON, to_bytes(q, resolved)?),
+                })
+            });
+            Ok(answer.settled(settled))
         })
-        .await
-        .map_err(Into::into)
+        .await)
 }
 
 fn output_to_bytes(out: Output) -> Bytes {
@@ -202,7 +211,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/series",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                state.series_bodies.catalog.respond(&headers)
+                state.respond_now(&headers, state.series_bodies.catalog.answer())
             },
             |op| op
                 .id("get_series_tree")
@@ -224,7 +233,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 _: Empty,
                 RequestState(state): RequestState
             | {
-                state.series_bodies.count.respond(&headers)
+                state.respond_now(&headers, state.series_bodies.count.answer())
             },
             |op| op
                 .id("get_series_count")
@@ -243,7 +252,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 _: Empty,
                 RequestState(state): RequestState
             | {
-                state.series_bodies.indexes.respond(&headers)
+                state.respond_now(&headers, state.series_bodies.indexes.answer())
             },
             |op| op
                 .id("list_indexes")
@@ -264,7 +273,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 RequestState(state): RequestState,
                 Query(pagination): Query<Pagination>
             | {
-                serve_list(state, headers, pagination).await
+                serve_list(state, &headers, pagination).await
             },
             |op| op
                 .id("list_series")
@@ -283,7 +292,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 RequestState(state): RequestState,
                 Query(query): Query<SearchQuery>
             | {
-                serve_search(state, headers, query).await
+                serve_search(state, &headers, query).await
             },
             |op| op
                 .id("search_series")
@@ -303,7 +312,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 RequestState(state): RequestState,
                 Path(path): Path<SeriesParam>
             | -> Result<Response> {
-                serve_series_info(state, headers, path.series).await
+                serve_series_info(state, &headers, path.series).await
             },
             |op| op
                 .id("get_series_info")
@@ -324,7 +333,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    Query(range): Query<DataRangeFormat>|
                    -> Response {
                 let params = SeriesSelection::from((path.index, path.series, range));
-                serve(state, headers, params, |q, r| q.format(r).map(output_to_bytes))
+                serve(state, &headers, params, |q, r| q.format(r).map(output_to_bytes))
                     .await
                     .into_response()
             },
@@ -350,7 +359,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    Query(range): Query<DataRangeFormat>|
                    -> Response {
                 let params = SeriesSelection::from((path.index, path.series, range));
-                serve(state, headers, params, |q, r| q.format_raw(r).map(output_to_bytes))
+                serve(state, &headers, params, |q, r| q.format_raw(r).map(output_to_bytes))
                     .await
                     .into_response()
             },
@@ -377,7 +386,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    _: Empty,
                    RequestState(state): RequestState,
                    Path(path): Path<SeriesNameWithIndex>| {
-                serve_latest(state, headers, path.series, path.index).await
+                serve_latest(state, &headers, path.series, path.index).await
             },
             |op| op
                 .id("get_series_latest")
@@ -398,7 +407,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    _: Empty,
                    RequestState(state): RequestState,
                    Path(path): Path<SeriesNameWithIndex>| {
-                serve_len(state, headers, path.series, path.index).await
+                serve_len(state, &headers, path.series, path.index).await
             },
             |op| op
                 .id("get_series_len")
@@ -417,7 +426,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    RequestState(state): RequestState,
                    Path(path): Path<SeriesNameWithIndex>|
                    -> Result<Response> {
-                serve_version(state, headers, path.series, path.index).await
+                serve_version(state, &headers, path.series, path.index).await
             },
             |op| op
                 .id("get_series_version")
@@ -436,7 +445,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    Query(params): Query<SeriesSelection>,
                    RequestState(state): RequestState|
                    -> Response {
-                serve(state, headers, params, |q, r| q.format_bulk(r).map(output_to_bytes))
+                serve(state, &headers, params, |q, r| q.format_bulk(r).map(output_to_bytes))
                     .await
                     .into_response()
             },

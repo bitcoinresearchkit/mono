@@ -3,13 +3,17 @@ use bitview_types::{
 };
 
 use super::block_window::BlockWindow;
-use crate::{Query, Result, api::mempool_fee_rate};
+use crate::{Query, Result, TipPin, api::mempool_fee_rate};
 
 impl Query {
     /// [`Self::block_fee_rates_precise`] with each rate rounded to a whole sat/vB.
-    pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
+    pub fn block_fee_rates(
+        &self,
+        at: &TipPin,
+        time_period: TimePeriod,
+    ) -> Result<Vec<BlockFeeRatesEntry>> {
         Ok(self
-            .block_fee_rates_precise(time_period)?
+            .block_fee_rates_precise(at, time_period)?
             .into_iter()
             .map(|entry| BlockFeeRatesEntry {
                 avg_height: entry.avg_height,
@@ -23,10 +27,10 @@ impl Query {
     /// chronological.
     pub fn block_fee_rates_precise(
         &self,
+        at: &TipPin,
         time_period: TimePeriod,
     ) -> Result<Vec<BlockFeeRatesPreciseEntry>> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+        let tip = at.height;
         let bw = BlockWindow::new(self, time_period, tip)?;
         let frd = &self
             .plugins()
@@ -43,7 +47,6 @@ impl Query {
         let p75 = means(&frd.p75.height)?;
         let p90 = means(&frd.p90.height)?;
         let max = means(&frd.max.height)?;
-        drop(pin);
 
         Ok(bw
             .buckets

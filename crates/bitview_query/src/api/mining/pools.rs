@@ -9,7 +9,7 @@ use brk_types::Height;
 use vecdb::{ReadableVec, VecIndex};
 
 use super::start_height;
-use crate::{Error, OptionData, Query, ReadPin, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result, TipPin};
 
 /// Weekly samples, each sharing out the 7 days since the previous one.
 const SAMPLE_DAYS: usize = 7;
@@ -27,17 +27,15 @@ impl Query {
     /// Pools ranked by blocks mined over `time_period`'s timestamp lookback from the tip (`All`:
     /// from genesis), with their shares and coinbase-only blocks, plus the current, 3-day and
     /// 7-day network hashrates.
-    pub fn mining_pools(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+    pub fn mining_pools(&self, at: &TipPin, time_period: TimePeriod) -> Result<PoolsSummary> {
+        let tip = at.height;
         let start = start_height(self, time_period, tip)?.to_usize();
         let pool_data = self.ranked_pools(start, tip)?;
 
-        let empty_blocks = self.empty_blocks_by_pool(start, &pin)?;
+        let empty_blocks = self.empty_blocks_by_pool(start, &at.pin)?;
         let last_estimated_hashrate = self.hashrate_at(tip)?;
         let last_estimated_hashrate3d = self.trailing_hashrate(tip, 3)?;
         let last_estimated_hashrate1w = self.trailing_hashrate(tip, 7)?;
-        drop(pin);
 
         let total_blocks: u64 = pool_data.iter().map(|(_, count)| count).sum();
 
@@ -120,9 +118,8 @@ impl Query {
     /// also used to weight the current 1-day network hashrate into a per-pool
     /// `estimated_hashrate`. `total_reward` is the coinbase value of every block
     /// the pool mined.
-    pub fn pool_detail(&self, slug: PoolSlug) -> Result<PoolDetail> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+    pub fn pool_detail(&self, at: &TipPin, slug: PoolSlug) -> Result<PoolDetail> {
+        let tip = at.height;
         let plugins = self.plugins();
         let end = tip.to_usize();
 
@@ -189,13 +186,15 @@ impl Query {
     /// Each point's hashrate is `network_hashrate(day) * pool_share_over_7d`,
     /// where the share is the pool's last-7-days block count divided by the
     /// network's last-7-days block count.
-    pub fn pool_hashrate(&self, slug: PoolSlug) -> Result<Vec<PoolHashrateEntry>> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+    pub fn pool_hashrate(
+        &self,
+        at: &TipPin,
+        slug: PoolSlug,
+    ) -> Result<Vec<PoolHashrateEntry>> {
+        let tip = at.height;
         let pool_name = pools().get(slug).name;
         let samples = self.hashrate_samples(0, tip)?;
         let pool_cum = self.pool_sampled_cumulative(slug, &samples.days)?;
-        drop(pin);
         Ok(Self::hashrate_entries(&samples, &pool_cum, pool_name).collect())
     }
 
@@ -204,10 +203,10 @@ impl Query {
     /// mempool.space lists them.
     pub fn pools_hashrate(
         &self,
+        at: &TipPin,
         time_period: Option<TimePeriod>,
     ) -> Result<Vec<PoolHashrateEntry>> {
-        let pin = self.pin_safe_lengths()?;
-        let tip = Query::tip_height(&pin)?;
+        let tip = at.height;
         let start = match time_period {
             Some(tp) => start_height(self, tp, tip)?.to_usize(),
             None => 0,

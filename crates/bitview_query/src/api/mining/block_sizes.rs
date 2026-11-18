@@ -3,20 +3,22 @@ use bitview_types::{BlockSizeEntry, BlockSizesWeights, BlockWeightEntry, TimePer
 use brk_types::Weight;
 
 use super::block_window::BlockWindow;
-use crate::{Query, Result};
+use crate::{Query, Result, TipPin};
 
 impl Query {
     /// Round-half-up mean block sizes (bytes) and weights (WU) per time bucket over
     /// `time_period`, chronological, as two parallel vecs.
-    pub fn block_sizes_weights(&self, time_period: TimePeriod) -> Result<BlockSizesWeights> {
-        let pin = self.pin_safe_lengths()?;
+    pub fn block_sizes_weights(
+        &self,
+        at: &TipPin,
+        time_period: TimePeriod,
+    ) -> Result<BlockSizesWeights> {
         let blocks = &self.indexer().vecs().blocks;
-        let tip = Query::tip_height(&pin)?;
+        let tip = at.height;
         let bw = BlockWindow::new(self, time_period, tip)?;
 
         let sizes = bw.means_rounded(&*blocks.size, Bytes::from)?;
         let weights = bw.means_rounded(&*blocks.weight, Weight::from)?;
-        drop(pin);
 
         let (sizes, weights) = bw
             .buckets

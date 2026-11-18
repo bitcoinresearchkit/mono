@@ -20,12 +20,12 @@ use bitview_types::{
 };
 use brk_types::{Height, Sats, Tweak, Txid};
 use serde::Serialize;
-use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
 
 use super::broadcast::{self, BroadcastPermit};
 use crate::{
-    AppState, CacheParams,
+    AppState,
+    answer::Answer,
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
@@ -46,25 +46,18 @@ impl AppState {
     /// `build` reads it.
     async fn respond_blindbit<T: Serialize + 'static>(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         height: Height,
         route: String,
         build: impl FnOnce(&Query, &BlindbitBlock) -> QueryResult<T> + Clone + Send + 'static,
-    ) -> Result<Response> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        Ok(self
-            .respond_read(
-                headers,
-                "application/json",
-                move |q| {
-                    let block = q.blindbit_block(height)?;
-                    let params = CacheParams::revalidate(block_tag(&route, height, &block))
-                        .stable_if(block.is_settled(), cdn_cache_mode);
-                    Ok((block, params))
-                },
-                move |q, block| Ok(to_vec(&build(q, &block)?)?.into()),
-            )
-            .await)
+    ) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let block = q.blindbit_block(height)?;
+            let tag = block_tag(&route, height, &block);
+            let settled = block.is_settled();
+            Ok(Answer::json(tag, move |q| build(q, &block)).settled(settled))
+        })
+        .await
     }
 
     /// A per-block route that says what's spent as of the tip, of the Taproot outputs of the
@@ -72,47 +65,38 @@ impl AppState {
     /// is spent. The tag and `build` read the same selection of them.
     async fn respond_blindbit_spends<T: Serialize + 'static>(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         height: Height,
         route: String,
         least: Sats,
         build: impl FnOnce(&Query, &BlindbitOutputs) -> QueryResult<T> + Clone + Send + 'static,
-    ) -> Result<Response> {
-        let cdn_cache_mode = self.cdn_cache_mode;
-        Ok(self
-            .respond_read(
-                headers,
-                "application/json",
-                move |q| {
-                    let outputs = q.blindbit_outputs(q.blindbit_block(height)?, least)?;
-                    let tag = block_tag(&route, height, outputs.block());
-                    let params = CacheParams::live(format!("{tag}-{}", outputs.key()))
-                        .stable_if(outputs.is_final(), cdn_cache_mode);
-                    Ok((outputs, params))
-                },
-                move |q, outputs| Ok(to_vec(&build(q, &outputs)?)?.into()),
-            )
-            .await)
+    ) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let outputs = q.blindbit_outputs(q.blindbit_block(height)?, least)?;
+            let tag = format!(
+                "{}-{}",
+                block_tag(&route, height, outputs.block()),
+                outputs.key()
+            );
+            let settled = outputs.is_final();
+            Ok(Answer::json(tag, move |q| build(q, &outputs)).settled(settled))
+        })
+        .await
     }
 
     /// A route about the tip alone.
     async fn respond_blindbit_tip<T: Serialize + 'static>(
         &self,
-        headers: HeaderMap,
+        headers: &HeaderMap,
         route: &'static str,
         build: fn(Height) -> T,
-    ) -> Result<Response> {
-        Ok(self
-            .respond_read(
-                headers,
-                "application/json",
-                move |q| {
-                    let (height, hash) = q.blindbit_tip()?;
-                    Ok((height, CacheParams::live(format!("blindbit-v1-{route}-{hash}"))))
-                },
-                move |_, height| Ok(to_vec(&build(height))?.into()),
-            )
-            .await)
+    ) -> Response {
+        self.respond(headers, self.chain(), move |q| {
+            let (height, hash) = q.blindbit_tip()?;
+            let tag = format!("blindbit-v1-{route}-{hash}");
+            Ok(Answer::json(tag, move |_| Ok(build(height))))
+        })
+        .await
     }
 }
 
@@ -147,7 +131,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             &format!("{PREFIX}/info"),
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state.respond_blindbit_tip(headers, "info", info).await
+                    state.respond_blindbit_tip(&headers, "info", info).await
                 },
                 |op| {
                     op.id("get_blindbit_info")
@@ -165,7 +149,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             get_with(
                 async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                     state
-                        .respond_blindbit_tip(headers, "block-height", |block_height| {
+                        .respond_blindbit_tip(&headers, "block-height", |block_height| {
                             BlindbitBlockHeight { block_height }
                         })
                         .await
@@ -190,7 +174,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        RequestState(state): RequestState| {
                     state
                         .respond_blindbit(
-                            headers,
+                            &headers,
                             path.height,
                             "block-hash".into(),
                             |_, block| Ok(BlindbitBlockHash { block_hash: *block.hash() }),
@@ -219,7 +203,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     let dust_limit = query.limit();
                     state
                         .respond_blindbit(
-                            headers,
+                            &headers,
                             path.height,
                             format!("tweak-index-{dust_limit}"),
                             move |q, block| q.blindbit_tweak_index(block, dust_limit),
@@ -248,7 +232,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     let dust_limit = query.limit();
                     state
                         .respond_blindbit_spends(
-                            headers,
+                            &headers,
                             path.height,
                             format!("tweaks-{dust_limit}"),
                             dust_limit,
@@ -278,7 +262,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     let kind = path.kind;
                     state
                         .respond_blindbit(
-                            headers,
+                            &headers,
                             path.height,
                             format!("filter-{kind}"),
                             move |q, block| q.blindbit_filter(block, kind),
@@ -306,7 +290,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        RequestState(state): RequestState| {
                     state
                         .respond_blindbit(
-                            headers,
+                            &headers,
                             path.height,
                             "spent-index".into(),
                             |q, block| q.blindbit_spent_index(block),
@@ -334,7 +318,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        RequestState(state): RequestState| {
                     state
                         .respond_blindbit_spends(
-                            headers,
+                            &headers,
                             path.height,
                             "utxos".into(),
                             Sats::ZERO,

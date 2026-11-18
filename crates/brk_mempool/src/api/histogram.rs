@@ -2,7 +2,7 @@
 
 use brk_error::Result;
 use brk_oracle::{HistogramRaw, Tally};
-use brk_types::BlockHash;
+use brk_types::{BlockHash, Timestamp};
 
 use crate::{JsonBody, ReadOnlyState};
 
@@ -20,9 +20,10 @@ impl ReadOnlyState {
     /// so this hot path is `O(NUM_BINS)` regardless of pool size. Used by
     /// `live_price` to blend the mempool into the committed oracle without
     /// re-parsing scripts per request. Requires a completed publication at the
-    /// requested confirmed-chain tip.
-    pub fn live_payments(&self, tip: &BlockHash) -> Result<(HistogramRaw, Tally)> {
+    /// requested confirmed-chain tip, and comes with when it was published.
+    pub fn live_payments(&self, tip: &BlockHash) -> Result<(HistogramRaw, Tally, Timestamp)> {
         let state = self.pool()?.at(tip)?;
-        Ok(state.txs.live_payments())
+        let (histogram, tally) = state.txs.live_payments();
+        Ok((histogram, tally, state.published_time))
     }
 }

@@ -1,15 +1,14 @@
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{extract::Path, http::HeaderMap, response::Response};
+use axum::{extract::Path, http::HeaderMap};
 use bitview_types::ReplacementNode;
 use brk_types::{
-    BlockTemplate, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid, Version,
+    BlockTemplate, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid,
 };
 
 use super::{mempool_block, mempool_txids};
 use crate::{
     AppState,
     api::tags,
-    error::Result,
     extended::TransformResponseExtended,
     params::{Empty, MempoolBlockDiffParam, MempoolBlockParam},
     request_state::RequestState,
@@ -21,7 +20,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| q.mempool_info_json())
+                    .respond_built(&headers, |q| q.mempool_info_json())
                     .await
             },
             |op| {
@@ -37,8 +36,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     .api_route(
         "/api/mempool/txids",
         get_with(
-            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                mempool_txids::serve(state, headers).await
+            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                mempool_txids::serve(state, &headers).await
             },
             |op| {
                 op.id("get_mempool_txids")
@@ -56,7 +55,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| q.mempool_recent_json())
+                    .respond_built(&headers, |q| q.mempool_recent_json())
                     .await
             },
             |op| {
@@ -74,7 +73,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| {
+                    .respond_built(&headers, |q| {
                         q.recent_replacements_json(false)
                     })
                     .await
@@ -94,7 +93,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| {
+                    .respond_built(&headers, |q| {
                         q.recent_replacements_json(true)
                     })
                     .await
@@ -115,8 +114,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Path(path): Path<MempoolBlockParam>,
                    _: Empty,
-                   RequestState(state): RequestState| -> Result<Response> {
-                mempool_block::serve(state, headers, path.index).await
+                   RequestState(state): RequestState| {
+                mempool_block::serve(state, &headers, path.index).await
             },
             |op| {
                 op.id("get_mempool_block")
@@ -136,8 +135,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap,
                    Path(path): Path<MempoolBlockDiffParam>,
                    _: Empty,
-                   RequestState(state): RequestState| -> Result<Response> {
-                mempool_block::serve_diff(state, headers, path.index, path.since).await
+                   RequestState(state): RequestState| {
+                mempool_block::serve_diff(state, &headers, path.index, path.since).await
             },
             |op| {
                 op.id("get_mempool_block_diff")
@@ -156,7 +155,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_json_bound(headers, Version::ONE, |q| q.block_template_json())
+                    .respond_built(&headers, |q| q.block_template_json())
                     .await
             },
             |op| {

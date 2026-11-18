@@ -1,19 +1,27 @@
+use std::slice::from_ref;
+
 use bitview_plugin_outputs::published_spend;
 use bitview_primitives::{Lengths, TxInIndex, TxOutIndex};
+use brk_mempool::ReadOnlyState;
 use brk_types::{BlockHash, Height, Timestamp, TxIndex, TxOutspend, TxStatus, Txid, Vin, Vout};
 use serde_json::to_vec;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, RepresentationId, Result};
+use crate::{Error, OptionData, Query, ReadPin, RepresentationId, Result};
 
 impl Query {
-    fn outspend(&self, txid: &Txid, vout: Vout) -> Result<TxOutspend> {
-        let (mempool, pin) = self.mempool_then_pin()?;
+    fn outspend(
+        &self,
+        mempool: Option<&ReadOnlyState>,
+        pin: &ReadPin,
+        txid: &Txid,
+        vout: Vout,
+    ) -> Result<TxOutspend> {
         let safe = pin.lengths();
-        let outputs = match self.resolve_tx_outputs(txid, &pin) {
+        let outputs = match self.resolve_tx_outputs(txid, pin) {
             Ok(outputs) => outputs,
-            Err(error) if Self::pool_answers(&error, &pin) => {
-                let error = match self.pending_view(mempool.as_deref(), &pin)? {
+            Err(error) if Self::pool_answers(&error, pin) => {
+                let error = match self.pending_view(mempool, pin)? {
                     Some((mempool, view)) => match mempool.outspend_if_present(txid, vout, &view)? {
                         Some(outspend) => return Ok(outspend),
                         None => Self::unanswered(error, &view, txid),
@@ -37,28 +45,36 @@ impl Query {
         }
         // Confirmed spends answer first; the pool, as the pin sees it, adds a pending spend of the
         // rest.
-        Ok(match self.pending_view(mempool.as_deref(), &pin)? {
+        Ok(match self.pending_view(mempool, pin)? {
             Some((mempool, view)) => mempool.outspend(txid, vout, &view)?,
             None => TxOutspend::UNSPENT,
         })
     }
 
-    /// Resolve and serialize one outspend exactly once, identifying confirmed
-    /// results by their spending block and live results by their content.
-    pub fn outspend_json(&self, txid: &Txid, vout: Vout) -> Result<(Vec<u8>, RepresentationId)> {
-        let outspend = self.outspend(txid, vout)?;
+    /// One outspend, serialized once, with its [`outspends_identity`].
+    pub fn outspend_json(
+        &self,
+        txid: &Txid,
+        vout: Vout,
+    ) -> Result<(Vec<u8>, RepresentationId, bool)> {
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let outspend = self.outspend(mempool.as_deref(), &pin, txid, vout)?;
         let bytes = to_vec(&outspend).unwrap();
-        let identity = outspend_identity(&outspend, &bytes);
-        Ok((bytes, identity))
+        let (identity, settled) = outspends_identity(from_ref(&outspend), &bytes, pin.lengths());
+        Ok((bytes, identity, settled))
     }
 
-    fn outspends(&self, txid: &Txid) -> Result<Vec<TxOutspend>> {
-        let (mempool, pin) = self.mempool_then_pin()?;
+    fn outspends(
+        &self,
+        mempool: Option<&ReadOnlyState>,
+        pin: &ReadPin,
+        txid: &Txid,
+    ) -> Result<Vec<TxOutspend>> {
         let safe = pin.lengths();
-        let outputs = match self.resolve_tx_outputs(txid, &pin) {
+        let outputs = match self.resolve_tx_outputs(txid, pin) {
             Ok(outputs) => outputs,
-            Err(error) if Self::pool_answers(&error, &pin) => {
-                let Some((mempool, view)) = self.pending_view(mempool.as_deref(), &pin)? else {
+            Err(error) if Self::pool_answers(&error, pin) => {
+                let Some((mempool, view)) = self.pending_view(mempool, pin)? else {
                     return Err(error);
                 };
                 return match mempool.outspends_if_present(txid, &view)? {
@@ -71,21 +87,20 @@ impl Query {
         let mut outspends = self.resolve_outspends(outputs.first, outputs.len, safe)?;
         // Only what the chain leaves unspent asks the pool.
         if outspends.iter().any(|outspend| !outspend.spent)
-            && let Some((mempool, view)) = self.pending_view(mempool.as_deref(), &pin)?
+            && let Some((mempool, view)) = self.pending_view(mempool, pin)?
         {
             mempool.merge_outspends(txid, &mut outspends, &view)?;
         }
         Ok(outspends)
     }
 
-    /// Resolve and serialize all outspends exactly once. Fully confirmed
-    /// arrays are identified by their newest spending block; arrays with any
-    /// live element are identified by their exact content.
-    pub fn outspends_json(&self, txid: &Txid) -> Result<(Vec<u8>, RepresentationId)> {
-        let outspends = self.outspends(txid)?;
+    /// A transaction's outspends, serialized once, with their [`outspends_identity`].
+    pub fn outspends_json(&self, txid: &Txid) -> Result<(Vec<u8>, RepresentationId, bool)> {
+        let (mempool, pin) = self.mempool_then_pin()?;
+        let outspends = self.outspends(mempool.as_deref(), &pin, txid)?;
         let bytes = to_vec(&outspends).unwrap();
-        let identity = outspends_identity(&outspends, &bytes);
-        Ok((bytes, identity))
+        let (identity, settled) = outspends_identity(&outspends, &bytes, pin.lengths());
+        Ok((bytes, identity, settled))
     }
 
     /// Resolve spend status for a contiguous range of outputs, as of the published `bound`: the
@@ -217,21 +232,22 @@ fn checked_vin(input: TxInIndex, first: TxInIndex) -> Result<Vin> {
         .ok_or(Error::Internal("Invalid spending input position"))
 }
 
-fn outspend_identity(outspend: &TxOutspend, bytes: &[u8]) -> RepresentationId {
-    confirmed_spending_block(outspend).map_or_else(
-        || RepresentationId::content(bytes),
-        |(hash, _)| RepresentationId::Block(hash),
-    )
-}
-
 /// Unspent outputs have no status, and unconfirmed statuses no block.
 fn confirmed_spending_block(outspend: &TxOutspend) -> Option<(BlockHash, Height)> {
     let status = outspend.status.as_ref()?;
     status.block_hash.zip(status.block_height)
 }
 
-fn outspends_identity(outspends: &[TxOutspend], bytes: &[u8]) -> RepresentationId {
-    let content = || RepresentationId::content(bytes);
+/// What names `outspends`, serialized as `bytes` and read at `published`: once every output is
+/// spent by a confirmed transaction, the newest spending block, and whether it lies below the
+/// reorg window (nothing changes the answer then); until then the exact content, which a spend
+/// changes at any time.
+fn outspends_identity(
+    outspends: &[TxOutspend],
+    bytes: &[u8],
+    published: Lengths,
+) -> (RepresentationId, bool) {
+    let content = || (RepresentationId::content(bytes), false);
     let mut newest = None;
 
     for outspend in outspends {
@@ -245,5 +261,7 @@ fn outspends_identity(outspends: &[TxOutspend], bytes: &[u8]) -> RepresentationI
         }
     }
 
-    newest.map_or_else(content, |(hash, _)| RepresentationId::Block(hash))
+    newest.map_or_else(content, |(hash, height)| {
+        (RepresentationId::Block(hash), published.is_settled(height))
+    })
 }
