@@ -1,16 +1,16 @@
-//! The next block's template, built from the published block 0 as it is asked.
+//! The next block's template, built once per published projection.
 
-use brk_types::Timestamp;
-
-use crate::{ReadOnlyState, TipFacts, template};
+use crate::ReadOnlyState;
+use brk_types::BlockHash;
 
 impl ReadOnlyState {
-    /// The next block's template (BIP 22) as JSON: the published block 0, dated now, at `tip`,
-    /// what the chain says of the tip it was packed at ([`Self::projection_tip`]). Core never
-    /// checked the block it describes (debug builds check every published block 0).
-    pub fn block_template(&self, tip: &TipFacts) -> Vec<u8> {
-        debug_assert_eq!(Some(tip.header.block_hash().into()), self.projection_tip());
-        let template = template::build(&self.snapshot().block0, tip, Timestamp::now());
-        serde_json::to_vec(&template).expect("a template serializes")
+    /// The next block's template (BIP 22) after `tip`, as JSON dated now, with its content
+    /// identity: the published block 0, when it was packed at `tip`. Core never checked the
+    /// block it describes (debug builds check every published one).
+    pub fn block_template(&self, tip: &BlockHash) -> Option<(Vec<u8>, u64)> {
+        if self.projection_tip() != Some(*tip) {
+            return None;
+        }
+        self.template.as_ref().map(|template| template.dated_now())
     }
 }

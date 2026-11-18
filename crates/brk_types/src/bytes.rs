@@ -4,7 +4,7 @@ const HEX: &[u8; 16] = b"0123456789abcdef";
 
 /// Appends `bytes` as lowercase hex.
 #[inline]
-pub(crate) fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
+pub fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
     let start = buf.len();
     buf.resize(start + bytes.len() * 2, 0);
     // Written in pairs into space made once: a `push` per digit checks the capacity each time.
@@ -16,7 +16,7 @@ pub(crate) fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
 /// A 32-byte hash as lowercase hex in reversed byte order (Bitcoin's display order for txids
 /// and block hashes).
 #[inline]
-pub(crate) fn reversed_hex(bytes: &[u8; 32]) -> [u8; 64] {
+pub fn reversed_hex(bytes: &[u8; 32]) -> [u8; 64] {
     std::array::from_fn(|i| {
         let byte = bytes[31 - i / 2];
         HEX[usize::from(if i % 2 == 0 { byte >> 4 } else { byte & 0x0f })]

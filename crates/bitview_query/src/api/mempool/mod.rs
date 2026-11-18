@@ -210,15 +210,16 @@ impl Query {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
-    /// The next block's template (BIP 22), built from the pool's published block 0 as it is
-    /// asked, with its content identity. `StateUpdating` before the pool's first projection, and
-    /// for the moment the pool is behind the chain's tip ([`Self::tip_facts`]).
+    /// The next block's template (BIP 22), the pool's published block 0 dated now, with its
+    /// content identity. `StateUpdating` before the pool's first projection, and for the moment
+    /// the pool is behind the chain's tip: never a template on an older tip.
     pub fn block_template_json(&self) -> Result<(Vec<u8>, RepresentationId)> {
+        // The pool, then the chain's tip: a template at that tip is on the tip as read.
         let mempool = self.require_mempool()?;
-        let tip = mempool.projection_tip().ok_or_else(|| Error::updating())?;
-        let json = mempool.block_template(&self.tip_facts(&tip)?);
-        let identity = RepresentationId::content(&json);
-        Ok((json, identity))
+        let (json, hash) = mempool
+            .block_template(&self.tip_blockhash())
+            .ok_or_else(|| Error::updating())?;
+        Ok((json, RepresentationId::Content(hash)))
     }
 
     /// What the next block's template needs of the indexed chain at its tip: its height and

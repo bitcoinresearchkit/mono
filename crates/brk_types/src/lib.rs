@@ -100,6 +100,7 @@ pub use mempool_block_index::*;
 pub use mempool_entry_info::*;
 pub use mempool_info::*;
 pub use mempool_tx_summary::*;
+pub use bytes::{push_hex, reversed_hex};
 pub use merkle::*;
 pub use outpoint::*;
 pub use output_type::*;

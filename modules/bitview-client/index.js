@@ -7160,7 +7160,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "db398122990d43e1e8d495dd7fddfcdde153fb659ad2344040e9274b896f8d63";
+  static HASH = "09e2af24e8ccf39deb245e8c33cd00ee73f5857333e2678f5411a0d3821f81b2";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -9664,7 +9664,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Next block template
    *
-   * The next block's template (BIP 22), built by Bitview: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`: each is served only after Bitcoin Core accepts the block it describes (`getblocktemplate` proposal mode, every check but proof of work), checked apart from the pool's publication, so it trails block 0 by that check (about 0.15 s). `503` until one is accepted at the current tip.
+   * The next block's template (BIP 22), built by Bitview: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one, raised by BIP 94 and BIP 54 at a retarget's edges, as Bitcoin Core computes it), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Built once per projection of block 0 and dated as the request arrives (`curtime`), always on the current tip: `503` for the moment after a new block, until block 0 is projected on it. Bitcoin Core doesn't validate it first: check it as any template from a third party.
    *
    * *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
    *

@@ -426,7 +426,7 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
     let mut publish = |state: &State, previous: &ReadOnlyState| {
         rebuilder.tick(state, FeeRate::default(), &[], &RapidHashSet::default(), true);
         previous
-            .updated(state, tip, rebuilder.snapshot().clone(), true)
+            .updated(state, tip, rebuilder.snapshot().clone(), true, |_| None)
             .expect("published")
     };
     let read = publish(&state, &ReadOnlyState::default());

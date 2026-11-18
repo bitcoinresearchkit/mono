@@ -7,7 +7,11 @@ use std::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
-use crate::{Snapshot, snapshot::BlockContent};
+use crate::{
+    Snapshot, TipFacts,
+    snapshot::BlockContent,
+    template::Template,
+};
 
 use super::{Pool, State};
 
@@ -27,18 +31,23 @@ pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
+    /// The projection's block 0 as a template, built with it: none when the chain's facts at
+    /// its tip couldn't be read.
+    pub(crate) template: Option<Arc<Template>>,
     /// Each past served block, by its index, with when it was last served: the current ones
     /// refreshed at each publication, a replaced one's time its replacement.
     history: VecDeque<(Instant, usize, BlockContent)>,
 }
 
 impl ReadOnlyState {
+    /// `tip_facts`: what the chain says of `tip`, read only for a new projection.
     pub(crate) fn updated(
         &self,
         state: &State,
         tip: BlockHash,
         graph: Arc<Snapshot>,
         membership_complete: bool,
+        tip_facts: impl FnOnce(&BlockHash) -> Option<TipFacts>,
     ) -> Option<Self> {
         let pool_changed = membership_complete
             && !self
@@ -61,11 +70,13 @@ impl ReadOnlyState {
         }
         if projection_changed {
             next.publish_projection(graph, tip);
+            next.template = tip_facts(&tip)
+                .map(|facts| Arc::new(Template::build(&next.projection.block0, &facts)));
         }
         Some(next)
     }
 
-    /// Publishes `graph`'s projection, its served blocks remembered for diffs.
+    /// Publishes `graph`'s projection, its served blocks remembered for diffs, with no template.
     pub(crate) fn publish_projection(&mut self, graph: Arc<Snapshot>, tip: BlockHash) {
         let now = Instant::now();
         // The outgoing blocks were served until now: their retention starts here.
@@ -90,6 +101,7 @@ impl ReadOnlyState {
         }
         self.projection = graph;
         self.projection_tip = Some(tip);
+        self.template = None;
     }
 
     /// The chain tip the published projection was built at (the pool's, or a newer one while the

@@ -82,8 +82,9 @@ pub struct Mempool {
     /// The last cycle's observation, withheld at a tip the chain hadn't published yet (and whether
     /// its membership was ready to publish): it goes out the moment the chain publishes that tip.
     withheld: Option<(brk_types::BlockHash, bool)>,
-    /// Debug builds' check of each published block 0 against Core, once driven
+    /// Debug builds' check of each published template against Core, once driven
     /// ([`Self::start_with`]).
+    #[cfg(debug_assertions)]
     checker: Option<template::Checker>,
     /// Cycles in a row whose new blocks couldn't all be read.
     unread_cycles: u32,
@@ -108,6 +109,7 @@ impl Mempool {
             needs_recovery: false,
             chain: ChainWaker::default(),
             withheld: None,
+            #[cfg(debug_assertions)]
             checker: None,
             unread_cycles: 0,
             failing: RapidHashMap::default(),
