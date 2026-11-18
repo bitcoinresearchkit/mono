@@ -10,7 +10,11 @@ use serde_json::json;
 
 #[cfg(feature = "schemars")]
 use crate::Hex;
-use crate::{TxOut, Txid, Vout, bytes::DisplayStr, tx::p2sh_redeem_script};
+use crate::{
+    TxOut, Txid, Vout,
+    bytes::{Asm, DisplayStr, HexBytes},
+    tx::p2sh_redeem_script,
+};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxIn {
@@ -125,9 +129,9 @@ impl Serialize for TxIn {
         state.serialize_field("prevout", &self.prevout)?;
         state.serialize_field(
             "scriptsig",
-            &DisplayStr(format_args!("{:x}", self.script_sig)),
+            &DisplayStr(HexBytes(self.script_sig.as_bytes())),
         )?;
-        state.serialize_field("scriptsig_asm", &DisplayStr(self.script_sig.as_script()))?;
+        state.serialize_field("scriptsig_asm", &DisplayStr(Asm(&self.script_sig)))?;
         if has_witness {
             state.serialize_field("witness", &self.witness)?;
         }
@@ -136,11 +140,11 @@ impl Serialize for TxIn {
         if is_p2sh {
             state.serialize_field(
                 "inner_redeemscript_asm",
-                &DisplayStr(redeem_script.unwrap_or(Script::new())),
+                &DisplayStr(Asm(redeem_script.unwrap_or(Script::new()))),
             )?;
         }
         if let Some(script) = inner_witness {
-            state.serialize_field("inner_witnessscript_asm", &DisplayStr(script))?;
+            state.serialize_field("inner_witnessscript_asm", &DisplayStr(Asm(script)))?;
         }
 
         state.end()

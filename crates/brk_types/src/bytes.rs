@@ -1,5 +1,7 @@
 use std::fmt;
 
+use bitcoin::{Opcode, Script, opcodes::all::OP_PUSHBYTES_0, script::Instruction};
+
 const HEX: &[u8; 16] = b"0123456789abcdef";
 
 /// Appends `bytes` as lowercase hex.
@@ -7,8 +9,15 @@ const HEX: &[u8; 16] = b"0123456789abcdef";
 pub fn push_hex(bytes: &[u8], buf: &mut Vec<u8>) {
     let start = buf.len();
     buf.resize(start + bytes.len() * 2, 0);
-    // Written in pairs into space made once: a `push` per digit checks the capacity each time.
-    for (pair, &byte) in buf[start..].as_chunks_mut::<2>().0.iter_mut().zip(bytes) {
+    write_hex(bytes, &mut buf[start..]);
+}
+
+/// Writes `bytes` as lowercase hex into `out`, exactly twice their length: in pairs into space
+/// made once, as a `push` per digit checks the capacity each time.
+#[inline]
+fn write_hex(bytes: &[u8], out: &mut [u8]) {
+    debug_assert_eq!(out.len(), bytes.len() * 2, "hex output is twice its input");
+    for (pair, &byte) in out.as_chunks_mut::<2>().0.iter_mut().zip(bytes) {
         *pair = [HEX[usize::from(byte >> 4)], HEX[usize::from(byte & 0x0f)]];
     }
 }
@@ -23,13 +32,24 @@ pub fn reversed_hex(bytes: &[u8; 32]) -> [u8; 64] {
     })
 }
 
-/// Writes `bytes` as lowercase hex.
+/// Writes `bytes` as lowercase hex, a stack buffer at a time: each write costs a formatter call,
+/// and inside a JSON string an escape scan too.
 pub(crate) fn fmt_hex(bytes: &[u8], f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    use fmt::Write;
-    bytes.iter().try_for_each(|&byte| {
-        f.write_char(char::from(HEX[usize::from(byte >> 4)]))?;
-        f.write_char(char::from(HEX[usize::from(byte & 0x0f)]))
+    let mut buf = [0; 1024];
+    bytes.chunks(buf.len() / 2).try_for_each(|chunk| {
+        let hex = &mut buf[..chunk.len() * 2];
+        write_hex(chunk, hex);
+        f.write_str(std::str::from_utf8(hex).expect("hex digits are ASCII"))
     })
+}
+
+/// Bytes displayed as lowercase hex.
+pub(crate) struct HexBytes<'a>(pub &'a [u8]);
+
+impl fmt::Display for HexBytes<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt_hex(self.0, f)
+    }
 }
 
 /// Parses exactly `N` bytes of hex (either case).
@@ -47,8 +67,42 @@ pub(crate) fn parse_hex<const N: usize>(hex: &str) -> Option<[u8; N]> {
     Some(bytes)
 }
 
-/// Serializes a `Display` value as a string without building one (scripts: `Display` is assembly,
-/// `format_args!("{:x}")` is hex).
+/// A script's assembly exactly as rust-bitcoin's `Display` writes it, but each push's data in one
+/// hex run: rust-bitcoin formats it a byte at a time, which was most of a large address history's
+/// JSON time. A malformed script goes to rust-bitcoin's own formatter, keeping its diagnostics.
+pub(crate) struct Asm<'a>(pub &'a Script);
+
+impl fmt::Display for Asm<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let script = self.0;
+        if script
+            .instructions()
+            .any(|instruction| instruction.is_err())
+        {
+            return fmt::Display::fmt(script, f);
+        }
+        for (n, (index, instruction)) in script.instruction_indices().flatten().enumerate() {
+            if n > 0 {
+                f.write_str(" ")?;
+            }
+            // The opcode as written, so a non-minimal push keeps its PUSHDATA width.
+            match Opcode::from(script.as_bytes()[index]) {
+                OP_PUSHBYTES_0 => f.write_str("OP_0")?,
+                opcode => write!(f, "{opcode:?}")?,
+            }
+            if let Instruction::PushBytes(data) = instruction
+                && !data.is_empty()
+            {
+                f.write_str(" ")?;
+                fmt_hex(data.as_bytes(), f)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Serializes a `Display` value as a string without building one (scripts: `Asm` is assembly,
+/// `HexBytes` is hex).
 pub(crate) struct DisplayStr<T>(pub T);
 
 impl<T: fmt::Display> serde::Serialize for DisplayStr<T> {

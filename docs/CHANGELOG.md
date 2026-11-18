@@ -874,6 +874,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 - Startup builds each value type's JSON Schema once and every series of the type shares it, where it built one per
   stored vector (476,478 for 92 distinct) and kept one per series
+- Transaction JSON writes a script's assembly and hex a buffer at a time instead of a formatter call per byte, the
+  same bytes served: the largest address history tested (3.4 MB, 18 transactions, 3,637 inputs) serializes in 5.5 ms
+  at p90 under load (10.0 before) on a Mac mini, and 27 address histories together in 44% less time.
 - The market's 15 price moving averages (`price_sma_*`) are stored per block instead of summed from a prefix sum on
   each read, through the same rolling window the mining averages use: a full history reads in 0.144 ms at p50 (0.684
   before) and the last seven days in 0.009 ms (0.012), the same values to the cent; +7.1 MB on disk net, the 1.1 MB

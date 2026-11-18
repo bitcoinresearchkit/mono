@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
-use crate::{Address, AddressBytes, OutputType, Sats, bytes::DisplayStr};
+use crate::{
+    Address, AddressBytes, OutputType, Sats,
+    bytes::{Asm, DisplayStr, HexBytes},
+};
 #[cfg(feature = "schemars")]
 use crate::{Hex, OutputTypeNormalized};
 
@@ -116,12 +119,9 @@ impl Serialize for TxOut {
         let mut state = serializer.serialize_struct("TxOut", field_count)?;
         state.serialize_field(
             "scriptpubkey",
-            &DisplayStr(format_args!("{:x}", self.script_pubkey)),
+            &DisplayStr(HexBytes(self.script_pubkey.as_bytes())),
         )?;
-        state.serialize_field(
-            "scriptpubkey_asm",
-            &DisplayStr(self.script_pubkey.as_script()),
-        )?;
+        state.serialize_field("scriptpubkey_asm", &DisplayStr(Asm(&self.script_pubkey)))?;
         state.serialize_field("scriptpubkey_type", &output_type.normalized())?;
         if let Some(addr) = &addr {
             state.serialize_field("scriptpubkey_address", addr)?;
