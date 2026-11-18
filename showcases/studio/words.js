@@ -78,6 +78,11 @@ export const placeEdge = (key, end) => {
 /** Whether a key is a trailing window's (`_24h`, `_1m`, `_200d`: one span in time, no side, no band). @param {string} key */
 export const isWindowKey = (key) => ((read) => Boolean(read && read.bound === "_" && !read.side && !read.high && "hdwmy".includes(read.low.unit)))(readKey(key));
 /**
+ * A series in the catalog: a node with its name and its intervals (its endpoints, `by`, are made when first read, not
+ * for every series a walk passes). catalog-walk.js's catalogWalk writes it out (see there).
+ */
+export const isLeaf = (node) => Boolean(node) && typeof node.name === "string" && typeof node.indexes === "function";
+/**
  * A trailing window as shown, in titles, legends and labels alike: a window counts fixed days, never calendar ones
  * (crates/bitview_plugin_mappings/src/lookback.rs), so its months are said as their days, 30 each (`_1m` "30 days",
  * `_6m` "180 days"); its other spans as `spanLabel` says them ("24 hours", "1 week", "1 year"). @param {string} key

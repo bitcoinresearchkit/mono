@@ -3,14 +3,21 @@
 import { columnWidth, Custom, press, Profile } from "/modules/bitview-charts/index.js";
 import { capitalized, inSentence } from "/studio/words.js";
 import {
-  $, belowOf, BOXES, boxing, capturing, chart, CHEVRON, chooseDrawings, chosen, clamp, client, cohortColor, cohortName,
-  cohortShort, cohortWho, commit, css, DEFAULT_MEASURE, DEFAULT_ROWS, draft, edits, engine, escape, exporting, format,
-  gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatAt, heatCohort,
-  heatKnown, heatLike, ICONS, keepDrawing, keyTime, lensAt, light, LINES, lowerBound, MAX_DRAWINGS, measureOf,
-  measureUnit, menuOf, moving, notice, picks, placing, plural, POINTED, pointOf, PROFILE_VIEWS, profileColor,
-  profileLit, renderBelt, reshape, reshaped, resolved, selected, startLabel, startTyping, syncUndo, takeUp, TEXT_SIZE,
-  THROUGH, tool, toolKept, TOOLS, TOUCH, uid, undoToast, writing,
+  boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
+  css, draft, edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatAt, heatCohort,
+  heatKnown, keepDrawing, keyTime, lensAt, light, menuOf, moving, notice, picks, placing, profileColor, profileLit,
+  renderBelt, reshape, reshaped, resolved, selected, startLabel, startTyping, syncUndo, takeUp, tool, toolKept,
+  undoToast, writing,
 } from "/studio/app.js";
+import { $, escapeHtml, TOUCH } from "/studio/dom.js";
+import { clamp, lowerBound, uid } from "/studio/math.js";
+import { format, plural } from "/studio/format.js";
+import { CHEVRON, ICONS } from "/studio/icons.js";
+import {
+  belowOf, DEFAULT_MEASURE, DEFAULT_ROWS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, measureOf, measureUnit,
+  PROFILE_VIEWS,
+} from "/studio/vocabulary.js";
+import { BOXES, LINES, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS } from "/studio/tools.js";
 import {
   alpha, crossSet, cssColor, drawn, fingerCross, glide, Heat, ink, lastShown, paneBox, PROFILE_DIM, seriesPane,
   seriesValue, seriesY, shownSpan, valuesSoon,
@@ -23,7 +30,8 @@ import {
 import { isOpen, onClosed } from "/studio/grid.js";
 import { editById, gradientTable, keepFocus, layerById, modeOf, showScale } from "/studio/inspector.js";
 import { refocus } from "/studio/presets-edit.js";
-/** @import { Chart, ChartStep, Drawing, DrawingKind, Layer } from "/studio/app.js" */
+/** @import { ChartStep } from "/studio/app.js" */
+/** @import { Chart, Drawing, DrawingKind, Layer } from "/studio/vocabulary.js" */
 /** @import { ChartPoint, ReadPoint, Resolved } from "/studio/chart.js" */
 /** @import { Action, Page } from "/studio/command.js" */
 /** @import { Vector } from "/studio/formulas.js" */
@@ -107,7 +115,7 @@ const cohortsPage = (id) => ({ title: "Holders", placeholder: "Search the holder
   const rows = [...HEAT_COHORTS.map((c) => [c.id, c.shown, c.age ? "Age bands" : "Holder groups"]), ...groups.filter((cohort) => !heatCohort(cohort)).map((cohort) => [cohort, `${cohort}: not on Bitview`, "Not on Bitview"])];
   return rows.map(([cohort, name, group]) => {
     const on = groups.includes(cohort);
-    return { kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group, run: () => toggleCohort(id, cohort) };
+    return { kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escapeHtml(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group, run: () => toggleCohort(id, cohort) };
   });
 } });
 /**
@@ -136,15 +144,15 @@ function heatRows(id) {
  */
 function heatSection(layer) {
   const rows = heatRows(layer.id);
-  const menu = (/** @type {string} */ key) => ((row) => `<div class="field"><span>${escape(row.label)}</span><button type="button" class="preset" data-action="heat-menu" data-heat="${key}" aria-haspopup="menu" aria-label="${escape(`${row.label}: ${row.aside ?? ""}`)}"${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}><span class="name">${escape(row.aside ?? "")}</span>${CHEVRON}</button></div>`)(/** @type {any} */ (rows.find((row) => row.key === key)));
-  const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text]) => `<button type="button" data-heat-set="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escape(HEAT_SAYS[value])}">${escape(text)}</button>`).join("")}</div></div>`;
+  const menu = (/** @type {string} */ key) => ((row) => `<div class="field"><span>${escapeHtml(row.label)}</span><button type="button" class="preset" data-action="heat-menu" data-heat="${key}" aria-haspopup="menu" aria-label="${escapeHtml(`${row.label}: ${row.aside ?? ""}`)}"${row.disabled ? ` aria-disabled="true" data-tip="${escapeHtml(row.disabled)}"` : ""}><span class="name">${escapeHtml(row.aside ?? "")}</span>${CHEVRON}</button></div>`)(/** @type {any} */ (rows.find((row) => row.key === key)));
+  const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text]) => `<button type="button" data-heat-set="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escapeHtml(HEAT_SAYS[value])}">${escapeHtml(text)}</button>`).join("")}</div></div>`;
   // (Of a holder group Bitview doesn't have: said under it, another one to pick there.)
   const gone = !heatKnown(layer) ? '<div class="error-box gone"><p>Bitview has no holder group by this name: renamed, removed, or mistyped. Pick another above.</p></div>' : "";
   // (A profile's: its holder groups and age bands, each pressed in or out, as a trend's layers are (see
   // betweenField), each in its color; the first pressed at the edge.)
   // (Each list in a grid, each by its short name (its whole one its tip), all of it in or out at once: All, None.)
   const groups = layer.profile ?? [], lists = profileLists(layer);
-  const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(Boolean(heatCohort(id)))).join("")}</div>`;
+  const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escapeHtml(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escapeHtml(cohortName(id))}" data-tip="${escapeHtml(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escapeHtml(cssColor(profileColor(layer, id)))}"></i><span class="name">${escapeHtml(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(Boolean(heatCohort(id)))).join("")}</div>`;
   const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !heatCohort(id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
   // (A profile's holder groups and age bands, a heatmap's holder group; then their measure, weight and density alike.)
   return `<section>

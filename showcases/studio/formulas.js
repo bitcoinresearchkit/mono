@@ -1,14 +1,18 @@
 // @ts-check
 // What a formula is: its words, parsed, checked and computed over aligned layers.
 import { bandNames, inBands } from "/studio/bands.js";
+import { brushDrag, chart, engine, EXAMPLE, flowsAt, resolved, tree, windowTooLong, within } from "/studio/app.js";
+import { isSeriesName } from "/studio/catalog-walk.js";
+import { $, escapeHtml } from "/studio/dom.js";
+import { grouped } from "/studio/format.js";
+import { failing } from "/studio/vocabulary.js";
 import {
-  $, brushDrag, chart, CHUNK, COMPARES, engine, escape, EXAMPLE, failing, FINE, fitsFrom, flowFits, flowsAt, grouped,
-  IN_PERCENT, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isSeriesName, KEEPS_UNIT, outreaches, POINTWISE, resolved,
-  SPAN_DAYS, SPAN_LETTERS, tree, TWO_POINTS, UNSHARED, VALUES, windowPoints, windowTooLong, within,
-} from "/studio/app.js";
+  CHUNK, FINE, fitsFrom, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, outreaches, SPAN_DAYS, SPAN_LETTERS,
+  windowPoints,
+} from "/studio/intervals.js";
 import { glideTarget, idOf, lastUsed, paneBox, shownSpan, showSpan, stopGlide, viewRange } from "/studio/chart.js";
 import { supportedIntervals } from "/studio/menus.js";
-/** @import { Layer } from "/studio/app.js" */
+/** @import { Layer } from "/studio/vocabulary.js" */
 
 // A small, safe expression language over aligned layers: no eval, vectors in, vectors out.
 
@@ -18,6 +22,19 @@ import { supportedIntervals } from "/studio/menus.js";
  * point's date (`date`, its time), and what combines them.
  * @typedef {{ k: "num", v: number, unit?: string, text?: string, date?: true } | { k: "ref", v: string } | { k: "series", v: string } | { k: "date" } | { k: "year" } | { k: "neg", a: Node } | { k: "bin", op: string, a: Node, b: Node } | { k: "call", f: string, args: Node[] }} Node
  */
+
+/** Functions whose window takes two points at least. */
+const TWO_POINTS = new Set(["stdev", "zscore", "volatility", "chop", "rsi", "stochrsi", "stochrsi_k", "stochrsi_d", "macd", "macd_signal", "macd_hist"]);
+/** The language's own values, each point's: its date and its year (year(…) a function besides). */
+const VALUES = new Set(["date", "year"]);
+
+/** The comparisons, each 1 where true, 0 where false. */
+const COMPARES = new Set(["<", ">", "<=", ">=", "==", "!="]);
+const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "flow", "abs", "macd", "macd_signal", "macd_hist", "when"]);
+/** Functions whose result is a percent, whatever their input's unit. */
+const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
+/** Functions reading more than their arguments (halving cycles' epochs) or how they're written (rebase of a shift): computed each time. */
+const UNSHARED = new Set(["halving", "shift", "rebase"]);
 
 /** @typedef {{ mean: Vector, variance: Vector, count: Vector, total: Vector }} WindowStats */
 /** Each vector's window stats, by window: made once, whoever asks (sma, sum, zscore and stdev of the same input). @type {WeakMap<Vector, Map<string, WindowStats>>} */
@@ -759,6 +776,8 @@ function lift(a, b, f) {
 const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (!Number.isFinite(x) || !Number.isFinite(y) ? NaN : Number(test(x, y)));
 const or = (/** @type {number} */ x, /** @type {number} */ y) => ((Number.isFinite(x) && x !== 0) || (Number.isFinite(y) && y !== 0) ? 1 : Number.isFinite(x) && Number.isFinite(y) ? 0 : NaN);
 const and = (/** @type {number} */ x, /** @type {number} */ y) => (x === 0 || y === 0 ? 0 : Number.isFinite(x) && Number.isFinite(y) ? 1 : NaN);
+/** Each operator on two numbers. @type {Record<string, (x: number, y: number) => number>} */
+const POINTWISE = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "==": either((x, y) => x === y), "!=": either((x, y) => x !== y), "&": and, "|": or };
 /** An operator over two sides. @param {string} op @param {Vector | number} a @param {Vector | number} b */
 const pointwise = (op, a, b) => ("+-*/".includes(op) && (typeof a !== "number" || typeof b !== "number") ? arithmetic(op, a, b) : lift(a, b, POINTWISE[op]));
 /** @param {Exclude<Node, { k: "bin" | "neg" }>} node @returns {Vector | number} */
@@ -850,22 +869,22 @@ function highlightFormula(source, colorOf, missing = (_name) => false) {
   const pattern = /(\d{4}-\d{1,2}-\d{1,2}(?![\w.])|(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?<unit>[a-z]\w*)?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[=!]=|[-+*/^(),×·÷−–&|≠])/g;
   let html = "", last = 0;
   for (const match of source.matchAll(pattern)) {
-    html += escape(source.slice(last, match.index));
+    html += escapeHtml(source.slice(last, match.index));
     // (A number's unit, its group by name, a slot of its own too: skipped.)
     const [text, number, , ref, id] = match;
-    if (number) html += `<span class="${match.groups?.unit && !Object.hasOwn(SPAN_LETTERS, match.groups.unit) ? "t-bad" : "t-num"}">${escape(text)}</span>`;
+    if (number) html += `<span class="${match.groups?.unit && !Object.hasOwn(SPAN_LETTERS, match.groups.unit) ? "t-bad" : "t-num"}">${escapeHtml(text)}</span>`;
     else if (ref) {
       const color = colorOf(ref);
-      html += color ? `<span class="t-ref" style="--c:${escape(color)}">${text}</span>` : `<span class="t-bad">${text}</span>`;
+      html += color ? `<span class="t-ref" style="--c:${escapeHtml(color)}">${text}</span>` : `<span class="t-bad">${text}</span>`;
     } else if (id) {
       const call = /^\s*\(/.test(source.slice(match.index + text.length));
       // (`date` and `year`, each point's: the language's own, as a function's name is.)
-      html += `<span class="${call ? (hasFunction(id) ? "t-fn" : "t-bad") : VALUES.has(id) ? "t-fn" : missing(id) ? "t-bad" : "t-series"}">${escape(text)}</span>`;
+      html += `<span class="${call ? (hasFunction(id) ? "t-fn" : "t-bad") : VALUES.has(id) ? "t-fn" : missing(id) ? "t-bad" : "t-series"}">${escapeHtml(text)}</span>`;
     }
-    else html += `<span class="t-op">${escape(text)}</span>`;
+    else html += `<span class="t-op">${escapeHtml(text)}</span>`;
     last = match.index + text.length;
   }
-  return `${html}${escape(source.slice(last))}\n`;
+  return `${html}${escapeHtml(source.slice(last))}\n`;
 }
 /** Bitcoin's first block (3 January 2009): all of history's start, for a range over it. */
 const GENESIS = 1230940800;
@@ -969,7 +988,7 @@ function nearestFinite(values, i) {
   return -1;
 }
 export {
-  and, argNames, bandSum, breaksAt, dragBrush, either, evaluate, FUNCTIONS, GENESIS, hasFunction, highlightFormula,
-  isBandSum, nearestFinite, or, paneAt, parse, PERIODS_TAKEN, plainOperators, refsOf, renamed, restarts, rolling,
-  seriesNamed, seriesUnnamed, shiftSpan, shiftSpanError, turnsInto, unfitHere, unitOfNode, unstarted, windowsOf,
+  argNames, bandSum, breaksAt, COMPARES, dragBrush, evaluate, FUNCTIONS, GENESIS, hasFunction, highlightFormula,
+  isBandSum, nearestFinite, paneAt, parse, PERIODS_TAKEN, plainOperators, refsOf, renamed, restarts, rolling,
+  seriesNamed, seriesUnnamed, shiftSpan, shiftSpanError, turnsInto, unfitHere, unitOfNode, unstarted, VALUES, windowsOf,
 };

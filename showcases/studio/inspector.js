@@ -3,23 +3,33 @@
 import { press, stack as stackColumns } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
-  $, acrossUnfit, afterHands, all$, axisLabel, BELOW, belowOf, byBlock, byTouch, chart, CHEVRON, chooseDrawings,
-  chosen, clamp, clearLayerPicks, client, closest, cohortName, colorName, colorPane, commit, css, DASHES, dashGlyph,
-  dashOf, DEFAULTS, dismissPalette, EDGE_NAMES, edgeIcon, EDGES, edgesOf, escape, EXAMPLE, fieldUnit, FINE, firstLook,
-  fittable, flowFits, follows, format, FORMAT_GROUPS, formatName, FORMATS, formulaFit, fromLetters, fromOf, fromShort,
-  fromUnfit, gamma, glyph, goesWith, GRADIENT_LEAST, GRADIENT_MOST, GRADIENT_PRESETS, gradientWidth, grouped,
-  handsHeld, HEAT_GRADIENT, heatLike, hexToOklch, holding, hollowOf, home, humanize, iconNames, ICONS, indexCatalog,
-  inside, inSlices, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isOhlc, isSeriesName, kept, keyText, kindLook,
-  layerPicks, layersBatch, layersColors, letterChip, limit, LINE_STYLE, LINED, lowerBound, makeLayer, markable,
-  markFor, markPicks, MAX_LEVELS, MAX_PANES, maxChroma, memberable, membersOf, menuOf, minedHalvings,
-  modesOf, MOTION, multiEdit, newPaneIn, nextColor, nextLetter, NO_LINE, notice, oklchToHex, oklchToLinear, ONE_SCALE,
-  oneScale, openPalette, OUTLINED, ownerOf, PAIRS, paneShowing, phone, placedBy, placedOn, plural, profileColor,
-  recent, reduced, refFor, refsFor, remember, removedNames, renderBelt, renderInspector, renderLayers, reshape,
-  resolved, secondColor, select, selected, seriesCount, seriesLooked, shapeGlyph, SHAPES, showList, showMenu,
-  shownOklch, signedSignal, SLIDERS, SLOP, spanDays, SPANS, STACKED_ONLY, STARTERS, SWATCHES, toast, toggleMember,
-  track, tree, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, TYPES, uid, undoToast, UNIT_NAMES, unitOf, VALUES, viewport,
-  VIVID_ROWS, vividGrid, vividWork, whenIdle, widest, WIDTHS, windowPoints,
+  acrossUnfit, afterHands, byBlock, byTouch, chart, chooseDrawings, chosen, clearLayerPicks, client, cohortName,
+  colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit, fromLetters,
+  fromShort, fromUnfit, gradientWidth, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks, layersBatch,
+  letterChip, markFor, markPicks, memberable, menuOf, minedHalvings, MOTION, multiEdit, notice, openPalette, ownerOf,
+  paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt,
+  renderInspector, renderLayers, reshape, resolved, secondColor, select, selected, seriesCount, showList, showMenu,
+  shownOklch, signedSignal, SLIDERS, STACKED_ONLY, toast, track, tree, undoToast, VIVID_ROWS, vividGrid, vividWork,
+  widest,
 } from "/studio/app.js";
+import { isSeriesName } from "/studio/catalog-walk.js";
+import { $, all$, closest, escapeHtml, keyText, SLOP, viewport } from "/studio/dom.js";
+import { inSlices, whenIdle } from "/studio/timing.js";
+import { clamp, lowerBound, uid } from "/studio/math.js";
+import {
+  axisLabel, fieldUnit, format, FORMATS, grouped, humanize, plural, UNIT_NAMES, unitOf,
+} from "/studio/format.js";
+import { CHEVRON, dashGlyph, glyph, glyphSvg, ICONS, shapeGlyph } from "/studio/icons.js";
+import {
+  belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, follows, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST,
+  HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, markable, MAX_LEVELS,
+  MAX_PANES, membersOf, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale, OUTLINED, PAIRS, placedBy,
+  placedOn, seriesLooked, SHAPES, toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, TYPES, WIDTHS,
+} from "/studio/vocabulary.js";
+import {
+  FINE, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, spanDays, SPANS, windowPoints,
+} from "/studio/intervals.js";
+import { gamma, hexToOklch, inside, limit, maxChroma, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
 import {
   BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, idOf, info, ink, lastShown, noValues, oklchOf, respot,
   retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
@@ -31,12 +41,13 @@ import {
 import { beltSide, drawingById, lookFor, setLook } from "/studio/drawing.js";
 import {
   argNames, FUNCTIONS, GENESIS, hasFunction, highlightFormula, parse, PERIODS_TAKEN, refsOf, turnsInto, unfitHere,
+  VALUES,
 } from "/studio/formulas.js";
 import { fillSlot, isOpen, recommendedCards } from "/studio/grid.js";
 import { HEAT_FADE, heatAmount, heatFelt, heatGrid, heatLooks, heatName, heatPath } from "/studio/heatmaps.js";
 import { exportData, scrolled } from "/studio/menus.js";
 import { presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
-/** @import { Chart, Layer, Pane } from "/studio/app.js" */
+/** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
 /** @import { Node, Vector } from "/studio/formulas.js" */
 
@@ -299,6 +310,8 @@ function layersActions() {
     { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, text: "You can undo.", kbd: "⌫", danger: true, run: () => layersBatch("remove") },
   ];
 }
+/** The icons by their markup: an action's, named as a command names its own. */
+const iconNames = new Map(Object.entries(ICONS).map(([name, markup]) => [markup, name]));
 /** The picked layers' actions as ⌘K's commands (one that can't act says why, found, not run), and the selection let go of. @returns {Command[]} */
 function layersCommands() {
   if (!layerPicks.size) return [];
@@ -333,10 +346,10 @@ const fieldsShape = (layer) => `${layer.levels?.length ?? 0}:${layer.byGradient 
  * back on it once redrawn). @param {Layer} layer
  */
 /** The layer's eye, by its name in its settings. */
-const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
-const actionsOf = (/** @type {Layer} */ layer) => `<section class="layer-actions">${layerActions(layer.id, "panel").map((row, i) => `<button type="button" id="act-${row.key}" class="nav-item${row.danger ? " danger" : ""}" data-act="${i}"${row.page ? ' aria-haspopup="menu"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.kbd?.startsWith("⌘") ? ` data-kbd="${[...row.kbd].join(" ")}"` : ""}>${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.kbd ? `<kbd${row.kbd.startsWith("⌘") ? ' class="mod"' : ""}>${escape(keyText(row.kbd))}</kbd>` : ""}</button>`).join("")}</section>`;
+const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escapeHtml(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
+const actionsOf = (/** @type {Layer} */ layer) => `<section class="layer-actions">${layerActions(layer.id, "panel").map((row, i) => `<button type="button" id="act-${row.key}" class="nav-item${row.danger ? " danger" : ""}" data-act="${i}"${row.page ? ' aria-haspopup="menu"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escapeHtml(row.disabled)}"` : ""}${row.kbd?.startsWith("⌘") ? ` data-kbd="${[...row.kbd].join(" ")}"` : ""}>${row.icon ?? ""}<span class="label">${escapeHtml(row.label)}</span>${row.kbd ? `<kbd${row.kbd.startsWith("⌘") ? ' class="mod"' : ""}>${escapeHtml(keyText(row.kbd))}</kbd>` : ""}</button>`).join("")}</section>`;
 /** The layer a layer's on (a signal's) or flipped by (a trend's), as its picker shows it. @param {Layer} layer */
-const refPicked = (layer) => ((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""));
+const refPicked = (layer) => ((ref) => (ref ? `${letterChip(ref)}<span class="name">${escapeHtml(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""));
 
 /**
  * The inspector's fields for the layers in hand (see inHand: one, or those picked, edited together): each shown where
@@ -346,7 +359,7 @@ const refPicked = (layer) => ((ref) => (ref ? `${letterChip(ref)}<span class="na
 const typeField = (/** @type {Layer[]} */ layers) => {
   if (!layers.every(seriesLooked)) return "";
   const now = sharedBy(layers, (layer) => layer.type), ohlc = layers.every((layer) => resolved?.results.get(layer.id)?.opens || (layer.series && isOhlc(layer.series)));
-  return `<div class="field"><span>Type<span class="color-now">${escape(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
+  return `<div class="field"><span>Type<span class="color-now">${escapeHtml(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
 };
 /**
  * Several layers' color, as one's picker is (colorPicker: Palette, or Custom, its surface and its hex): where each is
@@ -360,10 +373,10 @@ const colorField = (/** @type {Layer[]} */ layers) => {
   const from = last && last.color === now ? last.source : now === undefined || SWATCHES.includes(now) ? "presets" : "custom";
   const tabs = colorSourceTabs("Color", [["presets", "Palette"], ["custom", "Custom"]], from);
   const body = from === "custom" ? `<div class="color-box">${planeHtml(now ?? layers[0].color, "layer:color", "Color")}${hexField("layer:color", now ?? "")}</div>` : swatchGrid(now && SWATCHES.includes(now) ? now : "");
-  return `<div class="field"><span>Color<span class="color-now">${escape(now === undefined ? "Mixed" : colorName(now))}</span></span></div><div class="color-editor" data-palette="color">${tabs}<div class="color-pick">${body}</div></div>`;
+  return `<div class="field"><span>Color<span class="color-now">${escapeHtml(now === undefined ? "Mixed" : colorName(now))}</span></span></div><div class="color-editor" data-palette="color">${tabs}<div class="color-pick">${body}</div></div>`;
 };
 /** Where a color's from, as tabs: `label`'s (the color's name), each source by its name, `from` the one shown. @param {string} label @param {[string, string][]} sources @param {string} from */
-const colorSourceTabs = (label, sources, from) => `<div class="tabs color-source" role="group" aria-label="${escape(label)}, its color from">${sources.map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
+const colorSourceTabs = (label, sources, from) => `<div class="tabs color-source" role="group" aria-label="${escapeHtml(label)}, its color from">${sources.map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
 const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
 const widthField = (/** @type {Layer[]} */ layers) => {
   if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && !placedOn(layer) && !heatLike(layer))) return "";
@@ -409,7 +422,7 @@ const outlineField = (/** @type {Layer[]} */ layers) => {
  */
 const bubbleSection = (layer) => `<section>
               <h3>Bubbles</h3>
-              <div class="field"><span>On</span><button type="button" class="preset" id="bubble-ref" aria-haspopup="menu" data-tip="The layer they're on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Its pane's middle</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
+              <div class="field"><span>On</span><button type="button" class="preset" id="bubble-ref" aria-haspopup="menu" data-tip="The layer they're on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escapeHtml(labelOf(ref))}</span>` : `<span class="name">Its pane's middle</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Size${resetFor("bubble-size", layer)}</span>${slider("bubble-size", layer, "The largest's size across")}</div>
               <div class="field"><span>Hide below${resetFor("bubble-hide", layer)}</span>${slider("bubble-hide", layer, "None drawn under this share of the largest")}</div>
               <div class="field"><span>Sized to</span><div class="tabs" role="group" aria-label="Sized to">${[["", "In view", "The largest in view full size: zoomed in, as readable"], ["all", "All time", "The largest of all its history full size: sizes compare across periods"]].map(([value, text, says]) => `<button type="button" data-bubbles-scale="${value}" aria-pressed="${(layer.scaleTo ?? "") === value}" data-tip="${says}">${text}</button>`).join("")}</div></div>
@@ -450,8 +463,8 @@ function slider(id, /** @type {any} */ target, tip = "") {
   // (Several layers at different stops: "Mixed", no handle, no fill, till one's set for all.)
   const spec = SLIDERS[id], list = [target].flat(), value = sharedBy(list, spec.of), mixed = value === undefined, index = spec.stops.indexOf(value), n = spec.stops.length - 1;
   const at = mixed ? 0 : sliderAt(id, list[0]);
-  return `<div id="${id}" class="stepper${mixed ? " mixed" : ""}" role="slider" tabindex="0" aria-label="${spec.label}" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${mixed ? "Mixed" : escape(spec.say(value))}" data-value-side="${at > 0.5 ? "start" : "end"}" style="--at: ${at}" ${tip ? `data-tip="${escape(tip)}"` : ""}>
-          <span class="stepper-track">${spec.stops.map((_, i) => `<i ${(at > 0.5 ? i / n <= 0.25 : i / n >= 0.75) ? 'class="under"' : ""} style="--k: ${i / n}"></i>`).join("")}<span class="value">${mixed ? "Mixed" : escape(spec.text(value))}</span></span></div>`;
+  return `<div id="${id}" class="stepper${mixed ? " mixed" : ""}" role="slider" tabindex="0" aria-label="${spec.label}" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${mixed ? "Mixed" : escapeHtml(spec.say(value))}" data-value-side="${at > 0.5 ? "start" : "end"}" style="--at: ${at}" ${tip ? `data-tip="${escapeHtml(tip)}"` : ""}>
+          <span class="stepper-track">${spec.stops.map((_, i) => `<i ${(at > 0.5 ? i / n <= 0.25 : i / n >= 0.75) ? 'class="under"' : ""} style="--k: ${i / n}"></i>`).join("")}<span class="value">${mixed ? "Mixed" : escapeHtml(spec.text(value))}</span></span></div>`;
 }
 /** A value, as a slider sets it: one undo step per drag or run of keys, the chart rebuilt at each stop. */
 function setSlider(id, value) {
@@ -563,8 +576,8 @@ function showStop(/** @type {number} */ k, field = true) {
   const ready = /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="gradient-ready"]'));
   showScale();
   const named = hand?.isConnected ? hand.querySelector("[data-stop-name]") : $("inspector").querySelector("[data-stop-name]");
-  if (named) named.innerHTML = `<i class="swatch" style="background: ${escape(cssColor(stops[k][1]))}"></i>${escape(colorName(stops[k][1]))}`;
-  if (ready) ready.innerHTML = `${gradientSwatch(stops)}<span class="name">${escape(readyName(stops))}</span>${CHEVRON}`;
+  if (named) named.innerHTML = `<i class="swatch" style="background: ${escapeHtml(cssColor(stops[k][1]))}"></i>${escapeHtml(colorName(stops[k][1]))}`;
+  if (ready) ready.innerHTML = `${gradientSwatch(stops)}<span class="name">${escapeHtml(readyName(stops))}</span>${CHEVRON}`;
 }
 /** A gradient's color, said: its name, its place. @param {[number, string]} stop */
 const stopSaid = ([at, color]) => `${colorName(color)}, at ${at}%`;
@@ -730,6 +743,12 @@ const smoothstep = (from, to, x) => {
   return s * s * (3 - 2 * s);
 };
 const spaceAt = (l) => 0.05 + 0.95 * smoothstep(0.05, 0.22, l) * (1 - smoothstep(0.95, 1, l));
+/** The share of the height below each lightness, in thousandths of lightness: the curve, tabulated once. */
+const BELOW = (() => {
+  const below = new Float64Array(1001);
+  for (let i = 0; i < 1000; i++) below[i + 1] = below[i] + spaceAt((i + 0.5) / 1000);
+  return below.map((value) => value / below[1000]);
+})();
 /** The height of a lightness (0 at the top: white). */
 function heightOf(l) {
   const i = clamp(l, 0, 1) * 1000, k = Math.min(999, Math.floor(i));
@@ -758,12 +777,12 @@ const CHROMA = 0.18;
  * A custom color's hex, typed or followed (`target`: what it sets), its name after it in the field (none: an empty
  * field, a color another's); joined under its surface, the two one control. @param {string} target @param {string} color
  */
-const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escape(target)}" value="${color ? escape(ink(color)) : ""}" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escape(colorName(color)) : ""}</span></span></label>`;
-const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
+const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escapeHtml(target)}" value="${color ? escapeHtml(ink(color)) : ""}" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escapeHtml(colorName(color)) : ""}</span></span></label>`;
+const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escapeHtml(color)}" aria-checked="${current === color}" aria-label="${escapeHtml(colorName(color))}" data-tip="${escapeHtml(colorName(color))}"><i class="swatch" style="--c:${escapeHtml(cssColor(color))}"></i></button>`).join("")}</div>`;
 /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
 function planeHtml(/** @type {string} */ color, /** @type {string} */ target, name = "Color") {
   const { u, t } = placeOf(color), said = planeSays(color, u);
-  return `<div class="plane" data-plane="${escape(target)}" role="slider" tabindex="0" aria-label="${escape(name)}: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${said.now}" aria-valuetext="${said.text}" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escape(cssColor(color))}"></i></div>`;
+  return `<div class="plane" data-plane="${escapeHtml(target)}" role="slider" tabindex="0" aria-label="${escapeHtml(name)}: hue across, then grays; lightness down" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${said.now}" aria-valuetext="${said.text}" style="--x: ${u}; --y: ${t}"><canvas></canvas><i class="ring" style="--c:${escapeHtml(cssColor(color))}"></i></div>`;
 }
 /** What a surface says of its color, at its place across: its lightness, and its hue (amid the grays, a gray). */
 function planeSays(/** @type {string} */ color, /** @type {number} */ u) {
@@ -806,7 +825,7 @@ function colorLevels(layer) {
 function bandsSwatch(layer) {
   const colors = [layer.color, ...levelSteps(layer).map((step) => step.color)];
   const share = 100 / colors.length;
-  return `<i class="swatch" style="background: linear-gradient(to top, ${colors.map((color, k) => `${escape(cssColor(color))} ${(k * share).toFixed(1)}% ${((k + 1) * share).toFixed(1)}%`).join(", ")})"></i>`;
+  return `<i class="swatch" style="background: linear-gradient(to top, ${colors.map((color, k) => `${escapeHtml(cssColor(color))} ${(k * share).toFixed(1)}% ${((k + 1) * share).toFixed(1)}%`).join(", ")})"></i>`;
 }
 /** A way of coloring a layer, as a swatch: its colors top to bottom (by its levels, its bands; from a layer, its letter). */
 function modeSwatch(/** @type {Layer} */ layer, /** @type {string} */ mode) {
@@ -817,7 +836,7 @@ function modeSwatch(/** @type {Layer} */ layer, /** @type {string} */ mode) {
   if (mode === "from") return ((source) => (source ? letterChip(source) : ICONS.series))(layerById(layer.colorFrom ?? ""));
   const colors = mode === "momentum" ? [layer.color, fadingOf(layer, false), fadingOf(layer, true), belowOf(layer)] : mode === "sides" || (mode === "one" && pairedOne(layer)) || (mode === "layers" && !edgesOf(layer).length) ? [layer.color, belowOf(layer)] : [layer.color];
   const share = 100 / colors.length;
-  return `<i class="swatch" style="background: linear-gradient(to bottom, ${colors.map((color, k) => `${escape(cssColor(color))} ${(k * share).toFixed(1)}% ${((k + 1) * share).toFixed(1)}%`).join(", ")})"></i>`;
+  return `<i class="swatch" style="background: linear-gradient(to bottom, ${colors.map((color, k) => `${escapeHtml(cssColor(color))} ${(k * share).toFixed(1)}% ${((k + 1) * share).toFixed(1)}%`).join(", ")})"></i>`;
 }
 /** A layer's color in one of its places, named (a fading one of four not set: its side's, paler). */
 const slotName = (/** @type {Layer} */ layer, /** @type {string} */ key) => ((own) => (own === undefined && (key === "colorFading" || key === "colorBelowFading") ? `Fainter ${colorName(key === "colorFading" ? layer.color : belowOf(layer)).toLowerCase()}` : colorName(colorOf(layer, key))))(key === "colorFading" ? layer.colorFading : key === "colorBelowFading" ? layer.colorBelowFading : "");
@@ -830,36 +849,48 @@ function colorPicker(/** @type {Layer} */ layer) {
   if (layer.type === "profile" && !layer.profile?.length) return "";
   const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
   // The way: a choice, as every other, on its line's right (none to choose: its label alone).
-  const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
-  if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escape(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escape(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
+  const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escapeHtml(name)}"><span class="name">${escapeHtml(name)}</span>${CHEVRON}</button>` : ""}</div>`;
+  if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escapeHtml(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escapeHtml(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
   // By its levels, by its layers: its colors theirs (none here).
   if (mode === "levels" || mode === "layers") return head;
   const places = colorSlots(layer), key = slotNow(layer), label = places.find(([slot]) => slot === key)?.[1] ?? "Color";
   const own = key === "colorFading" ? layer.colorFading : key === "colorBelowFading" ? layer.colorBelowFading : colorOf(layer, key), from = sourceNow(layer, key);
   // Which one (two, four): the colors themselves, under what they're for (four: its sides down, what the bar does
   // across), the one being set ringed.
-  const chip = (/** @type {string} */ slot, /** @type {string} */ name) => `<button type="button" class="slot-chip" data-color-slot="${slot}" aria-pressed="${slot === key}" aria-label="${escape(name)}: ${escape(slotName(layer, slot))}" data-tip="${escape(slotName(layer, slot))}" style="--c:${escape(cssColor(colorOf(layer, slot)))}"></button>`;
+  const chip = (/** @type {string} */ slot, /** @type {string} */ name) => `<button type="button" class="slot-chip" data-color-slot="${slot}" aria-pressed="${slot === key}" aria-label="${escapeHtml(name)}: ${escapeHtml(slotName(layer, slot))}" data-tip="${escapeHtml(slotName(layer, slot))}" style="--c:${escapeHtml(cssColor(colorOf(layer, slot)))}"></button>`;
   // (A profile's groups: each its name over its color, as many as it has.)
-  const which = mode === "gradient" ? gradientEditor(layer, key) : layer.type === "profile" ? (places.length > 1 ? `<div class="color-slots cohorts" role="group" aria-label="Which color">${places.map(([slot, name]) => `<span class="cohort-slot"><span class="head">${escape(name)}</span>${chip(slot, name)}</span>`).join("")}</div>` : "") : places.length > 2
+  const which = mode === "gradient" ? gradientEditor(layer, key) : layer.type === "profile" ? (places.length > 1 ? `<div class="color-slots cohorts" role="group" aria-label="Which color">${places.map(([slot, name]) => `<span class="cohort-slot"><span class="head">${escapeHtml(name)}</span>${chip(slot, name)}</span>`).join("")}</div>` : "") : places.length > 2
     ? `<div class="color-slots four" role="group" aria-label="Which color"><span></span><span class="head">Growing</span><span class="head">Fading</span><span>Above</span>${chip("color", "Above, growing")}${chip("colorFading", "Above, fading")}<span>Below</span>${chip("colorBelow", "Below, growing")}${chip("colorBelowFading", "Below, fading")}</div>`
-    : places.length > 1 ? `<div class="color-slots" role="group" aria-label="Which color">${places.map(([, name]) => `<span class="head">${escape(name)}</span>`).join("")}${places.map(([slot, name]) => chip(slot, name)).join("")}</div>` : "";
+    : places.length > 1 ? `<div class="color-slots" role="group" aria-label="Which color">${places.map(([, name]) => `<span class="head">${escapeHtml(name)}</span>`).join("")}${places.map(([slot, name]) => chip(slot, name)).join("")}</div>` : "";
   // Where it's from: Bitview's colors; any other (the surface, its hex); a fading one's own, its growing one fainter.
   const sources = /** @type {[string, string][]} */ ([["presets", "Palette"], ["custom", "Custom"], ...(fadingSlot(key) ? [["auto", "Auto"]] : [])]);
   const tabs = colorSourceTabs(label, sources, from);
   const target = `layer:${key}`, side = key === "colorFading" ? layer.color : belowOf(layer);
   const body = from === "custom" ? `<div class="color-box">${planeHtml(colorOf(layer, key), target, label)}${hexField(target, colorOf(layer, key))}</div>`
-    : from === "auto" ? `<p class="color-auto"><i class="swatch" style="--c:${escape(cssColor(faintOf(side)))}"></i>Fainter ${escape(colorName(side).toLowerCase())}</p>`
+    : from === "auto" ? `<p class="color-auto"><i class="swatch" style="--c:${escapeHtml(cssColor(faintOf(side)))}"></i>Fainter ${escapeHtml(colorName(side).toLowerCase())}</p>`
     : swatchGrid(own && SWATCHES.includes(own) ? own : "");
   // (Relative to all of its history, or up to each date: not a heatmap's, each day its own.)
-  const relative = mode === "gradient" && !heatLike(layer) ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escape(tip)}">${text}</button>`).join("")}</div></div>` : "";
+  const relative = mode === "gradient" && !heatLike(layer) ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escapeHtml(tip)}">${text}</button>`).join("")}</div></div>` : "";
   return `${head}<div class="color-editor" data-palette="${key}">${which}${tabs}<div class="color-pick">${body}</div></div>${relative}`;
 }
+/**
+ * Gradients ready made, each its 4 colors that mixed (see gradientTable) come nearest it (within about what an eye
+ * tells apart): matplotlib's perceptual maps, and loss to profit. A heatmap of an amount starts on the first.
+ * @type {[string, string, [number, string][]][]}
+ */
+const GRADIENT_PRESETS = [
+  ["inferno", "Inferno", HEAT_GRADIENT],
+  ["magma", "Magma", [[0, "#000004"], [18, "#331064"], [71, "#f8755e"], [100, "#fcfdbf"]]],
+  ["viridis", "Viridis", [[0, "#440154"], [39, "#2c768e"], [69, "#41bd72"], [100, "#fde725"]]],
+  ["plasma", "Plasma", [[0, "#0d0887"], [33, "#991a9e"], [72, "#f48b48"], [100, "#f0f921"]]],
+  ["sides", "Loss to profit", [[0, "red"], [50, "gray"], [100, "green"]]],
+];
 /** The gradient ready made a gradient is, if it's one (its stops, every one the same). @param {[number, string][] | undefined} stops */
 const readyGradient = (stops) => GRADIENT_PRESETS.find(([, , preset]) => JSON.stringify(preset) === JSON.stringify(stops))?.[0] ?? null;
 /** Its name: the gradient ready made it is, else its own. @param {[number, string][] | undefined} stops */
 const readyName = (stops) => GRADIENT_PRESETS.find(([id]) => id === readyGradient(stops))?.[1] ?? "Your own";
 /** A gradient drawn small, as a swatch is (a row's icon, a select's). @param {[number, string][] | undefined} stops */
-const gradientSwatch = (stops) => `<i class="swatch gradient-swatch" style="background: ${escape(gradientCss(stops ?? []))}"></i>`;
+const gradientSwatch = (stops) => `<i class="swatch gradient-swatch" style="background: ${escapeHtml(gradientCss(stops ?? []))}"></i>`;
 /**
  * Each layer's own gradient, as it was when one ready made took its place (to go back to: see readyPage), this
  * session (not kept with it), by its chart's id and its own.
@@ -953,10 +984,10 @@ const gradientFade = (layer) => (layer.type !== "heatmap" ? "" : layer.measure =
  */
 function gradientEditor(layer, key) {
   const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST, k = clamp(Number(key.slice(4)) || 0, 0, stops.length - 1);
-  const stop = (/** @type {[number, string]} */ [place, tint], /** @type {number} */ i) => `<button type="button" class="gradient-stop" data-color-slot="stop${i}" data-stop="${i}" aria-pressed="${i === k}" style="left: ${place}%; --c: ${escape(cssColor(tint))}" aria-label="${escape(stopSaid([place, tint]))}" data-tip="${escape(stopSaid([place, tint]))}${escape(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
+  const stop = (/** @type {[number, string]} */ [place, tint], /** @type {number} */ i) => `<button type="button" class="gradient-stop" data-color-slot="stop${i}" data-stop="${i}" aria-pressed="${i === k}" style="left: ${place}%; --c: ${escapeHtml(cssColor(tint))}" aria-label="${escapeHtml(stopSaid([place, tint]))}" data-tip="${escapeHtml(stopSaid([place, tint]))}${escapeHtml(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
   const fade = gradientFade(layer);
-  const head = `<div class="gradient-head"><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escape(readyName(stops))}" data-tip="Gradients ready made">${gradientSwatch(stops)}<span class="name">${escape(readyName(stops))}</span>${CHEVRON}</button><button type="button" class="cap" data-action="gradient-reverse" aria-label="Reverse the gradient" data-tip="Reverse the gradient">${ICONS.swap}</button><button type="button" class="cap" data-action="gradient-add" aria-label="Add a color" ${stops.length >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button></div>`;
-  return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escape(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer, stops[k]?.[0])}</div>${gradientHand(layer, k)}`;
+  const head = `<div class="gradient-head"><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escapeHtml(readyName(stops))}" data-tip="Gradients ready made">${gradientSwatch(stops)}<span class="name">${escapeHtml(readyName(stops))}</span>${CHEVRON}</button><button type="button" class="cap" data-action="gradient-reverse" aria-label="Reverse the gradient" data-tip="Reverse the gradient">${ICONS.swap}</button><button type="button" class="cap" data-action="gradient-add" aria-label="Add a color" ${stops.length >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button></div>`;
+  return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escapeHtml(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer, stops[k]?.[0])}</div>${gradientHand(layer, k)}`;
 }
 /**
  * Where a gradient's values fall along it, under its bar, the color in hand's (at `hand`) under its knob (see
@@ -964,7 +995,7 @@ function gradientEditor(layer, key) {
  */
 function gradientScale(layer, hand) {
   const ticks = gradientTicks(layer, gradientWidth, hand), ends = [gradientWorth(layer, 0), gradientWorth(layer, 100)], own = ticks.find((tick) => tick[3]);
-  return ticks.length ? `<div class="gradient-ticks" role="img" aria-label="${escape(`${ends[0] && ends[1] ? `From ${ends[0]} to ${ends[1]}` : ticks.map(([, text]) => text).join(", ")}${own ? `; the color in hand at ${own[1]}` : ""}`)}">${ticks.map(([, text, left, mine]) => `<span${mine ? ' class="own"' : ""} style="left: ${left.toFixed(1)}px">${escape(text)}</span>`).join("")}</div>` : "";
+  return ticks.length ? `<div class="gradient-ticks" role="img" aria-label="${escapeHtml(`${ends[0] && ends[1] ? `From ${ends[0]} to ${ends[1]}` : ticks.map(([, text]) => text).join(", ")}${own ? `; the color in hand at ${own[1]}` : ""}`)}">${ticks.map(([, text, left, mine]) => `<span${mine ? ' class="own"' : ""} style="left: ${left.toFixed(1)}px">${escapeHtml(text)}</span>`).join("")}</div>` : "";
 }
 /**
  * The inspector's gradient scale, the color in hand's worth on it, as its layer's values are now and that color is
@@ -984,7 +1015,7 @@ function showScale() {
  */
 function gradientHand(layer, k) {
   const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST, at = stops[k]?.[0] ?? 0, color = stops[k]?.[1] ?? layer.color;
-  return `<div class="field gradient-hand"><span class="gradient-named" data-stop-name><i class="swatch" style="background: ${escape(cssColor(color))}"></i>${escape(colorName(color))}</span><span class="gradient-at"><label class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="${escape(colorName(color))}, its place" enterkeyhint="done" /><span class="unit">%</span></label><button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove ${escape(colorName(color))}" data-tip="${few ? `A gradient has ${GRADIENT_LEAST} colors at least` : "Remove"}"${few ? ' aria-disabled="true"' : ""}>${ICONS.trash}</button></span></div>`;
+  return `<div class="field gradient-hand"><span class="gradient-named" data-stop-name><i class="swatch" style="background: ${escapeHtml(cssColor(color))}"></i>${escapeHtml(colorName(color))}</span><span class="gradient-at"><label class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="${escapeHtml(colorName(color))}, its place" enterkeyhint="done" /><span class="unit">%</span></label><button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove ${escapeHtml(colorName(color))}" data-tip="${few ? `A gradient has ${GRADIENT_LEAST} colors at least` : "Remove"}"${few ? ' aria-disabled="true"' : ""}>${ICONS.trash}</button></span></div>`;
 }
 /**
  * What a place along a gradient (0 to 100) is worth, as its values are written: between its lowest and highest of
@@ -1105,9 +1136,9 @@ function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ curr
   // (A dropdown as wide as its select, under it: Bitview's colors at a glance, each named on hover.)
   // (A phone's sheet, its width: the swatches across it.)
   const colors = `<div class="color-drop"${phone.matches ? "" : ` style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px"`}>${swatchGrid(current)}</div><div class="menu-rule"></div>`;
-  const custom = `<button type="button" data-pick-custom="1" aria-checked="${own}" aria-haspopup="menu">${tick(own)}<i class="swatch" style="${own ? `--c:${escape(cssColor(current))}` : "background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e)"}"></i>Custom${own ? `<span>${escape(ink(current))}</span>` : ""}</button>`;
+  const custom = `<button type="button" data-pick-custom="1" aria-checked="${own}" aria-haspopup="menu">${tick(own)}<i class="swatch" style="${own ? `--c:${escapeHtml(cssColor(current))}` : "background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e)"}"></i>Custom${own ? `<span>${escapeHtml(ink(current))}</span>` : ""}</button>`;
   // (A phone's sheet says what it's the color of: one of several, which.)
-  showMenu(anchor, `${title && phone.matches ? `<div class="menu-group">${escape(title)}</div>` : ""}${colors}${custom}`, (hit) => {
+  showMenu(anchor, `${title && phone.matches ? `<div class="menu-group">${escapeHtml(title)}</div>` : ""}${colors}${custom}`, (hit) => {
     if (hit.pickCustom) colorPane(anchor, current, target, again);
     else if (hit.pickColor && hit.pickColor !== current) apply(hit.pickColor);
   }, null, anchor.closest("#belt") ? beltSide() : "");
@@ -1348,14 +1379,14 @@ function errorBox(result, /** @type {string} */ name) {
     const dated = datedIntervals(result.info);
     // (The nearest of them, by how far it is from this one.)
     const away = (/** @type {string} */ id) => Math.abs(INTERVAL_ORDER.indexOf(id) - INTERVAL_ORDER.indexOf(chart.index)), nearest = dated.length ? dated.reduce((best, id) => (away(id) < away(best) ? id : best)) : "";
-    if (dated.length) return `<div class="error-box">No ${escape(INTERVAL_LABEL[chart.index])} data; it has ${escape(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn small" data-index="${nearest}">Switch to ${escape(INTERVAL_LABEL[nearest])}</button></div>`;
+    if (dated.length) return `<div class="error-box">No ${escapeHtml(INTERVAL_LABEL[chart.index])} data; it has ${escapeHtml(dated.map((id) => INTERVAL_LABEL[id]).join(", "))}.<button type="button" class="btn small" data-index="${nearest}">Switch to ${escapeHtml(INTERVAL_LABEL[nearest])}</button></div>`;
     const day = dailyOf(name);
-    return `<div class="error-box gone"><p>${BY_BLOCK}.</p><div class="replacement">${day ? `<span class="closest">By day: <code>${escape(day)}</code></span><button type="button" class="btn small" data-replace="${escape(day)}">Replace</button>` : ""}<button type="button" class="btn ${day ? "ghost " : ""}small" data-action="replace">${day ? "Find another" : "Find one"}</button></div></div>`;
+    return `<div class="error-box gone"><p>${BY_BLOCK}.</p><div class="replacement">${day ? `<span class="closest">By day: <code>${escapeHtml(day)}</code></span><button type="button" class="btn small" data-replace="${escapeHtml(day)}">Replace</button>` : ""}<button type="button" class="btn ${day ? "ghost " : ""}small" data-action="replace">${day ? "Find another" : "Find one"}</button></div></div>`;
   }
   // Renamed or removed in a newer Bitview: the closest series is offered, or another one to pick.
   if (result.missing) return `<div class="error-box gone"><p>Bitview has no series by this name: renamed, removed, or mistyped.</p>
           <div id="replacement" class="replacement"><span class="shimmer">Looking for the closest one…</span></div></div>`;
-  return `<div class="error-box">${escape(result.error)}.<button type="button" class="btn small" data-action="retry">Retry</button></div>`;
+  return `<div class="error-box">${escapeHtml(result.error)}.<button type="button" class="btn small" data-action="retry">Retry</button></div>`;
 }
 /** A series by block, not added: why, and its day's series to use instead, if there's one (on this chart, while it's open). */
 function blockOnly(/** @type {string} */ name, /** @type {(day: string) => void} */ use) {
@@ -1380,7 +1411,7 @@ async function suggestReplacement(layer) {
   const best = await closestSeries(name);
   const box = $("replacement");
   if (!box || layerById(selected)?.series !== name) return;
-  box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escape(best)}</code></span><button type="button" class="btn small" data-replace="${escape(best)}">Replace</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ${best ? "ghost " : ""}small" data-action="replace">${best ? "Find another" : "Find one"}</button>`;
+  box.innerHTML = `${best ? `<span class="closest">Closest: <code>${escapeHtml(best)}</code></span><button type="button" class="btn small" data-replace="${escapeHtml(best)}">Replace</button>` : `<span class="closest">Nothing close by name.</span>`}<button type="button" class="btn ${best ? "ghost " : ""}small" data-action="replace">${best ? "Find another" : "Find one"}</button>`;
 }
 /**
  * Another series for a layer, from ⌘K: opened in the catalog where its series is, on it, its neighbors around (a
@@ -1499,7 +1530,7 @@ function showSuggestions(items, { offered = false, more = "" } = {}) {
   suggest.items = items;
   suggest.active = offered ? -1 : Math.max(0, chosen);
   list.hidden = !items.length;
-  list.innerHTML = items.map((item, i) => `<li role="option" id="suggest-${i}" ${item.series ? 'class="series"' : ""} data-suggest="${i}" aria-selected="${i === suggest.active}"><b>${escape(item.title)}</b>${item.text ? `<span>${escape(item.text)}</span>` : ""}</li>`).join("");
+  list.innerHTML = items.map((item, i) => `<li role="option" id="suggest-${i}" ${item.series ? 'class="series"' : ""} data-suggest="${i}" aria-selected="${i === suggest.active}"><b>${escapeHtml(item.title)}</b>${item.text ? `<span>${escapeHtml(item.text)}</span>` : ""}</li>`).join("");
   const line = $("suggest-more");
   if (line) (line.textContent = items.length ? more : ""), (line.hidden = !(items.length && more));
   chooseSuggestion(suggest.active);
@@ -1631,9 +1662,9 @@ function callHelp(/** @type {string} */ text, /** @type {number} */ caret) {
   const call = hasFunction(word) && !(VALUES.has(word) && text[caret] !== "(") ? { f: word, arg: -1 } : callAt(text, caret);
   if (!call?.f) return "";
   const [, , what, , , usual] = FUNCTIONS[call.f], names = argNames(call.f), at = names[call.arg];
-  return `<div class="call-sig"><b>${escape(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escape(name)}</span>`).join(", ")})</div>
-          ${call.arg < 0 ? "" : `<p>${at ? `<b>${escape(at.replace("?", ""))}</b>: ${escape(at === "span?" && usual ? `${ARGUMENTS.span}; left out, ${usual} points (as it's usually counted)` : ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escape(call.f)} takes ${names.length} at most`}</p>`}
-          <p class="call-what">${escape(capitalized(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
+  return `<div class="call-sig"><b>${escapeHtml(call.f)}</b>(${names.map((name, i) => `<span${i === call.arg ? ' class="on"' : ""}>${escapeHtml(name)}</span>`).join(", ")})</div>
+          ${call.arg < 0 ? "" : `<p>${at ? `<b>${escapeHtml(at.replace("?", ""))}</b>: ${escapeHtml(at === "span?" && usual ? `${ARGUMENTS.span}; left out, ${usual} points (as it's usually counted)` : ARGUMENTS[/** @type {keyof typeof ARGUMENTS} */ (at)] ?? "")}` : `No more arguments: ${escapeHtml(call.f)} takes ${names.length} at most`}</p>`}
+          <p class="call-what">${escapeHtml(capitalized(what.replace(/\s*\([^)]*\)$/, "")))}.</p>`;
 }
 /**
  * The usual spans a function's span takes at this interval, each in words: a window's, two points at least (one is the
@@ -1701,6 +1732,29 @@ function readsOf(layer, doc = chart) {
   return seen;
 }
 /**
+ * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
+ * band) in its pane and on its axis, the others in a pane of their own. One layer each, but where it's a pair by
+ * its nature (a band's two edges, MACD's line and signal), named so and said as two (no surprise: a percentile
+ * is one line, the 95th; another, an edit of its formula away). Each is a formula like any, its window to change
+ * in it.
+ * @type {{ id: string, label: string, text: string, formulas: string[], over: boolean }[]}
+ */
+const STARTERS = [
+  { id: "sma", label: "Moving average", text: "Its mean over a span", formulas: ["sma(X, 200d)"], over: true },
+  { id: "ema", label: "Exponential average", text: "Its mean, weighting recent values more", formulas: ["ema(X, 200d)"], over: true },
+  { id: "bands", label: "Deviation bands", text: "Two lines, two standard deviations above and below its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
+  { id: "percentile", label: "Percentile", text: "Its 95th percentile over a span", formulas: ["percentile(X, 95, 1y)"], over: true },
+  { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["median(X, 1y)"], over: true },
+  { id: "zscore", label: "Z-score", text: "How many standard deviations it is from its rolling mean", formulas: ["zscore(X, 1y)"], over: false },
+  { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
+  { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["highest(X)"], over: true },
+  { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
+  { id: "rsi", label: "RSI", text: "Its relative strength, 0 to 100, over its last 14 points", formulas: ["rsi(X)"], over: false },
+  { id: "macd", label: "MACD and signal", text: "Two lines, its MACD and its signal (12, 26, 9)", formulas: ["macd(X)", "macd_signal(X)"], over: false },
+  { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
+  { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
+];
+/**
  * The layers a formula can read, as it offers them: not its own, nor a cloud (a band, not a line), nor one reading it
  * (a loop). @param {Layer | null | undefined} self
  */
@@ -1760,7 +1814,7 @@ function drawCallHelp() {
     // Over the inspector's status line, it says what that line would: the formula's error (one that only says it
     // isn't finished, inside a call still open, it doesn't).
     const status = $("formula-status");
-    if (help && id === "formula" && status?.classList.contains("error") && !isUnfinished(field?.value ?? "")) help += `<p class="call-error">${escape(status.textContent ?? "")}</p>`;
+    if (help && id === "formula" && status?.classList.contains("error") && !isUnfinished(field?.value ?? "")) help += `<p class="call-error">${escapeHtml(status.textContent ?? "")}</p>`;
     const html = help || (id === "palette-input" && isOpen($("palette")) && palette.formula ? FORMULA_GUIDE : "");
     if (element.dataset.shown === html) continue;
     element.dataset.shown = html;
@@ -1830,6 +1884,8 @@ const readNumber = (/** @type {string} */ text) => {
 };
 /** How the selected layer's values read, from the inspector. */
 const formatMenu = (/** @type {HTMLElement} */ anchor) => menuOf(anchor, formatChoices(selected));
+/** The formats that start a group in the format menu. */
+const FORMAT_GROUPS = new Set(["usd", "percent", "days", "bytes", "hashrate", "coindays"]);
 /** How a layer's values read, as choices: automatic (its unit's), or one chosen. @returns {Action[]} */
 function formatChoices(/** @type {string} */ id) {
   const layer = layerById(id);
@@ -1873,6 +1929,8 @@ function bandOf(layer, value) {
 const named = (layer) => Boolean(layer.levels?.length && (layer.underName || layer.levels.some((level) => level.name)));
 /** A line's style as said and drawn (none: its band alone). */
 const lineStyleName = (/** @type {{ dash: number, line?: false }} */ look) => (look.line === false ? "None" : dashOf(look.dash)[1]);
+/** No line, as a line style's glyph: a slashed circle. */
+const NO_LINE = glyphSvg('<circle cx="8" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 8.8 10.8 3.2" stroke="currentColor" stroke-width="1.3"/>');
 const lineStyleGlyph = (/** @type {{ dash: number, line?: false }} */ look) => (look.line === false ? NO_LINE : ((d) => dashGlyph(d[2], d[3]))(dashOf(look.dash)));
 /**
  * A line across's styles, as choices: none first (a level that only names or colors its band, a base not drawn),
@@ -1901,25 +1959,25 @@ function lineChoices(id, key) {
 function levelsField(layer, unit, result) {
   const levels = layer.levels ?? [], banded = Boolean(layer.byLevels || named(layer));
   const order = levels.map((_, i) => i).sort((a, b) => levels[b].value - levels[a].value || a - b);
-  const swatch = (/** @type {string} */ color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
+  const swatch = (/** @type {string} */ color) => `<i class="swatch" style="--c:${escapeHtml(cssColor(color))}"></i>`;
   const row = (/** @type {number} */ i) => {
     const level = levels[i], { color } = lineLook(layer, i), said = `At ${format(level.value, unitFor(layer, result))} and up`;
     return `<div class="level" role="listitem" data-level="${i}">
-            <button type="button" class="cap small" data-line-color="${i}" aria-haspopup="menu" aria-label="${escape(said)}, its color: ${escape(colorName(color))}" data-tip="Color">${swatch(color)}</button>
-            <input id="level-name-${i}" class="level-name named" style="--c:${escape(cssColor(color))}" enterkeyhint="done" aria-label="${escape(said)}, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(level.name ?? "")}" />
-            <label class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escape(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /></label>
-            <button type="button" class="cap small" data-level-menu="${i}" aria-haspopup="menu" aria-label="More for the level ${escape(said.toLowerCase())}" data-tip="More">${ICONS.more}</button>
+            <button type="button" class="cap small" data-line-color="${i}" aria-haspopup="menu" aria-label="${escapeHtml(said)}, its color: ${escapeHtml(colorName(color))}" data-tip="Color">${swatch(color)}</button>
+            <input id="level-name-${i}" class="level-name named" style="--c:${escapeHtml(cssColor(color))}" enterkeyhint="done" aria-label="${escapeHtml(said)}, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escapeHtml(level.name ?? "")}" />
+            <label class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escapeHtml(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /></label>
+            <button type="button" class="cap small" data-level-menu="${i}" aria-haspopup="menu" aria-label="More for the level ${escapeHtml(said.toLowerCase())}" data-tip="More">${ICONS.more}</button>
           </div>`;
   };
   const lowest = levels.length ? Math.min(...levels.map((level) => level.value)) : 0;
   const under = banded && levels.length ? `<div class="level under" role="listitem">
-            ${layer.byLevels ? `<button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels, its color: ${escape(colorName(layer.color))}" data-tip="Color below all its levels">${swatch(layer.color)}</button>` : `<span class="cap small" role="img" aria-label="The line's own color" data-tip="The line's color (its levels color it: see Colors)">${swatch(layer.color)}</span>`}
-            <input id="level-name-under" class="level-name named" style="--c:${escape(cssColor(layer.color))}" enterkeyhint="done" aria-label="Under its levels, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(layer.underName ?? "")}" />
+            ${layer.byLevels ? `<button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels, its color: ${escapeHtml(colorName(layer.color))}" data-tip="Color below all its levels">${swatch(layer.color)}</button>` : `<span class="cap small" role="img" aria-label="The line's own color" data-tip="The line's color (its levels color it: see Colors)">${swatch(layer.color)}</span>`}
+            <input id="level-name-under" class="level-name named" style="--c:${escapeHtml(cssColor(layer.color))}" enterkeyhint="done" aria-label="Under its levels, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escapeHtml(layer.underName ?? "")}" />
             <span class="under-label"><span class="sign" aria-hidden="true">&lt;</span><span class="vh">Under </span>${lowest}</span>
             <i class="cap small spacer" aria-hidden="true"></i>
           </div>` : "";
   // (Their unit said once, by their name: every value's; none said before there are any.)
-  return `<div class="field levels-field"><span><span>Levels${levels.length && fieldUnit(unit) ? `<span class="levels-unit"> · ${escape(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" ${levels.length >= MAX_LEVELS ? `aria-disabled="true" data-tip="A layer holds up to ${MAX_LEVELS} levels"` : 'data-tip="Add a level at a round value above the latest"'}>${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}${((why) => (why ? `<p class="from-status" role="status">${escape(why)}.</p>` : ""))(levels.length ? acrossUnfit(chart, layer) || (modeOf(chart, layer) === 1 && levels.some((level) => level.value <= 0) ? "Those at 0 or under aren't drawn on a log scale" : "") : "")}</div>`;
+  return `<div class="field levels-field"><span><span>Levels${levels.length && fieldUnit(unit) ? `<span class="levels-unit"> · ${escapeHtml(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" ${levels.length >= MAX_LEVELS ? `aria-disabled="true" data-tip="A layer holds up to ${MAX_LEVELS} levels"` : 'data-tip="Add a level at a round value above the latest"'}>${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}${((why) => (why ? `<p class="from-status" role="status">${escapeHtml(why)}.</p>` : ""))(levels.length ? acrossUnfit(chart, layer) || (modeOf(chart, layer) === 1 && levels.some((level) => level.value <= 0) ? "Those at 0 or under aren't drawn on a log scale" : "") : "")}</div>`;
 }
 /** A level's ⋯: its line (none, its band alone; a dash), its value on the axis, removing it. @param {string} id @param {number} i */
 function levelRows(id, i) {
@@ -1937,7 +1995,7 @@ function levelRows(id, i) {
 }
 function lineButtons(layer, key, label) {
   const look = lineLook(layer, key), { color, tag } = look, dashName = lineStyleName(look);
-  return `<button type="button" class="cap small" data-line-tag="${key}" aria-pressed="${Boolean(tag) && look.line !== false}" ${look.line === false ? 'aria-disabled="true"' : ""} aria-label="${label}: its value on the axis" data-tip="${look.line === false ? "Turn on the line to show its value on the axis" : tag ? "Its value on the axis" : "Show its value on the axis"}">${ICONS.label}</button><button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${lineStyleGlyph(look)}</button>`;
+  return `<button type="button" class="cap small" data-line-tag="${key}" aria-pressed="${Boolean(tag) && look.line !== false}" ${look.line === false ? 'aria-disabled="true"' : ""} aria-label="${label}: its value on the axis" data-tip="${look.line === false ? "Turn on the line to show its value on the axis" : tag ? "Its value on the axis" : "Show its value on the axis"}">${ICONS.label}</button><button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escapeHtml(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escapeHtml(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${lineStyleGlyph(look)}</button>`;
 }
 /** A line's color (Bitview's) or style, from a menu under its button; picking its default forgets the choice. */
 function lineMenu(anchor, key, part) {
@@ -2303,6 +2361,9 @@ function addHeatmap(cohort, profile = undefined) {
  * @param {Layer | null} made @param {Layer | null} first @param {(id: string) => boolean} has
  */
 const memberCandidates = (made, first, has) => chart.layers.filter((layer) => (memberable(layer, made, first) || has(layer.id)) && layer.id !== made?.ref);
+/** An edge, by name: what it's said as, and its icon. */
+const EDGE_NAMES = /** @type {Record<string, string>} */ ({ top: "The pane's top", bottom: "The pane's bottom" });
+const edgeIcon = (/** @type {string} */ edge) => (edge === "top" ? ICONS.toTop : ICONS.toBottom);
 /**
  * ⌘K's page for a cloud or a trend: the chart's layers (memberCandidates) and a cloud's pane's two edges, each ticked
  * on or off, then the one made between them; for one made (`id`), what it's between, ticked in place. One page, one
@@ -2346,7 +2407,7 @@ function fromPage(type, id = "") {
 const betweenField = (layer) => {
   const has = (/** @type {string} */ member) => Boolean(layer.from?.includes(member)), edges = edgesOf(layer);
   const chips = [...memberCandidates(layer, placedBy(chart, layer), has).map((item) => ({ id: item.id, icon: letterChip(item), name: labelOf(item), tip: "" })), ...(layer.type === "cloud" ? EDGES.map((edge) => ({ id: edge, icon: edgeIcon(edge), name: capitalized(edge), tip: `${EDGE_NAMES[edge]}: from its layers ${edge === "top" ? "up" : "down"} to it` })) : [])];
-  return `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}${edges.length ? `, the ${edges.join(" and ")}` : ""}</span></span><div class="from-of" role="group" aria-label="What it's between">${chips.map(({ id, icon, name, tip }) => `<button type="button" data-member-of="${id}" aria-pressed="${has(id)}"${tip ? ` data-tip="${escape(tip)}"` : ""}>${icon}<span class="name">${escape(name)}</span></button>`).join("")}</div></div>`;
+  return `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}${edges.length ? `, the ${edges.join(" and ")}` : ""}</span></span><div class="from-of" role="group" aria-label="What it's between">${chips.map(({ id, icon, name, tip }) => `<button type="button" data-member-of="${id}" aria-pressed="${has(id)}"${tip ? ` data-tip="${escapeHtml(tip)}"` : ""}>${icon}<span class="name">${escapeHtml(name)}</span></button>`).join("")}</div></div>`;
 };
 /** What flips a trend, from its button. */
 const refMenu = (/** @type {HTMLElement} */ button, /** @type {string} */ id) => menuOf(button, refChoices(id));
@@ -2440,9 +2501,9 @@ export {
   addSignalLayer, addStop, afterPress, assistKey, axisField, bandOf, barAt, betweenField, bubbleSection, candlesField,
   changeSeries, chooseSuggestion, CHROMA, closestSeries, cloudable, colorField, colorLevels, colorModeChoices,
   colorModeOf, colorOf, colorPicker, colorSlot, colorSlots, colorSource, completeSeries, completion, completionsAt,
-  copyName, dashRow, drawPlanes, duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer,
-  errorBox, eyeOf, fadingOf, faintOf, fieldsShape, fillField, fillOf, fitChoices, fitField, fitOf, FITS, fitsAt,
-  flushPick, focusKey, fold, formatChoices, formatMenu, formulaInputs, fromChoices, fromPage, glidesUntil, goneSaid,
+  copyName, dashRow, drawPlanes, duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, errorBox,
+  eyeOf, fadingOf, faintOf, fieldsShape, fillField, fillOf, fitChoices, fitField, fitOf, FITS, fitsAt, flushPick,
+  focusKey, fold, formatChoices, formatMenu, formulaInputs, fromChoices, fromPage, glidesUntil, goneSaid,
   GRADIENT_STEPS, gradientCss, gradientEdit, gradientPlaces, gradientSwatch, gradientTable, hexField, hideLayers, HUES,
   inHand, insertAtCaret, isUnfinished, keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands,
   layersMenu, levelRows, levelsField, levelSteps, levelValue, lineAt, lineButtons, lineChoices, lineField, lineLook,
@@ -2453,7 +2514,7 @@ export {
   readyPage, recipesFor, refChoices, refMenu, refPicked, removeLayer, removeLayers, removeStop, renderLayersBar,
   replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit, setLineLook, setSlider, sharedBy,
   showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider, sliderAt, sliders, sliderTrack,
-  slotName, soloLayer, spaceAt, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestReplacement,
+  slotName, soloLayer, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestReplacement,
   TAG_NEEDS_LINE, toggleHidden, typeField, underColorMenu, updateCallHelp, updateFormula, updateSuggestions, usesOf,
   vividAhead, widthField, widthRow, withLevel, withoutLevel,
 };

@@ -2,18 +2,29 @@
 // Menus, the toolbar, sharing, importing and exporting.
 import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
-  $, all$, atWindow, AVERAGES, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, CADENCE, chart, chartImage,
-  chartShown, chartWindow, CHEVRON, clamp, closest, commit, css, DASHES, DEFAULT_MEASURE, DEFAULT_RANGE, defaultOpacity, drawKeys,
-  EDGES, engine, escape, FINE, firstForm, firstLook, flowsAt, FORMATS, FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST,
-  grouped, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideMenu, hideSubmenu, ICONS, indexAt,
-  INTERVAL_LABEL, INTERVAL_OF_FIELD, INTERVAL_ORDER, intervalFits, isCatalogPath, isColor, isSeriesName, isView,
-  KEY_STEPS, kindColor, kindOf, labelText, letterAt, library, LINES, listedPreviews, loadPresets, lookOfDrawing,
-  makeLayer, MARK_PLACES, markable, MAX_DRAWINGS, MAX_PANES, MAX_STROKE, measure, menuBack, menuOwner,
-  menuPicked, menuScrim, MOTION, navigations, normalize, notice, OPACITIES, openCascade, openingView, openView, ORIGIN,
-  PAIRED, PALETTE, PEN_COLOR, phone, plural, pointOf, putViews, RANGES, reduced, resolved, revision, ROUTED, saveView,
-  SHAPES, SHARES_IMAGES, shownView, showRange, STACKS, stepIn, storage, submenus, takeView, timeAt, toast, TOOLS,
-  TYPES, uid, UNREAD, viewsNow, WIDTHS,
+  atWindow, chart, chartImage, chartShown, chartWindow, commit, css, engine, firstForm, firstLook, flowsAt, hideMenu,
+  hideSubmenu, indexAt, isView, library, listedPreviews, loadPresets, measure, menuBack, menuOwner, menuPicked,
+  menuScrim, MOTION, navigations, normalize, notice, openCascade, openingView, openView, phone, putViews, reduced,
+  resolved, revision, ROUTED, saveView, SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast,
+  UNREAD, viewsNow,
 } from "/studio/app.js";
+import { isCatalogPath, isSeriesName } from "/studio/catalog-walk.js";
+import { $, all$, closest, drawKeys, escapeHtml, KEY_STEPS, stepIn } from "/studio/dom.js";
+import { clamp, uid } from "/studio/math.js";
+import { FORMATS, grouped, plural } from "/studio/format.js";
+import { CHEVRON, ICONS } from "/studio/icons.js";
+import {
+  blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, DASHES, DEFAULT_MEASURE, defaultOpacity, EDGES,
+  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
+  kindColor, kindOf, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
+} from "/studio/vocabulary.js";
+import {
+  labelText, LINES, lookOfDrawing, MAX_DRAWINGS, MAX_STROKE, PAIRED, PEN_COLOR, pointOf, TOOLS,
+} from "/studio/tools.js";
+import {
+  AVERAGES, CADENCE, DEFAULT_RANGE, FINE, INTERVAL_LABEL, INTERVAL_ORDER, intervalFits, RANGES,
+} from "/studio/intervals.js";
+import { isColor, PALETTE } from "/studio/color.js";
 import {
   forgetSpans, inSubmenu, known, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
   resolve, rightGap, seriesIn, settled, shownDates, shownRange, subAt, viewName,
@@ -21,7 +32,7 @@ import {
 import { folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
 import { focusKey, labelOf, restoreFocus } from "/studio/inspector.js";
 import { isMade, presetEdited, presetLink } from "/studio/presets-edit.js";
-/** @import { Chart, Layer, Level } from "/studio/app.js" */
+/** @import { Chart, Layer, Level } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
 /** What a phone's menu sheet hid from a screen reader (the page under it), as it was. */
@@ -222,7 +233,7 @@ function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html,
   if (over) {
     const head = sub.querySelector(":scope > .menu-group:first-child"), back = `<button type="button" class="cap small" role="menuitem" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>`;
     if (head) (head.classList.add("menu-title"), head.insertAdjacentHTML("afterbegin", back));
-    else sub.insertAdjacentHTML("afterbegin", `<div class="menu-group menu-title">${back}${escape(calledBy(row))}</div>`);
+    else sub.insertAdjacentHTML("afterbegin", `<div class="menu-group menu-title">${back}${escapeHtml(calledBy(row))}</div>`);
   }
   // (Its first row level with the row, under its title if it has one; over its menu, level with it.)
   const height = sub.offsetHeight, top = clamp(over ? parent.top : at.top - (/** @type {HTMLElement | null} */ (sub.querySelector(":scope > button"))?.offsetTop ?? 4), bounds.top + 8, bounds.bottom - height - 8);
@@ -556,6 +567,8 @@ function twinOf(doc) {
 }
 /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
 const dateText = (/** @type {number} */ time) => ((iso) => (iso.endsWith("T00:00:00Z") ? iso.slice(0, 10) : iso))(new Date(time * 1000).toISOString().replace(/\.\d+Z$/, "Z"));
+/** Each interval by its label as the picker shows it ("1W"), read in any case (no two alike: minutes are 10m and 30m alone). */
+const INTERVAL_OF_FIELD = Object.fromEntries(Object.entries(INTERVAL_LABEL).map(([id, label]) => [String(label).toLowerCase(), id]));
 /**
  * How a link says to look at its chart, each a field of its own after its address or its chart, in the words of
  * Studio's own controls: `range` or the dates `from` and `to`, `interval`, and a preset's `window` ("24h", read
@@ -667,6 +680,8 @@ const linkText = (/** @type {Chart} */ doc) => JSON.stringify(toSketch(doc)).rep
  * compressed bytes, made already
  */
 const shareLink = (doc, bytes = packedBytes(doc), look = chartLook(doc)) => bytes.then((packed) => `${pageBase()}#chart=${toBase64url(packed)}${look}`, () => `${pageBase()}#chart=${linkText(doc)}`);
+/** Share links open this copy, whose storage belongs to its origin. */
+const ORIGIN = `${location.origin}/studio`;
 /** Where a chart's link opens: the Studio's own page (from a file or another server, the page's address). */
 const pageBase = () => (ROUTED ? `${ORIGIN}/` : location.href.replace(/[?#].*$/, ""));
 /** How to look at a chart, as what comes after its link: what a chart opens with anyway, left out. @param {Chart} doc */

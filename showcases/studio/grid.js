@@ -5,24 +5,31 @@ import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.j
 import { columnWidth, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
 import { capitalized, shownStep } from "/studio/words.js";
 import {
-  $, acrossUnfit, all$, applyTheme, asThen, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cardsSeen, chart,
-  chartAgain, chartById, chartNow, clamp, closedOwner, cloudLayers, composing, css, DASHES, dashOf,
-  deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks,
-  drawYours, edgesOf, emptyYours, engine, escape, FINE, FOLDER_ICONS, folderAgain, folderMark, folderNow, format,
-  fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead, galleryTilesSeen, goTo,
-  GROUP_MARK, GROUP_OF, grouped, GROUPS, hashOf, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS,
-  HEAT_TILE_COLUMNS, heatKnown, heatLike, heldUpright, hideMenu, home, homeAt, homeScroll, homeScroller, ICONS,
-  importCharts, inLibrary, inSlices, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, isColor, isPreview, isYours,
-  keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith,
-  letterOf, library, libraryEdits, libraryStep, light, LINED, listedPreviews, listOwed, listStop, livePrice,
-  loadPresets, lowerBound, MARK_KINDS, markBody, measureOf, menuOf, minedHalvings, mostBars, MOTION, newDraft, notice,
-  opacityOf, openChart, openView, OUTLINED, PAIRS, paletteMarksSeen, phone, pickPreset, placedOn, placeGallery, plural,
-  precise, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts,
-  previews, previousChart, profileColor, rangeDays, recentCharts, recover, redoing, reduced, relayout, renderCharts,
-  save, savePrefs, savePreviewsSoon, saveView, scrollsY, sectionMark, SHELF_STEPS, shelfRows, shelfScrolls, sideLight,
-  sidePresets, SLOP, started, storage, THEMES, thumbs, toast, TOUCH, touched, typing, uid, undoLibrary,
-  unfitted, viewOn, whenIdle, within, writeSideList, yourTilesSeen, zeroFit,
+  acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartAgain, chartById, chartNow, closedOwner, css, deleteChart,
+  deleteFolder, dialogsShown, discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks, drawYours,
+  emptyYours, engine, FOLDER_ICONS, folderAgain, folderMark, folderNow, fromUnfit, galleryAhead, galleryPlace,
+  galleryShown, galleryTilesAhead, galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID,
+  HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatKnown, heldUpright, hideMenu, home, homeAt, homeScroll, homeScroller,
+  importCharts, inLibrary, isPreview, isYours, keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve,
+  layoutOwed, leaveHome, leftView, leftWith, letterOf, library, libraryEdits, libraryStep, light, listedPreviews,
+  listOwed, listStop, livePrice, loadPresets, menuOf, minedHalvings, mostBars, MOTION, newDraft, notice, openChart,
+  openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs, presetLabels, presetMarks, presets, presetsFailed,
+  presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, recentCharts, recover, redoing,
+  reduced, relayout, renderCharts, save, savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls,
+  sideLight, sidePresets, started, storage, THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList,
+  yourTilesSeen, zeroFit,
 } from "/studio/app.js";
+import { $, all$, composing, escapeHtml, scrollsY, SLOP, TOUCH, typing } from "/studio/dom.js";
+import { inSlices, whenIdle } from "/studio/timing.js";
+import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
+import { format, grouped, plural, precise } from "/studio/format.js";
+import { ICONS, markBody } from "/studio/icons.js";
+import {
+  belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cloudLayers, DASHES, dashOf, edgesOf, heatLike, LINED, measureOf,
+  opacityOf, OUTLINED, PAIRS, placedOn, unfitted,
+} from "/studio/vocabulary.js";
+import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "/studio/intervals.js";
+import { isColor } from "/studio/color.js";
 import { stopCarrying, swallowClick } from "/studio/gestures.js";
 import {
   asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldedPanes, foldOf,
@@ -50,7 +57,8 @@ import {
   editedPreset, fromPreset, keptPreset, presetById, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex,
   presetKey, pristine, RECOMMENDED, refocus, showAddress, vocabNow,
 } from "/studio/presets-edit.js";
-/** @import { Chart, Folder, Group, Layer, Thumb } from "/studio/app.js" */
+/** @import { Group, Thumb } from "/studio/app.js" */
+/** @import { Chart, Folder, Layer } from "/studio/vocabulary.js" */
 /** @import { Resolved } from "/studio/chart.js" */
 /** @import { Action } from "/studio/command.js" */
 /** @import { Node, Vector } from "/studio/formulas.js" */
@@ -74,6 +82,7 @@ const drawingKey = (parts) => MARK_VERSION + JSON.stringify(parts);
 const validDrawingKey = (key) => typeof key === "string" && key.startsWith(MARK_VERSION);
 const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
 const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
+const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
 /** A mark's lines, as kept: each its color, its points, its kind (and a two-sided one's other color, its level), its dates' colors. */
 const validLines = (/** @type {any} */ lines) => Array.isArray(lines) && lines.length <= 3
   && lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] == null || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4])))
@@ -1086,7 +1095,7 @@ function previewSvg(drawn, place, size = PREVIEW) {
   // chart draws them: every fill, every band, then every line, a band of one of its colors never over another's
   // line; a band whole, as the chart's ground is, its layer's opacity on its fill and line alone.)
   const parts = drawn.marks.map((mark, n) => {
-    const c = escape(ink(mark.c)), c2 = escape(ink(mark.c2 ?? mark.c)), g = `${id}-${n}`, dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : "";
+    const c = escapeHtml(ink(mark.c)), c2 = escapeHtml(ink(mark.c2 ?? mark.c)), g = `${id}-${n}`, dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : "";
     const halo = (/** @type {string | undefined} */ d, kind = "") => (mark.o && d ? `<path class="halo${kind}"${dash} d="${d}"/>` : "");
     const fade = (key, color, from, to, a, b) => `<linearGradient id="${g}${key}" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${from}" y2="${to}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></linearGradient>`;
     // (`ring`: a mark's own band, right under its line, never faded: an outlined bubble's.)
@@ -1116,7 +1125,7 @@ function previewSvg(drawn, place, size = PREVIEW) {
       // parted at each, each part clipped to its zone, as the chart's; else one color.)
       const zones = mark.z ? zoneRects(mark.z, H, mark.c) : [{ y: 0, h: H, c: mark.c }];
       zones.forEach((zone, k) => {
-        const zc = escape(ink(zone.c)), clip = mark.z ? ` clip-path="url(#${g}z${k})"` : "";
+        const zc = escapeHtml(ink(zone.c)), clip = mark.z ? ` clip-path="url(#${g}z${k})"` : "";
         if (mark.z) defs.push(`<clipPath id="${g}z${k}"><rect y="${zone.y}" width="${W}" height="${zone.h}"/></clipPath>`);
         if (mark.k === "area" && mark.up) under += `<path class="fill"${clip} style="fill:color-mix(in srgb, ${zc} ${top * 100}%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
         else if (mark.k === "area" && mark.band) under += `<path class="fill"${clip} style="fill:color-mix(in srgb, ${zc} ${top * 100}%, transparent)" d="${mark.band}"/>`;
@@ -1130,7 +1139,7 @@ function previewSvg(drawn, place, size = PREVIEW) {
     }
     // (Its end marked in Quick Look's picture alone, by its value beside it; a card's line just ends.)
     if (mark.end && size !== PREVIEW) {
-      const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : mark.z ? escape(ink(zoneRects(mark.z, H, mark.c).find((zone) => y >= zone.y && y <= zone.y + zone.h)?.c ?? mark.c)) : c;
+      const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : mark.z ? escapeHtml(ink(zoneRects(mark.z, H, mark.c).find((zone) => y >= zone.y && y <= zone.y + zone.h)?.c ?? mark.c)) : c;
       over += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
     }
     const faded = (/** @type {string} */ html) => (html && mark.op ? `<g opacity="${mark.op}">${html}</g>` : html);
@@ -1236,19 +1245,19 @@ function plotHtml(doc, current = false, frame = "tile-plot") {
   return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}"${drawn ? ` data-drawn="${drawingId(drawn)}"` : ""}>${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
 }
 /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot (a gradient's, its colors), its name. @param {Layer} layer */
-const legendEntry = (doc, layer, after = "") => `<span style="--c:${escape(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escape(viewName(doc, layer))}${after}</span>`;
+const legendEntry = (doc, layer, after = "") => `<span style="--c:${escapeHtml(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escapeHtml(viewName(doc, layer))}${after}</span>`;
 /** A tile's interval, where it isn't a day's. @param {Chart} doc */
 const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
 /** A card's legend: its shown layers' entries. @param {Chart} doc */
 const cardLegend = (doc) => doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(doc, layer)).join("");
 /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
 function tileHtml(doc) {
-  const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
+  const title = escapeHtml(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
   const legend = cardLegend(doc);
   return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
-            ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" data-tip="${on ? "Deselect" : "Select"}" ${on ? "checked" : ""} />`}
+            ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escapeHtml(tickOn("ink"))}" aria-label="Select ${title}" data-tip="${on ? "Deselect" : "Select"}" ${on ? "checked" : ""} />`}
           </div>`;
 }
 /**
@@ -1318,7 +1327,7 @@ function renderHomeHead() {
   const ups = top ? [] : [{ name: "Home", at: /** @type {Place} */ ({ top: true }) }, ...stepsTo(homeAt).slice(0, -1)];
   const where = $("gallery-path");
   where.hidden = top;
-  where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escape(JSON.stringify(/** @type {{ name: string, at: Place }} */ (ups[ups.length - 1]).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${crumbsHtml(ups)}`;
+  where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escapeHtml(JSON.stringify(/** @type {{ name: string, at: Place }} */ (ups[ups.length - 1]).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${crumbsHtml(ups)}`;
   const field = /** @type {HTMLInputElement} */ ($("home-filter"));
   field.placeholder = `Search in ${name}`;
   field.setAttribute("aria-label", field.placeholder);
@@ -1332,7 +1341,7 @@ const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? 
 /** @typedef {{ name: string, at: Place }} Step */
 /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
 function crumbsHtml(steps) {
-  return steps.map((step) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(step.at))}"><span>${escape(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
+  return steps.map((step) => `<button type="button" dir="auto" data-place="${escapeHtml(JSON.stringify(step.at))}"><span>${escapeHtml(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
 }
 /**
  * The way to a place, the place last, from its group (none for the top): a section's, the Presets and the sections
@@ -1374,7 +1383,7 @@ let chartPathOf = null;
 /** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
 function renderChartPath() {
   const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1), path = $("chart-path");
-  const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}"><span>${escape(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
+  const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escapeHtml(steps.map((step) => step.name).join(", "))}" data-tip="In ${escapeHtml(steps.map((step) => step.name).join(" › "))}"><span>${escapeHtml(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
   // (The same chart somewhere else (a preview saved, and back): its path as wide as it's been at least, its name kept
   // where it is; another chart's, as wide as its own.)
   if (chart !== chartPathOf) path.style.minWidth = "";
@@ -1466,6 +1475,8 @@ function renderHorizon() {
 }
 /** Home's doors as last drawn (drawn again only changed: focus and hover stay). */
 let doorsDrawn = "";
+/** A group's mark, before its name (on the rail, its head): the previews', what's looked at; your Library's, what's kept; the presets'. */
+const GROUP_MARK = /** @type {Record<Group, string>} */ ({ recent: "recent", previews: "eye", library: "keep", presets: "presets" });
 /**
  * Home's doors, under its search: a door each to the groups, as the sidebar has them (its mark, its name, how many,
  * its way): Recent and the previews while there are some, your Library, the presets; nothing in them opened,
@@ -1476,7 +1487,7 @@ function renderDoors() {
   box.hidden = !home || !("top" in homeAt);
   if (box.hidden) return;
   const counts = /** @type {Record<Group, number | null>} */ ({ recent: recentCharts().length, previews: listedPreviews().length, library: library.charts.length, presets: presets?.length ?? null });
-  const door = (/** @type {Group} */ group) => ((name, count) => ((said) => `<button type="button" class="btn ghost" data-place="${escape(JSON.stringify(GROUP_OF[group][1]))}" aria-label="${said}" data-tip="${said}">${ICONS[GROUP_MARK[group]]}${name}</button>`)(count === null ? name : `${name}, ${plural(count, "chart")}`))(GROUP_OF[group][0], counts[group]);
+  const door = (/** @type {Group} */ group) => ((name, count) => ((said) => `<button type="button" class="btn ghost" data-place="${escapeHtml(JSON.stringify(GROUP_OF[group][1]))}" aria-label="${said}" data-tip="${said}">${ICONS[GROUP_MARK[group]]}${name}</button>`)(count === null ? name : `${name}, ${plural(count, "chart")}`))(GROUP_OF[group][0], counts[group]);
   // (Recent and the previews only while they hold some, as in the sidebar.)
   const html = `<nav class="doors" aria-label="Go to">${GROUPS.filter((group) => counts[group] !== 0 || group === "library" || group === "presets").map(door).join("")}</nav><button type="button" class="btn ghost home-new" data-action="new-chart" data-tip="New chart" data-kbd="N">${ICONS.plus}New chart</button>`;
   if (html === doorsDrawn) return;
@@ -1504,13 +1515,13 @@ function renderYours() {
     const failed = presetsFailed && shown.some((item) => presetTiles.get(item.doc) === -1), listed = failed ? shown.filter((item) => presetTiles.get(item.doc) !== -1) : shown;
     if (listed.length) parts.push({ kind: "grid", docs: listed.map((item) => item.doc) });
     if (failed) parts.push({ kind: "note", html: `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>`, flat: true });
-    else if (!listed.length) parts.push({ kind: "note", html: query ? `No recent charts match “${escape(query)}”` : "<p>Nothing opened yet. The charts you open show here, the latest first.</p>" });
+    else if (!listed.length) parts.push({ kind: "note", html: query ? `No recent charts match “${escapeHtml(query)}”` : "<p>Nothing opened yet. The charts you open show here, the latest first.</p>" });
   } else if (!grid.hidden && onPreviews) {
     const previewed = query ? previewsShown() : listedPreviews();
-    parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escape(query)}”` : "<p>No previews. Charts opened from a link appear here until you save or close them.</p>" });
+    parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escapeHtml(query)}”` : "<p>No previews. Charts opened from a link appear here until you save or close them.</p>" });
   } else if (!grid.hidden && query) {
     const found = filtered().filter((doc) => !folderId || isIn(doc.folder, folderId));
-    parts.push(found.length ? { kind: "grid", docs: found } : { kind: "note", html: `<p class="gallery-note">No charts match “${escape(query)}”</p>`, flat: true });
+    parts.push(found.length ? { kind: "grid", docs: found } : { kind: "note", html: `<p class="gallery-note">No charts match “${escapeHtml(query)}”</p>`, flat: true });
   } else if (!grid.hidden) {
     const items = childrenOf(folderId), counts = chartCounts();
     const own = items.flatMap((item) => ("layers" in item ? [item] : []));
@@ -1558,12 +1569,14 @@ function renderYours() {
   for (const frame of all$("[data-plot]", grid)) yourTilesSeen.observe(frame);
   keepNaming();
 }
+/** A shelf's steps, a page of tiles back and on (see stepShelf). */
+const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
 /**
  * Your charts as a shelf: a folder's (its name, how many it holds, leading into it; its menu; its charts, the first
  * of them at any depth), a row; its name leads to its page. None in it, it says so.
  * @param {{ name: string, place: Place, folder?: string, count: number }} shelf @param {string} tiles
  */
-const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section class="shelf"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}" aria-label="${escape(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section class="shelf"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="${escapeHtml(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escapeHtml(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
 /** A chart's tile: what the chart grows out of and shrinks into. */
 // (A preset's written as a slot yet: written now, for what wants it (the way back from it shrinks into it).)
 const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`) ?? ((slot) => slot && fillSlot(slot))(/** @type {HTMLElement | null} */ ($("home").querySelector(`.tile-slot[data-slot="${presetById(id)}"]`))));
@@ -1630,7 +1643,7 @@ function renderSideNav() {
 /** The most a shelf shows (its section's first), and a grid at once (more, a button away). */
 const SHELF = 12, GALLERY_PAGE = 60;
 /** A shelf's last tile, holding more than it shows: to its page, as its name is. @param {Place} place @param {number} count */
-const seeAll = (place, count) => (count > SHELF ? `<button type="button" class="shelf-all" data-see-all="" data-place="${escape(JSON.stringify(place))}">See all ${grouped.format(count)}${ICONS.next}</button>` : "");
+const seeAll = (place, count) => (count > SHELF ? `<button type="button" class="shelf-all" data-see-all="" data-place="${escapeHtml(JSON.stringify(place))}">See all ${grouped.format(count)}${ICONS.next}</button>` : "");
 /** The recommended presets, by their place in the tree. */
 /** The recommended places' presets as last found, and the list they were found in. */
 let recommendedFound = /** @type {{ for: Preset[] | null, at: number[] }} */ ({ for: null, at: [] });
@@ -1649,7 +1662,7 @@ const recommendedPresets = () => recommendedAt().filter((i) => i >= 0);
  * chart's (`card`, its place among the recommended): the same, its drawing framed apart (its own ids).
  */
 function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
-  const title = escape(titleOf(doc));
+  const title = escapeHtml(titleOf(doc));
   const legend = cardLegend(doc);
   return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
 }
@@ -1697,7 +1710,7 @@ const fillRow = (row) => all$(":scope > .tile-slot", row).forEach(fillSlot);
  * A shelf: a section's first charts in a row, its name leading to it (the recommended's, nowhere).
  * @param {string} name @param {number[]} list @param {string[] | null} to
  */
-const shelfHtml = (name, list, to) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}" aria-label="${escape(name)}, ${grouped.format(list.length)}">${escape(name)}<span class="count">${grouped.format(list.length)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list)}${to ? seeAll({ path: to }, list.length) : ""}</div></section>`;
+const shelfHtml = (name, list, to) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escapeHtml(JSON.stringify({ path: to }))}" aria-label="${escapeHtml(name)}, ${grouped.format(list.length)}">${escapeHtml(name)}<span class="count">${grouped.format(list.length)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escapeHtml(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list)}${to ? seeAll({ path: to }, list.length) : ""}</div></section>`;
 /**
  * The presets' page, where it is: theirs, the recommended, then each section as a shelf; a section's, its own as a
  * grid, then each section in it. Elsewhere, hidden as drawn (its plain page: a search's is found again), to come back
@@ -1751,7 +1764,7 @@ function renderGallery() {
     galleryFound = count;
     // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
     const elsewhere = count || !path.length ? 0 : presetsMatching(words, 0).count;
-    $("gallery").innerHTML = (count ? `${partial ? `<p class="gallery-note">No preset holds every word; these hold the most.</p>` : ""}${presetGridHtml(found, count)}` : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (placeNames(path).at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
+    $("gallery").innerHTML = (count ? `${partial ? `<p class="gallery-note">No preset holds every word; these hold the most.</p>` : ""}${presetGridHtml(found, count)}` : `<p class="gallery-note">No presets ${path.length ? `in ${escapeHtml(/** @type {string} */ (placeNames(path).at(-1)))} ` : ""}match “${escapeHtml(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
   } else if (again) {
     // (Kept, not written again: at its shelves' starts, as a page come to is (Back puts them where they were, see
     // popstate).)
@@ -2714,9 +2727,9 @@ const markOf = ({ lines, washes, dots }) => {
   // Each line as its type: an area over a light fill, a baseline in its two colors about its base, bars, dots.
   const paths = lines.map(([raw, ys, kind, under, level, dated]) => {
     level ??= 0;
-    const color = escape(ink(raw)), below = escape(ink(under ?? raw)), x = (i) => 2 + (i / (ys.length - 1)) * 116, base = y(level);
+    const color = escapeHtml(ink(raw)), below = escapeHtml(ink(under ?? raw)), x = (i) => 2 + (i / (ys.length - 1)) * 116, base = y(level);
     // (Painted date by date: a bar, a dot, a stretch of line in its points' color.)
-    const tintAt = (/** @type {number} */ i) => escape(ink(dated?.[i] ?? raw));
+    const tintAt = (/** @type {number} */ i) => escapeHtml(ink(dated?.[i] ?? raw));
     if (kind === "bars") return barsOf(ys, 10, level, (k, value, i) => `<rect x="${(4 + k * 11.6).toFixed(1)}" y="${Math.min(y(value), base).toFixed(1)}" width="7" height="${Math.max(1.5, Math.abs(y(value) - base)).toFixed(1)}" fill="${dated ? tintAt(i) : value >= level ? color : below}"/>`);
     if (kind === "dots") return byColor(ys.map((value, i) => (value === null || i % 2 ? null : { i, value })), ({ i }) => tintAt(i), false).map((piece) => `<path d="${piece.points.map(({ i, value }) => `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`).join("")}" stroke="${piece.color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
     if (dated) return byColor(ys.map((value, i) => (value === null ? null : { i, value })), ({ i }) => tintAt(i)).filter((piece) => piece.points.length > 1).map(({ color: stroke, points }) => {
@@ -2733,13 +2746,13 @@ const markOf = ({ lines, washes, dots }) => {
     }).join("");
   }).join("");
   // (A heatmap's wash about its line, faint: its color over it, its other under it, to its band's top and foot.)
-  const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => `<polygon points="${areaPoints(part, y(top))}" fill="${escape(ink(over))}" fill-opacity=".2"/><polygon points="${areaPoints(part, y(bottom))}" fill="${escape(ink(under))}" fill-opacity=".2"/>`).join(""))(lines[k][1])).join("");
+  const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => `<polygon points="${areaPoints(part, y(top))}" fill="${escapeHtml(ink(over))}" fill-opacity=".2"/><polygon points="${areaPoints(part, y(bottom))}" fill="${escapeHtml(ink(under))}" fill-opacity=".2"/>`).join(""))(lines[k][1])).join("");
   // (Bubbles' largest, dots on their line, as a dots line's are.)
-  const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escape(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
+  const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escapeHtml(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
   return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${wash}${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}${dotted}</svg>`;
 };
 /** A profile's mark's bars, from the edge, each split in its colors (its first two groups', or a group's), the first at the edge. @param {string[]} colors */
-const profileMark = (colors) => [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => colors.map((color, c) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escape(color)}"/>`)(length / colors.length)).join("")).join("");
+const profileMark = (colors) => [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => colors.map((color, c) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escapeHtml(color)}"/>`)(length / colors.length)).join("")).join("");
 /**
  * A layer's own mark in the legend: its shape across its history, in its color and drawn as its type (bars for a
  * histogram, a filled line for an area), from its chart's drawing; a faint line until there's one. Kept from the
@@ -2748,11 +2761,11 @@ const profileMark = (colors) => [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]
 function seriesMark(layer) {
   const thumb = thumbs.get(chart.id), ys = thumb && Object.hasOwn(thumb.marks, layer.id) ? thumb.marks[layer.id] : undefined;
   const level = thumb?.bases && Object.hasOwn(thumb.bases, layer.id) ? thumb.bases[layer.id] : 0;
-  const now = layer.type === "histogram" && layer.colors === 4 ? null : colorNow(layer), color = escape(ink(now ?? layer.color)), below = now ? color : escape(ink(belowOf(layer)));
+  const now = layer.type === "histogram" && layer.colors === 4 ? null : colorNow(layer), color = escapeHtml(ink(now ?? layer.color)), below = now ? color : escapeHtml(ink(belowOf(layer)));
   const span = (ys?.length ?? 2) - 1, x = (i) => 0.8 + (i / span) * 14.4, y = (value) => 11 - value * 10;
   let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
   // (A gradient's, a bar of its colors, low to high, whatever its type.)
-  if (layer.byGradient && layer.gradient) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escape(ink(table[Math.round((k / 7) * (table.length - 1))]))}"/>`).join(""))(gradientTable(layer.gradient));
+  if (layer.byGradient && layer.gradient) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(ink(table[Math.round((k / 7) * (table.length - 1))]))}"/>`).join(""))(gradientTable(layer.gradient));
   // A cloud's, a band in its color.
   else if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
   // (A signal's, its mark.)
@@ -2825,7 +2838,7 @@ const groupShut = (group) => !prefs.groupsOpen.includes(group);
  */
 const sideHead = (group, count, holds) => {
   const [name, place] = GROUP_OF[group], shut = groupShut(group);
-  return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify(place))}" aria-label="View ${name}" data-tip="View">${ICONS.arrowRight}</button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
+  return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="View ${name}" data-tip="View">${ICONS.arrowRight}</button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
 };
 /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
 const groupRows = (group) => [
@@ -3013,15 +3026,15 @@ function presetParts() {
         if (!depth) continue;
         // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
         const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
-        const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(presetName(preset));
+        const title = escapeHtml(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escapeHtml(presetName(preset));
         parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? " (edited)" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
         continue;
       }
-      const section = item, shown = open.has(section.key), name = section.name, key = escape(section.key);
+      const section = item, shown = open.has(section.key), name = section.name, key = escapeHtml(section.key);
       parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.under.length)}</span></button>
-              <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ path: section.path }))}" aria-label="View ${escape(name)}" data-tip="View">${ICONS.arrowRight}</button>
-              <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>
+              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escapeHtml(name)}">${sectionMark(section, shown)}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.under.length)}</span></button>
+              <button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify({ path: section.path }))}" aria-label="View ${escapeHtml(name)}" data-tip="View">${ICONS.arrowRight}</button>
+              <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
       if (shown) walk(section, depth + 1);
     }
@@ -3767,7 +3780,7 @@ function besideItem(/** @type {string} */ key, /** @type {boolean} */ after, /**
   const rest = childrenOf(into).filter((other) => !keys.includes(sideKey(other))), next = rest[rest.findIndex((other) => sideKey(other) === key) + 1];
   return { into, before: next ? sideKey(next) : null };
 }
-const chartLabel = (/** @type {string} */ id) => ((doc) => (doc ? `${chartMark(doc)}<span class="name">${escape(titleOf(doc))}</span>` : ""))(chartById(id));
+const chartLabel = (/** @type {string} */ id) => ((doc) => (doc ? `${chartMark(doc)}<span class="name">${escapeHtml(titleOf(doc))}</span>` : ""))(chartById(id));
 // The sidebar, as a tree: a chart or a folder onto a folder's row goes into it (its top edge: above it; its foot: into
 // it, first, or under it, closed); beside a row, it takes its place, in its folder. A folder never into itself, nor
 // into one in it: their rows aren't places while it's carried, its own are carried along.
