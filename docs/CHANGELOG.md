@@ -983,8 +983,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - Coinblocks created per block, documented as the circulating supply, read the step of a running total kept in
   floating point, so it missed the supply at 851,713 of 976,437 blocks, by up to 97,656 sats (block 770,393): block
   900,000 read 19,874,782.0898 coins where the supply is 19,874,782.0907. Created dollar-blocks carried the same error.
-  Since 10 November. Both read the exact supply now; the running total and its window sums keep their drift of under
-  2 coinblocks in 1.4e13.
+  Since 10 November. Both read the exact supply now. Their running total (`coinblocks_created_cumulative`) and its window
+  sums are also added up exactly in sats and rounded once, instead of summed in floating point. That sum missed the
+  exact total at 851,760 of 976,561 blocks, by up to 14.6 coinblocks (2.04 at block 976,560). The 80 series read from
+  it move with it: stored coinblocks and cointime value stored, liveliness and vaultedness, active and vaulted supply,
+  cap and price, cointime price, cap and mvrv, the true market mean, and the vaulted price and true market mean rarity
+  series. The first start after upgrading computes cointime and the rarity meter again (0.5 s and 6 s on a Mac); +150 KB
+  on disk.
 - Studio wrote a billion as B on the axis and last-value label of its byte, weight and hash rate charts, beside a
   legend saying GB: Blockchain size read 784B next to 784 GB, and the signature size chart 253.8B next to 253.8 GB
   (77 charts), and a color gradient's ticks read 200B under a 784 GB end. Since 9 October. The axis, the label, the

@@ -3,13 +3,13 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{CoinDays, Days};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyIndexedVec, LazyPerBlockCumulativeRolling,
-    LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows, shapes::Windows,
+    LazyIndexedVec, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
+    LazyWindowStartVec, RollingWindows, shapes::Windows,
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{ComputeVec, Database, ReadableCloneableVec, Rw, StorageMode};
+use brk_types::{Height, Sats, Version};
+use vecdb::{ComputeVec, Database, Rw, StorageMode};
 
 use crate::columns::Columns;
 
@@ -49,18 +49,6 @@ impl Activity {
         mappings: &Mappings,
         windows: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let value = |metric: &str,
-                     sats: &dyn ReadableCloneableVec<Height, Sats>,
-                     cents: &CachedSeries<Height, Cents>| {
-            LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-                &id.metric_name(metric),
-                v,
-                sats,
-                cents,
-                mappings,
-                windows,
-            )
-        };
         let coindays_destroyed = LazyPerBlockCumulativeRolling::from_cumulative_source(
             &id.metric_name("coindays_destroyed"),
             v,
@@ -78,16 +66,29 @@ impl Activity {
             |_, volume: Sats, in_profit: Sats| volume - in_profit,
         );
         Ok(Self {
-            transfer_volume: value("transfer_volume", &c.volume_sats, &c.volume_cents),
-            transfer_volume_in_profit: value(
-                "transfer_volume_in_profit",
+            transfer_volume: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
+                &id.metric_name("transfer_volume"),
+                v,
+                &c.volume_sats,
+                &c.volume_cents,
+                mappings,
+                windows,
+            ),
+            transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
+                &id.metric_name("transfer_volume_in_profit"),
+                v,
                 &c.volume_profit_sats,
                 &c.volume_profit_cents,
+                mappings,
+                windows,
             ),
-            transfer_volume_in_loss: value(
-                "transfer_volume_in_loss",
+            transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
+                &id.metric_name("transfer_volume_in_loss"),
+                v,
                 &volume_loss_sats,
                 &c.volume_loss_cents,
+                mappings,
+                windows,
             ),
             coindays_destroyed,
             dormancy: RollingWindows::import(db, &id.metric_name("dormancy"), v, mappings)?,

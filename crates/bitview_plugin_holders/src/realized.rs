@@ -61,22 +61,9 @@ pub struct Realized<M: StorageMode = Rw> {
 impl Section for Realized {
     fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
         let Imports {
-            db,
-            v,
-            mappings,
-            windows,
-            ..
+            db, v, mappings, ..
         } = *cx;
         let c = id.select(cx.columns);
-        let flow = |metric: &str, source: &dyn ReadableCloneableVec<Height, Cents>| {
-            LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
-                &id.metric_name(metric),
-                v,
-                source,
-                mappings,
-                windows,
-            )
-        };
         // Net and gross are the running totals' difference and sum: read, not stored.
         let net_pnl = LazyIndexedVec::new(
             &id.metric_name("net_realized_pnl_cumulative_cents_source"),
@@ -93,24 +80,24 @@ impl Section for Realized {
             |_, profit: Cents, loss: Cents| profit + loss,
         );
         Ok(Self {
-            profit: flow("realized_profit", &c.profit),
-            loss: flow("realized_loss", &c.loss),
+            profit: flow(cx, &id.metric_name("realized_profit"), &c.profit),
+            loss: flow(cx, &id.metric_name("realized_loss"), &c.loss),
             net_pnl: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name("net_realized_pnl"),
                 v,
                 &net_pnl,
                 mappings,
-                windows,
+                cx.windows,
             ),
-            gross_pnl: flow("gross_realized_pnl", &gross_pnl),
+            gross_pnl: flow(cx, &id.metric_name("gross_realized_pnl"), &gross_pnl),
             profit_to_loss: RollingWindows::import(
                 db,
                 &id.metric_name("realized_profit_to_loss"),
                 v,
                 mappings,
             )?,
-            value_destroyed: flow("value_destroyed", &c.value_destroyed),
-            peak_regret: flow("realized_peak_regret", &c.peak_regret),
+            value_destroyed: flow(cx, &id.metric_name("value_destroyed"), &c.value_destroyed),
+            peak_regret: flow(cx, &id.metric_name("realized_peak_regret"), &c.peak_regret),
             sopr: RollingWindows::import(db, &id.metric_name("sopr"), v, mappings)?,
             sell_side_risk_ratio: RatioRollingWindows::import(
                 db,
@@ -174,4 +161,18 @@ impl Section for Realized {
         }
         Ok(())
     }
+}
+
+fn flow(
+    cx: &Imports,
+    name: &str,
+    source: &impl ReadableCloneableVec<Height, Cents>,
+) -> LazyFiatPerBlockCumulativeWithSums<Cents> {
+    LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
+        name,
+        cx.v,
+        source,
+        cx.mappings,
+        cx.windows,
+    )
 }

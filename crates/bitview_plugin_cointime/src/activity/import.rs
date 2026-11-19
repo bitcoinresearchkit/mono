@@ -2,9 +2,8 @@ use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_vecs::{
-    LazyPerBlock, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows,
-    LazyRollingSumsFromHeight, LazyWindowStartVec, PerBlock, PerBlockCumulative,
-    PerBlockCumulativeRolling,
+    LazyPerBlock, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyWindowStartVec,
+    PerBlock, PerBlockCumulativeRolling,
     ops::{BoundedOdds, BoundedToRatio, Quotient},
     shapes::Windows,
 };
@@ -13,34 +12,6 @@ use brk_types::{Bitcoin, Height, Sats, Version};
 use vecdb::{Database, LazyVec, ReadableBoxedVec, ReverseOperands};
 
 use super::{CoinblocksCreated, DerivedVecs, Vecs};
-
-impl CoinblocksCreated {
-    fn import(
-        db: &Database,
-        version: Version,
-        mappings: &MappingsVecs,
-        window_starts: &Windows<&LazyWindowStartVec>,
-        circulating_supply: &ReadableBoxedVec<Height, Sats>,
-    ) -> Result<Self> {
-        const NAME: &str = "coinblocks_created";
-        let block = LazyVec::new(NAME, version, circulating_supply.clone(), |_, sats| {
-            CoinBlocks::new(f64::from(Bitcoin::from(sats)))
-        });
-        let running = PerBlockCumulative::import(db, NAME, version, mappings)?;
-        let sum = LazyRollingSumsFromHeight::new(
-            &format!("{NAME}_sum"),
-            version,
-            running.cumulative_source(),
-            window_starts,
-            mappings,
-        );
-        Ok(Self {
-            block,
-            running,
-            sum,
-        })
-    }
-}
 
 impl DerivedVecs {
     fn import(db: &Database, version: Version, mappings: &MappingsVecs) -> Result<Self> {
@@ -80,8 +51,19 @@ impl Vecs {
         age: &AgeVecs,
         circulating_supply: &ReadableBoxedVec<Height, Sats>,
     ) -> Result<Self> {
-        let coinblocks_created =
-            CoinblocksCreated::import(db, version, mappings, window_starts, circulating_supply)?;
+        const CREATED: &str = "coinblocks_created";
+        let coinblocks_created = CoinblocksCreated::import_with_block(
+            db,
+            CREATED,
+            version,
+            mappings,
+            window_starts,
+            |_| {
+                LazyVec::new(CREATED, version, circulating_supply.clone(), |_, sats| {
+                    CoinBlocks::new(f64::from(Bitcoin::from(sats)))
+                })
+            },
+        )?;
         // Destroyed over created, reading the created blocks first.
         let concurrent_liveliness = LazyRatioRollingWindows::from_cumulative_ratio::<
             CoinBlocks,
@@ -114,6 +96,7 @@ impl Vecs {
             )?,
             derived: DerivedVecs::import(db, version, mappings)?,
             concurrent_liveliness,
+            created_sat_blocks: Default::default(),
         })
     }
 }

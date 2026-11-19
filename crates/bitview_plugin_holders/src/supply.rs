@@ -49,7 +49,6 @@ pub struct SharedSupply<M: StorageMode = Rw> {
 impl Section for Supply {
     fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
         let Imports {
-            db,
             v,
             mappings,
             windows,
@@ -76,16 +75,6 @@ impl Section for Supply {
                 spot,
             )
         };
-        let part = |metric: &str, sats: &dyn ReadableCloneableVec<Height, Sats>| {
-            let name = id.metric_name(metric);
-            Part::import(
-                db,
-                &name,
-                v,
-                mappings,
-                LazySpotValuePerBlock::from_sats_source(&name, v, sats, mappings, spot),
-            )
-        };
         // Profit and loss split the cohort's coins: the loss side is what profit leaves.
         let supply_loss = LazyIndexedVec::new(
             &id.metric_name("supply_in_loss_sats_source"),
@@ -96,8 +85,8 @@ impl Section for Supply {
         );
         Ok(Self {
             total,
-            in_profit: part("supply_in_profit", &c.supply_profit)?,
-            in_loss: part("supply_in_loss", &supply_loss)?,
+            in_profit: import_part(cx, &id.metric_name("supply_in_profit"), &c.supply_profit)?,
+            in_loss: import_part(cx, &id.metric_name("supply_in_loss"), &supply_loss)?,
             delta: LazyRollingDeltasAmountFromHeight::new(
                 &id.metric_name("supply_delta"),
                 v,
@@ -131,6 +120,20 @@ impl Section for Supply {
             )?;
         Ok(())
     }
+}
+
+fn import_part(
+    cx: &Imports,
+    name: &str,
+    sats: &impl ReadableCloneableVec<Height, Sats>,
+) -> Result<Part<LazySpotValuePerBlock>> {
+    Part::import(
+        cx.db,
+        name,
+        cx.v,
+        cx.mappings,
+        LazySpotValuePerBlock::from_sats_source(name, cx.v, sats, cx.mappings, cx.spot),
+    )
 }
 
 impl<M: StorageMode> Deref for SharedSupply<M> {
