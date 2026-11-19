@@ -475,8 +475,8 @@
         }
       }
 
-      /* (The notes under a section's title.) */
-      section > p {
+      /* (The note under the best's title.) */
+      #best-note {
         max-width: 64ch;
         margin: 8px 0 0;
         color: var(--soft);
@@ -697,9 +697,17 @@
           color: var(--faint);
         }
 
-        /* (Against the best: a best's run under its time, small, so the table fits a phone.) */
-        /* (A phone: the table's own columns closer and its category free to wrap, so no column is off the screen.) */
+        /* (Against the best: no wider than its note; its categories in the bars' own face, free to wrap, and a phone's columns
+           closer, so none is off the screen.) */
         &.fit {
+          max-width: 760px;
+
+          td:first-child {
+            font: 13px var(--sans);
+            white-space: normal;
+            overflow-wrap: break-word;
+          }
+
           @media (max-width: 559px) {
             th,
             td {
@@ -709,16 +717,20 @@
             th:first-child,
             td:first-child {
               padding-left: 0;
-              white-space: normal;
-              overflow-wrap: anywhere;
             }
           }
         }
 
+        /* (A best's run under its value, small, so the table fits a phone; underlined when it can be picked.) */
         td small {
           display: block;
           color: var(--faint);
           font-size: 11px;
+
+          .pick:hover {
+            color: var(--ink);
+            text-decoration: underline;
+          }
         }
 
         /* (A category noticeably worse is the accent's, heavier; the best itself and the rest quiet.) */
@@ -1074,7 +1086,8 @@
           read_bytes: io.column("read_bytes"), written_bytes: io.column("written_bytes"),
           disk_bytes: disk.column("physical_bytes"),
         };
-        const compute = pluginSeconds(timed, "compute").map(([plugin, seconds]) => [plugin, round(seconds, 2)]);
+        const seconds = (phase) => pluginSeconds(timed, phase).map(([plugin, total]) => [plugin, round(total, 2)]);
+        const compute = seconds("compute");
         const bootstrap = cycles(timed, end);
         const bands = bootstrap.map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1), indexing: round(c.indexing, 1) }));
         const firstCompute = bootstrap.find((c) => c.name !== "indexing")?.start ?? end;
@@ -1096,7 +1109,7 @@
           curves: Object.fromEntries(Object.entries(samples).map(([key, points]) => [key, thin(points)])),
           compute,
           silent_payments: compute.some(([plugin]) => plugin === SILENT_PAYMENTS),
-          import: pluginSeconds(timed, "import").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
+          import: seconds("import"),
           breakdown: parts,
         };
       }
@@ -1151,9 +1164,14 @@
         while (v >= 1024 && k < units.length - 1) (v /= 1024), k++;
         return `${v >= 100 || k === 0 ? v.toFixed(0) : v.toFixed(v >= 10 ? 1 : 2)} ${units[k]}`;
       };
-      const duration = (s) => {
+      /** Minutes, hours and minutes; `exact` to the second, where close values must read apart. */
+      const duration = (s, exact = false) => {
         if (s == null) return "–";
         if (s < 60) return `${s.toFixed(s < 10 ? 1 : 0)}s`;
+        if (exact) {
+          const t = Math.round(s), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), two = (n) => String(n).padStart(2, "0");
+          return `${h ? `${h}h ${two(m)}m` : `${m}m`} ${two(t % 60)}s`;
+        }
         const m = Math.round(s / 60);
         return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
       };
@@ -1500,48 +1518,55 @@
        * the M6 and on the M4: the only repeats). Of the 45 categories of 10 s or more (and the memory) that both runs of a
        * pair recorded, 34 differ by under 10%, 28 by under 5%; whole run, peak and synced memory by under 5%. */
       const WORSE = 0.1;
-      /** What a category is written in, and the least it takes to be judged: under 10 s, two runs of one commit differ by
-       * up to 2,400% (4 s against 96 s), noise and not cost. */
-      const TIME = { fmt: (s) => (s >= 60 && s < 3600 ? `${Math.floor(Math.round(s) / 60)}m ${String(Math.round(s) % 60).padStart(2, "0")}s` : duration(s)), floor: 10 }, MEMORY = { fmt: bytes, floor: 0 };
-      /** A run's categories by name, at `height` where its time is cut (the indexing's, as the curves are); a plugin's own
-       * rows (`own`) are comparable with every run, the rest add several plugins' work up, or are the memory they share. */
+      /** What a category is written in, and the least a value takes to be judged, as this run's or as a best: under 10 s,
+       * two runs of one commit differ by up to 2,400% (4 s against 96 s), noise and not cost. */
+      const TIME = { fmt: (s) => duration(s, true), floor: 10 }, MEMORY = { fmt: bytes, floor: 0 };
+      /** A run's categories by name, at `height` where its indexing time is cut (as the curves are); a plugin's own rows
+       * (`own`) are comparable with every run, the rest add several plugins' work up, or are the memory they share. */
       function categories(run, height) {
         const rows = new Map();
-        const add = (name, unit, value, own = false) => value != null && rows.set(name, { unit, value, own });
-        add("Whole run", TIME, run.duration_s);
-        add("Indexing", TIME, height == null ? null : comparisonRun(run, height)?.duration_s);
-        add("Compute", TIME, split(run).compute);
+        const add = (name, unit, value, own) => value != null && rows.set(name, { unit, value, own });
+        add("Whole run", TIME, run.duration_s, false);
+        add(`Indexing to block ${grouped(height)}`, TIME, height == null ? null : comparisonRun(run, height)?.duration_s, false);
+        add("Compute stage", TIME, split(run).compute, false);
         for (const phase of ["compute", "import"]) for (const [plugin, seconds] of run[phase]) add(phase === "compute" ? plugin : `${plugin} import`, TIME, seconds, true);
-        add("Peak memory", MEMORY, run.peak_memory?.bytes);
-        add("Memory when synced", MEMORY, run.samples.memory.values.at(-1));
+        add("Peak memory", MEMORY, run.peak_memory?.bytes, false);
+        add("Memory when synced", MEMORY, run.samples.memory.values.at(-1), false);
         return rows;
       }
-      /** Each category of the run with its best in the pool, the run that holds it, and whether it is noticeably worse. */
+      /** Each category of the run, its best among the pool's other runs that are comparable and judged, the run that holds it,
+       * and whether it is noticeably worse: stages and memory first, then the plugins, each by its gap. A category no other
+       * run has to be held to is `seen: false`. */
       function judge(run, pool) {
         // (The height every run reached, so a run that went further isn't held to more blocks.)
         const tips = pool.map(tip).filter(Number.isFinite), height = tips.length ? Math.min(...tips) : null;
         const all = new Map(pool.map((r) => [r, categories(r, height)]));
         const rows = [...all.get(run)].map(([name, { unit, value, own }]) => {
-          let best = { run, value };
+          let best = { run, value }, seen = false;
           for (const r of pool) {
             const other = all.get(r).get(name)?.value;
-            if (other != null && other < best.value && (own || r.silent_payments === run.silent_payments)) best = { run: r, value: other };
+            if (r === run || other == null || other < unit.floor || (!own && r.silent_payments !== run.silent_payments)) continue;
+            seen = true;
+            if (other < best.value) best = { run: r, value: other };
           }
-          const over = value / best.value - 1;
-          return { name, unit, value, best, over, worse: over > WORSE };
+          const percent = Math.round((value / best.value - 1) * 100);
+          return { name, unit, own, value, best, seen, percent, worse: seen && percent > WORSE * 100 };
         });
-        return { height, rows: rows.filter((row) => row.value >= row.unit.floor).sort((a, b) => b.over - a.over), unjudged: rows.filter((row) => row.value < row.unit.floor).length };
+        const judged = rows.filter((row) => row.value >= row.unit.floor);
+        return { height, rows: judged.sort((a, b) => a.own - b.own || b.percent - a.percent), unjudged: rows.length - judged.length };
       }
       function against() {
         const pool = fullSyncs().filter((r) => r.profile === selected.profile), note = $("best-note");
         $("best-count").textContent = "";
         $("best").innerHTML = "";
-        if (!pool.includes(selected)) return (note.textContent = "Only a complete full sync from an empty data directory is held to the best.");
+        if (!pool.includes(selected)) return (note.textContent = "Pick a complete full sync from an empty data directory to hold it to the best.");
         if (pool.length < 2) return (note.textContent = "No other full sync of this machine and profile to hold it to yet.");
-        const { height, rows, unjudged } = judge(selected, pool), worse = rows.filter((row) => row.worse).length;
-        $("best-count").textContent = `${worse} of ${rows.length} noticeably worse`;
-        note.textContent = `Best of ${pool.length} full syncs on this machine and profile, from zero to the tip. Worse: over ${WORSE * 100}% above the best, the gap within which three in four categories of two runs of one commit stayed. Indexing is timed to block ${grouped(height)}, where every run had arrived; the rest are whole runs. Totals and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments only, each plugin to all.${unjudged ? ` ${unjudged} rows under ${TIME.floor} s aren't judged.` : ""}`;
-        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map(({ name, unit, value, best, over, worse }) => `<tr><td>${escape(name).replace(/_/g, "_<wbr>")}</td><td>${unit.fmt(value)}</td><td>${unit.fmt(best.value)}<small>${best.run === selected ? "this run" : `<button type="button" class="pick" data-label="${escape(best.run.label)}">${escape(rev(best.run))}</button>`}</small></td><td class="over${worse ? " worse" : ""}">${best.run === selected ? "best" : `+${grouped(over * 100)}%`}</td></tr>`).join("")}</tbody>`;
+        const { height, rows, unjudged } = judge(selected, pool), held = rows.filter((row) => row.seen);
+        const tips = pool.map((r) => r.chain_height).filter(Number.isFinite), apart = Math.max(...tips) - Math.min(...tips);
+        $("best-count").textContent = `${held.filter((row) => row.worse).length} of ${held.length} noticeably worse`;
+        note.textContent = `Best of ${pool.length} full syncs on this machine and profile, from zero to the tip. Worse: over ${WORSE * 100}% above the best, the gap within which three in four categories of two runs of one commit stayed. Indexing is timed to block ${grouped(height)}, where every run had arrived; the rest are whole runs, whose tips lie up to ${grouped(apart)} blocks apart. Totals and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments only, each plugin to all. A time under ${TIME.floor} s isn't judged, this run's or a best${unjudged ? `: ${unjudged} rows left out` : ""}.`;
+        const holder = (row) => (!row.seen ? "no other run" : row.best.run === selected ? "this run" : `<button type="button" class="pick" data-label="${escape(row.best.run.label)}">${escape(rev(row.best.run))}</button>`);
+        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}</td><td>${row.unit.fmt(row.best.value)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `+${grouped(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
       }
       $("best").addEventListener("click", (e) => {
         const label = e.target.closest("button[data-label]")?.dataset.label;
@@ -1552,6 +1577,7 @@
         if (!r) return;
         // (The table's redrawn: a run's button that had focus gets it back.)
         const focused = document.activeElement?.closest?.("#runs tr[data-label]")?.dataset.label;
+        const category = document.activeElement?.closest?.("#best tr[data-name]")?.dataset.name;
         selected = r;
         if (compared === r || !r.comparable) compared = null;
         runByRun();
@@ -1560,6 +1586,8 @@
         detail();
         bars();
         if (focused) $("runs").querySelector(`tr[data-label="${CSS.escape(focused)}"] .pick`)?.focus();
+        // (The row's best run is now this one, with no button: the first other one gets it.)
+        if (category) ($("best").querySelector(`tr[data-name="${CSS.escape(category)}"] .pick`) ?? $("best").querySelector(".pick"))?.focus();
       }
       function render() {
         const { skipped } = machines[machine];
