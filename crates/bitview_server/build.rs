@@ -19,20 +19,22 @@ fn commit(workspace: &Path) -> String {
         assert!(output.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&output.stderr));
         String::from_utf8(output.stdout).unwrap().trim_end().to_owned()
     };
+    let git_path = |path: &str| git(&["rev-parse", "--path-format=absolute", "--git-path", path]);
+    let watch = |path: &str| println!("cargo::rerun-if-changed={path}");
+    let watch_ref = |reference| {
+        let log = git_path(&format!("logs/{reference}"));
+        let exists = Path::new(&log).is_file();
+        // A reflog tracks one ref even when its loose file is packed.
+        watch(&if exists { log } else { git_path(reference) });
+        exists
+    };
+    watch_ref("HEAD");
     let head = git(&["rev-parse", "--symbolic-full-name", "HEAD"]);
-    // Git resolves paths in linked worktrees and packed refs. An absent loose ref can
-    // reappear on the next commit, so watch its directory while it is packed.
-    let paths = git(&[
-        "rev-parse", "--path-format=absolute",
-        "--git-path", "HEAD", "--git-path", &head,
-    ]);
-    for path in paths.lines() {
-        let watched = Path::new(path).ancestors().find(|path| path.exists()).unwrap();
-        println!("cargo::rerun-if-changed={}", watched.display());
-    }
-    let packed = git(&["rev-parse", "--path-format=absolute", "--git-path", "packed-refs"]);
-    if Path::new(&packed).exists() {
-        println!("cargo::rerun-if-changed={packed}");
+    if head != "HEAD" && !watch_ref(&head) {
+        let packed = git_path("packed-refs");
+        if Path::new(&packed).is_file() {
+            watch(&packed);
+        }
     }
     git(&["rev-parse", "--short=7", "HEAD"])
 }
