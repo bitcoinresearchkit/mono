@@ -3,8 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview_primitives::{ByAddrType, TypeIndex};
-use crate::addr::{AddressState, DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressData, FundedAddressIndex};
+use bitview_primitives::{ByAddrType, ExtendedEmptyAddressIndex, FundedAddressIndex, TypeIndex};
+use crate::addr::{AddressState, DecodedAddrState, EmptyAddressData, FundedAddressData};
 use bitview_traversable::{IndexMap, Traversable, TreeNode};
 use brk_error::{Error, OptionData, Result};
 use brk_types::{Height, OutputType, Version};

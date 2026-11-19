@@ -1,9 +1,10 @@
+use bitview_primitives::{ExtendedEmptyAddressIndex, FundedAddressIndex};
 use brk_types::Sats;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use vecdb::{Bytes, Formattable};
 
-use super::{DecodedAddrState, EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
+use super::{DecodedAddrState, EmptyAddressData};
 
 const PAYLOAD_BITS: u32 = 30;
 const PAYLOAD_MASK: u32 = (1 << PAYLOAD_BITS) - 1;

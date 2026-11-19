@@ -6,8 +6,8 @@ use vecdb::{Convert, DeltaChange, ReadableCloneableVec, VecValue};
 
 use crate::{
     AmountType, FiatType, IndexSources, LazyDeltaAmountFromHeight, LazyDeltaFiatFromHeight,
-    LazyDeltaFromHeight, LazyDeltaPercentFromHeight, LazyPerBlock, PRICED_VERSION,
-    PricedDeltaFromHeight, PricedDeltaUsd, shapes::Windows,
+    LazyDeltaFromHeight, LazyDeltaPercentFromHeight, LazyPerBlock, PricedDeltaUsd, priced_window,
+    shapes::Windows,
 };
 
 /// Trailing-window deltas of a value in its plain units.
@@ -144,16 +144,9 @@ where
             window_starts,
             indexes,
             |name, version, start| {
-                let (cents_name, version) = (format!("{name}_cents"), version + PRICED_VERSION);
-                let cents = PricedDeltaFromHeight::from_source(
-                    &cents_name,
-                    version,
-                    source,
-                    start,
-                    indexes,
-                );
-                let usd =
-                    LazyPerBlock::from_resolutions::<Convert>(name, version, &cents.resolutions);
+                let cents_name = format!("{name}_cents");
+                let (cents, usd) =
+                    priced_window(&cents_name, name, version, source, start, indexes);
                 LazyDeltaFiatFromHeight {
                     usd: PricedDeltaUsd(usd),
                     cents,

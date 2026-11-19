@@ -1,7 +1,21 @@
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
+use bitview_primitives::with_resolution_fields;
 use brk_error::Result;
 
 use crate::{Dependencies, Vecs};
+
+/// Updates every resolution's map: the list is the one `IndexSources` is built from, so a
+/// resolution added to it is updated here, or fails to compile.
+macro_rules! update_resolutions {
+    (
+        periods { $($field:ident: $index:ident => $param:ident,)* }
+        epochs { $($epoch:ident: $epoch_index:ident => $epoch_param:ident,)* }
+        $vecs:ident, $height:ident
+    ) => {
+        $($vecs.$field.update($height);)*
+        $($vecs.$epoch.update($height);)*
+    };
+}
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -26,21 +40,7 @@ impl ComputePlugin for Vecs {
             .compute_monotonic(indexer, starting_height, exit)?;
 
         self.lookback.update(starting_height);
-        self.difficulty_epoch.update(starting_height);
-        self.halving_epoch.update(starting_height);
-        self.minute10.update(starting_height);
-        self.minute30.update(starting_height);
-        self.hour1.update(starting_height);
-        self.hour4.update(starting_height);
-        self.hour12.update(starting_height);
-        self.day1.update(starting_height);
-        self.day3.update(starting_height);
-        self.week1.update(starting_height);
-        self.month1.update(starting_height);
-        self.month3.update(starting_height);
-        self.month6.update(starting_height);
-        self.year1.update(starting_height);
-        self.year10.update(starting_height);
+        with_resolution_fields!(update_resolutions, self, starting_height);
 
         Ok(())
     }

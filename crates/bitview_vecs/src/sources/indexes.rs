@@ -1,8 +1,8 @@
-use bitview_primitives::{Count, Index, with_resolution_fields};
+use bitview_primitives::{Index, with_resolution_fields};
 use brk_types::Height;
 use vecdb::ReadableVec;
 
-use crate::{LazyPreviousDeltaVec, RangeMapVec, shapes::PerResolution};
+use crate::{RangeMapVec, shapes::PerResolution};
 
 macro_rules! define_index_sources {
     (
@@ -17,7 +17,6 @@ macro_rules! define_index_sources {
                 $(RangeMapVec<$index, Height>,)*
                 $(RangeMapVec<$epoch_index, Height>,)*
             >,
-            pub height_tx_index_count: LazyPreviousDeltaVec<Height, Count>,
         }
 
         impl IndexSources {

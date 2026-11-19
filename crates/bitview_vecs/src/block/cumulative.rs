@@ -62,12 +62,26 @@ where
     where
         S: VecValue,
     {
+        self.compute_from(max_from, source, |_, value| transform(value), exit)
+    }
+
+    /// Adds up `transform` of each block's height and `source` value.
+    pub fn compute_from<S>(
+        &mut self,
+        max_from: Height,
+        source: &impl ReadableVec<Height, S>,
+        mut transform: impl FnMut(Height, S) -> T,
+        exit: &Exit,
+    ) -> Result<()>
+    where
+        S: VecValue,
+    {
         let last = &mut self.last;
         Ok(self.cumulative.height.compute_transform(
             max_from,
             source,
             |(height, value, this)| {
-                let value = transform(value);
+                let value = transform(height, value);
                 last.add_at(height, this, value)
             },
             exit,

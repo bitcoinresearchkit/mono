@@ -154,7 +154,6 @@ impl Vecs {
                 halving_epoch: halving.first_height.clone(),
                 difficulty_epoch: epoch.first_height.clone(),
             },
-            height_tx_index_count: height.tx_index_count.clone(),
         };
         let timestamp = Timestamps::new(
             version,

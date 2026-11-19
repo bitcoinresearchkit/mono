@@ -3,10 +3,10 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Difficulty, DifficultyEpoch, PartsPerMillionSigned32};
 use bitview_vecs::{
     LazyPerBlock, LazyPercentPerBlock, Resolutions,
-    ops::{BlocksToDays, DifficultyToHashrate},
+    ops::{BlocksToDays, DifficultyToHashrate, RelativeChange},
 };
 use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height, Version};
-use vecdb::{Ident, IndexVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
+use vecdb::{Ident, IndexVec, LazyDeltaVec, LazyVec, ReadOnlyClone, ReadableCloneableVec};
 
 use super::Vecs;
 
@@ -14,14 +14,10 @@ fn blocks_left_to_retarget(height: Height) -> Count {
     Count::from(u64::from(height.left_before_next_diff_adj()))
 }
 
-fn difficulty_adjustment(
-    current: Difficulty,
-    previous: Option<Difficulty>,
-) -> PartsPerMillionSigned32 {
-    match previous {
-        Some(previous) => PartsPerMillionSigned32::from(*current / *previous - 1.0),
-        None => PartsPerMillionSigned32::from(f32::NAN),
-    }
+/// The first block of the window, a retarget period long, that ends at `height`: the value
+/// before it is the one `BLOCKS_PER_DIFF_EPOCH` blocks earlier (none through the first period).
+fn retarget_window_start(height: Height) -> Height {
+    Height::from(usize::from(height).saturating_sub(BLOCKS_PER_DIFF_EPOCH as usize - 1))
 }
 
 impl Vecs {
@@ -67,6 +63,26 @@ impl Vecs {
             &blocks_to_retarget,
         );
 
+        // The change from the difficulty before the window: zero (the default) through the first
+        // period, where dividing by it leaves no value.
+        let adjustment_source = LazyDeltaVec::<
+            Height,
+            Difficulty,
+            PartsPerMillionSigned32,
+            RelativeChange<PartsPerMillionSigned32>,
+        >::new(
+            "difficulty_adjustment_ppm_source",
+            version + Version::ONE,
+            difficulty_source.read_only_boxed_clone(),
+            IndexVec::new(
+                "retarget_window_start",
+                Version::ZERO,
+                difficulty_source.clone(),
+                retarget_window_start,
+            )
+            .into_read_only_boxed(),
+        );
+
         Self {
             value: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
             block_height: LazyVec::new(
@@ -76,12 +92,10 @@ impl Vecs {
                 |_, difficulty| difficulty,
             ),
             hashrate,
-            adjustment: LazyPercentPerBlock::from_lookback_source(
+            adjustment: LazyPercentPerBlock::from_height_source(
                 "difficulty_adjustment",
                 version + Version::ONE,
-                &difficulty_source,
-                BLOCKS_PER_DIFF_EPOCH as usize,
-                difficulty_adjustment,
+                &adjustment_source,
                 mappings,
             ),
             epoch,

@@ -1,4 +1,6 @@
-use super::{EmptyAddressData, ExtendedEmptyAddressIndex, FundedAddressIndex};
+use bitview_primitives::{ExtendedEmptyAddressIndex, FundedAddressIndex};
+
+use super::EmptyAddressData;
 
 /// Decoded form of an address's four-byte primary state.
 #[derive(Debug, Clone)]
