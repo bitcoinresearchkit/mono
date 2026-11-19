@@ -59,6 +59,8 @@
         --cycle-compute: light-dark(rgb(43 108 230 / 0.06), rgb(110 160 255 / 0.07));
         --cycle-catch-up: light-dark(rgb(20 21 24 / 0.04), rgb(236 238 241 / 0.04));
         --compare: light-dark(#6b6f78, #9aa0aa);
+        /* (The width of the note under the best's title and of its table.) */
+        --measure: 54ch;
         --sans: -apple-system, system-ui, "Segoe UI", Roboto, Inter, sans-serif;
         --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       }
@@ -482,7 +484,7 @@
       }
 
       #best-note {
-        max-width: 54ch;
+        max-width: var(--measure);
         margin: 8px 0 0;
         color: var(--soft);
         text-wrap: pretty;
@@ -621,7 +623,7 @@
 
         /* (As wide as the note above it.) */
         &.narrow {
-          max-width: 54ch;
+          max-width: var(--measure);
         }
       }
 
@@ -707,8 +709,8 @@
           color: var(--faint);
         }
 
-        /* (Against the best: no wider than its note; its categories in the bars' own face, free to wrap, and a phone's columns
-           closer, so none is off the screen.) */
+        /* (Against the best: its categories in the bars' own face and free to wrap, and a phone's columns closer, so none is
+           off the screen.) */
         &.fit {
           td:first-child {
             font: 13px var(--sans);
@@ -749,12 +751,13 @@
           }
         }
 
-        /* (A category noticeably worse is the accent's, heavier; the best itself and the rest quiet.) */
+        /* (A row kept in focus as its table is redrawn.) */
         tr:focus-visible {
           outline: 2px solid var(--accent);
           outline-offset: -2px;
         }
 
+        /* (A category noticeably worse is the accent's, heavier; the best itself and the rest quiet.) */
         .over {
           color: var(--faint);
 
@@ -864,7 +867,7 @@
         </section>
 
         <section aria-labelledby="best-title">
-          <h2 id="best-title">Against the best <small id="best-count"></small></h2>
+          <h2 id="best-title" tabindex="-1">Against the best <small id="best-count"></small></h2>
           <p id="best-note"></p>
           <div class="table narrow"><table id="best" class="fit"></table></div>
         </section>
@@ -1576,10 +1579,10 @@
             if (r === run || found == null || (!own && r.silent_payments !== run.silent_payments)) continue;
             seen = true;
             const other = Math.max(found, unit.floor);
-            if (other < best.value) best = { run: r, value: other };
+            if (other < best.value) best = { run: r, value: other, floored: found < unit.floor };
           }
           const percent = Math.round((value / best.value - 1) * 100);
-          return { name, unit, own, value, best, seen, percent, floored: best.value === unit.floor && best.run !== run, worse: seen && percent > WORSE * 100 };
+          return { name, unit, own, value, best, seen, percent, worse: seen && percent > WORSE * 100 && value - best.value >= unit.floor };
         });
         const judged = rows.filter((row) => row.value >= row.unit.floor);
         return { height, apart, rows: judged.sort((a, b) => Number(a.own) - Number(b.own) || b.percent - a.percent), unjudged: rows.length - judged.length };
@@ -1591,19 +1594,20 @@
         if (!pool.includes(selected)) return (note.textContent = "Pick a complete full sync from an empty data directory to hold it to the best.");
         if (pool.length < 2) return (note.textContent = "No other full sync of this machine and profile to hold it to yet.");
         const { apart, rows, unjudged } = judge(selected, pool), held = rows.filter((row) => row.seen);
-        $("best-count").textContent = `${held.filter((row) => row.worse).length} of ${held.length} noticeably worse`;
-        note.textContent = `Best of ${pool.length} full syncs on this machine and profile. Worse: over ${WORSE * 100}% above the best, the gap within which three in four categories of two runs of one commit stayed. Stages and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments, plugins to every run. Only indexing is cut at a shared height; the rest are whole runs${apart == null ? "" : `, their tips up to ${grouped(apart)} blocks apart`}. A time under ${TIME.floor} s reads as ${TIME.floor} s${unjudged ? `, and ${unjudged} rows of this run under it are left out` : ""}.`;
-        const best = (row) => (row.seen ? `${row.floored ? "≤ " : ""}${row.unit.fmt(row.best.value)}` : "–");
+        $("best-count").textContent = held.length ? `${held.filter((row) => row.worse).length} of ${held.length} noticeably worse` : "";
+        note.textContent = `Best of up to ${pool.length} full syncs on this machine and profile. Worse: over ${WORSE * 100}% and ${TIME.floor} s above the best; the 10% is the gap within which three in four categories of two runs of one commit stayed. Stages and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments, plugins to every run. Indexing is cut at a shared height, the rest are whole runs${apart ? `, their tips up to ${grouped(apart)} blocks apart` : ""}. A time under ${TIME.floor} s reads as ${TIME.floor} s${unjudged ? ` (${unjudged} such rows of this run are left out)` : ""}.`;
+        const best = (row) => (row.seen ? `${row.best.floored ? "≤ " : ""}${row.unit.fmt(row.best.value)}` : "–");
         const holder = (row) => (!row.seen ? "no other run" : row.best.run === selected ? "this run" : `<button type="button" class="pick" data-label="${escape(row.best.run.label)}">${escape(rev(row.best.run))}</button>`);
-        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}" tabindex="-1"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}</td><td>${best(row)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `+${grouped(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
+        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}" tabindex="-1"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}</td><td>${best(row)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `${row.best.floored ? "≥ " : "+"}${grouped(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
       }
       $("best").addEventListener("click", (e) => {
         const button = e.target.closest("button[data-label]");
         if (!button) return;
         const name = button.closest("tr").dataset.name;
         pick(runs().find((r) => r.label === button.dataset.label));
-        // (The table's redrawn, its row's best now the picked run, so with no button: the row itself keeps the place.)
-        $("best").querySelector(`tr[data-name="${CSS.escape(name)}"]`)?.focus();
+        // (The table's redrawn, its row's best now the picked run, so with no button: the row keeps the place, or the title when
+        // the picked run's own value left the row out.)
+        ($("best").querySelector(`tr[data-name="${CSS.escape(name)}"]`) ?? $("best-title")).focus();
       });
 
       function pick(r) {
