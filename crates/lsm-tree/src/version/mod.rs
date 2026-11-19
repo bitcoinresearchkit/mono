@@ -17,10 +17,10 @@ use crate::compaction::state::hidden_set::HiddenSet;
 use crate::{Result, Table};
 use byteorder::{LittleEndian, WriteBytesExt};
 use optimize::optimize_runs;
+use run::Ranged;
 use rustc_hash::FxHashSet;
 use std::{
     io::{Error as IoError, ErrorKind, Write},
-    ops::Deref,
     sync::Arc,
 };
 
@@ -60,6 +60,27 @@ fn level_contains_any(level: &Level, ids: &FxHashSet<u32>) -> bool {
         .any(|table| ids.contains(&table.id()))
 }
 
+/// Whether each run is newer than every later run it overlaps.
+///
+/// A point read answers from the first table that holds its key, run after run, while a range read
+/// orders a key's versions by sequence number: the two agree only while run order follows sequence
+/// numbers.
+fn newest_first(runs: &[Run<Table>]) -> bool {
+    runs.iter().enumerate().all(|(idx, newer)| {
+        runs.iter()
+            .skip(idx + 1)
+            .flat_map(|run| run.iter())
+            .all(|older| {
+                newer
+                    .get_overlapping(older.key_range())
+                    .iter()
+                    .all(|table| table.get_highest_seqno() > older.get_highest_seqno())
+            })
+    })
+}
+
+/// `level` without the tables `removed_ids`, and with `new_run` as its newest run, or as its
+/// oldest one when `append_new_run`.
 fn rebuild_level(
     level: &Level,
     removed_ids: &FxHashSet<u32>,
@@ -86,7 +107,12 @@ fn rebuild_level(
         }
     }
 
-    Level::from_runs(optimize_runs(runs).into_iter().map(Arc::new).collect())
+    let runs = optimize_runs(runs);
+    debug_assert!(
+        newest_first(&runs),
+        "a run is older than a later run it overlaps: point reads would return stale values"
+    );
+    Level::from_runs(runs.into_iter().map(Arc::new).collect())
 }
 
 /// A version is an immutable, point-in-time view of a tree's structure
@@ -161,43 +187,15 @@ impl Version {
 
     /// Creates a new version with the additional run added to the "top" of L0.
     pub fn with_new_l0_run(&self, run: &[Table]) -> Self {
-        let id = self.id + 1;
+        let mut levels = self.levels.clone();
+        if let Some(l0) = levels.first_mut() {
+            *l0 = rebuild_level(l0, &FxHashSet::default(), Run::new(run.to_vec()), false);
+        }
 
-        let mut levels = vec![];
-
-        // L0
-        levels.push({
-            // Copy-on-write the first level with new run at top
-
-            #[expect(clippy::expect_used, reason = "L0 always exists")]
-            let l0 = self.levels.first().expect("L0 should always exist");
-
-            let prev_runs = l0
-                .runs
-                .iter()
-                .map(|run| {
-                    let run: Run<_> = run.deref().clone();
-                    run
-                })
-                .collect::<Vec<_>>();
-
-            let mut runs = Vec::with_capacity(prev_runs.len() + 1);
-
-            if let Some(run) = Run::new(run.to_vec()) {
-                runs.push(run);
-            }
-
-            runs.extend(prev_runs);
-
-            let runs = optimize_runs(runs);
-
-            Level::from_runs(runs.into_iter().map(Arc::new).collect())
-        });
-
-        // L1+
-        levels.extend(self.levels.iter().skip(1).cloned());
-
-        Self { id, levels }
+        Self {
+            id: self.id + 1,
+            levels,
+        }
     }
 
     pub fn with_merge(
