@@ -60,6 +60,7 @@ where
     P: ComputePluginSet + ReadOnlyClone,
     P::ReadOnly: QueryPluginSet + 'static,
 {
+    bitview_server::initialize_etags()?;
     let config = Config::import()?;
 
     init(Some(&config.server.logs_path()))?;

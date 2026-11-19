@@ -59,6 +59,7 @@ pub use api::ApiRoutes;
 
 pub use bitview_website::Website;
 pub use error::Error;
+pub use etag::initialize as initialize_etags;
 pub use port::Port;
 
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig};

@@ -2,24 +2,24 @@ use std::{
     fs::File,
     io::{self, BufRead, BufReader},
     sync::LazyLock,
-    time::Instant,
 };
 
 use axum::http::{HeaderMap, HeaderValue, header::ETAG};
+use bitcoin::hex::DisplayHex;
 #[cfg(feature = "full-api")]
 use bitview_query::RepresentationId;
 use sha2::{Digest, Sha256};
 
 static EXECUTABLE_TAG: LazyLock<io::Result<String>> = LazyLock::new(hash_executable);
 
-pub(super) fn initialize() -> io::Result<()> {
+/// Hash the running executable before startup work gives installers time to replace its path.
+pub fn initialize() -> io::Result<()> {
     EXECUTABLE_TAG.as_ref().map(|_| ()).map_err(|error| {
         io::Error::new(error.kind(), format!("Hashing the running executable for ETags: {error}"))
     })
 }
 
 fn hash_executable() -> io::Result<String> {
-    let started = Instant::now();
     // On Linux, open the running image even if an install replaced its path.
     #[cfg(target_os = "linux")]
     let file = File::open("/proc/self/exe")?;
@@ -36,9 +36,7 @@ fn hash_executable() -> io::Result<String> {
         let len = bytes.len();
         reader.consume(len);
     }
-    let prefix = u128::from_be_bytes(hash.finalize()[..16].try_into().unwrap());
-    tracing::debug!(elapsed = ?started.elapsed(), "Hashed the executable for ETags");
-    Ok(format!("{prefix:032x}"))
+    Ok(hash.finalize()[..8].to_lower_hex_string())
 }
 
 /// A weak ETag prefixed with the executable's hash so a build can change response formats
