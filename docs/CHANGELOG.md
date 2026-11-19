@@ -17,6 +17,15 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The API reference (`/api`) is Bitview's own page, drawn from `/openapi.json`, in place of Scalar: every
   endpoint by group, searchable, each request run from the page; it loads about a tenth of what it did.
 
+- Extended block and pool-block responses use live caching until the node's first complete
+  orphan scan, then use the settled CDN policy where applicable.
+
+- The Rust client retries a pinned GET through the configured URL when the response body
+  fails in transit, including timeouts after successful headers.
+
+- The Rust client sends each transaction broadcast once and returns the original error if
+  it fails. The server identifies overload rejections as transactions it did not submit.
+
 - Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
   matching mempool.space. Descendants evicted with a replaced parent keep their replacement
   status.

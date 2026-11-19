@@ -153,8 +153,8 @@ where
     #[cfg(feature = "full-api")]
     query.sync(bitview_query::Query::verify_block_positions)?;
 
-    // Before the server answers: a row first served without its stale blocks can stay so on the
-    // CDN.
+    // Try to publish the orphan list before serving. If it fails, affected rows use live caching
+    // until a complete scan is published.
     #[cfg(feature = "full-api")]
     query.sync(refresh_stale_blocks);
 
