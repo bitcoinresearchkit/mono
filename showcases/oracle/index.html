@@ -1333,16 +1333,16 @@
       <section class="chapter" aria-labelledby="c4">
         <header><span class="n">04</span><h2 id="c4">And it's close</h2></header>
         <div>
-          <p class="headline"><strong>0.15%</strong><span>median distance from the exchanges' price range, block by block, over 596,251 blocks since January 2015.</span></p>
+          <p class="headline"><strong id="acc-median">–</strong><span>median distance from the exchanges' price range, block by block, over <span id="acc-blocks">–</span> blocks since January 2015.</span></p>
           <ol class="years" id="years" aria-label="Median distance by year"></ol>
           <div class="years-axis" id="years-axis" aria-hidden="true"></div>
           <dl class="facts">
-            <div><dt>95% of blocks</dt><dd>within 1.2%</dd></div>
-            <div><dt>99% of blocks</dt><dd>within 3.4%</dd></div>
-            <div><dt>Since 2022</dt><dd>none off by 10%</dd></div>
+            <div><dt>95% of blocks</dt><dd>within <span id="acc-p95">–</span></dd></div>
+            <div><dt>99% of blocks</dt><dd>within <span id="acc-p99">–</span></dd></div>
+            <div><dt>Since <span id="acc-clean">–</span></dt><dd>none off by 10%</dd></div>
             <div><dt>Exchanges asked</dt><dd>none</dd></div>
           </dl>
-          <p class="note">These numbers aren't measured live; they come from brk_oracle's own test, in <a href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/brk_oracle/README.md#accuracy">its README</a>. It ran the oracle over every block from 340,000 (January 2015) through 952,314 and measured the 596,251 that exchange data covers against exchanges' high and low at that block; a block inside that range counts as 0%. So 2026 is partial (its fainter bar). It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
+          <p class="note">These numbers aren't measured live; they come from brk_oracle's own test, in <a href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/brk_oracle/README.md#accuracy">its README</a>. It ran the oracle over every block from <span id="acc-from">–</span> (January 2015) through <span id="acc-to">–</span> and measured the <span id="acc-blocks-note">–</span> that exchange data covers against exchanges' high and low at that block; a block inside that range counts as 0%. So <span id="acc-partial">–</span> is partial (its fainter bar). It was weakest in <span id="acc-weak">–</span>, when fewer payments made a fainter fingerprint.</p>
         </div>
       </section>
     </main>
@@ -2076,18 +2076,35 @@
         li.setAttribute("aria-label", `${age ? `${age} blocks back` : "The newest block"}: ${(weight * 100).toFixed(1)}%`);
         return li;
       }));
-      /** Median distance from the exchanges' range, by year (brk_oracle's README, through block 952,314). */
-      const YEARS = [[2015, 0.26], [2016, 0.33], [2017, 0.45], [2018, 0.18], [2019, 0.16], [2020, 0.1], [2021, 0.07], [2022, 0.07], [2023, 0.1], [2024, 0.1], [2025, 0.11], [2026, 0.1]];
-      const WORST = Math.max(...YEARS.map(([, median]) => median));
-      $("years").replaceChildren(...YEARS.map(([year, median]) => {
-        const li = document.createElement("li");
-        if (year === 2026) li.className = "partial";
-        li.style.setProperty("--h", `${((median / WORST) * 100).toFixed(1)}%`);
-        li.innerHTML = `<span class="v">${median.toFixed(2)}<small>%</small></span><i></i>`;
-        li.setAttribute("aria-label", `${year}${year === 2026 ? " so far" : ""}: ${median.toFixed(2)}%`);
-        return li;
-      }));
-      $("years-axis").replaceChildren(...YEARS.map(([year]) => Object.assign(document.createElement("span"), { textContent: `’${String(year).slice(2)}` })));
+      /** What brk_oracle's README measured, from the same run (accuracy.json; tools/oracle-bench/score.py --json). Percent. */
+      read("accuracy.json").then((/** @type {{ from: number, to: number, blocks: number, median: number, p95: number, p99: number, years: { year: number, blocks: number, median: number, gt5: number, gt10: number }[] }} */ acc) => {
+        const text = (/** @type {string} */ id, /** @type {string | number} */ value) => { $(id).textContent = String(value); };
+        const count = acc.blocks.toLocaleString("en-US");
+        // The first year after which no block is off by 10%, and the two years with the most blocks off by 5%.
+        const clean = acc.years.findLast((y) => y.gt10 > 0).year + 1;
+        const weak = acc.years.toSorted((a, b) => b.gt5 - a.gt5).slice(0, 2).map((y) => y.year).sort();
+        text("acc-median", `${acc.median.toFixed(2)}%`);
+        text("acc-blocks", count);
+        text("acc-blocks-note", count);
+        text("acc-p95", `${acc.p95.toFixed(1)}%`);
+        text("acc-p99", `${acc.p99.toFixed(1)}%`);
+        text("acc-clean", clean);
+        text("acc-from", acc.from.toLocaleString("en-US"));
+        text("acc-to", acc.to.toLocaleString("en-US"));
+        text("acc-partial", acc.years.at(-1)?.year ?? "–");
+        text("acc-weak", weak.join(" and "));
+        const partial = acc.years.at(-1)?.year;
+        const worst = Math.max(...acc.years.map((y) => y.median));
+        $("years").replaceChildren(...acc.years.map(({ year, median }) => {
+          const li = document.createElement("li");
+          if (year === partial) li.className = "partial";
+          li.style.setProperty("--h", `${((median / worst) * 100).toFixed(1)}%`);
+          li.innerHTML = `<span class="v">${median.toFixed(2)}<small>%</small></span><i></i>`;
+          li.setAttribute("aria-label", `${year}${year === partial ? " so far" : ""}: ${median.toFixed(2)}%`);
+          return li;
+        }));
+        $("years-axis").replaceChildren(...acc.years.map(({ year }) => Object.assign(document.createElement("span"), { textContent: `’${String(year).slice(2)}` })));
+      });
 
       // ── Start, then keep it live ──
 
