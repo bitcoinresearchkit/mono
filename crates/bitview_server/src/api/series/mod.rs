@@ -29,13 +29,13 @@ use crate::{
     request_state::RequestState,
 };
 
-pub async fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
+/// A page of the names, at most a thousand of them, from the registry in memory.
+pub fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
     let tag = state.series_bodies.list.clone();
-    state
-        .respond(headers, state.chain(), move |_| {
-            Ok(Answer::json(tag, move |q| Ok(q.series_list(pagination))))
-        })
-        .await
+    state.respond_now(
+        headers,
+        Answer::json(tag, move |q| Ok(q.series_list(pagination))),
+    )
 }
 
 pub async fn serve_search(state: AppState, headers: &HeaderMap, search: SearchQuery) -> Response {
@@ -274,7 +274,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 RequestState(state): RequestState,
                 Query(pagination): Query<Pagination>
             | {
-                serve_list(state, &headers, pagination).await
+                serve_list(state, &headers, pagination)
             },
             |op| op
                 .id("list_series")
