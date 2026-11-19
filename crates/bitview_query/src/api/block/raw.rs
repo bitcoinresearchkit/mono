@@ -1,5 +1,5 @@
 use bitcoin::Weight;
-use brk_types::{BlockHash, Height};
+use brk_types::{BlkPosition, BlockHash, Height};
 use vecdb::ReadableVec;
 
 use super::header::HEADER_SIZE;
@@ -28,6 +28,16 @@ impl Query {
         hash: &BlockHash,
         guard: &ReadPin,
     ) -> Result<Vec<u8>> {
+        self.block_raw_with_position(height, hash, guard)
+            .map(|(bytes, _)| bytes)
+    }
+
+    pub(crate) fn block_raw_with_position(
+        &self,
+        height: Height,
+        hash: &BlockHash,
+        guard: &ReadPin,
+    ) -> Result<(Vec<u8>, BlkPosition)> {
         let position = self.block_position(height, guard)?;
         let bytes = self
             .reader()
@@ -36,7 +46,7 @@ impl Query {
             .first_chunk::<HEADER_SIZE>()
             .ok_or(Error::Internal("Indexed block smaller than a header"))?;
         Self::verify_header(header, hash)?;
-        Ok(bytes)
+        Ok((bytes, position))
     }
 
     /// The block's size, once its header is the block asked for: the transactions are not read.

@@ -3,7 +3,12 @@
 
 use std::ops::Range;
 
-use bitcoin::{Block, consensus::deserialize, hex::DisplayHex};
+use bitcoin::{
+    Block, Script, VarInt,
+    block::Header,
+    consensus::{Decodable, deserialize},
+    hex::DisplayHex,
+};
 use bitview_plugin_outputs::published_spend;
 use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
 use bitview_primitives::{Lengths, TxInIndex};
@@ -125,6 +130,37 @@ fn end_span<I: VecIndex>(
         None => 0,
     };
     Ok(start..ends.collect_one_at(height).data()?.to_usize())
+}
+
+fn compact_size(bytes: &mut &[u8]) -> Option<usize> {
+    usize::try_from(VarInt::consensus_decode_from_finite_reader(bytes).ok()?.0).ok()
+}
+
+/// Seek to the outputs of an indexed transaction without building inputs or witnesses.
+fn tx_output_bytes(mut bytes: &[u8], expected_outputs: usize) -> Option<&[u8]> {
+    bytes = bytes.get(4..)?; // version
+    if let [0, 1, rest @ ..] = bytes {
+        bytes = rest; // SegWit marker and flag
+    }
+    let inputs = compact_size(&mut bytes)?;
+    if inputs == 0 {
+        return None;
+    }
+    for _ in 0..inputs {
+        bytes = bytes.get(36..)?; // previous outpoint
+        let script = compact_size(&mut bytes)?;
+        bytes = bytes.get(script.checked_add(4)?..)?; // scriptSig and sequence
+    }
+    (compact_size(&mut bytes)? == expected_outputs).then_some(bytes)
+}
+
+fn take_raw_output<'a>(bytes: &mut &'a [u8]) -> Option<(Sats, &'a [u8])> {
+    let value = Sats::from(u64::from_le_bytes(*bytes.first_chunk()?));
+    *bytes = bytes.get(8..)?;
+    let len = compact_size(bytes)?;
+    let (script, remaining) = bytes.split_at_checked(len)?;
+    *bytes = remaining;
+    Some((value, script))
 }
 
 impl Query {
@@ -307,38 +343,48 @@ impl Query {
             != 0;
         // The block file holds these scripts together. The address column orders
         // keys by first appearance, so reused keys can fault pages across the chain.
-        let bytes = self.block_raw_at_height(block.height, &block.hash, &block.pin)?;
-        let parsed = deserialize::<Block>(&bytes)
-            .map_err(|_| Error::Internal("Invalid raw block payload"))?;
-        let timestamp = Timestamp::from(parsed.header.time);
-        let txids = self
-            .indexer()
-            .vecs()
-            .transactions
-            .txid
+        let (bytes, block_position) =
+            self.block_raw_with_position(block.height, &block.hash, &block.pin)?;
+        let header = Header::consensus_decode_from_finite_reader(&mut bytes.as_slice())
+            .map_err(|_| Error::Internal("Invalid raw block header"))?;
+        let timestamp = Timestamp::from(header.time);
+        let transactions = &self.indexer().vecs().transactions;
+        let txids = transactions.txid.reader();
+        let positions = transactions
+            .position
             .collect_range_at(outputs.txs.start, outputs.txs.end);
-        if txids.len() != outputs.txs.len() || parsed.txdata.len() != outputs.txs.len() {
-            return Err(Error::Internal("Block transactions missing"));
-        }
         let mut utxos = Vec::new();
         for &tx in &selected.tx_indexes {
+            let mut wanted = selected.of(tx).peekable();
+            if wanted.peek().is_none() {
+                continue;
+            }
             let row = tx.to_usize() - outputs.txs.start;
-            let txid = txids[row];
-            let transaction = &parsed.txdata[row];
-            for (vout, output) in selected.of(tx) {
-                let txout = transaction
-                    .output
-                    .get(usize::from(vout))
-                    .filter(|output| output.script_pubkey.is_p2tr())
+            let txid = txids.try_get(tx).data()?;
+            let position = positions.get(row).data()?;
+            let mut txouts = position
+                .offset()
+                .checked_sub(block_position.offset())
+                .filter(|_| position.blk_index() == block_position.blk_index())
+                .and_then(|offset| bytes.get(offset as usize..))
+                .and_then(|tx| tx_output_bytes(tx, outputs.bounds[row + 1] - outputs.bounds[row]))
+                .ok_or(Error::Internal("Indexed transaction missing from block"))?;
+            let mut raw_outputs = std::iter::from_fn(|| take_raw_output(&mut txouts));
+            let mut next = 0;
+            for (vout, output) in wanted {
+                let index = usize::from(vout);
+                let (value, script) = raw_outputs
+                    .nth(index - next)
+                    .filter(|(_, script)| Script::from_bytes(script).is_p2tr())
                     .ok_or(Error::Internal("Indexed Taproot output missing from block"))?;
-                let script = txout.script_pubkey.as_bytes();
+                next = index + 1;
                 if check_keys && !is_on_curve(&script[2..]) {
                     continue;
                 }
                 utxos.push(BlindbitUtxo {
                     txid,
                     vout,
-                    value: Sats::from(txout.value.to_sat()),
+                    value,
                     scriptpubkey: script.to_lower_hex_string().into(),
                     block_height: block.height,
                     block_hash: block.hash,
