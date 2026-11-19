@@ -14,6 +14,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 - `config.toml` again reads `_` digit separators, hex, octal and binary integers, and quoted keys.
 
+- The API reference (`/api`) is Bitview's own page, drawn from `/openapi.json`, in place of Scalar: every
+  endpoint by group, searchable, each request run from the page; it loads about a tenth of what it did.
+
 - Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
   matching mempool.space. Descendants evicted with a replaced parent keep their replacement
   status.
