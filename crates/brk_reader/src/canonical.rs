@@ -14,10 +14,10 @@ pub struct CanonicalRange {
 }
 
 impl CanonicalRange {
-    /// The best chain's blocks after `anchor` (from genesis when `None`) up to `tip`. `None`
+    /// The best chain's blocks after `anchor` (from genesis when `None`) up to `end`. `None`
     /// when `anchor` is off the best chain: even an empty range (an orphan at the tip's height)
     /// must report the chain break.
-    pub fn walk(client: &Client, anchor: Option<&BlockHash>, tip: Height) -> Result<Option<Self>> {
+    pub fn walk(client: &Client, anchor: Option<&BlockHash>, end: Height) -> Result<Option<Self>> {
         let (start, anchor) = match anchor {
             Some(hash) => {
                 let info = client.get_block_header_info(hash)?;
@@ -30,7 +30,7 @@ impl CanonicalRange {
             None => (Height::ZERO, None),
         };
         let by_hash = client
-            .get_block_hashes_range(*start, *tip)?
+            .get_block_hashes_range(*start, *end)?
             .into_iter()
             .enumerate()
             .map(|(i, h)| (h, i as u32))

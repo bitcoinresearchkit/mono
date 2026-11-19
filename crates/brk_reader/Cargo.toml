@@ -20,4 +20,3 @@ derive_more = { workspace = true }
 libc = { workspace = true }
 parking_lot = { workspace = true }
 rustc-hash = { workspace = true }
-tracing = { workspace = true }

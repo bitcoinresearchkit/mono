@@ -6,7 +6,7 @@ use brk_rpc::Client;
 use brk_types::BlockHash;
 use parking_lot::Mutex;
 
-use crate::{BlkIndexToBlkPath, XORBytes};
+use crate::XORBytes;
 
 // Bounds retained descriptors, not handles still owned by active readers.
 const MAX_CACHED_FILES: usize = 64;
@@ -49,12 +49,10 @@ impl ReaderInner {
         *self.append_position.lock() = Some(position);
     }
 
-    pub fn refresh_paths(&self) -> Result<BlkIndexToBlkPath> {
-        let paths = BlkIndexToBlkPath::scan(&self.blocks_dir);
-        // A failed scan invalidates old cached inodes too. Active readers keep
-        // their existing handle; subsequent opens resolve the current path.
+    /// Forgets the descriptors raw reads keep, for when the blk files may have been replaced.
+    /// Active readers keep their existing handle; subsequent opens resolve the current path.
+    pub fn close_blk_files(&self) {
         self.blk_file_cache.store(Arc::default());
-        paths
     }
 
     pub fn blk_path(&self, blk_index: u16) -> PathBuf {
@@ -73,8 +71,8 @@ impl ReaderInner {
             next.pop_first();
         }
         next.insert(blk_index, file.clone());
-        // Only over the map this open started from: after a refresh (or a racing insert) the
-        // handle stays uncached, so an open begun before a refresh never reinserts its old inode.
+        // Only over the map this open started from: after a close (or a racing insert) the
+        // handle stays uncached, so an open begun before a close never reinserts its old inode.
         self.blk_file_cache.compare_and_swap(&cache, Arc::new(next));
         Ok(file)
     }

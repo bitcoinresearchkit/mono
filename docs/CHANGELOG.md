@@ -2314,9 +2314,9 @@ has to be deleted by hand.
 - `brk_reader`: `XORBytes::read(dir)` replaces `From<&Path>` (a missing `xor.dat` is `None`; an unreadable or malformed
   one is an error, was a silent identity mask) and `Reader::new` returns `Result` for the same reason;
   `Reader::check_source` checks the blocks directory still holds the reader's mask. `Reader::{all, after_with,
-  range_with, new_without_rlimit, raise_fd_limit, first_block_height}` are gone (use `range`), `BlkIndexToBlkPath`,
-  `CanonicalRange`, `XORIndex` and `XOR_LEN` are no longer exported, and `BlockReceiver` is an alias of crossbeam's
-  `IntoIter` (was a struct with `iter()`)
+  range, range_with, new_without_rlimit, raise_fd_limit, first_block_height}` are gone: `after(hash, end)` is the one
+  entry point and takes the height to stop at (the tip for a sync). `BlkIndexToBlkPath`, `CanonicalRange`, `XORIndex`
+  and `XOR_LEN` are no longer exported, and `BlockReceiver` is an iterator only (it had `iter()`)
 - `brk_mempool`: `fees()` returns the whole sat/vB tiers (was the precise ones) and `precise_fees()` the precise ones as
   `PreciseRecommendedFees`, both as `Result` on `ReadOnlyState`; `start` (use `start_with`), `MempoolStats`, `Cycle`,
   `AddedKind`, `TxAdded` and `TxRemoved` are gone, and `Snapshot` and `TxRemoval` are no longer exported

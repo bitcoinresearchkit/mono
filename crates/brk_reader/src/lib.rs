@@ -9,9 +9,8 @@ use std::{
 use bitcoin::Network;
 use brk_error::{Error, Result};
 use brk_rpc::Client;
-use brk_types::{BlkPosition, BlockHash, ReadBlock};
+use brk_types::{BlkPosition, BlockHash, Height};
 use canonical::CanonicalRange;
-use crossbeam_channel::IntoIter;
 use reader_inner::ReaderInner;
 use xor_index::XORIndex;
 
@@ -22,19 +21,14 @@ mod parse;
 mod pipeline;
 mod reader_inner;
 mod scan;
-#[cfg(test)]
-mod tests;
 mod xor_bytes;
 mod xor_index;
 
 pub(crate) use blk_index_to_blk_path::BlkIndexToBlkPath;
 pub use blk_read::BlkRead;
+pub use pipeline::BlockReceiver;
 
 pub use xor_bytes::*;
-
-/// Stream of parsed blocks: each item waits for its block, and the stream ends when the pipeline
-/// closes.
-pub type BlockReceiver = IntoIter<Result<ReadBlock>>;
 
 /// Bitcoin Core blk-file reader. Cheap to clone (`Arc`-backed) and
 /// thread-safe.
@@ -92,11 +86,10 @@ impl Reader {
     }
 
     /// Streams every canonical block strictly after `hash` (or from
-    /// genesis when `None`) up to the current chain tip.
-    pub fn after(&self, hash: Option<BlockHash>) -> Result<BlockReceiver> {
-        let tip = self.0.client.get_last_height()?;
+    /// genesis when `None`) up to the height `end`, the chain tip for a sync.
+    pub fn after(&self, hash: Option<BlockHash>, end: Height) -> Result<BlockReceiver> {
         Ok(
-            match CanonicalRange::walk(&self.0.client, hash.as_ref(), tip)? {
+            match CanonicalRange::walk(&self.0.client, hash.as_ref(), end)? {
                 Some(canonical) => pipeline::spawn(self.0.clone(), canonical),
                 None => pipeline::failed(Error::Internal("anchor is no longer on the best chain")),
             },

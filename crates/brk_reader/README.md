@@ -21,13 +21,14 @@ let client = node.client()?;
 let reader = Reader::new(node.blocks_dir()?, &client)?;
 
 // Everything from genesis to the current tip
-for block in reader.after(None)? {
+let tip = client.get_last_height()?;
+for block in reader.after(None, tip)? {
     let block = block?;
     println!("{}: {}", block.height(), block.hash());
 }
 
 // Everything strictly after a known hash (typical sync / catchup pattern)
-for block in reader.after(Some(last_known_hash))? {
+for block in reader.after(Some(last_known_hash), tip)? {
     let block = block?;
     // ...
 }
@@ -43,7 +44,7 @@ errors, missing canonical blocks) reach the consumer as a final
 One pipeline for every range: locate each block by its header, read the bodies in chain order.
 
 ```text
-canonical chain ──► Locate ──► Parsers ──► Receiver<Result<ReadBlock>>
+canonical chain ──► Locate ──► Parsers ──► BlockReceiver
 (hashes via RPC)    hops frames,   read and      in canonical order
                     headers only   decode bodies
 ```
@@ -59,12 +60,14 @@ canonical chain ──► Locate ──► Parsers ──► Receiver<Result<Rea
    nothing. Each block's `prev_blockhash` is checked against the canonical chain, and against the
    anchor for the first.
    Where the hop starts:
-   * right after the last block streamed, for an update that follows the previous call: only the
+   * right after the last block located, for an update that follows the previous call: only the
      frames appended since are read, with no directory scan;
-   * otherwise at the last file whose first block is no newer than the anchor, 21 files back
-     (the margin for out-of-order writes), or at the first file from genesis.
+   * otherwise at a file whose first block is no newer than the anchor (a binary search over
+     the files' first blocks), 21 files back (the margin for out-of-order writes), or at the
+     first file from genesis.
 3. **Parsers** (a third of the cores, at most four) read each located body with one positioned
-   read, past the OS page cache, decode it, and send it at its turn.
+   read (on macOS past the OS page cache) and decode it. Each block is answered on its own
+   channel, and the receiver takes the answers in chain order.
 
 See `src/pipeline.rs` for the pipeline, `src/scan.rs` for the frame hop and `src/canonical.rs`
 for the filter map.

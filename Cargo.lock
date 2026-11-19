@@ -1409,7 +1409,6 @@ dependencies = [
  "libc",
  "parking_lot",
  "rustc-hash",
- "tracing",
 ]
 
 [[package]]
