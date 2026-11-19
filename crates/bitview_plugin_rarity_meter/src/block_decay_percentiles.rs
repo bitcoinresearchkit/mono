@@ -3,8 +3,6 @@ use bitview_compute::FenwickTree;
 pub const START_HEIGHT: usize = 210_000;
 const HALF_LIFE_BLOCKS: usize = 210_000;
 const BUCKET_WIDTH: f64 = 0.001;
-const MAX_RATIO: f64 = 43.0;
-const TREE_SIZE: usize = (MAX_RATIO / BUCKET_WIDTH) as usize + 1;
 
 pub struct BlockDecayPercentiles {
     tree: FenwickTree<f64>,
@@ -15,7 +13,7 @@ pub struct BlockDecayPercentiles {
 impl Default for BlockDecayPercentiles {
     fn default() -> Self {
         Self {
-            tree: FenwickTree::new(TREE_SIZE),
+            tree: FenwickTree::new(1),
             len: 0,
             mass: 0.0,
         }
@@ -35,9 +33,7 @@ impl BlockDecayPercentiles {
 
     #[inline]
     fn to_bucket(value: f64) -> usize {
-        (value / BUCKET_WIDTH)
-            .round()
-            .clamp(0.0, (TREE_SIZE - 1) as f64) as usize
+        (value / BUCKET_WIDTH).round() as usize
     }
 
     #[inline]
@@ -55,7 +51,7 @@ impl BlockDecayPercentiles {
         }
         let weight = Self::weight(height);
         self.mass += weight;
-        self.tree.add(Self::to_bucket(value), &weight);
+        self.tree.add_growing(Self::to_bucket(value), &weight);
     }
 
     pub fn quantiles<const N: usize>(&self, qs: &[f64; N], out: &mut [f64; N]) {
