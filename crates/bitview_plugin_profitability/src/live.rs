@@ -81,8 +81,7 @@ pub(crate) fn cost_basis(live: &AgeIndex, block: &Block<'_>) -> AgeAggregate<Cos
         } else {
             (Density::NAN, Density::NAN)
         };
-        let (min, max) =
-            age_index::extremes(&live.held, id, block.timestamps, block.height + 1);
+        let (min, max) = live.extremes(id, block);
         CostBasisBlockData {
             percentiles: percentiles.next().expect("one result per age filter"),
             min,

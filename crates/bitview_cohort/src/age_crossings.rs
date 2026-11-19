@@ -2,10 +2,20 @@ use brk_types::{ONE_HOUR_IN_SEC, Timestamp};
 
 use crate::{AGE_BOUNDARIES, AGE_RANGE_COUNT, AgeRangeId};
 
+/// For each age boundary, the first origin younger than it at the last timestamp.
+pub fn age_boundary_positions(timestamps: &[Timestamp]) -> [usize; AGE_RANGE_COUNT - 1] {
+    let Some(&current) = timestamps.last() else {
+        return [0; AGE_RANGE_COUNT - 1];
+    };
+    AGE_BOUNDARIES.map(|hours| {
+        let oldest = i64::from(*current) - i64::from(hours as u32 * ONE_HOUR_IN_SEC);
+        timestamps.partition_point(|t| i64::from(**t) <= oldest)
+    })
+}
+
 /// Visits the origins crossing each age boundary, youngest boundary first, as (origin, younger
 /// range, older range, crossing time). The caller supplies the previous state's monotonic
-/// timestamps, keeps the boundaries' search positions between blocks and resets them after a
-/// rewind.
+/// timestamps and the boundaries' positions from that state. Positions advance to `current`.
 pub fn for_each_age_crossing(
     timestamps: &[Timestamp],
     current: Timestamp,
@@ -20,17 +30,8 @@ pub fn for_each_age_crossing(
     }
     for (i, &hours) in AGE_BOUNDARIES.iter().enumerate() {
         let duration = hours as u32 * ONE_HOUR_IN_SEC;
-        let lower = i64::from(**previous) - i64::from(duration);
         let upper = i64::from(*current) - i64::from(duration);
-        let mut start = positions[i];
-        if start == 0 {
-            start = timestamps.partition_point(|t| i64::from(**t) <= lower);
-        } else {
-            while start < timestamps.len() && i64::from(*timestamps[start]) <= lower {
-                start += 1;
-            }
-        }
-        let mut end = start;
+        let mut end = positions[i];
         while end < timestamps.len() && i64::from(*timestamps[end]) <= upper {
             visit(
                 end,

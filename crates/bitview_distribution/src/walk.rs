@@ -5,7 +5,9 @@
 
 use std::mem;
 
-use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRangeId, for_each_age_crossing};
+use bitview_cohort::{
+    AGE_RANGE_COUNT, Age, AgeRangeId, age_boundary_positions, for_each_age_crossing,
+};
 use bitview_compute::{Inputs, WRITE_INTERVAL};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
@@ -90,6 +92,8 @@ pub struct Origins<'a> {
     pub hash: [u8; 32],
     pub prices: &'a [Cents],
     pub timestamps: &'a [Timestamp],
+    /// The first origin younger than each boundary, at the last block applied.
+    pub age_positions: &'a [usize; AGE_RANGE_COUNT - 1],
 }
 
 /// An origin whose age passed a boundary since the block before.
@@ -114,6 +118,8 @@ pub struct Block<'a> {
     pub order: &'a PriceOrder,
     /// The origins that aged past a boundary since the block before, by boundary then height.
     pub crossings: &'a [Crossing],
+    /// The first origin younger than each boundary, after this block.
+    pub age_positions: &'a [usize; AGE_RANGE_COUNT - 1],
     /// What the block created and removed.
     pub diff: BlockDiff<'a>,
     /// What each origin holds after the block.
@@ -129,7 +135,7 @@ impl Block<'_> {
         self.timestamps[self.height]
     }
 
-    /// The block's effect on the sats held at each age, in the order every reader applies it:
+    /// The block's effect on the sats held at each age, in the order URPD applies it:
     /// the origins that aged, as they stood before the block, move to the older range; the
     /// block's new outputs arrive under an hour old; what it removed leaves the age its origin
     /// has at the block.
@@ -238,15 +244,14 @@ impl Walk {
         let Some(start) = consumers.iter().map(|consumer| consumer.start()).min() else {
             return Ok(());
         };
-        if kept.is_none()
+        let restore = kept.is_none()
             || self.version != version
-            || !sources.history.resumes(&self.origins, start)?
-        {
+            || !sources.history.resumes(&self.origins, start)?;
+        if restore {
             self.origins = sources.history.state_at(start)?;
             self.prices.clear();
             self.timestamps.clear();
             self.order = PriceOrder::default();
-            self.positions = [0; AGE_RANGE_COUNT - 1];
             self.version = version;
         }
         let Self {
@@ -265,6 +270,9 @@ impl Walk {
         if prices.len() != end || timestamps.len() != end {
             return Err(Error::Internal("incomplete walk price or timestamp history"));
         }
+        if restore {
+            *positions = age_boundary_positions(&timestamps[..start]);
+        }
         order.extend(prices);
         let mut cursor = sources.history.cursor(origins)?;
         for height in start..=end {
@@ -276,6 +284,7 @@ impl Walk {
                         hash: state.hash(),
                         prices,
                         timestamps,
+                        age_positions: positions,
                     })?;
                 }
             }
@@ -307,6 +316,7 @@ impl Walk {
                 timestamps,
                 order,
                 crossings,
+                age_positions: positions,
                 diff,
                 amounts: state.amounts(),
             };
