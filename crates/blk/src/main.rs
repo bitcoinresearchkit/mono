@@ -59,7 +59,7 @@ fn run() -> Result<()> {
     reader.check_network()?;
     let formatter = Formatter::new(mode, args.paths);
     let mut out = BufWriter::new(io::stdout().lock());
-    for block in reader.after(before)?.take((*end - *start) as usize + 1) {
+    for block in reader.after(before, end)? {
         formatter.write(&Ctx::new(&block?, network), &mut out)?;
     }
     Ok(out.flush()?)

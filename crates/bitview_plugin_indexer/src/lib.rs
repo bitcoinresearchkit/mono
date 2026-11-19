@@ -506,7 +506,7 @@ impl Indexer {
         let stores = &mut self.stores;
         let buffers = &mut self.buffers;
 
-        for block in reader.after(prev_hash)? {
+        for block in reader.after(prev_hash, reader.client().get_last_height()?)? {
             let block = match block {
                 Ok(block) => block,
                 Err(e) => {

@@ -4,10 +4,8 @@ use std::{
     process,
 };
 
-use crate::{
-    XORBytes,
-    scan::{HEAD_LEN, MAGIC_BYTES, MAX_HOLE, frames},
-};
+use super::{HEAD_LEN, MAGIC_BYTES, MAX_HOLE, frames};
+use crate::XORBytes;
 
 /// Every frame, eagerly.
 fn all_frames(file: &File, xor_bytes: XORBytes) -> Vec<(usize, usize)> {

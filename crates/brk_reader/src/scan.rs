@@ -2,14 +2,14 @@ use std::{fs::File, io, os::unix::fs::FileExt};
 
 use crate::{XORBytes, XORIndex};
 
-pub(crate) const MAGIC_BYTES: [u8; 4] = [0xF9, 0xBE, 0xB4, 0xD9];
+const MAGIC_BYTES: [u8; 4] = [0xF9, 0xBE, 0xB4, 0xD9];
 
 /// A frame's header: the magic, then the payload's length.
-pub(crate) const HEAD_LEN: usize = 8;
+const HEAD_LEN: usize = 8;
 /// The longest run of unwritten bytes taken for a hole rather than the file's end: one frame of
 /// the largest block (4,000,000 bytes serialized), all Core reserves for a block it then fails to
 /// write.
-pub(crate) const MAX_HOLE: usize = HEAD_LEN + 4_000_000;
+const MAX_HOLE: usize = HEAD_LEN + 4_000_000;
 
 /// Each block's payload offset and length in a blk file, hopping from frame to frame from
 /// `start`, a frame boundary (the file's start or a known frame's end): a scan from an arbitrary
@@ -121,3 +121,6 @@ fn after_hole(
     }
     Ok(None)
 }
+
+#[cfg(test)]
+mod tests;
