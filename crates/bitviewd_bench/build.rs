@@ -54,7 +54,7 @@ fn main() {
         ("REVISION", revision),
         ("COMMIT", commit),
         ("DIRTY", dirty.to_string()),
-        ("PROFILE", env::var("PROFILE").unwrap()),
+        ("PROFILE", profile(&env::var("OUT_DIR").unwrap())),
         (
             "RUSTC",
             output(Command::new(env::var_os("RUSTC").unwrap()).arg("-V")),
@@ -78,6 +78,20 @@ fn published_commit(manifest: &Path) -> Option<(String, bool)> {
     let sha1 = info.split("\"sha1\"").nth(1)?.split('"').nth(1)?;
     (sha1.len() == 40 && sha1.bytes().all(|b| b.is_ascii_hexdigit()))
         .then(|| (sha1.to_owned(), info.contains("\"dirty\": true")))
+}
+
+/// The Cargo profile, the directory before `build` in `OUT_DIR` (`<profile>/build/<package>/…/out`,
+/// in the older and the newer build-dir layout alike): custom profiles keep their name, `dev`
+/// builds into `debug`. `PROFILE` only says `release` or `debug`.
+fn profile(out_dir: &str) -> String {
+    Path::new(out_dir)
+        .ancestors()
+        .find(|dir| dir.file_name().is_some_and(|name| name == "build"))
+        .and_then(Path::parent)
+        .and_then(Path::file_name)
+        .unwrap_or_else(|| panic!("bitviewd_bench: no profile directory in OUT_DIR {out_dir}"))
+        .to_string_lossy()
+        .into_owned()
 }
 
 /// A missing path would rerun the script on every build.
