@@ -1743,8 +1743,13 @@ function renderGallery() {
   const again = back && drawn === galleryDrawn, lists = listsDrawn;
   // (The same place drawn anew (the theme switched): its scroll and its shelves' kept. Come back to, a page come to.)
   const kept = spot === gallerySpot && !back ? galleryPlace() : null;
-  // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared.)
-  if (words.length && galleryPlain && presets) galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
+  // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared; its
+  // drawings going on, none waited for, see galleryAsideSet.)
+  if (words.length && galleryPlain && presets) {
+    galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
+    asideSet.resolve();
+    asideSet = Promise.withResolvers();
+  }
   galleryPlain = !words.length;
   galleryDrawn = drawn;
   gallerySpot = spot;
@@ -1820,6 +1825,9 @@ function freshenTiles() {
 let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
 /** Whether the gallery shows no search; the page it showed before a search, kept aside as drawn (see renderGallery). */
 let galleryPlain = false, galleryAside = /** @type {{ drawn: string, lists: number, nodes: Node[] } | null} */ (null);
+/** Settles once the page shown is kept aside for a search. @type {PromiseWithResolvers<void>} */
+let asideSet = Promise.withResolvers();
+const galleryAsideSet = () => asideSet.promise;
 /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
 function shelfSteps(row) {
   shelfScrolls.set(row, row.scrollLeft);
@@ -3954,7 +3962,8 @@ export {
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
   duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows,
+  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryAsideSet, galleryFound, galleryQueue, gallerySeen, go,
+  gridActions, groupRows,
   groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS,
   keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder,
   movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,

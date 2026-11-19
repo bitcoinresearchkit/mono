@@ -86,7 +86,8 @@ import {
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
   depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
   fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows, groupShut, heatSamples, heightsSheet, homeName,
+  galleryAsideSet, galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows, groupShut, heatSamples,
+  heightsSheet, homeName,
   isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave,
   leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder, nextCard, nextGallery,
   NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
@@ -5831,9 +5832,11 @@ const drawGallery = serial(async () => {
     else {
       // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
       // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
-      // passes, nor those it may never reach.)
+      // passes, nor those it may never reach. A page's tile not waited for past the page kept aside for a search: the
+      // search's first tiles asked for at once, the page's drawing going on (to come back with it). A search's
+      // grids, each waited for: a key typed while one's drawn asks for none of those it passes.)
       const drawn = drawPreview(doc, previewIndex(doc));
-      if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await drawn;
+      if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await Promise.race([drawn, galleryAsideSet()]);
     }
   }
 });
