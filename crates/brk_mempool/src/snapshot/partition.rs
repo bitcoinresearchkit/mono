@@ -22,7 +22,7 @@ use super::{SnapTx, TxIndex, builder::ChunkCache, cluster};
 
 /// A block's transactions stay under 3,992,000 WU (Core's 4,000,000 less its 8,000 reserved for
 /// the header and coinbase) and 79,600 sigops (80,000 less 400).
-const MAX_WEIGHT: Weight = Weight::new(3_992_000);
+pub(crate) const MAX_WEIGHT: Weight = Weight::new(3_992_000);
 const MAX_SIGOPS: SigOps = SigOps::new(79_600);
 
 /// Every component's chunks in linearization order, components one after another.

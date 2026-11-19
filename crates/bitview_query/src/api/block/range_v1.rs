@@ -57,8 +57,11 @@ pub(crate) fn blocks_v1_identity<'a>(
 impl ResolvedBlocksV1 {
     fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>, stale: Arc<StaleBlocks>, audits: Vec<Option<Summary>>) -> Result<Self> {
         let (begin, end) = blocks.range();
-        if prices.len() != end - begin || audits.len() != end - begin {
+        if prices.len() != end - begin {
             return Err(Error::Internal("Incomplete block prices"));
+        }
+        if audits.len() != end - begin {
+            return Err(Error::Internal("Incomplete block audits"));
         }
         Ok(Self {
             blocks,
@@ -98,7 +101,6 @@ impl ResolvedBlocksV1 {
 }
 
 impl Query {
-
     /// Resolve on a worker without materializing or retaining the price history.
     pub fn resolve_blocks_v1(
         &self,

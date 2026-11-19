@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use brk_error::Result;
+use brk_exit::Exit;
 use brk_types::Version;
 use byteview::ByteView;
 use fjall::{Database, FORMAT_VERSION, Keyspace, KeyspaceCreateOptions};
@@ -37,6 +38,7 @@ impl<const N: usize> ByteStore<N> {
 
     /// `records` must be in strictly increasing key order.
     pub fn ingest(&mut self, records: impl IntoIterator<Item = ([u8; N], Vec<u8>)>) -> Result<()> {
+        debug_assert!(Exit::is_locked(), "store ingestion outside the exit lock");
         let mut ingest = self.keyspace.start_ingestion_as::<[u8; N], ByteView>()?;
         for (key, value) in records {
             ingest.write(key, value)?;

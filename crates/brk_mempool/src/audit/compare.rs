@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use brk_types::{Sats, Txid, Weight};
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{snapshot::cluster::paid_totals, state::Pool};
+use crate::{snapshot::{cluster::paid_totals, partition::MAX_WEIGHT}, state::Pool};
 
 use super::{Audit, Capture, Difference, Expected, Mined, MinedBlock, Summary};
 
@@ -76,11 +76,14 @@ pub(super) fn compare(capture: &Capture, block: &MinedBlock) -> Audit {
         }
     }
     let mut extras = Vec::new();
+    let mut mined_weight = 0u64;
     for (position, tx) in block.transactions.iter().enumerate().skip(1) {
+        mined_weight += u64::from(tx.weight);
         if expected.contains(&tx.txid) { continue; }
         let position = position as u16;
-        let known = pool.txs.record(&tx.txid).is_some();
-        let rate = if known {
+        let in_pool = pool.txs.record(&tx.txid).is_some();
+        let known = in_pool || pool.graveyard.get(&tx.txid).is_some();
+        let rate = if in_pool {
             chunk(&mut chunks, pool, &tx.txid).rate
         } else {
             Rate { fee: tx.fee.into(), weight: u64::from(tx.weight).div_ceil(4) * 4 }
@@ -90,21 +93,31 @@ pub(super) fn compare(capture: &Capture, block: &MinedBlock) -> Audit {
         diff.mined.push(Mined { position, flags });
         extras.push(Omission { txid: tx.txid, weight: tx.weight.into(), rate });
     }
-    let order = |a: &Omission, b: &Omission| b.rate.compare(a.rate).then(a.txid.cmp(&b.txid));
+    let order = |a: &Omission, b: &Omission| a.rate.compare(b.rate).then(a.txid.cmp(&b.txid));
     omissions.sort_unstable_by(order);
     extras.sort_unstable_by(order);
-    let mut forced = (u64::from(block.weight) + omissions.iter().map(|t| t.weight).sum::<u64>())
-        .saturating_sub(u64::from(Weight::MAX_BLOCK));
-    let mut extras = extras.iter().peekable();
-    let mut credit = 0u64;
+    // Both sides use the packer's non-coinbase transaction budget, not consensus headroom.
+    let mut forced = (mined_weight + omissions.iter().map(|t| t.weight).sum::<u64>())
+        .saturating_sub(u64::from(MAX_WEIGHT));
+    let mut credit = extras.iter().map(|t| t.weight).sum::<u64>();
+    let mut extras = extras.into_iter().peekable();
     let mut missing = 0u64;
     for omission in omissions {
-        while extras.peek().is_some_and(|tx| tx.rate.compare(omission.rate).is_ge()) {
-            credit += extras.next().unwrap().weight;
+        while extras.peek().is_some_and(|tx| tx.rate.compare(omission.rate).is_lt()) {
+            credit -= extras.next().unwrap().weight;
         }
         if omission.weight <= forced && omission.weight <= credit {
             forced -= omission.weight;
             credit -= omission.weight;
+            // Spend the cheapest eligible weight, reserving higher-rate credit for later rows.
+            let mut remaining = omission.weight;
+            while remaining > 0 {
+                let extra = extras.peek_mut().unwrap();
+                let used = remaining.min(extra.weight);
+                remaining -= used;
+                extra.weight -= used;
+                if extra.weight == 0 { extras.next(); }
+            }
         } else {
             missing += 1;
             diff.expected.push((omission.txid, Expected::Missing));
