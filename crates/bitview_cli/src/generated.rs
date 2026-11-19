@@ -214,7 +214,7 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Minimum Taproot output value in sats. Defaults to 0.") },
         ],
         request_body: None,
     },
@@ -223,12 +223,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/tweaks/{height}",
         summary: "Cut-through tweaks",
-        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.",
+        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Minimum Taproot output value in sats. Defaults to 0.") },
         ],
         request_body: None,
     },

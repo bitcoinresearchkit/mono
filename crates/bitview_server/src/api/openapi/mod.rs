@@ -145,7 +145,7 @@ const TAGS: [(&str, &str); 13] = [
         Precomputed: no tweak or filter math per request.\n\n\
         Transactions whose Taproot outputs all hold less than 600 sats are left out: such an \
         output costs more to spend than it holds, and wallets skip it already. `dustLimit` is \
-        optional and takes any value, as BlindBit takes it, but one below 600 answers as 600.\n\n\
+        optional and defaults to 0. Cut-through checks each unspent Taproot output against it.\n\n\
         Out on purpose: mempool tweaks and a server-side scan. Both need a push subscription, \
         which Bitview's API doesn't offer, and a scan would hold a wallet's scan key and minutes \
         of CPU per request on a stateless public server.",

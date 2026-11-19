@@ -7351,7 +7351,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_tweaks(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
         """Cut-through tweaks.
 
-        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
 
         Endpoint: `GET /blindbit/mainnet/tweaks/{height}`"""
         params: List[Tuple[str, Any]] = []

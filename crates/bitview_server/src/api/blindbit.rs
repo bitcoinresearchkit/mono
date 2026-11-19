@@ -13,7 +13,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_http::CachePolicy;
-use bitview_query::{BlindbitBlock, BlindbitOutputs, Query, Result as QueryResult};
+use bitview_query::{BlindbitBlock, BlindbitOutputs, DUST_FLOOR, Query, Result as QueryResult};
 use bitview_types::{
     BlindbitBlockHash, BlindbitBlockHeight, BlindbitFilter, BlindbitInfo, BlindbitSpentIndex,
     BlindbitUtxo,
@@ -205,7 +205,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .respond_blindbit(
                             &headers,
                             path.height,
-                            format!("tweak-index-{dust_limit}"),
+                            format!("tweak-index-{}", dust_limit.max(DUST_FLOOR)),
                             move |q, block| q.blindbit_tweak_index(block, dust_limit),
                         )
                         .await
@@ -245,7 +245,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::SILENT_PAYMENTS)
                         .mcp_ignore()
                         .summary("Cut-through tweaks")
-                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.")
+                        .description("`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.")
                         .json_response::<Vec<Tweak>>()
                         .not_modified()
                         .not_found()

@@ -7223,7 +7223,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "659357f841b2e4e4d04ef2ade62b0a6867e4286f66a370e53e4fe0b3a709a6d8";
+  static HASH = "a1995d1f583f7ba29942ec641e4087803f2d79e24e4807ab732ce032a4794684";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -10281,9 +10281,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
-   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
-   *   as 600.
+   * @param {number} [options.dustLimit] - Minimum Taproot output value in sats. Defaults to 0.
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
    * @param {boolean} [options.cache]
@@ -10301,15 +10299,13 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Cut-through tweaks
    *
-   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
    *
    * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
-   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
-   *   as 600.
+   * @param {number} [options.dustLimit] - Minimum Taproot output value in sats. Defaults to 0.
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
    * @param {boolean} [options.cache]
