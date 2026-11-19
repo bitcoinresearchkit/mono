@@ -1744,11 +1744,10 @@ function renderGallery() {
   // (The same place drawn anew (the theme switched): its scroll and its shelves' kept. Come back to, a page come to.)
   const kept = spot === gallerySpot && !back ? galleryPlace() : null;
   // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared; its
-  // drawings going on, none waited for, see galleryAsideSet.)
+  // drawings going on, the loop's wait on one ended, see galleryWait.)
   if (words.length && galleryPlain && presets) {
     galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
-    asideSet.resolve();
-    asideSet = Promise.withResolvers();
+    endGalleryWait();
   }
   galleryPlain = !words.length;
   galleryDrawn = drawn;
@@ -1785,8 +1784,10 @@ function renderGallery() {
     for (const row of all$(".shelf-row", $("gallery"))) if (shelfScrolls.get(row)) (row.scrollLeft = 0), shelfScrolls.set(row, 0);
     freshenTiles();
   } else if (galleryAside?.drawn === drawn) {
-    // (The page as it was before the search, nothing it shows changed since: put back, not written again.)
+    // (The page as it was before the search, nothing it shows changed since: put back, not written again; the loop's
+    // wait on the search's tile ended, see galleryWait.)
     $("gallery").replaceChildren(...galleryAside.nodes);
+    endGalleryWait();
     listsDrawn = galleryAside.lists;
     galleryAside = null;
     freshenTiles();
@@ -1825,9 +1826,16 @@ function freshenTiles() {
 let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
 /** Whether the gallery shows no search; the page it showed before a search, kept aside as drawn (see renderGallery). */
 let galleryPlain = false, galleryAside = /** @type {{ drawn: string, lists: number, nodes: Node[] } | null} */ (null);
-/** Settles once the page shown is kept aside for a search. @type {PromiseWithResolvers<void>} */
-let asideSet = Promise.withResolvers();
-const galleryAsideSet = () => asideSet.promise;
+/** What ends the drawing loop's wait on a tile early (see galleryWait). @type {(value?: unknown) => void} */
+let endGalleryWait = () => {};
+/**
+ * The drawing loop's wait on a tile's drawing (see drawGallery), ended early once the gallery turns between its page
+ * and a search (the page set aside, or put back): the tiles it shows then are asked for at once, the drawing going on.
+ * A wait within a search's grids isn't: a key typed meanwhile asks for no tile of the grids it passes. (A drawing that
+ * fails is reported, the loop going on, waited for or not.)
+ * @param {Promise<unknown>} drawn
+ */
+const galleryWait = (drawn) => Promise.race([drawn.catch(reportError), new Promise((done) => (endGalleryWait = done))]);
 /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
 function shelfSteps(row) {
   shelfScrolls.set(row, row.scrollLeft);
@@ -3962,22 +3970,21 @@ export {
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
   duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryAsideSet, galleryFound, galleryQueue, gallerySeen, go,
-  gridActions, groupRows,
-  groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS,
-  keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, moveToFolder,
-  movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed,
-  onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf, pickChart, picked,
-  placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey, presetMarkQueue,
-  presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf, presetSearch, presetTiles,
-  presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg, profileMark, queueYours,
-  recommendedCards, recommendedDrawn, recommendedKey, recommendedPresets, renderChartPath, renderDoors, renderGallery,
-  renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme, renderYours, reorderable,
-  restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews, saveThumbs, searchNow, sectionKeys,
-  sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, setTheme, sheetGoes, sheetTaken, shelfSteps,
-  shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey, sideMoved, sideTree,
-  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stillness, stretched,
-  themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf, unstretched, until,
-  updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile, yourQueue, yoursFound,
-  yoursSeen, yoursShown,
+  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions,
+  groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
+  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph,
+  morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,
+  onChart, onClosed, onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf,
+  pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey,
+  presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf, presetSearch,
+  presetTiles, presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg, profileMark,
+  queueYours, recommendedCards, recommendedDrawn, recommendedKey, recommendedPresets, renderChartPath, renderDoors,
+  renderGallery, renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme,
+  renderYours, reorderable, restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews,
+  saveThumbs, searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent,
+  setTheme, sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead,
+  sideId, sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
+  stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
+  toggleSection, treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 };

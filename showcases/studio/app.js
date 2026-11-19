@@ -86,23 +86,22 @@ import {
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
   depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
   fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryAsideSet, galleryFound, galleryQueue, gallerySeen, go, gridActions, groupRows, groupShut, heatSamples,
-  heightsSheet, homeName,
-  isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave,
-  leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder, nextCard, nextGallery,
-  NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint, paletteMarksAsked,
-  panelSize, parentOf, pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark,
-  presetMarkKey, presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf,
-  presetSearch, presetTiles, presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg,
-  queueYours, recommendedCards, recommendedDrawn, recommendedKey, renderChartPath, renderDoors, renderGallery,
-  renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme, renderYours, reorderable,
-  restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews, saveThumbs, searchNow, sectionKeys,
-  sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent, sheetGoes, sheetTaken, shelfSteps,
-  shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId, sideKey, sideMoved, sideTree,
-  sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys, stepChart, stepShelf, stillness, stretched,
-  themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup, toggleSection, treeOf, unstretched, until,
-  updateMark, validChartMark, validDrawingKey, validPreview, validThumb, walkCards, writeTile, yourQueue, yoursFound,
-  yoursSeen, yoursShown,
+  galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions, groupRows, groupShut, heatSamples,
+  heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt,
+  keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
+  nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint,
+  paletteMarksAsked, panelSize, parentOf, pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS,
+  presetMark, presetMarkKey, presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts,
+  presetRankOf, presetSearch, presetTiles, presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS,
+  previewSvg, queueYours, recommendedCards, recommendedDrawn, recommendedKey, renderChartPath, renderDoors,
+  renderGallery, renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme,
+  renderYours, reorderable, restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews,
+  saveThumbs, searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent,
+  sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
+  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
+  stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
+  toggleSection, treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 } from "/studio/grid.js";
 import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";
 import {
@@ -5832,11 +5831,10 @@ const drawGallery = serial(async () => {
     else {
       // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
       // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
-      // passes, nor those it may never reach. A page's tile not waited for past the page kept aside for a search: the
-      // search's first tiles asked for at once, the page's drawing going on (to come back with it). A search's
-      // grids, each waited for: a key typed while one's drawn asks for none of those it passes.)
+      // passes, nor those it may never reach. The wait ends early when a search sets the page aside or puts it back,
+      // see galleryWait.)
       const drawn = drawPreview(doc, previewIndex(doc));
-      if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await Promise.race([drawn, galleryAsideSet()]);
+      if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await galleryWait(drawn);
     }
   }
 });
