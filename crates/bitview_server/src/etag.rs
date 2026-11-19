@@ -1,12 +1,48 @@
+use std::{
+    fs::File,
+    io::{self, BufRead, BufReader},
+    sync::LazyLock,
+    time::Instant,
+};
+
 use axum::http::{HeaderMap, HeaderValue, header::ETAG};
 #[cfg(feature = "full-api")]
 use bitview_query::RepresentationId;
+use sha2::{Digest, Sha256};
 
-use crate::VERSION;
+static EXECUTABLE_TAG: LazyLock<io::Result<String>> = LazyLock::new(hash_executable);
 
-/// Typed weak entity tag with its validated HTTP representation. Every tag starts with the
-/// release, so a release changing a response's format never validates an older body: no tag
-/// carries a format version of its own.
+pub(super) fn initialize() -> io::Result<()> {
+    EXECUTABLE_TAG.as_ref().map(|_| ()).map_err(|error| {
+        io::Error::new(error.kind(), format!("Hashing the running executable for ETags: {error}"))
+    })
+}
+
+fn hash_executable() -> io::Result<String> {
+    let started = Instant::now();
+    // On Linux, open the running image even if an install replaced its path.
+    #[cfg(target_os = "linux")]
+    let file = File::open("/proc/self/exe")?;
+    #[cfg(not(target_os = "linux"))]
+    let file = File::open(std::env::current_exe()?)?;
+    let mut reader = BufReader::with_capacity(128 * 1024, file);
+    let mut hash = Sha256::new();
+    loop {
+        let bytes = reader.fill_buf()?;
+        if bytes.is_empty() {
+            break;
+        }
+        hash.update(bytes);
+        let len = bytes.len();
+        reader.consume(len);
+    }
+    let prefix = u128::from_be_bytes(hash.finalize()[..16].try_into().unwrap());
+    tracing::debug!(elapsed = ?started.elapsed(), "Hashed the executable for ETags");
+    Ok(format!("{prefix:032x}"))
+}
+
+/// A weak ETag prefixed with the executable's hash so a build can change response formats
+/// without a manual format version on each tag.
 #[derive(Clone, Debug)]
 pub struct Etag(HeaderValue);
 
@@ -48,9 +84,10 @@ impl From<String> for Etag {
                 .all(|byte| byte == 0x21 || (0x23..=0x7e).contains(&byte) || byte >= 0x80),
             "invalid ETag token"
         );
-        let mut header = String::with_capacity(VERSION.len() + value.len() + 5);
+        let prefix = EXECUTABLE_TAG.as_ref().expect("ETag prefix initialized at startup");
+        let mut header = String::with_capacity(prefix.len() + value.len() + 5);
         header.push_str("W/\"");
-        header.push_str(&VERSION);
+        header.push_str(prefix);
         header.push('-');
         header.push_str(&value);
         header.push('"');

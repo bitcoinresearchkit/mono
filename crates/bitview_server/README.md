@@ -47,8 +47,8 @@ answer: the tag naming what it would send, how long its bytes stay what they
 are, and how to build it. The `304`, the body budget and the cache class follow
 from those; no route sets a cache header.
 
-**The tag.** Every ETag is weak and starts with the release, so a release
-changing a response's format never validates an older body. The rest is made of
+**The tag.** Every API ETag is weak and starts with a hash of the executable.
+This covers format changes in local builds as well as releases. The rest is made of
 what the body is read from, under the same pin the body is read under: the block
 that fixes it (a block by hash, a confirmed transaction, a point of the UTXO
 set), the tip (whole-history statistics, tip-keyed series), the block that last

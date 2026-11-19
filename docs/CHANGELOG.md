@@ -2826,7 +2826,7 @@ has to be deleted by hand.
 
 - A series range counted from the end (`start=-100&end=-10`, or a negative start with `limit`) is tied to the tip:
   under `--cdn` such URLs got the year-long tier while naming other rows every block
-- Every ETag starts with the release, so a release changing a response's format never validates an older body
+- API ETags start with a hash of the executable, so format changes in local builds and releases invalidate old tags
 - `/api.json` lists the `format` query field of `DataRangeFormat` and `SeriesSelection` and the tag definitions (its
   compaction removed every `format` key, property names included, and every tag list) and keeps key order
 - Transactions spending a bare multisig or nonstandard output show the prevout's script, read from the parent
