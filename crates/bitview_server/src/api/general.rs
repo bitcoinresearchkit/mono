@@ -18,7 +18,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_history(&headers, |q, at| q.difficulty_adjustment(at))
+                    .respond_tip(&headers, state.chain(), |q, at| q.difficulty_adjustment(at))
                     .await
             },
             |op| {

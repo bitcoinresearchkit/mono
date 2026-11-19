@@ -25,7 +25,6 @@ use crate::{
     api::tags,
     etag::Etag,
     extended::TransformResponseExtended,
-    gates::Gate,
     params::{Empty, TxIndexParam, TxidParam, TxidVout, TxidsParam},
     request_state::RequestState,
 };
@@ -157,7 +156,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(TxidParam { txid }): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, move |q| {
+                    .respond_built(&headers, state.chain(), move |q| {
                         q.tx_rbf_json_resolved(q.resolve_rbf(&txid)?)
                     })
                     .await
@@ -388,9 +387,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/transaction-times",
         get_with(
             async |headers: HeaderMap, params: TxidsParam, RequestState(state): RequestState| {
-                // The mempool's own: it waits behind no chain read.
                 state
-                    .respond(&headers, Gate::OPEN, move |q| {
+                    .respond(&headers, state.mempool(), move |q| {
                         let (times, hash) = q.transaction_times_with_hash(&params.txids)?;
                         Ok(Answer::ready(Etag::content(hash), Content::json(&times)?))
                     })

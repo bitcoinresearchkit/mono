@@ -19,6 +19,7 @@ use crate::{
     answer::Answer,
     api::tags,
     extended::TransformResponseExtended,
+    gates::Gate,
     params::{
         BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, SlugText, TimePeriodParam,
     },
@@ -47,17 +48,27 @@ async fn serve_pool_blocks(
 }
 
 impl AppState {
-    /// A whole-history aggregate (the mining statistics), under its own admission. Each is a
-    /// function of the published chain and the release, so the tip names it (`h{tip}`), and the
-    /// pin that reads the tip is the one `value` reads under: a request holding the tag is
-    /// answered before any of it is built (they take tens of milliseconds). Inputs `value`
-    /// would reject are checked by the caller first: a matching tag answers before it runs.
+    /// A whole-history aggregate (the mining statistics), under its own admission: they take
+    /// tens of milliseconds each.
     pub(super) async fn respond_history<T: Serialize>(
         &self,
         headers: &HeaderMap,
         value: impl FnOnce(&Query, &TipPin) -> QueryResult<T> + Clone + Send + 'static,
     ) -> Response {
-        self.respond(headers, self.history(), move |q| {
+        self.respond_tip(headers, self.history(), value).await
+    }
+
+    /// An answer that is a function of the published chain and the release, so the tip names it
+    /// (`h{tip}`), and the pin that reads the tip is the one `value` reads under: a request
+    /// holding the tag is answered before any of it is built. Inputs `value` would reject are
+    /// checked by the caller first: a matching tag answers before it runs.
+    pub(super) async fn respond_tip<T: Serialize>(
+        &self,
+        headers: &HeaderMap,
+        gate: Gate<'_>,
+        value: impl FnOnce(&Query, &TipPin) -> QueryResult<T> + Clone + Send + 'static,
+    ) -> Response {
+        self.respond(headers, gate, move |q| {
             let at = q.pin_tip()?;
             Ok(Answer::json(format!("h{}", at.hash()), move |q| {
                 value(q, &at)

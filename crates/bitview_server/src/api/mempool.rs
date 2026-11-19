@@ -1,17 +1,16 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap};
-use bitview_query::RepresentationId;
 use bitview_types::ReplacementNode;
 use brk_types::{
     BlockTemplate, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolTxSummary, Txid,
-    Version,
 };
 
 use super::{mempool_block, mempool_txids};
 use crate::{
     AppState,
-    answer::{Answer, JSON},
+    answer::{Answer, Content, JSON},
     api::tags,
+    etag::Etag,
     extended::TransformResponseExtended,
     params::{Empty, MempoolBlockDiffParam, MempoolBlockParam},
     request_state::RequestState,
@@ -23,7 +22,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| q.mempool_info_json())
+                    .respond_built(&headers, state.mempool(), |q| q.mempool_info_json())
                     .await
             },
             |op| {
@@ -58,7 +57,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| q.mempool_recent_json())
+                    .respond_built(&headers, state.mempool(), |q| q.mempool_recent_json())
                     .await
             },
             |op| {
@@ -76,7 +75,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| {
+                    .respond_built(&headers, state.mempool(), |q| {
                         q.recent_replacements_json(false)
                     })
                     .await
@@ -96,7 +95,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| {
+                    .respond_built(&headers, state.mempool(), |q| {
                         q.recent_replacements_json(true)
                     })
                     .await
@@ -159,18 +158,13 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 // Named before it's copied: a `304` costs no copy of the template.
                 state
-                    .respond_resolved(
-                        &headers,
-                        Version::ONE,
-                        JSON,
-                        Answer::settled,
-                        |q| {
-                            let template = q.block_template()?;
-                            let identity = RepresentationId::Content(template.identity());
-                            Ok((template, identity, false))
-                        },
-                        |_, template| Ok(template.json()),
-                    )
+                    .respond(&headers, state.mempool(), |q| {
+                        let template = q.block_template()?;
+                        let tag = Etag::content(template.identity());
+                        Ok(Answer::new(tag, move |_| {
+                            Ok(Content::new(JSON, template.json()))
+                        }))
+                    })
                     .await
             },
             |op| {

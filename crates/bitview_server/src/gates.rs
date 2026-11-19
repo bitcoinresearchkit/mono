@@ -98,8 +98,19 @@ impl AppState {
         Gate::reserving(Some(&self.chain_query), &self.historical_price_bodies)
     }
 
-    /// The mempool's own answers read no chain data, so they wait behind no chain read: their
-    /// budgets alone bound how many build at once.
+    /// The mempool's small answers (fees, statistics, recent transactions, replacements, the
+    /// block template): each is built once per publication and read from memory, so a request
+    /// waits behind no chain read. One grown large shares the chain's body budget.
+    #[cfg(feature = "full-api")]
+    pub fn mempool(&self) -> Gate<'_> {
+        Gate {
+            bodies: Some(&self.chain_bodies),
+            ..Gate::OPEN
+        }
+    }
+
+    /// The mempool's large answers read no chain data either: their own budgets alone bound how
+    /// many build at once.
     #[cfg(feature = "full-api")]
     pub fn mempool_txids(&self) -> Gate<'_> {
         Gate::reserving(None, &self.mempool_txid_bodies)

@@ -324,14 +324,15 @@ impl AppState {
         .await
     }
 
-    /// A chain answer the query hands over as JSON with what names it: nothing cheaper does.
+    /// An answer the query hands over as JSON with what names it: nothing cheaper does.
     #[cfg(feature = "full-api")]
     pub async fn respond_built<B: AsRef<[u8]> + Send + 'static>(
         &self,
         headers: &HeaderMap,
+        gate: Gate<'_>,
         built: impl FnOnce(&Query) -> Result<(B, RepresentationId)> + Clone + Send + 'static,
     ) -> Response {
-        self.respond(headers, self.chain(), move |q| {
+        self.respond(headers, gate, move |q| {
             let (bytes, identity) = built(q)?;
             // A body shared with the pool (built once per publication) isn't copied.
             let content = Content::new(JSON, Bytes::from_owner(bytes));
