@@ -86,12 +86,13 @@ pub fn router(
 
     // One privacy policy, one set of terms and one support page cover every Bitview service: the
     // website's, beside the API it calls.
-    let site_pages = ["privacy", "terms", "support"]
-        .into_iter()
-        .fold(Router::new(), |router, page| {
-            let to = Redirect::permanent(&format!("{api_url}/{page}/"));
-            router.route(&format!("/{page}"), get(move || ready(to.clone())))
-        });
+    let site_pages =
+        ["privacy", "terms", "support"]
+            .into_iter()
+            .fold(Router::new(), |router, page| {
+                let to = Redirect::permanent(&format!("{api_url}/{page}/"));
+                router.route(&format!("/{page}"), get(move || ready(to.clone())))
+            });
     let discovery_routes = discovery::router(&display_name, &public_url);
     let server_name = discovery::server_name(&display_name, &public_url);
     let state = Arc::new(AppState {
@@ -208,10 +209,7 @@ impl ServerHandler for BitviewMcp {
 }
 
 impl BitviewMcp {
-    async fn call(
-        &self,
-        request: CallToolRequestParams,
-    ) -> Result<CallToolResponse, McpError> {
+    async fn call(&self, request: CallToolRequestParams) -> Result<CallToolResponse, McpError> {
         let name = request.name;
         let operation = self
             .state
@@ -308,7 +306,8 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
     }
 
     // `GET /` (and its `HEAD`) is the page. As an event stream it is MCP, which has no stream.
-    let landing = matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
+    let landing =
+        matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
     if landing && accepts_event_stream(request.headers()) {
         return (
             StatusCode::METHOD_NOT_ALLOWED,
@@ -323,7 +322,9 @@ async fn gateway_guard(request: Request<Body>, next: Next) -> Response {
 
     let mut response = next.run(request).await;
     if landing && !varies_by_accept(response.headers()) {
-        response.headers_mut().append(VARY, HeaderValue::from_static("Accept"));
+        response
+            .headers_mut()
+            .append(VARY, HeaderValue::from_static("Accept"));
     }
     response
 }
@@ -352,10 +353,9 @@ fn accepts_event_stream(headers: &HeaderMap) -> bool {
                 .next()
                 .is_some_and(|media| media.trim().eq_ignore_ascii_case("text/event-stream"))
                 && !parts.any(|parameter| {
-                    parameter
-                        .trim()
-                        .split_once('=')
-                        .is_some_and(|(name, q)| name.trim().eq_ignore_ascii_case("q") && q.trim().parse::<f32>() == Ok(0.0))
+                    parameter.trim().split_once('=').is_some_and(|(name, q)| {
+                        name.trim().eq_ignore_ascii_case("q") && q.trim().parse::<f32>() == Ok(0.0)
+                    })
                 })
         })
 }

@@ -33,14 +33,19 @@ pub fn client() -> Client {
     http.enforce_http(false);
     http.set_nodelay(true);
     let tls = ClientConfig::builder()
-        .with_root_certificates(RootCertStore { roots: webpki_roots::TLS_SERVER_ROOTS.to_vec() })
+        .with_root_certificates(RootCertStore {
+            roots: webpki_roots::TLS_SERVER_ROOTS.to_vec(),
+        })
         .with_no_client_auth();
 
     HttpClient::builder(TokioExecutor::new())
         .pool_timer(TokioTimer::new())
         .pool_idle_timeout(Duration::from_secs(15))
         .pool_max_idle_per_host(MAX_CALLS)
-        .build(Connector { http, tls: Arc::new(tls) })
+        .build(Connector {
+            http,
+            tls: Arc::new(tls),
+        })
 }
 
 type ConnectError = Box<dyn Error + Send + Sync>;
@@ -66,15 +71,22 @@ impl Service<Uri> for Connector {
         Box::pin(async move {
             // Hyper may finish a speculative connection for its pool after checkout wins.
             timeout(UPSTREAM_TIMEOUT, async {
-                let mut socket = Socket { tcp: connect.await?.into_inner(), tls: None };
+                let mut socket = Socket {
+                    tcp: connect.await?.into_inner(),
+                    tls: None,
+                };
                 if uri.scheme_str() == Some("https") {
-                    let host = uri.host().expect("HTTP connector requires a host").trim_matches(['[', ']']);
+                    let host = uri
+                        .host()
+                        .expect("HTTP connector requires a host")
+                        .trim_matches(['[', ']']);
                     let name = ServerName::try_from(host.to_owned())?;
                     socket.tls = Some(Box::new(ClientConnection::new(config, name)?));
                     socket.flush().await?;
                 }
                 Ok(TokioIo::new(socket))
-            }).await?
+            })
+            .await?
         })
     }
 }
@@ -101,14 +113,20 @@ impl AsyncRead for Socket {
             return Pin::new(tcp).poll_read(cx, buf);
         };
         let mut io = SocketIo { tcp, cx };
-        let read = ready!(poll_io(Stream::new(tls.as_mut(), &mut io).read(buf.initialize_unfilled())))?;
+        let read = ready!(poll_io(
+            Stream::new(tls.as_mut(), &mut io).read(buf.initialize_unfilled())
+        ))?;
         buf.advance(read);
         Poll::Ready(Ok(()))
     }
 }
 
 impl AsyncWrite for Socket {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
         let Self { tcp, tls } = self.get_mut();
         let Some(tls) = tls else {
             return Pin::new(tcp).poll_write(cx, buf);

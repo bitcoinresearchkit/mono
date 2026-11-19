@@ -1,4 +1,9 @@
-use std::{io::{self, Write}, time::Duration};
+use std::{
+    error::Error,
+    fmt::Write as _,
+    io::{self, Write},
+    time::Duration,
+};
 
 use axum::http::{Request, header::CONTENT_ENCODING};
 use flate2::write::MultiGzDecoder;
@@ -119,14 +124,21 @@ impl Upstream {
         let request = Request::get(&url)
             .header("User-Agent", concat!("brk-mcp/", env!("CARGO_PKG_VERSION")))
             .header("Accept-Encoding", "gzip")
-            .header("Accept", "application/json, text/plain, text/csv, application/octet-stream")
+            .header(
+                "Accept",
+                "application/json, text/plain, text/csv, application/octet-stream",
+            )
             .body(Empty::new())
             .map_err(|error| format!("Bitview API request failed: {error}"))?;
-        let response = self
-            .client
-            .request(request)
-            .await
-            .map_err(|error| format!("Bitview API request failed: {error}"))?;
+        let response = self.client.request(request).await.map_err(|error| {
+            let mut message = format!("Bitview API request failed: {error}");
+            let mut source = error.source();
+            while let Some(cause) = source {
+                let _ = write!(message, ": {cause}");
+                source = cause.source();
+            }
+            message
+        })?;
         let header = |name| {
             response
                 .headers()
@@ -139,17 +151,22 @@ impl Upstream {
             header("content-type").unwrap_or_else(|| "application/octet-stream".to_string());
         let cache_status = header("cf-cache-status");
         let cache_age = header("age");
-        let gzip = response.headers().get(CONTENT_ENCODING).is_some_and(|encoding| encoding == "gzip");
+        let gzip = response
+            .headers()
+            .get(CONTENT_ENCODING)
+            .is_some_and(|encoding| encoding == "gzip");
         let mut decoder = gzip.then(|| MultiGzDecoder::new(CappedBody(Vec::new())));
         let mut body = CappedBody(Vec::new());
         let mut incoming = response.into_body();
         while let Some(frame) = incoming.frame().await {
-            let frame = frame.map_err(|error| format!("Bitview API response read failed: {error}"))?;
+            let frame =
+                frame.map_err(|error| format!("Bitview API response read failed: {error}"))?;
             if let Ok(data) = frame.into_data() {
                 match &mut decoder {
                     Some(decoder) => decoder.write_all(&data),
                     None => body.write_all(&data),
-                }.map_err(body_error)?;
+                }
+                .map_err(body_error)?;
             }
         }
         if let Some(decoder) = decoder {
