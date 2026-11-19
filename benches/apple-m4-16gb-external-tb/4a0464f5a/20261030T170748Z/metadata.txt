@@ -18,3 +18,6 @@ chain_height=973849
 blocks_path=/Volumes/External/bitcoin/blocks
 data_path=/Volumes/External/bitview
 cache_budget=2147483648
+
+comparable=false
+comparable_reason=Concurrent benchmark runs on the same machine
