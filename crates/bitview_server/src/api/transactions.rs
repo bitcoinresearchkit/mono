@@ -56,20 +56,21 @@ impl AppState {
         .await
     }
 
-    /// [`Self::respond_resolved`] for a confirmed transaction's proof.
+    /// [`Self::respond_resolved`] for a confirmed transaction's proof. Settled, never committed:
+    /// the txid in its address doesn't say which block holds the transaction, so a deeper reorg
+    /// can replace even the merkleblock proof's bytes, and browsers are never purged.
     async fn respond_proof<B: Into<Bytes> + 'static>(
         &self,
         headers: &HeaderMap,
         txid: Txid,
         content_type: &'static str,
-        settle: Settle,
         build: fn(&Query, ResolvedConfirmedTx) -> QueryResult<B>,
     ) -> Response {
         self.respond_resolved(
             headers,
             Version::ONE,
             content_type,
-            settle,
+            Answer::settled,
             move |q| {
                 let tx = q.resolve_confirmed_tx(&txid)?;
                 let (identity, settled) = (tx.identity(), tx.is_settled());
@@ -242,7 +243,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         &headers,
                         param.txid,
                         TEXT,
-                        Answer::committed,
                         Query::merkleblock_proof_resolved,
                     )
                     .await
@@ -262,7 +262,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_proof(&headers, param.txid, JSON, Answer::committed, |q, tx| {
+                    .respond_proof(&headers, param.txid, JSON, |q, tx| {
                         Ok(to_vec(&q.merkle_proof_resolved(tx)?)?)
                     })
                     .await

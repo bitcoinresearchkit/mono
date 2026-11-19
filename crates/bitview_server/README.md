@@ -73,8 +73,10 @@ Neither allows stale-on-error reuse.
 
 Browsers are never purged, so only what no release changes is immutable for
 them: a raw block, a block's header, the txid at an index of a block, and a
-settled transaction's hex, raw bytes and merkle proofs (a txid commits to its
-witness only through its block). A settled answer the server shapes can change
+settled transaction's hex and raw bytes (a txid commits to its witness only
+through its block). Its proofs are settled: the txid in their address doesn't
+say which block holds the transaction, and the JSON one is the server's to
+shape. A settled answer the server shapes can change
 shape with a release: a browser revalidates it against a tag carrying the
 release and its schema's version, and gets `304` until either changes. The CDN
 of a server run with `--cdn` (`CdnCacheMode::Aggressive`) is purged by its
