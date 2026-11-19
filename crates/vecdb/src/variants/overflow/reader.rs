@@ -63,7 +63,7 @@ where
     }
 
     /// Advise the compact rows. A row identifies its overflow slot when read.
-    pub fn prefetch(&self, indexes: impl Iterator<Item = I>) {
+    pub fn prefetch(&self, indexes: impl DoubleEndedIterator<Item = I>) {
         self.compact.prefetch(indexes);
     }
 

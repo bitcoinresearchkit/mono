@@ -62,8 +62,8 @@ impl Reader {
         self.read(offset, self.len - offset)
     }
 
-    /// Advise a short batch of sorted, fixed-width reads, once per page.
-    pub fn prefetch(&self, offsets: impl Iterator<Item = usize>, width: usize) {
+    /// Advise a short batch of sorted, fixed-width reads, once per missing page.
+    pub fn prefetch(&self, offsets: impl DoubleEndedIterator<Item = usize>, width: usize) {
         #[cfg(unix)]
         {
             use super::residency::{is_page_resident, vm_page_size};
@@ -75,8 +75,16 @@ impl Reader {
             let data = &self._db.inner.data;
             let mapping = data.mapping();
             let base = self.base.addr() - mapping.as_ptr().addr();
+            let mut offsets = offsets.filter(|&offset| offset <= self.len - width);
+            let Some(tail) = offsets.next_back() else { return; };
+            let tail_page = (base + tail + width - 1) / page_size * page_size;
+            // A repeated lookup already touched the tail. Earlier batches can also
+            // warm the head of a cold batch, so sample its far end.
+            if is_page_resident(mapping, tail_page, page_size) {
+                return;
+            }
             let mut last = None;
-            for offset in offsets.filter(|&offset| offset <= self.len - width) {
+            for offset in offsets.chain(std::iter::once(tail)) {
                 let start = base + offset;
                 let first = start / page_size * page_size;
                 let end = (start + width).next_multiple_of(page_size);
@@ -85,7 +93,7 @@ impl Reader {
                         continue;
                     }
                     last = Some(page);
-                    if !is_page_resident(mapping, page, page_size) {
+                    if page == tail_page || !is_page_resident(mapping, page, page_size) {
                         data.prefetch(page, page_size);
                     }
                 }

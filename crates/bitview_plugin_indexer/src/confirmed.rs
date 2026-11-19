@@ -196,7 +196,7 @@ pub struct OutputRanges {
 
 impl OutputRanges {
     /// Advise both boundaries of each transaction in a short sorted batch.
-    pub fn prefetch(&self, transactions: impl Iterator<Item = TxIndex>) {
+    pub fn prefetch(&self, transactions: impl DoubleEndedIterator<Item = TxIndex>) {
         self.first_txout.prefetch(
             transactions
                 .flat_map(|tx| [tx, tx.incremented()])

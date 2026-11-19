@@ -81,7 +81,7 @@ where
     }
 
     /// Ask the kernel to read missing pages for this short batch of sorted indexes.
-    pub fn prefetch(&self, indexes: impl Iterator<Item = I>)
+    pub fn prefetch(&self, indexes: impl DoubleEndedIterator<Item = I>)
     where
         I: VecIndex,
     {
