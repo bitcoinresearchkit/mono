@@ -1743,12 +1743,11 @@ function renderGallery() {
   const again = back && drawn === galleryDrawn, lists = listsDrawn;
   // (The same place drawn anew (the theme switched): its scroll and its shelves' kept. Come back to, a page come to.)
   const kept = spot === gallerySpot && !back ? galleryPlace() : null;
-  // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared; its
-  // drawings going on, the loop's wait on one ended, see galleryWait.)
-  if (words.length && galleryPlain && presets) {
-    galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
-    endGalleryWait();
-  }
+  // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared.)
+  if (words.length && galleryPlain && presets) galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
+  // (Turned between the page and a search, however (a key, Escape, a section opened): the loop's wait on a tile no
+  // longer shown ended, see galleryWait. It goes on once this render is written, never on what it replaced.)
+  if (galleryPlain === !!words.length) endGalleryWait();
   galleryPlain = !words.length;
   galleryDrawn = drawn;
   gallerySpot = spot;
@@ -1784,10 +1783,8 @@ function renderGallery() {
     for (const row of all$(".shelf-row", $("gallery"))) if (shelfScrolls.get(row)) (row.scrollLeft = 0), shelfScrolls.set(row, 0);
     freshenTiles();
   } else if (galleryAside?.drawn === drawn) {
-    // (The page as it was before the search, nothing it shows changed since: put back, not written again; the loop's
-    // wait on the search's tile ended, see galleryWait.)
+    // (The page as it was before the search, nothing it shows changed since: put back, not written again.)
     $("gallery").replaceChildren(...galleryAside.nodes);
-    endGalleryWait();
     listsDrawn = galleryAside.lists;
     galleryAside = null;
     freshenTiles();
@@ -1829,13 +1826,13 @@ let galleryPlain = false, galleryAside = /** @type {{ drawn: string, lists: numb
 /** What ends the drawing loop's wait on a tile early (see galleryWait). @type {(value?: unknown) => void} */
 let endGalleryWait = () => {};
 /**
- * The drawing loop's wait on a tile's drawing (see drawGallery), ended early once the gallery turns between its page
- * and a search (the page set aside, or put back): the tiles it shows then are asked for at once, the drawing going on.
- * A wait within a search's grids isn't: a key typed meanwhile asks for no tile of the grids it passes. (A drawing that
- * fails is reported, the loop going on, waited for or not.)
+ * The drawing loop's wait on a tile's drawing, ended early once the gallery turns between its page and a search (see
+ * renderGallery): the tiles shown then are asked for at once, the drawing going on. Between a search's grids it
+ * isn't, so a key typed meanwhile asks for no tile of the grids it passes. Only drawGallery waits, one tile at a time
+ * (it's serial): each wait takes the one slot.
  * @param {Promise<unknown>} drawn
  */
-const galleryWait = (drawn) => Promise.race([drawn.catch(reportError), new Promise((done) => (endGalleryWait = done))]);
+const galleryWait = (drawn) => Promise.race([drawn, new Promise((done) => (endGalleryWait = done))]);
 /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
 function shelfSteps(row) {
   shelfScrolls.set(row, row.scrollLeft);
