@@ -1,0 +1,25 @@
+version=0.13.0
+revision=3851806b091d8a75169f690f7dfdb32b9ac9b50d
+dirty=false
+profile=release
+profile_reported=build
+rustc=rustc 1.100.0 (0ef1bc386 2026-11-09)
+rustflags=-C target-cpu=native -C target-cpu=native
+target=aarch64-apple-darwin
+hostname=minis-Mac-Mini.local
+cpu=Apple M6
+ram_bytes=17179869184
+storage=external-tb WD_BLACK SN850X 2000GB
+blocks_storage=external-tb WD_BLACK SN850X 2000GB
+data_volume=1266405388288/2000189177856
+blocks_volume=1266405388288/2000189177856
+parallelism=12
+started_at_unix=1795091847
+chain_height=976587
+start=fresh
+blocks_path=/Volumes/External/bitcoin/blocks
+data_path=/Volumes/External/bench-next-3851806b0
+cache_budget=1073741824
+
+comparable=false
+comparable_reason=Production bitviewd running on the same machine
