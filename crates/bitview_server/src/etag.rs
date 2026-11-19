@@ -1,13 +1,12 @@
 use axum::http::{HeaderMap, HeaderValue, header::ETAG};
 #[cfg(feature = "full-api")]
 use bitview_query::RepresentationId;
-#[cfg(feature = "full-api")]
-use brk_types::Version;
 
 use crate::VERSION;
 
 /// Typed weak entity tag with its validated HTTP representation. Every tag starts with the
-/// release, so a release changing a response's format never validates an older body.
+/// release, so a release changing a response's format never validates an older body: no tag
+/// carries a format version of its own.
 #[derive(Clone, Debug)]
 pub struct Etag(HeaderValue);
 
@@ -18,12 +17,12 @@ impl Etag {
     }
 
     /// Names a representation the way it identifies itself: by its content, or by the block that
-    /// fixes it (`tx3-{version}-{hash}`, `version` bumped when its format changes).
+    /// fixes it.
     #[cfg(feature = "full-api")]
-    pub fn representation(version: Version, identity: RepresentationId) -> Self {
+    pub fn representation(identity: RepresentationId) -> Self {
         match identity {
             RepresentationId::Content(hash) => Self::content(hash),
-            RepresentationId::Block(hash) => format!("tx3-{version}-{hash}").into(),
+            RepresentationId::Block(hash) => hash.to_string().into(),
         }
     }
 

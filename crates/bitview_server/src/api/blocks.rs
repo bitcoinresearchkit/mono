@@ -23,9 +23,9 @@ use crate::{
 
 const BLOCK_TXS_PAGE_SIZE: u32 = 25;
 
-/// One way a block is sent by its hash: the name its tag carries, bumped when its format
-/// changes, and its kind once settled. The hash commits to every byte of a header, of the raw
-/// block and of a txid; the JSON forms are the server's.
+/// One way a block is sent by its hash: the name its tag carries and its kind once settled. The
+/// hash commits to every byte of a header, of the raw block and of a txid; the JSON forms are the
+/// server's.
 #[derive(Clone, Copy)]
 struct BlockForm {
     name: &'static str,
@@ -33,20 +33,17 @@ struct BlockForm {
 }
 
 impl BlockForm {
-    const JSON: Self = Self::new("v3", Answer::settled);
-    const HEADER: Self = Self::new("header-v2", Answer::committed);
-    const RAW: Self = Self::new("raw-v2", Answer::committed);
-    const TXID: Self = Self::new("txid-v2", Answer::committed);
-    const TXIDS: Self = Self::new("txids-v2", Answer::settled);
-    const TXS: Self = Self::new("txs-v2", Answer::settled);
+    const JSON: Self = Self::new("json", Answer::settled);
+    const HEADER: Self = Self::new("header", Answer::committed);
+    const RAW: Self = Self::new("raw", Answer::committed);
+    const TXID: Self = Self::new("txid", Answer::committed);
+    const TXIDS: Self = Self::new("txids", Answer::settled);
+    const TXS: Self = Self::new("txs", Answer::settled);
 
     const fn new(name: &'static str, settle: Settle) -> Self {
         Self { name, settle }
     }
 }
-
-/// Covers the extended rows' formulas and bundled pool catalog: bumped when either changes.
-pub const V1_BLOCK_SCHEMA: &str = "v1-7";
 
 const MISSING_BLOCK: QueryError = QueryError::Internal("Missing resolved block");
 
@@ -85,7 +82,7 @@ impl AppState {
             .ok_or_else(|| QueryError::updating())?;
             // The value is the whole representation. In particular, a same-height reorg
             // changes the hash endpoint but not the height.
-            Ok(Answer::new(format!("block-tip-v2-{value}"), move |_| {
+            Ok(Answer::new(format!("block-tip-{value}"), move |_| {
                 Ok(Content::text(value))
             }))
         })
@@ -161,10 +158,7 @@ impl AppState {
         self.respond(headers, self.chain(), move |q| {
             let snapshot = q.resolve_block_v1(&hash)?;
             let height = snapshot.last_height().ok_or(MISSING_BLOCK)?;
-            let tag = format!(
-                "block-{V1_BLOCK_SCHEMA}-{height}-{:x}",
-                snapshot.identity()
-            );
+            let tag = format!("block-v1-{height}-{:x}", snapshot.identity());
             let settled = snapshot.is_settled();
             Ok(
                 Answer::json(tag, move |q| snapshot.build(q)?.pop().ok_or(MISSING_BLOCK))
@@ -181,7 +175,7 @@ impl AppState {
     ) -> Response {
         self.respond(headers, self.chain(), move |q| {
             let snapshot = q.resolve_blocks_v1(start_height, 15)?;
-            let tag = format!("blocks-{V1_BLOCK_SCHEMA}-{:x}", snapshot.identity());
+            let tag = format!("blocks-v1-{:x}", snapshot.identity());
             let settled = snapshot.is_settled();
             Ok(Answer::json(tag, move |q| snapshot.build(q)).settled(settled))
         })
@@ -192,8 +186,8 @@ impl AppState {
         self.respond(headers, self.chain(), move |q| {
             let snapshot = q.resolve_blocks(start_height, 10)?;
             let tag = match snapshot.anchor() {
-                Some(hash) => format!("blocks2-{hash}"),
-                None => "blocks2-empty".to_owned(),
+                Some(hash) => format!("blocks-{hash}"),
+                None => "blocks-empty".to_owned(),
             };
             let settled = snapshot.is_settled();
             Ok(Answer::json(tag, move |q| snapshot.build(q)).settled(settled))
@@ -293,7 +287,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     state
                         .respond(&headers, state.chain(), move |q| {
                             let (hash, settled) = q.resolve_block_hash(path.height)?;
-                            let tag = format!("block-height-v2-{hash}");
+                            let tag = format!("block-height-{hash}");
                             let content = Content::text(hash.to_string());
                             Ok(Answer::ready(tag, content).settled(settled))
                         })
@@ -322,7 +316,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .respond(&headers, state.chain(), move |q| {
                             let block = q.resolve_block_by_timestamp(path.timestamp)?;
                             let settled = block.is_settled();
-                            let tag = format!("block-timestamp-v2-{}", block.hash());
+                            let tag = format!("block-timestamp-{}", block.hash());
                             Ok(Answer::json(tag, move |_| Ok(block.into_value())).settled(settled))
                         })
                         .await

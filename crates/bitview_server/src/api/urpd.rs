@@ -34,7 +34,7 @@ async fn serve_urpd(
                 None => q.resolve_urpd_latest(cohort, query.aggregation, query.weight)?,
             };
             // The selection alone identifies the body: a match answers 304 unreconstructed.
-            let tag = format!("urpd3-{}", resolved.representation());
+            let tag = format!("urpd-{}", resolved.representation());
             let settled = resolved.is_settled();
             let answer = Answer::new(tag, move |q| {
                 Ok(Content::new(JSON, q.urpd_resolved(resolved)?))

@@ -79,7 +79,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         // computed_height and blocks_behind derive from these heights;
                         // last_indexed_at derives from the Unix timestamp.
                         let tag = format!(
-                            "sync1-{}-{}-{}",
+                            "sync-{}-{}-{}",
                             sync.indexed_height, sync.tip_height, *sync.last_indexed_at_unix,
                         );
                         Ok(Answer::ready(tag, Content::json(&sync)?))

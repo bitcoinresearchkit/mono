@@ -6,7 +6,7 @@ use axum::{
 };
 use bitview_primitives::BlockHashPrefix;
 use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressValidation, Utxo};
-use brk_types::{Address, Transaction, Txid, Version};
+use brk_types::{Address, Transaction, Txid};
 use serde_json::to_vec;
 
 use crate::{
@@ -30,7 +30,7 @@ const CHAIN_PAGE: usize = 25;
 
 impl AppState {
     /// A page of an address's confirmed transactions: named by the newest block holding one of
-    /// them (`a{version}-{block hash prefix:x}`; the tip's while it has none).
+    /// them (`a-{block hash prefix:x}`; the tip's while it has none).
     async fn respond_addr_chain_txs(
         &self,
         headers: &HeaderMap,
@@ -43,7 +43,7 @@ impl AppState {
                 q.resolve_addr_chain_txs(&addr, after_txid, page_size(max_txs, CHAIN_PAGE))?;
             let anchor = BlockHashPrefix::from(&source.activity_anchor());
             let settled = source.is_settled();
-            let tag = format!("a{}-{:x}", Version::ONE, *anchor);
+            let tag = format!("a-{:x}", *anchor);
             Ok(Answer::json(tag, move |q| q.addr_txs_chain_resolved(source)).settled(settled))
         })
         .await
@@ -164,7 +164,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             state
                 .respond_resolved(
                     &headers,
-                    Version::ONE,
                     JSON,
                     Answer::settled,
                     move |q| {
@@ -237,7 +236,6 @@ async fn serve_txs(
     state
         .respond_resolved(
             headers,
-            Version::ONE,
             JSON,
             Answer::settled,
             move |q| {
@@ -260,7 +258,7 @@ async fn serve_utxos(state: AppState, headers: &HeaderMap, addr: Address) -> Res
     state
         .respond(headers, state.chain(), move |q| {
             let resolved = q.resolve_addr_utxos(&addr, max_utxos)?;
-            let tag = format!("addr-utxos-v3-{}", resolved.representation());
+            let tag = format!("addr-utxos-{}", resolved.representation());
             Ok(Answer::json(tag, move |q| q.addr_utxos_resolved(resolved)))
         })
         .await

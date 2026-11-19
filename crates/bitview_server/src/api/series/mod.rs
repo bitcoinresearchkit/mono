@@ -114,8 +114,8 @@ pub async fn serve_len(
     Ok(state
         .respond(headers, state.series_data(), move |q| {
             let length = q.len(&series, index)?;
-            // The JSON number depends only on length, not on the chain tip or deploy.
-            Ok(Answer::ready(format!("len1-{length}"), Content::json(&length)?))
+            // The JSON number depends only on the length, not on the chain tip.
+            Ok(Answer::ready(format!("len-{length}"), Content::json(&length)?))
         })
         .await)
 }
@@ -130,7 +130,7 @@ pub async fn serve_version(
     let Some(version) = state.query.sync(|q| q.find_version(&series, index))? else {
         return Err(missing_series(&state, &series));
     };
-    let answer = Answer::ready(format!("sv1-{version}"), Content::json(&version)?);
+    let answer = Answer::ready(format!("sv-{version}"), Content::json(&version)?);
     Ok(state.respond_now(headers, answer))
 }
 

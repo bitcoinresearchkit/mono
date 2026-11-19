@@ -13,8 +13,6 @@ use bitview_http::{IMMUTABLE, REVALIDATE};
 #[cfg(feature = "full-api")]
 use bitview_query::RepresentationId;
 use bitview_query::{Error as QueryError, Query, Result};
-#[cfg(feature = "full-api")]
-use brk_types::Version;
 use brk_types::tag_hash;
 use serde::Serialize;
 use serde_json::to_vec;
@@ -338,7 +336,6 @@ impl AppState {
     pub async fn respond_resolved<S: 'static, B: Into<Bytes>>(
         &self,
         headers: &HeaderMap,
-        version: Version,
         content_type: &'static str,
         settle: Settle,
         resolve: impl FnOnce(&Query) -> Result<(S, RepresentationId, bool)>
@@ -349,7 +346,7 @@ impl AppState {
     ) -> Response {
         self.respond(headers, self.chain(), move |q| {
             let (source, identity, settled) = resolve(q)?;
-            let tag = Etag::representation(version, identity);
+            let tag = Etag::representation(identity);
             let answer = Answer::new(tag, move |q| {
                 Ok(Content::new(content_type, build(q, source)?))
             });
@@ -370,10 +367,7 @@ impl AppState {
             let (bytes, identity) = built(q)?;
             // A body shared with the pool (built once per publication) isn't copied.
             let content = Content::new(JSON, Bytes::from_owner(bytes));
-            Ok(Answer::ready(
-                Etag::representation(Version::ONE, identity),
-                content,
-            ))
+            Ok(Answer::ready(Etag::representation(identity), content))
         })
         .await
     }

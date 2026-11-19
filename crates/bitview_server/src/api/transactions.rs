@@ -12,9 +12,7 @@ use bitview_query::{
     Query, RepresentationId, ResolvedConfirmedTx, ResolvedTransaction, Result as QueryResult,
 };
 use bitview_types::{MerkleProof, RbfResponse};
-use brk_types::{
-    Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, Version,
-};
+use brk_types::{Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid};
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
 
@@ -43,7 +41,6 @@ impl AppState {
     ) -> Response {
         self.respond_resolved(
             headers,
-            Version::ONE,
             content_type,
             settle,
             move |q| {
@@ -68,7 +65,6 @@ impl AppState {
     ) -> Response {
         self.respond_resolved(
             headers,
-            Version::ONE,
             content_type,
             Answer::settled,
             move |q| {
@@ -92,7 +88,7 @@ impl AppState {
         + 'static,
     ) -> Response {
         let built_bytes = |_: &Query, bytes| Ok(bytes);
-        self.respond_resolved(headers, Version::ONE, JSON, Answer::settled, built, built_bytes)
+        self.respond_resolved(headers, JSON, Answer::settled, built, built_bytes)
             .await
     }
 }
@@ -109,7 +105,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state
                     .respond(&headers, state.chain(), move |q| {
                         let (txid, settled) = q.txid_by_index(param.index)?;
-                        let tag = format!("tx-index3-{}-{txid}", Version::ONE);
+                        let tag = format!("tx-index-{txid}");
                         Ok(Answer::ready(tag, Content::text(txid.to_string())).settled(settled))
                     })
                     .await
@@ -131,7 +127,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state
                     .respond_resolved(
                         &headers,
-                        Version::TWO,
                         JSON,
                         Answer::settled,
                         move |q| {

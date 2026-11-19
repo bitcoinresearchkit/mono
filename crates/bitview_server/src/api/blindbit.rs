@@ -37,7 +37,7 @@ use crate::{
 const PREFIX: &str = "/blindbit/mainnet";
 
 fn block_tag(route: &str, height: Height, block: &BlindbitBlock) -> String {
-    format!("blindbit-v1-{route}-{height}-{}", block.hash())
+    format!("blindbit-{route}-{height}-{}", block.hash())
 }
 
 impl AppState {
@@ -93,7 +93,7 @@ impl AppState {
     ) -> Response {
         self.respond(headers, self.chain(), move |q| {
             let (height, hash) = q.blindbit_tip()?;
-            let tag = format!("blindbit-v1-{route}-{hash}");
+            let tag = format!("blindbit-{route}-{hash}");
             Ok(Answer::json(tag, move |_| Ok(build(height))))
         })
         .await

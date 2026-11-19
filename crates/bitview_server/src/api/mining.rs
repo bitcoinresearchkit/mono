@@ -13,7 +13,6 @@ use bitview_types::{
 use brk_types::Height;
 use serde::Serialize;
 
-use super::blocks;
 use crate::{
     AppState, Error,
     answer::Answer,
@@ -36,11 +35,7 @@ async fn serve_pool_blocks(
     state
         .respond(headers, state.chain(), move |q| {
             let blocks = q.resolve_pool_blocks(slug.pool()?, before_height, POOL_BLOCKS_LIMIT)?;
-            let tag = format!(
-                "pool-blocks-{}-{:x}",
-                blocks::V1_BLOCK_SCHEMA,
-                blocks.identity()
-            );
+            let tag = format!("pool-blocks-{:x}", blocks.identity());
             let settled = blocks.is_settled();
             Ok(Answer::json(tag, move |q| q.pool_blocks_resolved(blocks)).settled(settled))
         })
