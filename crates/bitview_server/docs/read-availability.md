@@ -31,10 +31,11 @@ the state published when it started, or fails fast with a status the client can 
   up its admission, waits for a body permit within the deadline, and resolves again, so
   nothing resolved before the wait is sent after it.
 - **Validators first.** A route names its answer before building it: a matching conditional
-  request gets a 304 without the build or a body permit. Where nothing cheaper than the bytes
-  names an answer (the mempool's summaries, outspends, replacement trees, the live price,
-  historical prices), it is built, or taken from the copy kept per publication, to be named,
-  and a 304 saves only the transfer.
+  request gets a 304 without the build or a body permit, and where the name is known before
+  any read (the series search's, made as the server starts) without admission either. Where
+  nothing cheaper than the bytes names an answer (the mempool's summaries, outspends,
+  replacement trees, the live price, historical prices), it is built, or taken from the copy
+  kept per publication, to be named, and a 304 saves only the transfer.
 
 Transient failures (503 `state_updating` and `overloaded`) carry `Retry-After: 1`; every 5xx is
 `Cache-Control: no-store` without an ETag. Broadcast is an action: never replayed, and fails

@@ -47,8 +47,8 @@ pub async fn serve_search(state: AppState, headers: &HeaderMap, search: SearchQu
     }
     let tag = state.series_bodies.search.clone();
     state
-        .respond(headers, state.series_search(), move |_| {
-            Ok(Answer::json(tag, move |q| Ok(q.search_series(&search))))
+        .respond_named(headers, state.series_search(), tag, move |q| {
+            Content::json(&q.search_series(&search))
         })
         .await
 }
