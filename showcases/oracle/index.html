@@ -2077,7 +2077,7 @@
         return li;
       }));
       /** What brk_oracle's README measured, from the same run (accuracy.json; tools/oracle-bench/score.py --json). Percent. */
-      read("accuracy.json").then((/** @type {{ from: number, to: number, blocks: number, median: number, p95: number, p99: number, years: { year: number, blocks: number, median: number, gt5: number, gt10: number }[] }} */ acc) => {
+      read("/oracle/accuracy.json").then((/** @type {{ from: number, to: number, blocks: number, median: number, p95: number, p99: number, years: { year: number, blocks: number, median: number, gt5: number, gt10: number }[] }} */ acc) => {
         const text = (/** @type {string} */ id, /** @type {string | number} */ value) => { $(id).textContent = String(value); };
         const count = acc.blocks.toLocaleString("en-US");
         // The first year after which no block is off by 10%, and the two years with the most blocks off by 5%.
