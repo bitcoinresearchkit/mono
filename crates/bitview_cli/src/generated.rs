@@ -965,8 +965,8 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
@@ -983,8 +983,8 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesList", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
@@ -1013,8 +1013,8 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],

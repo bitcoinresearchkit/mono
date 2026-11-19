@@ -1743,7 +1743,7 @@
               ]
             },
             "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -1762,7 +1762,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
-                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -1774,7 +1774,7 @@
               ]
             },
             "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -1793,7 +1793,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
-                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -1924,7 +1924,7 @@
               ]
             },
             "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -1943,7 +1943,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
-                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]
@@ -1955,7 +1955,7 @@
               ]
             },
             "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.",
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.",
               "anyOf": [
                 {
                   "type": "integer",
@@ -1974,7 +1974,7 @@
                 {
                   "type": "string",
                   "format": "date-time",
-                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
                   "examples": [
                     "2025-08-15T00:00:00Z"
                   ]

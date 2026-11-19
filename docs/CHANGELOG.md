@@ -8,6 +8,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Series range timestamps accept UTC fractions of 1 to 9 digits, including trailing zeros.
+
 - Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
   matching mempool.space. Descendants evicted with a replaced parent keep their replacement
   status.

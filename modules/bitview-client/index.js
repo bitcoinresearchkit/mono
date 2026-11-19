@@ -1253,7 +1253,7 @@
  * @property {Dollars} USD - BTC/USD price
  */
 /**
- * A positional index, a YYYY-MM-DD date, or a UTC timestamp spelled YYYY-MM-DDTHH:MM:SSZ, or with exactly three millisecond digits before the Z as JavaScript's toISOString writes. Other spellings of a timestamp (an offset, lowercase, another fraction) are refused.
+ * A positional index, a YYYY-MM-DD date, or a UTC timestamp with uppercase T and Z and an optional fraction of 1 to 9 digits. Offsets are refused.
  *
  * @typedef {(number|string|string)} RangeIndex
  */
@@ -7168,7 +7168,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "38dbd4df118b233a3a4601846596a82770440992fcace3677b788a5fb149d00d";
+  static HASH = "39e5a627657ffa072a78c343a25bcc1515f0f677d20e7370417c8ecfb743a65a";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -8224,8 +8224,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {SeriesName} series
    * @param {Index} index
    * @param {object} [options]
-   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
-   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
    * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format} [options.format]
    * @param {AbortSignal} [options.signal]
@@ -8256,8 +8256,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {SeriesName} series
    * @param {Index} index
    * @param {object} [options]
-   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
-   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
    * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format} [options.format]
    * @param {AbortSignal} [options.signal]
@@ -8349,8 +8349,8 @@ class BitviewClient extends BitviewClientBase {
    * @param {object} options
    * @param {SeriesList} options.series
    * @param {Index} options.index
-   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
-   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
+   * @param {RangeIndex} [options.start] - Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
+   * @param {RangeIndex} [options.end] - Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
    * @param {Limit} [options.limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format} [options.format]
    * @param {AbortSignal} [options.signal]

@@ -816,8 +816,8 @@ Fetch multiple series in a single request. Supports filtering by index and date 
 Parameters:
 - `series` (query, SeriesList, required)
 - `index` (query, Index, required)
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
 - `limit` (query, Limit, optional): Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 - `format` (query, Format, optional)
 
@@ -883,8 +883,8 @@ History of an on-chain metric, by the series id from `search_series`: rows selec
 Parameters:
 - `series` (path, SeriesName, required)
 - `index` (path, Index, required)
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
 - `limit` (query, Limit, optional): Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 - `format` (query, Format, optional)
 
@@ -899,8 +899,8 @@ The data array without the `SeriesData` wrapper. Supports the same range and for
 Parameters:
 - `series` (path, SeriesName, required)
 - `index` (path, Index, required)
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with three millisecond digits: .mmmZ). Negative integers count from end.
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or UTC timestamp (YYYY-MM-DDTHH:MM:SSZ, optionally with a fraction of 1 to 9 digits before the Z). Negative integers count from end.
 - `limit` (query, Limit, optional): Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 - `format` (query, Format, optional)
 

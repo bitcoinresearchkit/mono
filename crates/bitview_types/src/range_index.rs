@@ -22,7 +22,7 @@ impl JsonSchema for RangeIndex {
 
     fn json_schema(_: &mut SchemaGenerator) -> Schema {
         json_schema!({
-            "description": "A positional index, a YYYY-MM-DD date, or a UTC timestamp spelled YYYY-MM-DDTHH:MM:SSZ, or with exactly three millisecond digits before the Z as JavaScript's toISOString writes. Other spellings of a timestamp (an offset, lowercase, another fraction) are refused.",
+            "description": "A positional index, a YYYY-MM-DD date, or a UTC timestamp with uppercase T and Z and an optional fraction of 1 to 9 digits. Offsets are refused.",
             "anyOf": [
                 {
                     "type": "integer",
@@ -38,7 +38,7 @@ impl JsonSchema for RangeIndex {
                 {
                     "type": "string",
                     "format": "date-time",
-                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{3})?Z$",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,9})?Z$",
                     "examples": ["2025-08-15T00:00:00Z", "2025-08-15T00:00:00.000Z"]
                 }
             ]
@@ -93,20 +93,15 @@ impl<'de> Deserialize<'de> for RangeIndex {
             if secs < 0 || secs > u32::MAX as i64 {
                 return Err(Error::custom(format!("timestamp out of range: {s}")));
             }
-            // The two spellings clients write (every bound in eight days of requests was one of
-            // them): the instant as answers print it, to the second, or to the millisecond as
-            // JavaScript's `toISOString` always writes. No offset, lowercase or other fraction:
-            // each would be one more cache entry for the same answer. Two instants inside one
-            // second can still share an answer, as two seconds inside one day do on `day1`.
-            if s != format!("{ts:.0}") && s != format!("{ts:.3}") {
-                return Err(Error::custom(format!(
-                    "timestamp `{s}` is spelled YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS.mmmZ"
-                )));
+            let precision = s.split_once('.').map_or(0, |(_, fraction)| {
+                fraction.bytes().take_while(u8::is_ascii_digit).count()
+            });
+            if precision <= 9 && s == format!("{ts:.precision$}") {
+                return Ok(Self::Timestamp(ts));
             }
-            return Ok(Self::Timestamp(ts));
         }
         Err(Error::custom(format!(
-            "expected integer, YYYY-MM-DD, or YYYY-MM-DDTHH:MM:SSZ timestamp: {s}"
+            "expected integer, YYYY-MM-DD, or UTC timestamp with uppercase T and Z and an optional fraction of 1 to 9 digits: {s}"
         )))
     }
 }
