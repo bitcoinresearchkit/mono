@@ -40,4 +40,4 @@ pub use unspendable_type::*;
 pub use vintage::*;
 
 mod age_crossings;
-pub use age_crossings::for_each_age_crossing;
+pub use age_crossings::{age_boundary_positions, for_each_age_crossing};

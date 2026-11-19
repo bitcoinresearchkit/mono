@@ -12,9 +12,6 @@ use super::BucketedPrice;
 #[derive(Default)]
 pub struct HeldExtremes {
     tree: MinMaxTree,
-    /// The origins the block being applied spent from, let go once it's applied if it emptied
-    /// them.
-    spent: Vec<u32>,
 }
 
 impl HeldExtremes {
@@ -34,22 +31,13 @@ impl HeldExtremes {
         self.tree.build();
     }
 
-    /// An origin the block being applied spends from.
-    pub(crate) fn spend_from(&mut self, origin: u32) {
-        self.spent.push(origin);
+    pub(crate) fn insert(&mut self, origin: usize, price: BucketedPrice) {
+        self.tree.set(origin, u32::from(price.price()));
     }
 
-    /// The block at `height` applied (`amounts`, as it left them): its own origin held if it kept
-    /// any, each it spent from let go if it emptied it.
-    pub(crate) fn settle(&mut self, height: usize, amounts: &[Amount], prices: &[BucketedPrice]) {
-        if amounts[height].sats != 0 {
-            self.tree.set(height, u32::from(prices[height].price()));
-        }
-        for origin in self.spent.drain(..) {
-            let origin = origin as usize;
-            if amounts[origin].sats == 0 && self.tree.holds(origin) {
-                self.tree.clear(origin);
-            }
+    pub(crate) fn remove(&mut self, origin: usize) {
+        if self.tree.holds(origin) {
+            self.tree.clear(origin);
         }
     }
 
@@ -128,7 +116,11 @@ impl MinMaxTree {
     fn pull_up(&mut self, at: usize) {
         let mut node = (self.size + at) / 2;
         while node > 0 {
+            let before = (self.low[node], self.high[node]);
             self.pull(node);
+            if before == (self.low[node], self.high[node]) {
+                break;
+            }
             node /= 2;
         }
     }

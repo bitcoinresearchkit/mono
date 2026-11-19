@@ -30,6 +30,7 @@ const EXACT: usize = 10usize.pow(DIGITS);
 const PER_DECADE: usize = 9 * 10usize.pow(DIGITS - 1);
 /// The decade of $100,000,000 (10^10 cents), the overflow bucket's price: decades of headroom.
 const MAX_LOG10: u32 = 10;
+const OVERFLOW_CENTS: u64 = 10u64.pow(MAX_LOG10);
 
 /// Total number of buckets (64,001 with 4 digits).
 const TREE_SIZE: usize = EXACT + (MAX_LOG10 - DIGITS) as usize * PER_DECADE + 1;
@@ -40,7 +41,7 @@ fn bucket_to_cents(bucket: usize) -> Cents {
         return Cents::from(bucket as u64);
     }
     if bucket >= TREE_SIZE - 1 {
-        return Cents::from(10u64.pow(MAX_LOG10));
+        return Cents::from(OVERFLOW_CENTS);
     }
     let decade = (bucket - EXACT) / PER_DECADE;
     let offset = (bucket - EXACT) % PER_DECADE;
@@ -48,15 +49,14 @@ fn bucket_to_cents(bucket: usize) -> Cents {
 }
 
 #[inline]
-fn rounded_cents_to_bucket(price: Cents) -> usize {
-    let cents = u64::from(price);
+fn cents_to_bucket(cents: u64) -> usize {
     match cents.checked_ilog10() {
         Some(log10) if log10 >= MAX_LOG10 => TREE_SIZE - 1,
         Some(log10) if log10 >= DIGITS => {
             let step = 10u64.pow(log10 - DIGITS + 1);
             EXACT
                 + (log10 - DIGITS) as usize * PER_DECADE
-                + (cents / step - 10u64.pow(DIGITS - 1)) as usize
+                + (cents.div_ceil(step) - 10u64.pow(DIGITS - 1)) as usize
         }
         _ => cents as usize,
     }
@@ -70,23 +70,18 @@ impl GridCut {
     /// Below the exact price `numer / denom` cents: an edge between grid prices rounds up to
     /// the next one.
     pub fn below(numer: u128, denom: u128) -> Self {
-        let past = |bucket: usize| u64::from(bucket_to_cents(bucket)) as u128 * denom >= numer;
-        let (mut low, mut high) = (0, TREE_SIZE);
-        while low < high {
-            let mid = (low + high) / 2;
-            if past(mid) {
-                high = mid;
-            } else {
-                low = mid + 1;
-            }
+        let cents = numer.div_ceil(denom);
+        if cents > u128::from(OVERFLOW_CENTS) {
+            Self(TREE_SIZE)
+        } else {
+            Self(cents_to_bucket(cents as u64))
         }
-        Self(low)
     }
 
     /// Through `price`'s bucket: prices rounding to it count, like the in-profit side of
     /// `PriceIndex::density_split`.
     pub fn through(price: Cents) -> Self {
-        Self(rounded_cents_to_bucket(price.round_to_significant(DIGITS)) + 1)
+        Self(cents_to_bucket(price.round_to_significant(DIGITS).inner()) + 1)
     }
 }
 
@@ -111,7 +106,7 @@ impl From<CentsCompact> for BucketedPrice {
         Self {
             price,
             // Round in the compact domain, as the URPD history does at the finite ceiling.
-            bucket: rounded_cents_to_bucket(price.round_to_significant(DIGITS).into()) as u32,
+            bucket: cents_to_bucket(u64::from(price.round_to_significant(DIGITS).inner())) as u32,
         }
     }
 }
