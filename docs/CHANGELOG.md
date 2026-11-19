@@ -8,6 +8,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Bitviewd prefixes API ETags with a digest of its build sources and locked dependencies. Independent builds
+  from the same inputs share validators, and local source edits invalidate them.
+
 - Blocks now carry this server's own audit, recorded live from its mempool the moment each block
   arrives: match rate, expected fees and weight, similarity, and which transactions were missing,
   fresh, replaced, added or never seen, at mempool.space's audit URLs. Blocks from before a server
@@ -899,7 +902,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   the patterns, CPFP parents and children, nonstandard, inscriptions) has the value its transactions moved, beside its
   count and share: bitcoin and dollars, per block, all time and over each window, stored as transfer volume is, and
   its share of transfer volume
-- A build from the repository reports the commit it was built from (`/version`, `/health`, ETags; was the crate's
+- A build from the repository reports the commit it was built from (`/version`, `/health`; was the crate's
   version), a crates.io release its version; the OpenAPI document keeps the release's version
 - The website answers a page's old address with a permanent redirect to its new one, the query kept
   (`/series/?series=…` → `/catalog/?series=…`, `/api-changes/` → `/changes/`); `/charts` and every address under it
@@ -2826,7 +2829,7 @@ has to be deleted by hand.
 
 - A series range counted from the end (`start=-100&end=-10`, or a negative start with `limit`) is tied to the tip:
   under `--cdn` such URLs got the year-long tier while naming other rows every block
-- API ETags start with a hash of the executable, so format changes in local builds and releases invalidate old tags
+- Every ETag starts with the release, so a release changing a response's format never validates an older body
 - `/api.json` lists the `format` query field of `DataRangeFormat` and `SeriesSelection` and the tag definitions (its
   compaction removed every `format` key, property names included, and every tag list) and keeps key order
 - Transactions spending a bare multisig or nonstandard output show the prevout's script, read from the parent

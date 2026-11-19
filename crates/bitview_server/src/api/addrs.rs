@@ -213,7 +213,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             RequestState(state): RequestState
         | -> crate::error::Result<Response> {
             let validation = AddressValidation::from_addr(path.checked()?);
-            // A function of the address and the release (which every tag starts with): `d`.
+            // The URL fixes the address and the build prefix covers changes to validation.
             let answer = Answer::ready("d".to_owned(), Content::json(&validation)?);
             Ok(state.respond_now(&headers, answer))
         }, |op| op

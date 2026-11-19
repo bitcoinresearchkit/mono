@@ -30,6 +30,7 @@ mod update;
 
 pub use bitview_plugin::{ImportContext, UpdateContext};
 pub use bitview_query::{Error, QueryPluginSet, Result};
+pub use bitview_server::set_etag_build_tag;
 pub use bootstrap::bootstrap;
 pub use config::{Config, DEFAULT_CACHE_BUDGET};
 

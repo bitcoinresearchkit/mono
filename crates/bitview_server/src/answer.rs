@@ -86,8 +86,8 @@ pub type Settle = fn(Answer, bool) -> Answer;
 
 impl Answer {
     /// An answer `tag` names: a request holding the tag gets `304`, and `build` never runs. The
-    /// tag must change whenever the bytes at this URL do, within a release (every tag starts
-    /// with it), so it is made of what `build` reads, read under the same pin.
+    /// build prefix covers code changes. The rest must change whenever the bytes at this URL
+    /// do, so it names what `build` reads under the same pin.
     pub fn new(
         tag: impl Into<Etag>,
         build: impl FnOnce(&Query) -> Result<Content> + 'static,

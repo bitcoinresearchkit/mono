@@ -22,3 +22,6 @@ pre-release-replacements = [
 bitview = { workspace = true, features = ["full-api"] }
 bitview_default = { workspace = true }
 brk_alloc = { workspace = true }
+
+[build-dependencies]
+sha2 = { workspace = true }

@@ -137,5 +137,5 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
 
 async fn version(headers: HeaderMap, _: Empty, RequestState(state): RequestState) -> Response {
     let content = Content::new(JSON, format!("\"{VERSION}\""));
-    state.respond_now(&headers, Answer::ready("d".to_owned(), content))
+    state.respond_now(&headers, Answer::built(content))
 }

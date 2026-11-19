@@ -1,7 +1,8 @@
 use std::{
+    borrow::Cow,
     fs::File,
     io::{self, BufRead, BufReader},
-    sync::LazyLock,
+    sync::OnceLock,
 };
 
 use axum::http::{HeaderMap, HeaderValue, header::ETAG};
@@ -10,13 +11,22 @@ use bitcoin::hex::DisplayHex;
 use bitview_query::RepresentationId;
 use sha2::{Digest, Sha256};
 
-static EXECUTABLE_TAG: LazyLock<io::Result<String>> = LazyLock::new(hash_executable);
+static BUILD_TAG: OnceLock<io::Result<Cow<'static, str>>> = OnceLock::new();
 
-/// Hash the running executable before startup work gives installers time to replace its path.
+/// Use an application build's source digest for ETags. Call before starting the server.
+pub fn set_build_tag(tag: &'static str) {
+    BUILD_TAG.set(Ok(Cow::Borrowed(tag))).expect("ETag build tag is already set");
+}
+
+/// For applications without a source digest, hash the executable before startup work.
 pub fn initialize() -> io::Result<()> {
-    EXECUTABLE_TAG.as_ref().map(|_| ()).map_err(|error| {
+    build_tag().as_ref().map(|_| ()).map_err(|error| {
         io::Error::new(error.kind(), format!("Hashing the running executable for ETags: {error}"))
     })
+}
+
+fn build_tag() -> &'static io::Result<Cow<'static, str>> {
+    BUILD_TAG.get_or_init(|| hash_executable().map(Cow::Owned))
 }
 
 fn hash_executable() -> io::Result<String> {
@@ -39,7 +49,7 @@ fn hash_executable() -> io::Result<String> {
     Ok(hash.finalize()[..8].to_lower_hex_string())
 }
 
-/// A weak ETag prefixed with the executable's hash so a build can change response formats
+/// A weak ETag prefixed with the build's tag so code can change response formats
 /// without a manual format version on each tag.
 #[derive(Clone, Debug)]
 pub struct Etag(HeaderValue);
@@ -82,7 +92,7 @@ impl From<String> for Etag {
                 .all(|byte| byte == 0x21 || (0x23..=0x7e).contains(&byte) || byte >= 0x80),
             "invalid ETag token"
         );
-        let prefix = EXECUTABLE_TAG.as_ref().expect("ETag prefix initialized at startup");
+        let prefix = build_tag().as_ref().expect("ETag prefix initialized at startup");
         let mut header = String::with_capacity(prefix.len() + value.len() + 5);
         header.push_str("W/\"");
         header.push_str(prefix);

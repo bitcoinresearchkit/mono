@@ -1222,6 +1222,7 @@ dependencies = [
  "bitview",
  "bitview_default",
  "brk_alloc",
+ "sha2",
 ]
 
 [[package]]
