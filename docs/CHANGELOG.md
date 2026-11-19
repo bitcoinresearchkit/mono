@@ -10,6 +10,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 - Series range timestamps accept UTC fractions of 1 to 9 digits, including trailing zeros.
 
+- `--dumpconfig` leaves secrets out. Reloading the dump loses `rpcpassword`.
+
+- `config.toml` again reads `_` digit separators, hex, octal and binary integers, and quoted keys.
+
 - Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
   matching mempool.space. Descendants evicted with a replaced parent keep their replacement
   status.
