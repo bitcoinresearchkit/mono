@@ -237,7 +237,7 @@ fn detail_body(summary: Summary, diff: &Difference, txids: &[Txid]) -> Result<Au
     for row in &diff.mined {
         let txid = *txids.get(usize::from(row.position))
             .ok_or(Error::Internal("Audit mined position outside block"))?;
-        if row.flags & Mined::ADDED != 0 { detail.added_txs.push(txid); }
+        if row.flags & Mined::ADDED != 0 && row.flags & Mined::CONFLICT == 0 { detail.added_txs.push(txid); }
         if row.flags & Mined::UNSEEN != 0 { detail.unseen_txs.push(txid); }
         if row.flags & Mined::CONFLICT != 0 { detail.fullrbf_txs.push(txid); }
     }

@@ -106,11 +106,12 @@ pub(super) fn compare(capture: &Capture, block: &MinedBlock) -> Audit {
         while extras.peek().is_some_and(|tx| tx.rate.compare(omission.rate).is_lt()) {
             credit -= extras.next().unwrap().weight;
         }
-        if omission.weight <= forced && omission.weight <= credit {
-            forced -= omission.weight;
-            credit -= omission.weight;
+        let need = omission.weight.min(forced);
+        if need > 0 && need <= credit {
+            forced -= need;
+            credit -= need;
             // Spend the cheapest eligible weight, reserving higher-rate credit for later rows.
-            let mut remaining = omission.weight;
+            let mut remaining = need;
             while remaining > 0 {
                 let extra = extras.peek_mut().unwrap();
                 let used = remaining.min(extra.weight);
