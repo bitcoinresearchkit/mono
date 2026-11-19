@@ -8,6 +8,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- The Rust client sends each transaction broadcast once and returns the original error if
+  it fails. The server identifies overload rejections as transactions it did not submit.
+
 - Replacement trees use direct input conflicts and each transaction's own BIP125 signaling,
   matching mempool.space. Descendants evicted with a replaced parent keep their replacement
   status.

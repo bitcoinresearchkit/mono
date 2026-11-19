@@ -38,7 +38,9 @@ impl FromRequestParts<AppState> for BroadcastPermit {
             .clone()
             .try_acquire_owned()
             .map(Self)
-            .map_err(|_| Error::overloaded("too many pending transaction submissions"))
+            .map_err(|_| {
+                Error::overloaded("transaction not submitted: too many pending submissions")
+            })
     }
 }
 

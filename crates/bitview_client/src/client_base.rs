@@ -36,7 +36,7 @@ const REFUSE: Duration = Duration::from_secs(600);
 /// Reuses connections through `ureq::Agent`. When several servers answer one URL, each names
 /// itself in `bitview-origin` and the requests after go to it, so what one server minted (a
 /// diff's `since`) stays with it; one that fails (network, timeout, 5xx) is passed over and the
-/// request goes through the configured URL again. Clones share the server.
+/// GET goes through the configured URL again. POSTs dispatch once. Clones share the server.
 #[derive(Debug, Clone)]
 pub struct BitviewClientBase {
     agent: Agent,
@@ -88,16 +88,19 @@ impl BitviewClientBase {
                 Ok(response) if !response.status().is_server_error() => {
                     return Ok(self.follow(response));
                 }
-                _ => {
-                    let mut pin = self.pin();
-                    pin.refused.insert(server.clone(), Instant::now() + REFUSE);
-                    if pin.server.as_ref() == Some(&server) {
-                        pin.server = None;
-                    }
-                }
+                _ => self.refuse(&server),
             }
         }
         send(&self.base_url).map(|response| self.follow(response))
+    }
+
+    fn refuse(&self, server: &str) {
+        let mut pin = self.pin();
+        pin.refused
+            .insert(server.to_owned(), Instant::now() + REFUSE);
+        if pin.server.as_deref() == Some(server) {
+            pin.server = None;
+        }
     }
 
     /// Pins the server the answer names, unless it's the configured URL or refused.
@@ -169,33 +172,55 @@ impl BitviewClientBase {
         body: &str,
         content_type: &str,
     ) -> Result<T> {
-        Self::read(self.post(path, body, content_type), |body| body.read_json())
+        self.post(path, body, content_type, |body| body.read_json())
     }
 
     /// POSTs `body` as `content_type`, reading the text answer.
     pub fn post_text(&self, path: &str, body: &str, content_type: &str) -> Result<String> {
-        Self::read(self.post(path, body, content_type), |body| {
-            body.read_to_string()
-        })
+        self.post(path, body, content_type, |body| body.read_to_string())
     }
 
     /// POSTs `body` as `content_type`, reading the binary answer.
     pub fn post_bytes(&self, path: &str, body: &str, content_type: &str) -> Result<Vec<u8>> {
-        Self::read(self.post(path, body, content_type), |body| body.read_to_vec())
+        self.post(path, body, content_type, |body| body.read_to_vec())
     }
 
-    fn post(
+    fn post<T>(
         &self,
         path: &str,
         body: &str,
         content_type: &str,
-    ) -> std::result::Result<Response<Body>, ureq::Error> {
-        self.call(|base| {
-            self.agent
-                .post(format!("{base}{path}"))
-                .header("Content-Type", content_type)
-                .send(body)
-        })
+        read: impl FnOnce(BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
+    ) -> Result<T> {
+        let pinned = self.pin().server.clone();
+        let base = pinned.as_deref().unwrap_or(&self.base_url);
+        let response = self
+            .agent
+            .post(format!("{base}{path}"))
+            .config()
+            // A redirect would dispatch another request for this submission.
+            .max_redirects(0)
+            .build()
+            .header("Content-Type", content_type)
+            .send(body)
+            .map(|response| {
+                if response.status().is_server_error() {
+                    response
+                } else {
+                    self.follow(response)
+                }
+            });
+        let result = Self::read(response, read);
+        if let Some(server) = &pinned
+            && result.as_ref().is_err_and(|error| {
+                error
+                    .status
+                    .is_none_or(|status| status >= 500 || status == 408)
+            })
+        {
+            self.refuse(server);
+        }
+        result
     }
 
     /// Reads a successful response's whole body: the server bounds its responses, so the
