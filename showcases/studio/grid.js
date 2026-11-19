@@ -1184,7 +1184,7 @@ function paint(id, drawn, all = false) {
 /**
  * A chart's drawing, made if it's out of date, kept (and stored, a moment later), and shown wherever it's framed:
  * from `index`'s data (a template's weekly: enough at this size, over as much time as its chart shows). null when a
- * fetch failed: nothing is kept, the next time tries again.
+ * fetch failed, or the drawing did (reported): nothing is kept, the next time tries again.
  * @param {Chart} doc @returns {Promise<(Preview & { key: string }) | null>}
  */
 function drawPreview(doc, index = doc.index) {
@@ -1212,7 +1212,7 @@ function drawPreview(doc, index = doc.index) {
     previews.set(doc.id, drawn);
     savePreviewsSoon();
     return drawn;
-  })().then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => plotsDrawing.delete(ask)));
+  })().catch((error) => (reportError(new Error(`${doc.id}: its drawing failed`, { cause: error })), null)).then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => plotsDrawing.delete(ask)));
   return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
 }
 /**
@@ -1745,9 +1745,9 @@ function renderGallery() {
   const kept = spot === gallerySpot && !back ? galleryPlace() : null;
   // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared.)
   if (words.length && galleryPlain && presets) galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
-  // (Turned between the page and a search, however (a key, Escape, a section opened): the loop's wait on a tile no
-  // longer shown ended, see galleryWait. It goes on once this render is written, never on what it replaced.)
-  if (galleryPlain === !!words.length) endGalleryWait();
+  // (Any grid but a search's next: the loop's wait on a tile of the one it replaces ended, see galleryWait. It goes on
+  // once this render is written, never on what it replaced.)
+  if (galleryPlain || !words.length) endGalleryWait();
   galleryPlain = !words.length;
   galleryDrawn = drawn;
   gallerySpot = spot;
@@ -1826,10 +1826,10 @@ let galleryPlain = false, galleryAside = /** @type {{ drawn: string, lists: numb
 /** What ends the drawing loop's wait on a tile early (see galleryWait). @type {(value?: unknown) => void} */
 let endGalleryWait = () => {};
 /**
- * The drawing loop's wait on a tile's drawing, ended early once the gallery turns between its page and a search (see
- * renderGallery): the tiles shown then are asked for at once, the drawing going on. Between a search's grids it
- * isn't, so a key typed meanwhile asks for no tile of the grids it passes. Only drawGallery waits, one tile at a time
- * (it's serial): each wait takes the one slot.
+ * The drawing loop's wait on a tile's drawing, ended early by any grid drawn but a search's next (see renderGallery):
+ * the grid shown then is asked for as any is, the drawing going on. Between a search's grids it isn't, so a key typed
+ * meanwhile asks for no tile of the grids it passes. Only drawGallery waits, one tile at a time (it's serial): each
+ * wait takes the one slot.
  * @param {Promise<unknown>} drawn
  */
 const galleryWait = (drawn) => Promise.race([drawn, new Promise((done) => (endGalleryWait = done))]);

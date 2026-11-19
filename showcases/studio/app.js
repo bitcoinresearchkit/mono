@@ -5831,8 +5831,8 @@ const drawGallery = serial(async () => {
     else {
       // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
       // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
-      // passes, nor those it may never reach. A drawing that fails is reported, waited for or not, the loop going on.)
-      const drawn = drawPreview(doc, previewIndex(doc)).catch((error) => reportError(new Error(`preset ${i}: its tile's drawing failed`, { cause: error })));
+      // passes, nor those it may never reach.)
+      const drawn = drawPreview(doc, previewIndex(doc));
       if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await galleryWait(drawn);
     }
   }
