@@ -57,9 +57,7 @@ impl BlindbitOutputs {
 
     /// The transaction's outputs among them: their position in it and their index in the block's.
     fn of(&self, tx: TxIndex) -> impl Iterator<Item = (Vout, usize)> + '_ {
-        self.outputs
-            .taproot(tx)
-            .filter(|&(_, output)| self.outputs.values[output] >= self.least)
+        self.outputs.taproot(tx, self.least)
     }
 }
 
@@ -86,11 +84,14 @@ struct BlockOutputs {
 }
 
 impl BlockOutputs {
-    /// The transaction's Taproot outputs: their position in it and their index in the block's.
-    fn taproot(&self, tx: TxIndex) -> impl Iterator<Item = (Vout, usize)> + '_ {
+    /// The transaction's Taproot outputs holding at least the minimum read for this block.
+    fn taproot(&self, tx: TxIndex, least: Sats) -> impl Iterator<Item = (Vout, usize)> + '_ {
         let tx = tx.to_usize() - self.txs.start;
         (self.bounds[tx]..self.bounds[tx + 1])
-            .filter(|&output| self.types[output] == OutputType::P2TR)
+            .filter(move |&output| {
+                self.types[output] == OutputType::P2TR
+                    && (least == Sats::ZERO || self.values[output] >= least)
+            })
             .map(move |output| (Vout::from(output - self.bounds[tx]), output))
     }
 }
@@ -163,7 +164,7 @@ impl Query {
         let (tx_indexes, outputs, spends) = if rows.is_empty() {
             Default::default()
         } else {
-            let outputs = self.blindbit_block_outputs(&block)?;
+            let outputs = self.blindbit_block_outputs(&block, least)?;
             let spends = self.blindbit_output_spends(&block, &outputs)?;
             (self.blindbit_tx_indexes(rows.clone())?, outputs, spends)
         };
@@ -210,11 +211,12 @@ impl Query {
             return self.blindbit_tweaks_where(rows, |_| true);
         }
         let tx_indexes = self.blindbit_tx_indexes(rows.clone())?;
-        let outputs = self.blindbit_block_outputs(block)?;
+        let outputs = self.blindbit_block_outputs(block, dust_limit)?;
         self.blindbit_tweaks_where(rows, |row| {
             outputs
-                .taproot(tx_indexes[row])
-                .any(|(_, output)| outputs.values[output] >= dust_limit)
+                .taproot(tx_indexes[row], dust_limit)
+                .next()
+                .is_some()
         })
     }
 
@@ -324,20 +326,19 @@ impl Query {
             let txid = txids[row];
             let transaction = &parsed.txdata[row];
             for (vout, output) in selected.of(tx) {
-                let script = transaction
+                let txout = transaction
                     .output
                     .get(usize::from(vout))
-                    .map(|output| &output.script_pubkey)
-                    .filter(|script| script.is_p2tr())
-                    .ok_or(Error::Internal("Indexed Taproot output missing from block"))?
-                    .as_bytes();
+                    .filter(|output| output.script_pubkey.is_p2tr())
+                    .ok_or(Error::Internal("Indexed Taproot output missing from block"))?;
+                let script = txout.script_pubkey.as_bytes();
                 if check_keys && !is_on_curve(&script[2..]) {
                     continue;
                 }
                 utxos.push(BlindbitUtxo {
                     txid,
                     vout,
-                    value: outputs.values[output],
+                    value: Sats::from(txout.value.to_sat()),
                     scriptpubkey: script.to_lower_hex_string().into(),
                     block_height: block.height,
                     block_hash: block.hash,
@@ -400,7 +401,7 @@ impl Query {
     }
 
     /// The block's outputs, by transaction.
-    fn blindbit_block_outputs(&self, block: &BlindbitBlock) -> Result<BlockOutputs> {
+    fn blindbit_block_outputs(&self, block: &BlindbitBlock, least: Sats) -> Result<BlockOutputs> {
         let vecs = self.indexer().vecs();
         let height = block.height.to_usize();
         let lengths = block.pin.lengths();
@@ -428,10 +429,14 @@ impl Query {
             .outputs
             .output_type
             .collect_range_at(txouts.start, txouts.end);
-        let values = vecs.outputs.value.collect_range_at(txouts.start, txouts.end);
+        let values = if least == Sats::ZERO {
+            Vec::new()
+        } else {
+            vecs.outputs.value.collect_range_at(txouts.start, txouts.end)
+        };
         if bounds.len() != txs.len() + 1
             || types.len() != txouts.len()
-            || values.len() != txouts.len()
+            || (least != Sats::ZERO && values.len() != txouts.len())
         {
             return Err(Error::Internal("Block outputs missing"));
         }
