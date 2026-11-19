@@ -93,6 +93,7 @@ pub fn router(
                 let to = Redirect::permanent(&format!("{api_url}/{page}/"));
                 router.route(&format!("/{page}"), get(move || ready(to.clone())))
             });
+    let home = page::route(home, &api_url);
     let discovery_routes = discovery::router(&display_name, &public_url);
     let server_name = discovery::server_name(&display_name, &public_url);
     let state = Arc::new(AppState {
@@ -111,7 +112,7 @@ pub fn router(
     );
 
     Router::new()
-        .route("/", page::route(home).merge(post_service(service)))
+        .route("/", home.merge(post_service(service)))
         .route("/logo.png", get(logo::get))
         .merge(site_pages)
         .merge(discovery_routes)

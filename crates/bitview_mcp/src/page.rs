@@ -39,16 +39,17 @@ pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: u
     ]))
 }
 
-/// Serves a rendered page: a second of reuse, then a cheap `304`.
-pub fn route(html: Bytes) -> MethodRouter {
+/// Serves a rendered page: a second of reuse, then a cheap `304`. Its fonts come from the API's origin.
+pub fn route(html: Bytes, api_url: &str) -> MethodRouter {
+    let policy = HeaderValue::try_from(format!(
+        "default-src 'none'; style-src 'unsafe-inline'; font-src {api_url}; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+    ))
+    .expect("the API URL is a valid header value");
     document(
         html,
         "text/html; charset=utf-8",
         bitview_http::REVALIDATE,
-        &[(
-            "content-security-policy",
-            "default-src 'none'; style-src 'unsafe-inline'; font-src https://cdn.jsdelivr.net; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
-        )],
+        vec![("content-security-policy", policy)],
     )
 }
 
@@ -57,7 +58,7 @@ pub fn document(
     body: Bytes,
     content_type: &'static str,
     cache_control: &'static str,
-    extra_headers: &'static [(&'static str, &'static str)],
+    extra_headers: Vec<(&'static str, HeaderValue)>,
 ) -> MethodRouter {
     let mut hasher = DefaultHasher::new();
     body.hash(&mut hasher);
@@ -77,8 +78,8 @@ pub fn document(
             "x-content-type-options",
             HeaderValue::from_static("nosniff"),
         );
-        for &(name, value) in extra_headers {
-            headers.insert(name, HeaderValue::from_static(value));
+        for (name, value) in &extra_headers {
+            headers.insert(*name, value.clone());
         }
         future::ready(response)
     })

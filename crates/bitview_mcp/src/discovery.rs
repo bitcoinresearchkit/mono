@@ -33,7 +33,7 @@ pub fn server_name(display_name: &str, public_url: &str) -> String {
 
 fn document(value: &Value, media_type: &'static str) -> MethodRouter {
     let body = to_vec(value).expect("a JSON value serializes");
-    page::document(Bytes::from(body), media_type, CACHE_CONTROL, &[])
+    page::document(Bytes::from(body), media_type, CACHE_CONTROL, Vec::new())
 }
 
 fn server_card(display_name: &str, public_url: &str) -> Value {
