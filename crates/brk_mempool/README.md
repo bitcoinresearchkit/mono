@@ -2,6 +2,19 @@
 
 Live Bitcoin mempool state, projected blocks, and fee recommendations.
 
+`audit` records this server's live block expectation. Pin `ReadOnlyMempool::capture_audit` when
+the node first reports a new tip; publish the chain update before comparing with the exact
+candidate's indexed rows and committing through `AuditStore`. Capture and comparison use no
+Bitcoin RPC, template checker, or block decode. A capture must extend its published anchor and
+come from a successful observation at most 15 seconds old. Unchanged successful cycles refresh
+that monotonic age; failed cycles do not, and an explicit Core reload revokes availability.
+
+Audits retain only the four summary numbers and classified difference lists, never whole
+templates or matched transactions. The summary and difference share one exit-guarded ingestion;
+the first committed observation wins. Hash summaries survive reorgs. Mined differences use
+block positions, so fresh detail rendering needs a pin of the requested canonical block. Blocks
+missed during startup or catch-up stay unaudited, with no backfill.
+
 `Mempool` is the single private writer: it polls Bitcoin Core, applies transaction additions
 and removals, resolves confirmed prevouts, rebuilds the projection, and publishes one immutable
 `ReadOnlyState` per completed observation. Readers hold a `ReadOnlyMempool` handle and load one

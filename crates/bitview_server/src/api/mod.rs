@@ -22,6 +22,8 @@ use crate::{
 #[cfg(feature = "full-api")]
 mod addrs;
 #[cfg(feature = "full-api")]
+mod audits;
+#[cfg(feature = "full-api")]
 mod blindbit;
 #[cfg(feature = "full-api")]
 mod blocks;
@@ -83,6 +85,7 @@ impl ApiRoutes for ApiRouter<AppState> {
             general::add_routes,
             addrs::add_routes,
             blocks::add_routes,
+            audits::add_routes,
             mining::add_routes,
             fees::add_routes,
             mempool::add_routes,

@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use axum::{
     body::{Body, Bytes},
-    http::{HeaderMap, HeaderName, HeaderValue, header},
+    http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
 };
 use bitview_http::{IMMUTABLE, REVALIDATE};
@@ -43,9 +43,9 @@ enum Kind {
     /// Derived from chain data the URL pins below the reorg window (JSON, CSV, the hash at a
     /// height): a release may reshape them, a deeper reorg replace them.
     Settled,
-    /// Committed to by the hash in the URL, whose block lies below the reorg window (a raw
-    /// block, a header, a transaction's hex, its proof): no release changes a byte of them.
-    Committed,
+    /// Bytes permanently fixed at this URL: hash-committed chain data or an immutable,
+    /// server-local observation. No release changes them.
+    Immutable,
 }
 
 impl Kind {
@@ -56,7 +56,7 @@ impl Kind {
     /// answer until then.
     fn policies(self, cdn_cache_mode: CdnCacheMode) -> (&'static str, &'static str) {
         match (self, cdn_cache_mode) {
-            (Self::Committed, _) => (IMMUTABLE, IMMUTABLE),
+            (Self::Immutable, _) => (IMMUTABLE, IMMUTABLE),
             (Self::Settled, CdnCacheMode::Aggressive) => (REVALIDATE, IMMUTABLE),
             (Self::Settled, CdnCacheMode::Live) | (Self::Live, _) => (REVALIDATE, REVALIDATE),
         }
@@ -116,8 +116,14 @@ impl Answer {
     /// the reorg window, so that nothing short of a deeper reorg changes the bytes at it.
     pub fn committed(mut self, settled: bool) -> Self {
         if settled {
-            self.kind = Kind::Committed;
+            self.kind = Kind::Immutable;
         }
+        self
+    }
+
+    /// A server-local observation whose first committed bytes are kept permanently.
+    pub fn permanent(mut self) -> Self {
+        self.kind = Kind::Immutable;
         self
     }
 }
@@ -126,6 +132,7 @@ pub const JSON: &str = "application/json";
 
 /// A built body and the headers describing it.
 pub struct Content {
+    status: StatusCode,
     content_type: &'static str,
     bytes: Bytes,
     header: Option<(HeaderName, HeaderValue)>,
@@ -134,6 +141,7 @@ pub struct Content {
 impl Content {
     pub fn new(content_type: &'static str, bytes: impl Into<Bytes>) -> Self {
         Self {
+            status: StatusCode::OK,
             content_type,
             bytes: bytes.into(),
             header: None,
@@ -146,6 +154,11 @@ impl Content {
 
     pub fn text(text: impl Into<Bytes>) -> Self {
         Self::new("text/plain", text)
+    }
+
+    pub fn with_status(mut self, status: StatusCode) -> Self {
+        self.status = status;
+        self
     }
 
     /// One more header describing the body (a file name, a `HEAD`'s length).
@@ -200,6 +213,7 @@ impl Asked {
                 return Ok(None);
             }
             let Content {
+                status,
                 content_type,
                 bytes,
                 header,
@@ -216,6 +230,7 @@ impl Asked {
                 bytes
             };
             let mut response = Response::new(Body::from(bytes));
+            *response.status_mut() = status;
             let headers = response.headers_mut();
             headers.insert(header::CONTENT_TYPE, HeaderValue::from_static(content_type));
             if let Some((name, value)) = header {

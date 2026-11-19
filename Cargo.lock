@@ -1363,8 +1363,10 @@ dependencies = [
  "bitcoin",
  "brk_cpfp",
  "brk_error",
+ "brk_exit",
  "brk_oracle",
  "brk_rpc",
+ "brk_store",
  "brk_types",
  "derive_more",
  "lz4_flex",
@@ -1434,6 +1436,7 @@ dependencies = [
 name = "brk_store"
 version = "0.13.0"
 dependencies = [
+ "brk_byteview",
  "brk_error",
  "brk_exit",
  "brk_fjall",

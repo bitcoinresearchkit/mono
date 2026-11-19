@@ -8,6 +8,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Blocks now carry this server's own audit, recorded live from its mempool the moment each block
+  arrives: match rate, expected fees and weight, similarity, and which transactions were missing,
+  fresh, replaced, added or never seen, at mempool.space's audit URLs. Blocks from before a server
+  started recording have none.
+
 - Series range timestamps accept UTC fractions of 1 to 9 digits, including trailing zeros.
 
 - `--dumpconfig` leaves secrets out. Reloading the dump loses `rpcpassword`.

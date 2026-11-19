@@ -19,6 +19,7 @@ pub struct ResolvedPoolBlocks {
     activity_anchor: Option<BlockHash>,
     stale: Arc<StaleBlocks>,
     settled: bool,
+    audits: Vec<Option<brk_mempool::audit::Summary>>,
 }
 
 impl ResolvedPoolBlocks {
@@ -32,7 +33,7 @@ impl ResolvedPoolBlocks {
     pub fn identity(&self) -> u64 {
         let orphans = self.heights.iter().flat_map(|height| self.stale.at(*height));
         let mut hasher = TagHasher::default();
-        hasher.write_u64(blocks_v1_identity(self.activity_anchor, &self.prices, orphans));
+        hasher.write_u64(blocks_v1_identity(self.activity_anchor, &self.prices, orphans, &self.audits));
         for height in &self.heights {
             hasher.write_u32(u32::from(*height));
         }
@@ -83,6 +84,9 @@ impl Query {
             (prices.len() == heights.len()).then_some(()).data()?;
         }
         let prices = prices.into_iter().rev().map(Dollars::from).collect();
+        let pin = chain.read_pin(self);
+        let audits = self.audit_summaries_at(heights.iter().copied().map(usize::from), &pin)?;
+        drop(pin);
 
         Ok(ResolvedPoolBlocks {
             chain,
@@ -91,6 +95,7 @@ impl Query {
             activity_anchor,
             stale: self.stale_blocks(),
             settled,
+            audits,
         })
     }
 
@@ -101,8 +106,9 @@ impl Query {
             heights,
             prices,
             stale,
+            audits,
             ..
         } = resolved;
-        chain.build_v1_heights(self, &heights, &prices, stale)
+        chain.build_v1_heights(self, &heights, &prices, stale, &audits)
     }
 }

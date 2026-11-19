@@ -12,6 +12,8 @@ arc-swap = { workspace = true }
 bitcoin = { workspace = true }
 brk_cpfp = { workspace = true }
 brk_error = { workspace = true }
+brk_exit = { workspace = true }
+brk_store = { workspace = true }
 brk_oracle = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }

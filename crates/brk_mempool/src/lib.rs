@@ -15,6 +15,7 @@ use rapidhash::RapidHashMap;
 use rustc_hash::FxHashMap;
 
 mod api;
+pub mod audit;
 mod chain_waker;
 mod driver;
 mod json;
@@ -91,8 +92,9 @@ pub struct Mempool {
     chain: ChainWaker,
     /// The last complete observation, withheld until the chain publishes its tip.
     withheld: Option<brk_types::BlockHash>,
-    /// Debug builds' check of each published template against Core, once driven
-    /// ([`Self::start_with`]).
+    /// Stamp taken at the last successful tip bracket, including withheld observations.
+    observed_at: Option<Instant>,
+    /// Debug builds' check of each published template against Core, once driven.
     #[cfg(debug_assertions)]
     checker: Option<template::Checker>,
     /// Where the graveyard is kept, and when a save was last tried.
@@ -110,6 +112,8 @@ impl Mempool {
             rebuilder: Rebuilder::default(),
             read_only: ReadOnlyMempool {
                 current: Arc::new(ArcSwap::from_pointee(ReadOnlyState::default())),
+                observations: Arc::default(),
+                audits: Arc::default(),
             },
             needs_recovery: false,
             unread_cycles: 0,
@@ -118,11 +122,20 @@ impl Mempool {
             held_back: false,
             chain: ChainWaker::default(),
             withheld: None,
+            observed_at: None,
             #[cfg(debug_assertions)]
             checker: None,
             graveyard_file: None,
             loaded_graveyard: TxGraveyard::default(),
         }
+    }
+
+    /// Open permanent observations before starting the driver and HTTP server. The daemon keeps
+    /// the sole writer; every read handle shares its immutable records.
+    pub fn keep_audits(&mut self, path: &std::path::Path, exit: &brk_exit::Exit) -> brk_error::Result<audit::AuditStore> {
+        let audits = audit::AuditStore::open(path, exit)?;
+        self.read_only.audits.store(Some(Arc::new(audits.reader())));
+        Ok(audits)
     }
 
     /// Keeps the graveyard (RBF trees, removal reasons, first sightings) at `path` across

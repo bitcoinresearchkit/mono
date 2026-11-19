@@ -131,11 +131,13 @@ fn topo_sort(
 /// Linearization and packing rank by modified fees instead; without an operator's delta the two
 /// agree.
 pub fn paid_rate(txs: &[SnapTx], members: impl IntoIterator<Item = TxIndex>) -> FeeRate {
-    let (fee, weight) = members
-        .into_iter()
-        .map(|m| &txs[m.as_usize()])
+    FeeRate::from(paid_totals(members.into_iter().map(|m| &txs[m.as_usize()])))
+}
+
+/// The exact paid-rate inputs, before the public rate's milli-sat/vB rounding.
+pub(crate) fn paid_totals<'a>(members: impl IntoIterator<Item = &'a SnapTx>) -> (Sats, Weight) {
+    members.into_iter()
         .fold((Sats::ZERO, Weight::default()), |(fee, weight), t| {
             (fee + t.fee, weight + t.sigops.adjust_weight(t.weight))
-        });
-    FeeRate::from((fee, weight))
+        })
 }

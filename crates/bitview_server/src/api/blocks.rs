@@ -46,7 +46,7 @@ impl BlockForm {
 }
 
 /// Covers the extended rows' formulas and bundled pool catalog: bumped when either changes.
-pub const V1_BLOCK_SCHEMA: &str = "v1-5";
+pub const V1_BLOCK_SCHEMA: &str = "v1-7";
 
 const MISSING_BLOCK: QueryError = QueryError::Internal("Missing resolved block");
 

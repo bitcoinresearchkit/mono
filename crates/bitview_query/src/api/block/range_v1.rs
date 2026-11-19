@@ -1,6 +1,7 @@
 use std::{hash::Hasher, sync::Arc};
 
 use bitview_types::{BlockInfoV1, BlockOrphan};
+use brk_mempool::audit::Summary;
 use brk_types::{BlockHash, Dollars, Height, TagHasher};
 use vecdb::{ReadableVec, VecIndex};
 
@@ -13,6 +14,7 @@ pub struct ResolvedBlocksV1 {
     /// In ascending height order, reused when building descending rows.
     prices: Vec<Dollars>,
     stale: Arc<StaleBlocks>,
+    audits: Vec<Option<Summary>>,
 }
 
 /// Identifies extended rows by exactly the values their bodies use beyond the anchor's chain:
@@ -22,6 +24,7 @@ pub(crate) fn blocks_v1_identity<'a>(
     anchor: Option<BlockHash>,
     prices: &[Dollars],
     orphans: impl Iterator<Item = &'a BlockOrphan>,
+    audits: &[Option<Summary>],
 ) -> u64 {
     let mut hasher = TagHasher::default();
     hasher.write_u8(u8::from(anchor.is_some()));
@@ -30,6 +33,15 @@ pub(crate) fn blocks_v1_identity<'a>(
     }
     for price in prices {
         hasher.write_u64(f64::from(*price).to_bits());
+    }
+    for summary in audits {
+        hasher.write_u8(u8::from(summary.is_some()));
+        if let Some(summary) = summary {
+            hasher.write_u16(summary.match_rate);
+            hasher.write_u64(u64::from(summary.expected_fees));
+            hasher.write_u64(u64::from(summary.expected_weight));
+            hasher.write_u64(summary.similarity.to_bits());
+        }
     }
     // (Each field named: a new one doesn't compile until it's in the hash.)
     for BlockOrphan { height, hash, branchlen, status, prevhash } in orphans {
@@ -43,15 +55,19 @@ pub(crate) fn blocks_v1_identity<'a>(
 }
 
 impl ResolvedBlocksV1 {
-    fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>, stale: Arc<StaleBlocks>) -> Result<Self> {
+    fn new(blocks: ResolvedBlocks, prices: Vec<Dollars>, stale: Arc<StaleBlocks>, audits: Vec<Option<Summary>>) -> Result<Self> {
         let (begin, end) = blocks.range();
         if prices.len() != end - begin {
             return Err(Error::Internal("Incomplete block prices"));
+        }
+        if audits.len() != end - begin {
+            return Err(Error::Internal("Incomplete block audits"));
         }
         Ok(Self {
             blocks,
             prices,
             stale,
+            audits,
         })
     }
 
@@ -71,13 +87,13 @@ impl ResolvedBlocksV1 {
     pub fn identity(&self) -> u64 {
         let (begin, end) = self.blocks.range();
         let orphans = (begin..end).flat_map(|height| self.stale.at(Height::from(height)));
-        blocks_v1_identity(self.anchor(), &self.prices, orphans)
+        blocks_v1_identity(self.anchor(), &self.prices, orphans, &self.audits)
     }
 
     pub fn build(self, query: &Query) -> Result<Vec<BlockInfoV1>> {
         let (begin, end) = self.blocks.range();
         let pin = self.blocks.read_pin(query);
-        let build = query.capture_blocks_v1_range(begin, end, &pin, self.prices, self.stale)?;
+        let build = query.capture_blocks_v1_range(begin, end, &pin, self.prices, self.stale, self.audits)?;
         drop(pin);
         drop(self.blocks);
         build()
@@ -110,7 +126,8 @@ impl Query {
             .cents
             .height
             .for_each_range_dyn_at(begin, end, &mut |cents| prices.push(Dollars::from(cents)));
-        ResolvedBlocksV1::new(blocks, prices, self.stale_blocks())
+        let audits = self.audit_summaries_at(begin..end, &blocks.read_pin(self))?;
+        ResolvedBlocksV1::new(blocks, prices, self.stale_blocks(), audits)
     }
 }
 
@@ -123,6 +140,7 @@ impl ResolvedBlocks {
         heights: &[Height],
         prices: &[Dollars],
         stale: Arc<StaleBlocks>,
+        audits: &[Option<Summary>],
     ) -> Result<Vec<BlockInfoV1>> {
         let pin = self.read_pin(query);
         debug_assert_eq!(heights.len(), prices.len());
@@ -137,12 +155,14 @@ impl ResolvedBlocks {
                 end += 1;
             }
             let ascending_prices = prices[begin..end].iter().rev().copied().collect();
+            let ascending_audits = audits[begin..end].iter().rev().copied().collect();
             builders.push(query.capture_blocks_v1_range(
                 heights[end - 1].to_usize(),
                 heights[begin].to_usize() + 1,
                 &pin,
                 ascending_prices,
                 stale.clone(),
+                ascending_audits,
             )?);
             begin = end;
         }
