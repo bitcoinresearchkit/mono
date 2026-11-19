@@ -13,7 +13,7 @@ use bitview_query::{
 };
 use bitview_types::{MerkleProof, RbfResponse};
 use brk_types::{
-    Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version,
+    Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, Version,
 };
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -364,11 +364,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state
                     .respond(&headers, state.chain(), move |q| {
                         let (status, settled) = q.transaction_status(&txid)?;
-                        let tag = match status.block_hash {
-                            Some(hash) => format!("tx-status3-{}-{hash}", Version::ONE).into(),
-                            None => Etag::content(*TxidPrefix::from(txid)),
-                        };
-                        Ok(Answer::ready(tag, Content::json(&status)?).settled(settled))
+                        Ok(Answer::built(Content::json(&status)?).settled(settled))
                     })
                     .await
             },
