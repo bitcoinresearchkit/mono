@@ -80,6 +80,18 @@ where
         Some(unsafe { S::read_from_ptr(self.data, index * Self::SIZE_OF_T) })
     }
 
+    /// Ask the kernel to read missing pages for this short batch of sorted indexes.
+    pub fn prefetch(&self, indexes: impl DoubleEndedIterator<Item = I>)
+    where
+        I: VecIndex,
+    {
+        let offsets = indexes
+            .map(VecIndex::to_usize)
+            .filter(|&index| index < self.stored_len)
+            .map(|index| HEADER_OFFSET + index * Self::SIZE_OF_T);
+        self._reader.prefetch(offsets, Self::SIZE_OF_T);
+    }
+
     #[inline(always)]
     pub(crate) fn stored_len(&self) -> usize {
         self.stored_len

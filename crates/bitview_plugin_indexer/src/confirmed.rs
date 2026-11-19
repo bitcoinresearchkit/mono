@@ -195,6 +195,15 @@ pub struct OutputRanges {
 }
 
 impl OutputRanges {
+    /// Advise both boundaries of each transaction in a short sorted batch.
+    pub fn prefetch(&self, transactions: impl DoubleEndedIterator<Item = TxIndex>) {
+        self.first_txout.prefetch(
+            transactions
+                .flat_map(|tx| [tx, tx.incremented()])
+                .filter(|&tx| tx < self.safe.tx_index),
+        );
+    }
+
     /// `None` for an unpublished transaction or boundaries outside the published outputs.
     pub fn get(&self, tx_index: TxIndex) -> Option<OutputRange> {
         if tx_index >= self.safe.tx_index {

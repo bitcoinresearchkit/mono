@@ -3,12 +3,17 @@
 
 use std::ops::Range;
 
-use bitcoin::{Block, consensus::deserialize, hex::DisplayHex};
+use bitcoin::{
+    Block, Script, VarInt,
+    block::Header,
+    consensus::{Decodable, deserialize},
+    hex::DisplayHex,
+};
 use bitview_plugin_outputs::published_spend;
 use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
 use bitview_primitives::{Lengths, TxInIndex};
 use bitview_types::{BlindbitFilter, BlindbitFilterKind, BlindbitSpentIndex, BlindbitUtxo};
-use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Tweak, TxIndex, Vout};
+use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Timestamp, Tweak, TxIndex, Vout};
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
@@ -57,9 +62,7 @@ impl BlindbitOutputs {
 
     /// The transaction's outputs among them: their position in it and their index in the block's.
     fn of(&self, tx: TxIndex) -> impl Iterator<Item = (Vout, usize)> + '_ {
-        self.outputs
-            .taproot(tx)
-            .filter(|&(_, output)| self.outputs.values[output] >= self.least)
+        self.outputs.taproot(tx, self.least)
     }
 }
 
@@ -86,11 +89,14 @@ struct BlockOutputs {
 }
 
 impl BlockOutputs {
-    /// The transaction's Taproot outputs: their position in it and their index in the block's.
-    fn taproot(&self, tx: TxIndex) -> impl Iterator<Item = (Vout, usize)> + '_ {
+    /// The transaction's Taproot outputs holding at least the minimum read for this block.
+    fn taproot(&self, tx: TxIndex, least: Sats) -> impl Iterator<Item = (Vout, usize)> + '_ {
         let tx = tx.to_usize() - self.txs.start;
         (self.bounds[tx]..self.bounds[tx + 1])
-            .filter(|&output| self.types[output] == OutputType::P2TR)
+            .filter(move |&output| {
+                self.types[output] == OutputType::P2TR
+                    && (least == Sats::ZERO || self.values[output] >= least)
+            })
             .map(move |output| (Vout::from(output - self.bounds[tx]), output))
     }
 }
@@ -124,6 +130,37 @@ fn end_span<I: VecIndex>(
         None => 0,
     };
     Ok(start..ends.collect_one_at(height).data()?.to_usize())
+}
+
+fn compact_size(bytes: &mut &[u8]) -> Option<usize> {
+    usize::try_from(VarInt::consensus_decode_from_finite_reader(bytes).ok()?.0).ok()
+}
+
+/// Seek to the outputs of an indexed transaction without building inputs or witnesses.
+fn tx_output_bytes(mut bytes: &[u8], expected_outputs: usize) -> Option<&[u8]> {
+    bytes = bytes.get(4..)?; // version
+    if let [0, 1, rest @ ..] = bytes {
+        bytes = rest; // SegWit marker and flag
+    }
+    let inputs = compact_size(&mut bytes)?;
+    if inputs == 0 {
+        return None;
+    }
+    for _ in 0..inputs {
+        bytes = bytes.get(36..)?; // previous outpoint
+        let script = compact_size(&mut bytes)?;
+        bytes = bytes.get(script.checked_add(4)?..)?; // scriptSig and sequence
+    }
+    (compact_size(&mut bytes)? == expected_outputs).then_some(bytes)
+}
+
+fn take_raw_output<'a>(bytes: &mut &'a [u8]) -> Option<(Sats, &'a [u8])> {
+    let value = Sats::from(u64::from_le_bytes(*bytes.first_chunk()?));
+    *bytes = bytes.get(8..)?;
+    let len = compact_size(bytes)?;
+    let (script, remaining) = bytes.split_at_checked(len)?;
+    *bytes = remaining;
+    Some((value, script))
 }
 
 impl Query {
@@ -163,7 +200,7 @@ impl Query {
         let (tx_indexes, outputs, spends) = if rows.is_empty() {
             Default::default()
         } else {
-            let outputs = self.blindbit_block_outputs(&block)?;
+            let outputs = self.blindbit_block_outputs(&block, least)?;
             let spends = self.blindbit_output_spends(&block, &outputs)?;
             (self.blindbit_tx_indexes(rows.clone())?, outputs, spends)
         };
@@ -210,11 +247,12 @@ impl Query {
             return self.blindbit_tweaks_where(rows, |_| true);
         }
         let tx_indexes = self.blindbit_tx_indexes(rows.clone())?;
-        let outputs = self.blindbit_block_outputs(block)?;
+        let outputs = self.blindbit_block_outputs(block, dust_limit)?;
         self.blindbit_tweaks_where(rows, |row| {
             outputs
-                .taproot(tx_indexes[row])
-                .any(|(_, output)| outputs.values[output] >= dust_limit)
+                .taproot(tx_indexes[row], dust_limit)
+                .next()
+                .is_some()
         })
     }
 
@@ -303,34 +341,51 @@ impl Query {
             .collect_one(block.height)
             .data()?
             != 0;
-        let vecs = self.indexer().vecs();
-        let timestamp = vecs.blocks.timestamp.collect_one(block.height).data()?;
-        let txids = vecs
-            .transactions
-            .txid
+        // The block file holds these scripts together. The address column orders
+        // keys by first appearance, so reused keys can fault pages across the chain.
+        let (bytes, block_position) =
+            self.block_raw_with_position(block.height, &block.hash, &block.pin)?;
+        let header = Header::consensus_decode_from_finite_reader(&mut bytes.as_slice())
+            .map_err(|_| Error::Internal("Invalid raw block header"))?;
+        let timestamp = Timestamp::from(header.time);
+        let transactions = &self.indexer().vecs().transactions;
+        let txids = transactions.txid.reader();
+        let positions = transactions
+            .position
             .collect_range_at(outputs.txs.start, outputs.txs.end);
-        let type_indexes = vecs
-            .outputs
-            .type_index
-            .collect_range_at(outputs.txouts.start, outputs.txouts.end);
-        if txids.len() != outputs.txs.len() || type_indexes.len() != outputs.txouts.len() {
-            return Err(Error::Internal("Block transactions missing"));
-        }
         let mut utxos = Vec::new();
-        // A single reader keeps the immutable published keys mapped throughout the request.
-        let keys = vecs.addrs.p2tr.bytes.reader();
         for &tx in &selected.tx_indexes {
-            let txid = txids[tx.to_usize() - outputs.txs.start];
-            for (vout, output) in selected.of(tx) {
-                let key = keys.try_get_at(usize::from(type_indexes[output])).data()?;
-                if check_keys && !is_on_curve(&key[..]) {
+            let mut wanted = selected.of(tx).peekable();
+            if wanted.peek().is_none() {
+                continue;
+            }
+            let row = tx.to_usize() - outputs.txs.start;
+            let txid = txids.try_get(tx).data()?;
+            let position = positions.get(row).data()?;
+            let mut txouts = position
+                .offset()
+                .checked_sub(block_position.offset())
+                .filter(|_| position.blk_index() == block_position.blk_index())
+                .and_then(|offset| bytes.get(offset as usize..))
+                .and_then(|tx| tx_output_bytes(tx, outputs.bounds[row + 1] - outputs.bounds[row]))
+                .ok_or(Error::Internal("Indexed transaction missing from block"))?;
+            let mut raw_outputs = std::iter::from_fn(|| take_raw_output(&mut txouts));
+            let mut next = 0;
+            for (vout, output) in wanted {
+                let index = usize::from(vout);
+                let (value, script) = raw_outputs
+                    .nth(index - next)
+                    .filter(|(_, script)| Script::from_bytes(script).is_p2tr())
+                    .ok_or(Error::Internal("Indexed Taproot output missing from block"))?;
+                next = index + 1;
+                if check_keys && !is_on_curve(&script[2..]) {
                     continue;
                 }
                 utxos.push(BlindbitUtxo {
                     txid,
                     vout,
-                    value: outputs.values[output],
-                    scriptpubkey: format!("5120{}", key.to_lower_hex_string()).into(),
+                    value,
+                    scriptpubkey: script.to_lower_hex_string().into(),
                     block_height: block.height,
                     block_hash: block.hash,
                     timestamp,
@@ -392,7 +447,7 @@ impl Query {
     }
 
     /// The block's outputs, by transaction.
-    fn blindbit_block_outputs(&self, block: &BlindbitBlock) -> Result<BlockOutputs> {
+    fn blindbit_block_outputs(&self, block: &BlindbitBlock, least: Sats) -> Result<BlockOutputs> {
         let vecs = self.indexer().vecs();
         let height = block.height.to_usize();
         let lengths = block.pin.lengths();
@@ -420,10 +475,14 @@ impl Query {
             .outputs
             .output_type
             .collect_range_at(txouts.start, txouts.end);
-        let values = vecs.outputs.value.collect_range_at(txouts.start, txouts.end);
+        let values = if least == Sats::ZERO {
+            Vec::new()
+        } else {
+            vecs.outputs.value.collect_range_at(txouts.start, txouts.end)
+        };
         if bounds.len() != txs.len() + 1
             || types.len() != txouts.len()
-            || values.len() != txouts.len()
+            || (least != Sats::ZERO && values.len() != txouts.len())
         {
             return Err(Error::Internal("Block outputs missing"));
         }

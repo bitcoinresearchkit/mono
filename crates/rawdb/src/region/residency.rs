@@ -13,13 +13,28 @@ static VM_PAGE_SIZE: OnceLock<Option<usize>> = OnceLock::new();
 
 /// The VM page size, if it divides the sampling window.
 #[cfg(unix)]
-fn vm_page_size() -> Option<usize> {
+pub(crate) fn vm_page_size() -> Option<usize> {
     *VM_PAGE_SIZE.get_or_init(|| {
         // SAFETY: this query has no pointer or ownership requirements.
         usize::try_from(unsafe { sysconf(_SC_PAGESIZE) })
             .ok()
             .filter(|&size| size > 0 && SAMPLE_BYTES.is_multiple_of(size))
     })
+}
+
+/// Whether a single page of the mapping is resident. The caller checked the bounds.
+#[cfg(unix)]
+pub(crate) fn is_page_resident(mmap: &MmapRaw, at: usize, page_size: usize) -> bool {
+    let mut state = 0u8;
+    // SAFETY: the page is within the mapping, and mincore writes one byte.
+    let result = unsafe {
+        mincore(
+            mmap.as_ptr().add(at).cast_mut().cast(),
+            page_size,
+            (&raw mut state).cast(),
+        )
+    };
+    result == 0 && state & 1 != 0
 }
 
 /// Samples the first, last, and one page per window of a non-empty in-bounds mapped range.
@@ -38,19 +53,7 @@ pub(crate) fn is_range_resident(mmap: &MmapRaw, offset: usize, len: usize) -> bo
         return false;
     }
 
-    let is_resident = |at: usize| {
-        let mut state = 0u8;
-        // SAFETY: at is page-aligned and the checked mapping contains a full
-        // page. mincore writes one status byte for the single page queried.
-        let result = unsafe {
-            mincore(
-                mmap.as_ptr().add(at).cast_mut().cast(),
-                page_size,
-                (&raw mut state).cast(),
-            )
-        };
-        result == 0 && state & 1 != 0
-    };
+    let is_resident = |at| is_page_resident(mmap, at, page_size);
 
     if !is_resident(start) || !is_resident(end - page_size) {
         return false;
