@@ -50,10 +50,7 @@ fn run() -> Result<()> {
     let cleanup = benchmark.clone();
     exit.register_cleanup(move || {
         if let Err(error) = cleanup.abort() {
-            eprintln!(
-                "Failed to save interrupted benchmark to {}: {error}",
-                cleanup.path().display()
-            );
+            eprintln!("Failed to save interrupted benchmark to {}: {error}", cleanup.path().display());
         }
     });
 

@@ -1,6 +1,6 @@
 use std::{
     fs::{File, OpenOptions},
-    io::{self, Read, Seek, SeekFrom, Write},
+    io::{self, Read, Write},
     process::{Command, id},
 };
 
@@ -25,10 +25,9 @@ pub fn acquire() -> io::Result<File> {
         )));
     }
     lock.set_len(0)?;
-    lock.seek(SeekFrom::Start(0))?;
     writeln!(lock, "{}", id())?;
-    lock.flush()?;
 
+    let this = id().to_string();
     for name in PROCESSES {
         let output = Command::new("pgrep").args(["-x", name]).output()?;
         if !output.status.success() && output.status.code() != Some(1) {
@@ -38,10 +37,7 @@ pub fn acquire() -> io::Result<File> {
             )));
         }
         let pids = String::from_utf8(output.stdout).map_err(io::Error::other)?;
-        let others: Vec<_> = pids
-            .lines()
-            .filter(|pid| *pid != id().to_string())
-            .collect();
+        let others: Vec<_> = pids.lines().filter(|pid| *pid != this).collect();
         if !others.is_empty() {
             return Err(io::Error::other(format!(
                 "Found {name} running (PID {}); stop it before benchmarking (on a mini: ~/Developer/dots/shared/ship stop bitviewd mcp; stop any benchmark separately)",
