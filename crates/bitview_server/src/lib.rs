@@ -37,7 +37,6 @@ use state::*;
 
 mod answer;
 mod api;
-mod cache;
 mod canonical_url;
 mod config;
 mod error;
@@ -57,10 +56,10 @@ mod series_bodies;
 mod stall_limit;
 mod state;
 
+pub use answer::CdnCacheMode;
 pub use api::ApiRoutes;
 
 pub use bitview_website::Website;
-pub use cache::CdnCacheMode;
 pub use error::Error;
 pub use port::Port;
 

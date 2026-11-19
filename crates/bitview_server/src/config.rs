@@ -10,7 +10,7 @@ use bitview_primitives::OHLCCents;
 use bitview_website::Website;
 use serde::{Serialize, Serializer};
 
-use crate::{Port, cache::CdnCacheMode};
+use crate::{CdnCacheMode, Port};
 
 /// Default max series-query response weight, in raw value bytes: 10k OHLC values (320 KB), a
 /// chart's largest request. Bounding each response this way needs no server-wide body

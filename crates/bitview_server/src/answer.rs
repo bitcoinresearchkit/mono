@@ -24,7 +24,7 @@ use tokio::{
 };
 
 use crate::{
-    AppState, CdnCacheMode, Error,
+    AppState, Error,
     etag::Etag,
     gates::{Bodies, Gate},
     raw_body::RawBodyPermit,
@@ -67,6 +67,18 @@ impl Kind {
             (Self::Settled, CdnCacheMode::Live) | (Self::Live, _) => (REVALIDATE, REVALIDATE),
         }
     }
+}
+
+/// What the CDN is told about settled answers (those a URL pins below the reorg window). Live
+/// answers get one second of freshness either way.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum CdnCacheMode {
+    /// One second of CDN freshness, then revalidation. No stale-on-error reuse.
+    #[default]
+    Live,
+    /// The CDN holds settled answers for up to a year as `immutable` (RFC 8246). The operator
+    /// must purge it on every release, and on a reorg deeper than the reorg window.
+    Aggressive,
 }
 
 /// Declares an answer's kind from whether what its URL pins is settled: [`Answer::settled`] or
