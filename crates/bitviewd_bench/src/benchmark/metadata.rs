@@ -55,15 +55,6 @@ pub fn write(
 ) -> io::Result<()> {
     let mut writer = BufWriter::new(File::create(run_path.join("metadata.txt"))?);
 
-    writeln!(writer, "quiet_at_start=true")?;
-    writeln!(writer, "quiet_lock_path={}", crate::quiet::LOCK_PATH)?;
-    writeln!(
-        writer,
-        "quiet_processes_checked={}",
-        crate::quiet::PROCESSES.join(",")
-    )?;
-    writer.flush()?;
-
     // The build, from compile time (`build.rs`).
     writeln!(writer, "version={}", env!("CARGO_PKG_VERSION"))?;
     writeln!(writer, "revision={}", env!("BENCH_COMMIT"))?;

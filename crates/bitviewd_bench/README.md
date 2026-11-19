@@ -39,8 +39,9 @@ It refuses to start beside `bitviewd`, `bitview_mcp` or another `bitviewd_bench`
 On a mini, stop those workloads with `~/Developer/dots/shared/ship stop bitviewd mcp`
 and stop any other benchmark first. Bitcoin Core must remain running for the benchmark.
 The lock is released by the OS on exit, including a crash or kill; leave its file in place.
-The recording's `quiet_at_start`, `quiet_lock_path`, and `quiet_processes_checked`
-record the successful start check. They do not guarantee the box stays quiet later.
+A recording made by this binary passed that start check, which does not guarantee the box
+stays quiet later. A recording known to have overlapped another workload says `comparable=false`
+and a `comparable_reason` in its `metadata.txt`; an absent `comparable` means comparable.
 The existing `benches/.lock` also guards each data directory.
 
 The results path is printed before bootstrap starts and again after completion.
