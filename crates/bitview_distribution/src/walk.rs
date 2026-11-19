@@ -135,7 +135,7 @@ impl Block<'_> {
         self.timestamps[self.height]
     }
 
-    /// The block's effect on the sats held at each age, in the order every reader applies it:
+    /// The block's effect on the sats held at each age, in the order URPD applies it:
     /// the origins that aged, as they stood before the block, move to the older range; the
     /// block's new outputs arrive under an hour old; what it removed leaves the age its origin
     /// has at the block.

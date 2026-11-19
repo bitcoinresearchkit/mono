@@ -48,6 +48,8 @@ fn bucket_to_cents(bucket: usize) -> Cents {
     Cents::from((offset as u64 + 10u64.pow(DIGITS - 1)) * 10u64.pow(decade as u32 + 1))
 }
 
+/// The bucket holding `cents`, rounding up to the next grid price, so that a cut at a grid price
+/// puts every price below it in earlier buckets.
 #[inline]
 fn cents_to_bucket(cents: u64) -> usize {
     match cents.checked_ilog10() {
