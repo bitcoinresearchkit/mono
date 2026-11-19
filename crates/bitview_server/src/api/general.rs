@@ -25,7 +25,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_difficulty_adjustment")
                     .tag(tags::GENERAL)
                     .summary("Difficulty adjustment")
-                    .description("Get current difficulty adjustment progress and estimates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*")
+                    .description("Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*")
                     .json_response::<DifficultyAdjustment>()
                     .not_modified()
             },

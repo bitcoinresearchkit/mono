@@ -14,7 +14,9 @@ pub struct DifficultyAdjustment {
     pub difficulty_change: f64,
 
     /// Estimated timestamp of next retarget (milliseconds): the tip block's time plus
-    /// `remainingTime`, so it moves with blocks, not with the clock
+    /// `remainingTime`, so it moves with blocks, not with the clock. It is early by the tip's
+    /// age, and with a block or two left in the epoch it can be before now: for a date counted
+    /// from now, as mempool.space gives, add `remainingTime` to your own clock
     #[schemars(example = 1627762478000_u64)]
     pub estimated_retarget_date: u64,
 
