@@ -50,20 +50,11 @@ fn main() {
         revision.push_str("-dirty");
     }
 
-    // `<target>/[<triple>/]<profile>/build/<package>/out`: custom profiles keep their name, `dev`
-    // builds into `debug`.
-    let out_dir = env::var("OUT_DIR").unwrap();
-    let profile = Path::new(&out_dir)
-        .ancestors()
-        .nth(3)
-        .and_then(Path::file_name)
-        .map_or_else(String::new, |name| name.to_string_lossy().into_owned());
-
     for (key, value) in [
         ("REVISION", revision),
         ("COMMIT", commit),
         ("DIRTY", dirty.to_string()),
-        ("PROFILE", profile),
+        ("PROFILE", env::var("PROFILE").unwrap()),
         (
             "RUSTC",
             output(Command::new(env::var_os("RUSTC").unwrap()).arg("-V")),
