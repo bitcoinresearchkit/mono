@@ -7,7 +7,7 @@ use std::{
 // Shared by all data directories and users on this machine. Never unlink a lock file:
 // another process could otherwise lock a different inode at the same path.
 const LOCK_PATH: &str = "/tmp/bitviewd-bench.lock";
-const PROCESSES: [&str; 3] = ["bitviewd", "bitview_mcp", "bitviewd_bench"];
+const PROCESSES: [&str; 4] = ["bitviewd", "bitview_mcp", "bitviewd_bench", "rustc"];
 
 pub fn acquire() -> io::Result<File> {
     let mut lock = OpenOptions::new()
