@@ -41,7 +41,7 @@ CORE = [
 FEATURES = [*subset.Options().layout_features, "tnum", "cv11", "ss01"]
 VARIANTS = {"normal": [], "tabular-nums": ["tnum"]}
 # Where the pages' words come from: their own files, and the modules that write text on them (series names, chart
-# labels, colour names; the rest of modules/ draws none: search, QR codes, the API reference's own fonts).
+# labels, colour names; the rest of modules/ draws none: search, QR codes).
 TEXT = [
     *(p for p in SHOWCASES.rglob("*") if p.suffix in {".html", ".js", ".mjs", ".css"} and "modules" not in p.relative_to(SHOWCASES).parts),
     *(ROOT / "modules/bitview-client").glob("*.js"),
