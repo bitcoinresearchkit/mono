@@ -31,7 +31,7 @@ pub struct PoolVecs {
     fees: PoolFees,
     /// The pool's blocks holding only their coinbase transaction.
     #[traversable(lead = "Empty blocks the pool mined: ones with nothing but the coinbase.")]
-    empty_block_count: LazyCumulativeRolling<Count>,
+    pub empty_block_count: LazyCumulativeRolling<Count>,
     /// The pool's blocks whose coinbase nLockTime is the height minus 1 and whose sequence isn't
     /// final: BIP-54's rule.
     #[traversable(lead = "The pool's blocks following BIP-54's coinbase locktime rule.")]
