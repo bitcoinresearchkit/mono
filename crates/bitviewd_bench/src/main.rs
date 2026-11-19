@@ -10,6 +10,7 @@ use tracing::info;
 use vecdb::Budgeted;
 
 mod benchmark;
+mod quiet;
 
 #[global_allocator]
 static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
@@ -25,6 +26,7 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<()> {
+    let _machine_lock = quiet::acquire()?;
     let RunConfig {
         client,
         blocks_path,
@@ -48,7 +50,10 @@ fn run() -> Result<()> {
     let cleanup = benchmark.clone();
     exit.register_cleanup(move || {
         if let Err(error) = cleanup.abort() {
-            eprintln!("Failed to save interrupted benchmark to {}: {error}", cleanup.path().display());
+            eprintln!(
+                "Failed to save interrupted benchmark to {}: {error}",
+                cleanup.path().display()
+            );
         }
     });
 

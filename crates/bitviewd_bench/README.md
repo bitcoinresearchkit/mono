@@ -34,7 +34,14 @@ never replaced: repetitions of one revision on one machine sit side by side.
   run records the code that was built, not the checkout it runs next to;
 - `<run-id>` is the run's UTC start, `20261014T153012Z`.
 
-One benchmark runs per data directory at a time (`benches/.lock`).
+The binary holds `/tmp/bitviewd-bench.lock` for its lifetime, across data directories.
+It refuses to start beside `bitviewd`, `bitview_mcp` or another `bitviewd_bench`.
+On a mini, stop those workloads with `~/Developer/dots/shared/ship stop bitviewd mcp`
+and stop any other benchmark first. Bitcoin Core must remain running for the benchmark.
+The lock is released by the OS on exit, including a crash or kill; leave its file in place.
+The recording's `quiet_at_start`, `quiet_lock_path`, and `quiet_processes_checked`
+record the successful start check. They do not guarantee the box stays quiet later.
+The existing `benches/.lock` also guards each data directory.
 
 The results path is printed before bootstrap starts and again after completion.
 For example, `--bitviewdir /Volumes/External/bitview` writes reports beneath

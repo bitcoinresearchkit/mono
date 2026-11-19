@@ -55,6 +55,15 @@ pub fn write(
 ) -> io::Result<()> {
     let mut writer = BufWriter::new(File::create(run_path.join("metadata.txt"))?);
 
+    writeln!(writer, "quiet_at_start=true")?;
+    writeln!(writer, "quiet_lock_path={}", crate::quiet::LOCK_PATH)?;
+    writeln!(
+        writer,
+        "quiet_processes_checked={}",
+        crate::quiet::PROCESSES.join(",")
+    )?;
+    writer.flush()?;
+
     // The build, from compile time (`build.rs`).
     writeln!(writer, "version={}", env!("CARGO_PKG_VERSION"))?;
     writeln!(writer, "revision={}", env!("BENCH_COMMIT"))?;
@@ -79,7 +88,11 @@ pub fn write(
     writeln!(writer, "started_at_unix={started_at}")?;
     writeln!(writer, "chain_height={chain_height}")?;
     // `resumed`: the data directory already held plugin data, so the run isn't a full sync.
-    writeln!(writer, "start={}", if resumed { "resumed" } else { "fresh" })?;
+    writeln!(
+        writer,
+        "start={}",
+        if resumed { "resumed" } else { "fresh" }
+    )?;
     writeln!(writer, "blocks_path={}", blocks_path.display())?;
     writeln!(writer, "data_path={}", data_path.display())?;
     writeln!(writer, "cache_budget={cache_budget}")?;
