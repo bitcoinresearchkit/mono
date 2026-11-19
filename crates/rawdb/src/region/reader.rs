@@ -61,6 +61,39 @@ impl Reader {
         assert!(offset <= self.len);
         self.read(offset, self.len - offset)
     }
+
+    /// Advise a short batch of sorted, fixed-width reads, once per page.
+    pub fn prefetch(&self, offsets: impl Iterator<Item = usize>, width: usize) {
+        #[cfg(unix)]
+        {
+            use super::residency::{is_page_resident, vm_page_size};
+
+            let Some(page_size) = vm_page_size() else { return; };
+            if width == 0 || width > self.len {
+                return;
+            }
+            let data = &self._db.inner.data;
+            let mapping = data.mapping();
+            let base = self.base.addr() - mapping.as_ptr().addr();
+            let mut last = None;
+            for offset in offsets.filter(|&offset| offset <= self.len - width) {
+                let start = base + offset;
+                let first = start / page_size * page_size;
+                let end = (start + width).next_multiple_of(page_size);
+                for page in (first..end).step_by(page_size) {
+                    if last.is_some_and(|last| page <= last) {
+                        continue;
+                    }
+                    last = Some(page);
+                    if !is_page_resident(mapping, page, page_size) {
+                        data.prefetch(page, page_size);
+                    }
+                }
+            }
+        }
+        #[cfg(not(unix))]
+        let _ = (offsets, width);
+    }
 }
 
 // SAFETY: the pointed-to bytes stay in place and unchanged while the reader holds its region's

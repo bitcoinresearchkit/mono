@@ -108,6 +108,26 @@ impl DataFile {
         &self.mmap
     }
 
+    /// Ask the kernel for one page of a planned read without touching the mapping.
+    #[cfg(unix)]
+    pub(crate) fn prefetch(&self, offset: usize, len: usize) {
+        #[cfg(target_os = "macos")]
+        {
+            // SAFETY: zero is valid for both integer fields and the padding.
+            let mut request: libc::radvisory = unsafe { std::mem::zeroed() };
+            request.ra_offset = offset as libc::off_t;
+            request.ra_count = len as libc::c_int;
+            // SAFETY: the descriptor stays open and fcntl copies the request.
+            if unsafe { libc::fcntl(self.file.as_raw_fd(), libc::F_RDADVISE, &raw const request) } < 0 {
+                log::debug!("rawdb read advice at {offset}: {}", io::Error::last_os_error());
+            }
+        }
+        #[cfg(not(target_os = "macos"))]
+        if let Err(error) = self.mmap.advise_range(memmap2::Advice::WillNeed, offset, len) {
+            log::debug!("rawdb read advice at {offset}: {error}");
+        }
+    }
+
     /// # Safety
     /// Hold the mutation barrier and exclusive access to the destination bytes.
     pub(crate) unsafe fn write(&self, start: usize, bytes: &[u8]) {

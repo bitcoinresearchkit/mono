@@ -62,6 +62,11 @@ where
             .map(|compact| self.decode(compact))
     }
 
+    /// Advise the compact rows. A row identifies its overflow slot when read.
+    pub fn prefetch(&self, indexes: impl Iterator<Item = I>) {
+        self.compact.prefetch(indexes);
+    }
+
     #[inline(always)]
     pub(crate) fn compact(
         &self,
