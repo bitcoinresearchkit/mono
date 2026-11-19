@@ -8,6 +8,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- The Rust client retries a pinned GET through the configured URL when the response body
+  fails in transit, including timeouts after successful headers.
+
 - The Rust client sends each transaction broadcast once and returns the original error if
   it fails. The server identifies overload rejections as transactions it did not submit.
 

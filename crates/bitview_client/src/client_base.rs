@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     fmt::Display,
+    io::ErrorKind,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -9,9 +10,14 @@ use bitview_types::ErrorCode;
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, utf8_percent_encode};
 use serde::de::{DeserializeOwned, IntoDeserializer, value};
 use serde_json::Value;
-use ureq::{Agent, Body, BodyWithConfig, http::Response};
+use ureq::{
+    Agent, Body, BodyWithConfig,
+    http::{HeaderMap, Response, StatusCode},
+};
 
 use crate::{BitviewError, Result};
+
+type Attempt<T> = std::result::Result<Result<T>, ureq::Error>;
 
 /// Defaults to `http://localhost:3110` with a 30 s timeout.
 #[derive(Debug, Clone)]
@@ -76,22 +82,25 @@ impl BitviewClientBase {
         self.pin.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
-    /// `send`s to the pinned server, else the configured URL. A pinned server that fails is
-    /// refused and the request sent again through the configured URL.
-    fn call(
+    fn get<T>(
         &self,
-        send: impl Fn(&str) -> std::result::Result<Response<Body>, ureq::Error>,
-    ) -> std::result::Result<Response<Body>, ureq::Error> {
+        path: &str,
+        read: impl Fn(BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
+    ) -> Result<T> {
+        let send = |base: &str| self.agent.get(format!("{base}{path}")).call();
         let pinned = self.pin().server.clone();
         if let Some(server) = pinned {
-            match send(&server) {
-                Ok(response) if !response.status().is_server_error() => {
-                    return Ok(self.follow(response));
-                }
-                _ => self.refuse(&server),
+            if let Ok(response) = send(&server)
+                && !response.status().is_server_error()
+                && let Ok(result) = self.read(response, &read)
+            {
+                return result;
             }
+            self.refuse(&server);
         }
-        send(&self.base_url).map(|response| self.follow(response))
+        send(&self.base_url)
+            .and_then(|response| self.read(response, read))
+            .map_err(|error| BitviewError::new(error.to_string()))?
     }
 
     fn refuse(&self, server: &str) {
@@ -104,9 +113,8 @@ impl BitviewClientBase {
     }
 
     /// Pins the server the answer names, unless it's the configured URL or refused.
-    fn follow(&self, response: Response<Body>) -> Response<Body> {
-        let origin = response
-            .headers()
+    fn follow(&self, headers: &HeaderMap) {
+        let origin = headers
             .get("bitview-origin")
             .and_then(|value| value.to_str().ok())
             .map(|origin| origin.trim_end_matches('/'))
@@ -119,22 +127,9 @@ impl BitviewClientBase {
                 pin.server = Some(origin.to_owned());
             }
         }
-        response
     }
 
-    fn get(&self, path: &str) -> std::result::Result<Response<Body>, ureq::Error> {
-        self.call(|base| self.agent.get(format!("{base}{path}")).call())
-    }
-
-    /// Passes a successful answer through; an error status becomes a `BitviewError` with the
-    /// server's code and message when it sent an error body.
-    fn check(response: std::result::Result<Response<Body>, ureq::Error>) -> Result<Response<Body>> {
-        let mut response = response.map_err(|e| BitviewError::new(e.to_string()))?;
-        let status = response.status();
-        if status.is_success() {
-            return Ok(response);
-        }
-        let text = response.body_mut().read_to_string().unwrap_or_default();
+    fn http_error(status: StatusCode, text: String) -> BitviewError {
         // Fields read one by one: a code this client doesn't know keeps the server's message.
         let detail = serde_json::from_str::<Value>(&text)
             .ok()
@@ -146,23 +141,23 @@ impl BitviewClientBase {
             _ if text.is_empty() => status.to_string(),
             _ => text,
         };
-        Err(BitviewError {
+        BitviewError {
             status: Some(status.as_u16()),
             code,
             message,
-        })
+        }
     }
 
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        Self::read(self.get(path), |body| body.read_json())
+        self.get(path, |body| body.read_json())
     }
 
     pub fn get_text(&self, path: &str) -> Result<String> {
-        Self::read(self.get(path), |body| body.read_to_string())
+        self.get(path, |body| body.read_to_string())
     }
 
     pub fn get_bytes(&self, path: &str) -> Result<Vec<u8>> {
-        Self::read(self.get(path), |body| body.read_to_vec())
+        self.get(path, |body| body.read_to_vec())
     }
 
     /// POSTs `body` as `content_type`, reading the JSON answer.
@@ -202,15 +197,11 @@ impl BitviewClientBase {
             .max_redirects(0)
             .build()
             .header("Content-Type", content_type)
-            .send(body)
-            .map(|response| {
-                if response.status().is_server_error() {
-                    response
-                } else {
-                    self.follow(response)
-                }
-            });
-        let result = Self::read(response, read);
+            .send(body);
+        let result = response
+            .and_then(|response| self.read(response, read))
+            .map_err(|error| BitviewError::new(error.to_string()))
+            .flatten();
         if let Some(server) = &pinned
             && result.as_ref().is_err_and(|error| {
                 error
@@ -223,15 +214,40 @@ impl BitviewClientBase {
         result
     }
 
-    /// Reads a successful response's whole body: the server bounds its responses, so the
-    /// client adds no cap (ureq's default stops at 10 MiB, below the full UTXO set).
+    /// The outer error is a failed transport. A received HTTP error or bad payload is the
+    /// server's answer. The server bounds its responses (ureq's cap is below the full UTXO set).
     fn read<T>(
-        response: std::result::Result<Response<Body>, ureq::Error>,
+        &self,
+        mut response: Response<Body>,
         read: impl FnOnce(BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
-    ) -> Result<T> {
-        let mut response = Self::check(response)?;
-        read(response.body_mut().with_config().limit(u64::MAX))
-            .map_err(|e| BitviewError::new(e.to_string()))
+    ) -> Attempt<T> {
+        let status = response.status();
+        if !status.is_success() {
+            let text = response.body_mut().read_to_string();
+            if !status.is_server_error() && text.is_ok() {
+                self.follow(response.headers());
+            }
+            return Ok(Err(Self::http_error(status, text.unwrap_or_default())));
+        }
+
+        let value = match read(response.body_mut().with_config().limit(u64::MAX)) {
+            Ok(value) => value,
+            Err(error) => {
+                // For a streaming JSON body, serde wraps transport errors in its own error.
+                let payload_error = match &error {
+                    ureq::Error::Json(error) => !error.is_io(),
+                    ureq::Error::Io(error) => error.kind() == ErrorKind::InvalidData,
+                    _ => false,
+                };
+                return if payload_error {
+                    Ok(Err(BitviewError::new(error.to_string())))
+                } else {
+                    Err(error)
+                };
+            }
+        };
+        self.follow(response.headers());
+        Ok(Ok(value))
     }
 }
 
