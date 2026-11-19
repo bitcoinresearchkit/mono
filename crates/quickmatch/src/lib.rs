@@ -225,38 +225,12 @@ impl<'a> QuickMatch<'a> {
         // word before it ("hash rate" as "hashrate").
         // (A pair the index holds nothing under fits nothing: left out.)
         let typed = words(&query, &sep).collect::<Vec<_>>();
-        let joins = joins(&typed, &query_words, |pair, from| {
-            self.word_index.contains_key(pair)
-                || (!EXACT_WORDS
-                    && pair.len() >= 4
-                    && pair.len() - 1 > from
-                    && self.exact_words.contains_key(&pair[..pair.len() - 1]))
-        });
+        let joins = self.query_joins(&typed, &query_words, EXACT_WORDS);
         let held: Vec<Option<(Cow<'_, [ItemId]>, bool)>> = query_words
             .iter()
             .zip(&joins)
             .map(|(&word, pairs)| {
-                let mut lists: Vec<&[ItemId]> = vec![];
-                let mut firm = false;
-                // (`from`: a plural of the two joined takes more than the
-                // first, "hash rates", not "tatmaspool h".)
-                let joined = pairs.iter().filter(|pair| pair.second).map(|pair| (pair.text.as_str(), pair.from));
-                for (key, from) in iter::once((word, 0)).chain(joined) {
-                    if let Some(own) = self.word_index.get(key) {
-                        firm = true;
-                        lists.push(own);
-                    }
-                    // (A word one letter past another's end, a plural or a slip
-                    // there, "prices": that one's items too.)
-                    if !EXACT_WORDS
-                        && key.len() >= 4
-                        && key.len() - 1 > from
-                        && let Some(shorter) = self.exact_words.get(&key[..key.len() - 1])
-                    {
-                        lists.push(shorter);
-                    }
-                }
-                Self::sorted_union(&lists).map(|items| (items, !firm))
+                self.prefix_lists(word, pairs.iter().filter(|pair| pair.second), EXACT_WORDS)
             })
             .collect();
         // A slip that leaves the words nothing in common, as the others have, is
@@ -292,13 +266,7 @@ impl<'a> QuickMatch<'a> {
             let known_lists = query_words
                 .iter()
                 .zip(&joins)
-                .filter_map(|(&word, pairs)| {
-                    let lists = iter::once(word)
-                        .chain(pairs.iter().map(|pair| pair.text.as_str()))
-                        .flat_map(|key| self.exact(key))
-                        .collect::<Vec<_>>();
-                    Self::sorted_union(&lists)
-                })
+                .filter_map(|(&word, pairs)| self.exact_lists(word, pairs))
                 .collect::<Vec<_>>();
             let known_lists = known_lists.iter().map(AsRef::as_ref).collect::<Vec<_>>();
             if !config.union_fallback && known_lists.len() != query_words.len() {
@@ -429,6 +397,82 @@ impl<'a> QuickMatch<'a> {
             limit,
             0,
         )
+    }
+
+    fn query_joins(&self, typed: &[&str], distinct: &[&str], exact: bool) -> Vec<Vec<Pair>> {
+        joins(typed, distinct, |pair, from| {
+            self.word_index.contains_key(pair)
+                || (!exact
+                    && pair.len() >= 4
+                    && pair.len() - 1 > from
+                    && self.exact_words.contains_key(&pair[..pair.len() - 1]))
+        })
+    }
+
+    fn exact_lists(&self, word: &str, pairs: &[Pair]) -> Option<Cow<'_, [ItemId]>> {
+        let lists = iter::once(word)
+            .chain(pairs.iter().map(|pair| pair.text.as_str()))
+            .flat_map(|key| self.exact(key))
+            .collect::<Vec<_>>();
+        Self::sorted_union(&lists)
+    }
+
+    // The word and applicable joined spellings, including a plural one letter past their end.
+    fn prefix_lists<'s, 'p>(
+        &'s self,
+        word: &str,
+        pairs: impl Iterator<Item = &'p Pair>,
+        exact: bool,
+    ) -> Option<(Cow<'s, [ItemId]>, bool)> {
+        let mut lists = Vec::new();
+        let mut firm = false;
+        for (key, from) in iter::once((word, 0)).chain(pairs.map(|pair| (pair.text.as_str(), pair.from))) {
+            if let Some(own) = self.word_index.get(key) {
+                firm = true;
+                lists.push(own.as_slice());
+            }
+            if !exact && key.len() >= 4 && key.len() - 1 > from
+                && let Some(shorter) = self.exact_words.get(&key[..key.len() - 1])
+            {
+                lists.push(shorter.as_slice());
+            }
+        }
+        Self::sorted_union(&lists).map(|items| (items, !firm))
+    }
+
+    /// Unranked item positions for each distinct query word. A caller searching documents
+    /// assembled from these items can intersect at document scope. Compound words stay
+    /// within an item. Fuzzy matching ignores unknown words shorter than a trigram and checks
+    /// longer unknown words with the single-word typo search.
+    pub fn word_hits(&self, query: &str, exact: bool) -> Vec<Vec<u32>> {
+        let query = normalize(query);
+        let sep = sep_table(SEPARATORS);
+        let typed: Vec<_> = words(&query, &sep).collect();
+        let mut seen = FxHashSet::default();
+        let distinct: Vec<_> = typed.iter().copied().filter(|word| seen.insert(*word)).collect();
+        let pairs = self.query_joins(&typed, &distinct, exact);
+        let mut hits = Vec::with_capacity(distinct.len());
+        for (word, pairs) in distinct.into_iter().zip(&pairs) {
+            let ids = if exact {
+                self.exact_lists(word, pairs)
+            } else {
+                self.prefix_lists(word, pairs.iter(), false).map(|(items, _)| items)
+            };
+            let ids: Vec<u32> = match ids {
+                Some(ids) => ids.iter().map(|id| id.0).collect(),
+                None if !exact && word.len() < 3 => continue,
+                None if !exact => {
+                    let config = QuickMatchConfig::new().with_limit(self.items.len()).with_union_fallback(false);
+                    self.search::<false>(word, &config).into_iter().map(|(id, _)| id).collect()
+                }
+                None => return Vec::new(),
+            };
+            if ids.is_empty() {
+                return Vec::new();
+            }
+            hits.push(ids);
+        }
+        hits
     }
 
     /// How many of a query's distinct words each item holds whole, by position in the original
@@ -578,8 +622,9 @@ impl<'a> QuickMatch<'a> {
     }
 
     /// The items with `key` as a complete word, then as a complete compound.
-    fn exact<'k>(&'k self, key: &'k str) -> impl Iterator<Item = &'k [ItemId]> {
-        [&self.exact_words, &self.exact_compounds].into_iter().filter_map(move |index| index.get(key).map(Vec::as_slice))
+    fn exact<'s>(&'s self, key: &str) -> impl Iterator<Item = &'s [ItemId]> + use<'s> {
+        [self.exact_words.get(key), self.exact_compounds.get(key)]
+            .into_iter().flatten().map(Vec::as_slice)
     }
 
     /// Union of ascending posting lists, ascending (borrowed when there's one),

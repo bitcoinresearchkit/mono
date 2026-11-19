@@ -1,14 +1,14 @@
 use quickmatch::{QuickMatch, QuickMatchConfig};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
-use super::{DescriptionSearch, SeriesId, SeriesRegistry, normalize::normalize};
+use super::{SeriesRegistry, normalize::normalize};
 
 impl SeriesRegistry<'_> {
     pub(crate) fn matches(&self, query: &str, limit: usize) -> Vec<&'_ str> {
         matches(
             &self.series_names,
             &self.matcher,
-            &self.description_search,
+            &self.sentences,
             query,
             limit,
         )
@@ -18,7 +18,7 @@ impl SeriesRegistry<'_> {
 fn matches<'a>(
     names: &[&'a str],
     matcher: &QuickMatch<'_>,
-    descriptions: &DescriptionSearch,
+    sentences: &SentenceIndex,
     query: &str,
     limit: usize,
 ) -> Vec<&'a str> {
@@ -41,18 +41,17 @@ fn matches<'a>(
         matcher
             .matches_exact_with_ids_and_matched_words(&query, &config)
             .into_iter()
-            .map(|(id, _)| SeriesId(id)),
+            .map(|(id, _)| id),
         &mut result,
         &mut seen,
         limit,
     );
     if result.len() >= limit {
-        return result.into_iter().map(|id| names[id.as_usize()]).collect();
+        return result.into_iter().map(|id| names[id as usize]).collect();
     }
-    // The words as the matcher splits them, once each.
+    // Normalization leaves a single space between words.
     let count = query
-        .split(['_', '-', ' ', ':', '/'])
-        .filter(|word| !word.is_empty())
+        .split_ascii_whitespace()
         .collect::<FxHashSet<_>>()
         .len();
     let (whole, typos): (Vec<_>, Vec<_>) = matcher
@@ -60,60 +59,41 @@ fn matches<'a>(
         .into_iter()
         .partition(|&(_, matched)| matched as usize >= count);
     append(
-        whole.into_iter().map(|(id, _)| SeriesId(id)),
+        whole.into_iter().map(|(id, _)| id),
         &mut result,
         &mut seen,
         limit,
     );
     if result.len() < limit {
         let name_words = matcher.words_held(&query);
-        let description_config = QuickMatchConfig::new()
-            .with_limit(descriptions.series_by_description.len())
-            .with_union_fallback(false);
         append(
-            rank_descriptions(
-                descriptions
-                    .matcher
-                    .matches_exact_with_ids_and_matched_words(&query, &description_config),
-                descriptions,
-                names,
-                &name_words,
-                limit,
-            ),
+            sentences.ranked(&query, true, names, &name_words, limit),
             &mut result,
             &mut seen,
             limit,
         );
         append(
-            typos.into_iter().map(|(id, _)| SeriesId(id)),
+            typos.into_iter().map(|(id, _)| id),
             &mut result,
             &mut seen,
             limit,
         );
         if result.len() < limit {
             append(
-                rank_descriptions(
-                    descriptions
-                        .matcher
-                        .matches_with_ids_and_matched_words(&query, &description_config),
-                    descriptions,
-                    names,
-                    &name_words,
-                    limit,
-                ),
+                sentences.ranked(&query, false, names, &name_words, limit),
                 &mut result,
                 &mut seen,
                 limit,
             );
         }
     }
-    result.into_iter().map(|id| names[id.as_usize()]).collect()
+    result.into_iter().map(|id| names[id as usize]).collect()
 }
 
 fn append(
-    ids: impl IntoIterator<Item = SeriesId>,
-    result: &mut Vec<SeriesId>,
-    seen: &mut FxHashSet<SeriesId>,
+    ids: impl IntoIterator<Item = u32>,
+    result: &mut Vec<u32>,
+    seen: &mut FxHashSet<u32>,
     limit: usize,
 ) {
     for id in ids {
@@ -126,47 +106,91 @@ fn append(
     }
 }
 
-fn rank_descriptions(
-    matches: Vec<(u32, u32)>,
-    descriptions: &DescriptionSearch,
-    names: &[&str],
-    name_words: &[u8],
-    limit: usize,
-) -> Vec<SeriesId> {
-    // Among matching descriptions, prefer names with fewer unrelated words.
-    // This uses only the canonical ID, without cohort aliases or metric rules.
-    let mut candidates = matches
-        .into_iter()
-        .enumerate()
-        .flat_map(|(rank, (description, _))| {
-            descriptions.series_by_description[description as usize]
-                .iter()
-                .map(move |&id| {
-                    let name = names[id.as_usize()];
-                    (
-                        id,
-                        rank,
-                        usize::from(name_words[id.as_usize()]),
-                        name.split('_').count(),
-                    )
-                })
-        })
-        .collect::<Vec<_>>();
-    let compare = |a: &(SeriesId, usize, usize, usize), b: &(SeriesId, usize, usize, usize)| {
-        let an = names[a.0.as_usize()];
-        let bn = names[b.0.as_usize()];
-        (b.2 * a.3)
-            .cmp(&(a.2 * b.3))
-            .then(an.len().cmp(&bn.len()))
-            .then(a.1.cmp(&b.1))
-            .then(an.cmp(bn))
-    };
-    // Each tier has unique IDs, so the first `limit` candidates suffice
-    // even when some were already returned by earlier tiers.
-    if candidates.len() > limit {
-        candidates.select_nth_unstable_by(limit, compare);
-        candidates.truncate(limit);
+pub(super) struct SentenceIndex {
+    matcher: QuickMatch<'static>,
+    series: Vec<Box<[u32]>>,
+}
+
+impl SentenceIndex {
+    pub(super) fn new<'a>(descriptions: impl Iterator<Item = &'a str>) -> Self {
+        let mut postings = FxHashMap::<&str, Vec<u32>>::default();
+        for (id, text) in descriptions.enumerate() {
+            let id = u32::try_from(id).expect("too many series");
+            // A decimal point belongs to its number. Only split punctuation before whitespace.
+            for paragraph in text.split("\n\n") {
+                let mut punctuation = false;
+                for sentence in paragraph
+                    .split(|c: char| {
+                        let boundary = punctuation && c.is_whitespace();
+                        punctuation = matches!(c, '.' | '!' | '?');
+                        boundary
+                    })
+                    .map(str::trim)
+                    .filter(|s| !s.is_empty())
+                {
+                    let ids = postings.entry(sentence).or_default();
+                    if ids.last() != Some(&id) {
+                        ids.push(id);
+                    }
+                }
+            }
+        }
+        let (sentences, series) = postings
+            .into_iter()
+            .map(|(text, ids)| (normalize(text), ids.into_boxed_slice()))
+            .unzip();
+        Self {
+            matcher: QuickMatch::new_owned(sentences),
+            series,
+        }
     }
-    candidates.sort_unstable_by(compare);
-    candidates.into_iter().map(|(id, ..)| id).collect()
+
+    fn ranked(
+        &self,
+        query: &str,
+        exact: bool,
+        names: &[&str],
+        name_words: &[u8],
+        limit: usize,
+    ) -> Vec<u32> {
+        let hits = self.matcher.word_hits(query, exact);
+        if hits.is_empty() {
+            return Vec::new();
+        }
+        // Advance a series at most once per word, however many matching sentences it contains.
+        let mut held = vec![0usize; names.len()];
+        for (word, sentences) in hits.iter().enumerate() {
+            for &sentence in sentences {
+                for &id in &self.series[sentence as usize] {
+                    let count = &mut held[id as usize];
+                    if *count == word {
+                        *count += 1;
+                    }
+                }
+            }
+        }
+        let mut candidates = held
+            .into_iter()
+            .enumerate()
+            .filter(|&(_, count)| count == hits.len())
+            .map(|(id, _)| {
+                let words = if name_words[id] == 0 {
+                    1
+                } else {
+                    names[id].split('_').count()
+                };
+                (id, usize::from(name_words[id]), words)
+            })
+            .collect::<Vec<_>>();
+        // Registry ids already sort by name length, then spelling.
+        let compare = |a: &(usize, usize, usize), b: &(usize, usize, usize)| {
+            (b.1 * a.2).cmp(&(a.1 * b.2)).then(a.0.cmp(&b.0))
+        };
+        if candidates.len() > limit {
+            candidates.select_nth_unstable_by(limit, compare);
+            candidates.truncate(limit);
+        }
+        candidates.sort_unstable_by(compare);
+        candidates.into_iter().map(|(id, ..)| id as u32).collect()
+    }
 }

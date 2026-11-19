@@ -47,23 +47,9 @@ pub struct SeriesRegistry<'a> {
     counts_by_db: BTreeMap<String, SeriesCount>,
     catalog: TreeNode,
     matcher: QuickMatch<'a>,
-    description_search: DescriptionSearch,
+    sentences: search::SentenceIndex,
     /// Each value type's unit description, by type name.
     units: BTreeMap<String, Arc<str>>,
-}
-
-struct DescriptionSearch {
-    matcher: QuickMatch<'static>,
-    series_by_description: Vec<Box<[SeriesId]>>,
-}
-
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-struct SeriesId(u32);
-
-impl SeriesId {
-    fn as_usize(self) -> usize {
-        self.0 as usize
-    }
 }
 
 impl<'a> SeriesRegistry<'a> {
@@ -190,7 +176,12 @@ impl<'a> SeriesRegistry<'a> {
         for (name, series) in &mut by_series {
             series.description = catalog_descriptions.get(*name).cloned();
         }
-        let description_search = DescriptionSearch::new(&series_names, &catalog_descriptions);
+        let sentences = search::SentenceIndex::new(series_names.iter().map(|name| {
+            catalog_descriptions
+                .get(name)
+                .map(AsRef::as_ref)
+                .unwrap_or_default()
+        }));
         let units: BTreeMap<String, Arc<str>> = catalog
             .units()
             .into_iter()
@@ -222,7 +213,7 @@ impl<'a> SeriesRegistry<'a> {
             counts_by_db,
             catalog,
             matcher,
-            description_search,
+            sentences,
             units,
         }
     }
@@ -305,40 +296,6 @@ impl<'a> SeriesRegistry<'a> {
         match series.get(index).copied() {
             Some(entry) => SeriesEntryLookup::Found(entry),
             None => SeriesEntryLookup::Unsupported(series.indexes().collect()),
-        }
-    }
-}
-
-impl DescriptionSearch {
-    fn new(series: &[&str], descriptions_by_name: &BTreeMap<&str, Arc<str>>) -> Self {
-        debug_assert!(u32::try_from(series.len()).is_ok(), "Too many series");
-        let mut ids_by_description: BTreeMap<String, Vec<SeriesId>> = BTreeMap::new();
-
-        for (id, name) in series.iter().copied().enumerate() {
-            let description = descriptions_by_name.get(name);
-            let Some(description) = description else {
-                continue;
-            };
-            let description = normalize::normalize(description);
-            if description.is_empty() {
-                continue;
-            }
-            ids_by_description
-                .entry(description)
-                .or_default()
-                .push(SeriesId(id as u32));
-        }
-
-        let mut descriptions = Vec::with_capacity(ids_by_description.len());
-        let mut series_by_description = Vec::with_capacity(ids_by_description.len());
-        for (description, ids) in ids_by_description {
-            descriptions.push(description);
-            series_by_description.push(ids.into_boxed_slice());
-        }
-
-        Self {
-            matcher: QuickMatch::new_owned(descriptions),
-            series_by_description,
         }
     }
 }
