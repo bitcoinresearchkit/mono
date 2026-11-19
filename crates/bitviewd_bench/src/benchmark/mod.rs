@@ -12,6 +12,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use bitview::UpdateContext;
+use bitview_default::DefaultPlugins;
 use brk_error::{Error, Result};
 use brk_logger::register_hook;
 use brk_types::{Height, Timestamp};
@@ -24,6 +26,7 @@ use tracing::Level;
 mod disk;
 mod metadata;
 mod process;
+mod replay;
 mod trace;
 
 #[derive(Clone)]
@@ -57,6 +60,8 @@ struct Inner {
     _lock: File,
     disk: Arc<Mutex<DiskMonitor>>,
     trace: Arc<TraceMonitor>,
+    /// Plugin data was already there: its undo does not cover a replay.
+    resumed: bool,
     stop: Arc<AtomicBool>,
     state: Mutex<State>,
 }
@@ -131,6 +136,7 @@ impl Benchmark {
                 &path.join("disk.csv"),
             )?)),
             trace,
+            resumed,
             path,
             _lock: lock,
             stop: Arc::new(AtomicBool::new(false)),
@@ -140,6 +146,19 @@ impl Benchmark {
 
     pub fn path(&self) -> &Path {
         &self.0.path
+    }
+
+    /// After the timed run: replays its last blocks serially, one plugin at a time, and records
+    /// each plugin's CPU per block (see the README). A resumed run has no replay.
+    pub fn replay(
+        &self,
+        plugins: &mut DefaultPlugins,
+        context: UpdateContext<'_>,
+    ) -> Result<()> {
+        if self.0.resumed {
+            return Ok(());
+        }
+        replay::run(self.path(), plugins, context)
     }
 
     pub fn measure<T>(&self, measure: impl FnOnce() -> Result<T>) -> Result<T> {

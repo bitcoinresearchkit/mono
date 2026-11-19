@@ -58,6 +58,8 @@ disk_breakdown.csv  # final size per component (`plugins/<id>` and top-level ent
 progress.csv        # heights from production log events, with their source (`indexer`, ...)
 run.csv             # total bootstrap duration and status (complete, failed or aborted)
 timings.csv         # every completed production plugin import and compute interval
+serial_cpu.csv      # per plugin, serial-replay CPU per block of the last 10 blocks: p50 and p95
+serial_cpu_samples.csv # the serial-replay CPU of each plugin in each block
 ```
 
 On macOS the footprint and its peak are the kernel's (`physical_bytes`,
@@ -71,3 +73,26 @@ everything recorded up to that point.
 Bitcoin Core synchronization and the initial and final recursive disk scans
 are outside the timed interval. The per-minute scans run inside it, on their own
 thread, so their small metadata reads are part of the recorded I/O.
+
+### Serial replay CPU
+
+The timed run's plugins overlap on threads, so their durations say nothing about the CPU each
+one spends. After the run, on a fresh data directory (a resumed one has no replay), the last 10
+blocks (`UNDO_TAIL`, the undo the run already keeps) are rolled back and applied again one at a
+time, with Bitcoin Core on its full chain. The first is unmeasured: it restores the plugins' live
+state. Each of the others is one production update with the composition's forks run one branch at
+a time, so the process CPU (`getrusage`, user plus system) between a plugin's start and end is its
+own, less the steps nested in it (the shared history walk is its own `walk` step; Age,
+Profitability and URPD run inside it). A plugin's internal parallelism is unchanged, and what an
+update leaves running in the background (the indexer's ingestion and compaction, freeing the
+blocks) is joined into the indexer's step.
+
+`serial_cpu_samples.csv` has `height,plugin,serial_cpu_ms`, one row per plugin per block, and
+`total` (the whole update) and `unattributed` (`total` less the plugins: the schedule, logging and
+helper threads between steps). `serial_cpu.csv` has the nearest-rank p50 and p95 of each over the
+9 measured blocks, so p95 is the largest.
+
+These are serial-replay CPU per block, not production CPU. The vectors' delayed compaction, 5 s
+after an update (`bitview_plugin/src/update_context.rs`), is not counted. Compare plugins with each
+other and a plugin with its own earlier run, never with the timed run's durations, and gate nothing
+on one plugin's number: nine blocks of one machine in one state.
