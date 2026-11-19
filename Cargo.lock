@@ -380,6 +380,7 @@ dependencies = [
  "bitview_plugin_transactions",
  "bitview_plugin_utxo_set",
  "bitview_plugin_utxos",
+ "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_alloc",

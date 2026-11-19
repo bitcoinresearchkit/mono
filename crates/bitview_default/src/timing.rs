@@ -8,6 +8,8 @@ use bitview_plugin::{ComputePlugin, PluginId, UpdateContext};
 use brk_error::Result;
 use tracing::info;
 
+use crate::serial;
+
 #[derive(Clone, Copy)]
 enum Phase {
     Import,
@@ -66,6 +68,7 @@ pub fn timed_compute<P: ComputePlugin>(
     dependencies: P::Dependencies<'_>,
     context: UpdateContext<'_>,
 ) -> Result<()> {
+    let _step = serial::step(plugin.id());
     timed(Phase::Compute, plugin.id(), || {
         plugin.compute(dependencies, context)
     })
@@ -84,6 +87,7 @@ pub struct Timed<C> {
 
 impl<C: Consumer> Timed<C> {
     pub fn new(plugin: PluginId, make: impl FnOnce() -> Result<C>) -> Result<Self> {
+        let _step = serial::step(plugin);
         let start = Instant::now();
         let consumer = make()?;
         Ok(Self {
@@ -101,6 +105,7 @@ impl<C: Consumer> Timed<C> {
 
     /// Ends the compute with `finish` and logs its whole time.
     pub fn finish(self, finish: impl FnOnce(C)) {
+        let _step = serial::step(self.plugin);
         let start = Instant::now();
         finish(self.consumer);
         log(
@@ -111,6 +116,7 @@ impl<C: Consumer> Timed<C> {
     }
 
     fn time<T>(&mut self, f: impl FnOnce(&mut C) -> T) -> T {
+        let _step = serial::step(self.plugin);
         let start = Instant::now();
         let result = f(&mut self.consumer);
         self.walked += start.elapsed();

@@ -16,6 +16,7 @@ readme = "README.md"
 bench-cpu = ["bitview_plugin_indexer/bench-cpu"]
 
 [dependencies]
+bitview_primitives = { workspace = true }
 bitview_vecs = { workspace = true }
 bitview_distribution = { workspace = true }
 bitview_plugin = { workspace = true }

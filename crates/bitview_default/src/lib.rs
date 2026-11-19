@@ -29,7 +29,9 @@ use bitview_traversable::Traversable;
 use vecdb::{Rw, StorageMode};
 
 mod compute;
+mod dispatch;
 mod import;
+pub mod serial;
 mod timing;
 
 /// Plugins in pipeline order, dependencies first: the first plugin publishing a shared id serves it.
