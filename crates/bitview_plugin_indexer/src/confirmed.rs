@@ -11,8 +11,27 @@ use crate::{
 
 /// Reads of confirmed transactions: their bytes from the block files.
 impl<M: StorageMode> Indexer<M> {
-    /// One indexed transaction's bytes and decoding. The caller's pin covers `index`.
-    pub fn read_tx(&self, index: TxIndex) -> Result<(Vec<u8>, Transaction)> {
+    /// One indexed transaction, decoded. The caller's pin covers `index`.
+    pub fn read_tx(&self, index: TxIndex) -> Result<Transaction> {
+        let (position, size) = self.tx_place(index)?;
+        self.read_tx_at(position, size)
+    }
+
+    /// One indexed transaction's bytes as the block files hold them: nothing is decoded. The
+    /// caller's pin covers `index`.
+    pub fn read_tx_bytes(&self, index: TxIndex) -> Result<Vec<u8>> {
+        let (position, size) = self.tx_place(index)?;
+        self.read_tx_bytes_at(position, size)
+    }
+
+    /// One indexed transaction, decoded, from the position and size the caller read.
+    pub fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<Transaction> {
+        deserialize(&self.read_tx_bytes_at(position, size)?)
+            .map_err(|_| Error::Internal("Invalid indexed transaction encoding"))
+    }
+
+    /// Where the block files hold an indexed transaction, and how many bytes of it.
+    fn tx_place(&self, index: TxIndex) -> Result<(BlkPosition, usize)> {
         let transactions = &self.vecs().transactions;
         let missing = || Error::Internal("Indexed transaction metadata missing");
         let size = *transactions
@@ -23,22 +42,18 @@ impl<M: StorageMode> Indexer<M> {
             .position
             .collect_one(index)
             .ok_or_else(missing)?;
-        self.read_tx_at(position, size)
+        Ok((position, size))
     }
 
-    /// One indexed transaction from the position and size the caller read. The index wrote both
-    /// from this node's block files, so the bytes there are the transaction: nothing is hashed
-    /// to check it again.
-    pub fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<(Vec<u8>, Transaction)> {
+    /// The index wrote the position and size from this node's block files, so the bytes there
+    /// are the transaction: nothing is hashed to check it again.
+    fn read_tx_bytes_at(&self, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         // Serialized bytes cannot exceed weight: a larger size is a corrupt column.
         debug_assert!(
             size as u64 <= Weight::MAX_BLOCK.to_wu(),
             "{size} bytes at {position:?}"
         );
-        let bytes = self.reader().read_raw_bytes(position, size)?;
-        let transaction = deserialize(&bytes)
-            .map_err(|_| Error::Internal("Invalid indexed transaction encoding"))?;
-        Ok((bytes, transaction))
+        self.reader().read_raw_bytes(position, size)
     }
 
     /// The positions of a transaction's dust outputs, by the rule its `DUST_OUTPUT` flag follows.
@@ -49,7 +64,7 @@ impl<M: StorageMode> Indexer<M> {
     /// transaction flagged with a dust output, so almost every block reads nothing; storing a dust
     /// position per transaction instead would cost a column over every transaction.
     pub fn dust_outputs(&self, index: TxIndex) -> Result<Vec<Vout>> {
-        let (_, transaction) = self.read_tx(index)?;
+        let transaction = self.read_tx(index)?;
         Ok(transaction
             .output
             .iter()
@@ -258,7 +273,7 @@ impl OutputScripts<'_> {
         }
         let parent = match &mut self.parent {
             Some((index, parent)) if *index == tx_index => parent,
-            slot => &mut slot.insert((tx_index, self.indexer.read_tx(tx_index)?.1)).1,
+            slot => &mut slot.insert((tx_index, self.indexer.read_tx(tx_index)?)).1,
         };
         parent
             .output
