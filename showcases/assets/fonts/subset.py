@@ -40,6 +40,10 @@ CORE = [
 # other alternates (Inter's cv01-cv13, ss02-ss08, case, sups, dlig...) are 29 KB of Inter's core, 5 KB of Lilex's.
 FEATURES = [*subset.Options().layout_features, "tnum", "cv11", "ss01"]
 VARIANTS = {"normal": [], "tabular-nums": ["tnum"]}
+# Features a font drops from them: Lilex's contextual alternates are all its code ligatures (// as a spaced pair, != as
+# ≠, -> as →, == as ═...), which a page showing code must not turn into other glyphs (https:// drew as "https: //");
+# Inter's keep its contextual punctuation and arrows.
+DROPPED = {"Lilex": ["calt"]}
 # Where the pages' words come from: their own files, and the modules that write text on them (series names, chart
 # labels, colour names; the rest of modules/ draws none: search, QR codes).
 TEXT = [
@@ -93,7 +97,7 @@ for name, floor in FLOOR.items():
     ranges[f"{name}.core.woff2"], ranges[f"{name}.rest.woff2"] = css(CORE), css(runs(parts["rest"]))
     for part, cps in parts.items():
         font = TTFont(source, recalcTimestamp=False)  # (the same bytes on every run)
-        subsetter = subset.Subsetter(subset.Options(layout_features=FEATURES, notdef_outline=True))
+        subsetter = subset.Subsetter(subset.Options(layout_features=[f for f in FEATURES if f not in DROPPED.get(name, [])], notdef_outline=True))
         subsetter.populate(unicodes=cps)
         subsetter.subset(font)
         if floor:
