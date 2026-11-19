@@ -9,11 +9,18 @@ use crate::{Error, Query, Result};
 /// can differ, a resynced one knows few, and a settled row's CDN copy keeps the list it was first
 /// served with.
 #[derive(Default)]
-pub(crate) struct StaleBlocks(BTreeMap<Height, Vec<BlockOrphan>>);
+pub(crate) struct StaleBlocks(Option<BTreeMap<Height, Vec<BlockOrphan>>>);
 
 impl StaleBlocks {
+    pub(crate) fn is_published(&self) -> bool {
+        self.0.is_some()
+    }
+
     pub(crate) fn at(&self, height: Height) -> &[BlockOrphan] {
-        self.0.get(&height).map_or(&[], Vec::as_slice)
+        self.0
+            .as_ref()
+            .and_then(|blocks| blocks.get(&height))
+            .map_or(&[], Vec::as_slice)
     }
 }
 
@@ -58,7 +65,9 @@ impl Query {
                 hash = prevhash;
             }
         }
-        self.0.stale_blocks.store(Arc::new(StaleBlocks(stale)));
+        self.0
+            .stale_blocks
+            .store(Arc::new(StaleBlocks(Some(stale))));
         Ok(())
     }
 }

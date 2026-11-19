@@ -22,9 +22,9 @@ pub struct ResolvedPoolBlocks {
 }
 
 impl ResolvedPoolBlocks {
-    /// Whether the page ends below the reorg window: a later block of the pool never joins it.
+    /// An older page is settled once every dependency of its rows has been published.
     pub fn is_settled(&self) -> bool {
-        self.settled
+        self.settled && self.stale.is_published()
     }
 
     /// Identifies the page: the extended rows' identity at the pool's last activity, and the

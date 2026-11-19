@@ -64,7 +64,7 @@ impl ResolvedBlocksV1 {
     }
 
     pub fn is_settled(&self) -> bool {
-        self.blocks.is_settled()
+        self.blocks.is_settled() && self.stale.is_published()
     }
 
     /// Identifies the rows: their chain's anchor, their prices and the stale blocks they list.

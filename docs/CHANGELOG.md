@@ -8,6 +8,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Extended block and pool-block responses use live caching until the node's first complete
+  orphan scan, then use the settled CDN policy where applicable.
+
 - The Rust client retries a pinned GET through the configured URL when the response body
   fails in transit, including timeouts after successful headers.
 
