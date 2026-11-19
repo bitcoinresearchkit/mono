@@ -43,7 +43,12 @@ pub struct Vecs<M: StorageMode = Rw> {
 
 impl Vecs {
     pub fn import(parent: &Path, version: Version) -> Result<Self> {
-        let db = Database::open(&parent.join("vecs"))?;
+        let path = parent.join("vecs");
+        Self::open(&path, version).map_err(|error| error.opening_storage(&path))
+    }
+
+    fn open(path: &Path, version: Version) -> Result<Self> {
+        let db = Database::open(path)?;
         db.set_min_len(PAGE_SIZE * 60_000_000)?;
 
         let (blocks, transactions, inputs, outputs, addrs, scripts, op_return) = parallel_import! {

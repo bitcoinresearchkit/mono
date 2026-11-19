@@ -96,31 +96,40 @@ impl ReadOnlyState {
         source: MempoolBlockSource,
         since: MempoolBlockHash,
     ) -> ResolvedMempoolBlockDiff {
-        let (since, past) = match self.historical_block(source.index, since) {
-            Some(past) => (since, past),
-            None => (MempoolBlockHash::ZERO, Arc::from([])),
-        };
         ResolvedMempoolBlockDiff {
-            since,
-            past,
+            past: self.historical_block(source.index, since),
             source,
         }
     }
 }
 
 impl ResolvedMempoolBlockDiff {
+    /// Reuse the full diff's JSON when the client's base is absent from history.
+    #[must_use]
+    pub fn full_json(&self) -> Option<Arc<[u8]>> {
+        if self.past.is_some() {
+            return None;
+        }
+        let block = self.source.block();
+        Some(
+            block
+                .full_diff_json
+                .get_or_init(|| {
+                    let diff = self.diff(BlockTxs(block.content.bodies.clone()), Vec::new());
+                    serde_json::to_vec(&diff)
+                        .expect("mempool block diffs serialize")
+                        .into()
+                })
+                .clone(),
+        )
+    }
+
     /// Build against the publication captured when history was resolved.
     #[must_use]
     pub fn build(self) -> MempoolBlockDiff<BlockOrder> {
-        let Self {
-            since,
-            past,
-            source,
-        } = self;
-        let block = source.block();
-        let (hash, bodies) = (block.content.hash, block.content.bodies.clone());
+        let bodies = self.source.block().content.bodies.clone();
         let mut entries: Vec<MempoolBlockDiffEntry<usize>> = Vec::new();
-        let removed = if Arc::ptr_eq(&past, &bodies) {
+        let removed = if self.past.as_ref().is_some_and(|past| Arc::ptr_eq(&past.bodies, &bodies)) {
             if !bodies.is_empty() {
                 entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(
                     0,
@@ -129,6 +138,7 @@ impl ResolvedMempoolBlockDiff {
             }
             Vec::new()
         } else {
+            let past = self.past.as_ref().map_or(&[][..], |past| past.bodies.as_ref());
             let mut prior_index: RapidHashMap<Txid, u32> = past
                 .iter()
                 .enumerate()
@@ -154,18 +164,22 @@ impl ResolvedMempoolBlockDiff {
                 .map(|tx| tx.txid)
                 .collect()
         };
+        self.diff(BlockOrder { bodies, entries }, removed)
+    }
+
+    fn diff<T>(&self, order: T, removed: Vec<Txid>) -> MempoolBlockDiff<T> {
         MempoolBlockDiff {
-            hash,
-            since,
-            stats: source.snapshot.stats(source.index),
-            order: BlockOrder { bodies, entries },
+            hash: self.source.hash(),
+            since: self.since(),
+            stats: self.source.snapshot.stats(self.source.index),
+            order,
             removed,
         }
     }
 }
 
 /// A published block's bodies, serialized in place as a JSON array of their light shapes.
-pub struct BlockTxs(Arc<[Arc<Transaction>]>);
+struct BlockTxs(Arc<[Arc<Transaction>]>);
 
 impl Serialize for BlockTxs {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {

@@ -1,5 +1,4 @@
 use std::{
-    fs,
     ops::{Range, RangeBounds},
     path::Path,
     time::Instant,
@@ -135,7 +134,6 @@ impl Stores {
         let pathbuf = parent.join("stores");
         let path = pathbuf.as_path();
 
-        fs::create_dir_all(&pathbuf)?;
         let database = open_database(path)?;
 
         let db = &database;

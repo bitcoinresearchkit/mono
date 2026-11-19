@@ -34,7 +34,10 @@ pub async fn serve_diff(
                 resolved.since(),
                 resolved.source().hash()
             );
-            Ok(Answer::json(tag, move |_| Ok(resolved.build())))
+            Ok(Answer::new(tag, move |_| match resolved.full_json() {
+                Some(json) => Ok(Content::new(JSON, Bytes::from_owner(json))),
+                None => Content::json(&resolved.build()),
+            }))
         })
         .await
 }

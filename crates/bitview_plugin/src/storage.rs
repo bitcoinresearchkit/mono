@@ -1,8 +1,9 @@
 use std::{
     ffi::OsStr,
+    fmt,
     fs,
     io::{self, ErrorKind},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use brk_error::{Error, Result};
@@ -47,27 +48,18 @@ impl PluginStorage {
         keep: impl Fn(&OsStr) -> bool,
         reason: &str,
     ) -> Result<()> {
-        debug_assert!(
-            Exit::is_locked(),
-            "plugin data removal outside the exit lock"
-        );
         for entry in fs::read_dir(Self::plugins_path(context))? {
             let entry = entry?;
             if keep(&entry.file_name()) {
                 continue;
             }
             let path = entry.path();
-            warn!("Removing plugin data at {}: {reason}", path.display());
-            let removed = if entry.file_type()?.is_dir() {
-                fs::remove_dir_all(&path)
-            } else {
-                fs::remove_file(&path)
-            };
-            removed.map_err(|error| {
-                io::Error::new(
-                    error.kind(),
-                    format!("removing {}: {error}", path.display()),
-                )
+            remove_data(&path, "Removing", format_args!("{reason}"), || {
+                if entry.file_type()?.is_dir() {
+                    fs::remove_dir_all(&path)
+                } else {
+                    fs::remove_file(&path)
+                }
             })?;
         }
         Ok(())
@@ -76,21 +68,25 @@ impl PluginStorage {
     /// Rebuilds the whole owner once after a classified data failure. The failed import must
     /// own all of its database handles: they are dropped before this removes the directory.
     /// Locks and other operational errors propagate without deletion. Bootstrap holds the
-    /// shutdown lock throughout; `on_reset` reports the failure before the retry.
+    /// shutdown lock throughout. The failure and path are logged before any removal.
     pub fn import_with_recovery<T>(
         self,
         context: ImportContext<'_>,
         import: impl Fn() -> Result<T>,
-        on_reset: impl Fn(&Error),
     ) -> Result<T> {
         match import() {
             Err(error) if !error.is_lock_error() && error.is_data_error() => {
-                match fs::remove_dir_all(self.path(context)) {
+                let path = self.path(context);
+                match remove_data(
+                    &path,
+                    "Rebuilding",
+                    format_args!("import failed: {error}"),
+                    || fs::remove_dir_all(&path),
+                ) {
                     Ok(()) => {}
                     Err(error) if error.kind() == ErrorKind::NotFound => {}
                     Err(error) => return Err(error.into()),
                 }
-                on_reset(&error);
                 import()
             }
             result => result,
@@ -102,9 +98,13 @@ impl PluginStorage {
         context: ImportContext<'_>,
         page_multiplier: usize,
     ) -> Result<Database> {
-        let db = Database::open(&self.path(context))?;
-        db.set_min_len(PAGE_SIZE * page_multiplier)?;
-        Ok(db)
+        let path = self.path(context);
+        (|| {
+            let db = Database::open(&path)?;
+            db.set_min_len(PAGE_SIZE * page_multiplier)?;
+            Ok(db)
+        })()
+        .map_err(|error: Error| error.opening_storage(&path))
     }
 
     pub fn finalize_database(self, db: &Database) -> Result<()> {
@@ -112,4 +112,17 @@ impl PluginStorage {
         db.compact()?;
         Ok(())
     }
+}
+
+fn remove_data(
+    path: &Path,
+    action: &str,
+    reason: fmt::Arguments<'_>,
+    remove: impl FnOnce() -> io::Result<()>,
+) -> io::Result<()> {
+    debug_assert!(Exit::is_locked(), "plugin data removal outside the exit lock");
+    warn!("{action} plugin data at {}: {reason}", path.display());
+    remove().map_err(|error| {
+        io::Error::new(error.kind(), format!("removing {}: {error}", path.display()))
+    })
 }

@@ -39,7 +39,11 @@ impl Error {
 
 impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "FjallError: {self:?}")
+        match self {
+            Self::Io(error) => Display::fmt(error, f),
+            Self::Locked => f.write_str("database is already locked"),
+            _ => write!(f, "FjallError: {self:?}"),
+        }
     }
 }
 

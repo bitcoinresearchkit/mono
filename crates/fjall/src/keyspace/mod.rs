@@ -1,6 +1,6 @@
 use std::{
-    io,
     ops::RangeBounds,
+    path::Path,
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
@@ -14,7 +14,6 @@ use options::CreateOptions;
 use crate::{
     Error, Result,
     db_config::Config,
-    file::KEYSPACES_FOLDER,
     locked_file::{LockedFileGuard, LockedIter},
     worker_pool::{WorkerMessage, WorkerPool},
 };
@@ -59,26 +58,18 @@ impl Keyspace {
     #[doc(hidden)]
     pub(crate) fn open(
         name: &str,
+        path: &Path,
         options: CreateOptions,
         database: &Config,
         worker_pool: &WorkerPool,
         lock: LockedFileGuard,
     ) -> Result<Self> {
-        let path = database.path.join(KEYSPACES_FOLDER).join(name);
         let compaction = options.compaction;
         let tree = options
-            .tree_config(&path, database)
+            .tree_config(path, database)
             .open()
             .map_err(|error| match error {
-                // An I/O error carries no path: name the keyspace's folder, and what to do.
-                lsm_tree::Error::Io(error) => Error::Io(io::Error::new(
-                    error.kind(),
-                    format!(
-                        "{}: {error}. Nothing was deleted: fix the cause (permissions, a full or \
-                         failing disk), then restart",
-                        path.display()
-                    ),
-                )),
+                lsm_tree::Error::Io(error) => Error::Io(error),
                 error => Error::Storage(error),
             })?;
 

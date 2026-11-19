@@ -11,9 +11,14 @@ pub fn checked_open(
     version: Version,
     open_keyspace: impl FnOnce() -> Result<Keyspace>,
 ) -> Result<Keyspace> {
-    fs::create_dir_all(path)?;
+    fs::create_dir_all(path).map_err(|error| Error::from(error).opening_storage(path))?;
 
     let keyspace = open_keyspace()?;
+    check_marker(path, version, &keyspace).map_err(|error| error.opening_storage(path))?;
+    Ok(keyspace)
+}
+
+fn check_marker(path: &Path, version: Version, keyspace: &Keyspace) -> Result<()> {
     let marker = path.join("version");
 
     if !marker.try_exists()? {
@@ -23,7 +28,7 @@ pub fn checked_open(
             });
         }
         version.write(&marker)?;
-        return Ok(keyspace);
+        return Ok(());
     }
 
     let found = Version::try_from(marker.as_path())?;
@@ -35,5 +40,5 @@ pub fn checked_open(
         });
     }
 
-    Ok(keyspace)
+    Ok(())
 }

@@ -14,7 +14,7 @@ use fjall::Error as FjallError;
 use jiff::Error as JiffError;
 #[cfg(feature = "serde_json")]
 use serde_json::Error as SerdeJsonError;
-use std::{borrow::Cow, io, panic::Location, path::PathBuf, result::Result as StdResult};
+use std::{borrow::Cow, io, panic::Location, path::{Path, PathBuf}, result::Result as StdResult};
 
 use thiserror::Error;
 
@@ -63,6 +63,16 @@ impl Updating {
 pub enum Error {
     #[error(transparent)]
     IO(#[from] io::Error),
+
+    #[error("opening storage at {path}: {source}{}", if .source.is_lock_error() || .source.is_data_error() {
+        ""
+    } else {
+        ". This error does not trigger a rebuild. Check permissions and disk health, then restart"
+    })]
+    OpeningStorage {
+        path: PathBuf,
+        source: Box<Error>,
+    },
 
     #[cfg(feature = "corepc")]
     #[error(transparent)]
@@ -184,6 +194,14 @@ impl From<RawDBError> for Error {
 }
 
 impl Error {
+    /// Names the storage being opened while preserving the engine's recovery classification.
+    pub fn opening_storage(self, path: &Path) -> Self {
+        Self::OpeningStorage {
+            path: path.to_owned(),
+            source: Box::new(self),
+        }
+    }
+
     /// [`Error::StateUpdating`] at the caller's location ([`Updating::here`]).
     #[track_caller]
     #[inline]
@@ -195,6 +213,7 @@ impl Error {
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {
         match self {
+            Error::OpeningStorage { source, .. } => source.is_lock_error(),
             #[cfg(feature = "vecdb")]
             Error::VecDB(e) => e.is_lock_error(),
             #[cfg(feature = "fjall")]
@@ -207,6 +226,7 @@ impl Error {
     /// These errors may require resetting/deleting the data to recover.
     pub fn is_data_error(&self) -> bool {
         match self {
+            Error::OpeningStorage { source, .. } => source.is_data_error(),
             #[cfg(feature = "vecdb")]
             Error::VecDB(e) => e.is_data_error(),
             #[cfg(feature = "fjall")]

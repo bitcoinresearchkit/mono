@@ -1,7 +1,7 @@
 use std::{
     fs::{self, File},
     io::Write,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{Arc, Mutex},
 };
 
@@ -64,6 +64,12 @@ impl Database {
         &self.inner.config.path
     }
 
+    /// The directory where the named keyspace stores its tables.
+    #[must_use]
+    pub fn keyspace_path(&self, name: &str) -> PathBuf {
+        self.path().join(KEYSPACES_FOLDER).join(name)
+    }
+
     /// The bytes of the published tables of every keyspace open in this process, from memory: no
     /// file is read. The few small files beside them (markers, the lock) are not counted.
     ///
@@ -122,6 +128,7 @@ impl Database {
 
         let opened = Keyspace::open(
             name,
+            &self.keyspace_path(name),
             create_options(),
             &self.inner.config,
             &self.inner.worker_pool,
