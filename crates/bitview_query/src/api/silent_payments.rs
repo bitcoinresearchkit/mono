@@ -8,7 +8,7 @@ use bitview_plugin_outputs::published_spend;
 use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
 use bitview_primitives::{Lengths, TxInIndex};
 use bitview_types::{BlindbitFilter, BlindbitFilterKind, BlindbitSpentIndex, BlindbitUtxo};
-use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Tweak, TxIndex, Vout};
+use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Timestamp, Tweak, TxIndex, Vout};
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
@@ -303,34 +303,42 @@ impl Query {
             .collect_one(block.height)
             .data()?
             != 0;
-        let vecs = self.indexer().vecs();
-        let timestamp = vecs.blocks.timestamp.collect_one(block.height).data()?;
-        let txids = vecs
+        // The block file holds these scripts together. The address column orders
+        // keys by first appearance, so reused keys can fault pages across the chain.
+        let bytes = self.block_raw_at_height(block.height, &block.hash, &block.pin)?;
+        let parsed = deserialize::<Block>(&bytes)
+            .map_err(|_| Error::Internal("Invalid raw block payload"))?;
+        let timestamp = Timestamp::from(parsed.header.time);
+        let txids = self
+            .indexer()
+            .vecs()
             .transactions
             .txid
             .collect_range_at(outputs.txs.start, outputs.txs.end);
-        let type_indexes = vecs
-            .outputs
-            .type_index
-            .collect_range_at(outputs.txouts.start, outputs.txouts.end);
-        if txids.len() != outputs.txs.len() || type_indexes.len() != outputs.txouts.len() {
+        if txids.len() != outputs.txs.len() || parsed.txdata.len() != outputs.txs.len() {
             return Err(Error::Internal("Block transactions missing"));
         }
         let mut utxos = Vec::new();
-        // A single reader keeps the immutable published keys mapped throughout the request.
-        let keys = vecs.addrs.p2tr.bytes.reader();
         for &tx in &selected.tx_indexes {
-            let txid = txids[tx.to_usize() - outputs.txs.start];
+            let row = tx.to_usize() - outputs.txs.start;
+            let txid = txids[row];
+            let transaction = &parsed.txdata[row];
             for (vout, output) in selected.of(tx) {
-                let key = keys.try_get_at(usize::from(type_indexes[output])).data()?;
-                if check_keys && !is_on_curve(&key[..]) {
+                let script = transaction
+                    .output
+                    .get(usize::from(vout))
+                    .map(|output| &output.script_pubkey)
+                    .filter(|script| script.is_p2tr())
+                    .ok_or(Error::Internal("Indexed Taproot output missing from block"))?
+                    .as_bytes();
+                if check_keys && !is_on_curve(&script[2..]) {
                     continue;
                 }
                 utxos.push(BlindbitUtxo {
                     txid,
                     vout,
                     value: outputs.values[output],
-                    scriptpubkey: format!("5120{}", key.to_lower_hex_string()).into(),
+                    scriptpubkey: script.to_lower_hex_string().into(),
                     block_height: block.height,
                     block_hash: block.hash,
                     timestamp,
