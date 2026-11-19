@@ -22,6 +22,7 @@ mod page;
 mod server;
 mod upstream;
 mod upstream_response;
+mod upstream_transport;
 
 const BIND_START: SocketAddr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 3111);
 

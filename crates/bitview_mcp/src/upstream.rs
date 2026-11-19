@@ -1,12 +1,16 @@
-use std::{io::Read, time::Duration};
+use std::{io::{self, Write}, time::Duration};
 
+use axum::http::{Request, header::CONTENT_ENCODING};
+use flate2::write::MultiGzDecoder;
+use http_body_util::{BodyExt, Empty};
 use percent_encoding::{AsciiSet, NON_ALPHANUMERIC, PercentEncode, utf8_percent_encode};
 use serde_json::{Map, Value};
-use ureq::Agent;
+use tokio::time::timeout;
 
 use crate::{
     manifest::{Operation, ParameterLocation},
     upstream_response::UpstreamResponse,
+    upstream_transport::{Client, client},
 };
 
 const MAX_UPSTREAM_URL_BYTES: usize = 32 * 1024;
@@ -14,34 +18,19 @@ const MAX_UPSTREAM_URL_BYTES: usize = 32 * 1024;
 /// more is past what an assistant reads.
 const MAX_RESPONSE_BYTES: usize = 2 * 1024 * 1024;
 /// The API gives a request 5 s, then answers 504 itself; the rest is for the connection and the body.
-const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(8);
-/// Calls in flight at once. Each holds a blocking thread, an upstream connection (about 100 KB of buffers, kept open
-/// between calls: 6 MiB for all), and at most its answer twice, raw and as JSON text: 256 MiB for all.
+pub const UPSTREAM_TIMEOUT: Duration = Duration::from_secs(8);
+/// Calls in flight at once. Each holds an upstream connection and up to 2 MiB of response data.
 pub const MAX_CALLS: usize = 64;
 
 pub struct Upstream {
-    agent: Agent,
+    client: Client,
     api_url: String,
 }
 
 impl Upstream {
     pub fn new(api_url: String) -> Self {
-        let config = Agent::config_builder()
-            .timeout_global(Some(UPSTREAM_TIMEOUT))
-            .http_status_as_error(false)
-            .max_redirects(0)
-            .user_agent(format!("brk-mcp/{}", env!("CARGO_PKG_VERSION")))
-            // Every call in flight holds a connection, which holds two of each buffer (TCP and TLS):
-            // one TLS record in, and the longest request out.
-            .input_buffer_size(16 * 1024)
-            .output_buffer_size(MAX_UPSTREAM_URL_BYTES + 1024)
-            // Every call goes to the one API host. ureq keeps 3 idle connections per host by default: with more calls
-            // in flight, the rest close after use and the next calls open (and TLS-handshake) new ones.
-            .max_idle_connections(MAX_CALLS)
-            .max_idle_connections_per_host(MAX_CALLS)
-            .build();
         Self {
-            agent: Agent::new_with_config(config),
+            client: client(),
             api_url,
         }
     }
@@ -120,15 +109,23 @@ impl Upstream {
     }
 
     /// The whole response. A body over `MAX_RESPONSE_BYTES` is an error naming the fix.
-    pub fn fetch(&self, url: String) -> Result<UpstreamResponse, String> {
+    pub async fn fetch(&self, url: String) -> Result<UpstreamResponse, String> {
+        timeout(UPSTREAM_TIMEOUT, self.read(url))
+            .await
+            .map_err(|_| "Bitview API request timed out".to_string())?
+    }
+
+    async fn read(&self, url: String) -> Result<UpstreamResponse, String> {
+        let request = Request::get(&url)
+            .header("User-Agent", concat!("brk-mcp/", env!("CARGO_PKG_VERSION")))
+            .header("Accept-Encoding", "gzip")
+            .header("Accept", "application/json, text/plain, text/csv, application/octet-stream")
+            .body(Empty::new())
+            .map_err(|error| format!("Bitview API request failed: {error}"))?;
         let response = self
-            .agent
-            .get(&url)
-            .header(
-                "Accept",
-                "application/json, text/plain, text/csv, application/octet-stream",
-            )
-            .call()
+            .client
+            .request(request)
+            .await
             .map_err(|error| format!("Bitview API request failed: {error}"))?;
         let header = |name| {
             response
@@ -142,29 +139,59 @@ impl Upstream {
             header("content-type").unwrap_or_else(|| "application/octet-stream".to_string());
         let cache_status = header("cf-cache-status");
         let cache_age = header("age");
-        let mut body = Vec::new();
-        response
-            .into_body()
-            .into_reader()
-            .take(MAX_RESPONSE_BYTES as u64 + 1)
-            .read_to_end(&mut body)
-            .map_err(|error| format!("Bitview API response read failed: {error}"))?;
-        if body.len() > MAX_RESPONSE_BYTES {
-            return Err(format!(
-                "This answer is over {} MiB, the most a call returns: ask for less, with a shorter range, a smaller \
-                 limit or a coarser resolution",
-                MAX_RESPONSE_BYTES / (1024 * 1024)
-            ));
+        let gzip = response.headers().get(CONTENT_ENCODING).is_some_and(|encoding| encoding == "gzip");
+        let mut decoder = gzip.then(|| MultiGzDecoder::new(CappedBody(Vec::new())));
+        let mut body = CappedBody(Vec::new());
+        let mut incoming = response.into_body();
+        while let Some(frame) = incoming.frame().await {
+            let frame = frame.map_err(|error| format!("Bitview API response read failed: {error}"))?;
+            if let Ok(data) = frame.into_data() {
+                match &mut decoder {
+                    Some(decoder) => decoder.write_all(&data),
+                    None => body.write_all(&data),
+                }.map_err(body_error)?;
+            }
+        }
+        if let Some(decoder) = decoder {
+            body = decoder.finish().map_err(body_error)?;
         }
 
         Ok(UpstreamResponse {
             url,
             status,
             content_type,
-            body,
+            body: body.0,
             cache_status,
             cache_age,
         })
+    }
+}
+
+struct CappedBody(Vec<u8>);
+
+impl Write for CappedBody {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+        if data.len() > MAX_RESPONSE_BYTES - self.0.len() {
+            return Err(io::ErrorKind::FileTooLarge.into());
+        }
+        self.0.extend_from_slice(data);
+        Ok(data.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn body_error(error: io::Error) -> String {
+    if error.kind() == io::ErrorKind::FileTooLarge {
+        format!(
+            "This answer is over {} MiB, the most a call returns: ask for less, with a shorter range, a smaller \
+             limit or a coarser resolution",
+            MAX_RESPONSE_BYTES / (1024 * 1024)
+        )
+    } else {
+        format!("Bitview API response read failed: {error}")
     }
 }
 

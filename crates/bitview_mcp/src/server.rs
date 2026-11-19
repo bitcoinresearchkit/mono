@@ -29,7 +29,7 @@ use rmcp::{
     },
 };
 use serde_json::json;
-use tokio::{sync::Semaphore, task::spawn_blocking, time::timeout};
+use tokio::{sync::Semaphore, time::timeout};
 use tower_http::{cors::CorsLayer, timeout::RequestBodyTimeoutLayer};
 use tracing::debug;
 
@@ -58,7 +58,7 @@ pub(crate) static SUPPORTED_PROTOCOL_VERSIONS: [ProtocolVersion; 3] = [
 struct AppState {
     catalog: Catalog,
     upstream: Upstream,
-    calls: Arc<Semaphore>,
+    calls: Semaphore,
     display_name: String,
     public_url: String,
     server_name: String,
@@ -97,14 +97,12 @@ pub fn router(
     let state = Arc::new(AppState {
         catalog,
         upstream: Upstream::new(api_url),
-        calls: Arc::new(Semaphore::new(MAX_CALLS)),
+        calls: Semaphore::new(MAX_CALLS),
         display_name,
         public_url,
         server_name,
     });
-    let handler = BitviewMcp {
-        state: state.clone(),
-    };
+    let handler = BitviewMcp { state };
     let service = StreamableHttpService::new(
         move || Ok(handler.clone()),
         Arc::new(NeverSessionManager::default()),
@@ -194,7 +192,25 @@ impl ServerHandler for BitviewMcp {
     async fn call_tool(
         &self,
         request: CallToolRequestParams,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<CallToolResponse, McpError> {
+        // rmcp signals disconnect through the context of its spawned handler.
+        context
+            .ct
+            .run_until_cancelled(self.call(request))
+            .await
+            .unwrap_or_else(|| Ok(tool_error("Tool call cancelled", &self.state.server_name)))
+    }
+
+    fn get_info(&self) -> ServerConfig {
+        self.server_info()
+    }
+}
+
+impl BitviewMcp {
+    async fn call(
+        &self,
+        request: CallToolRequestParams,
     ) -> Result<CallToolResponse, McpError> {
         let name = request.name;
         let operation = self
@@ -212,29 +228,15 @@ impl ServerHandler for BitviewMcp {
             Err(error) => return fail(error),
         };
 
-        // A call waits for its turn here, holding no thread. The turn goes with the fetch, which runs to its end even
-        // if the client has left.
-        let turn = Arc::clone(&self.state.calls).acquire_owned();
-        let Ok(Ok(turn)) = timeout(TURN_WAIT, turn).await else {
+        let Ok(Ok(_turn)) = timeout(TURN_WAIT, self.state.calls.acquire()).await else {
             return fail("Bitview MCP is busy; retry shortly".to_string());
         };
-        let state = Arc::clone(&self.state);
-        Ok(spawn_blocking(move || {
-            let _turn = turn;
-            match state.upstream.fetch(url) {
-                Ok(response) => {
-                    log_cache_status(&name, &response);
-                    render(response, &state.server_name)
-                }
-                Err(error) => tool_error(error, &state.server_name),
-            }
-        })
-        .await
-        .unwrap_or_else(|_| tool_error("Bitview API request task failed", &self.state.server_name)))
-    }
-
-    fn get_info(&self) -> ServerConfig {
-        self.server_info()
+        let response = match self.state.upstream.fetch(url).await {
+            Ok(response) => response,
+            Err(error) => return fail(error),
+        };
+        log_cache_status(&name, &response);
+        Ok(render(response, &self.state.server_name))
     }
 }
 

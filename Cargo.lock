@@ -454,14 +454,19 @@ dependencies = [
  "base64",
  "bitview_http",
  "brk_logger",
+ "flate2",
+ "http-body-util",
+ "hyper-util",
  "percent-encoding",
  "rmcp",
+ "rustls",
  "serde",
  "serde_json",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
- "ureq",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -2024,12 +2029,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddc03d96684f9226b8a787cdb71488417b53ab5ea8fdb1dac946cb9431cc8bff"
 dependencies = [
  "bytes",
+ "futures-channel",
+ "futures-util",
  "http",
  "http-body",
+ "httparse",
  "hyper",
+ "libc",
  "pin-project-lite",
+ "socket2",
  "tokio",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

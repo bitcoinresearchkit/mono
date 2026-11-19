@@ -18,13 +18,18 @@ base64 = "0.23.1"
 bitview_http = { workspace = true }
 percent-encoding = "2.3.2"
 brk_logger = { workspace = true }
+flate2 = { workspace = true }
+http-body-util = "0.1.3"
+hyper-util = { version = "0.1.21", features = ["client-legacy", "http1", "tokio"] }
 rmcp = { version = "3.7.0", default-features = false, features = ["server", "transport-streamable-http-server"] }
+rustls = { version = "0.23.46", default-features = false, features = ["ring", "std", "tls12"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
+tower = { workspace = true }
 tower-http = { workspace = true, features = ["cors", "timeout"] }
 tracing = { workspace = true }
-ureq = { workspace = true }
+webpki-roots = "1.0.11"
 
 [[bin]]
 name = "bitview_mcp"
