@@ -12,7 +12,7 @@
 - Support: https://bitview.space/support/
 - Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to "Bitview (bitview.space)", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.
 - Metrics: 31054
-- Operations: 108
+- Operations: 115
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -314,6 +314,25 @@ Parameters:
 
 Returns: JSON `BlockInfoV1`
 
+#### GET `/api/v1/block/{hash}/audit-summary`
+
+This server's recorded block expectation
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `AuditSummary`
+
+#### GET `/api/v1/block/{hash}/tx/{txid}/audit`
+
+How this server's expectation classified a confirmed transaction
+
+Parameters:
+- `hash` (path, BlockHash, required)
+- `txid` (path, Txid, required)
+
+Returns: JSON `TxAudit`
+
 ### Block Height
 
 #### GET `/api/block-height/{height}`
@@ -412,7 +431,7 @@ Returns: JSON `Cpfp`
 
 Difficulty adjustment
 
-Get current difficulty adjustment progress and estimates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
+Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
 
 Returns: JSON `DifficultyAdjustment`
 
@@ -529,6 +548,41 @@ Returns: JSON `MempoolBlockDiff`
 
 ### Mining
 
+#### GET `/api/v1/mining/blocks/audit/score/{hash}`
+
+Recorded audit score for a block hash
+
+A permanent server-local score. A missing audit returns the JSON string "null".
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `AuditScoreResponse`
+
+#### GET `/api/v1/mining/blocks/audit/scores`
+
+Audited scores in the latest sixteen height slots
+
+Returns: JSON `AuditScore[]`
+
+#### GET `/api/v1/mining/blocks/audit/scores/{height}`
+
+Audited scores through a canonical height
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `AuditScore[]`
+
+#### GET `/api/v1/mining/blocks/audit/{hash}`
+
+Recorded missing, fresh, conflicting, added and unseen transactions
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `AuditDetail`
+
 #### GET `/api/v1/mining/blocks/fee-rates/{time_period}`
 
 Block fee rates
@@ -561,6 +615,15 @@ Parameters:
 - `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `BlockFeesEntry[]`
+
+#### GET `/api/v1/mining/blocks/predictions/{time_period}`
+
+Time-bucketed canonical audit match rates
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `[integer, Height, number][]`
 
 #### GET `/api/v1/mining/blocks/rewards/{time_period}`
 
@@ -1258,6 +1321,45 @@ Returns: JSON `ServerVersion`
 - `error_locations`: `integer[] | null` — Positions of the characters at fault in an invalid address (Bitcoin Core's), possibly none; omitted for valid ones
 - `error`: `string | null` — Error message for invalid addresses
 
+### `AuditDetail`
+
+- `version`: `integer` (required)
+- `height`: `Height` (required)
+- `id`: `BlockHash` (required)
+- `timestamp`: `Timestamp` (required)
+- `matchRate`: `number` (required)
+- `expectedFees`: `Sats` (required)
+- `expectedWeight`: `Weight` (required)
+- `unseenTxs`: `Txid[]` (required)
+- `missingTxs`: `Txid[]` (required)
+- `addedTxs`: `Txid[]` (required)
+- `prioritizedTxs`: `Txid[]` (required)
+- `freshTxs`: `Txid[]` (required)
+- `sigopTxs`: `Txid[]` (required)
+- `fullrbfTxs`: `Txid[]` (required)
+- `acceleratedTxs`: `Txid[]` (required)
+
+### `AuditScore`
+
+- `hash`: `BlockHash` (required)
+- `matchRate`: `number` (required)
+- `expectedFees`: `Sats` (required)
+- `expectedWeight`: `Weight` (required)
+
+### `AuditScoreResponse`
+
+`AuditScore | string`
+
+### `AuditSummary`
+
+- `version`: `integer` (required)
+- `height`: `Height` (required)
+- `id`: `BlockHash` (required)
+- `timestamp`: `Timestamp` (required)
+- `matchRate`: `number` (required)
+- `expectedFees`: `Sats` (required)
+- `expectedWeight`: `Weight` (required)
+
 ### `Bitcoin`
 
 `number`
@@ -1337,9 +1439,10 @@ Returns: JSON `ServerVersion`
 - `coinbaseBip54`: `boolean | null` — Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
 - `firstSeen`: `Timestamp | null` — Timestamp when the block was first seen (always null, not yet supported)
 - `orphans`: `BlockOrphan[]` (required) — Stale blocks at this height the server's node knows, each server's own
-- `matchRate`: `number | null` — Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
-- `expectedFees`: `Sats | null` — Fees of the expected block template (always null: it needs the mempool as it was)
-- `expectedWeight`: `Weight | null` — Weight of the expected block template (always null: it needs the mempool as it was)
+- `matchRate`: `number | null` — Match rate of this server's live pre-block observation; null for unaudited blocks.
+- `expectedFees`: `Sats | null` — Base fees of this server's expected block, excluding coinbase.
+- `expectedWeight`: `Weight | null` — Raw transaction weight of the expected block, excluding header and coinbase reserve.
+- `similarity`: `number | null` — Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
 - `price`: `Dollars` (required) — USD price at block height
 
 ### `BlockFeeRatesEntry`
@@ -1574,7 +1677,7 @@ Returns: JSON `ServerVersion`
 
 - `progressPercent`: `number` (required) — Progress through current difficulty epoch (0-100%)
 - `difficultyChange`: `number` (required) — Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
-- `estimatedRetargetDate`: `integer` (required) — Estimated timestamp of next retarget (milliseconds): the tip block's time plus `remainingTime`, so it moves with blocks, not with the clock
+- `estimatedRetargetDate`: `integer` (required) — Estimated timestamp of next retarget (milliseconds): the tip block's time plus `remainingTime`, so it moves with blocks, not with the clock. It is early by the tip's age, and with a block or two left in the epoch it can be before now: for a date counted from now, as mempool.space gives, add `remainingTime` to your own clock
 - `remainingBlocks`: `integer` (required) — Blocks remaining until retarget
 - `remainingTime`: `integer` (required) — Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
 - `previousRetarget`: `number` (required) — Previous difficulty adjustment (%)
@@ -2055,6 +2158,15 @@ Returns: JSON `ServerVersion`
 ### `Tweak`
 
 `string`
+
+### `TxAudit`
+
+- `seen`: `boolean` (required)
+- `expected`: `boolean` (required)
+- `added`: `boolean` (required)
+- `prioritized`: `boolean` (required)
+- `conflict`: `boolean` (required)
+- `accelerated`: `boolean` (required)
 
 ### `TxIn`
 

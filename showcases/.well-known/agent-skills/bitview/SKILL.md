@@ -54,9 +54,9 @@ Traps:
 - `/api/v1/historical-price`
 - `/api/address/{address}[/txs|/utxo|/txs/chain|/txs/mempool|/txs/chain/{after_txid}]`, `/api/address/hash-prefix/{address_type}/{prefix}`
 - `/api/v1/validate-address/{address}`
-- `/api/block/{hash}[/raw|/txs|/txids|/header|/status|/txid/{index}|/txs/{start_index}]`, `/api/v1/block/{hash}`
+- `/api/block/{hash}[/raw|/txs|/txids|/header|/status|/txid/{index}|/txs/{start_index}]`, `/api/v1/block/{hash}[/audit-summary|/tx/{txid}/audit]`
 - `/api/block-height/{height}`
-- `/api/v1/mining/pools[/{time_period}]`, `/api/v1/mining/hashrate[/pools|/{time_period}|/pools/{time_period}]`, `/api/v1/mining/pool/{slug}[/blocks|/hashrate|/blocks/{height}]`, `/api/v1/mining/difficulty-adjustments[/{time_period}]`, `/api/v1/mining/blocks/fees/{time_period}`, `/api/v1/mining/reward-stats/{block_count}`, `/api/v1/mining/blocks/rewards/{time_period}`, `/api/v1/mining/blocks/timestamp/{timestamp}`, `/api/v1/mining/blocks/fee-rates/{time_period}[/precise]`, `/api/v1/mining/blocks/sizes-weights/{time_period}`
+- `/api/v1/mining/pools[/{time_period}]`, `/api/v1/mining/hashrate[/pools|/{time_period}|/pools/{time_period}]`, `/api/v1/mining/pool/{slug}[/blocks|/hashrate|/blocks/{height}]`, `/api/v1/mining/blocks/audit/scores[/{height}]`, `/api/v1/mining/blocks/audit/{hash}`, `/api/v1/mining/difficulty-adjustments[/{time_period}]`, `/api/v1/mining/blocks/audit/score/{hash}`, `/api/v1/mining/blocks/fees/{time_period}`, `/api/v1/mining/reward-stats/{block_count}`, `/api/v1/mining/blocks/rewards/{time_period}`, `/api/v1/mining/blocks/timestamp/{timestamp}`, `/api/v1/mining/blocks/fee-rates/{time_period}[/precise]`, `/api/v1/mining/blocks/predictions/{time_period}`, `/api/v1/mining/blocks/sizes-weights/{time_period}`
 - `/api/blocks[/tip/hash|/{height}|/tip/height]`, `/api/v1/blocks[/{height}]`
 - `/api/v1/fees/precise`, `/api/v1/fees/recommended`, `/api/v1/fees/mempool-blocks`
 - `/api/mempool[/txids|/recent]`
