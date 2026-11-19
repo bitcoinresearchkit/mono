@@ -23,7 +23,12 @@ use tokio::{
     time::{Instant, timeout_at},
 };
 
-use crate::{AppState, CdnCacheMode, Error, etag::Etag, gates::Gate, raw_body::RawBodyPermit};
+use crate::{
+    AppState, CdnCacheMode, Error,
+    etag::Etag,
+    gates::{Bodies, Gate},
+    raw_body::RawBodyPermit,
+};
 
 /// What a route answers with, resolved before any of the body is built.
 pub struct Answer {
@@ -174,12 +179,10 @@ struct Asked {
     /// The request's `If-None-Match` fields alone.
     validators: HeaderMap,
     cdn_cache_mode: CdnCacheMode,
-    bodies: Option<Arc<Semaphore>>,
-    reserve: bool,
 }
 
 impl Asked {
-    fn new(state: &AppState, headers: &HeaderMap, gate: &Gate) -> Self {
+    fn new(state: &AppState, headers: &HeaderMap) -> Self {
         let mut validators = HeaderMap::new();
         for value in headers.get_all(header::IF_NONE_MATCH) {
             validators.append(header::IF_NONE_MATCH, value.clone());
@@ -187,49 +190,26 @@ impl Asked {
         Self {
             validators,
             cdn_cache_mode: state.cdn_cache_mode,
-            bodies: gate.bodies.cloned(),
-            reserve: gate.reserve,
         }
     }
 
-    /// The response `answer` makes: `304` for a request holding its tag, else its body, both
-    /// under the answer's cache class. `None` when the body needs a permit and none is free: a
-    /// reserved one before it is built, any other once built and found large.
-    fn respond(
+    /// The response `answer` makes: `304` for a request holding its tag, else the body
+    /// `content` gets of its build, both under the answer's cache class.
+    fn respond<E>(
         &self,
-        q: &Query,
-        permit: Option<RawBodyPermit>,
         answer: Answer,
-    ) -> Result<Option<Response>> {
+        content: impl FnOnce(Build) -> std::result::Result<Content, E>,
+    ) -> std::result::Result<Response, E> {
         let Answer { tag, kind, build } = answer;
         let mut response = if tag.matches(&self.validators) {
             bitview_http::not_modified()
         } else {
-            let take = || self.bodies.as_ref().map(RawBodyPermit::try_acquire);
-            let permit = match permit {
-                None if self.reserve => take().flatten(),
-                permit => permit,
-            };
-            if self.reserve && permit.is_none() {
-                return Ok(None);
-            }
             let Content {
                 status,
                 content_type,
                 bytes,
                 header,
-            } = build(q)?;
-            let bytes = if RawBodyPermit::retains(bytes.len()) {
-                match permit.map(Some).or_else(take) {
-                    // Kept until the last byte is sent.
-                    Some(Some(permit)) => permit.bytes(bytes),
-                    Some(None) => return Ok(None),
-                    // No budget bounds this route's bodies.
-                    None => bytes,
-                }
-            } else {
-                bytes
-            };
+            } = content(build)?;
             let mut response = Response::new(Body::from(bytes));
             *response.status_mut() = status;
             let headers = response.headers_mut();
@@ -243,15 +223,58 @@ impl Asked {
         tag.insert(headers);
         let (browser, cdn) = kind.policies(self.cdn_cache_mode);
         bitview_http::insert_cache_policy(headers, browser, cdn);
-        Ok(Some(response))
+        Ok(response)
+    }
+}
+
+/// Why a body wasn't built, or was dropped once built.
+enum Refused {
+    /// It needs a permit of this budget and none is free.
+    Waits(Arc<Semaphore>),
+    Error(QueryError),
+}
+
+impl From<QueryError> for Refused {
+    fn from(error: QueryError) -> Self {
+        Self::Error(error)
+    }
+}
+
+impl Bodies {
+    /// What `build` makes, within the budget: a body of 256 KiB and more keeps its permit until
+    /// its last byte is sent. `held` is the permit an earlier attempt, finding none free, was
+    /// made to wait for.
+    fn content(
+        &self,
+        q: &Query,
+        build: Build,
+        held: Option<RawBodyPermit>,
+    ) -> std::result::Result<Content, Refused> {
+        let take = |budget: &Arc<Semaphore>| {
+            RawBodyPermit::try_acquire(budget).ok_or_else(|| Refused::Waits(Arc::clone(budget)))
+        };
+        let held = match (held, self) {
+            (None, Self::Reserved(budget)) => Some(take(budget)?),
+            (held, _) => held,
+        };
+        let mut content = build(q)?;
+        if RawBodyPermit::retains(content.bytes.len()) {
+            let permit = match (held, self) {
+                (Some(permit), _) => permit,
+                (None, Self::Unbounded) => return Ok(content),
+                (None, Self::WhenLarge(budget) | Self::Reserved(budget)) => take(budget)?,
+            };
+            content.bytes = permit.bytes(content.bytes);
+        }
+        Ok(content)
     }
 }
 
 impl AppState {
     /// Answers a read. `resolve` runs on a worker once admitted by `gate` and within the read
-    /// deadline, and whatever it pins, the answer's `build` reads under. An answer finding no
-    /// body permit free waits for one off the worker, then is resolved again: nothing resolved
-    /// before the wait is sent after it.
+    /// deadline, and whatever it pins, the answer's `build` reads under. An answer whose body
+    /// finds no permit free waits for one off the worker, then is resolved again: nothing
+    /// resolved before the wait is sent after it.
     pub async fn respond(
         &self,
         headers: &HeaderMap,
@@ -269,31 +292,30 @@ impl AppState {
         gate: Gate<'_>,
         resolve: impl FnOnce(&Query) -> Result<Answer> + Clone + Send + 'static,
     ) -> Result<Response> {
-        let asked = Arc::new(Asked::new(self, headers, &gate));
+        let asked = Arc::new((Asked::new(self, headers), gate.bodies));
         let deadline = self.query.read_deadline();
         let query = self.query.with_deadline(deadline);
-        let again = gate.bodies.map(|bodies| (bodies, resolve.clone()));
-        let first = Arc::clone(&asked);
-        if let Some(response) = query
-            .read_with_admission(gate.admission, move |q| first.respond(q, None, resolve(q)?))
-            .await?
-        {
-            return Ok(response);
+        let mut held = None;
+        // Twice at most: an attempt holding a permit asks for none.
+        loop {
+            let (asked, resolve) = (Arc::clone(&asked), resolve.clone());
+            let attempt = query
+                .read_with_admission(gate.admission, move |q| {
+                    let (asked, bodies) = &*asked;
+                    let answer = resolve(q)?;
+                    Ok(asked.respond(answer, |build| bodies.content(q, build, held)))
+                })
+                .await?;
+            let budget = match attempt {
+                Ok(response) => return Ok(response),
+                Err(Refused::Error(error)) => return Err(error),
+                Err(Refused::Waits(budget)) => budget,
+            };
+            let permit = timeout_at(Instant::from_std(deadline), RawBodyPermit::acquire(&budget))
+                .await
+                .map_err(|_| QueryError::ReadTimeout)??;
+            held = Some(permit);
         }
-        let (bodies, resolve) = again.ok_or(QueryError::Internal(
-            "an answer without a body budget asked for a permit",
-        ))?;
-        let permit = timeout_at(Instant::from_std(deadline), RawBodyPermit::acquire(bodies))
-            .await
-            .map_err(|_| QueryError::ReadTimeout)??;
-        query
-            .read_with_admission(gate.admission, move |q| {
-                asked.respond(q, Some(permit), resolve(q)?)
-            })
-            .await?
-            .ok_or(QueryError::Internal(
-                "an answer holding a body permit asked for one again",
-            ))
     }
 
     /// A chain answer that names itself once resolved: `resolve` finds its source and says what
@@ -346,14 +368,8 @@ impl AppState {
 
     /// Answers from memory on the caller's thread: only for an answer that reads no disk.
     pub fn respond_now(&self, headers: &HeaderMap, answer: Answer) -> Response {
-        let asked = Asked::new(self, headers, &Gate::OPEN);
-        match self.query.sync(|q| asked.respond(q, None, answer)) {
-            Ok(Some(response)) => response,
-            Ok(None) => Error::from(QueryError::Internal(
-                "an answer without a body budget asked for a permit",
-            ))
-            .into_response(),
-            Err(error) => Error::from(error).into_response(),
-        }
+        self.query
+            .sync(|q| Asked::new(self, headers).respond(answer, |build| build(q)))
+            .unwrap_or_else(|error: QueryError| Error::from(error).into_response())
     }
 }
