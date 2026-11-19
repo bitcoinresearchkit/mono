@@ -2,8 +2,8 @@ use bitview_plugin_age::Vecs as AgeVecs;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_vecs::{
-    LazyPerBlock, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows,
-    LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+    LazyPerBlock, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, LazyWindowStartVec,
+    PerBlock, PerBlockCumulativeRolling,
     ops::{BoundedOdds, BoundedToRatio, Quotient},
     shapes::Windows,
 };
@@ -53,7 +53,12 @@ impl Vecs {
     ) -> Result<Self> {
         const CREATED: &str = "coinblocks_created";
         let coinblocks_created = CoinblocksCreated::import_with_block(
-            db, CREATED, version, mappings, window_starts, |_| {
+            db,
+            CREATED,
+            version,
+            mappings,
+            window_starts,
+            |_| {
                 LazyVec::new(CREATED, version, circulating_supply.clone(), |_, sats| {
                     CoinBlocks::new(f64::from(Bitcoin::from(sats)))
                 })

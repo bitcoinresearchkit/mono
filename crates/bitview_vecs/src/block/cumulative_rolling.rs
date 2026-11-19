@@ -16,8 +16,12 @@ use crate::{
 
 #[derive(Deref, DerefMut, Traversable)]
 #[traversable(client = "Flow")]
-pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw, Op = DeltaSub, B = LazyPreviousDeltaVec<Height, T>>
-where
+pub struct PerBlockCumulativeRolling<
+    T,
+    M: StorageMode = Rw,
+    Op = DeltaSub,
+    B = LazyPreviousDeltaVec<Height, T>,
+> where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
     Op: Clone + 'static,
     B: Clone + Traversable,

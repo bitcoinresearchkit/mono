@@ -60,7 +60,9 @@ pub struct Realized<M: StorageMode = Rw> {
 }
 impl Section for Realized {
     fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
-        let Imports { db, v, mappings, .. } = *cx;
+        let Imports {
+            db, v, mappings, ..
+        } = *cx;
         let c = id.select(cx.columns);
         // Net and gross are the running totals' difference and sum: read, not stored.
         let net_pnl = LazyIndexedVec::new(
@@ -167,6 +169,10 @@ fn flow(
     source: &impl ReadableCloneableVec<Height, Cents>,
 ) -> LazyFiatPerBlockCumulativeWithSums<Cents> {
     LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
-        name, cx.v, source, cx.mappings, cx.windows,
+        name,
+        cx.v,
+        source,
+        cx.mappings,
+        cx.windows,
     )
 }

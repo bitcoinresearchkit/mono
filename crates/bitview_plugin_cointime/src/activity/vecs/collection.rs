@@ -1,7 +1,8 @@
 use bitview_primitives::{CoinBlocks, PartsPerMillion64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CumulativeState, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows, PerBlockCumulativeRolling,
+    CumulativeState, LazyPerBlockCumulativeRolling, LazyRatioRollingWindows,
+    PerBlockCumulativeRolling,
 };
 use brk_types::{Height, Sats};
 use derive_more::{Deref, DerefMut};
@@ -32,7 +33,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Concurrent liveliness: coinblocks destroyed divided by coinblocks
     /// created within a trailing window. Above one, spending consumed more
     /// holding time than the window added.
-    #[traversable(lead = "Concurrent liveliness: holding time spent against holding time added, over a window.")]
+    #[traversable(
+        lead = "Concurrent liveliness: holding time spent against holding time added, over a window."
+    )]
     pub concurrent_liveliness: LazyRatioRollingWindows<PartsPerMillion64>,
     pub(crate) created_sat_blocks: M::WriteOnly<CumulativeState<u128>>,
 }

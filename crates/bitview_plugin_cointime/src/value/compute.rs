@@ -20,9 +20,27 @@ impl Vecs {
     ) -> Result<()> {
         let starting_height = indexer.compute_start().height;
         let price = &prices.spot.usd.height;
-        compute_priced(&mut self.destroyed.cumulative.height, starting_height, price, &age.coinblocks_destroyed.block, exit)?;
-        compute_priced(&mut self.created.cumulative.height, starting_height, price, &activity.coinblocks_created.block, exit)?;
-        compute_priced(&mut self.stored.cumulative.height, starting_height, price, &activity.coinblocks_stored.block, exit)
+        compute_priced(
+            &mut self.destroyed.cumulative.height,
+            starting_height,
+            price,
+            &age.coinblocks_destroyed.block,
+            exit,
+        )?;
+        compute_priced(
+            &mut self.created.cumulative.height,
+            starting_height,
+            price,
+            &activity.coinblocks_created.block,
+            exit,
+        )?;
+        compute_priced(
+            &mut self.stored.cumulative.height,
+            starting_height,
+            price,
+            &activity.coinblocks_stored.block,
+            exit,
+        )
     }
 }
 

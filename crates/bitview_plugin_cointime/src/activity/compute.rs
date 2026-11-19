@@ -85,7 +85,7 @@ fn coinblocks(sat_blocks: u128) -> CoinBlocks {
     }
     let significand = numerator / divisor;
     let twice_remainder = 2 * (numerator % divisor);
-    let round_up = twice_remainder > divisor
-        || (twice_remainder == divisor && significand % 2 == 1);
+    let round_up =
+        twice_remainder > divisor || (twice_remainder == divisor && significand % 2 == 1);
     CoinBlocks::new((significand + u128::from(round_up)) as f64 * 2.0_f64.powi(-shift))
 }

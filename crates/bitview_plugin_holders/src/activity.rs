@@ -3,13 +3,13 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{CoinDays, Days};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyIndexedVec, LazyPerBlockCumulativeRolling,
-    LazyValuePerBlockCumulativeRolling, LazyWindowStartVec, RollingWindows, shapes::Windows,
+    LazyIndexedVec, LazyPerBlockCumulativeRolling, LazyValuePerBlockCumulativeRolling,
+    LazyWindowStartVec, RollingWindows, shapes::Windows,
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{ComputeVec, Database, ReadableCloneableVec, Rw, StorageMode};
+use brk_types::{Height, Sats, Version};
+use vecdb::{ComputeVec, Database, Rw, StorageMode};
 
 use crate::columns::Columns;
 
@@ -66,10 +66,15 @@ impl Activity {
             |_, volume: Sats, in_profit: Sats| volume - in_profit,
         );
         Ok(Self {
-            transfer_volume: volume(
-                &id.metric_name("transfer_volume"), v, &c.volume_sats, &c.volume_cents, mappings, windows,
+            transfer_volume: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
+                &id.metric_name("transfer_volume"),
+                v,
+                &c.volume_sats,
+                &c.volume_cents,
+                mappings,
+                windows,
             ),
-            transfer_volume_in_profit: volume(
+            transfer_volume_in_profit: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
                 &id.metric_name("transfer_volume_in_profit"),
                 v,
                 &c.volume_profit_sats,
@@ -77,7 +82,7 @@ impl Activity {
                 mappings,
                 windows,
             ),
-            transfer_volume_in_loss: volume(
+            transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
                 &id.metric_name("transfer_volume_in_loss"),
                 v,
                 &volume_loss_sats,
@@ -107,17 +112,4 @@ impl Activity {
         }
         Ok(())
     }
-}
-
-fn volume(
-    name: &str,
-    version: Version,
-    sats: &impl ReadableCloneableVec<Height, Sats>,
-    cents: &CachedSeries<Height, Cents>,
-    mappings: &Mappings,
-    windows: &Windows<&LazyWindowStartVec>,
-) -> LazyValuePerBlockCumulativeRolling {
-    LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-        name, version, sats, cents, mappings, windows,
-    )
 }
