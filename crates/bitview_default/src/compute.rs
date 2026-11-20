@@ -1,4 +1,4 @@
-use std::{sync::Arc, thread, time::Instant};
+use std::{sync::Arc, time::Instant};
 
 use bitview_distribution::walk::Sources;
 
@@ -33,12 +33,13 @@ use brk_error::Result;
 #[cfg(feature = "bench-cpu")]
 use brk_types::Height;
 use brk_types::Transaction;
+use rayon::Scope;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
 
 use crate::{
     DefaultPlugins,
-    dispatch::{join, spawn},
+    dispatch::{Failed, join, spawn},
     serial,
     timing::{Timed, log_compute, timed_compute},
 };
@@ -107,13 +108,30 @@ impl DefaultPlugins {
     }
 
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
-    /// plugin's internal order. Branches beside the main chain (Outputs → UTXO set → the walk of
-    /// its history, which computes the URPD history, Age and Profitability → Holders → Cointime)
-    /// are scoped threads; forks that rejoin before going on are `rayon::join`s. A
-    /// branch spawns its own dependents and hands over its plugin as soon as it completes; every
-    /// branch is joined before the composition commits.
+    /// plugin's internal order, inside rayon's pool. Plugins nothing waits for (Market, UTXOs,
+    /// Addresses, Silent payments, OP_RETURN, Pools) are spawned as soon as their inputs are
+    /// ready; the rest is a tree of joins: Blocks beside Transactions, then Mining, beside the
+    /// history chain (Inputs beside Outputs, the UTXO set, the walk of its history computing the
+    /// URPD history, Age and Profitability, then Holders); then Entry beside Coinflow, beside Supply
+    /// and Cointime, then Bedrock beside the Rarity meter. The scope ends once every plugin has.
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
         brk_alloc::collect();
+        let failed = Failed::default();
+        // Entered once, so every join here and every parallel call in a plugin starts on a pool
+        // worker: a push to its own queue that idle workers steal. Called from a thread outside
+        // the pool, each would be injected, and workers take injected jobs only when nothing is
+        // left to steal: minutes under a full pool.
+        let joined = rayon::scope(|scope| self.compute_in_pool(scope, &failed, context));
+        joined?;
+        failed.into_inner().unwrap().map_or(Ok(()), Err)
+    }
+
+    fn compute_in_pool<'s>(
+        &'s mut self,
+        scope: &Scope<'s>,
+        failed: &'s Failed,
+        context: UpdateContext<'s>,
+    ) -> Result<()> {
         let indexer = self.indexer.as_ref();
         let from = indexer.compute_start().height;
 
@@ -133,156 +151,146 @@ impl DefaultPlugins {
         let mappings = self.mappings.as_ref();
         let price = self.price.as_ref();
 
-        thread::scope(|scope| -> Result<()> {
-            // Only the UTXO set reads inputs' spends.
-            let inputs = spawn(scope, || -> Result<_> {
-                timed_compute(
-                    &mut *self.inputs,
-                    InputsDependencies { mappings, indexer },
-                    context,
-                )?;
-                Ok(self.inputs.as_ref())
-            });
-            let market = spawn(scope, || {
-                timed_compute(
-                    &mut *self.market,
-                    MarketDependencies {
-                        indexer,
-                        price,
-                        mappings,
-                    },
-                    context,
-                )
-            });
-            let utxos = spawn(scope, || {
-                timed_compute(
-                    &mut *self.utxos,
-                    UtxosDependencies {
-                        indexer,
-                        mappings,
-                        price,
-                    },
-                    context,
-                )
-            });
-            let addresses = spawn(scope, || {
-                timed_compute(
-                    &mut *self.addresses,
-                    AddressesDependencies {
-                        indexer,
-                        mappings,
-                        price,
-                    },
-                    context,
-                )
-            });
-            // Silent payments read only the indexer and Core's block files.
-            let silent_payments = spawn(scope, || {
-                timed_compute(
-                    &mut *self.silent_payments,
-                    SilentPaymentsDependencies { indexer },
-                    context,
-                )
-            });
-
-            // Blocks beside Transactions, then OP_RETURN beside Mining and Pools after it (Mining
-            // and Pools read Blocks): the branch hands Mining over once it completes.
-            let (op_return, pools) = (&mut *self.op_return, &mut *self.pools);
-            let mining = spawn(scope, || -> Result<_> {
-                let (blocks, transactions) = join(
-                    || {
-                        timed_compute(
-                            &mut *self.blocks,
-                            BlocksDependencies { indexer, mappings },
-                            context,
-                        )
-                    },
-                    || {
-                        timed_compute(
-                            &mut *self.transactions,
-                            TransactionsDependencies {
-                                indexer,
-                                mappings,
-                                price,
-                            },
-                            context,
-                        )
-                    },
-                );
-                blocks?;
-                transactions?;
-                let transactions = self.transactions.as_ref();
-                let op_return = spawn(scope, move || {
-                    timed_compute(
-                        op_return,
-                        OpReturnDependencies {
-                            indexer,
-                            fees: &transactions.fees,
-                            price,
-                        },
-                        context,
-                    )
-                });
-                timed_compute(
-                    &mut *self.mining,
-                    MiningDependencies {
-                        indexer,
-                        mappings,
-                        blocks: self.blocks.as_ref(),
-                        transactions,
-                        price,
-                    },
-                    context,
-                )?;
-                let (blocks, mining) = (self.blocks.as_ref(), self.mining.as_ref());
-                let pools = spawn(scope, move || {
-                    timed_compute(
-                        pools,
-                        PoolsDependencies {
-                            indexer,
-                            blocks,
-                            transactions,
-                            mining,
-                            mappings,
-                        },
-                        context,
-                    )
-                });
-                Ok((mining, transactions, [op_return, pools]))
-            });
-
+        let market = &mut *self.market;
+        spawn(scope, failed, move || {
             timed_compute(
-                &mut *self.outputs,
-                OutputsDependencies {
+                market,
+                MarketDependencies {
+                    indexer,
+                    price,
+                    mappings,
+                },
+                context,
+            )
+        });
+        let utxos = &mut *self.utxos;
+        spawn(scope, failed, move || {
+            timed_compute(
+                utxos,
+                UtxosDependencies {
                     indexer,
                     mappings,
                     price,
                 },
                 context,
-            )?;
-            let outputs = self.outputs.as_ref();
+            )
+        });
+        let addresses = &mut *self.addresses;
+        spawn(scope, failed, move || {
+            timed_compute(
+                addresses,
+                AddressesDependencies {
+                    indexer,
+                    mappings,
+                    price,
+                },
+                context,
+            )
+        });
+        // Silent payments read only the indexer and Core's block files.
+        let silent_payments = &mut *self.silent_payments;
+        spawn(scope, failed, move || {
+            timed_compute(
+                silent_payments,
+                SilentPaymentsDependencies { indexer },
+                context,
+            )
+        });
 
-            // Supply reads Outputs, Mining and Price: it runs beside the history chain.
-            let supply = &mut *self.supply;
-            let supply = spawn(scope, move || -> Result<_> {
-                let (mining, transactions, mining_tail) = mining.join().unwrap()?;
+        let (blocks, transactions, op_return, mining, pools) = (
+            &mut *self.blocks,
+            &mut *self.transactions,
+            &mut *self.op_return,
+            &mut *self.mining,
+            &mut *self.pools,
+        );
+        // OP_RETURN reads Transactions, Mining and Pools read Blocks too.
+        let mining_chain = move || -> Result<_> {
+            let (blocks_done, transactions_done) = join(
+                || timed_compute(&mut *blocks, BlocksDependencies { indexer, mappings }, context),
+                || {
+                    timed_compute(
+                        &mut *transactions,
+                        TransactionsDependencies {
+                            indexer,
+                            mappings,
+                            price,
+                        },
+                        context,
+                    )
+                },
+            );
+            blocks_done?;
+            transactions_done?;
+            let (blocks, transactions): (&_, &_) = (blocks, transactions);
+            spawn(scope, failed, move || {
                 timed_compute(
-                    &mut *supply,
-                    SupplyDependencies {
+                    op_return,
+                    OpReturnDependencies {
                         indexer,
-                        outputs,
-                        mining,
+                        fees: &transactions.fees,
                         price,
                     },
                     context,
-                )?;
-                Ok((&*supply, transactions, mining_tail))
+                )
             });
+            timed_compute(
+                &mut *mining,
+                MiningDependencies {
+                    indexer,
+                    mappings,
+                    blocks,
+                    transactions,
+                    price,
+                },
+                context,
+            )?;
+            let mining: &_ = mining;
+            spawn(scope, failed, move || {
+                timed_compute(
+                    pools,
+                    PoolsDependencies {
+                        indexer,
+                        blocks,
+                        transactions,
+                        mining,
+                        mappings,
+                    },
+                    context,
+                )
+            });
+            Ok((mining, transactions))
+        };
 
-            let inputs = inputs.join().unwrap()?;
+        let (inputs, outputs, utxo_set, age, profitability, holders) = (
+            &mut *self.inputs,
+            &mut *self.outputs,
+            &mut *self.utxo_set,
+            &mut *self.age,
+            &mut *self.profitability,
+            &mut *self.holders,
+        );
+        let history_chain = move || -> Result<_> {
+            let (inputs_done, outputs_done) = join(
+                || timed_compute(&mut *inputs, InputsDependencies { mappings, indexer }, context),
+                || {
+                    timed_compute(
+                        &mut *outputs,
+                        OutputsDependencies {
+                            indexer,
+                            mappings,
+                            price,
+                        },
+                        context,
+                    )
+                },
+            );
+            inputs_done?;
+            outputs_done?;
+            let (inputs, outputs): (&_, &_) = (inputs, outputs);
             let creations = &outputs.creations;
             timed_compute(
-                &mut *self.utxo_set,
+                &mut *utxo_set,
                 UtxoSetDependencies {
                     spends: &inputs.spends,
                     creations,
@@ -294,106 +302,123 @@ impl DefaultPlugins {
 
             // One walk of the history computes everything that follows the coins block by block.
             let walk_step = serial::step(WALK);
-            let (history, walk, urpd) = self.utxo_set.walk(&inputs.spends, creations)?;
+            let (history, walk, urpd) = { utxo_set }.walk(&inputs.spends, creations)?;
+            let prices = price.spot.cents.height.read_only_boxed_clone();
+            let timestamps = mappings.timestamp.monotonic.read_only_boxed_clone();
             let sources = Sources {
                 history: &history,
-                prices: &price.spot.cents.height.read_only_boxed_clone(),
-                timestamps: &mappings.timestamp.monotonic.read_only_boxed_clone(),
+                prices: &prices,
+                timestamps: &timestamps,
             };
             let mut cells = Timed::new(URPD, || {
                 UrpdConsumer::new(urpd, sources, from, context.exit())
             })?;
-            let mut age = Timed::new(AGE_ID, || self.age.consumer(sources, from, context))?;
+            let mut age_walk = Timed::new(AGE_ID, || age.consumer(sources, from, context))?;
             let mut profitability = Timed::new(PROFITABILITY_ID, || {
-                self.profitability.consumer(sources, from, context)
+                profitability.consumer(sources, from, context)
             })?;
             let start = Instant::now();
-            walk.run(sources, &mut [&mut cells, &mut age, &mut profitability])?;
+            walk.run(sources, &mut [&mut cells, &mut age_walk, &mut profitability])?;
             walk_step.end();
             log_compute(
                 WALK,
-                start
-                    .elapsed()
-                    .saturating_sub(cells.walked() + age.walked() + profitability.walked()),
+                start.elapsed().saturating_sub(
+                    cells.walked() + age_walk.walked() + profitability.walked(),
+                ),
             );
             cells.finish(drop);
-            age.finish(AgeConsumer::keep);
+            age_walk.finish(AgeConsumer::keep);
             profitability.finish(ProfitabilityConsumer::keep);
-            let (history, walk, urpd) = (sources.history, &*walk, &*urpd);
-            let age = self.age.as_ref();
+            let (walk, urpd, age): (&_, &_, &_) = (walk, urpd, age);
 
-            thread::scope(|scope| -> Result<()> {
+            timed_compute(&mut *holders, HoldersDependencies { from, age, price }, context)?;
+            let holders: &_ = holders;
+            Ok((outputs, history, prices, timestamps, walk, urpd, age, holders))
+        };
 
-                // Coinflow reads Age, not Holders.
-                let coinflow = spawn(scope, || -> Result<_> {
-                    timed_compute(
-                        &mut *self.coinflow,
-                        CoinflowDependencies {
-                            urpd,
-                            indexer,
-                            mappings,
-                            price,
-                            age,
-                        },
-                        context,
-                    )?;
-                    Ok(self.coinflow.as_ref())
-                });
+        let (mining_chain, history_chain) = join(mining_chain, history_chain);
+        let (mining, transactions) = mining_chain?;
+        let (outputs, history, prices, timestamps, walk, urpd, age, holders) = history_chain?;
+        let sources = Sources {
+            history: &history,
+            prices: &prices,
+            timestamps: &timestamps,
+        };
+        let capitalized_price = holders
+            .cohorts
+            .all
+            .cost_basis
+            .by_dollar
+            .avg
+            .cents
+            .height
+            .read_only_boxed_clone();
+        let (entry, bedrock) = join(
+            || {
                 timed_compute(
-                    &mut *self.holders,
-                    HoldersDependencies { from, age, price },
-                    context,
-                )?;
-                let holders = self.holders.as_ref();
-
-                let capitalized_price = holders
-                    .cohorts
-                    .all
-                    .cost_basis
-                    .by_dollar
-                    .avg
-                    .cents
-                    .height
-                    .read_only_boxed_clone();
-                let entry = &mut *self.entry;
-                let entry = spawn(scope, move || {
-                    timed_compute(
-                        entry,
-                        EntryDependencies {
-                            sources,
-                            walk,
-                            from,
-                            capitalized_price: &capitalized_price,
-                        },
-                        context,
-                    )
-                });
-
-                let (supply, transactions, mining_tail) = supply.join().unwrap()?;
-                timed_compute(
-                    &mut *self.cointime,
-                    CointimeDependencies {
-                        urpd,
-                        indexer,
-                        mappings,
-                        price,
-                        inflation_rate: &supply.inflation_rate,
-                        volume_1y: &transactions.transfer_volume.sum._1y,
-                        age,
-                        holders,
+                    &mut *self.entry,
+                    EntryDependencies {
+                        sources,
+                        walk,
+                        from,
+                        capitalized_price: &capitalized_price,
                     },
                     context,
-                )?;
-                let cointime = self.cointime.as_ref();
-                let coinflow = coinflow.join().unwrap()?;
-
+                )
+            },
+            || -> Result<()> {
+                // Coinflow reads Age, not Holders.
+                let (coinflow, cointime) = join(
+                    || {
+                        timed_compute(
+                            &mut *self.coinflow,
+                            CoinflowDependencies {
+                                urpd,
+                                indexer,
+                                mappings,
+                                price,
+                                age,
+                            },
+                            context,
+                        )
+                    },
+                    || -> Result<()> {
+                        timed_compute(
+                            &mut *self.supply,
+                            SupplyDependencies {
+                                indexer,
+                                outputs,
+                                mining,
+                                price,
+                            },
+                            context,
+                        )?;
+                        timed_compute(
+                            &mut *self.cointime,
+                            CointimeDependencies {
+                                urpd,
+                                indexer,
+                                mappings,
+                                price,
+                                inflation_rate: &self.supply.inflation_rate,
+                                volume_1y: &transactions.transfer_volume.sum._1y,
+                                age,
+                                holders,
+                            },
+                            context,
+                        )
+                    },
+                );
+                coinflow?;
+                cointime?;
+                let (coinflow, cointime) = (self.coinflow.as_ref(), self.cointime.as_ref());
                 let (bedrock, rarity_meter) = join(
                     || {
                         timed_compute(
                             &mut *self.bedrock,
                             BedrockDependencies {
                                 urpd,
-                                history,
+                                history: &history,
                                 price,
                                 indexer,
                                 age,
@@ -407,23 +432,23 @@ impl DefaultPlugins {
                     || {
                         timed_compute(
                             &mut *self.rarity_meter,
-                            RarityMeterDependencies { indexer, price },
+                            RarityMeterDependencies {
+                                indexer,
+                                price,
+                                holders,
+                                cointime,
+                                coinflow,
+                            },
                             context,
                         )
                     },
                 );
                 bedrock?;
-                rarity_meter?;
-                for branch in mining_tail.into_iter().chain([entry]) {
-                    branch.join().unwrap()?;
-                }
-                Ok(())
-            })?;
-            for branch in [market, utxos, addresses, silent_payments] {
-                branch.join().unwrap()?;
-            }
-            Ok(())
-        })
+                rarity_meter
+            },
+        );
+        entry?;
+        bedrock
     }
 }
 

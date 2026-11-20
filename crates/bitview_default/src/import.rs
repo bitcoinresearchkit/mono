@@ -32,14 +32,13 @@ use brk_reader::Reader;
 use tracing::info;
 use vecdb::ReadableCloneableVec;
 
-use crate::{DefaultPlugins, timing::timed_import};
+use crate::{DefaultPlugins, STACK_SIZE, timing::timed_import};
 
 impl DefaultPlugins {
     pub fn import(context: ImportContext<'_>, reader: &Reader) -> Result<Self> {
         let import_start = Instant::now();
         let indexer = timed_import(INDEXER_ID, || Indexer::import(context, reader))?;
 
-        const STACK_SIZE: usize = 8 * 1024 * 1024;
         let large_stack_thread = || thread::Builder::new().stack_size(STACK_SIZE);
 
         let mappings = timed_import(MAPPINGS_ID, || Mappings::import(context, &indexer))?;

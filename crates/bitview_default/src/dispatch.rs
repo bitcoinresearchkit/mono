@@ -1,4 +1,7 @@
-use std::thread::{self, Scope, ScopedJoinHandle};
+use std::sync::Mutex;
+
+use brk_error::{Error, Result};
+use rayon::Scope;
 
 use crate::serial;
 
@@ -16,29 +19,24 @@ pub fn join<A: Send, B: Send>(
     }
 }
 
-/// A branch of the composition: running on its own thread, or already complete.
-pub enum Branch<'a, T> {
-    Complete(T),
-    Running(ScopedJoinHandle<'a, T>),
-}
+/// The first error of the plugins nothing waits for, reported once the scope ends.
+pub type Failed = Mutex<Option<Error>>;
 
-impl<T> Branch<'_, T> {
-    pub fn join(self) -> thread::Result<T> {
-        match self {
-            Self::Complete(value) => Ok(value),
-            Self::Running(handle) => handle.join(),
+/// `scope.spawn` of a plugin nothing waits for, keeping its error in `failed` unless an earlier
+/// one is there; in the serial CPU replay it runs now, to completion.
+pub fn spawn<'s>(
+    scope: &Scope<'s>,
+    failed: &'s Failed,
+    run: impl FnOnce() -> Result<()> + Send + 's,
+) {
+    let run = move || {
+        if let Err(error) = run() {
+            failed.lock().unwrap().get_or_insert(error);
         }
-    }
-}
-
-/// `scope.spawn`, except in the serial CPU replay: there the branch runs now, to completion.
-pub fn spawn<'a, T: Send + 'a>(
-    scope: &'a Scope<'a, '_>,
-    run: impl FnOnce() -> T + Send + 'a,
-) -> Branch<'a, T> {
+    };
     if serial::enabled() {
-        Branch::Complete(run())
+        run();
     } else {
-        Branch::Running(scope.spawn(run))
+        scope.spawn(move |_| run());
     }
 }

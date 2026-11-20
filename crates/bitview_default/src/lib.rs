@@ -34,6 +34,22 @@ mod import;
 pub mod serial;
 mod timing;
 
+/// The stack of every thread a plugin imports or computes on: the plugins' frames outgrow the
+/// default 2 MiB. Virtual memory: only the pages a thread touches are committed.
+const STACK_SIZE: usize = 8 * 1024 * 1024;
+
+/// Builds rayon's global pool, before anything uses it. The composition computes on its
+/// workers, and a worker waiting in a join runs the plugin it steals on top of its own stack.
+///
+/// # Panics
+/// Panics if rayon's global pool already exists.
+pub fn build_thread_pool() {
+    rayon::ThreadPoolBuilder::new()
+        .stack_size(STACK_SIZE)
+        .build_global()
+        .expect("rayon's global pool is built once, before any use");
+}
+
 /// Plugins in pipeline order, dependencies first: the first plugin publishing a shared id serves it.
 #[derive(PluginSet, Traversable)]
 pub struct DefaultPlugins<M: StorageMode = Rw> {
