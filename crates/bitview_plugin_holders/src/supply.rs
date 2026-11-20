@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::{borrow::Borrow, ops::Deref};
 
 use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
@@ -141,6 +141,12 @@ fn import_part(
 impl<M: StorageMode> Deref for SharedSupply<M> {
     type Target = Supply<M>;
     fn deref(&self) -> &Supply<M> {
+        &self.supply
+    }
+}
+
+impl<M: StorageMode> Borrow<Supply<M>> for SharedSupply<M> {
+    fn borrow(&self) -> &Supply<M> {
         &self.supply
     }
 }

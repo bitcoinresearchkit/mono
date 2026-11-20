@@ -1,12 +1,12 @@
 use bitview_primitives::{CostBasisByPercentile, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CostBasisMeans, CostBasisByCoin, CostBasisByDollar, Density, DensityVecs, IndexSources,
+    CostBasisByCoin, CostBasisByDollar, CostBasisMeans, Density, DensityVecs, IndexSources,
     PercentilesVecs,
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Cents, Dollars, Height, Version};
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 /// A weighted cohort's cost basis: its mean creation prices from raw cost-basis moments, its
@@ -37,7 +37,8 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
 impl CostBasisVecs {
     /// `name` qualifies every id: `sth_awake` gives `sth_awake_cost_basis_by_coin_median`,
     /// `sth_awake_realized_price` and `sth_awake_supply_density`. The means are lazy over
-    /// `realized_price` and `capitalized_price`.
+    /// `realized_price` and `capitalized_price`, and MVRV over `market_cap` and `realized_cap`.
+    #[allow(clippy::too_many_arguments)]
     pub fn import(
         db: &Database,
         name: &str,
@@ -45,6 +46,8 @@ impl CostBasisVecs {
         indexes: &IndexSources,
         realized_price: &impl ReadableCloneableVec<Height, Cents>,
         capitalized_price: &impl ReadableCloneableVec<Height, Cents>,
+        market_cap: &impl ReadableCloneableVec<Height, Dollars>,
+        realized_cap: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let metric = |metric: &str| format!("{name}_{metric}");
         let urpd_version = version + Version::new(3);
@@ -58,16 +61,15 @@ impl CostBasisVecs {
         };
         let by_coin_percentiles = percentiles("cost_basis_by_coin")?;
         let by_dollar_percentiles = percentiles("cost_basis_by_dollar")?;
-        let CostBasisMeans {
-            by_coin,
-            by_dollar,
-        } = CostBasisMeans::import(
+        let CostBasisMeans { by_coin, by_dollar } = CostBasisMeans::import(
             db,
             metric,
             version,
             urpd_version,
             realized_price,
             capitalized_price,
+            market_cap,
+            realized_cap,
             &by_coin_percentiles,
             &by_dollar_percentiles,
             indexes,

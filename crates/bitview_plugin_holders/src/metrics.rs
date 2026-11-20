@@ -1,3 +1,5 @@
+use std::borrow::Borrow;
+
 use bitview_cohort::{AgeAggregateId, BuildMember, UpdateMember};
 use bitview_distribution::metrics::UtxoViews;
 use bitview_traversable::Traversable;
@@ -63,7 +65,7 @@ pub struct Metrics<K: Kind, M: StorageMode = Rw> {
 
 impl<K: Kind> BuildMember<Imports<'_>> for Metrics<K>
 where
-    K::Supply<Rw>: Section,
+    K::Supply<Rw>: Section + Borrow<Supply>,
     K::Capital<Rw>: Section,
     K::Realized<Rw>: Section,
 {
@@ -78,8 +80,18 @@ where
             ..
         } = *cx;
         let c = id.select(cx.columns);
+        let supply = K::Supply::import(id, cx)?;
+        let cost_basis = CostBasis::import(
+            db,
+            id,
+            v,
+            c,
+            &supply.borrow().total.market_cap.height,
+            mappings,
+            cost_basis,
+        )?;
         Ok(Self {
-            supply: Section::import(id, cx)?,
+            supply,
             capital: Section::import(id, cx)?,
             utxos: UtxoViews::new(
                 |metric| id.metric_name(metric),
@@ -93,7 +105,7 @@ where
             activity: Activity::import(db, id, v, c, mappings, windows)?,
             realized: Section::import(id, cx)?,
             unrealized: Unrealized::new(id, v, c, mappings),
-            cost_basis: CostBasis::import(db, id, v, c, mappings, cost_basis)?,
+            cost_basis,
         })
     }
 }

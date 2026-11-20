@@ -9,8 +9,8 @@ use bitview_vecs::{
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableVec, Rw, StorageMode};
+use brk_types::{Cents, Dollars, Height, Version};
+use vecdb::{Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
 
 use crate::columns::Columns;
 
@@ -48,12 +48,14 @@ pub struct CostBasis<M: StorageMode = Rw> {
 }
 
 impl CostBasis {
-    /// The means are lazy over the cohort's columns, the rest over `sources`.
+    /// The means are lazy over the cohort's columns and MVRV over `market_cap` and the realized
+    /// cap column, the rest over `sources`.
     pub(crate) fn import(
         db: &Database,
         id: AgeAggregateId,
         v: Version,
         c: &Columns,
+        market_cap: &impl ReadableCloneableVec<Height, Dollars>,
         mappings: &Mappings,
         sources: &CostBasisVecs,
     ) -> Result<Self> {
@@ -69,6 +71,8 @@ impl CostBasis {
             v,
             &c.price,
             &c.capitalized_price,
+            market_cap,
+            &c.cap,
             id.select(&sources.by_coin),
             id.select(&sources.by_dollar),
             mappings,
