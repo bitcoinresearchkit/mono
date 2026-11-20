@@ -1,12 +1,15 @@
 //! BIP352 from the receiver's side: the public key each input contributes, then the tweak of the
-//! transaction, `input_hash·A`, which a wallet multiplies by its scan key.
+//! transaction, `input_hash·A`, which a wallet multiplies by its scan key. Keys are found as bytes
+//! and parsed once per block ([`Points`]): parsing takes a square root, and a block's transactions
+//! spend the same keys over and over.
 
 use bitcoin::{
     TxIn,
     hashes::{Hash, hash160},
-    secp256k1::{Parity, PublicKey, Scalar, Secp256k1, VerifyOnly, XOnlyPublicKey},
+    secp256k1::{PublicKey, Scalar, Secp256k1, VerifyOnly, XOnlyPublicKey},
 };
 use brk_types::Tweak;
+use rayon::prelude::*;
 use sha2::{Digest, Sha256};
 
 /// What an input spends, as far as BIP352 tells input keys apart; every other output type
@@ -34,9 +37,12 @@ const ANNEX_TAG: u8 = 0x50;
 /// which is `OP_0` and a 20-byte push.
 const P2SH_P2WPKH_SCRIPT_SIG: [u8; 3] = [0x16, 0x00, 0x14];
 
+/// A compressed public key's bytes, parsed later by [`Points`].
+pub type Key = [u8; 33];
+
 /// The input's public key, if BIP352 counts one: compressed keys only, a P2TR output key lifted to
-/// its even point.
-pub fn input_key(prevout: &Prevout, input: &TxIn) -> Option<PublicKey> {
+/// its even point. Bytes that aren't a point count nothing once parsed.
+pub fn input_key(prevout: &Prevout, input: &TxIn) -> Option<Key> {
     match prevout {
         Prevout::P2PKH(hash) => p2pkh_key(input.script_sig.as_bytes(), hash),
         Prevout::P2SH => {
@@ -60,15 +66,15 @@ pub fn input_key(prevout: &Prevout, input: &TxIn) -> Option<PublicKey> {
             if items > 1 && witness.nth(items - 1)?.get(1..33) == Some(&NUMS_H[..]) {
                 return None;
             }
-            let key = XOnlyPublicKey::from_slice(output_key).ok()?;
-            Some(key.public_key(Parity::Even))
+            Some(even(output_key))
         }
     }
 }
 
 /// The key of a P2PKH spend, malleated scriptSigs included: the last 33-byte window of the
-/// scriptSig that hashes to the spent output's key hash and is a compressed key.
-fn p2pkh_key(script_sig: &[u8], hash: &[u8; 20]) -> Option<PublicKey> {
+/// scriptSig that hashes to the spent output's key hash (another window matches only with the same
+/// bytes, the same key, or by a hash160 collision, so the first match is the key, valid or not).
+fn p2pkh_key(script_sig: &[u8], hash: &[u8; 20]) -> Option<Key> {
     script_sig.windows(33).rev().find_map(|window| {
         (hash160::Hash::hash(window).as_byte_array() == hash)
             .then(|| compressed_key(window))
@@ -76,8 +82,35 @@ fn p2pkh_key(script_sig: &[u8], hash: &[u8; 20]) -> Option<PublicKey> {
     })
 }
 
-fn compressed_key(bytes: &[u8]) -> Option<PublicKey> {
-    (bytes.len() == 33).then(|| PublicKey::from_slice(bytes).ok()).flatten()
+fn compressed_key(bytes: &[u8]) -> Option<Key> {
+    bytes.try_into().ok()
+}
+
+/// An x-only key lifted to its even point, `0x02 ‖ x`: on the curve exactly when it parses.
+pub fn even(x: &[u8]) -> Key {
+    let mut key = [0x02; 33];
+    key[1..].copy_from_slice(x);
+    key
+}
+
+/// A block's keys, each distinct one parsed once.
+pub struct Points {
+    keys: Vec<Key>,
+    points: Vec<Option<PublicKey>>,
+}
+
+impl Points {
+    pub fn new(mut keys: Vec<Key>) -> Self {
+        keys.sort_unstable();
+        keys.dedup();
+        let points = keys.par_iter().map(|key| PublicKey::from_slice(key).ok()).collect();
+        Self { keys, points }
+    }
+
+    /// The point of a key given to [`Points::new`], `None` when it isn't one.
+    pub fn get(&self, key: &Key) -> Option<PublicKey> {
+        self.points[self.keys.binary_search(key).expect("a key given to Points::new")]
+    }
 }
 
 /// Whether a Taproot output's x-only key is a point on the curve. One that isn't can't be spent or
@@ -123,8 +156,12 @@ impl Default for Tweaker {
 impl Tweaker {
     /// `input_hash·A`, where `A` sums `keys` and `input_hash` hashes the [`smallest_outpoint`]
     /// with `A`. `None` when `keys` is empty or sums to infinity: the transaction isn't eligible.
-    pub fn tweak(&self, smallest_outpoint: &[u8; 36], keys: &[&PublicKey]) -> Option<Tweak> {
-        let sum = PublicKey::combine_keys(keys).ok()?;
+    pub fn tweak(&self, smallest_outpoint: &[u8; 36], keys: &[PublicKey]) -> Option<Tweak> {
+        // One key is its own sum: combining it would still pay an inversion.
+        let sum = match keys {
+            [key] => *key,
+            keys => PublicKey::combine_keys(&keys.iter().collect::<Vec<_>>()).ok()?,
+        };
         let mut hash = self.inputs_hash.clone();
         hash.update(smallest_outpoint);
         hash.update(sum.serialize());

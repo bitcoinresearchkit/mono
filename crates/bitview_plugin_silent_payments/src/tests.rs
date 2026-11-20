@@ -7,7 +7,7 @@ use std::str::FromStr;
 use bitcoin::{
     Amount, Block, BlockHash, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Txid, Witness,
     absolute::LockTime, consensus::deserialize, hashes::Hash, hex::FromHex,
-    opcodes::all::OP_RETURN, secp256k1::PublicKey, transaction::Version,
+    opcodes::all::OP_RETURN, transaction::Version,
 };
 use brk_types::OutputType;
 
@@ -15,7 +15,7 @@ use crate::{
     compute::batches,
     filters::{filter, new_outputs, spent_outputs},
     scan::is_candidate,
-    tweak::{Prevout, Tweaker, input_key, is_on_curve, smallest_outpoint},
+    tweak::{Points, Prevout, Tweaker, input_key, is_on_curve, smallest_outpoint},
 };
 
 struct Input {
@@ -52,7 +52,7 @@ fn prevout(script: &ScriptBuf) -> Option<Prevout> {
 fn bip352_tweaks() {
     let tweaker = Tweaker::default();
     for case in CASES {
-        let mut keys = Vec::<PublicKey>::new();
+        let mut keys = Vec::new();
         let mut txins = Vec::new();
         for input in case.inputs {
             let witness = if input.witness.is_empty() {
@@ -71,7 +71,9 @@ fn bip352_tweaks() {
             txins.push(txin);
         }
         let smallest = smallest_outpoint(&txins).unwrap();
-        let tweak = tweaker.tweak(&smallest, &keys.iter().collect::<Vec<_>>());
+        let points = Points::new(keys.clone());
+        let keys = keys.iter().filter_map(|key| points.get(key)).collect::<Vec<_>>();
+        let tweak = tweaker.tweak(&smallest, &keys);
         assert_eq!(
             tweak.map(|tweak| tweak.to_string()),
             case.tweak.map(str::to_owned),

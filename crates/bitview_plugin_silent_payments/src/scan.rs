@@ -1,8 +1,6 @@
 use std::{ops::Range, slice};
 
-use bitcoin::{
-    Block, Transaction, TxOut, consensus::deserialize, hashes::Hash, secp256k1::PublicKey,
-};
+use bitcoin::{Block, Transaction, TxOut, consensus::deserialize, hashes::Hash};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
@@ -12,7 +10,7 @@ use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use crate::{
     filters::{filter, new_outputs, spent_outputs},
-    tweak::{Prevout, Tweaker, input_key, is_on_curve, smallest_outpoint},
+    tweak::{Key, Points, Prevout, Tweaker, even, input_key, smallest_outpoint},
 };
 
 /// Taproot's activation height: wallets scan from it, and no transaction before it is eligible.
@@ -195,20 +193,37 @@ impl<'a> Scanner<'a> {
                 is_candidate(&parsed.txdata[tx - txs.start], &self.input_types[self.inputs(tx)])
             })
             .collect::<Vec<_>>();
+        let keys = candidates
+            .par_iter()
+            .map(|&tx| self.keys(tx, &parsed.txdata[tx - txs.start]))
+            .collect::<Result<Vec<_>>>()?;
+        let new_keys =
+            |tx: usize| new_outputs(slice::from_ref(&parsed.txdata[tx - txs.start])).map(even);
+        // The keys the candidates spend and their Taproot outputs' keys, lifted (on the curve
+        // exactly when they parse): most of those outputs pay a key the block spends too.
+        let points = Points::new(
+            keys.iter()
+                .flatten()
+                .flatten()
+                .copied()
+                .chain(candidates.iter().flat_map(|&tx| new_keys(tx)))
+                .collect(),
+        );
         let eligible = candidates
-            .into_par_iter()
-            .map(|tx| {
+            .par_iter()
+            .zip(&keys)
+            .filter_map(|(&tx, keys)| {
                 let transaction = &parsed.txdata[tx - txs.start];
-                Ok(self.tweak(tx, transaction)?.map(|tweak| Eligible {
+                let keys = keys.as_ref()?.iter().filter_map(|key| points.get(key));
+                let tweak = self
+                    .tweaker
+                    .tweak(&smallest_outpoint(&transaction.input)?, &keys.collect::<Vec<_>>())?;
+                Some(Eligible {
                     tx_index: TxIndex::from(tx),
                     tweak,
-                    has_off_curve_key: new_outputs(slice::from_ref(transaction))
-                        .any(|key| !is_on_curve(key)),
-                }))
+                    has_off_curve_key: new_keys(tx).any(|key| points.get(&key).is_none()),
+                })
             })
-            .collect::<Result<Vec<_>>>()?
-            .into_iter()
-            .flatten()
             .collect::<Vec<_>>();
         let block_hash = parsed.block_hash().to_byte_array();
         let input_types = &self.input_types[self.block_inputs(block)];
@@ -223,9 +238,9 @@ impl<'a> Scanner<'a> {
         })
     }
 
-    /// The transaction's tweak, or `None` when it isn't eligible: it spends a segwit output above
-    /// version 1, or BIP352 counts none of its inputs' keys, or they sum to infinity.
-    fn tweak(&self, tx: usize, transaction: &Transaction) -> Result<Option<Tweak>> {
+    /// The keys BIP352 counts for the transaction's inputs, or `None` when it spends a segwit
+    /// output above version 1, which leaves it ineligible.
+    fn keys(&self, tx: usize, transaction: &Transaction) -> Result<Option<Vec<Key>>> {
         let inputs = self.inputs(tx);
         let types = &self.input_types[inputs.clone()];
         debug_assert_eq!(types.len(), transaction.input.len(), "inputs of transaction {tx}");
@@ -237,17 +252,12 @@ impl<'a> Scanner<'a> {
             }
         }
 
-        let mut keys = Vec::<PublicKey>::with_capacity(transaction.input.len());
+        let mut keys = Vec::with_capacity(transaction.input.len());
         for (input, index) in transaction.input.iter().zip(inputs) {
             let prevout = self.prevout(self.input_types[index], self.input_type_indexes[index])?;
             keys.extend(prevout.and_then(|prevout| input_key(&prevout, input)));
         }
-        let Some(smallest_outpoint) = smallest_outpoint(&transaction.input) else {
-            return Ok(None);
-        };
-        Ok(self
-            .tweaker
-            .tweak(&smallest_outpoint, &keys.iter().collect::<Vec<_>>()))
+        Ok(Some(keys))
     }
 
     /// What the input spends, `None` for an output type that contributes no key. A key the indexer
