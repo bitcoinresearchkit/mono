@@ -12,15 +12,14 @@ import { $, all$, escapeHtml, keyText, MAC } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
 import { amount, dateLabel, duration, growth, precise } from "/studio/format.js";
 import { glyphSvg, ICONS } from "/studio/icons.js";
-import { opacityOf, placedOn } from "/studio/vocabulary.js";
+import { placedOn } from "/studio/vocabulary.js";
 import {
   BACKS, BOXES, ENDS, LENS_SAYS, LINES, lookOfDrawing, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS,
 } from "/studio/tools.js";
 import { FINE } from "/studio/intervals.js";
 import { hexToOklch, oklchToHex } from "/studio/color.js";
 import {
-  alpha, built, colorsAt, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats,
-  paintedLayers, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownIndex, shownSpan, unitFor, viewName,
+  alpha, built, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownIndex, shownSpan, unitFor, viewName,
 } from "/studio/chart.js";
 import { nearestFinite, paneAt } from "/studio/formulas.js";
 import { layerById, slider } from "/studio/inspector.js";
@@ -682,9 +681,10 @@ class Sketch {
     const trend = own?.type === "trend" && !own.hidden && line && series ? resolved?.results.get(this.layer) : null;
     this.ends = trend ? segmentEnds(trend, /** @type {{ at: number, step: number }} */ (line), series) : [];
     if (this.ends.length && own) {
-      // (Each in its segment's color, as painted: a flip's last point is its old side's, as drawn before it.)
-      const painted = paintedLayers.get(own.id), source = painted && resolved ? colorsAt(chart, own, resolved) : null, op = opacityOf(own), dated = source && ((/** @type {number} */ i) => ink(source(i) ?? own.color));
-      this.endsLook = { color: series?.engine.color, radius: own.width / 2 + 1, at: dated ? (/** @type {number} */ i) => (op < 1 ? alpha(dated(i), op) : dated(i)) : null };
+      // (Each in its line's color there, as drawn (painted date by date, or by its gradient): a flip's last point is its
+      // old side's, as drawn before it.)
+      const engine = series?.engine;
+      this.endsLook = { color: engine?.color, radius: own.width / 2 + 1, at: engine ? (/** @type {number} */ i) => engine.colorAt(i) : null };
     }
     this.shown = line && series ? drawingsShown().filter((drawing) => drawing.layer === this.layer && drawing.id !== typingIn).map((drawing) => {
       const points = onScreen(drawing, series, line);
