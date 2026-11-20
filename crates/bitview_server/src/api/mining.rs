@@ -53,7 +53,7 @@ impl AppState {
         self.respond_tip(headers, self.history(), value).await
     }
 
-    /// An answer that is a function of the published chain and the release, so the tip names it
+    /// An answer that is a function of the published chain and the build, so the tip names it
     /// (`h{tip}`), and the pin that reads the tip is the one `value` reads under: a request
     /// holding the tag is answered before any of it is built. Inputs `value` would reject are
     /// checked by the caller first: a matching tag answers before it runs.

@@ -11,31 +11,27 @@ use bitcoin::hex::DisplayHex;
 use bitview_query::RepresentationId;
 use sha2::{Digest, Sha256};
 
-static BUILD_TAG: OnceLock<io::Result<Cow<'static, str>>> = OnceLock::new();
+static BUILD_TAG: OnceLock<Cow<'static, str>> = OnceLock::new();
 
 /// Use an application build's source digest for ETags. Call before starting the server.
 pub fn set_build_tag(tag: &'static str) {
-    BUILD_TAG.set(Ok(Cow::Borrowed(tag))).expect("ETag build tag is already set");
+    BUILD_TAG.set(Cow::Borrowed(tag)).expect("ETag build tag is already set");
 }
 
 /// For applications without a source digest, hash the executable before startup work.
 pub fn initialize() -> io::Result<()> {
-    build_tag().as_ref().map(|_| ()).map_err(|error| {
-        io::Error::new(error.kind(), format!("Hashing the running executable for ETags: {error}"))
-    })
-}
-
-fn build_tag() -> &'static io::Result<Cow<'static, str>> {
-    BUILD_TAG.get_or_init(|| hash_executable().map(Cow::Owned))
+    if BUILD_TAG.get().is_none() {
+        let tag = hash_executable().map_err(|error| {
+            io::Error::new(error.kind(), format!("Hashing the running executable for ETags: {error}"))
+        })?;
+        // A racing initializer computed the same digest.
+        let _ = BUILD_TAG.set(Cow::Owned(tag));
+    }
+    Ok(())
 }
 
 fn hash_executable() -> io::Result<String> {
-    // On Linux, open the running image even if an install replaced its path.
-    #[cfg(target_os = "linux")]
-    let file = File::open("/proc/self/exe")?;
-    #[cfg(not(target_os = "linux"))]
-    let file = File::open(std::env::current_exe()?)?;
-    let mut reader = BufReader::with_capacity(128 * 1024, file);
+    let mut reader = BufReader::with_capacity(128 * 1024, File::open(std::env::current_exe()?)?);
     let mut hash = Sha256::new();
     loop {
         let bytes = reader.fill_buf()?;
@@ -92,7 +88,9 @@ impl From<String> for Etag {
                 .all(|byte| byte == 0x21 || (0x23..=0x7e).contains(&byte) || byte >= 0x80),
             "invalid ETag token"
         );
-        let prefix = build_tag().as_ref().expect("ETag prefix initialized at startup");
+        let prefix = BUILD_TAG
+            .get()
+            .expect("ETag build tag is unset: set_build or etag::initialize must run before the first ETag");
         let mut header = String::with_capacity(prefix.len() + value.len() + 5);
         header.push_str("W/\"");
         header.push_str(prefix);
