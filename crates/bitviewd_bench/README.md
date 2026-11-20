@@ -34,14 +34,27 @@ never replaced: repetitions of one revision on one machine sit side by side.
   run records the code that was built, not the checkout it runs next to;
 - `<run-id>` is the run's UTC start, `20261014T153012Z`.
 
-The binary holds `/tmp/bitviewd-bench.lock` for its lifetime, across data directories.
-It refuses to start beside `bitviewd`, `bitview_mcp`, another `bitviewd_bench` or a running `rustc`.
-On a mini, stop those workloads with `~/Developer/dots/shared/ship stop bitviewd mcp`
-and stop any other benchmark first. Bitcoin Core must remain running for the benchmark.
-The lock is released by the OS on exit, including a crash or kill; leave its file in place.
-A recording made by this binary passed that start check, which does not guarantee the box
-stays quiet later. A recording known to have overlapped another workload says `comparable=false`
-and a `comparable_reason` in its `metadata.txt`; an absent `comparable` means comparable.
+A full bench runs on a clean machine, and the binary checks that itself, with no way around it
+(`src/quiet.rs`). It holds `/tmp/bitviewd-bench.lock` for its lifetime, across data directories (the OS
+releases it on exit, crash or kill included; leave the file in place), and refuses to start, naming
+what is wrong, when:
+
+- a process named `bitview*` (bitviewd, bitview_mcp, another bench, a test binary) or `cargo`,
+  `rustc`, `rustup` or `clippy-driver` runs. On a mini: `~/Developer/dots/shared/ship stop bitviewd mcp`;
+  Bitcoin Core must stay running;
+- the data directory is not on an external disk (`external*` in the machine name);
+- the data directory's volume holds an entry (dotfiles aside) other than Bitcoin Core's directory
+  (the blocks path's top folder) and the one data set;
+- on macOS, the home folder holds an entry other than the system's folders and `mo-bench`, or
+  `~/Developer` holds anything but `dots`, or `~/mo-bench/target` exists (leftover sandboxes,
+  clones, bench trees, builds).
+
+Every minute of the run the same process list is checked again. `metadata.txt` records the six
+busiest processes at the start (`busiest_processes`), the home volume's used and total bytes
+(`internal_volume`, beside `data_volume`) and, at the end, `comparable=true|false` with a
+`comparable_reason`: false names the first Bitview or build seen beside the run. The benchmarks page
+shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording from
+before the check) means comparable.
 The existing `benches/.lock` also guards each data directory.
 
 The results path is printed before bootstrap starts and again after completion.
