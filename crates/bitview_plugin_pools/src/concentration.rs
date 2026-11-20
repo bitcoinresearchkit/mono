@@ -12,6 +12,8 @@ use vecdb::{
     WritableVec,
 };
 
+const CONCENTRATION_VERSION: Version = Version::new(1);
+
 /// How concentrated a day's blocks were: what the largest pools found, ranked within the day.
 /// The blocks no pool claims aren't a pool's: they rank nowhere.
 #[derive(Traversable)]
@@ -83,13 +85,16 @@ pub(crate) fn compute(
     let version = block_pool.version()
         + day_of_height.version()
         + first_height.version()
-        + ANTPOOL_GROUP_VERSION;
+        + ANTPOOL_GROUP_VERSION
+        + CONCENTRATION_VERSION;
     let last_day = day_of_height
         .collect_one(Height::from(end - 1))
         .data()?
         .to_usize();
+    // The first replacement can land on a later day than an orphan. Rewind to the shared block.
+    let predecessor = from.decremented().unwrap_or(Height::ZERO);
     let from_day = day_of_height
-        .collect_one(from.min(Height::from(end - 1)))
+        .collect_one(predecessor.min(Height::from(end - 1)))
         .data()?
         .to_usize();
     let columns = plain

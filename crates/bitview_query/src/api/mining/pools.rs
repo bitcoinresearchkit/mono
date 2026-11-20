@@ -9,7 +9,7 @@ use brk_types::Height;
 use vecdb::{ReadableVec, VecIndex};
 
 use super::start_height;
-use crate::{Error, OptionData, Query, ReadPin, Result, TipPin};
+use crate::{Error, OptionData, Query, Result, TipPin};
 
 /// Weekly samples, each sharing out the 7 days since the previous one.
 const SAMPLE_DAYS: usize = 7;
@@ -23,31 +23,51 @@ struct HashrateSamples {
     day_ends: Vec<Height>,
 }
 
+fn pool_count(
+    cumulative: &impl ReadableVec<Height, Count>,
+    before: Option<Height>,
+    tip: Height,
+) -> Result<u64> {
+    let total: u64 = *cumulative.collect_one(tip).data()?;
+    let prior = match before {
+        Some(height) => *cumulative.collect_one(height).data()?,
+        None => 0,
+    };
+    Ok(total - prior)
+}
+
 impl Query {
     /// Pools ranked by blocks mined over `time_period`'s timestamp lookback from the tip (`All`:
     /// from genesis), with their shares and coinbase-only blocks, plus the current, 3-day and
     /// 7-day network hashrates.
     pub fn mining_pools(&self, at: &TipPin, time_period: TimePeriod) -> Result<PoolsSummary> {
         let tip = at.height;
-        let start = start_height(self, time_period, tip)?.to_usize();
-        let pool_data = self.ranked_pools(start, tip)?;
+        let before = start_height(self, time_period, tip)?.decremented();
+        let pool_data = self.ranked_pools(before, tip)?;
 
-        let empty_blocks = self.empty_blocks_by_pool(start, &at.pin)?;
         let last_estimated_hashrate = self.hashrate_at(tip)?;
         let last_estimated_hashrate3d = self.trailing_hashrate(tip, 3)?;
         let last_estimated_hashrate1w = self.trailing_hashrate(tip, 7)?;
 
         let total_blocks: u64 = pool_data.iter().map(|(_, count)| count).sum();
 
-        let pool_stats: Vec<PoolStats> = pool_data
+        let pools = &self.plugins().pools.by_slug;
+        let pool_stats = pool_data
             .into_iter()
             .enumerate()
             .map(|(idx, (pool, block_count))| {
                 let share = block_count as f64 / total_blocks as f64;
-                let empty_blocks = empty_blocks[pool.slug as usize];
-                PoolStats::new(pool, block_count, empty_blocks, (idx + 1) as u32, share)
+                let cumulative = &pools[&pool.slug].empty_block_count.cumulative.height;
+                let empty_blocks = pool_count(cumulative, before, tip)?;
+                Ok(PoolStats::new(
+                    pool,
+                    block_count,
+                    empty_blocks,
+                    (idx + 1) as u32,
+                    share,
+                ))
             })
-            .collect();
+            .collect::<Result<_>>()?;
 
         Ok(PoolsSummary {
             pools: pool_stats,
@@ -58,54 +78,19 @@ impl Query {
         })
     }
 
-    /// The pools that mined blocks from `start` through `tip`, with their counts, most first.
-    fn ranked_pools(&self, start: usize, tip: Height) -> Result<Vec<(&'static Pool, u64)>> {
+    /// Pools that mined blocks after `before` through `tip`, most blocks first.
+    fn ranked_pools(&self, before: Option<Height>, tip: Height) -> Result<Vec<(&'static Pool, u64)>> {
         let pools = pools();
         let mut ranked = Vec::new();
-        // Range count = cumulative(end) - cumulative(start - 1).
         for (pool_id, pool) in self.plugins().pools.by_slug.iter() {
             let cumulative = &pool.block_count.cumulative.height;
-            let count_at_end: u64 = *cumulative.collect_one(tip).data()?;
-            let count_at_start: u64 = if start == 0 {
-                0
-            } else {
-                *cumulative.collect_one(Height::from(start - 1)).data()?
-            };
-            let block_count = count_at_end - count_at_start;
+            let block_count = pool_count(cumulative, before, tip)?;
             if block_count > 0 {
                 ranked.push((pools.get(*pool_id), block_count));
             }
         }
         ranked.sort_by_key(|p| Reverse(p.1));
         Ok(ranked)
-    }
-
-    /// Each pool's coinbase-only blocks from `start` through the pin's tip, by slug: one
-    /// sequential pass over the window's first-transaction boundaries and pools.
-    fn empty_blocks_by_pool(&self, start: usize, pin: &ReadPin) -> Result<[u64; 256]> {
-        let lengths = pin.lengths();
-        let end = lengths.height.to_usize();
-        let first_tx_index = &self.indexer().vecs().transactions.first_tx_index;
-        let mut slugs = self
-            .plugins()
-            .pools
-            .block_pool
-            .collect_range_at(start, end)
-            .into_iter();
-        let mut empty = [0u64; 256];
-        let mut tally = |tx_count: usize| {
-            let slug = slugs.next().expect("a pool per block");
-            if tx_count == 1 {
-                empty[slug as usize] += 1;
-            }
-        };
-        let first = first_tx_index.collect_one_at(start).data()?;
-        let last = first_tx_index.fold_range_at(start + 1, end, first, |previous, first| {
-            tally(usize::from(first) - usize::from(previous));
-            first
-        });
-        tally(usize::from(lengths.tx_index) - usize::from(last));
-        Ok(empty)
     }
 
     /// The static list of supported pools.
@@ -214,9 +199,9 @@ impl Query {
 
         let samples = self.hashrate_samples(start, tip)?;
         // The pools that mined in the last week, as mempool.space charts them.
-        let week = start_height(self, TimePeriod::Week, tip)?.to_usize();
+        let before_week = start_height(self, TimePeriod::Week, tip)?.decremented();
         let mut entries = Vec::new();
-        for (pool, _) in self.ranked_pools(week, tip)? {
+        for (pool, _) in self.ranked_pools(before_week, tip)? {
             let pool_cum = self.pool_sampled_cumulative(pool.slug, &samples.days)?;
             entries.extend(Self::hashrate_entries(&samples, &pool_cum, pool.name));
         }
