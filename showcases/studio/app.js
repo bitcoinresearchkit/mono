@@ -15,7 +15,8 @@ import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
   MAC, NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
-import { motionClock, whenIdle } from "/studio/timing.js";
+import { motionClock } from "/modules/bitview-charts/clock.js";
+import { whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import {
   ago, dollarsAndCents, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes, toTheCent,
@@ -47,7 +48,7 @@ import {
   describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, endReveal,
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
   fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
-  glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
+  glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
   intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, lookKey,
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
@@ -56,9 +57,9 @@ import {
   prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, reachOut, readPoint, refreshFailed, rescan, resolve, respot,
   retryInfo, reveal, rightGap, samePaint, sayValue, SCALE_MODES, seriesPane, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, setReserve, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownSpan, showSpan,
-  showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard, stopGlide,
+  showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
   stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, tagAt, unitFor, units, updateLegends, updateReadout,
-  updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, viewRange, WHEEL_QUIET, whenSubmenu, windows,
+  updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, WHEEL_QUIET, whenSubmenu, windows,
   writeText, zoom,
 } from "/studio/chart.js";
 import {
@@ -2236,7 +2237,7 @@ function followLinked() {
   if (home || !chartShown() || viewKey(chart.id) !== LINKED) return;
   const linked = leftView(LINKED), at = viewsNow()[LINKED]?.at;
   if (!linked || !at || at === linkedTook) return;
-  stopGlide();
+  engine.controller.stop();
   retaking = { view: linked, at, id: chart.id };
   spans.delete(spanKey(chart.id, chart.index));
   void draw();
@@ -2280,7 +2281,7 @@ function storeView(asDrawn, leaving = false) {
   const times = resolved?.times;
   if (!chartShown() || (!asDrawn && shownIndex() !== chart.index) || !times?.length || !engine.time.width) return;
   // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
-  const range = (asDrawn && glideTarget) || shownSpan();
+  const range = (asDrawn && engine.controller.target) || shownSpan();
   // (Linked, every chart's, a range's too: the one each opens on; said only once it's moved since it was in line with
   // it (see linkedAt).)
   const all = viewsNow(), key = viewKey(chart.id), shown = range ? viewRecord(range, times) : null;
@@ -3395,8 +3396,8 @@ function buildChart(doc, data, refit) {
   // cut to their new heights), as everything here changes, never a cut.)
   const paneIds = (/** @type {string} */ shape) => shape.split(",").map((pane) => pane.split(":")[0]).join();
   if (prior?.doc.id === doc.id && paneIds(priorShape) !== paneIds(panesShape) && !reduced.matches && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
-  const glidingTo = glideTarget;
-  stopGlide();
+  const glidingTo = engine.controller.target;
+  engine.controller.stop();
   const was = new Map(drawn);
   drawn.clear();
   dotted.clear();
@@ -3843,8 +3844,8 @@ function layOutLegends() {
 }
 /** The chart as ⌘K shows a look on it, while it does (sized as it shows). @type {Chart | null} */
 let lookDoc = null;
-// The person takes over: a drag or a scroll stops any glide.
-for (const type of ["pointerdown", "wheel"]) $("chart").addEventListener(type, stopGlide, { capture: true, passive: true });
+// The person takes over: a press stops any glide (a wheel does by itself).
+$("chart").addEventListener("pointerdown", () => engine.controller.stop(), { capture: true, passive: true });
 
 // Legends at the top of each pane, and the values beside each layer, follow the crosshair.
 let hoverTime = null;
@@ -4218,7 +4219,7 @@ function viewMoved() {
 const released = () => ((movedSince = true), restSoon());
 function atRest() {
   restFrame = 0;
-  if (movedSince || glideTarget || performance.now() - wheelAt < WHEEL_QUIET) return void ((movedSince = false), restSoon());
+  if (movedSince || engine.controller.target || performance.now() - wheelAt < WHEEL_QUIET) return void ((movedSince = false), restSoon());
   // (Held, still or not: at rest once it's let go, see the release.)
   if (pressed.size || brushDrag) return;
   viewMoving = false;
@@ -4555,10 +4556,8 @@ let brushDrag = null;
 $("navigator").dataset.tip = `Drag to pan, drag an edge to zoom, ${CLICK} to jump`;
 $("navigator").addEventListener("pointerdown", (event) => {
   if (event.button !== 0 || brushDrag) return;
-  // (Taken mid-glide: on from its last step, read before it's stopped (by the glide that jumps, else here).)
-  const n = resolved?.times.length ?? 0, last = viewRange();
-  const range = shownSpan();
-  if (n < 2 || !range || !last) return stopGlide();
+  const n = resolved?.times.length ?? 0, range = shownSpan();
+  if (n < 2 || !range) return engine.controller.stop();
   const rect = $("navigator").getBoundingClientRect();
   const x = event.clientX - rect.left;
   // Hit-tested on the overview as it's painted (mid-move, too), which then lands where it was going.
@@ -4567,15 +4566,15 @@ $("navigator").addEventListener("pointerdown", (event) => {
   let mode = "pan";
   if (Math.abs(x - left) <= grip) mode = "left";
   else if (Math.abs(x - painted) <= grip) mode = "right";
-  let start = last;
+  let start = range;
   if (mode === "pan" && (x < left || x > painted)) {
     // Jump: center the same window where the person clicked, gliding there (as every move of the view's goes), and
     // drag on from there.
-    const half = (last.to - last.from) / 2;
+    const half = (range.to - range.from) / 2;
     start = within({ from: at(x) - half, to: at(x) + half });
     start = ontoData(start) ?? start;
     glide(start);
-  } else stopGlide();
+  } else engine.controller.stop();
   brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, times: resolved?.times, width: rect.width };
   $("navigator").setPointerCapture(event.pointerId);
   press(event, { captor: $("navigator"), move: dragBrush, end: dropBrush });
