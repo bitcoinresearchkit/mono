@@ -86,7 +86,7 @@ import {
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
   depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
   fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions, groupRows, groupShut, heatSamples,
+  galleryDrawings, galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions, groupRows, groupShut, heatSamples,
   heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt,
   keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
   nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint,
@@ -5831,8 +5831,11 @@ const drawGallery = serial(async () => {
     else {
       // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
       // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
-      // passes, nor those it may never reach.)
-      const drawn = drawPreview(doc, previewIndex(doc));
+      // passes, nor those it may never reach. Each given up if the grid's drawn anew without it, see renderGallery.)
+      const stop = galleryDrawings.get(i) ?? new AbortController(), done = () => galleryDrawings.get(i) === stop && galleryDrawings.delete(i);
+      galleryDrawings.set(i, stop);
+      const drawn = drawPreview(doc, previewIndex(doc), stop.signal);
+      void drawn.then(done, done);
       if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await galleryWait(drawn);
     }
   }
