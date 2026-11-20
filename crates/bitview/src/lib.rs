@@ -158,7 +158,7 @@ where
     #[cfg(feature = "full-api")]
     query.sync(refresh_stale_blocks);
     #[cfg(feature = "full-api")]
-    query.sync(|q| q.refresh_audits(None))?;
+    query.sync(bitview_query::Query::load_audits)?;
 
     record_node(&client, &query)?;
     let (data_path, logs_path) = (server.data_path.clone(), server.logs_path());
@@ -258,9 +258,6 @@ where
 
                 #[cfg(feature = "full-api")]
                 {
-                    if let Err(error) = query.sync(|q| q.refresh_audits(None)) {
-                        warn!(%error, "block audits: canonical view refresh failed");
-                    }
                     let audit_start = Instant::now();
                     if let Some(capture) = capture.take() {
                         let age = capture.age;
@@ -272,9 +269,7 @@ where
                                 });
                                 match committed {
                                     Ok(_) => {
-                                        if let Err(error) = query.sync(|q| q.refresh_audits(Some(audit.summary))) {
-                                            warn!(%error, hash = %best, "block audit canonical publication failed");
-                                        }
+                                        query.sync(|q| q.add_audit(audit.summary));
                                         info!(hash = %best, ?age, elapsed = ?audit_start.elapsed(), "Block audit committed");
                                     }
                                     Err(error) => warn!(%error, hash = %best, "block audit commit failed"),

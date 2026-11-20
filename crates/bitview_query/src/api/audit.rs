@@ -1,86 +1,65 @@
+use std::sync::Arc;
+
 use bitview_types::{AuditDetail, AuditScore, AuditSummary, TimePeriod, TxAudit};
 use brk_mempool::audit::{Difference, Expected, Mined, MinedBlock, MinedTransaction, Summary};
 use brk_types::{BlockHash, Height, Timestamp, Txid};
-use jiff::{Span, tz::TimeZone};
 use rustc_hash::FxHashMap;
 use vecdb::ReadableVec;
 
 use crate::{Error, OptionData, Query, ReadPin, Result};
 
-#[derive(Default)]
-pub(crate) struct CanonicalAudits {
-    initialized: bool,
-    base: usize,
-    rows: Vec<Option<Summary>>,
-    /// The latest chain this view describes. Only its affected suffix is replaced on reorg.
-    anchor: Option<(usize, BlockHash)>,
-    revision: u64,
-}
-
 impl Query {
-    /// Called after chain publication and after audit commit, never by HTTP reads.
-    pub fn refresh_audits(&self, committed: Option<Summary>) -> Result<()> {
+    /// Loads every committed audit summary, once at startup.
+    pub fn load_audits(&self) -> Result<()> {
         let Some(reader) = self.audit_reader() else { return Ok(()); };
-        let pin = self.pin_safe_lengths()?;
-        let end = usize::from(pin.lengths().height);
-        let mut view = self.0.audits.write();
-        if !view.initialized {
-            let summaries = reader.summaries().collect::<brk_error::Result<Vec<_>>>()?;
-            let base = summaries.iter().map(|s| usize::from(s.height)).min().unwrap_or(end);
-            view.base = base;
-            view.rows = vec![None; end.saturating_sub(base)];
-            for summary in summaries {
-                let height = usize::from(summary.height);
-                if height < end && self.indexer().vecs().blocks.blockhash.collect_one(summary.height).data()? == summary.hash {
-                    view.rows[height - base] = Some(summary);
-                }
-            }
-            view.anchor = (end > base).then_some((end.saturating_sub(1), pin.tip()));
-            view.revision = pin.revision();
-            view.initialized = true;
-            return Ok(());
-        }
-        if let Some(summary) = committed.filter(|s| usize::from(s.height) < view.base) {
-            view.base = usize::from(summary.height);
-            view.rows.clear();
-            view.anchor = None;
-        }
-        let base = view.base;
-        if end <= base {
-            view.rows.clear();
-            view.anchor = None;
-            view.revision = pin.revision();
-            return Ok(());
-        }
-        let hashes = &self.indexer().vecs().blocks.blockhash;
-        let mut start = base + view.rows.len();
-        if view.anchor.is_some_and(|(h, hash)| h >= end || hashes.collect_one_at(h) != Some(hash)) {
-            // Summary hashes identify the unchanged prefix without a second height/hash index.
-            start = view.rows.iter().enumerate().rev().find_map(|(i, row)| {
-                row.filter(|s| base + i < end && hashes.collect_one_at(base + i) == Some(s.hash))
-                    .map(|_| base + i + 1)
-            }).unwrap_or(base);
-        }
-        view.rows.truncate(start - base);
-        for hash in hashes.collect_range_at(start, end) { view.rows.push(reader.summary(hash)?); }
-        if view.rows.len() != end - base { return Err(Error::Internal("Incomplete canonical audit hashes")); }
-        if let Some(summary) = committed.filter(|s| usize::from(s.height) >= base && usize::from(s.height) < end) {
-            let height = usize::from(summary.height);
-            let hash = hashes.collect_one_at(height).data()?;
-            view.rows[height - base] = reader.summary(hash)?;
-        }
-        view.anchor = Some((end - 1, pin.tip()));
-        view.revision = pin.revision();
+        let mut summaries = reader.summaries().collect::<brk_error::Result<Vec<_>>>()?;
+        summaries.sort_unstable_by_key(|s| s.height);
+        self.0.audits.store(Arc::new(summaries));
         Ok(())
     }
 
-    pub(crate) fn audit_summaries_at(&self, heights: impl IntoIterator<Item = usize>, pin: &ReadPin) -> Result<Vec<Option<Summary>>> {
-        let view = self.0.audits.read();
-        if let Some((height, hash)) = view.anchor.filter(|_| view.revision <= pin.revision())
-            && (height >= usize::from(pin.lengths().height) || self.indexer().vecs().blocks.blockhash.collect_one_at(height) != Some(hash)) {
-            return Err(Error::updating());
-        }
-        Ok(heights.into_iter().map(|h| h.checked_sub(view.base).and_then(|i| view.rows.get(i)).copied().flatten()).collect())
+    /// Adds a summary just committed to the audit store; one already held (a commit retried, or a
+    /// block audited again after a reorg back) is kept, as the store keeps the first.
+    pub fn add_audit(&self, summary: Summary) {
+        self.0.audits.rcu(|current| {
+            let at = current.partition_point(|s| s.height < summary.height);
+            if current[at..].iter().take_while(|s| s.height == summary.height).any(|s| s.hash == summary.hash) {
+                return Arc::clone(current);
+            }
+            let mut next = current.to_vec();
+            next.insert(at, summary);
+            Arc::new(next)
+        });
+    }
+
+    /// The hashes of the blocks `begin..end`, which the caller's pin must bound.
+    fn block_hashes(&self, begin: usize, end: usize) -> Result<Vec<BlockHash>> {
+        let hashes = self.indexer().vecs().blocks.blockhash.collect_range_at(begin, end);
+        if hashes.len() != end - begin { return Err(Error::Internal("Incomplete audit block hashes")); }
+        Ok(hashes)
+    }
+
+    /// The committed audits of the blocks `begin..end` under `pin`: held by the caller, it bounds
+    /// these reads, so the hashes are its chain's. A summary counts only if it is that block's, so
+    /// an orphaned branch's audits never show and no view needs refreshing on a reorg.
+    pub(crate) fn audit_range(&self, begin: usize, end: usize, pin: &ReadPin) -> Result<Vec<Option<Summary>>> {
+        debug_assert!(end <= usize::from(pin.lengths().height), "audit range past the pin");
+        let all = self.0.audits.load();
+        if all.is_empty() { return Ok(vec![None; end - begin]); }
+        let hashes = self.block_hashes(begin, end)?;
+        Ok(hashes.into_iter().enumerate().map(|(i, hash)| audit_of(&all, begin + i, hash)).collect())
+    }
+
+    /// The committed audits of the blocks at `heights` (descending) under `pin`, in that order.
+    pub(crate) fn audits_at_heights(&self, heights: &[Height], pin: &ReadPin) -> Result<Vec<Option<Summary>>> {
+        debug_assert!(heights.first().is_none_or(|h| *h < pin.lengths().height), "audit height past the pin");
+        let all = self.0.audits.load();
+        if all.is_empty() { return Ok(vec![None; heights.len()]); }
+        let ascending: Vec<_> = heights.iter().rev().map(|h| usize::from(*h)).collect();
+        let mut hashes = Vec::with_capacity(ascending.len());
+        self.indexer().vecs().blocks.blockhash.read_sorted_into_at(&ascending, &mut hashes);
+        if hashes.len() != ascending.len() { return Err(Error::Internal("Incomplete audit block hashes")); }
+        Ok(heights.iter().zip(hashes.into_iter().rev()).map(|(height, hash)| audit_of(&all, usize::from(*height), hash)).collect())
     }
 
     pub fn audit_summary(&self, hash: BlockHash) -> Result<Option<AuditSummary>> {
@@ -131,30 +110,26 @@ impl Query {
         let height = height.unwrap_or(tip);
         if height > tip { return Err(Error::InvalidParam("Audit height exceeds tip".into())); }
         let end = usize::from(height) + 1;
-        Ok(self.audit_summaries_at(end.saturating_sub(16)..end, &pin)?.into_iter().flatten().map(score_body).collect())
+        Ok(self.audit_range(end.saturating_sub(16), end, &pin)?.into_iter().flatten().map(score_body).collect())
     }
 
+    /// The audited blocks of `period`'s window ending at the tip, the window every mining route
+    /// counts by, so the answer changes only with the chain or a new audit.
     pub fn audit_predictions(&self, period: TimePeriod) -> Result<(Vec<(Timestamp, Height, f64)>, usize)> {
-        let cutoff = prediction_cutoff(period)?;
         let pin = self.pin_safe_lengths()?;
-        let end = usize::from(pin.lengths().height);
-        let mut begin = {
-            let view = self.0.audits.read();
-            if view.rows.is_empty() { return Ok((Vec::new(), 0)); }
-            view.base.min(end)
-        };
-        let mut upper = end;
-        while begin < upper {
-            let mid = begin + (upper - begin) / 2;
-            if self.plugins().mappings.timestamp.monotonic.collect_one_at(mid).data()? < cutoff {
-                begin = mid + 1;
-            } else { upper = mid; }
-        }
-        let summaries = self.audit_summaries_at(begin..end, &pin)?;
+        let tip = Self::tip_height(&pin)?;
+        let end = usize::from(tip) + 1;
+        let start = super::mining::start_height(self, period, tip)?;
+        // The summaries from the window's first audited height (audits start long after genesis), each
+        // kept only if it is its height's block: one read of the hashes, no search per block.
+        let all = self.0.audits.load();
+        let window = &all[all.partition_point(|s| s.height < start)..];
+        let begin = window.first().map_or(end, |s| usize::from(s.height).min(end));
+        let hashes = self.block_hashes(begin, end)?;
         let mut buckets: FxHashMap<u32, (Timestamp, Height, f64)> = FxHashMap::default();
         let mut count = 0;
         let div = super::mining::block_window::time_div(period);
-        for summary in summaries.into_iter().flatten().filter(|s| s.timestamp >= cutoff) {
+        for summary in window.iter().filter(|s| hashes.get(usize::from(s.height) - begin) == Some(&s.hash)) {
             let time = summary.timestamp;
             count += 1;
             let row = (time, summary.height, summary.match_percent());
@@ -211,6 +186,12 @@ impl Query {
     }
 }
 
+/// The summary in `audits` (sorted by height) of the block at `height` with `hash`.
+fn audit_of(audits: &[Summary], height: usize, hash: BlockHash) -> Option<Summary> {
+    let at = audits.partition_point(|s| usize::from(s.height) < height);
+    audits[at..].iter().take_while(|s| usize::from(s.height) == height).find(|s| s.hash == hash).copied()
+}
+
 fn summary_body(s: Summary) -> AuditSummary {
     AuditSummary { version: 1, height: s.height, id: s.hash, timestamp: s.timestamp,
         match_rate: s.match_percent(), expected_fees: s.expected_fees, expected_weight: s.expected_weight }
@@ -242,18 +223,4 @@ fn detail_body(summary: Summary, diff: &Difference, txids: &[Txid]) -> Result<Au
         if row.flags & Mined::CONFLICT != 0 { detail.fullrbf_txs.push(txid); }
     }
     Ok(detail)
-}
-
-fn prediction_cutoff(period: TimePeriod) -> Result<Timestamp> {
-    let span = match period {
-        TimePeriod::Day => Span::new().days(1), TimePeriod::ThreeDays => Span::new().days(3),
-        TimePeriod::Week => Span::new().weeks(1), TimePeriod::Month => Span::new().months(1),
-        TimePeriod::ThreeMonths => Span::new().months(3), TimePeriod::SixMonths => Span::new().months(6),
-        TimePeriod::Year => Span::new().years(1), TimePeriod::TwoYears => Span::new().years(2),
-        TimePeriod::ThreeYears => Span::new().years(3), TimePeriod::FourYears => Span::new().years(4),
-        TimePeriod::All => return Ok(Timestamp::ZERO),
-    };
-    let cutoff = jiff::Timestamp::now().to_zoned(TimeZone::UTC).checked_sub(span)
-        .map_err(|_| Error::Internal("Invalid audit prediction window"))?;
-    Ok(Timestamp::from(cutoff.timestamp()))
 }

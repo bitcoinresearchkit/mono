@@ -56,7 +56,8 @@ pub(crate) struct QueryInner<'a> {
     #[cfg(feature = "full-api")]
     pub(crate) stale_blocks: ArcSwap<StaleBlocks>,
     #[cfg(feature = "full-api")]
-    pub(crate) audits: parking_lot::RwLock<crate::api::audit::CanonicalAudits>,
+    /// Every committed audit summary, by height: replaced whole at each commit.
+    pub(crate) audits: ArcSwap<Vec<brk_mempool::audit::Summary>>,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(feature = "series")]
     pub(crate) bounds: ArcSwapOption<PublishedBounds>,
