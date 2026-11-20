@@ -3462,9 +3462,8 @@ function buildChart(doc, data, refit) {
     // (One colored by a gradient, by its value alone (its place between its lowest and highest of all its history, not
     // stacked): the library's gradient, its colors in a look (see Gradient) each, a line's or an area's by height in one
     // stroke or fill, dots and bars each by its own. Date by date (`upToDate`, stacked, a cloud), painted as below.)
-    const graded = layer.byGradient && layer.gradient && !layer.upToDate && !stack && GRADED.has(layer.type) && result?.values
-      ? ((table, [lo, hi]) => (/** @type {(c: string) => string} */ look) => new Gradient(table.map(look), lo, hi))(gradientTable(layer.gradient).map(ink), rangeOf(result.values))
-      : null;
+    // (Its colors from another or by its levels first, as its readings take them: see colorsAt.)
+    const graded = layer.byGradient && layer.gradient && !layer.upToDate && !stack && !layer.colorFrom && !zoned && GRADED.has(layer.type) && result?.values ? layer.gradient : null;
     // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
     // its values: the legend's, the crosshair's.)
     const signal = layer.type === "signal";
@@ -3504,6 +3503,10 @@ function buildChart(doc, data, refit) {
       : layer.type === "histogram" ? { color: alpha(c, 0.75 * op) } : { color: op < 1 ? alpha(c, op) : c });
     /** A look's line (an area's edge; else its one color). @param {Record<string, string>} look */
     const lineOf = (look) => look.line ?? look.color;
+    // (Its gradient's colors each in its look, once; a part of that (a line's, a fill's, a fade's) a Gradient over all
+    // its history, as colorsAt reads it.)
+    const lookTable = graded ? gradientTable(graded).map((c) => looks(ink(c))) : null;
+    const [lo, hi] = lookTable && result?.values ? rangeOf(result.values) : [0, 0];
     // Its colors, as the library takes them (a line's; a band's fill and fade, a baseline's under its base too; candles'
     // parts; a cloud's, its bands').
     /** @type {Record<string, any>} */
@@ -3575,7 +3578,7 @@ function buildChart(doc, data, refit) {
       // (Its levels' zones and its gradient, in their colors as its own are painted (see looks): a line's, an area's fill
       // and fade, bars'; none, its own color.)
       const zones = (/** @type {(look: Record<string, string>) => Record<string, string>} */ part) => (zoned ? zoned.map((step) => ({ value: step.value, ...part(looks(ink(step.color))) })) : null);
-      const gradient = (/** @type {(look: Record<string, string>) => string} */ part) => graded?.((c) => part(looks(c))) ?? null;
+      const gradient = (/** @type {(look: Record<string, string>) => string} */ part) => (lookTable ? new Gradient(lookTable.map(part), lo, hi) : null);
       const lineZones = zones((look) => ({ color: lineOf(look) })), lineGradient = gradient(lineOf);
       const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius, zones: null, gradient: lineGradient, partial: false } }]
         : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line, zones: lineZones, gradient: lineGradient }, band: { gradient: gradient((look) => look.fill), gradientFade: gradient((look) => look.fade), color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve, zones: zones((look) => ({ color: look.fill, fade: look.fade })) } }]

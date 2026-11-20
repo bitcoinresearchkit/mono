@@ -220,7 +220,8 @@ clears); avoid reflecting programmatic calls. A programmatic
 - `Gradient(colors, lo, hi)`: colors by value: `colors` evenly apart (a `gradientTable`'s, toned), a value's the one
   nearest its place from `lo` (0) to `hi` (1), past them the outer ones' (`lo` and `hi` the same, the middle one). One
   mechanism, applied two ways: continuous marks by height (a `Line`'s stroke, a `Band`'s fill), discrete marks each by
-  its own value (`Bars`, a line's `dots`), so a mark's color is its value's wherever it's drawn. `placeIndex(place, n)`,
+  its own value (`Bars`, a line's `dots`: a pass a color, so for them a table of about 64, not 256), so a mark's color is
+  its value's wherever it's drawn. Never changed once made (made anew instead). `placeIndex(place, n)`,
   the index of a place (0 to 1) in `n` colors: what it and a page's own lookups (a heatmap's cells by strength) share.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read

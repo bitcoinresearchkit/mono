@@ -296,7 +296,7 @@ export class Line {
     // (Its stroke's style by its zones or its gradient, kept till they or its scale change; where zones lie, a measure
     // each: see zoneSpans.)
     /** @type {Fill | null} */
-    this.zoned = null;
+    this.strokeFill = null;
     /** @type {number[]} */
     this.spans = [];
     // (Each point's color in its gradient (see pointColors), made once a version.)
@@ -343,10 +343,10 @@ export class Line {
   /** One value set in place (a live point), its block's extremes made again. @param {number} i @param {number} value */
   set(i, value) {
     // (Its gradient's colors kept up in place: one point's.)
-    const inPlace = this.graded !== null && this.gradedVersion === this.version && i < this.graded.length;
+    const graded = this.gradedVersion === this.version ? this.graded : null, gradient = this.gradient;
     this.version++;
     this.values[i] = value;
-    if (inPlace && this.gradient && this.graded) (this.graded[i] = value === value ? this.gradient.index(value) : 0), (this.gradedVersion = this.version);
+    if (graded && gradient && i < graded.length) (graded[i] = value === value ? gradient.index(value) : 0), (this.gradedVersion = this.version);
     this.summary?.set(i);
   }
 
@@ -652,7 +652,7 @@ export class Line {
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
       const color = spans && zones ? ((k) => (k < 0 ? this.color : zones[k].color))(spans[pass * 3]) : colors && measuring && !passes ? "#000" : pass < 0 ? this.color : this.palette[pass];
       if (spans) g.save(), g.beginPath(), g.rect(x0, spans[pass * 3 + 1], x1 - x0, spans[pass * 3 + 2] - spans[pass * 3 + 1]), g.clip();
-      g.strokeStyle = zones && !spans ? (this.zoned ??= new Fill()).zoned(g, color, zones, scale, scale.height) : gradient ? (this.zoned ??= new Fill()).graded(g, gradient, scale, scale.height) : color;
+      g.strokeStyle = zones && !spans ? (this.strokeFill ??= new Fill()).zoned(g, color, zones, scale, scale.height) : gradient ? (this.strokeFill ??= new Fill()).graded(g, gradient, scale, scale.height) : color;
       g.beginPath();
       pen.start(g, dpr, spans ? -1 : pass, phase, dash ?? SOLID, period);
       this.#trace(time, scale, x0, x1, colors);

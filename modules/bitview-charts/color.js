@@ -401,8 +401,12 @@ function blended(from, to) {
 export class Gradient {
   /** @param {readonly string[]} colors @param {number} lo @param {number} hi */
   constructor(colors, lo, hi) {
+    // (Never changed: its channels and Fill's styles of it are kept by its identity.)
+    /** @readonly */
     this.colors = colors;
+    /** @readonly */
     this.lo = lo;
+    /** @readonly */
     this.hi = hi;
     /** Its colors' sRGB channels and opacity (0 to 255), read once a style needs them. @type {number[][] | null} */
     this.rgba = null;

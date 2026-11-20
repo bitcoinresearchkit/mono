@@ -1,6 +1,6 @@
 // @ts-check
 // Heatmaps (the URPD, a day a column) and bubbles.
-import { columnWidth, Custom, placeIndex, press, Profile } from "/modules/bitview-charts/index.js";
+import { channels, columnWidth, Custom, placeIndex, press, Profile } from "/modules/bitview-charts/index.js";
 import { capitalized, inSentence } from "/studio/words.js";
 import {
   boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
@@ -407,8 +407,6 @@ function heatCalendar({ times, live = true }) {
   heatCalendars.set(times, made);
   return made;
 }
-/** A color's red, green and blue (a hex one). */
-const rgbOf = (/** @type {string} */ hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
 /** A heatmap's look, for its series' renderer (see heatLooks). @param {Chart} doc @param {Layer} layer @param {Resolved} data @param {number} opacity */
 // (Its profile's colors: an unrealized P&L's own two, else the chart's green and red.)
 /**
@@ -416,10 +414,10 @@ const rgbOf = (/** @type {string} */ hex) => [1, 3, 5].map((at) => parseInt(hex.
  * over other layers hides them), the layer's opacity over that. @param {string} id @param {string} color (hex) @param {number} opacity
  */
 const profileShades = (id, color, opacity) => {
-  const card = rgbOf(css("--card")), own = rgbOf(color), over = (/** @type {number} */ strength) => `rgb(${own.map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
+  const card = channels(css("--card")), own = channels(color), over = (/** @type {number} */ strength) => `rgb(${own.slice(0, 3).map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
   return { id, gain: over(0.72), loss: over(0.32), dimGain: over(0.72 * PROFILE_DIM), dimLoss: over(0.32 * PROFILE_DIM) };
 };
-const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: channels(ink(layer.color)), down: channels(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => channels(ink(color))) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
 /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
 const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
 /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */

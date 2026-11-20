@@ -917,17 +917,17 @@ function rangeOf(values) {
   return [low, high];
 }
 /**
- * Where each value is between its lowest and its highest (0 to 1): of all its history, or (`upToDate`) of its
- * history up to it (no hindsight: what that day would have shown). None where it has none.
- * @param {Vector} values @param {boolean} upToDate @returns {Float64Array}
+ * Where each value is between its lowest and its highest of its history up to it (0 to 1; no hindsight: what that
+ * day would have shown; of all its history, a Gradient's place). None where it has none.
+ * @param {Vector} values @returns {Float64Array}
  */
-function gradientPlaces(values, upToDate) {
+function upToDatePlaces(values) {
   const places = new Float64Array(values.length).fill(NaN);
-  let [low, high] = upToDate ? [Infinity, -Infinity] : rangeOf(values);
+  let low = Infinity, high = -Infinity;
   for (let i = 0; i < values.length; i++) {
     const value = values[i];
     if (!Number.isFinite(value)) continue;
-    if (upToDate) (low = Math.min(low, value)), (high = Math.max(high, value));
+    (low = Math.min(low, value)), (high = Math.max(high, value));
     places[i] = high > low ? (value - low) / (high - low) : 0.5;
   }
   return places;
@@ -2835,7 +2835,7 @@ export {
   completeSeries, completion, completionsAt, copyName, dashRow, drawPlanes, drawWhenReady, dropSuggestions,
   duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, fadingOf, faintOf, fillOf,
   fitChoices, fitOf, FITS, fitsAt, flushPick, focusKey, formatChoices, formatMenu, formulaDrafts, formulaFieldLeft,
-  formulaInputs, fromChoices, fromPage, goneSaid, gradientCss, gradientEdit, gradientPlaces,
+  formulaInputs, fromChoices, fromPage, goneSaid, gradientCss, gradientEdit,
   gradientSwatch, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, isUnfinished,
   keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, leaveFormula, levelRows,
   levelSteps, levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName,
@@ -2846,6 +2846,6 @@ export {
   renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit,
   setLineLook, setSlider, sharedBy, showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider,
   sliders, slotName, soloLayer, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestHere,
-  TAG_NEEDS_LINE, toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula, usesOf, widthRow,
+  TAG_NEEDS_LINE, toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula, upToDatePlaces, usesOf, widthRow,
   withLevel, withoutLevel,
 };
