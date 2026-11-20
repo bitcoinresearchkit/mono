@@ -125,6 +125,12 @@ impl Stores {
         (self.db.path(), self.db.disk_space())
     }
 
+    /// Returns once every queued or in-flight compaction of the stores has finished.
+    #[cfg(feature = "bench-cpu")]
+    pub(crate) fn wait_for_compaction(&self) -> Result<()> {
+        Ok(self.db.wait_for_compaction()?)
+    }
+
     #[inline]
     pub fn utxos(&self) -> &Utxos {
         &self.utxos
