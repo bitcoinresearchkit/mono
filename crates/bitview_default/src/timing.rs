@@ -32,10 +32,12 @@ impl Phase {
     }
 }
 
-/// Runs `f`, logging its duration once it succeeds; a failure propagates unlogged.
+/// Runs `f`, logging its duration once it succeeds; a failure propagates unlogged, naming the
+/// plugin and phase.
 fn timed<T>(phase: Phase, plugin: PluginId, f: impl FnOnce() -> Result<T>) -> Result<T> {
     let start = Instant::now();
-    let result = f()?;
+    let result =
+        f().map_err(|error| error.context(format!("{} {}", plugin_name(plugin), phase.name())))?;
     log(phase, plugin, start.elapsed());
     Ok(result)
 }

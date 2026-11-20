@@ -74,6 +74,13 @@ pub enum Error {
         source: Box<Error>,
     },
 
+    /// What was running when `source` stopped it (a plugin's compute, a commit).
+    #[error("{what}: {source}")]
+    Context {
+        what: Cow<'static, str>,
+        source: Box<Error>,
+    },
+
     #[cfg(feature = "corepc")]
     #[error(transparent)]
     CorepcRPC(#[from] JsonRpcError),
@@ -199,6 +206,14 @@ impl Error {
         }
     }
 
+    /// Names what was running while preserving the recovery classification.
+    pub fn context(self, what: impl Into<Cow<'static, str>>) -> Self {
+        Self::Context {
+            what: what.into(),
+            source: Box::new(self),
+        }
+    }
+
     /// [`Error::StateUpdating`] at the caller's location ([`Updating::here`]).
     #[track_caller]
     #[inline]
@@ -210,7 +225,9 @@ impl Error {
     /// Lock errors are transient and should not trigger data deletion.
     pub fn is_lock_error(&self) -> bool {
         match self {
-            Error::OpeningStorage { source, .. } => source.is_lock_error(),
+            Error::OpeningStorage { source, .. } | Error::Context { source, .. } => {
+                source.is_lock_error()
+            }
             #[cfg(feature = "vecdb")]
             Error::VecDB(e) => e.is_lock_error(),
             #[cfg(feature = "fjall")]
@@ -223,7 +240,9 @@ impl Error {
     /// These errors may require resetting/deleting the data to recover.
     pub fn is_data_error(&self) -> bool {
         match self {
-            Error::OpeningStorage { source, .. } => source.is_data_error(),
+            Error::OpeningStorage { source, .. } | Error::Context { source, .. } => {
+                source.is_data_error()
+            }
             #[cfg(feature = "vecdb")]
             Error::VecDB(e) => e.is_data_error(),
             #[cfg(feature = "fjall")]
