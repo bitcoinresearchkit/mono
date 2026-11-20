@@ -47,7 +47,7 @@ async fn serve(state: AppState, headers: HeaderMap, read: Read) -> Response {
                 (serde_json::to_vec(&rows)?, false)
             }
         };
-        let tag = format!("audit1-{}-{}-{:x}", status.as_u16(), count.unwrap_or(0), tag_hash(&bytes));
+        let tag = format!("audit-{}-{}-{:x}", status.as_u16(), count.unwrap_or(0), tag_hash(&bytes));
         let mut content = Content::new(JSON, bytes).with_status(status);
         if let Some(count) = count {
             content = content.with(HeaderName::from_static("x-total-count"), HeaderValue::from_str(&count.to_string()).unwrap());

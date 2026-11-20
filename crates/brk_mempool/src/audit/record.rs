@@ -28,8 +28,9 @@ impl Mined {
     pub const UNSEEN: u8 = 2;
     pub const CONFLICT: u8 = 4;
 
+    /// Added or unseen, either one a conflict's replacer or not.
     fn is_valid(&self) -> bool {
-        self.position > 0 && matches!(self.flags, 1 | 2 | 5 | 6)
+        self.position > 0 && matches!(self.flags & !Self::CONFLICT, Self::ADDED | Self::UNSEEN)
     }
 }
 

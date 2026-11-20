@@ -40,6 +40,10 @@ impl Observations {
     }
 }
 
+/// The oldest observation an audit compares with. The pool is read every second (the driver's
+/// `PERIOD`), so an older one means the reads stalled and it no longer shows what miners saw.
+const MAX_CAPTURE_AGE: Duration = Duration::from_secs(15);
+
 /// Owned pre-block publication and receipt clocks, retained across the chain update.
 pub struct Capture {
     state: Arc<ReadOnlyState>,
@@ -64,7 +68,7 @@ impl ReadOnlyMempool {
         let age = at.saturating_duration_since(
             self.observations.epoch + Duration::from_nanos(stamp - 1),
         );
-        (age <= Duration::from_secs(15)).then_some(Capture { state, age, receipt })
+        (age <= MAX_CAPTURE_AGE).then_some(Capture { state, age, receipt })
     }
 }
 

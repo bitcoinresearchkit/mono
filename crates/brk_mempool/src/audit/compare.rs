@@ -6,6 +6,10 @@ use crate::{snapshot::{cluster::paid_totals, partition::MAX_WEIGHT}, state::Pool
 
 use super::{Audit, Capture, Difference, Expected, Mined, MinedBlock, Summary};
 
+/// Seconds after a transaction is first seen past which every miner is taken to have it
+/// (mempool.space's `PROPAGATION_MARGIN`): a younger omission is fresh, not missing.
+const PROPAGATION_MARGIN: u32 = 180;
+
 /// Sats per policy weight unit; the common factor of four cancels in comparisons.
 #[derive(Clone, Copy)]
 struct Rate { fee: u64, weight: u64 }
@@ -68,7 +72,7 @@ pub(super) fn compare(capture: &Capture, block: &MinedBlock) -> Audit {
         } else {
             let chunk = chunk(&mut chunks, pool, &txid);
             // Mempool's censor policy excludes sub-1 sat/vB omissions, even on a sparse block.
-            if (*capture.receipt).saturating_sub(chunk.newest) <= 180 {
+            if (*capture.receipt).saturating_sub(chunk.newest) <= PROPAGATION_MARGIN {
                 diff.expected.push((txid, Expected::Fresh));
             } else if chunk.rate.compare(Rate { fee: 1, weight: 4 }).is_ge() {
                 omissions.push(Omission { txid, weight: entry.weight.into(), rate: chunk.rate });
