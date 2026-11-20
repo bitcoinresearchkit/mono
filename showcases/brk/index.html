@@ -24,6 +24,20 @@
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='6'%20fill='%23171b21'/%3E%3Ctext%20x='32'%20y='39'%20text-anchor='middle'%20font-family='monospace'%20font-size='18'%20font-weight='700'%20fill='%23f3f0e8'%3EBRK%3C/text%3E%3C/svg%3E" />
     <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
       /* A catalog of parts: paper and ink, cobalt for the parts' names and links; each crate a tile, its name set large
          in the monospace, what it does, how to add it. One file, system fonts: it's served on its own. */
       :root {
@@ -88,11 +102,6 @@
       :focus-visible {
         outline: 2px solid var(--focus);
         outline-offset: 3px;
-      }
-
-      /* (No paragraph ends on a lone word.) */
-      p {
-        text-wrap: pretty;
       }
 
       code {
@@ -232,7 +241,6 @@
           font-weight: 700;
           line-height: 1.04;
           letter-spacing: -0.028em;
-          text-wrap: balance;
         }
 
         .lede {

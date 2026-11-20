@@ -27,6 +27,20 @@
     <link rel="preconnect" href="https://api.github.com" crossorigin />
     <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
     <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
       /* A lab report: a quiet ground, numbers in a monospace, one accent; every value measured, none claimed. */
       :root {
         color-scheme: light dark;
@@ -204,26 +218,33 @@
         color: var(--soft);
       }
 
+      /* (One row that never wraps, scrolling sideways when the machines outgrow it, so its height is one at every width and
+         pointer and the page below doesn't move as they arrive. Padded for the buttons' 44px reach for fingers and for their
+         focus ring, which an overflow would clip, and pulled back by the same, so the padding takes no room.) */
       .tabs {
+        --tab: 28px;
         display: flex;
-        flex-wrap: wrap;
         gap: 6px;
-        margin-top: 20px;
-
-        @media (pointer: coarse) {
-          row-gap: 12px;
-        }
+        height: calc(var(--tab) + 16px);
+        margin: 12px -8px -8px;
+        padding: 8px;
+        overflow-x: auto;
+        scroll-padding-inline: 8px;
+        scrollbar-width: none;
 
         button {
+          flex: none;
+          height: var(--tab);
           border: 0;
           border-radius: 999px;
-          padding: 6px 14px;
+          padding: 0 14px;
           background: var(--raised);
           box-shadow: inset 0 0 0 1px var(--line);
           color: var(--text);
           font: inherit;
           font-size: 13px;
           font-weight: 600;
+          white-space: nowrap;
           cursor: pointer;
 
           &:hover {
@@ -265,6 +286,8 @@
       /* ── The latest complete run ── */
 
       .hero {
+        position: relative;
+        container-type: inline-size;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 20px 40px;
@@ -307,6 +330,18 @@
           font-size: 12px;
         }
 
+        /* (The CPU time's line, "6h 47m user, 2h 39m system", wraps in a cell narrower than it is: two lines kept for it there,
+           so the dashes held in its place and the digits that land take the same room.) */
+        > div {
+          container-type: inline-size;
+        }
+
+        .cpu small {
+          @container (width < 11rem) {
+            min-height: 2lh;
+          }
+        }
+
         dd {
           margin: 2px 0 0;
           color: var(--ink);
@@ -317,17 +352,31 @@
             display: block;
             color: var(--soft);
             font: 12px var(--sans);
+            font-variant-numeric: tabular-nums;
             letter-spacing: 0;
           }
         }
       }
 
+      /* (A usual host line, "Apple M6 · 16.0 GiB memory · external-tb WD_BLACK SN850X 2000GB · 12 cores · 1.00 GiB cache · commit
+         adc1881c8", wraps to three lines in a hero narrower than 390px, two below 740px, one above: its height kept for it from
+         the first layout, when only dashes are in it, so what lands doesn't move the card's lower edge. A shorter host leaves
+         a blank line or two; a longer one grows by its extra lines.) */
       .host {
+        box-sizing: content-box;
         grid-column: 1 / -1;
         border-top: 1px solid var(--line);
         padding-top: 14px;
         color: var(--soft);
         font-size: 13px;
+
+        @container (width < 740px) {
+          min-height: 2lh;
+        }
+
+        @container (width < 390px) {
+          min-height: 3lh;
+        }
 
         a {
           color: var(--accent-text);
@@ -644,11 +693,28 @@
 
       /* (While they are read, the room they will fill is held, so the footer waits below the fold and doesn't jump down when they appear;
          once they are in, or can't be, or there are none, it is not.) */
-      main:has(.status.loading) #more[hidden] {
+      main:has(#hero[aria-busy="true"]) #more[hidden] {
         display: block;
         height: 100vh;
         overflow: hidden;
         visibility: hidden;
+      }
+
+      /* (The reading's progress: a thin bar under the hero, in the card's padding, so it takes no room.) */
+      .hero .meter {
+        position: absolute;
+        inset: auto 0 -12px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--raised);
+
+        span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: var(--accent);
+          transition: width 0.2s;
+        }
       }
 
       .status {
@@ -658,22 +724,6 @@
         p {
           max-width: 64ch;
           margin: 0;
-        }
-
-        .meter {
-          max-width: 320px;
-          height: 3px;
-          margin-top: 12px;
-          border-radius: 2px;
-          background: var(--raised);
-
-          span {
-            display: block;
-            height: 100%;
-            border-radius: inherit;
-            background: var(--accent);
-            transition: width 0.2s;
-          }
         }
 
         button {
@@ -712,7 +762,7 @@
       </header>
 
       <section aria-label="Latest complete run" aria-live="polite">
-        <div class="hero" id="hero"></div>
+        <div class="hero" id="hero" aria-busy="true"></div>
       </section>
 
       <div id="more" hidden>
@@ -952,8 +1002,6 @@
         const [memory, io, cpu, disk] = rest.slice(0, 4).map((content, k) => timeSeries(content, at(FILES[k + 2])));
         if (!memory.times.length) throw new Error("no memory samples");
         const info = metadata(meta), run = csv(done, at("run.csv"));
-        const said = (key) => info.get(key) || null;
-        const number = (key) => (NUMBER.test(info.get(key) ?? "") ? Number(info.get(key)) : null);
         const timed = timings(rest[5], at("timings.csv")), heights = progress(rest[4], at("progress.csv")), parts = breakdown(rest[6], at("disk_breakdown.csv"));
         const ms = run ? run.numbers("duration_ms").pop() : undefined;
         const end = ms != null ? ms / 1000 : memory.times.at(-1);
@@ -973,25 +1021,15 @@
           machine,
           samples,
           indexingEnd_s,
-          label: folder.slice(machine.length + 1) || "run",
-          started_at: startedAt(info),
+          ...facts(info, folder),
           status: statusOf(run),
           duration_s: round(end, 1),
-          revision: said("revision"),
-          dirty: info.get("dirty") === "true",
-          host: { cpu: said("cpu"), ram_bytes: number("ram_bytes"), storage: said("storage"), cores: number("parallelism"), os: said("target_os"), cache_bytes: number("cache_budget") },
-          chain_height: number("chain_height"),
           peak_memory: peak ? { name: peak[0], bytes: peak[1] } : null,
           read_bytes: io.growth("read_bytes"),
           written_bytes: io.growth("written_bytes"),
           cpu_user_s: growth(cpu, "user_ms", 1000),
           cpu_system_s: growth(cpu, "system_ms", 1000),
           disk_bytes: disk.last("physical_bytes"),
-          // Resumed when the data directory already held plugin data: its time isn't a full sync's.
-          resumed: info.get("start") === "resumed",
-          // Not comparable when something else overlapped the run (the bench says so itself; an absent key is comparable).
-          comparable: info.get("comparable") !== "false",
-          comparable_reason: said("comparable_reason"),
           cycles: bands,
           curves: Object.fromEntries(Object.entries(samples).map(([key, points]) => [key, thin(points)])),
           compute: pluginSeconds(timed, "compute").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
@@ -999,13 +1037,28 @@
           breakdown: parts,
         };
       }
-      /** A run's start and status alone, from its two small files: enough to choose the machine shown first. */
+      /** What a run's metadata says of it: when, at which commit, on what, how far, and whether it counts. */
+      function facts(info, folder) {
+        const said = (key) => info.get(key) || null;
+        const number = (key) => (NUMBER.test(info.get(key) ?? "") ? Number(info.get(key)) : null);
+        return {
+          label: folder.includes("/") ? folder.slice(folder.indexOf("/") + 1) : "run",
+          started_at: startedAt(info),
+          revision: said("revision"),
+          dirty: info.get("dirty") === "true",
+          host: { cpu: said("cpu"), ram_bytes: number("ram_bytes"), storage: said("storage"), cores: number("parallelism"), os: said("target_os"), cache_bytes: number("cache_budget") },
+          chain_height: number("chain_height"),
+          // Resumed when the data directory already held plugin data: its time isn't a full sync's.
+          resumed: info.get("start") === "resumed",
+          // Not comparable when something else overlapped the run (the bench says so itself; an absent key is comparable).
+          comparable: info.get("comparable") !== "false",
+          comparable_reason: said("comparable_reason"),
+        };
+      }
+      /** A run from its two small files alone: enough to choose the machine shown first, and to lay out its hero while the rest is read. */
       async function head(run) {
         const [meta, done] = await Promise.all(["metadata.txt", "run.csv"].map((name) => (run.files.has(name) ? text(`${run.folder}/${name}`) : null)));
-        const info = metadata(meta);
-        run.started_at = startedAt(info);
-        run.comparable = info.get("comparable") !== "false";
-        run.status = statusOf(csv(done, "run.csv"));
+        Object.assign(run, facts(metadata(meta), run.folder), { status: statusOf(csv(done, "run.csv")) });
       }
       /** A machine's runs, oldest first, each read whole; one that can't be is said and skipped, never hiding the others. */
       async function load(m, told) {
@@ -1023,7 +1076,7 @@
             m.skipped.push(run.folder.slice(m.name.length + 1) || "run");
           }
         }
-        m.runs = runs.sort((a, b) => a.started_at - b.started_at || order(a.label, b.label));
+        m.runs = runs.sort(byTime);
       }
 
       // ── Words ──
@@ -1056,13 +1109,19 @@
       let machines = [], machine = 0;
       let selected = null, compared = null;
       const runs = () => machines[machine].runs;
+      const byTime = (a, b) => a.started_at - b.started_at || order(a.label, b.label);
       const complete = () => runs().filter((r) => r.status === "complete");
+      /** A full sync: complete, from an empty data directory, and comparable. */
+      const isFull = (r) => r.status === "complete" && !r.resumed && r.comparable;
       /** The complete runs from an empty data directory: full syncs. */
-      const fullSyncs = () => complete().filter((r) => !r.resumed && r.comparable);
+      const fullSyncs = () => runs().filter(isFull);
 
       // ── Machines ──
       function tabs() {
         $("tabs").innerHTML = machines.map((m, k) => `<button type="button" aria-pressed="${k === machine}" data-k="${k}">${escape(machineWords(m.name))} <span class="num">· ${(m.runs ?? m.folders).length}</span></button>`).join("");
+        // The chosen machine centred in the row, when the row scrolls.
+        const row = $("tabs"), on = row.querySelector("[aria-pressed=true]");
+        if (on) row.scrollLeft = on.offsetLeft - row.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
       }
       function choose(k) {
         machine = k;
@@ -1071,6 +1130,13 @@
       }
       /** The machine the address names (`#apple-m6-16gb-external-tb`), -1 for none. */
       const named = () => machines.findIndex((m) => `#${m.name}` === decodeURIComponent(location.hash));
+      // A mouse wheel turns the row sideways when it overflows, until it is at an end, where the page takes the wheel back.
+      $("tabs").addEventListener("wheel", (e) => {
+        const row = e.currentTarget, to = row.scrollLeft + e.deltaY;
+        if (e.deltaX || e.ctrlKey || to < 0 || to > row.scrollWidth - row.clientWidth) return;
+        e.preventDefault();
+        row.scrollLeft = to;
+      }, { passive: false });
       $("tabs").addEventListener("click", (e) => {
         const b = e.target.closest("button");
         if (!b) return;
@@ -1080,16 +1146,23 @@
       addEventListener("hashchange", () => named() >= 0 && named() !== machine && choose(named()));
 
       // ── While the runs are read, or when they can't be ──
-      /** Words in the hero's place, the rest held back; a share read so far, or a way to try again. */
-      function notice(words, { share = null, again = null, loading = false } = {}) {
+      /** Words in the hero's place, the rest held back, and a way to try again if there is one. */
+      function notice(words, again = null) {
         $("more").hidden = true;
-        $("hero").innerHTML = `<div class="status${again ? " failed" : ""}${loading ? " loading" : ""}"><p>${escape(words)}</p>${share == null ? "" : `<div class="meter" role="progressbar" aria-label="Read so far" aria-valuenow="${Math.round(share * 100)}"><span style="width:${share * 100}%"></span></div>`}${again ? `<button type="button">Try again</button>` : ""}</div>`;
+        $("hero").ariaBusy = "false";
+        $("hero").innerHTML = `<div class="status${again ? " failed" : ""}"><p>${escape(words)}</p>${again ? `<button type="button">Try again</button>` : ""}</div>`;
         if (again) $("hero").querySelector("button").addEventListener("click", again);
       }
-      const failed = (error, again) => notice(error instanceof Failure ? error.message : `The runs couldn't be read: ${error.message}`, { again });
+      /** The hero's own card while a machine's runs are read, from what its latest run's small files said (none yet: dashes), and the share read so far. */
+      function loading(words, share, m = null) {
+        $("more").hidden = true;
+        $("hero").ariaBusy = "true";
+        $("hero").innerHTML = `${card(m?.folders.filter(isFull).sort(byTime).at(-1))}<div class="meter" role="progressbar" aria-label="${escape(words)}" aria-valuenow="${Math.round(share * 100)}"><span style="width:${share * 100}%"></span></div>`;
+      }
+      const failed = (error, again) => notice(error instanceof Failure ? error.message : `The runs couldn't be read: ${error.message}`, again);
 
       async function start() {
-        notice("Listing the runs on GitHub…", { loading: true });
+        loading("Listing the runs on GitHub", 0);
         try {
           machines = await list();
           await Promise.all(machines.flatMap((m) => m.folders.map(head)));
@@ -1106,9 +1179,9 @@
         tabs();
         if (!m.runs) {
           const said = `Reading ${m.folders.length} runs from GitHub`;
-          notice(`${said}…`, { share: 0, loading: true });
+          loading(said, 0, m);
           try {
-            await (m.loading ??= load(m, (got, total) => m === machines[machine] && notice(`${said}: ${bytes(got)} of ${bytes(total)}`, { share: got / total, loading: true })));
+            await (m.loading ??= load(m, (got, total) => m === machines[machine] && loading(`${said}: ${bytes(got)} of ${bytes(total)}`, got / total, m)));
           } catch (error) {
             m.loading = null;
             if (m === machines[machine]) failed(error, show);
@@ -1120,22 +1193,31 @@
       }
 
       // ── The latest complete run ──
-      function hero() {
-        const all = fullSyncs(), r = all.at(-1);
-        if (!r) return ($("hero").innerHTML = `<p>No full sync on this machine yet.</p>`);
-        const h = r.host;
-        $("hero").innerHTML = `
-          <div><div class="kicker">Latest full sync, ${dated(r.started_at)}</div><div class="big">${duration(r.duration_s)}</div>
-            <div class="what">to read and compute <span class="num">${grouped(r.chain_height)}</span> blocks</div></div>
+      /** The latest full sync's card: one markup for the run read whole and for the one read from its small files alone (or none yet),
+       * which shows "–" for what only the rest holds, so the card is laid out the same while it is read as when it is in. */
+      function card(r) {
+        const h = r?.host ?? {}, s = r?.cycles ? split(r) : {};
+        const cpu = (r?.cpu_user_s ?? r?.cpu_system_s) == null ? null : (r.cpu_user_s ?? 0) + (r.cpu_system_s ?? 0);
+        const commit = !r ? "–" : r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r);
+        // Before any run is known, the line has its fields as dashes, so the card's first layout already holds it.
+        const host = r ? [h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape) : ["–", "– memory", "–", "– cores", "– cache"];
+        return `
+          <div><div class="kicker">Latest full sync, ${dated(r?.started_at)}</div><div class="big">${duration(r?.duration_s)}</div>
+            <div class="what">to read and compute <span class="num">${grouped(r?.chain_height)}</span> blocks</div></div>
           <dl class="stats">
-            <div><dt>Peak memory</dt><dd>${bytes(r.peak_memory?.bytes)}<small>${escape(r.peak_memory?.name ?? "")}</small></dd></div>
-            <div><dt>Data directory</dt><dd>${bytes(r.disk_bytes)}<small>at the end</small></dd></div>
-            <div><dt>Read, written</dt><dd>${bytes(r.read_bytes)}<small>${bytes(r.written_bytes)} written</small></dd></div>
-            <div><dt>CPU time</dt><dd>${duration((r.cpu_user_s ?? 0) + (r.cpu_system_s ?? 0))}<small>${duration(r.cpu_user_s)} user, ${duration(r.cpu_system_s)} system</small></dd></div>
-            <div><dt>Indexing</dt><dd>${duration(split(r).indexing)}<small>reading the blocks</small></dd></div>
-            <div><dt>Compute</dt><dd>${duration(split(r).compute)}<small>every series</small></dd></div>
+            <div><dt>Peak memory</dt><dd>${bytes(r?.peak_memory?.bytes)}<small>${escape(r?.peak_memory?.name ?? "")}</small></dd></div>
+            <div><dt>Data directory</dt><dd>${bytes(r?.disk_bytes)}<small>at the end</small></dd></div>
+            <div><dt>Read, written</dt><dd>${bytes(r?.read_bytes)}<small>${bytes(r?.written_bytes)} written</small></dd></div>
+            <div class="cpu"><dt>CPU time</dt><dd>${duration(cpu)}<small>${duration(r?.cpu_user_s)} user, ${duration(r?.cpu_system_s)} system</small></dd></div>
+            <div><dt>Indexing</dt><dd>${duration(s.indexing)}<small>reading the blocks</small></dd></div>
+            <div><dt>Compute</dt><dd>${duration(s.compute)}<small>every series</small></dd></div>
           </dl>
-          <div class="host">${[h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape).join(" · ")} · commit ${r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r)}</div>`;
+          <div class="host">${[...host, `commit ${commit}`].join(" · ")}</div>`;
+      }
+      function hero() {
+        const r = fullSyncs().at(-1);
+        $("hero").ariaBusy = "false";
+        $("hero").innerHTML = r ? card(r) : `<p>No full sync on this machine yet.</p>`;
       }
       /** The seconds under a band's name (a cycle is named after what most of it did). */
       const phase = (r, name) => r.cycles.filter((c) => c.name === name).reduce((t, c) => t + c.end - c.start, 0);

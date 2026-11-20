@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>bitview-charts bench</title>
     <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
       :root { color-scheme: dark; }
       html, body { margin: 0; height: 100%; background: #0e0f11; color: #8a8f98; font: 12px/1.3 system-ui, sans-serif; overscroll-behavior: none; }
       #chart { position: fixed; inset: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); }

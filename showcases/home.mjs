@@ -9,7 +9,7 @@
 // featured app's banner with Bitview's mark and name; every app's icon (assets/favicon/apps/, Bitview's the MCP
 // server's too, and the touch icons at /apple-touch-icon.png and its -precomposed twin) and the favicon at /favicon.ico; and every page's share card (assets/cards/NAME.jpg, as CARDS makes it). Each
 // page's head checked as a link to it previews and a search engine reads it, the sitemap (sitemap.xml) written from
-// the rows, every preloaded file there, fallback fonts kept inline in every page that uses them, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
+// the rows, every preloaded file there, fallback fonts kept inline in every page that uses them and the craft rules (balanced headings, pretty text, equal-width digits) in every page, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
@@ -98,11 +98,19 @@ if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().
 // (Every page git knows, but one deleted and not yet committed as such.)
 const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(HERE, file)));
 
+// ── Every page, read once: the front page (or its --page draft), every app's page and the 404 (a write below keeps its text current) ──
+
+/** Absolute path → text. */
+const sources = new Map();
+for (const at of new Set([resolve(PAGE), join(HERE, "index.html"), join(HERE, "404.html"), ...pages.map((file) => join(HERE, file))]))
+  if (existsSync(at)) sources.set(at, at === resolve(PAGE) ? html : readFileSync(at, "utf8"));
+const label = (/** @type {string} */ at) => (at.startsWith(HERE) ? relative(HERE, at) : at);
+
 // ── Every file a page preloads, there (a font or module renamed would leave the hint asking for nothing) ──
 
-for (const [file, page] of [[relative(HERE, PAGE), html], ...pages.map((file) => [file, readFileSync(join(HERE, file), "utf8")])])
+for (const [at, page] of sources)
   for (const { rel, href } of tags(page, "link"))
-    if ((rel === "preload" || rel === "modulepreload") && href?.startsWith("/") && !existsSync(join(HERE, href.split("?")[0]))) problems.push(`${file}: preloads ${href}, no such file`);
+    if ((rel === "preload" || rel === "modulepreload") && href?.startsWith("/") && !existsSync(join(HERE, href.split("?")[0]))) problems.push(`${label(at)}: preloads ${href}, no such file`);
 // ── Metric-matched local faces, kept inline while the web fonts load ──
 
 const fallbackFonts = `/* fallback fonts */
@@ -137,22 +145,44 @@ const fallbackFonts = `/* fallback fonts */
         line-gap-override: 0%;
       }
       /* /fallback fonts */`;
-const FALLBACK_OPEN = "/* fallback fonts */", FALLBACK_CLOSE = "/* /fallback fonts */";
-// (The front page, a --page draft of it, and every app's page; each block replaced whole, so a page holds exactly
-// one opening marker and one closing marker after it, or the run stops at it rather than cut what lies between.)
-for (const at of new Set([resolve(PAGE), join(HERE, "index.html"), ...pages.map((file) => join(HERE, file))])) {
-  const file = at.startsWith(HERE) ? relative(HERE, at) : at, was = at === resolve(PAGE) ? html : readFileSync(at, "utf8");
-  if (!/Inter Fallback|Lilex Fallback|\/\* \/?fallback fonts \*\//.test(was)) continue;
-  const open = was.indexOf(FALLBACK_OPEN), close = was.indexOf(FALLBACK_CLOSE);
-  if (open < 0 || close < open || was.split(FALLBACK_OPEN).length !== 2 || was.split(FALLBACK_CLOSE).length !== 2) {
-    problems.push(`${file}: needs exactly one "${FALLBACK_OPEN}" and one "${FALLBACK_CLOSE}" after it`);
-    continue;
+// ── The craft rules every page has (balanced headings, pretty text, equal-width digits), inline like the fallback fonts: no request ──
+
+// (`html body` is more specific than any page's `body { font: … }`, which resets font-variant-numeric, so the digits rule
+// wins wherever it sits; an element's own `font:` shorthand resets it again, and ui-checks' digits check finds those.)
+const craftRules = `/* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */`;
+// (Each block replaced whole, so a page holds exactly one opening marker and one closing marker after it, or the run
+// stops at it rather than cut what lies between. A page without one that wants it gets it at the top of its first <style>.)
+const BLOCKS = [
+  { name: "fallback fonts", text: fallbackFonts, wanted: (/** @type {string} */ page) => /Inter Fallback|Lilex Fallback/.test(page) },
+  { name: "craft rules", text: craftRules, wanted: () => true },
+];
+for (const [at, was] of sources) {
+  let now = was;
+  for (const { name, text, wanted } of BLOCKS) {
+    const open = `/* ${name} */`, close = `/* /${name} */`, from = now.indexOf(open), to = now.indexOf(close);
+    if (from < 0 && to < 0) {
+      if (wanted(now)) now = now.replace(/<style>\n?/, (tag) => `${tag}      ${text}\n`);
+    } else if (from < 0 || to < from || now.split(open).length !== 2 || now.split(close).length !== 2) {
+      problems.push(`${label(at)}: needs exactly one "${open}" and one "${close}" after it`);
+    } else now = now.slice(0, from) + text + now.slice(to + close.length);
+    if (name === "craft rules" && !/<style>/.test(now)) problems.push(`${label(at)}: no <style> to hold the craft rules`);
   }
-  const now = was.slice(0, open) + fallbackFonts + was.slice(close + FALLBACK_CLOSE.length);
-  if (now !== was) {
-    if (check) problems.push(`${file}: fallback fonts are stale: run bun showcases/home.mjs`);
-    else (writeFileSync(at, now), at === resolve(PAGE) && (html = now), console.log(`${file}: fallback fonts written`));
-  }
+  if (now === was) continue;
+  if (check) problems.push(`${label(at)}: its inline blocks (fallback fonts, craft rules) are stale: run bun showcases/home.mjs`);
+  else (writeFileSync(at, now), sources.set(at, now), at === resolve(PAGE) && (html = now), console.log(`${label(at)}: inline blocks written`));
 }
 
 const folders = pages.map((file) => file.split("/")[0]).filter((name) => !name.startsWith("_"));
@@ -182,9 +212,9 @@ if (!check) {
   if (typeof repo?.stargazers_count !== "number") console.log("The stars on GitHub: GitHub didn't answer, every page's count left as it is");
   else {
     const count = `<b class="stars-count">${atLeast(repo.stargazers_count)}</b>`, written = [];
-    for (const file of ["index.html", ...pages]) {
-      const at = join(HERE, file), was = readFileSync(at, "utf8"), now = was.replace(/<b class="stars-count">[^<]*<\/b>/g, count);
-      if (now !== was) (writeFileSync(at, now), written.push(file), at === PAGE && (html = now));
+    for (const [at, was] of sources) {
+      const now = was.replace(/<b class="stars-count">[^<]*<\/b>/g, count);
+      if (now !== was) (writeFileSync(at, now), sources.set(at, now), written.push(label(at)), at === resolve(PAGE) && (html = now));
     }
     console.log(`The stars on GitHub: ${repo.stargazers_count}, written as ${atLeast(repo.stargazers_count)}${written.length ? ` into ${written.join(", ")}` : ", as every page has it"}`);
   }
@@ -262,7 +292,7 @@ const topics = [...html.matchAll(/\["([a-z0-9-]+)", "[^"]+", "#[0-9a-f]{6}"(?:, 
 // suffix isn't taken for its former self; one made in the page from a template, as the topics' are, read from TOPICS
 // instead.)
 const studioPaths = [...new Set([
-  ...[html, ...pages.map((file) => readFileSync(join(HERE, file), "utf8"))].flatMap((page) => [...page.matchAll(/\/studio\/presets\/([^"'`\s<>),;#]*)/g)].map(([, path]) => path)).filter((path) => !path.includes("${")),
+  ...[...sources.values()].flatMap((page) => [...page.matchAll(/\/studio\/presets\/([^"'`\s<>),;#]*)/g)].map(([, path]) => path)).filter((path) => !path.includes("${")),
   ...topics.map(([, slug]) => `${slug}/`),
 ])];
 if (!topics.length) problems.push("No TOPICS rows found: the page changed? (this script reads them)");
