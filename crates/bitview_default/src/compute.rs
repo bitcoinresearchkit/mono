@@ -52,9 +52,27 @@ const URPD: PluginId = PluginId::new("urpd");
 const WALK: PluginId = PluginId::new("walk");
 
 impl DefaultPlugins {
-    fn compute_all(&mut self, context: UpdateContext<'_>) -> Result<()> {
-        timed_compute(&mut *self.indexer, (), context)?;
-        self.compute_dependents(context)
+    /// Computes the indexer and returns whether its index moved. A reader that failed at the next
+    /// height leaves it where it was (and logged why); every dependent ends each update at the
+    /// indexer's tip (an update that errs stops the process, and bootstrap computes every plugin),
+    /// so then there is nothing to compute, publish or log.
+    fn index(&mut self, context: UpdateContext<'_>) -> Result<bool> {
+        let indexer_step = serial::step(bitview_plugin_indexer::ID);
+        let next = self.indexer.vecs().next_height();
+        let start = Instant::now();
+        self.indexer.compute((), context)?;
+        #[cfg(feature = "bench-cpu")]
+        {
+            if serial::enabled() {
+                self.indexer.wait_for_background()?;
+            }
+        }
+        indexer_step.end();
+        let moved = self.indexer.vecs().next_height() != next;
+        if moved {
+            log_compute(bitview_plugin_indexer::ID, start.elapsed());
+        }
+        Ok(moved)
     }
 
     /// A reorg rolls the address state (rewritten in place) back before the indexer rolls back,
@@ -461,38 +479,26 @@ impl ComputePluginSet for DefaultPlugins {
             // Local progress: the published height can sit at a rollback floor.
             chain_height.saturating_sub(*self.indexer.vecs().next_height())
         };
-
-        if blocks_behind > REIMPORT_THRESHOLD {
+        let far_behind = blocks_behind > REIMPORT_THRESHOLD;
+        if far_behind {
             info!("Indexing {blocks_behind} blocks before initializing metrics");
-            timed_compute(&mut *self.indexer, (), context)?;
-            return Ok(BootstrapAction::Reimport);
         }
 
-        self.compute_all(context)?;
+        // A pass that moved nothing would reimport the same plugins into the same failure: the
+        // steady-state loop retries it every second.
+        if self.index(context)? && far_behind {
+            return Ok(BootstrapAction::Reimport);
+        }
+        self.compute_dependents(context)?;
 
         Ok(BootstrapAction::Ready)
     }
 
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<bool> {
-        let indexer_step = serial::step(bitview_plugin_indexer::ID);
         let rolled_back = self.roll_back_reorg(context)?;
-        let next = self.indexer.vecs().next_height();
-        let start = Instant::now();
-        self.indexer.compute((), context)?;
-        #[cfg(feature = "bench-cpu")]
-        {
-            if serial::enabled() {
-                self.indexer.wait_for_background()?;
-            }
-        }
-        indexer_step.end();
-        // Every dependent ends each update at the indexer's tip (an update that errs stops the
-        // process, and bootstrap computes every plugin): unless the index moved, there is nothing
-        // to compute, publish or log (a reader that failed logged why).
-        if !rolled_back && self.indexer.vecs().next_height() == next {
+        if !self.index(context)? && !rolled_back {
             return Ok(false);
         }
-        log_compute(bitview_plugin_indexer::ID, start.elapsed());
         self.compute_dependents(context)?;
         Ok(true)
     }
