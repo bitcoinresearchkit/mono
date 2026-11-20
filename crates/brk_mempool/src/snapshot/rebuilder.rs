@@ -21,10 +21,6 @@ pub struct Rebuilder {
 }
 
 impl Rebuilder {
-    pub fn restore(&mut self, snapshot: Arc<Snapshot>) {
-        self.snapshot = snapshot;
-    }
-
     /// Reuse the private graph only when all of its inputs are unchanged.
     /// Publication and diff history are committed together by the writer.
     pub fn tick(&mut self, state: &State, min_fee: FeeRate, modified_fees: &[(Txid, i64)]) {

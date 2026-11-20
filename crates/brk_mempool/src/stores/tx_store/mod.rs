@@ -36,17 +36,6 @@ impl Deref for TxStore {
 }
 
 impl TxStore {
-    pub fn from_read_only(read_only: ReadOnlyTxStore) -> Self {
-        let unresolved = read_only
-            .records()
-            .filter_map(|(key, record)| (!record.tx.is_resolved()).then_some(*key))
-            .collect();
-        Self {
-            read_only,
-            unresolved,
-        }
-    }
-
     pub fn read_only_clone(&self) -> ReadOnlyTxStore {
         self.read_only.clone()
     }

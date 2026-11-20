@@ -43,7 +43,7 @@ pub use template::{DatedTemplate, TipFacts};
 
 use snapshot::Rebuilder;
 use state::State;
-use stores::{TxGraveyard, tx_graveyard::GraveyardFile};
+use stores::tx_graveyard::GraveyardFile;
 
 /// Saves the graveyard of the last publication, from any thread (a shutdown's).
 #[derive(Clone)]
@@ -80,7 +80,6 @@ pub struct Mempool {
     state: State,
     rebuilder: Rebuilder,
     read_only: ReadOnlyMempool,
-    needs_recovery: bool,
     unread_cycles: u8,
     /// Completed pairs held until a coherent listing can apply them.
     fetched: RapidHashMap<Txid, (MempoolEntryInfo, bitcoin::Transaction)>,
@@ -99,9 +98,6 @@ pub struct Mempool {
     checker: Option<template::Checker>,
     /// Where the graveyard is kept, and when a save was last tried.
     graveyard_file: Option<(Arc<GraveyardFile>, Instant)>,
-    /// The graveyard read back at start: what a recovery before the first publication restores
-    /// (the pool reloading from Core).
-    loaded_graveyard: TxGraveyard,
 }
 
 impl Mempool {
@@ -115,7 +111,6 @@ impl Mempool {
                 observations: Arc::default(),
                 audits: Arc::default(),
             },
-            needs_recovery: false,
             unread_cycles: 0,
             fetched: RapidHashMap::default(),
             missed: FxHashMap::default(),
@@ -126,7 +121,6 @@ impl Mempool {
             #[cfg(debug_assertions)]
             checker: None,
             graveyard_file: None,
-            loaded_graveyard: TxGraveyard::default(),
         }
     }
 
@@ -145,8 +139,7 @@ impl Mempool {
     pub fn keep_graveyard(&mut self, path: PathBuf) -> GraveyardSaver {
         let file = GraveyardFile::new(path);
         let (graveyard, pool) = file.load();
-        self.state = State::restored(graveyard.clone(), pool);
-        self.loaded_graveyard = graveyard;
+        self.state = State::restored(graveyard, pool);
         self.graveyard_file = Some((file.clone(), Instant::now()));
         GraveyardSaver {
             file,

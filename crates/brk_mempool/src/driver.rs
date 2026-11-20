@@ -1,8 +1,6 @@
 //! The sole update owner prepares data privately and publishes once per cycle.
 
 use std::{
-    any::Any,
-    panic::{AssertUnwindSafe, catch_unwind},
     sync::Arc,
     thread,
     time::{Duration, Instant},
@@ -16,7 +14,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use tracing::{error, info, warn};
 
 use crate::{
-    Mempool, State, TipFacts,
+    Mempool, TipFacts,
     key::TxKey,
     steps::{Confirmed, applier, preparer, prevouts},
 };
@@ -54,23 +52,16 @@ impl Mempool {
         loop {
             let started = Instant::now();
             let loaded = self.read_only.load().tip().is_some();
-            let outcome = catch_unwind(AssertUnwindSafe(|| {
-                // The chain caught up with a withheld observation: out at once, no cycle needed.
-                if let Some(tip) = self.withheld.take_if(|tip| gate() == Some(*tip)) {
-                    return self.publish_observation(tip, &tip_facts);
-                }
+            // The chain caught up with a withheld observation: out at once, no cycle needed.
+            if let Some(tip) = self.withheld.take_if(|tip| gate() == Some(*tip)) {
+                self.publish_observation(tip, &tip_facts);
+            } else {
                 match self.tick_with(&resolver, gate, &tip_facts) {
                     // A block arrived mid-fetch, or a newly missed transaction held the cycle
                     // back: the next cycle observes again.
                     Ok(()) | Err(Error::StateUpdating(_)) => {}
                     Err(e) => error!("mempool update failed: {e}"),
                 }
-            }));
-            if let Err(payload) = outcome {
-                error!(
-                    "mempool update panicked; restoring completed state: {}",
-                    Self::panic_msg(&payload)
-                );
             }
             self.save_graveyard_if_due();
             if !loaded && let Some(pool) = &self.read_only.load().pool {
@@ -101,57 +92,14 @@ impl Mempool {
     }
 
     /// Resolve confirmed parents with `resolver`; mempool parents are filled
-    /// internally. Failed observations leave the public state intact.
+    /// internally. Failed observations leave the public state intact. A cycle whose tip moved at
+    /// its end publishes nothing (`StateUpdating`), and the next one builds on it.
     fn tick_with<F>(
         &mut self,
         resolver: F,
         gate: impl Fn() -> Option<BlockHash>,
         tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>,
     ) -> Result<()>
-    where
-        F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
-    {
-        if self.needs_recovery {
-            self.restore_published();
-        }
-        let coherent = self.tick_once(resolver, gate, tip_facts)?;
-        // Applied either way: a cycle whose tip moved at its end publishes nothing, the next one
-        // builds on it.
-        self.needs_recovery = false;
-        if coherent {
-            Ok(())
-        } else {
-            Err(Error::updating())
-        }
-    }
-
-    fn restore_published(&mut self) {
-        self.withheld = None;
-        let published = self.read_only.load();
-        // Before the first publication, the graveyard read back, if any: the pool reloads from
-        // Core, as after a crash.
-        self.state = published.pool.as_ref().map_or_else(
-            || State::restored(self.loaded_graveyard.clone(), Vec::new()),
-            |pool| pool.restore(),
-        );
-        self.rebuilder.restore(
-            published
-                .pool
-                .as_ref()
-                .map_or_else(Arc::default, |pool| pool.graph.clone()),
-        );
-        // The restored graveyard carries its confirmed tip, so the next cycle reads the blocks
-        // after it and classifies removals by them.
-        self.needs_recovery = false;
-    }
-
-    /// Whether the cycle's tip held to its end (only then can it publish).
-    fn tick_once<F>(
-        &mut self,
-        resolver: F,
-        gate: impl Fn() -> Option<BlockHash>,
-        tip_facts: impl Fn(&BlockHash) -> Option<TipFacts>,
-    ) -> Result<bool>
     where
         F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
     {
@@ -195,9 +143,8 @@ impl Mempool {
             .extract_if(|txid, _| omitted.is_empty() || !omitted.contains(&TxKey::from(txid)))
             .map(|(_, pair)| pair);
         let diff = preparer::prepare(&live, new, &confirmed, &self.state);
-        // A panic after this point requires restoring private indexes before reuse.
+        // This cycle supersedes what an earlier one withheld.
         self.withheld = None;
-        self.needs_recovery = true;
         if !diff.removed.is_empty() && self.rebuilder.snapshot().ensure_projection().is_err() {
             // A shutdown save restores transaction records; rebuild their chunks before burying them.
             self.rebuilder
@@ -226,7 +173,11 @@ impl Mempool {
                 self.withheld = Some(tip);
             }
         }
-        Ok(coherent)
+        if coherent {
+            Ok(())
+        } else {
+            Err(Error::updating())
+        }
     }
 
     fn confirmed(&mut self, tip: BlockHash) -> Result<Confirmed> {
@@ -364,13 +315,5 @@ impl Mempool {
         if let (Some(checker), Some(template)) = (&self.checker, &self.read_only.load().template) {
             checker.check(template.clone());
         }
-    }
-
-    fn panic_msg(payload: &(dyn Any + Send)) -> &str {
-        payload
-            .downcast_ref::<&'static str>()
-            .copied()
-            .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
-            .unwrap_or("<non-string panic payload>")
     }
 }

@@ -22,7 +22,7 @@ pub struct Upkeep {
 }
 
 impl Upkeep {
-    /// The bookkeeping for a graveyard read back, after a restart or a recovery from a publication.
+    /// The bookkeeping for a graveyard read back after a restart.
     /// Each lone tombstone and root is due one retention after its burial. A root with no tombstone
     /// counts from its newest version's burial.
     pub fn of(graveyard: &TxGraveyard) -> Self {

@@ -8,10 +8,7 @@ use brk_types::{BlockHash, FeeRate, MempoolInfo, Timestamp, Txid};
 
 use crate::{
     JsonBody, PendingView, RbfNode, Snapshot, json,
-    stores::{
-        AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, TxStore, Upkeep,
-        tx_store::TxRecord,
-    },
+    stores::{AddrTracker, OutpointSpends, ReadOnlyTxStore, TxGraveyard, tx_store::TxRecord},
 };
 
 use super::{Ancestry, State};
@@ -151,18 +148,5 @@ impl Pool {
                     .get_unreplaced(txid)
                     .map(|tomb| tomb.record.entry.first_seen)
             })
-    }
-
-    /// Restart private work from a known complete publication after a panic.
-    pub fn restore(&self) -> State {
-        State {
-            info: self.info.clone(),
-            txs: TxStore::from_read_only(self.txs.as_ref().clone()),
-            addrs: self.addrs.as_ref().clone(),
-            outpoint_spends: self.outpoint_spends.as_ref().clone(),
-            graveyard: self.graveyard.as_ref().clone(),
-            upkeep: Upkeep::of(&self.graveyard),
-            ancestry: self.ancestry.clone(),
-        }
     }
 }
