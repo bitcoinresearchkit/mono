@@ -3,7 +3,6 @@
 //! after the other, so a plugin's process CPU is its own (`bitview_default::serial`).
 
 use std::{
-    collections::BTreeMap,
     fs::File,
     io::{BufWriter, Write},
     path::Path,
@@ -42,7 +41,6 @@ pub fn run(
     plugins.rewind_for_replay(Height::from(first), context)?;
     serial::start(|| cpu_micros().expect("reading the process CPU time") * 1_000);
 
-    let mut samples = BTreeMap::<String, Vec<u64>>::new();
     let mut raw = BufWriter::new(File::create(path.join("serial_cpu_samples.csv"))?);
     writeln!(raw, "height,plugin,serial_cpu_ms")?;
     for height in first..=tip {
@@ -66,33 +64,9 @@ pub fn run(
             .chain([(TOTAL, total), (UNATTRIBUTED, unattributed)]);
         for (plugin, cpu) in rows {
             writeln!(raw, "{height},{plugin},{}", millis(cpu))?;
-            samples.entry(plugin.to_owned()).or_default().push(cpu);
         }
     }
-    raw.flush()?;
-
-    let mut summary = BufWriter::new(File::create(path.join("serial_cpu.csv"))?);
-    writeln!(
-        summary,
-        "plugin,first_height,last_height,samples,p50_serial_cpu_ms,p95_serial_cpu_ms"
-    )?;
-    for (plugin, mut cpu) in samples {
-        cpu.sort_unstable();
-        writeln!(
-            summary,
-            "{plugin},{},{tip},{},{},{}",
-            first + 1,
-            cpu.len(),
-            millis(nearest_rank(&cpu, 50)),
-            millis(nearest_rank(&cpu, 95)),
-        )?;
-    }
-    Ok(summary.flush()?)
-}
-
-/// The value at `percentile` of the sorted `values`, nearest rank.
-fn nearest_rank(values: &[u64], percentile: usize) -> u64 {
-    values[(values.len() * percentile).div_ceil(100) - 1]
+    Ok(raw.flush()?)
 }
 
 fn millis(ns: u64) -> String {

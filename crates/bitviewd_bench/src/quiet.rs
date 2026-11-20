@@ -79,7 +79,7 @@ pub fn acquire() -> io::Result<Quiet> {
     large(&after, &mut heavy);
     if !heavy.is_empty() {
         return Err(io::Error::other(format!(
-            "Not a quiet machine: {} running; a full bench runs beside Bitcoin Core only (on a mini: ~/Developer/dots/shared/ship stop bitviewd mcp, wait for builds and other benchmarks; nothing is stopped for you)",
+            "Not a quiet machine: {} running; a full bench runs beside Bitcoin Core only (stop servers, wait for builds and other benchmarks; nothing is stopped for you)",
             heavy.lines().join(", ")
         )));
     }

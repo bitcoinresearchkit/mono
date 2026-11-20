@@ -65,14 +65,6 @@ impl UrpdAggregation {
         Self::Log2000,
     ];
 
-    /// The label of the interval containing an exact creation price.
-    pub fn bucket_floor(&self, price: Cents) -> Cents {
-        if price.is_nan() {
-            return Cents::NAN;
-        }
-        Cents::new(self.interval(price).0)
-    }
-
     /// (Label, first cent of the next interval). Building the store and labeling its
     /// projections both walk these intervals. Logarithmic rows with no whole cents vanish.
     pub fn interval(self, price: Cents) -> (u64, u64) {

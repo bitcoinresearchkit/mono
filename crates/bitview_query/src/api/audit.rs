@@ -4,9 +4,9 @@ use bitview_types::{AuditDetail, AuditScore, AuditSummary, TimePeriod, TxAudit};
 use brk_mempool::audit::{Difference, Expected, Mined, MinedBlock, MinedTransaction, Summary};
 use brk_types::{BlockHash, Height, Timestamp, Txid};
 use rustc_hash::FxHashMap;
-use vecdb::ReadableVec;
+use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, ReadPin, Result};
+use crate::{Error, OptionData, Query, ReadPin, Result, block_span};
 
 impl Query {
     /// Loads every committed audit summary, once at startup.
@@ -159,13 +159,11 @@ impl Query {
         let transactions = txids.into_iter().zip(weights).zip(fees).map(|((txid, weight), fee)| {
             MinedTransaction { txid, weight: weight.into(), fee }
         }).collect();
-        let input_begin = usize::from(vecs.inputs.first_txin_index.collect_one(height).data()?);
-        let input_end = if height.incremented() < pin.lengths().height {
-            usize::from(vecs.inputs.first_txin_index.collect_one(height.incremented()).data()?)
-        } else { usize::from(pin.lengths().txin_index) };
-        let outpoints = vecs.inputs.outpoint.collect_range_at(input_begin, input_end);
-        let spenders = vecs.inputs.tx_index.collect_range_at(input_begin, input_end);
-        if outpoints.len() != input_end - input_begin || spenders.len() != outpoints.len() {
+        let lengths = pin.lengths();
+        let inputs = block_span(&vecs.inputs.first_txin_index, height, lengths, lengths.txin_index.to_usize())?;
+        let outpoints = vecs.inputs.outpoint.collect_range_at(inputs.start, inputs.end);
+        let spenders = vecs.inputs.tx_index.collect_range_at(inputs.start, inputs.end);
+        if outpoints.len() != inputs.len() || spenders.len() != outpoints.len() {
             return Err(Error::Internal("Incomplete indexed audit inputs"));
         }
         let mut parents: Vec<_> = outpoints.iter().filter(|o| o.is_not_coinbase()).map(|o| usize::from(o.tx_index())).collect();

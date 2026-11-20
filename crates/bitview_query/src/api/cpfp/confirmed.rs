@@ -9,7 +9,7 @@ use vecdb::{ReadableVec, VecIndex};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_plugin_outputs::published_spend;
 
-use crate::{Error, OptionData, Query, ResolvedConfirmedTx, Result};
+use crate::{Error, OptionData, Query, ResolvedConfirmedTx, Result, block_span};
 
 struct WalkResult {
     graph: Cluster,
@@ -56,15 +56,12 @@ impl Query {
         let (first, count) = self.block_tx_range(height, pin)?;
         let block_first = TxIndex::from(first);
         let block_end = TxIndex::from(first + count);
-        let block_inputs = &indexer.vecs().inputs.first_txin_index;
-        let block_first_input = block_inputs.collect_one(height).data()?;
-        let next_height = height.incremented();
-        let block_end_input = if next_height < safe.height {
-            block_inputs.collect_one(next_height).data()?
-        } else {
-            safe.txin_index
-        };
-        let block_inputs = block_first_input..block_end_input;
+        let block_inputs = block_span(
+            &indexer.vecs().inputs.first_txin_index,
+            height,
+            safe,
+            safe.txin_index.to_usize(),
+        )?;
 
         let mut first_txin = indexer.vecs().transactions.first_txin_index.cursor();
         let mut input_count = plugins.mappings.tx_index.input_count.cursor();
@@ -103,7 +100,7 @@ impl Query {
                     continue;
                 };
                 // The input already identifies its block, so only resolve a same-block spender.
-                if block_inputs.contains(&input) {
+                if block_inputs.contains(&usize::from(input)) {
                     children.push(spending_tx.get(usize::from(input)).data()?);
                 }
             }

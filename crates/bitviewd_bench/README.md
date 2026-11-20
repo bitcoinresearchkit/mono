@@ -58,7 +58,6 @@ at the start (`busiest_processes`), the home volume's used and total bytes (`int
 `comparable_reason`; false names the first heavy process seen beside the run. The benchmarks page
 shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording
 from before the check) means comparable.
-The existing `benches/.lock` also guards each data directory.
 
 The results path is printed before bootstrap starts and again after completion.
 For example, `--bitviewdir /Volumes/External/bitview` writes reports beneath
@@ -74,7 +73,6 @@ disk_breakdown.csv  # final size per component (`plugins/<id>` and top-level ent
 progress.csv        # heights from production log events, with their source (`indexer`, ...)
 run.csv             # total bootstrap duration and status (complete, failed or aborted)
 timings.csv         # every completed production plugin import and compute interval
-serial_cpu.csv      # per plugin, serial-replay CPU per block of the last 10 blocks: p50 and p95
 serial_cpu_samples.csv # the serial-replay CPU of each plugin in each block
 ```
 
@@ -105,8 +103,7 @@ blocks) is joined into the indexer's step.
 
 `serial_cpu_samples.csv` has `height,plugin,serial_cpu_ms`, one row per plugin per block, and
 `total` (the whole update) and `unattributed` (`total` less the plugins: the schedule, logging and
-helper threads between steps). `serial_cpu.csv` has the nearest-rank p50 and p95 of each over the
-9 measured blocks, so p95 is the largest.
+helper threads between steps), for the 9 measured blocks.
 
 These are serial-replay CPU per block, not production CPU. The vectors' delayed compaction, 5 s
 after an update (`bitview_plugin/src/update_context.rs`), is not counted. Compare plugins with each

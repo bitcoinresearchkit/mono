@@ -6,11 +6,11 @@ use bitview_traversable::Traversable;
 macro_rules! percentile_collection {
     (
         [$name:ident] $id:ident, $values:ident: [$ty:ty; $len:ident];
-        $($variant:ident => $field:ident, $value:expr $(, $doc:literal)?;)*
+        $($variant:ident => $field:ident, $value:expr, $doc:literal;)*
     ) => {
         #[derive(Clone, Traversable)]
         pub struct $name<T> {
-            $($(#[doc = $doc])? pub $field: T,)*
+            $(#[doc = $doc] pub $field: T,)*
         }
 
         impl<T> $name<T> {
@@ -43,23 +43,7 @@ macro_rules! percentile_collection {
 }
 
 percentile_table!(percentile_collection, ByPercentile);
-macro_rules! rarity_collections {
-    (
-        [] $id:ident, $values:ident: [$ty:ty; $len:ident];
-        $($variant:ident => $field:ident, $value:expr, $($shared:literal)? $([$quantile:literal])?;)*
-    ) => {
-        percentile_collection! {
-            [RarityPercentiles] $id, $values: [$ty; $len];
-            $($variant => $field, $value $(, $shared)? $(, $quantile)?;)*
-        }
-        percentile_collection! {
-            [RarityMeterBands] $id, $values: [$ty; $len];
-            $($variant => $field, $value $(, $shared)?;)*
-        }
-    };
-}
-
-rarity_percentile_table!(rarity_collections);
+rarity_percentile_table!(percentile_collection, RarityPercentiles);
 
 impl<T> RarityPercentiles<T> {
     pub fn boundary_refs(&self) -> [&T; 10] {

@@ -31,8 +31,9 @@ macro_rules! percentile_table {
     };
 }
 
-/// The rarity meter's percentiles, in ascending order; rows as in [`percentile_table!`].
-/// Bracketed descriptions apply only to history-ranked component bands.
+/// The rarity meter's percentiles, in ascending order; rows as in [`percentile_table!`]. The
+/// interior rows are quantiles in a component's bands and interpolations in the combined
+/// meter's, so their descriptions name the band alone.
 #[macro_export]
 macro_rules! rarity_percentile_table {
     ($callback:ident $(, $arg:tt)*) => {
@@ -43,15 +44,15 @@ macro_rules! rarity_percentile_table {
             P1 => p1, 0.01, "Uses the 1% quantile.";
             P2 => p2, 0.02, "Uses the 2% quantile.";
             P5 => p5, 0.05, "Uses the 5% quantile.";
-            P10 => p10, 0.10, ["Uses the 10% quantile."];
-            P20 => p20, 0.20, ["Uses the 20% quantile."];
-            P30 => p30, 0.30, ["Uses the 30% quantile."];
-            P40 => p40, 0.40, ["Uses the 40% quantile."];
-            Median => median, 0.50, ["Uses the 50% quantile."];
-            P60 => p60, 0.60, ["Uses the 60% quantile."];
-            P70 => p70, 0.70, ["Uses the 70% quantile."];
-            P80 => p80, 0.80, ["Uses the 80% quantile."];
-            P90 => p90, 0.90, ["Uses the 90% quantile."];
+            P10 => p10, 0.10, "The 10% band.";
+            P20 => p20, 0.20, "The 20% band.";
+            P30 => p30, 0.30, "The 30% band.";
+            P40 => p40, 0.40, "The 40% band.";
+            Median => median, 0.50, "The 50% band.";
+            P60 => p60, 0.60, "The 60% band.";
+            P70 => p70, 0.70, "The 70% band.";
+            P80 => p80, 0.80, "The 80% band.";
+            P90 => p90, 0.90, "The 90% band.";
             P95 => p95, 0.95, "Uses the 95% quantile.";
             P98 => p98, 0.98, "Uses the 98% quantile.";
             P99 => p99, 0.99, "Uses the 99% quantile.";
@@ -64,7 +65,7 @@ macro_rules! rarity_percentile_table {
 macro_rules! percentile_id {
     (
         [] $id:ident, $values:ident: [$ty:ty; $len:ident];
-        $($variant:ident => $suffix:ident, $value:expr, $doc:tt;)*
+        $($variant:ident => $suffix:ident, $value:expr, $doc:literal;)*
     ) => {
         /// The family's values, in ascending order.
         pub const $values: [$ty; $len] = [$($value),*];

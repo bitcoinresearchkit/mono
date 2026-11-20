@@ -203,12 +203,13 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        Path(path): Path<HeightParam>,
                        QueryParams(query): QueryParams<DustLimitQuery>,
                        RequestState(state): RequestState| {
-                    let dust_limit = query.limit();
+                    // No transaction below the floor is held: a lower limit answers as the floor.
+                    let dust_limit = query.limit().max(DUST_FLOOR);
                     state
                         .respond_blindbit(
                             &headers,
                             path.height,
-                            format!("tweak-index-{}", dust_limit.max(DUST_FLOOR)),
+                            format!("tweak-index-{dust_limit}"),
                             move |q, block| q.blindbit_tweak_index(block, dust_limit),
                         )
                         .await

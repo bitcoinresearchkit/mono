@@ -154,12 +154,14 @@ impl SentenceIndex {
         limit: usize,
     ) -> Vec<u32> {
         let hits = self.matcher.word_hits(query, exact);
-        if hits.is_empty() {
+        // A series' words are counted in a byte: no hit, or more words than that, answers nothing.
+        let words = u8::try_from(hits.len()).unwrap_or(0);
+        if words == 0 {
             return Vec::new();
         }
         // Advance a series at most once per word, however many matching sentences it contains.
-        let mut held = vec![0usize; names.len()];
-        for (word, sentences) in hits.iter().enumerate() {
+        let mut held = vec![0u8; names.len()];
+        for (word, sentences) in (0..).zip(&hits) {
             for &sentence in sentences {
                 for &id in &self.series[sentence as usize] {
                     let count = &mut held[id as usize];
@@ -172,7 +174,7 @@ impl SentenceIndex {
         let mut candidates = held
             .into_iter()
             .enumerate()
-            .filter(|&(_, count)| count == hits.len())
+            .filter(|&(_, count)| count == words)
             .map(|(id, _)| {
                 let words = if name_words[id] == 0 {
                     1
