@@ -218,26 +218,32 @@
         color: var(--soft);
       }
 
+      /* (One row that never wraps, scrolling sideways when the machines outgrow it, so its height is one at every width and
+         pointer and the page below doesn't move as they arrive. Padded for the buttons' 44px reach for fingers, which an
+         overflow would clip, and pulled back by the same, so the padding takes no room.) */
       .tabs {
+        --tab: 28px;
         display: flex;
-        flex-wrap: wrap;
         gap: 6px;
-        margin-top: 20px;
-
-        @media (pointer: coarse) {
-          row-gap: 12px;
-        }
+        height: calc(var(--tab) + 16px);
+        margin: 12px 0 -8px;
+        padding-block: 8px;
+        overflow-x: auto;
+        scrollbar-width: none;
 
         button {
+          flex: none;
+          height: var(--tab);
           border: 0;
           border-radius: 999px;
-          padding: 6px 14px;
+          padding: 0 14px;
           background: var(--raised);
           box-shadow: inset 0 0 0 1px var(--line);
           color: var(--text);
           font: inherit;
           font-size: 13px;
           font-weight: 600;
+          white-space: nowrap;
           cursor: pointer;
 
           &:hover {
@@ -278,12 +284,21 @@
 
       /* ── The latest complete run ── */
 
+      /* (As tall as the latest run comes at each width, whatever the hero holds (the run, words while they're read, a failure), so
+         what's below it stays where it is.) */
       .hero {
+        --hero: 440px;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 20px 40px;
+        min-height: var(--hero);
+
+        @media (min-width: 640px) {
+          --hero: 352px;
+        }
 
         @media (min-width: 900px) {
+          --hero: 200px;
           grid-template-columns: auto minmax(0, 1fr);
           align-items: end;
         }
@@ -666,54 +681,9 @@
         visibility: hidden;
       }
 
-      /* (While they are read: a quiet block where the machines and the latest run will be, about as tall as they come at
-         each width (three machines' tabs), so almost nothing moves when they arrive. Its words stay for a screen reader;
-         the meter is what's seen of the reading.) */
-      main:has(.status.loading) {
-        --tabs: 108px;
-        --hero: 400px;
-
-        @media (min-width: 640px) {
-          --tabs: 70px;
-          --hero: 336px;
-        }
-
-        @media (min-width: 900px) {
-          --hero: 190px;
-        }
-
-        @media (min-width: 960px) {
-          --tabs: 32px;
-        }
-
-        .tabs {
-          min-height: var(--tabs);
-        }
-      }
-
-      .status.loading {
-        min-height: var(--hero);
-        border-radius: 10px;
-        background: var(--raised);
-
-        p {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          overflow: hidden;
-          clip-path: inset(50%);
-          white-space: nowrap;
-        }
-
-        .meter {
-          margin: 0;
-          max-width: none;
-          border-radius: 10px 10px 0 0;
-        }
-      }
-
       .status {
         grid-column: 1 / -1;
+        align-self: start;
         color: var(--soft);
 
         p {
@@ -1124,6 +1094,9 @@
       // ── Machines ──
       function tabs() {
         $("tabs").innerHTML = machines.map((m, k) => `<button type="button" aria-pressed="${k === machine}" data-k="${k}">${escape(machineWords(m.name))} <span class="num">· ${(m.runs ?? m.folders).length}</span></button>`).join("");
+        // The chosen machine centred in the row, when the row scrolls.
+        const row = $("tabs"), on = row.querySelector("[aria-pressed=true]");
+        if (on) row.scrollLeft = on.offsetLeft - row.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
       }
       function choose(k) {
         machine = k;
