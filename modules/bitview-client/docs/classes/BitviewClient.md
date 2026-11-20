@@ -993,9 +993,7 @@ Endpoint: `GET /blindbit/mainnet/tweak-index/{height}`
 
 `number`
 
-Least value in sats of a Taproot output for its transaction to be listed. Optional, any
-  value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
-  as 600.
+Minimum Taproot output value in sats. Defaults to 0.
 
 ###### memCache?
 
@@ -1023,7 +1021,7 @@ Defined in: [modules/bitview-client/index.js:10870](https://github.com/bitcoinre
 
 Cut-through tweaks
 
-`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
 
 Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
 
@@ -1043,9 +1041,7 @@ Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
 
 `number`
 
-Least value in sats of a Taproot output for its transaction to be listed. Optional, any
-  value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
-  as 600.
+Minimum Taproot output value in sats. Defaults to 0.
 
 ###### memCache?
 

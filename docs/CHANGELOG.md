@@ -8,6 +8,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Bitviewd prefixes API ETags with a digest of its build sources and locked dependencies. Independent builds
+  from the same inputs share validators, and local source edits invalidate them. A new commit now recompiles only
+  `bitviewd`; Rust applications embedding the server report `v{version}` (was the commit) unless they name their build
+  with `bitview::set_build(version, tag)`.
+
 - Blocks now carry this server's own audit, recorded live from its mempool the moment each block
   arrives: match rate, expected fees and weight, similarity, and which transactions were missing,
   fresh, replaced, added or never seen, at mempool.space's audit URLs. Blocks from before a server
@@ -361,6 +366,31 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   node), and `brk_bytes` counts the stores' tables by their length (was allocated blocks: 0.001% apart). Both are as
   of the last block: `brk_bytes` measured at start and after each indexed block, `bitcoin_bytes` read at the node's
   last new tip
+- HTTP caching: every `GET` answer is of one of three classes, and no route sets its own headers
+  - Live (the tip, the mempool, anything the next block changes) and settled (what the server shapes from chain data
+    its URL pins more than six blocks deep): browsers get `Cache-Control: public, max-age=1, must-revalidate` and may
+    reuse the answer for a second without asking (most were `public, no-cache, must-revalidate`)
+  - Committed (bytes the hash in the URL fixes): `public, max-age=31536000, immutable` in browsers too once their
+    block is settled, so they are never asked for again: a block's raw bytes, its header and the txid at an index of
+    it, a transaction's hex and raw bytes (browsers revalidated them)
+  - Under `--cdn`, the CDN newly keeps as `immutable`, once settled: `/api/tx-index/{index}`, a transaction's
+    outspends once every output is spent, an address's confirmed page after a cursor, a pool's blocks before a height
+    and the block at a timestamp
+- `GET /api/v1/difficulty-adjustment`: `estimatedRetargetDate` is the tip block's time plus `remainingTime` (was the
+  server's clock plus the same, as mempool.space computes it). The answer is then the same until the next block and
+  its ETag holds between blocks (it changed on every request). The date is early by the tip's age, and with a block
+  or two left in the epoch it can be before now: for a date counted from now, add `remainingTime` to your own clock
+- `GET /api/v1/prices`: `time` is when the price was derived (the mempool publication counted in it, else the tip
+  block's time), not the clock at the request: the answer keeps its ETag until the price moves
+- Website: a page's Markdown twin has an address of its own, the page's address and `.md`, a folder's page being its
+  `index.html` (`/studio/index.html.md`, `/studio/presets/valuation/mvrv.md`). `Accept: text/markdown` at a page's
+  address gets the HTML (was the Markdown), which names its twin in a `Link` header and a
+  `<link rel="alternate" type="text/markdown">`; nothing is negotiated and `Vary: Accept` is gone. Pages are
+  `public, max-age=1, must-revalidate` (were `private, max-age=0, must-revalidate`), and under `--cdn` every document
+  of the embedded site outside a release address is `immutable` at the CDN. `llms.txt` links the sections' twins.
+  `bitview_website::router` takes a second argument, `cdn_purged`
+- Rust: `Indexer::read_tx` and `read_tx_at` return the decoded `Transaction` (were `(bytes, transaction)`);
+  `read_tx_bytes` returns a transaction's bytes without decoding them. `bitview_http::listed_etags` is gone
 
 ### New Features
 
@@ -874,7 +904,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   the patterns, CPFP parents and children, nonstandard, inscriptions) has the value its transactions moved, beside its
   count and share: bitcoin and dollars, per block, all time and over each window, stored as transfer volume is, and
   its share of transfer volume
-- A build from the repository reports the commit it was built from (`/version`, `/health`, ETags; was the crate's
+- A build from the repository reports the commit it was built from (`/version`, `/health`; was the crate's
   version), a crates.io release its version; the OpenAPI document keeps the release's version
 - The website answers a page's old address with a permanent redirect to its new one, the query kept
   (`/series/?series=…` → `/catalog/?series=…`, `/api-changes/` → `/changes/`); `/charts` and every address under it
@@ -892,6 +922,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   word lists alone: the items holding the most of its words, at least half, shortest first (a word counts whole, a
   letter past, joined to the word beside it, or as a typo when the rest of the query then fits). `words_held(query)`
   counts, for every item, how many of a query's distinct words it holds whole (255 words at most)
+- `GET /api/server/logs` carries an ETag: a request holding it gets `304`
 
 ### Performance
 
@@ -986,6 +1017,15 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - A missing series name's 404 reads its suggestions from the search's word lists: 35 µs at the median of 397 real
   missing names, 0.13 ms at most (it ran the whole series search: 2 to 19 ms a miss on prod, over a second for a
   long name of real words)
+- A missing series name's 404 waits behind no running series query: it is answered before the route asks for a
+  series permit
+- The mempool's small answers (the fee routes, `/api/mempool`, its recent transactions and replacements, the block
+  template) wait behind no chain read: each is built once per publication and read from memory, but a request for
+  one, its `304` included, queued for a chain permit behind address and block reads
+- A request holding the ETag of an oracle block's reading or of an oracle payments chunk gets its `304` before
+  anything is replayed (the answer was built to be named)
+- A UTXO-set or URPD answer opens its history once: 12 file opens per UTXO-set body (were 24), 6 per URPD body
+  (were 12), and a `304` or the cohort list reads 2 positions (were 14)
 
 ### Bug Fixes
 
@@ -1257,6 +1297,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   percentiles, unrealized profit and loss, the entry bands, the discount and premium cohorts, the Rarity Meters and
   Cointime's prices and investor cap said what holders, buyers or investors paid, or bought. Ids and values are
   unchanged
+- BlindBit `GET /blindbit/mainnet/utxos/{height}`: the ETag covers every output the body lists. Outputs under 600
+  sats were left out of it, so spending a 330- or 546-sat output left the tag unchanged and a conditional request
+  got `304` for a body whose `spent` had changed; and under `--cdn` a block went out `immutable` once its larger
+  outputs were spent, a small one still unspent. It is final only once every listed output is spent and settled
 
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 

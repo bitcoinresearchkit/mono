@@ -341,15 +341,13 @@ impl Query {
     }
 
     /// `height < min(spot price len, safe height)` or 404.
-    /// Returns the safe lengths so callers cap reads at the same bound.
-    fn check_histogram_height(&self, height: usize, safe: Lengths) -> Result<Lengths> {
-        let bound = self.histogram_bound(&safe);
-        if height >= bound {
+    fn check_histogram_height(&self, height: usize, safe: Lengths) -> Result<()> {
+        if height >= self.histogram_bound(&safe) {
             return Err(Error::NotFound(format!(
                 "no oracle reading at height {height} yet"
             )));
         }
-        Ok(safe)
+        Ok(())
     }
 }
 

@@ -234,16 +234,15 @@ impl Query {
     }
 
     /// The tweaks of the block's eligible transactions with a Taproot output holding at least
-    /// `dust_limit`, no less than the dust floor.
+    /// `dust_limit`.
     pub fn blindbit_tweak_index(
         &self,
         block: &BlindbitBlock,
         dust_limit: Sats,
     ) -> Result<Vec<Tweak>> {
-        debug_assert!(dust_limit >= DUST_FLOOR, "limit {dust_limit}");
         let rows = self.blindbit_rows(block)?;
-        // Every row has a Taproot output of at least the floor: none to read at the floor.
-        if dust_limit == DUST_FLOOR || rows.is_empty() {
+        // Every indexed transaction already has a Taproot output worth at least the floor.
+        if dust_limit <= DUST_FLOOR || rows.is_empty() {
             return self.blindbit_tweaks_where(rows, |_| true);
         }
         let tx_indexes = self.blindbit_tx_indexes(rows.clone())?;

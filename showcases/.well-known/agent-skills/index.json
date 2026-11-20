@@ -6,7 +6,7 @@
       "type": "skill-md",
       "description": "Fetches live and historical Bitcoin data from Bitview, read from a full node: on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015. Use when a question needs Bitcoin on-chain, market, mempool, fee, mining or holder-cohort data.",
       "url": "bitview/SKILL.md",
-      "digest": "sha256:9aa74c8aff3a0680130c2cad80b909772c4a3b3ef3c7f049c13bcd4b27c91022"
+      "digest": "sha256:c10719e557780c09523939f871acfb7caab45c2dc779d2520fd8e4b4c345fb97"
     }
   ]
 }

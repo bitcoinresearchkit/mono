@@ -74,6 +74,50 @@
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
+ * This server's permanent live observation of a block expectation.
+ *
+ * @typedef {Object} AuditDetail
+ * @property {number} version
+ * @property {Height} height
+ * @property {BlockHash} id
+ * @property {Timestamp} timestamp
+ * @property {number} matchRate
+ * @property {Sats} expectedFees
+ * @property {Weight} expectedWeight
+ * @property {Txid[]} unseenTxs
+ * @property {Txid[]} missingTxs
+ * @property {Txid[]} addedTxs
+ * @property {Txid[]} prioritizedTxs
+ * @property {Txid[]} freshTxs
+ * @property {Txid[]} sigopTxs
+ * @property {Txid[]} fullrbfTxs
+ * @property {Txid[]} acceleratedTxs
+ */
+/**
+ * @typedef {Object} AuditScore
+ * @property {BlockHash} hash
+ * @property {number} matchRate
+ * @property {Sats} expectedFees
+ * @property {Weight} expectedWeight
+ */
+/**
+ * Mempool v1 uses the JSON string `"null"` for an absent score.
+ *
+ * @typedef {(AuditScore|string)} AuditScoreResponse
+ */
+/**
+ * This server's permanent live observation of a block expectation.
+ *
+ * @typedef {Object} AuditSummary
+ * @property {number} version
+ * @property {Height} height
+ * @property {BlockHash} id
+ * @property {Timestamp} timestamp
+ * @property {number} matchRate
+ * @property {Sats} expectedFees
+ * @property {Weight} expectedWeight
+ */
+/**
  * An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
  *
  * @typedef {number} Bitcoin
@@ -178,10 +222,10 @@
  *   sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
  * @property {BlockOrphan[]} orphans - Stale blocks at this height the server's node knows, each server's own
- * @property {?number=} matchRate - Share of the expected block template the block matched, from mempool.space's own audits
- *   (always null: it needs the mempool as it was)
- * @property {(Sats|null)=} expectedFees - Fees of the expected block template (always null: it needs the mempool as it was)
- * @property {(Weight|null)=} expectedWeight - Weight of the expected block template (always null: it needs the mempool as it was)
+ * @property {?number=} matchRate - Match rate of this server's live pre-block observation; null for unaudited blocks.
+ * @property {(Sats|null)=} expectedFees - Base fees of this server's expected block, excluding coinbase.
+ * @property {(Weight|null)=} expectedWeight - Raw transaction weight of the expected block, excluding header and coinbase reserve.
+ * @property {?number=} similarity - Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
  * @property {Dollars} price - USD price at block height
  */
 /**
@@ -562,7 +606,9 @@
  * @property {number} progressPercent - Progress through current difficulty epoch (0-100%)
  * @property {number} difficultyChange - Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
  * @property {number} estimatedRetargetDate - Estimated timestamp of next retarget (milliseconds): the tip block's time plus
- *   `remainingTime`, so it moves with blocks, not with the clock
+ *   `remainingTime`, so it moves with blocks, not with the clock. It is early by the tip's
+ *   age, and with a block or two left in the epoch it can be before now: for a date counted
+ *   from now, as mempool.space gives, add `remainingTime` to your own clock
  * @property {number} remainingBlocks - Blocks remaining until retarget
  * @property {number} remainingTime - Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
  * @property {number} previousRetarget - Previous difficulty adjustment (%)
@@ -1465,6 +1511,15 @@
  * its scan key for the secret it shares with the transaction.
  *
  * @typedef {string} Tweak
+ */
+/**
+ * @typedef {Object} TxAudit
+ * @property {boolean} seen
+ * @property {boolean} expected
+ * @property {boolean} added
+ * @property {boolean} prioritized
+ * @property {boolean} conflict
+ * @property {boolean} accelerated
  */
 /**
  * @typedef {Object} TxIn
@@ -7168,7 +7223,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "39e5a627657ffa072a78c343a25bcc1515f0f677d20e7370417c8ecfb743a65a";
+  static HASH = "a1995d1f583f7ba29942ec641e4087803f2d79e24e4807ab732ce032a4794684";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -8450,7 +8505,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Difficulty adjustment
    *
-   * Get current difficulty adjustment progress and estimates.
+   * Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
    *
@@ -9076,6 +9131,133 @@ class BitviewClient extends BitviewClientBase {
    */
   async getBlocksV1FromHeight(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/blocks/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * This server's recorded block expectation
+   *
+   * Endpoint: `GET /api/v1/block/{hash}/audit-summary`
+   *
+   * @param {BlockHash} hash
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AuditSummary>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AuditSummary>>}
+   */
+  async getBlockAuditSummary(hash, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/block/${encodeURIComponent(hash)}/audit-summary`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Recorded missing, fresh, conflicting, added and unseen transactions
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/audit/{hash}`
+   *
+   * @param {BlockHash} hash
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AuditDetail>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AuditDetail>>}
+   */
+  async getBlockAudit(hash, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/mining/blocks/audit/${encodeURIComponent(hash)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Recorded audit score for a block hash
+   *
+   * A permanent server-local score. A missing audit returns the JSON string "null".
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/audit/score/{hash}`
+   *
+   * @param {BlockHash} hash
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AuditScoreResponse>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AuditScoreResponse>>}
+   */
+  async getBlockAuditScore(hash, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/mining/blocks/audit/score/${encodeURIComponent(hash)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Audited scores in the latest sixteen height slots
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/audit/scores`
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AuditScore[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AuditScore[]>>}
+   */
+  async getRecentAuditScores({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/mining/blocks/audit/scores`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Audited scores through a canonical height
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/audit/scores/{height}`
+   *
+   * @param {Height} height
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<AuditScore[]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<AuditScore[]>>}
+   */
+  async getAuditScores(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/mining/blocks/audit/scores/${encodeURIComponent(height)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Time-bucketed canonical audit match rates
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/predictions/{time_period}`
+   *
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<[number, Height, number][]>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<[number, Height, number][]>>}
+   */
+  async getAuditPredictions(time_period, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/mining/blocks/predictions/${encodeURIComponent(time_period)}`;
+    return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * How this server's expectation classified a confirmed transaction
+   *
+   * Endpoint: `GET /api/v1/block/{hash}/tx/{txid}/audit`
+   *
+   * @param {BlockHash} hash
+   * @param {Txid} txid
+   * @param {object} [options]
+   * @param {AbortSignal} [options.signal]
+   * @param {(value: Frozen<TxAudit>) => void} [options.onValue]
+   * @param {boolean} [options.cache]
+   * @param {boolean} [options.memCache]
+   * @returns {Promise<Frozen<TxAudit>>}
+   */
+  async getTransactionAudit(hash, txid, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/block/${encodeURIComponent(hash)}/tx/${encodeURIComponent(txid)}/audit`;
     return this._getCached(path, 'json', _readJson(undefined), { signal, onValue, cache, memCache });
   }
 
@@ -10099,9 +10281,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
-   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
-   *   as 600.
+   * @param {number} [options.dustLimit] - Minimum Taproot output value in sats. Defaults to 0.
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
    * @param {boolean} [options.cache]
@@ -10119,15 +10299,13 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Cut-through tweaks
    *
-   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+   * `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
    *
    * Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
    *
    * @param {Height} height
    * @param {object} [options]
-   * @param {number} [options.dustLimit] - Least value in sats of a Taproot output for its transaction to be listed. Optional, any
-   *   value, as BlindBit takes it (0 when left out); below 600, the least value held, it answers
-   *   as 600.
+   * @param {number} [options.dustLimit] - Minimum Taproot output value in sats. Defaults to 0.
    * @param {AbortSignal} [options.signal]
    * @param {(value: Frozen<Tweak[]>) => void} [options.onValue]
    * @param {boolean} [options.cache]

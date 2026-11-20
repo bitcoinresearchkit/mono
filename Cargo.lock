@@ -1115,6 +1115,7 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
  "tower-http",
  "tracing",
@@ -1221,6 +1222,7 @@ dependencies = [
  "bitview",
  "bitview_default",
  "brk_alloc",
+ "sha2",
 ]
 
 [[package]]

@@ -91,7 +91,7 @@ impl ResolvedBlocks {
         query.block_raw_at_height(height, &hash, &self.read_pin(query))
     }
 
-    /// Return the framed raw length after verifying the anchor header.
+    /// Return the block's indexed size in bytes after verifying the anchor header.
     /// This does not read or validate transaction payload bytes.
     pub fn anchor_raw_size(self, query: &Query) -> Result<u64> {
         let (height, hash) = self.anchor_pair()?;

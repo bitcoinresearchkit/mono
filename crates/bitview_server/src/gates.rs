@@ -11,20 +11,29 @@ use crate::AppState;
 pub struct Gate<'a> {
     /// Bounds how many resolve and build at once; `None` for a read that waits behind nothing.
     pub admission: Option<&'a Arc<Semaphore>>,
-    /// Bounds the bodies of 256 KiB and more held until sent; `None` leaves them unbounded.
-    pub bodies: Option<&'a Arc<Semaphore>>,
-    /// Whether a body takes its permit before it is built (a budget the route has to itself:
-    /// its bodies are large, so none is built only to be dropped) or once built and found large
-    /// (a budget shared with small bodies, which need none).
-    pub reserve: bool,
+    pub bodies: Bodies,
+}
+
+/// What bounds the bodies of 256 KiB and more a route holds until they are sent.
+pub enum Bodies {
+    Unbounded,
+    /// A budget shared with small bodies, which need none: a body takes its permit once built
+    /// and found large.
+    WhenLarge(Arc<Semaphore>),
+    /// A budget the route has to itself, its bodies being large: the permit is taken before the
+    /// answer's `build` runs. What its `resolve` reads or builds to name it comes before that.
+    #[cfg_attr(
+        not(feature = "full-api"),
+        allow(dead_code, reason = "only routes of the full API reserve")
+    )]
+    Reserved(Arc<Semaphore>),
 }
 
 impl<'a> Gate<'a> {
     /// Waits behind nothing and bounds no body: an answer from memory.
     pub const OPEN: Self = Self {
         admission: None,
-        bodies: None,
-        reserve: false,
+        bodies: Bodies::Unbounded,
     };
 
     fn waiting(admission: &'a Arc<Semaphore>) -> Self {
@@ -38,8 +47,7 @@ impl<'a> Gate<'a> {
     fn reserving(admission: Option<&'a Arc<Semaphore>>, bodies: &'a Arc<Semaphore>) -> Self {
         Self {
             admission,
-            bodies: Some(bodies),
-            reserve: true,
+            bodies: Bodies::Reserved(Arc::clone(bodies)),
         }
     }
 
@@ -47,8 +55,7 @@ impl<'a> Gate<'a> {
     #[cfg(feature = "full-api")]
     pub fn without_bodies(self) -> Self {
         Self {
-            bodies: None,
-            reserve: false,
+            bodies: Bodies::Unbounded,
             ..self
         }
     }
@@ -58,7 +65,7 @@ impl AppState {
     /// Chain reads (tip, blocks, transactions, addresses).
     pub fn chain(&self) -> Gate<'_> {
         Gate {
-            bodies: Some(&self.chain_bodies),
+            bodies: Bodies::WhenLarge(Arc::clone(&self.chain_bodies)),
             ..Gate::waiting(&self.chain_query)
         }
     }
@@ -67,7 +74,7 @@ impl AppState {
     #[cfg(feature = "full-api")]
     pub fn history(&self) -> Gate<'_> {
         Gate {
-            bodies: Some(&self.chain_bodies),
+            bodies: Bodies::WhenLarge(Arc::clone(&self.chain_bodies)),
             ..Gate::waiting(&self.history_query)
         }
     }
@@ -98,8 +105,19 @@ impl AppState {
         Gate::reserving(Some(&self.chain_query), &self.historical_price_bodies)
     }
 
-    /// The mempool's own answers read no chain data, so they wait behind no chain read: their
-    /// budgets alone bound how many build at once.
+    /// The mempool's small answers (fees, statistics, recent transactions, replacements, the
+    /// block template): each is built once per publication and read from memory, so a request
+    /// waits behind no chain read. One grown large shares the chain's body budget.
+    #[cfg(feature = "full-api")]
+    pub fn mempool(&self) -> Gate<'_> {
+        Gate {
+            bodies: Bodies::WhenLarge(Arc::clone(&self.chain_bodies)),
+            ..Gate::OPEN
+        }
+    }
+
+    /// The mempool's large answers read no chain data either: their own budgets alone bound how
+    /// many build at once.
     #[cfg(feature = "full-api")]
     pub fn mempool_txids(&self) -> Gate<'_> {
         Gate::reserving(None, &self.mempool_txid_bodies)

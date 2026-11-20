@@ -2,11 +2,9 @@
 
 use std::{
     any::Any,
-    fs,
     net::SocketAddr,
     num::NonZero,
-    path::Path,
-    sync::{Arc, LazyLock},
+    sync::{Arc, OnceLock},
     thread,
     time::{Duration, Instant},
 };
@@ -37,7 +35,6 @@ use state::*;
 
 mod answer;
 mod api;
-mod cache;
 mod canonical_url;
 mod config;
 mod error;
@@ -57,10 +54,10 @@ mod series_bodies;
 mod stall_limit;
 mod state;
 
+pub use answer::CdnCacheMode;
 pub use api::ApiRoutes;
 
 pub use bitview_website::Website;
-pub use cache::CdnCacheMode;
 pub use error::Error;
 pub use port::Port;
 
@@ -71,93 +68,19 @@ use raw_body::RawBodyPermit;
 #[cfg(feature = "series")]
 use series_bodies::SeriesBodies;
 
-/// The version the server says it runs (`/version`, `/health`'s, every ETag's prefix): built
-/// from the repository, its commit, so each build is told apart (by `cargo install --git`,
-/// next's, the one it was built from; in a checkout, `cargo dev`'s, the one checked out as it
-/// starts); a crates.io release, `v` and the release.
-pub(crate) static VERSION: LazyLock<String> = LazyLock::new(|| {
-    installed_commit()
-        .or_else(|| checkout_commit(&Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")))
-        .unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
-});
+static VERSION: OnceLock<&'static str> = OnceLock::new();
 
-/// The short commit checked out in the repository at `root` (this crate's workspace, two up
-/// from its source), read from its `.git` as the server starts: its HEAD, the branch it names
-/// (loose or packed, a worktree's in its repository's), or the commit itself. None where it's no
-/// repository (a crates.io release's source, in cargo's registry).
-fn checkout_commit(root: &Path) -> Option<String> {
-    let dot = root.join(".git");
-    let git = if dot.is_dir() {
-        dot
-    } else {
-        // (A worktree's: a file naming its own.)
-        root.join(
-            fs::read_to_string(&dot)
-                .ok()?
-                .strip_prefix("gitdir:")?
-                .trim(),
-        )
-    };
-    let head = fs::read_to_string(git.join("HEAD")).ok()?;
-    let commit = match head.trim().strip_prefix("ref:") {
-        None => head.trim().to_string(),
-        Some(name) => {
-            let name = name.trim();
-            let common = fs::read_to_string(git.join("commondir"))
-                .map_or_else(|_| git.clone(), |dir| git.join(dir.trim()));
-            match fs::read_to_string(common.join(name)) {
-                Ok(commit) => commit.trim().to_string(),
-                Err(_) => fs::read_to_string(common.join("packed-refs"))
-                    .ok()?
-                    .lines()
-                    .find_map(|line| {
-                        let (commit, packed) = line.split_once(' ')?;
-                        (packed == name).then(|| commit.to_string())
-                    })?,
-            }
-        }
-    };
-    (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
-        .then(|| commit[..7].to_string())
+/// Names what the application was built from: the version `/version` and `/health` report and
+/// the digest of its sources that prefixes every ETag. Call before starting the server. It
+/// lives with the application, not here, so a new commit rebuilds only the binary: embedders
+/// that don't call it report the crate's version and tag by their executable's hash.
+pub fn set_build(version: &'static str, tag: &'static str) {
+    VERSION.set(version).expect("Build is already set");
+    etag::set_build_tag(tag);
 }
 
-/// The short commit `cargo install --git` built this binary from, as cargo recorded it: its record
-/// of installs (`.crates2.json`, in the root whose `bin/` holds the binary, its links followed)
-/// keys each by its package id, a git one ending `#` and the full commit. None for any other
-/// install, or none.
-fn installed_commit() -> Option<String> {
-    let exe = std::fs::canonicalize(std::env::current_exe().ok()?).ok()?;
-    let bin = exe.parent()?;
-    if bin.file_name()? != "bin" {
-        return None;
-    }
-    let record = std::fs::read(bin.parent()?.join(".crates2.json")).ok()?;
-    commit_installed(&record, exe.file_name()?.to_str()?)
-}
-
-/// In cargo's record of installs, the short commit this release's binary `name` was built from by
-/// `cargo install --git`; None if it came from anywhere else (another release's record, a source
-/// not a commit, a record not cargo's).
-fn commit_installed(record: &[u8], name: &str) -> Option<String> {
-    let record: serde_json::Value = serde_json::from_slice(record).ok()?;
-    record
-        .get("installs")?
-        .as_object()?
-        .iter()
-        .find_map(|(id, install)| {
-            let bins = install.get("bins")?.as_array()?;
-            if !bins.iter().any(|bin| bin.as_str() == Some(name)) {
-                return None;
-            }
-            // (`name version (source)`, this release's, a git source's commit in hex digits.)
-            let (package, source) = id.strip_suffix(')')?.split_once(" (")?;
-            if package.split_once(' ')?.1 != env!("CARGO_PKG_VERSION") {
-                return None;
-            }
-            let (_, commit) = source.strip_prefix("git+")?.rsplit_once('#')?;
-            (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
-                .then(|| commit[..7].to_string())
-        })
+fn build_version() -> &'static str {
+    VERSION.get().copied().unwrap_or(concat!("v", env!("CARGO_PKG_VERSION")))
 }
 
 /// Per-request timeout. Hits return 504 Gateway Timeout.
@@ -215,6 +138,8 @@ impl Server {
 /// Builds the HTTP application for `query` without binding a socket: every route plus the
 /// response middleware.
 pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
+    etag::initialize()?;
+
     #[cfg(feature = "series")]
     let series_bodies = query
         .run(|query| Ok(Arc::new(SeriesBodies::new(query))))

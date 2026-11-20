@@ -47,13 +47,15 @@ answer: the tag naming what it would send, how long its bytes stay what they
 are, and how to build it. The `304`, the body budget and the cache class follow
 from those; no route sets a cache header.
 
-**The tag.** Every ETag is weak and starts with the release, so a release
-changing a response's format never validates an older body. The rest is made of
-what the body is read from, under the same pin the body is read under: the block
-that fixes it (a block by hash, a confirmed transaction, a point of the UTXO
-set), the tip (whole-history statistics, tip-keyed series), the block that last
-changed it (an address), or a hash of the bytes where nothing cheaper names them
-or building costs no more than naming. A request holding the tag gets `304`
+**The tag.** Every API ETag is weak and starts with a build hash. Bitviewd hashes
+its source inputs and dependency lockfile at build time, so independent builds
+of the same inputs can share validators. Applications embedding the server can
+supply their own build tag (`set_build`) and otherwise use their executable's
+hash. The rest is made of what the body is read from, under the same pin the
+body is read under: the block that fixes it (a block by hash, a confirmed
+transaction, a point of the UTXO set), the tip (whole-history statistics,
+tip-keyed series), the block that last changed it (an address), or a hash of the
+bytes where nothing cheaper names them or building costs no more than naming. A request holding the tag gets `304`
 before any of the body is built, except for a content hash, which is the body's.
 A tag is resolved against what is published now; a matching one is not
 permission to serve an unpublished or displaced result.
@@ -73,10 +75,12 @@ Neither allows stale-on-error reuse.
 
 Browsers are never purged, so only what no release changes is immutable for
 them: a raw block, a block's header, the txid at an index of a block, and a
-settled transaction's hex, raw bytes and merkle proofs (a txid commits to its
-witness only through its block). A settled answer the server shapes can change
-shape with a release: a browser revalidates it against a tag carrying the
-release and its schema's version, and gets `304` until either changes. The CDN
+settled transaction's hex and raw bytes (a txid commits to its witness only
+through its block). Its proofs are settled: the txid in their address doesn't
+say which block holds the transaction, and the JSON one is the server's to
+shape. A settled answer the server shapes can change
+shape with a code change. A browser revalidates it against the build-tagged
+validator and gets `304` while the tag matches. The CDN
 of a server run with `--cdn` (`CdnCacheMode::Aggressive`) is purged by its
 operator on every release and on a reorg deeper than six blocks, so it keeps
 every settled answer until then; `CdnCacheMode::Live` gives it the one-second

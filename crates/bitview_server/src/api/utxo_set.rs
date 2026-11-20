@@ -3,7 +3,6 @@ use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_primitives::BlockHashPrefix;
 use bitview_query::{Result as QueryResult, UtxoSetPoint};
 use bitview_types::{HeightOrDate, UtxoSet, UtxoSetDiff};
-use brk_types::Version;
 
 use super::AppState;
 use crate::{
@@ -14,12 +13,9 @@ use crate::{
     request_state::RequestState,
 };
 
-/// Bumped when a response's format changes.
-const VERSION: Version = Version::ONE;
-
 impl AppState {
-    /// The set at a point, named by the point's block (`a{version}-{block hash prefix:x}`)
-    /// before any of it is built.
+    /// The set at a point, named by the point's block (`a-{block hash prefix:x}`) before any of
+    /// it is built.
     async fn respond_utxo_set(
         &self,
         headers: &HeaderMap,
@@ -32,7 +28,7 @@ impl AppState {
                 Some(HeightOrDate::Height(height)) => q.utxo_set_point_height(height)?,
                 Some(HeightOrDate::Date(date)) => q.utxo_set_point_date(date)?,
             };
-            let tag = format!("a{VERSION}-{:x}", *BlockHashPrefix::from(point.hash()));
+            let tag = format!("a-{:x}", *BlockHashPrefix::from(point.hash()));
             let settled = point.is_settled();
             let answer = Answer::new(tag, move |_| Ok(Content::new(JSON, build(&point)?)));
             Ok(answer.settled(settled))

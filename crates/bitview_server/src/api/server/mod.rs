@@ -12,13 +12,13 @@ use jiff::Timestamp;
 
 use super::AppState;
 use crate::{
-    VERSION,
     answer::{Answer, Content, JSON},
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
     params::Empty,
     request_state::RequestState,
+    build_version,
 };
 
 mod disk;
@@ -35,7 +35,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 let mut response = Json(Health {
                     status: HealthStatus::Healthy,
                     service: Cow::Borrowed("brk"),
-                    version: ServerVersion(Cow::Borrowed(VERSION.as_str())),
+                    version: ServerVersion(Cow::Borrowed(build_version())),
                     timestamp,
                     started_at: state.started_at.to_string(),
                     uptime_seconds: uptime.as_secs(),
@@ -79,7 +79,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         // computed_height and blocks_behind derive from these heights;
                         // last_indexed_at derives from the Unix timestamp.
                         let tag = format!(
-                            "sync1-{}-{}-{}",
+                            "sync-{}-{}-{}",
                             sync.indexed_height, sync.tip_height, *sync.last_indexed_at_unix,
                         );
                         Ok(Answer::ready(tag, Content::json(&sync)?))
@@ -135,8 +135,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     )
 }
 
-/// The release, which every tag starts with: `d` after it.
 async fn version(headers: HeaderMap, _: Empty, RequestState(state): RequestState) -> Response {
-    let content = Content::new(JSON, format!("\"{}\"", *VERSION));
-    state.respond_now(&headers, Answer::ready("d".to_owned(), content))
+    let content = Content::new(JSON, format!("\"{}\"", build_version()));
+    state.respond_now(&headers, Answer::built(content))
 }

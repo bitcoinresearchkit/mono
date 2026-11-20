@@ -48,23 +48,22 @@ impl SeriesBodies {
     }
 }
 
-/// URI-scoped metadata revision. Bump info1 if name resolution semantics change.
+/// URI-scoped metadata revision.
 fn info_tag<'a>(entries: impl IntoIterator<Item = (&'a str, SeriesInfo)>) -> Etag {
     let mut hasher = TagHasher::default();
     for (name, info) in entries {
         name.hash(&mut hasher);
         to_vec(&info).expect("serializable series info").hash(&mut hasher);
     }
-    format!("info1-{:x}", hasher.finish()).into()
+    format!("info-{:x}", hasher.finish()).into()
 }
 
 /// URI-scoped revision, not an assertion that different pages have equal bodies.
-/// Bump list1 when the response schema or pagination derivation changes.
 fn list_tag(names: &[&str]) -> Etag {
     let mut hasher = TagHasher::default();
     names.hash(&mut hasher);
     format!(
-        "list1-{}-{}-{:x}",
+        "list-{}-{}-{:x}",
         *Pagination::DEFAULT_PER_PAGE,
         PageSize::MAX,
         hasher.finish(),
@@ -72,14 +71,13 @@ fn list_tag(names: &[&str]) -> Etag {
     .into()
 }
 
-/// URI-scoped search revision. Bump search2 for changes to matching, normalization,
-/// ranking, or output formatting, including changes to QuickMatch defaults.
+/// URI-scoped search revision.
 fn search_tag(catalog: &[u8], names: &[&str]) -> Etag {
     let mut hasher = TagHasher::default();
     catalog.hash(&mut hasher);
     names.hash(&mut hasher);
     format!(
-        "search2-{}-{:x}",
+        "search-{}-{:x}",
         *SearchQuery::DEFAULT_LIMIT,
         hasher.finish()
     )

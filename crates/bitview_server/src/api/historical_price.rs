@@ -1,6 +1,6 @@
 use axum::{body::Bytes, http::HeaderMap, response::Response};
 use bitview_query::{RepresentationId, Result as QueryResult};
-use brk_types::{Timestamp, Version};
+use brk_types::Timestamp;
 use serde_json::to_vec;
 
 use crate::{
@@ -29,7 +29,7 @@ pub async fn serve(state: AppState, headers: &HeaderMap, timestamp: Option<Times
             } else {
                 content()?
             };
-            let tag = Etag::representation(Version::ONE, identity);
+            let tag = Etag::representation(identity);
             Ok(Answer::ready(tag, Content::new(JSON, bytes)).settled(settled))
         })
         .await

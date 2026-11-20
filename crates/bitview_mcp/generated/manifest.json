@@ -348,6 +348,94 @@
     },
     {
       "tool": {
+        "name": "get_audit_predictions",
+        "title": "Time-bucketed canonical audit match rates",
+        "description": "Bitcoin: Time-bucketed canonical audit match rates",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "time_period": {
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
+              "examples": [
+                "24h"
+              ],
+              "type": "string",
+              "enum": [
+                "24h",
+                "3d",
+                "1w",
+                "1m",
+                "3m",
+                "6m",
+                "1y",
+                "2y",
+                "3y",
+                "4y",
+                "all"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/predictions/{time_period}",
+        "parameters": [
+          {
+            "name": "time_period",
+            "argument": "time_period",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_audit_scores",
+        "title": "Audited scores through a canonical height",
+        "description": "Bitcoin: Audited scores through a canonical height",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "examples": [
+                0
+              ],
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "height"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/audit/scores/{height}",
+        "parameters": [
+          {
+            "name": "height",
+            "argument": "height",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
         "name": "get_block",
         "title": "Block information",
         "description": "Bitcoin: Details of a block by hash: height, time, transaction count, size, weight, and difficulty.",
@@ -375,6 +463,120 @@
       "http": {
         "method": "GET",
         "path": "/api/block/{hash}",
+        "parameters": [
+          {
+            "name": "hash",
+            "argument": "hash",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_block_audit",
+        "title": "Recorded missing, fresh, conflicting, added and unseen transactions",
+        "description": "Bitcoin: Recorded missing, fresh, conflicting, added and unseen transactions",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
+              "type": "string",
+              "examples": [
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/audit/{hash}",
+        "parameters": [
+          {
+            "name": "hash",
+            "argument": "hash",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_block_audit_score",
+        "title": "Recorded audit score for a block hash",
+        "description": "Bitcoin: A permanent server-local score. A missing audit returns the JSON string \"null\".",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
+              "type": "string",
+              "examples": [
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/audit/score/{hash}",
+        "parameters": [
+          {
+            "name": "hash",
+            "argument": "hash",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_block_audit_summary",
+        "title": "This server's recorded block expectation",
+        "description": "Bitcoin: This server's recorded block expectation",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
+              "type": "string",
+              "examples": [
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/block/{hash}/audit-summary",
         "parameters": [
           {
             "name": "hash",
@@ -1076,7 +1278,7 @@
       "tool": {
         "name": "get_difficulty_adjustment",
         "title": "Difficulty adjustment",
-        "description": "Bitcoin: Get current difficulty adjustment progress and estimates.",
+        "description": "Bitcoin: Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -1626,6 +1828,26 @@
       "http": {
         "method": "GET",
         "path": "/api/v1/prices",
+        "parameters": []
+      }
+    },
+    {
+      "tool": {
+        "name": "get_recent_audit_scores",
+        "title": "Audited scores in the latest sixteen height slots",
+        "description": "Bitcoin: Audited scores in the latest sixteen height slots",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/audit/scores",
         "parameters": []
       }
     },
@@ -2372,6 +2594,58 @@
         "method": "GET",
         "path": "/api/server/sync",
         "parameters": []
+      }
+    },
+    {
+      "tool": {
+        "name": "get_transaction_audit",
+        "title": "How this server's expectation classified a confirmed transaction",
+        "description": "Bitcoin: How this server's expectation classified a confirmed transaction",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "hash": {
+              "description": "Double-SHA256 block-header hash, serialized in Bitcoin's conventional\nhexadecimal byte order.",
+              "type": "string",
+              "examples": [
+                "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "txid": {
+              "description": "A transaction ID: its hash.",
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "hash",
+            "txid"
+          ]
+        },
+        "annotations": {
+          "readOnlyHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/block/{hash}/tx/{txid}/audit",
+        "parameters": [
+          {
+            "name": "hash",
+            "argument": "hash",
+            "location": "path"
+          },
+          {
+            "name": "txid",
+            "argument": "txid",
+            "location": "path"
+          }
+        ]
       }
     },
     {

@@ -1,6 +1,6 @@
 //! Live `/api/series/*` API: catalog, search, info, single-series, bulk.
 
-use std::{fmt::Write, result::Result as StdResult};
+use std::{fmt::Write, result::Result as StdResult, slice};
 
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{
@@ -29,13 +29,13 @@ use crate::{
     request_state::RequestState,
 };
 
-pub async fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
+/// A page of the names, at most a thousand of them, from the registry in memory.
+pub fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
     let tag = state.series_bodies.list.clone();
-    state
-        .respond(headers, state.chain(), move |_| {
-            Ok(Answer::json(tag, move |q| Ok(q.series_list(pagination))))
-        })
-        .await
+    state.respond_now(
+        headers,
+        Answer::json(tag, move |q| Ok(q.series_list(pagination))),
+    )
 }
 
 pub async fn serve_search(state: AppState, headers: &HeaderMap, search: SearchQuery) -> Response {
@@ -47,8 +47,8 @@ pub async fn serve_search(state: AppState, headers: &HeaderMap, search: SearchQu
     }
     let tag = state.series_bodies.search.clone();
     state
-        .respond(headers, state.series_search(), move |_| {
-            Ok(Answer::json(tag, move |q| Ok(q.search_series(&search))))
+        .respond_named(headers, state.series_search(), tag, move |q| {
+            Content::json(&q.search_series(&search))
         })
         .await
 }
@@ -62,7 +62,7 @@ pub async fn serve_series_info(
 ) -> Result<Response> {
     validate_name(&series)?;
     let Some(info) = state.query.sync(|q| q.resolve_series_info(&series)) else {
-        return Err(missing_series(&state, series).await);
+        return Err(missing_series(&state, &series));
     };
     let tag = state.series_bodies.info.clone();
     Ok(state.respond_now(headers, Answer::json(tag, move |_| Ok(info.into_info()))))
@@ -77,16 +77,17 @@ fn validate_name(series: &SeriesName) -> Result<()> {
     Ok(())
 }
 
-/// The error for a name no series has, with its nearest names: a search, admitted as one.
-async fn missing_series(state: &AppState, series: SeriesName) -> Error {
-    state
-        .query
-        .read_with_admission(Some(&state.series_bodies.search_query), move |q| {
-            Ok(q.missing_series_error(&series))
-        })
-        .await
-        .unwrap_or_else(|error| error)
-        .into()
+/// The error for a name no series has, with its nearest names: read from the names alone, so it
+/// waits behind nothing.
+fn missing_series(state: &AppState, series: &SeriesName) -> Error {
+    state.query.sync(|q| q.missing_series_error(series)).into()
+}
+
+/// A malformed name anywhere in a bulk request takes precedence over lookup errors.
+fn check_series(state: &AppState, names: &[SeriesName], index: Index) -> Result<()> {
+    names.iter().try_for_each(validate_name)?;
+    state.query.sync(|q| names.iter().try_for_each(|name| q.check_series(name, index)))?;
+    Ok(())
 }
 
 pub async fn serve_latest(
@@ -95,7 +96,7 @@ pub async fn serve_latest(
     series: SeriesName,
     index: Index,
 ) -> Result<Response> {
-    validate_name(&series)?;
+    check_series(&state, slice::from_ref(&series), index)?;
     Ok(state
         .respond(headers, state.series_data(), move |q| {
             Ok(Answer::built(Content::new(JSON, q.latest_json(&series, index)?)))
@@ -109,12 +110,12 @@ pub async fn serve_len(
     series: SeriesName,
     index: Index,
 ) -> Result<Response> {
-    validate_name(&series)?;
+    check_series(&state, slice::from_ref(&series), index)?;
     Ok(state
         .respond(headers, state.series_data(), move |q| {
             let length = q.len(&series, index)?;
-            // The JSON number depends only on length, not on the chain tip or deploy.
-            Ok(Answer::ready(format!("len1-{length}"), Content::json(&length)?))
+            // The JSON number depends only on the length, not on the chain tip.
+            Ok(Answer::ready(format!("len-{length}"), Content::json(&length)?))
         })
         .await)
 }
@@ -127,9 +128,9 @@ pub async fn serve_version(
 ) -> Result<Response> {
     validate_name(&series)?;
     let Some(version) = state.query.sync(|q| q.find_version(&series, index))? else {
-        return Err(missing_series(&state, series).await);
+        return Err(missing_series(&state, &series));
     };
-    let answer = Answer::ready(format!("sv1-{version}"), Content::json(&version)?);
+    let answer = Answer::ready(format!("sv-{version}"), Content::json(&version)?);
     Ok(state.respond_now(headers, answer))
 }
 
@@ -178,7 +179,7 @@ pub async fn serve(
     + Send
     + 'static,
 ) -> Result<Response> {
-    params.series.iter().try_for_each(validate_name)?;
+    check_series(&state, &params.series, params.index)?;
     let max_weight = state.max_weight;
     Ok(state
         .respond(headers, state.series_data(), move |q| {
@@ -273,7 +274,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 RequestState(state): RequestState,
                 Query(pagination): Query<Pagination>
             | {
-                serve_list(state, &headers, pagination).await
+                serve_list(state, &headers, pagination)
             },
             |op| op
                 .id("list_series")

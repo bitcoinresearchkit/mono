@@ -3058,7 +3058,7 @@ impl BitviewClient {
 
     /// Difficulty adjustment
     ///
-    /// Get current difficulty adjustment progress and estimates.
+    /// Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
     ///
@@ -3496,6 +3496,80 @@ impl BitviewClient {
     pub fn get_blocks_v1_from_height(&self, height: Height) -> Result<Vec<BlockInfoV1>> {
         self.base
             .get_json(&format!("/api/v1/blocks/{}", path_segment(height)))
+    }
+
+    /// This server's recorded block expectation
+    ///
+    /// Endpoint: `GET /api/v1/block/{hash}/audit-summary`
+    pub fn get_block_audit_summary(&self, hash: BlockHash) -> Result<AuditSummary> {
+        self.base.get_json(&format!(
+            "/api/v1/block/{}/audit-summary",
+            path_segment(hash)
+        ))
+    }
+
+    /// Recorded missing, fresh, conflicting, added and unseen transactions
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/audit/{hash}`
+    pub fn get_block_audit(&self, hash: BlockHash) -> Result<AuditDetail> {
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/audit/{}",
+            path_segment(hash)
+        ))
+    }
+
+    /// Recorded audit score for a block hash
+    ///
+    /// A permanent server-local score. A missing audit returns the JSON string "null".
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/audit/score/{hash}`
+    pub fn get_block_audit_score(&self, hash: BlockHash) -> Result<AuditScoreResponse> {
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/audit/score/{}",
+            path_segment(hash)
+        ))
+    }
+
+    /// Audited scores in the latest sixteen height slots
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/audit/scores`
+    pub fn get_recent_audit_scores(&self) -> Result<Vec<AuditScore>> {
+        self.base
+            .get_json(&format!("/api/v1/mining/blocks/audit/scores"))
+    }
+
+    /// Audited scores through a canonical height
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/audit/scores/{height}`
+    pub fn get_audit_scores(&self, height: Height) -> Result<Vec<AuditScore>> {
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/audit/scores/{}",
+            path_segment(height)
+        ))
+    }
+
+    /// Time-bucketed canonical audit match rates
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/predictions/{time_period}`
+    pub fn get_audit_predictions(
+        &self,
+        time_period: TimePeriod,
+    ) -> Result<Vec<(u32, Height, f64)>> {
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/predictions/{}",
+            path_segment(time_period)
+        ))
+    }
+
+    /// How this server's expectation classified a confirmed transaction
+    ///
+    /// Endpoint: `GET /api/v1/block/{hash}/tx/{txid}/audit`
+    pub fn get_transaction_audit(&self, hash: BlockHash, txid: Txid) -> Result<TxAudit> {
+        self.base.get_json(&format!(
+            "/api/v1/block/{}/tx/{}/audit",
+            path_segment(hash),
+            path_segment(txid)
+        ))
     }
 
     /// List all mining pools
@@ -4137,7 +4211,7 @@ impl BitviewClient {
 
     /// Cut-through tweaks
     ///
-    /// `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+    /// `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
     ///
     /// Endpoint: `GET /blindbit/mainnet/tweaks/{height}`
     pub fn get_blindbit_tweaks(

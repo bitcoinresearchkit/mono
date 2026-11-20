@@ -108,7 +108,7 @@ impl Query {
             tx_index < pin.lengths().tx_index,
             "a resolved transaction is published"
         );
-        Ok(self.indexer().read_tx(tx_index)?.0)
+        Ok(self.indexer().read_tx_bytes(tx_index)?)
     }
 
     pub fn merkleblock_proof_resolved(&self, tx: ResolvedConfirmedTx) -> Result<String> {

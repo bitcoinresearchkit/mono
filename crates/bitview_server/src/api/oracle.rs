@@ -86,7 +86,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     state
                         .respond(&headers, state.oracle(), move |q| {
                             let block = q.resolve_oracle_block(height)?;
-                            let tag = format!("oracle-block-1-{height}-{}", block.hash());
+                            let tag = format!("oracle-block-{height}-{}", block.hash());
                             let settled = block.is_settled();
                             Ok(Answer::json(tag, move |q| q.oracle_block(block)).settled(settled))
                         })
@@ -125,7 +125,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     state
                         .respond(&headers, state.oracle(), move |q| {
                             let chunk = q.resolve_oracle_payments(start)?;
-                            let tag = format!("oracle-payments-1-{start}-{}", chunk.hash());
+                            let tag = format!("oracle-payments-{start}-{}", chunk.hash());
                             let settled = chunk.is_settled();
                             let answer = Answer::json(tag, move |q| q.oracle_payments_chunk(chunk));
                             Ok(answer.settled(settled))

@@ -115,6 +115,32 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-audit-predictions",
+        method: "GET",
+        path: "/api/v1/mining/blocks/predictions/{time_period}",
+        summary: "Time-bucketed canonical audit match rates",
+        description: "",
+        path_parameters: &[
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-audit-scores",
+        method: "GET",
+        path: "/api/v1/mining/blocks/audit/scores/{height}",
+        summary: "Audited scores through a canonical height",
+        description: "",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-blindbit-block-hash",
         method: "GET",
         path: "/blindbit/mainnet/block-hash/{height}",
@@ -188,7 +214,7 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Minimum Taproot output value in sats. Defaults to 0.") },
         ],
         request_body: None,
     },
@@ -197,12 +223,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/blindbit/mainnet/tweaks/{height}",
         summary: "Cut-through tweaks",
-        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.",
+        description: "`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Least value in sats of a Taproot output for its transaction to be listed. Optional, any\nvalue, as BlindBit takes it (0 when left out); below 600, the least value held, it answers\nas 600.") },
+            Parameter { api_name: "dustLimit", name: "dust-limit", required: false, value_name: "integer", repeatable: false, description: Some("Minimum Taproot output value in sats. Defaults to 0.") },
         ],
         request_body: None,
     },
@@ -225,6 +251,45 @@ pub static COMMANDS: &[Command] = &[
         path: "/api/block/{hash}",
         summary: "Block information",
         description: "Details of a block by hash: height, time, transaction count, size, weight, and difficulty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*",
+        path_parameters: &[
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-block-audit",
+        method: "GET",
+        path: "/api/v1/mining/blocks/audit/{hash}",
+        summary: "Recorded missing, fresh, conflicting, added and unseen transactions",
+        description: "",
+        path_parameters: &[
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-block-audit-score",
+        method: "GET",
+        path: "/api/v1/mining/blocks/audit/score/{hash}",
+        summary: "Recorded audit score for a block hash",
+        description: "A permanent server-local score. A missing audit returns the JSON string \"null\".",
+        path_parameters: &[
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-block-audit-summary",
+        method: "GET",
+        path: "/api/v1/block/{hash}/audit-summary",
+        summary: "This server's recorded block expectation",
+        description: "",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
         ],
@@ -533,7 +598,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/difficulty-adjustment",
         summary: "Difficulty adjustment",
-        description: "Get current difficulty adjustment progress and estimates.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*",
+        description: "Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -918,6 +983,18 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-recent-audit-scores",
+        method: "GET",
+        path: "/api/v1/mining/blocks/audit/scores",
+        summary: "Audited scores in the latest sixteen height slots",
+        description: "",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-recommended-fees",
         method: "GET",
         path: "/api/v1/fees/recommended",
@@ -1094,6 +1171,20 @@ pub static COMMANDS: &[Command] = &[
         summary: "Sync status",
         description: "Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.",
         path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-transaction-audit",
+        method: "GET",
+        path: "/api/v1/block/{hash}/tx/{txid}/audit",
+        summary: "How this server's expectation classified a confirmed transaction",
+        description: "",
+        path_parameters: &[
+            Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
+            Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],

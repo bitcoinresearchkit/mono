@@ -84,14 +84,6 @@ pub fn if_none_match(headers: &HeaderMap, etag: Option<&[u8]>) -> bool {
     })
 }
 
-/// The opaque tags `If-None-Match` lists, weak or strong, without their quotes.
-pub fn listed_etags(headers: &HeaderMap) -> impl Iterator<Item = &[u8]> {
-    headers
-        .get_all(IF_NONE_MATCH)
-        .iter()
-        .flat_map(|value| field_etags(value.as_bytes()))
-}
-
 /// The opaque tags of one field value: a comma inside quotes belongs to its tag.
 fn field_etags(value: &[u8]) -> impl Iterator<Item = &[u8]> {
     let mut quoted = false;

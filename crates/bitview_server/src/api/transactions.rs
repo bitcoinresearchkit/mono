@@ -12,9 +12,7 @@ use bitview_query::{
     Query, RepresentationId, ResolvedConfirmedTx, ResolvedTransaction, Result as QueryResult,
 };
 use bitview_types::{MerkleProof, RbfResponse};
-use brk_types::{
-    Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version,
-};
+use brk_types::{Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid};
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
 
@@ -25,7 +23,6 @@ use crate::{
     api::tags,
     etag::Etag,
     extended::TransformResponseExtended,
-    gates::Gate,
     params::{Empty, TxIndexParam, TxidParam, TxidVout, TxidsParam},
     request_state::RequestState,
 };
@@ -44,7 +41,6 @@ impl AppState {
     ) -> Response {
         self.respond_resolved(
             headers,
-            Version::ONE,
             content_type,
             settle,
             move |q| {
@@ -57,20 +53,20 @@ impl AppState {
         .await
     }
 
-    /// [`Self::respond_resolved`] for a confirmed transaction's proof.
+    /// [`Self::respond_resolved`] for a confirmed transaction's proof. Settled, never committed:
+    /// the txid in its address doesn't say which block holds the transaction, so a deeper reorg
+    /// can replace even the merkleblock proof's bytes, and browsers are never purged.
     async fn respond_proof<B: Into<Bytes> + 'static>(
         &self,
         headers: &HeaderMap,
         txid: Txid,
         content_type: &'static str,
-        settle: Settle,
         build: fn(&Query, ResolvedConfirmedTx) -> QueryResult<B>,
     ) -> Response {
         self.respond_resolved(
             headers,
-            Version::ONE,
             content_type,
-            settle,
+            Answer::settled,
             move |q| {
                 let tx = q.resolve_confirmed_tx(&txid)?;
                 let (identity, settled) = (tx.identity(), tx.is_settled());
@@ -92,7 +88,7 @@ impl AppState {
         + 'static,
     ) -> Response {
         let built_bytes = |_: &Query, bytes| Ok(bytes);
-        self.respond_resolved(headers, Version::ONE, JSON, Answer::settled, built, built_bytes)
+        self.respond_resolved(headers, JSON, Answer::settled, built, built_bytes)
             .await
     }
 }
@@ -109,7 +105,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state
                     .respond(&headers, state.chain(), move |q| {
                         let (txid, settled) = q.txid_by_index(param.index)?;
-                        let tag = format!("tx-index3-{}-{txid}", Version::ONE);
+                        let tag = format!("tx-index-{txid}");
                         Ok(Answer::ready(tag, Content::text(txid.to_string())).settled(settled))
                     })
                     .await
@@ -131,7 +127,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state
                     .respond_resolved(
                         &headers,
-                        Version::TWO,
                         JSON,
                         Answer::settled,
                         move |q| {
@@ -157,7 +152,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(TxidParam { txid }): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, move |q| {
+                    .respond_built(&headers, state.chain(), move |q| {
                         q.tx_rbf_json_resolved(q.resolve_rbf(&txid)?)
                     })
                     .await
@@ -243,7 +238,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         &headers,
                         param.txid,
                         TEXT,
-                        Answer::committed,
                         Query::merkleblock_proof_resolved,
                     )
                     .await
@@ -263,7 +257,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(param): Path<TxidParam>, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_proof(&headers, param.txid, JSON, Answer::committed, |q, tx| {
+                    .respond_proof(&headers, param.txid, JSON, |q, tx| {
                         Ok(to_vec(&q.merkle_proof_resolved(tx)?)?)
                     })
                     .await
@@ -365,11 +359,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state
                     .respond(&headers, state.chain(), move |q| {
                         let (status, settled) = q.transaction_status(&txid)?;
-                        let tag = match status.block_hash {
-                            Some(hash) => format!("tx-status3-{}-{hash}", Version::ONE).into(),
-                            None => Etag::content(*TxidPrefix::from(txid)),
-                        };
-                        Ok(Answer::ready(tag, Content::json(&status)?).settled(settled))
+                        Ok(Answer::built(Content::json(&status)?).settled(settled))
                     })
                     .await
             },
@@ -388,9 +378,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/transaction-times",
         get_with(
             async |headers: HeaderMap, params: TxidsParam, RequestState(state): RequestState| {
-                // The mempool's own: it waits behind no chain read.
                 state
-                    .respond(&headers, Gate::OPEN, move |q| {
+                    .respond(&headers, state.mempool(), move |q| {
                         let (times, hash) = q.transaction_times_with_hash(&params.txids)?;
                         Ok(Answer::ready(Etag::content(hash), Content::json(&times)?))
                     })

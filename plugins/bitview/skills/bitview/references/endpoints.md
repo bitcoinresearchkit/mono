@@ -50,6 +50,13 @@ Base URL: https://bitview.space. Every operation, with its query parameters (`*`
 - `GET /api/blocks/{height}` Blocks from height
 - `GET /api/v1/blocks` Recent blocks with extras
 - `GET /api/v1/blocks/{height}` Blocks from height with extras
+- `GET /api/v1/block/{hash}/audit-summary` This server's recorded block expectation
+- `GET /api/v1/mining/blocks/audit/{hash}` Recorded missing, fresh, conflicting, added and unseen transactions
+- `GET /api/v1/mining/blocks/audit/score/{hash}` Recorded audit score for a block hash
+- `GET /api/v1/mining/blocks/audit/scores` Audited scores in the latest sixteen height slots
+- `GET /api/v1/mining/blocks/audit/scores/{height}` Audited scores through a canonical height
+- `GET /api/v1/mining/blocks/predictions/{time_period}` Time-bucketed canonical audit match rates
+- `GET /api/v1/block/{hash}/tx/{txid}/audit` How this server's expectation classified a confirmed transaction
 - `GET /api/v1/mining/pools` List all mining pools
 - `GET /api/v1/mining/pools/{time_period}` Mining pool statistics
 - `GET /api/v1/mining/pool/{slug}` Mining pool details

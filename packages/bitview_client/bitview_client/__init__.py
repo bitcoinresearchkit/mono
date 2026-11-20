@@ -314,6 +314,8 @@ BlockOrphanStatus = Union[Literal["valid-headers"], Literal["valid-fork"]]
 # Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 # hexadecimal byte order.
 BlockHash = str
+# Mempool v1 uses the JSON string `"null"` for an absent score.
+AuditScoreResponse = Union["AuditScore", str]
 # Which of a block's two filters.
 BlindbitFilterKind = Union[Literal["new-utxos"], Literal["spent"]]
 # An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
@@ -332,6 +334,14 @@ class OutPoint(TypedDict):
     """
     tx_index: TxIndex
     vout: Vout
+
+class TxAudit(TypedDict):
+    seen: bool
+    expected: bool
+    added: bool
+    prioritized: bool
+    conflict: bool
+    accelerated: bool
 
 class PoolHashrateEntry(TypedDict):
     """
@@ -711,7 +721,7 @@ class DifficultyAdjustment(TypedDict):
     Attributes:
         progressPercent: Progress through current difficulty epoch (0-100%)
         difficultyChange: Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
-        estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds): the tip block's time plus `remainingTime`, so it moves with blocks, not with the clock
+        estimatedRetargetDate: Estimated timestamp of next retarget (milliseconds): the tip block's time plus `remainingTime`, so it moves with blocks, not with the clock. It is early by the tip's age, and with a block or two left in the epoch it can be before now: for a date counted from now, as mempool.space gives, add `remainingTime` to your own clock
         remainingBlocks: Blocks remaining until retarget
         remainingTime: Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
         previousRetarget: Previous difficulty adjustment (%)
@@ -1431,6 +1441,44 @@ class BlindbitBlockHash(TypedDict):
     """
     block_hash: BlockHash
 
+class AuditSummary(TypedDict):
+    """
+    This server's permanent live observation of a block expectation.
+    """
+    version: int
+    height: Height
+    id: BlockHash
+    timestamp: Timestamp
+    matchRate: float
+    expectedFees: Sats
+    expectedWeight: Weight
+
+class AuditScore(TypedDict):
+    hash: BlockHash
+    matchRate: float
+    expectedFees: Sats
+    expectedWeight: Weight
+
+class AuditDetail(TypedDict):
+    """
+    This server's permanent live observation of a block expectation.
+    """
+    version: int
+    height: Height
+    id: BlockHash
+    timestamp: Timestamp
+    matchRate: float
+    expectedFees: Sats
+    expectedWeight: Weight
+    unseenTxs: List[Txid]
+    missingTxs: List[Txid]
+    addedTxs: List[Txid]
+    prioritizedTxs: List[Txid]
+    freshTxs: List[Txid]
+    sigopTxs: List[Txid]
+    fullrbfTxs: List[Txid]
+    acceleratedTxs: List[Txid]
+
 class UtxoOrigins(TypedDict):
     """
     Columnar unspent amounts indexed by creation height.
@@ -1700,9 +1748,10 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         coinbaseBip54: Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
         firstSeen: Timestamp when the block was first seen (always null, not yet supported)
         orphans: Stale blocks at this height the server's node knows, each server's own
-        matchRate: Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
-        expectedFees: Fees of the expected block template (always null: it needs the mempool as it was)
-        expectedWeight: Weight of the expected block template (always null: it needs the mempool as it was)
+        matchRate: Match rate of this server's live pre-block observation; null for unaudited blocks.
+        expectedFees: Base fees of this server's expected block, excluding coinbase.
+        expectedWeight: Raw transaction weight of the expected block, excluding header and coinbase reserve.
+        similarity: Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
         price: USD price at block height
     """
     coinbaseAddress: Union[Address, None]
@@ -1711,6 +1760,7 @@ class BlockExtras(_BlockExtrasRequired, total=False):
     matchRate: Optional[float]
     expectedFees: Union[Sats, None]
     expectedWeight: Union[Weight, None]
+    similarity: Optional[float]
 
 class _BlockInfoV1Required(TypedDict):
     id: BlockHash
@@ -6479,7 +6529,7 @@ class BitviewClient(BitviewClientBase):
     def get_difficulty_adjustment(self) -> DifficultyAdjustment:
         """Difficulty adjustment.
 
-        Get current difficulty adjustment progress and estimates.
+        Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
 
@@ -6775,6 +6825,50 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/v1/blocks/{height}`"""
         return self.get_json(f'/api/v1/blocks/{_segment(height)}')
+
+    def get_block_audit_summary(self, hash: BlockHash) -> AuditSummary:
+        """This server's recorded block expectation
+
+        Endpoint: `GET /api/v1/block/{hash}/audit-summary`"""
+        return self.get_json(f'/api/v1/block/{_segment(hash)}/audit-summary')
+
+    def get_block_audit(self, hash: BlockHash) -> AuditDetail:
+        """Recorded missing, fresh, conflicting, added and unseen transactions
+
+        Endpoint: `GET /api/v1/mining/blocks/audit/{hash}`"""
+        return self.get_json(f'/api/v1/mining/blocks/audit/{_segment(hash)}')
+
+    def get_block_audit_score(self, hash: BlockHash) -> AuditScoreResponse:
+        """Recorded audit score for a block hash.
+
+        A permanent server-local score. A missing audit returns the JSON string "null".
+
+        Endpoint: `GET /api/v1/mining/blocks/audit/score/{hash}`"""
+        return self.get_json(f'/api/v1/mining/blocks/audit/score/{_segment(hash)}')
+
+    def get_recent_audit_scores(self) -> List[AuditScore]:
+        """Audited scores in the latest sixteen height slots
+
+        Endpoint: `GET /api/v1/mining/blocks/audit/scores`"""
+        return self.get_json('/api/v1/mining/blocks/audit/scores')
+
+    def get_audit_scores(self, height: Height) -> List[AuditScore]:
+        """Audited scores through a canonical height
+
+        Endpoint: `GET /api/v1/mining/blocks/audit/scores/{height}`"""
+        return self.get_json(f'/api/v1/mining/blocks/audit/scores/{_segment(height)}')
+
+    def get_audit_predictions(self, time_period: TimePeriod) -> List[List[Union[int, Height, float]]]:
+        """Time-bucketed canonical audit match rates
+
+        Endpoint: `GET /api/v1/mining/blocks/predictions/{time_period}`"""
+        return self.get_json(f'/api/v1/mining/blocks/predictions/{_segment(time_period)}')
+
+    def get_transaction_audit(self, hash: BlockHash, txid: Txid) -> TxAudit:
+        """How this server's expectation classified a confirmed transaction
+
+        Endpoint: `GET /api/v1/block/{hash}/tx/{txid}/audit`"""
+        return self.get_json(f'/api/v1/block/{_segment(hash)}/tx/{_segment(txid)}/audit')
 
     def get_pools(self) -> List[PoolInfo]:
         """List all mining pools.
@@ -7257,7 +7351,7 @@ class BitviewClient(BitviewClientBase):
     def get_blindbit_tweaks(self, height: Height, *, dustLimit: Optional[int] = None) -> List[Tweak]:
         """Cut-through tweaks.
 
-        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. `dustLimit` as in `tweak-index`.
+        `tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
 
         Endpoint: `GET /blindbit/mainnet/tweaks/{height}`"""
         params: List[Tuple[str, Any]] = []

@@ -11,7 +11,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| q.mempool_blocks_json())
+                    .respond_built(&headers, state.mempool(), |q| q.mempool_blocks_json())
                     .await
             },
             |op| {
@@ -29,7 +29,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| q.recommended_fees_json())
+                    .respond_built(&headers, state.mempool(), |q| q.recommended_fees_json())
                     .await
             },
             |op| {
@@ -48,7 +48,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
                 state
-                    .respond_built(&headers, |q| q.precise_fees_json())
+                    .respond_built(&headers, state.mempool(), |q| q.precise_fees_json())
                     .await
             },
             |op| {

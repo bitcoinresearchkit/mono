@@ -8,7 +8,7 @@ use std::{
 
 use brk_error::Result;
 
-/// One rendered snapshot file, relative to `snapshots/`.
+/// One rendered snapshot file, relative to `snapshots/` at the repository root.
 pub struct Snapshot {
     pub(crate) file: &'static str,
     pub(crate) contents: String,
@@ -35,7 +35,10 @@ pub fn run(tool: &str, render: impl FnOnce() -> Result<Vec<Snapshot>>) -> ExitCo
 }
 
 fn apply(tool: &str, check: bool, snapshots: &[Snapshot]) -> Result<bool> {
-    let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("snapshots");
+    // Outside `crates/`, which bitviewd's build script hashes into the API tag: rewriting a
+    // snapshot must not change the tag.
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).ancestors().nth(2).unwrap();
+    let dir = root.join("snapshots");
     fs::create_dir_all(&dir)?;
     let mut current = true;
     let mut recorded = 0;
