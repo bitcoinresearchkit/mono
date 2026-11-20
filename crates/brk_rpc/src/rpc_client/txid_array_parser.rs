@@ -1,50 +1,34 @@
-use std::fmt;
-
+use brk_error::{Error, Result};
 use brk_types::Txid;
-use serde::{Deserializer, de, de::DeserializeSeed};
-use serde_json::{Deserializer as JsonDeserializer, Result as JsonResult};
 
-/// Parses Core's compact JSON transaction-ID array into one exactly sized
-/// allocation. Serde's generic `Vec` visitor has no size hint for JSON arrays.
-pub struct TxidArrayParser(usize);
-
-impl TxidArrayParser {
-    pub fn parse(json: &str) -> JsonResult<Vec<Txid>> {
-        let mut deserializer = JsonDeserializer::from_str(json);
-        let txids = Self(json.len() / 67).deserialize(&mut deserializer)?;
-        deserializer.end()?;
-        Ok(txids)
+/// Parses Core's compact JSON transaction-ID array (`["<64 hex digits>","<...>"]`, no whitespace)
+/// by its fixed layout: the generic JSON scanner and hex decoder were most of the listing's
+/// parse time. Any other layout is an error naming the element.
+pub fn parse_txid_array(json: &str) -> Result<Vec<Txid>> {
+    /// A quoted txid and its separator.
+    const ELEMENT: usize = 67;
+    let element_error =
+        |index: usize| Error::Parse(format!("txid array: element {index} is malformed"));
+    let body = json
+        .strip_prefix('[')
+        .and_then(|rest| rest.strip_suffix(']'))
+        .ok_or_else(|| Error::Parse("txid array: not an array".into()))?;
+    let mut txids = Vec::with_capacity(body.len() / ELEMENT + 1);
+    let mut rest = body.as_bytes();
+    while !rest.is_empty() {
+        let index = txids.len();
+        let (element, tail) = rest
+            .split_first_chunk::<{ ELEMENT - 1 }>()
+            .ok_or_else(|| element_error(index))?;
+        let [b'"', digits @ .., b'"'] = element else {
+            return Err(element_error(index));
+        };
+        txids.push(Txid::from_hex_digits(digits).ok_or_else(|| element_error(index))?);
+        rest = match tail {
+            [] => tail,
+            [b',', next @ ..] if !next.is_empty() => next,
+            _ => return Err(element_error(index + 1)),
+        };
     }
-}
-
-impl<'de> DeserializeSeed<'de> for TxidArrayParser {
-    type Value = Vec<Txid>;
-
-    fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        deserializer.deserialize_seq(TxidArrayVisitor(self.0))
-    }
-}
-
-struct TxidArrayVisitor(usize);
-
-impl<'de> de::Visitor<'de> for TxidArrayVisitor {
-    type Value = Vec<Txid>;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str("an array of transaction IDs")
-    }
-
-    fn visit_seq<A>(self, mut sequence: A) -> Result<Self::Value, A::Error>
-    where
-        A: de::SeqAccess<'de>,
-    {
-        let mut txids = Vec::with_capacity(self.0);
-        while let Some(txid) = sequence.next_element()? {
-            txids.push(txid);
-        }
-        Ok(txids)
-    }
+    Ok(txids)
 }

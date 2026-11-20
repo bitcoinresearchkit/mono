@@ -34,6 +34,13 @@ impl Txid {
     /// All zeros: the previous-output txid of coinbase inputs.
     pub const COINBASE: Self = Self([0u8; 32]);
 
+    /// From the 64 hex digits of its text (either case): for parsers that have checked the layout
+    /// already, as a `FromStr` per element is most of a mempool listing's parse time.
+    #[inline]
+    pub fn from_hex_digits(digits: &[u8; 64]) -> Option<Self> {
+        crate::bytes::parse_reversed_hex(digits).map(Self)
+    }
+
     /// Reinterpret a slice of `Txid`s as a slice of `bitcoin::Txid`s: a zero-cost view (no
     /// allocation, no copy).
     #[inline]

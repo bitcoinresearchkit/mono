@@ -52,16 +52,43 @@ impl fmt::Display for HexBytes<'_> {
     }
 }
 
+/// Each ASCII byte's hex digit value (either case), `NOT_HEX` for any other byte.
+const NIBBLES: [u8; 256] = {
+    let mut table = [NOT_HEX; 256];
+    let mut value = 0;
+    while value < 16 {
+        table[HEX[value] as usize] = value as u8;
+        table[HEX[value].to_ascii_uppercase() as usize] = value as u8;
+        value += 1;
+    }
+    table
+};
+const NOT_HEX: u8 = u8::MAX;
+
+#[inline]
+fn nibble(digit: u8) -> Option<u8> {
+    Some(NIBBLES[usize::from(digit)]).filter(|&value| value != NOT_HEX)
+}
+
 /// Parses exactly `N` bytes of hex (either case).
 pub(crate) fn parse_hex<const N: usize>(hex: &str) -> Option<[u8; N]> {
     let digits = hex.as_bytes();
     if digits.len() != N * 2 {
         return None;
     }
-    let nibble = |digit: u8| (digit as char).to_digit(16).map(|value| value as u8);
     let mut bytes = [0; N];
     let (pairs, _) = digits.as_chunks::<2>();
     for (byte, &[high, low]) in bytes.iter_mut().zip(pairs) {
+        *byte = (nibble(high)? << 4) | nibble(low)?;
+    }
+    Some(bytes)
+}
+
+/// [`reversed_hex`]'s inverse: 64 hex digits (either case) as a hash in reversed byte order.
+#[inline]
+pub(crate) fn parse_reversed_hex(digits: &[u8; 64]) -> Option<[u8; 32]> {
+    let mut bytes = [0; 32];
+    for (byte, &[high, low]) in bytes.iter_mut().rev().zip(digits.as_chunks::<2>().0) {
         *byte = (nibble(high)? << 4) | nibble(low)?;
     }
     Some(bytes)
