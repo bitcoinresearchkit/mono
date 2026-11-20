@@ -47,9 +47,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     concentration: Concentration<M>,
     /// The same, with AntPool and the pools sharing its block templates counted as one.
     concentration_grouped: Concentration<M>,
-    /// Blocks found by AntPool and the pools sharing its block templates: Poolin, Ultimus, SECPOOL,
-    /// Sigmapool, Binance Pool, Rawpool, Luxor, CloverPool and Mining Squared, and Braiins below
-    /// height 956,057.
+    /// AntPool counts throughout. Poolin, Ultimus, SECPOOL, Sigmapool, Binance Pool, Rawpool,
+    /// Luxor, CloverPool and Mining Squared count from the first block of 2022-07-01 (height
+    /// 743,088), and Braiins from there to below height 956,057. That start is an assumption:
+    /// mainnet.observer says the first pools joined around Q3 2022, and per-pool dates aren't public.
     #[traversable(
         wrap = "groups/antpool",
         rename = "block_count",
