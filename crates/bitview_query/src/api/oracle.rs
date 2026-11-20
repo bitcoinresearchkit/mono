@@ -247,10 +247,23 @@ impl Query {
     /// The price now and when it came to be: the mempool publication blended into it, or
     /// without one the tip block. A function of the two publications, never of the clock.
     pub fn live_price(&self) -> Result<PricePoint> {
+        if bitview_vecs::first_price_height().is_none() {
+            let tip = self.pin_tip()?;
+            return Ok(PricePoint {
+                time: self
+                    .indexer()
+                    .vecs()
+                    .blocks
+                    .timestamp
+                    .collect_one(tip.height)
+                    .data()?,
+                usd: None,
+            });
+        }
         let live = self.live_oracle()?;
         Ok(PricePoint {
             time: live.time,
-            usd: live.oracle.price_dollars(),
+            usd: Some(live.oracle.price_dollars()),
         })
     }
 
@@ -333,14 +346,12 @@ impl Query {
     fn histogram_bound(&self, safe: &Lengths) -> usize {
         self.plugins()
             .price
-            .spot
-            .cents
-            .height
+            .oracle_bin
             .len()
             .min(safe.height.to_usize())
     }
 
-    /// `height < min(spot price len, safe height)` or 404.
+    /// The height must have a published oracle reading.
     fn check_histogram_height(&self, height: usize, safe: Lengths) -> Result<()> {
         if height >= self.histogram_bound(&safe) {
             return Err(Error::NotFound(format!(

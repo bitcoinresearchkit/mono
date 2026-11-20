@@ -1,5 +1,5 @@
-use bitview_primitives::{PoolSlug, pools};
-use bitview_query::{Error, Result};
+use bitview_primitives::PoolSlug;
+use bitview_query::{Error, Result, pools};
 use brk_types::Height;
 use schemars::JsonSchema;
 use serde::Deserialize;

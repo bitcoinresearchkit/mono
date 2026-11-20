@@ -14,9 +14,11 @@ mod urpd;
 mod utxo_set;
 
 pub use addr::{ResolvedAddrChainTxs, ResolvedAddrMempoolTxs, ResolvedAddrTxs, ResolvedAddrUtxos};
+pub use bitview_plugin_pools::pools;
 pub use bitview_types::{AuditDetail, AuditScore, AuditSummary, TxAudit};
 /// The least dust limit the silent payments routes answer for: they hold nothing smaller.
 pub use bitview_plugin_silent_payments::DUST_FLOOR;
+pub use bitview_plugin_silent_payments::silent_payments_available;
 pub(crate) use block::StaleBlocks;
 pub use block::{ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1};
 pub use cpfp::ResolvedCpfp;

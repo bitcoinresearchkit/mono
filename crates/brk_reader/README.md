@@ -5,8 +5,8 @@ canonical chain order, skipping orphans.
 
 ## Requirements
 
-A running mainnet Bitcoin Core node with RPC access (block files are matched by mainnet's magic
-bytes, so testnet, signet and regtest are not supported). The reader needs:
+A running Bitcoin Core node on mainnet, testnet3, testnet4, public signet or regtest.
+The RPC network selects the block directory and frame magic once at startup. The reader needs:
 
 - The `blocks/` directory (to read `blk*.dat` files), holding every block it is asked for: reading
   from genesis needs an unpruned node
@@ -18,7 +18,7 @@ bytes, so testnet, signet and regtest are not supported). The reader needs:
 // Bitcoin Core's default data directory, cookie file and RPC port
 let node = ConnectArgs::default();
 let client = node.client()?;
-let reader = Reader::new(node.blocks_dir()?, &client)?;
+let reader = Reader::connect(&node, &client)?;
 
 // Everything from genesis to the current tip
 let tip = client.get_last_height()?;

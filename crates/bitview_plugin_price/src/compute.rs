@@ -2,13 +2,14 @@ use bitview_compute::{WRITE_INTERVAL, prepare_computed, write_chunks, write_lock
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Float64;
+use bitview_vecs::first_price_height;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
 use brk_oracle::{
     Config, START_HEIGHT_FAST, START_HEIGHT_SLOW, bin_to_cents, cents_to_bin,
     pre_oracle_prices_from,
 };
-use brk_types::Height;
+use brk_types::{Cents, Height, Version};
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 
@@ -18,7 +19,7 @@ impl Vecs {
     fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
         let starting_height = indexer.compute_start().height;
 
-        let source_version = [
+        let source_version: Version = [
             indexer.vecs().transactions.txid.version(),
             indexer.vecs().transactions.first_tx_index.version(),
             indexer.vecs().outputs.first_txout_index.version(),
@@ -29,6 +30,23 @@ impl Vecs {
         .into_iter()
         .sum();
         let total_heights = indexer.vecs().blocks.timestamp.len();
+        if first_price_height().is_none() {
+            // No BTC/USD history on this chain: one missing price per block keeps dependents
+            // aligned to heights without inventing prices. The oracle never runs here.
+            let start = prepare_computed(
+                [&mut self.spot.cents.height],
+                source_version,
+                starting_height.to_usize(),
+                exit,
+            )?;
+            for chunk in write_chunks(start..total_heights) {
+                for _ in chunk {
+                    self.spot.cents.height.push(Cents::NAN);
+                }
+                write_locked([&mut self.spot.cents.height], exit)?;
+            }
+            return Ok(());
+        }
         let committed = prepare_computed(
             [
                 &mut self.spot.cents.height as &mut dyn AnyStoredVec,

@@ -167,7 +167,18 @@ impl Query {
         let (stores_path, stores_bytes) = self.indexer().stores().disk();
         // Left out by path, or the stores would be walked and counted twice.
         debug_assert!(stores_path.starts_with(data_path));
-        let walked = disk::dir_size(data_path, &[logs_path, stores_path])?;
+        let chain = self.reader().chain();
+        // The default root can also hold each other chain's separate Bitview index.
+        let nested = brk_types::Chain::ALL
+            .iter()
+            .filter(|other| other.network != chain.network && !other.subdir.is_empty())
+            .map(|other| data_path.join(other.subdir))
+            .collect::<Vec<_>>();
+        let skip = [logs_path, stores_path]
+            .into_iter()
+            .chain(nested.iter().map(|path| path.as_path()))
+            .collect::<Vec<_>>();
+        let walked = disk::dir_size(data_path, &skip)?;
         let bytes = disk::sum_bytes(walked, stores_bytes)?;
         self.0.data_bytes.store(bytes, Ordering::Relaxed);
         Ok(())

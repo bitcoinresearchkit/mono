@@ -1,8 +1,7 @@
 use std::io::Read;
 
 use bitcoin::{
-    Address as BitcoinAddress, Network, Transaction, consensus::Decodable, hex::DisplayHex,
-    io::FromStd,
+    Address as BitcoinAddress, Transaction, consensus::Decodable, hex::DisplayHex, io::FromStd,
 };
 use brk_types::{Address, Height, Hex, Timestamp, Weight};
 
@@ -54,7 +53,7 @@ impl Coinbase {
             .output
             .iter()
             .filter_map(|output| {
-                BitcoinAddress::from_script(&output.script_pubkey, Network::Bitcoin)
+                BitcoinAddress::from_script(&output.script_pubkey, brk_types::chain().network)
                     .ok()
                     .map(|a| Address::from(a.to_string()))
             })

@@ -18,11 +18,26 @@ use crate::{ImportContext, PLUGIN_DATA_DIR, PluginId};
 pub struct PluginStorage {
     id: PluginId,
     schema_version: Version,
+    mainnet_only: bool,
 }
 
 impl PluginStorage {
     pub const fn new(id: PluginId, schema_version: Version) -> Self {
-        Self { id, schema_version }
+        Self {
+            id,
+            schema_version,
+            mainnet_only: false,
+        }
+    }
+
+    /// The plugin's source data exists only on mainnet.
+    pub const fn mainnet_only(mut self) -> Self {
+        self.mainnet_only = true;
+        self
+    }
+
+    pub fn available(self) -> bool {
+        !self.mainnet_only || brk_types::chain().is_mainnet()
     }
 
     pub const fn id(self) -> PluginId {

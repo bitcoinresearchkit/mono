@@ -38,12 +38,16 @@ const DUPLICATE_COINBASES: [DuplicateCoinbase; 2] = [
     },
 ];
 
+fn duplicate_coinbase(matches: impl Fn(&DuplicateCoinbase) -> bool) -> Option<&'static DuplicateCoinbase> {
+    DUPLICATE_COINBASES
+        .iter()
+        .find(|dup| matches(dup) && brk_types::chain().is_mainnet())
+}
+
 /// The output a BIP30 duplicate coinbase at `height` overwrote: the earlier coinbase's height and
 /// its one lost 50 BTC output.
 pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {
-    let dup = DUPLICATE_COINBASES
-        .iter()
-        .find(|dup| dup.height == height)?;
+    let dup = duplicate_coinbase(|dup| dup.height == height)?;
     Some((
         dup.overwritten_height,
         SupplyState {
@@ -55,8 +59,6 @@ pub fn overwritten_output(height: Height) -> Option<(Height, SupplyState)> {
 
 /// The earlier coinbase whose outputs a BIP30 duplicate overwrote.
 pub fn overwritten_tx_index(tx_index: TxIndex) -> Option<TxIndex> {
-    DUPLICATE_COINBASES
-        .iter()
-        .find(|dup| dup.tx_index == tx_index)
+    duplicate_coinbase(|dup| dup.tx_index == tx_index)
         .map(|dup| dup.overwritten_tx_index)
 }

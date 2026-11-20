@@ -22,11 +22,13 @@ pub struct Supply<M: StorageMode = Rw> {
     #[traversable(lead = "Supply: the bitcoin held.")]
     pub total: LazySpotValuePerBlock,
     /// Supply in profit: creation price at or below the spot price.
+    #[traversable(priced)]
     #[traversable(
         lead = "Supply in profit: coins whose price now is at or above the one they last moved at."
     )]
     pub in_profit: Part<LazySpotValuePerBlock, M>,
     /// Supply in loss: creation price above the spot price.
+    #[traversable(priced)]
     #[traversable(
         lead = "Supply in loss: coins whose price now is below the one they last moved at."
     )]

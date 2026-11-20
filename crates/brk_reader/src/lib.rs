@@ -6,10 +6,10 @@ use std::{
     sync::Arc,
 };
 
-use bitcoin::Network;
+pub use bitcoin::Network;
 use brk_error::{Error, Result};
-use brk_rpc::Client;
-use brk_types::{BlkPosition, BlockHash, Height};
+use brk_rpc::{Client, ConnectArgs};
+use brk_types::{BlkPosition, BlockHash, Chain, Height};
 use canonical::CanonicalRange;
 use reader_inner::ReaderInner;
 use xor_index::XORIndex;
@@ -36,10 +36,28 @@ pub use xor_bytes::*;
 pub struct Reader(Arc<ReaderInner>);
 
 impl Reader {
-    /// Errs when the blocks directory's `xor.dat` is unreadable or malformed (a missing one is
-    /// the identity mask).
-    pub fn new(blocks_dir: PathBuf, client: &Client) -> Result<Self> {
-        Ok(Self(Arc::new(ReaderInner::new(blocks_dir, client)?)))
+    /// Resolve the node's blocks directory using the same network read that sets its magic.
+    pub fn connect(connect: &ConnectArgs, client: &Client) -> Result<Self> {
+        let network = client.get_network()?;
+        let blocks_dir = connect.blocks_dir(Chain::for_network(network))?;
+        if !blocks_dir.is_dir() {
+            return Err(Error::NotFound(format!(
+                "{} isn't a valid blocks directory; set --blocksdir or --bitcoindir",
+                blocks_dir.display()
+            )));
+        }
+        Self::with_network(blocks_dir, client, network)
+    }
+
+    /// Constructs a reader with an already known network, including for offline imports.
+    pub fn with_network(blocks_dir: PathBuf, client: &Client, network: Network) -> Result<Self> {
+        let inner = ReaderInner::new(blocks_dir, client, network)?;
+        inner.chain.activate()?;
+        Ok(Self(Arc::new(inner)))
+    }
+
+    pub fn chain(&self) -> &'static Chain {
+        self.0.chain
     }
 
     #[inline]
@@ -55,15 +73,6 @@ impl Reader {
     #[inline]
     pub fn xor_bytes(&self) -> XORBytes {
         self.0.xor_bytes
-    }
-
-    /// Errs unless the node runs mainnet: this reader parses mainnet's block files only (their
-    /// magic), and another network's would read as no blocks at all.
-    pub fn check_network(&self) -> Result<()> {
-        match self.0.client.get_network()? {
-            Network::Bitcoin => Ok(()),
-            network => Err(Error::NotMainnet(network.to_string())),
-        }
     }
 
     /// Errs when the blocks directory's `xor.dat` is unreadable or malformed, or no longer the

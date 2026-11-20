@@ -226,7 +226,7 @@ Hashrate = float
 HashValue = float
 # US dollars per PH/s of hash rate per day.
 HashPrice = float
-# Index of a halving epoch (210,000 blocks).
+# Index of a subsidy halving epoch on the active chain.
 HalvingEpoch = int
 Format = Literal["json", "csv"]
 # A floating-point value without a specific unit.
@@ -251,7 +251,7 @@ OHLCDollars = List[Dollars]
 DollarDaysPerCoin = float
 # US dollars multiplied by blocks: coinblocks valued at the spot price.
 DollarBlocks = float
-# Index of a difficulty epoch (2,016 blocks).
+# Index of a difficulty epoch on the active chain.
 DifficultyEpoch = int
 # Proof-of-work difficulty.
 Difficulty = float
@@ -913,7 +913,7 @@ class RbfResponse(TypedDict, total=False):
     when the tx has no known RBF history within the mempool monitor's
     graveyard retention window.
     """
-    replacements: Union[ReplacementNode, None]
+    replacements: Optional[ReplacementNode]
     replaces: Optional[List[Txid]]
 
 class PreciseRecommendedFees(TypedDict):
@@ -1045,7 +1045,7 @@ class PricePoint(TypedDict):
         USD: BTC/USD price
     """
     time: Timestamp
-    USD: Dollars
+    USD: Optional[Dollars]
 
 class HistoricalPrice(TypedDict):
     """
@@ -1068,7 +1068,7 @@ class BlockRewardsEntry(TypedDict):
     avgHeight: Height
     timestamp: Timestamp
     avgRewards: Sats
-    USD: Dollars
+    USD: Optional[Dollars]
 
 class BlockFeesEntry(TypedDict):
     """
@@ -1083,18 +1083,9 @@ class BlockFeesEntry(TypedDict):
     avgHeight: Height
     timestamp: Timestamp
     avgFees: Sats
-    USD: Dollars
+    USD: Optional[Dollars]
 
-class _AddressChainStatsRequired(TypedDict):
-    balance: Sats
-    funded_txo_count: int
-    funded_txo_sum: Sats
-    spent_txo_count: int
-    spent_txo_sum: Sats
-    tx_count: int
-    realized_price: Dollars
-
-class AddressChainStats(_AddressChainStatsRequired, total=False):
+class AddressChainStats(TypedDict):
     """
     Address statistics on the blockchain (confirmed transactions only)
     
@@ -1110,7 +1101,14 @@ class AddressChainStats(_AddressChainStatsRequired, total=False):
         type_index: Index of this address within its type on the blockchain, null for an address without confirmed activity
         realized_price: Realized price (average cost basis) in USD
     """
-    type_index: Union[TypeIndex, None]
+    balance: Sats
+    funded_txo_count: int
+    funded_txo_sum: Sats
+    spent_txo_count: int
+    spent_txo_sum: Sats
+    tx_count: int
+    type_index: Optional[TypeIndex]
+    realized_price: Optional[Dollars]
 
 class DiskUsage(TypedDict):
     """
@@ -1181,8 +1179,8 @@ class CpfpInfo(_CpfpInfoRequired, total=False):
         adjustedVsize: Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
         cluster: Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants (matches mempool.space).
     """
-    bestDescendant: Union[CpfpEntry, None]
-    cluster: Union[CpfpCluster, None]
+    bestDescendant: Optional[CpfpEntry]
+    cluster: Optional[CpfpCluster]
 
 class ConfirmedCpfp(TypedDict):
     """
@@ -1207,9 +1205,9 @@ class TxStatus(_TxStatusRequired, total=False):
         block_hash: Block hash (only present if confirmed)
         block_time: Block timestamp (only present if confirmed)
     """
-    block_height: Union[Height, None]
-    block_hash: Union[BlockHash, None]
-    block_time: Union[Timestamp, None]
+    block_height: Optional[Height]
+    block_hash: Optional[BlockHash]
+    block_time: Optional[Timestamp]
 
 class Utxo(TypedDict):
     """
@@ -1233,9 +1231,9 @@ class TxOutspend(_TxOutspendRequired, total=False):
         vin: Input index in the spending transaction (only present if spent)
         status: Status of the spending transaction (only present if spent)
     """
-    txid: Union[Txid, None]
-    vin: Union[Vin, None]
-    status: Union[TxStatus, None]
+    txid: Optional[Txid]
+    vin: Optional[Vin]
+    status: Optional[TxStatus]
 
 class OraclePayments(TypedDict):
     """
@@ -1350,8 +1348,8 @@ class BlockStatus(_BlockStatusRequired, total=False):
         height: Block height (null unless in the best chain)
         next_best: Hash of the next block in the best chain (null if tip)
     """
-    height: Union[Height, None]
-    next_best: Union[BlockHash, None]
+    height: Optional[Height]
+    next_best: Optional[BlockHash]
 
 class BlockOrphan(TypedDict):
     """
@@ -1395,7 +1393,7 @@ class BlockInfo(_BlockInfoRequired, total=False):
         previousblockhash: Hash of the previous block (null for the genesis block)
         mediantime: Median time of the last 11 blocks
     """
-    previousblockhash: Union[BlockHash, None]
+    previousblockhash: Optional[BlockHash]
 
 class BlindbitUtxo(TypedDict):
     """
@@ -1604,7 +1602,7 @@ class TxOut(_TxOutRequired, total=False):
 class _TxInRequired(TypedDict):
     txid: Txid
     vout: Vout
-    prevout: Union[TxOut, None]
+    prevout: Optional[TxOut]
     scriptsig: Hex
     scriptsig_asm: str
     is_coinbase: bool
@@ -1651,7 +1649,7 @@ class Transaction(_TransactionRequired, total=False):
         sigops: BIP-141 signature-operation cost
         fee: Transaction fee in satoshis
     """
-    index: Union[TxIndex, None]
+    index: Optional[TxIndex]
 
 class PoolDetailInfo(TypedDict):
     """
@@ -1689,36 +1687,7 @@ class PoolDetail(_PoolDetailRequired, total=False):
     reportedHashrate: Optional[int]
     avgBlockHealth: Optional[float]
 
-class _BlockExtrasRequired(TypedDict):
-    totalFees: Sats
-    medianFee: FeeRate
-    feeRange: List[FeeRate]
-    reward: Sats
-    pool: BlockPool
-    avgFee: Sats
-    avgFeeRate: FeeRate
-    coinbaseRaw: Hex
-    coinbaseAddresses: List[Address]
-    coinbaseSignature: str
-    coinbaseSignatureAscii: str
-    avgTxSize: float
-    totalInputs: int
-    totalOutputs: int
-    totalOutputAmt: Sats
-    medianFeeAmt: Sats
-    feePercentiles: List[Sats]
-    segwitTotalTxs: int
-    segwitTotalSize: int
-    segwitTotalWeight: Weight
-    header: Hex
-    utxoSetChange: int
-    utxoSetSize: int
-    totalInputAmt: Sats
-    virtualSize: float
-    orphans: List[BlockOrphan]
-    price: Dollars
-
-class BlockExtras(_BlockExtrasRequired, total=False):
+class BlockExtras(TypedDict):
     """
     Extended block data matching mempool.space /api/v1/blocks extras
 
@@ -1754,13 +1723,40 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         similarity: Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
         price: USD price at block height
     """
-    coinbaseAddress: Union[Address, None]
+    totalFees: Sats
+    medianFee: FeeRate
+    feeRange: List[FeeRate]
+    reward: Sats
+    pool: Optional[BlockPool]
+    avgFee: Sats
+    avgFeeRate: FeeRate
+    coinbaseRaw: Hex
+    coinbaseAddress: Optional[Address]
+    coinbaseAddresses: List[Address]
+    coinbaseSignature: str
+    coinbaseSignatureAscii: str
+    avgTxSize: float
+    totalInputs: int
+    totalOutputs: int
+    totalOutputAmt: Sats
+    medianFeeAmt: Sats
+    feePercentiles: List[Sats]
+    segwitTotalTxs: int
+    segwitTotalSize: int
+    segwitTotalWeight: Weight
+    header: Hex
+    utxoSetChange: int
+    utxoSetSize: int
+    totalInputAmt: Sats
+    virtualSize: float
     coinbaseBip54: Optional[bool]
-    firstSeen: Union[Timestamp, None]
+    firstSeen: Optional[Timestamp]
+    orphans: List[BlockOrphan]
     matchRate: Optional[float]
-    expectedFees: Union[Sats, None]
-    expectedWeight: Union[Weight, None]
+    expectedFees: Optional[Sats]
+    expectedWeight: Optional[Weight]
     similarity: Optional[float]
+    price: Optional[Dollars]
 
 class _BlockInfoV1Required(TypedDict):
     id: BlockHash
@@ -1791,7 +1787,7 @@ class BlockInfoV1(_BlockInfoV1Required, total=False):
         mediantime: Median time of the last 11 blocks
         stale: Whether this block has been replaced by a longer chain
     """
-    previousblockhash: Union[BlockHash, None]
+    previousblockhash: Optional[BlockHash]
     stale: bool
 
 class _AddressValidationRequired(TypedDict):
@@ -1808,12 +1804,12 @@ class AddressValidation(_AddressValidationRequired, total=False):
         error_locations: Positions of the characters at fault in an invalid address (Bitcoin Core's), possibly none; omitted for valid ones
         error: Error message for invalid addresses
     """
-    address: Union[Address, None]
-    scriptPubKey: Union[Hex, None]
+    address: Optional[Address]
+    scriptPubKey: Optional[Hex]
     isscript: Optional[bool]
     iswitness: Optional[bool]
     witness_version: Optional[int]
-    witness_program: Union[Hex, None]
+    witness_program: Optional[Hex]
     error_locations: Optional[List[int]]
     error: Optional[str]
 
@@ -7392,7 +7388,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `POST /blindbit/mainnet/forward-tx`"""
         return self.post_json('/blindbit/mainnet/forward-tx', json.dumps(body), 'application/json')
 
-    def get_live_price(self) -> Dollars:
+    def get_live_price(self) -> Optional[Dollars]:
         """Live BTC/USD price.
 
         Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.

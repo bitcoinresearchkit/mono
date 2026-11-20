@@ -1,4 +1,4 @@
-use crate::{AnyExportableVec, Result, Version, i64_to_usize};
+use crate::{AnyExportableVec, Error, Result, ValueWriter, Version, i64_to_usize};
 
 use super::{BoundedWriter, ReadBounds};
 
@@ -12,6 +12,7 @@ pub struct BoundedVec<'a> {
     source: &'a dyn AnyExportableVec,
     bounds: &'a ReadBounds,
     limit: usize,
+    null_values: bool,
 }
 
 impl<'a> BoundedVec<'a> {
@@ -24,7 +25,13 @@ impl<'a> BoundedVec<'a> {
             source,
             bounds,
             limit,
+            null_values: false,
         }
+    }
+
+    pub fn with_null_values(mut self, null_values: bool) -> Self {
+        self.null_values = null_values;
+        self
     }
 
     pub fn name(&self) -> &str {
@@ -79,12 +86,27 @@ impl<'a> BoundedVec<'a> {
         buf: &mut Vec<u8>,
     ) -> Result<()> {
         let (from, to) = self.range(from, to);
+        if self.null_values {
+            buf.push(b'[');
+            for row in from..to {
+                if row > from {
+                    buf.push(b',');
+                }
+                buf.extend_from_slice(b"null");
+            }
+            buf.push(b']');
+            return Ok(());
+        }
         self.bounds
             .scope(|| self.source.write_json(Some(from), Some(to), buf))
     }
 
     pub fn write_json_value_at(&self, index: usize, buf: &mut Vec<u8>) -> Result<()> {
         if index >= self.visible_len() {
+            return Ok(());
+        }
+        if self.null_values {
+            buf.extend_from_slice(b"null");
             return Ok(());
         }
         self.bounds
@@ -98,16 +120,30 @@ impl<'a> BoundedVec<'a> {
         buf: &mut Vec<u8>,
     ) -> Result<()> {
         let (from, to) = self.range(from, to);
+        if self.null_values {
+            buf.resize(buf.len() + to - from, b'\n');
+            return Ok(());
+        }
         self.bounds
             .scope(|| self.source.write_csv_column(Some(from), Some(to), buf))
     }
 
     pub fn create_writer(&self, from: Option<i64>, to: Option<i64>) -> BoundedWriter<'a> {
         let (from, to) = self.signed_range(from, to);
-        let writer = self.bounds.scope(|| {
-            self.source
-                .create_writer(Some(from as i64), Some(to as i64))
-        });
+        let writer = if self.null_values {
+            Box::new(NullWriter(to - from))
+        } else {
+            self.bounds.scope(|| self.source.create_writer(Some(from as i64), Some(to as i64)))
+        };
         BoundedWriter::new(writer, self.bounds)
+    }
+}
+
+struct NullWriter(usize);
+
+impl ValueWriter for NullWriter {
+    fn write_next(&mut self, _: &mut Vec<u8>) -> Result<()> {
+        self.0 = self.0.checked_sub(1).ok_or(Error::IteratorEnded)?;
+        Ok(())
     }
 }

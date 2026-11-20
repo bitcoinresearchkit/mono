@@ -23,9 +23,9 @@
  * @property {number} spentTxoCount - Total number of transaction outputs spent from this address
  * @property {Sats} spentTxoSum - Total amount in satoshis spent from this address
  * @property {number} txCount - Total number of confirmed transactions involving this address
- * @property {(TypeIndex|null)=} typeIndex - Index of this address within its type on the blockchain, null for an address without
+ * @property {?TypeIndex} typeIndex - Index of this address within its type on the blockchain, null for an address without
  *   confirmed activity
- * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
+ * @property {?Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
  * @typedef {Object} AddressHashPrefixMatches
@@ -63,12 +63,12 @@
 /**
  * @typedef {Object} AddressValidation
  * @property {boolean} isvalid
- * @property {(Address|null)=} address - The validated address
- * @property {(Hex|null)=} scriptPubKey - The scriptPubKey in hex
+ * @property {?Address=} address - The validated address
+ * @property {?Hex=} scriptPubKey - The scriptPubKey in hex
  * @property {?boolean=} isscript - Whether the address is P2SH, P2WSH or P2TR
  * @property {?boolean=} iswitness
  * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR, 2 to 16 for future versions; none for P2A)
- * @property {(Hex|null)=} witnessProgram - Witness program in hex
+ * @property {?Hex=} witnessProgram - Witness program in hex
  * @property {?number[]=} errorLocations - Positions of the characters at fault in an invalid address (Bitcoin Core's), possibly none;
  *   omitted for valid ones
  * @property {?string=} error - Error message for invalid addresses
@@ -194,11 +194,11 @@
  *   transactions by count), min and max the lower/higher of the 1st/99th percentile and the
  *   extreme rate in the block's last/first 2% of vsize
  * @property {Sats} reward - Total block reward (subsidy + fees) in satoshis
- * @property {BlockPool} pool
+ * @property {?BlockPool} pool
  * @property {Sats} avgFee - Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
  * @property {FeeRate} avgFeeRate - Average fee rate in sat/vB
  * @property {Hex} coinbaseRaw - Raw coinbase transaction scriptsig as hex
- * @property {(Address|null)=} coinbaseAddress - Primary coinbase output address
+ * @property {?Address} coinbaseAddress - Primary coinbase output address
  * @property {Address[]} coinbaseAddresses - All coinbase output addresses
  * @property {string} coinbaseSignature - Coinbase output script in ASM format
  * @property {string} coinbaseSignatureAscii - Coinbase scriptsig with each byte read as the Unicode code point of the same value
@@ -218,15 +218,15 @@
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
- * @property {?boolean=} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
+ * @property {?boolean} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
  *   sequence isn't final), from timestamp 1,771,507,776 on; null before
- * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
+ * @property {?Timestamp} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
  * @property {BlockOrphan[]} orphans - Stale blocks at this height the server's node knows, each server's own
- * @property {?number=} matchRate - Match rate of this server's live pre-block observation; null for unaudited blocks.
- * @property {(Sats|null)=} expectedFees - Base fees of this server's expected block, excluding coinbase.
- * @property {(Weight|null)=} expectedWeight - Raw transaction weight of the expected block, excluding header and coinbase reserve.
- * @property {?number=} similarity - Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
- * @property {Dollars} price - USD price at block height
+ * @property {?number} matchRate - Match rate of this server's live pre-block observation; null for unaudited blocks.
+ * @property {?Sats} expectedFees - Base fees of this server's expected block, excluding coinbase.
+ * @property {?Weight} expectedWeight - Raw transaction weight of the expected block, excluding header and coinbase reserve.
+ * @property {?number} similarity - Matched expected weight plus actual coinbase weight, divided by expected plus coinbase.
+ * @property {?Dollars} price - USD price at block height
  */
 /**
  * One time bucket of blocks. Each `avgFee_*` field is the bucket's mean of its blocks' own
@@ -266,7 +266,7 @@
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
  * @property {Sats} avgFees - Mean fees per block in this bucket, rounded half up (sats)
- * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
+ * @property {?Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
  */
 /**
  * Double-SHA256 block-header hash, serialized in Bitcoin's conventional
@@ -289,7 +289,7 @@
  * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
- * @property {(BlockHash|null)=} previousblockhash - Hash of the previous block (null for the genesis block)
+ * @property {?BlockHash=} previousblockhash - Hash of the previous block (null for the genesis block)
  * @property {Timestamp} mediantime - Median time of the last 11 blocks
  */
 /**
@@ -307,7 +307,7 @@
  * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
- * @property {(BlockHash|null)=} previousblockhash - Hash of the previous block (null for the genesis block)
+ * @property {?BlockHash=} previousblockhash - Hash of the previous block (null for the genesis block)
  * @property {Timestamp} mediantime - Median time of the last 11 blocks
  * @property {boolean=} stale - Whether this block has been replaced by a longer chain
  * @property {BlockExtras} extras
@@ -344,7 +344,7 @@
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
  * @property {Sats} avgRewards - Mean coinbase reward (subsidy + fees) per block in this bucket, rounded half up (sats)
- * @property {Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
+ * @property {?Dollars} USD - Mean BTC/USD spot price over the bucket's blocks (the price, not the rewards in USD)
  */
 /**
  * One time bucket of blocks.
@@ -362,8 +362,8 @@
 /**
  * @typedef {Object} BlockStatus
  * @property {boolean} inBestChain
- * @property {(Height|null)=} height - Block height (null unless in the best chain)
- * @property {(BlockHash|null)=} nextBest - Hash of the next block in the best chain (null if tip)
+ * @property {?Height=} height - Block height (null unless in the best chain)
+ * @property {?BlockHash=} nextBest - Hash of the next block in the best chain (null if tip)
  */
 /**
  * The next block's template in BIP 22/23 form, as Bitcoin Core's `getblocktemplate` answers
@@ -547,7 +547,7 @@
  *
  * @typedef {Object} CpfpInfo
  * @property {CpfpEntry[]} ancestors
- * @property {(CpfpEntry|null)=} bestDescendant - Best (highest fee rate) descendant, if any.
+ * @property {?CpfpEntry=} bestDescendant - Best (highest fee rate) descendant, if any.
  * @property {CpfpEntry[]} descendants
  * @property {FeeRate} effectiveFeePerVsize - Effective fee rate considering CPFP relationships (sat/vB).
  *   This is the seed's chunk feerate after lift-merging, i.e. the
@@ -558,7 +558,7 @@
  * @property {Sats} fee - Transaction fee (sats).
  * @property {VSize} vsize - Virtual size of the seed tx (vbytes).
  * @property {VSize} adjustedVsize - Policy-adjusted virtual size: `max(vsize, sigops * 5)`.
- * @property {(CpfpCluster|null)=} cluster - Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
+ * @property {?CpfpCluster=} cluster - Cluster the seed belongs to; omitted when the seed has no ancestors and no descendants
  *   (matches mempool.space).
  */
 /**
@@ -636,7 +636,7 @@
  * @property {number} adjustment - Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
  */
 /**
- * Index of a difficulty epoch (2,016 blocks).
+ * Index of a difficulty epoch on the active chain.
  *
  * @typedef {number} DifficultyEpoch
  */
@@ -725,7 +725,7 @@
  * @property {string} data - The raw transaction, hexadecimal.
  */
 /**
- * Index of a halving epoch (210,000 blocks).
+ * Index of a subsidy halving epoch on the active chain.
  *
  * @typedef {number} HalvingEpoch
  */
@@ -1296,7 +1296,7 @@
  * @typedef {Object} PricePoint
  * @property {Timestamp} time - Unix timestamp: a historical close's, or for the current price when it was derived (the
  *   mempool publication counted in it, else the tip block's time)
- * @property {Dollars} USD - BTC/USD price
+ * @property {?Dollars} USD - BTC/USD price
  */
 /**
  * A positional index, a YYYY-MM-DD date, or a UTC timestamp with uppercase T and Z and an optional fraction of 1 to 9 digits. Offsets are refused.
@@ -1319,7 +1319,7 @@
  * graveyard retention window.
  *
  * @typedef {Object} RbfResponse
- * @property {(ReplacementNode|null)=} replacements
+ * @property {?ReplacementNode=} replacements
  * @property {?Txid[]=} replaces
  */
 /**
@@ -1493,7 +1493,7 @@
  * Transaction information compatible with mempool.space API format
  *
  * @typedef {Object} Transaction
- * @property {(TxIndex|null)=} index - Internal transaction index (brk-specific, not in mempool.space)
+ * @property {?TxIndex=} index - Internal transaction index (brk-specific, not in mempool.space)
  * @property {Txid} txid
  * @property {TxVersionRaw} version - Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
  * @property {RawLockTime} locktime
@@ -1525,7 +1525,7 @@
  * @typedef {Object} TxIn
  * @property {Txid} txid - Transaction ID of the output being spent
  * @property {Vout} vout - Output index being spent (coinbase: 4294967295)
- * @property {(TxOut|null)} prevout - The output being spent
+ * @property {?TxOut} prevout - The output being spent
  * @property {Hex} scriptsig - Signature script in hex (empty for native SegWit inputs)
  * @property {string} scriptsigAsm - Signature script in assembly format
  * @property {Hex[]=} witness - Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
@@ -1561,16 +1561,16 @@
 /**
  * @typedef {Object} TxOutspend
  * @property {boolean} spent
- * @property {(Txid|null)=} txid - Transaction ID of the spending transaction (only present if spent)
- * @property {(Vin|null)=} vin - Input index in the spending transaction (only present if spent)
- * @property {(TxStatus|null)=} status - Status of the spending transaction (only present if spent)
+ * @property {?Txid=} txid - Transaction ID of the spending transaction (only present if spent)
+ * @property {?Vin=} vin - Input index in the spending transaction (only present if spent)
+ * @property {?TxStatus=} status - Status of the spending transaction (only present if spent)
  */
 /**
  * @typedef {Object} TxStatus
  * @property {boolean} confirmed
- * @property {(Height|null)=} blockHeight - Block height (only present if confirmed)
- * @property {(BlockHash|null)=} blockHash - Block hash (only present if confirmed)
- * @property {(Timestamp|null)=} blockTime - Block timestamp (only present if confirmed)
+ * @property {?Height=} blockHeight - Block height (only present if confirmed)
+ * @property {?BlockHash=} blockHash - Block hash (only present if confirmed)
+ * @property {?Timestamp=} blockTime - Block timestamp (only present if confirmed)
  */
 /**
  * Compact indexed transaction-version category. Values 1, 2, and 3 preserve
@@ -7223,7 +7223,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "a1995d1f583f7ba29942ec641e4087803f2d79e24e4807ab732ce032a4794684";
+  static HASH = "d5a5195ca554572cfeb3b26fb8ee7b371bf59d075301a46308160a09bbf0edd9";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
@@ -10406,10 +10406,10 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/oracle/price`
    * @param {object} [options]
    * @param {AbortSignal} [options.signal]
-   * @param {(value: Frozen<Dollars>) => void} [options.onValue]
+   * @param {(value: Frozen<?Dollars>) => void} [options.onValue]
    * @param {boolean} [options.cache]
    * @param {boolean} [options.memCache]
-   * @returns {Promise<Frozen<Dollars>>}
+   * @returns {Promise<Frozen<?Dollars>>}
    */
   async getLivePrice({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/oracle/price`;

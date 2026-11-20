@@ -83,5 +83,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Reserve Risk compares spot price with the cumulative opportunity cost of
     /// holders not spending older coins; lower values mean price is low relative
     /// to that accumulated holder reserve.
+    #[traversable(priced)]
     reserve_risk: ReserveRiskVecs<M>,
 }

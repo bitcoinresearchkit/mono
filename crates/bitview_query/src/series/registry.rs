@@ -57,11 +57,15 @@ impl<'a> SeriesRegistry<'a> {
     where
         P: PluginSet + Traversable,
     {
-        let mut builder = Builder::default();
+        let mut builder = Builder {
+            without_prices: bitview_vecs::first_price_height().is_none(),
+            ..Builder::default()
+        };
         let mut metadata = Vec::new();
         plugins.for_each_plugin(&mut |plugin| {
             let db = plugin.id().as_str();
-            plugin.for_each_visible(&mut |vec| builder.push(vec, db));
+            let available = plugin.storage().available();
+            plugin.for_each_visible(&mut |vec| builder.push(vec, db, available));
             let mut plugin_metadata = BTreeMap::new();
             plugin.collect_metadata(&mut plugin_metadata);
             metadata.push((db, plugin_metadata));
@@ -114,8 +118,9 @@ impl<'a> SeriesRegistry<'a> {
                 debug_assert!(false, "Metadata references unknown series: {series}");
                 continue;
             };
-            let (fragments, accumulation) = bitview_traversable::split_metadata(&fragments);
+            let (fragments, accumulation, priced) = bitview_traversable::split_metadata(&fragments);
             entry.accumulation = accumulation;
+            entry.priced = priced;
             if fragments.is_empty() {
                 continue;
             }
@@ -147,6 +152,11 @@ impl<'a> SeriesRegistry<'a> {
                         debug_assert!(false, "plugin {db} has no root of its own in the catalog")
                     }
                 }
+            }
+        }
+        if builder.without_prices {
+            for series in builder.by_series.values_mut() {
+                series.leave_prices_out();
             }
         }
         builder.counts.distinct = builder.by_series.len();
@@ -302,6 +312,7 @@ impl<'a> SeriesRegistry<'a> {
 
 #[derive(Default)]
 struct Builder<'a> {
+    without_prices: bool,
     by_series: FxHashMap<&'a str, Series<'a>>,
     counts: SeriesCount,
     counts_by_db: BTreeMap<String, SeriesCount>,
@@ -327,17 +338,23 @@ fn value_type(vec: &dyn AnyExportableVec) -> (&'static str, bool) {
 
 #[derive(Clone, Copy)]
 struct Registration<'a> {
+    available: bool,
     db: &'a str,
     vec: &'a dyn AnyExportableVec,
     index: Index,
 }
 
 impl<'a> Builder<'a> {
-    fn push(&mut self, vec: &'a dyn AnyExportableVec, db: &'a str) {
+    fn push(&mut self, vec: &'a dyn AnyExportableVec, db: &'a str, available: bool) {
         let serialized_index = vec.index_type_name();
         let index = Index::try_from(serialized_index)
             .unwrap_or_else(|_| panic!("Unknown index type: {serialized_index}"));
-        self.registrations.push(Registration { db, vec, index });
+        self.registrations.push(Registration {
+            db,
+            vec,
+            index,
+            available,
+        });
     }
 
     /// One id may span plugins through different indexes (a height series and its date
@@ -414,11 +431,13 @@ impl<'a> Builder<'a> {
     }
 
     fn insert(&mut self, registration: Registration<'a>) {
-        let Registration { db, vec, index } = registration;
+        let Registration { db, vec, index, available } = registration;
         let name = vec.name();
         self.by_series.entry(name).or_default().insert(SeriesEntry {
             vec,
             index,
+            available,
+            null_values: false,
             is_mutable: vec.is_mutable(),
         });
         let is_lazy = vec.region_names().is_empty();

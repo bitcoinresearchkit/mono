@@ -10,7 +10,7 @@ use std::{io::Write, sync::Arc};
 
 use bitcoin::{
     Block, CompactTarget, Target, WitnessMerkleNode, Wtxid, block::Header, hashes::Hash,
-    hex::DisplayHex, params::Params,
+    hex::DisplayHex,
 };
 use brk_types::{Height, Sats, Timestamp, Txid, merkle_root, push_hex, reversed_hex, tag_hash};
 use rapidhash::RapidHashMap;
@@ -39,22 +39,22 @@ pub struct TipFacts {
 }
 
 impl TipFacts {
-    /// The next block's compact target: the tip's, or a retarget's at an epoch boundary. Mainnet
-    /// rules, which Bitview indexes (no testnet minimum-difficulty blocks).
+    /// The tip's compact target between retargets, or the chain's periodic retarget.
     fn next_bits(&self) -> CompactTarget {
-        let params = &Params::MAINNET;
-        if !((*self.height + 1) as u64).is_multiple_of(params.difficulty_adjustment_interval()) {
+        let chain = brk_types::chain();
+        debug_assert!(chain.supports_block_template());
+        if !((*self.height + 1) as u64).is_multiple_of(u64::from(chain.difficulty_interval)) {
             return self.header.bits;
         }
         let timespan = self.header.time.saturating_sub(*self.epoch_start_time);
-        CompactTarget::from_next_work_required(self.header.bits, u64::from(timespan), params)
+        CompactTarget::from_next_work_required(self.header.bits, u64::from(timespan), chain.network)
     }
 
     /// The earliest time the next block may carry: Core's `GetMinimumTime`, which applies BIP 94
     /// and BIP 54 on every network.
     fn next_mintime(&self) -> Timestamp {
         let height = u64::from(*self.height + 1);
-        let interval = Params::MAINNET.difficulty_adjustment_interval();
+        let interval = u64::from(brk_types::chain().difficulty_interval);
         let mut mintime = *self.median_time + 1;
         if height.is_multiple_of(interval) {
             mintime = mintime.max(self.header.time.saturating_sub(600));

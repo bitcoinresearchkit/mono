@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// One time bucket of blocks.
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::emitted::every_key_required)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockFeesEntry {
     /// Average block height in this bucket
@@ -18,5 +19,5 @@ pub struct BlockFeesEntry {
     /// Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)
     #[serde(rename = "USD")]
     #[schemars(example = 84342.12)]
-    pub usd: Dollars,
+    pub usd: Option<Dollars>,
 }

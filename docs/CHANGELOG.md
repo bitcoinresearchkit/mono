@@ -8,6 +8,19 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Bitviewd serves the chain Bitcoin Core runs: mainnet, testnet3, testnet4, signet or regtest. Block files, the
+  cookie and the default index directory follow Core's chain subdirectory, and an index made on another chain is
+  refused. Addresses parse and render with the chain's encodings; subsidies, epochs, countdowns and the difficulty
+  window use its halving and retarget intervals. Off mainnet there is no BTC/USD price or pool list: fiat series,
+  and those computed from the price whatever their unit (supply in profit or loss, entry-price cohorts,
+  profitability bands, reserve risk, Bedrock's floors), read null; block prices, live and historical quotes, mining
+  USD and address realized prices are null and pools are empty. The block template answers 404 on testnet3, testnet4
+  and signet. On regtest, indexing stops with an error past height 38,399, where the `u8` halving epoch ends. On a
+  custom RPC port, the data directory's own `.cookie` is still read first. The 7 testnet addresses in
+  `pools-v2.json` no longer go into mainnet's pool address map. In the API document, every key of block extras,
+  address chain stats, mining fee and reward buckets and price points is required, as the server always sends it, a
+  null one nullable; the Rust client's `get_live_price` returns `Option<Dollars>`.
+
 - Bitviewd prefixes API ETags with a digest of its build sources and locked dependencies. Independent builds
   from the same inputs share validators, and local source edits invalidate them. A new commit now recompiles only
   `bitviewd`; Rust applications embedding the server report `v{version}` (was the commit) unless they name their build
@@ -47,6 +60,14 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   without refreshing the saved body.
 
 ### Breaking Changes
+
+- The JavaScript, Python and Rust clients type six fields as nullable that were always set, because a chain other
+  than mainnet has no BTC/USD price or pool list: `AddressChainStats.realized_price`, `BlockExtras.price`,
+  `BlockExtras.pool`, `BlockFeesEntry.USD`, `BlockRewardsEntry.USD` and `PricePoint.USD` (mainnet answers still set
+  them). Code reading them must handle null. `AddressChainStats.type_index` and the `BlockExtras` audit and coinbase
+  fields (`coinbase_address`, `coinbase_bip54`, `expected_fees`, `expected_weight`, `first_seen`, `match_rate`,
+  `similarity`) are now always present, null when unknown, instead of optional; the other nullable fields only change
+  spelling (`?T` for `(T|null)`). The packages release together at the workspace version, so this ships as v0.14.0.
 
 - Older binaries cannot load a mempool graveyard containing a tag-3 inherited replacement.
 

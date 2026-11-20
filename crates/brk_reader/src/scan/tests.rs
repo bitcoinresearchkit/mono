@@ -4,12 +4,18 @@ use std::{
     process,
 };
 
-use super::{HEAD_LEN, MAGIC_BYTES, MAX_HOLE, frames};
+use super::{HEAD_LEN, MAX_HOLE, frames};
 use crate::XORBytes;
+
+/// Regtest's message start: the scan matches whichever network's four bytes it is given.
+const MAGIC_BYTES: [u8; 4] = [0xFA, 0xBF, 0xB5, 0xDA];
 
 /// Every frame, eagerly.
 fn all_frames(file: &File, xor_bytes: XORBytes) -> Vec<(usize, usize)> {
-    frames(file, xor_bytes, 0).unwrap().collect::<std::io::Result<_>>().unwrap()
+    frames(file, xor_bytes, MAGIC_BYTES, 0)
+        .unwrap()
+        .collect::<std::io::Result<_>>()
+        .unwrap()
 }
 
 /// A blk file's parts, in order: a frame with this long a payload, or this many unwritten bytes.

@@ -26,9 +26,13 @@ use bitview_traversable::Traversable;
 use brk_types::{Height, TweakX, TxIndex, Version};
 use vecdb::{AnyStoredVec, BytesVec, Database, PcoVec, Rw, StorageMode};
 
-const STORAGE: PluginStorage =
-    PluginStorage::new(PluginId::new("silent_payments"), Version::new(10));
+pub const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("silent_payments"), Version::new(10)).mainnet_only();
 pub const ID: PluginId = STORAGE.id();
+
+pub fn silent_payments_available() -> bool {
+    STORAGE.available()
+}
 
 /// BIP352 silent payments: every eligible transaction since Taproot's activation with a Taproot
 /// output of at least the dust floor, with its tweak, and each block's two filters. Outputs,

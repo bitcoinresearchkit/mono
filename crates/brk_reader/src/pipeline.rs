@@ -140,7 +140,7 @@ fn locate(
         .map(|(&blk_index, path)| (blk_index, path.as_path()))
         .collect();
     let first = match canonical.anchor_time() {
-        Some(time) => first_file(&files, reader.xor_bytes, time)?,
+        Some(time) => first_file(&files, reader.xor_bytes, reader.magic, time)?,
         None => 0,
     };
     if located.hop(files[first..].iter().copied(), 0)? {
@@ -157,12 +157,19 @@ fn locate(
 /// [`OUT_OF_ORDER_FILES`] back. First blocks' times only roughly ascend, so several files can fit:
 /// the search never settles after the last of them, and an earlier one only hops more files (13
 /// more at most on the two nodes measured, 2026-11).
-fn first_file(files: &[(u16, &Path)], xor_bytes: XORBytes, anchor_time: u32) -> io::Result<usize> {
+fn first_file(
+    files: &[(u16, &Path)],
+    xor_bytes: XORBytes,
+    magic: [u8; 4],
+    anchor_time: u32,
+) -> io::Result<usize> {
     let mut low = 0;
     let mut high = files.len();
     while low < high {
         let middle = low + (high - low) / 2;
-        if first_block_time(files[middle].1, xor_bytes)?.is_some_and(|time| time <= anchor_time) {
+        if first_block_time(files[middle].1, xor_bytes, magic)?
+            .is_some_and(|time| time <= anchor_time)
+        {
             low = middle + 1;
         } else {
             high = middle;
@@ -172,11 +179,11 @@ fn first_file(files: &[(u16, &Path)], xor_bytes: XORBytes, anchor_time: u32) -> 
 }
 
 /// The header time of a blk file's first block, `None` while it holds none.
-fn first_block_time(path: &Path, xor_bytes: XORBytes) -> io::Result<Option<u32>> {
+fn first_block_time(path: &Path, xor_bytes: XORBytes, magic: [u8; 4]) -> io::Result<Option<u32>> {
     let Some(file) = open(path)? else {
         return Ok(None);
     };
-    let Some(frame) = frames(&file, xor_bytes, 0)?.next() else {
+    let Some(frame) = frames(&file, xor_bytes, magic, 0)?.next() else {
         return Ok(None);
     };
     Ok(read_header(&file, frame?, xor_bytes)?.map(|header| header.time))
@@ -219,7 +226,7 @@ impl Located<'_> {
             let Some(file) = open(path)? else {
                 continue;
             };
-            for frame in frames(&file, self.reader.xor_bytes, start)? {
+            for frame in frames(&file, self.reader.xor_bytes, self.reader.magic, start)? {
                 if self.offer(&file, blk_index, frame?)? {
                     return Ok(true);
                 }

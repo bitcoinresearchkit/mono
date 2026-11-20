@@ -23,19 +23,19 @@ impl Query {
         if state.written() != Some(pin.lengths().height) {
             return Err(Error::updating());
         }
-        let chain_stats = self
-            .find_addr_bytes(&bytes, &pin)?
-            .map(|(output_type, type_index)| -> Result<_> {
-                let (addr_data, is_funded) = state.addr_data(output_type, type_index)?;
-                Ok(addr_chain_stats(type_index, &addr_data, is_funded))
-            })
-            .transpose()?;
+        let (type_index, data, funded) = match self.find_addr_bytes(&bytes, &pin)? {
+            Some((output_type, index)) => {
+                let (data, funded) = state.addr_data(output_type, index)?;
+                (Some(index), data, funded)
+            }
+            // Never confirmed: zeroed counters, as Esplora answers.
+            None => Default::default(),
+        };
         drop(state);
         let mempool_stats = self.with_pending(mempool.as_deref(), &pin, |mempool, view| {
             mempool.addr_stats(&bytes, view)
         })?;
-        // Never confirmed: zeroed stats, as Esplora answers.
-        let chain_stats = chain_stats.unwrap_or_default();
+        let chain_stats = addr_chain_stats(type_index, &data, funded);
         let balance = pending_balance(
             chain_stats.balance,
             mempool_stats.funded_txo_sum,
@@ -52,23 +52,25 @@ impl Query {
 }
 
 fn addr_chain_stats(
-    type_index: TypeIndex,
+    type_index: Option<TypeIndex>,
     addr_data: &FundedAddressData,
     is_funded: bool,
 ) -> AddressChainStats {
     let balance = addr_data.balance();
-    let realized_price = if is_funded && !balance.is_zero() {
-        addr_data
-            .realized_cap_raw()
-            .realized_price(balance)
-            .to_dollars()
-    } else {
-        Dollars::default()
-    };
+    let realized_price = bitview_vecs::first_price_height().map(|_| {
+        if is_funded && !balance.is_zero() {
+            addr_data
+                .realized_cap_raw()
+                .realized_price(balance)
+                .to_dollars()
+        } else {
+            Dollars::ZERO
+        }
+    });
 
     AddressChainStats {
         balance,
-        type_index: Some(type_index),
+        type_index,
         funded_txo_count: addr_data.funded_txo_count,
         funded_txo_sum: addr_data.received,
         spent_txo_count: addr_data.spent_txo_count,

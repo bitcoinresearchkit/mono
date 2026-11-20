@@ -27,6 +27,8 @@ struct FieldModel<'a> {
     lead: Option<String>,
     /// The accumulation of every series under the field, unless one nearer them declares its own.
     accumulation: Option<Ident>,
+    /// Every series under the field depends on the BTC/USD price.
+    priced: bool,
     description: Option<String>,
 }
 
@@ -137,6 +139,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
         client: None,
         lead: None,
         accumulation: None,
+        priced: false,
         description: doc_comment(field),
     };
     for meta in traversable_metas(&field.attrs)? {
@@ -144,6 +147,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             Meta::Path(path) if path.is_ident("skip") => model.skipped = true,
             Meta::Path(path) if path.is_ident("flatten") => model.flatten = true,
             Meta::Path(path) if path.is_ident("hidden") => model.hidden = true,
+            Meta::Path(path) if path.is_ident("priced") => model.priced = true,
             Meta::NameValue(name_value) if name_value.path.is_ident("accumulation") => {
                 set_once(&mut model.accumulation, declared_accumulation(&name_value.value)?, name_value)?;
             }
@@ -181,7 +185,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             _ => {
                 return Err(Error::new_spanned(
                     meta,
-                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"`, `client = \"..\"`, `lead = \"..\"` or `accumulation = Variant`",
+                    "expected `skip`, `flatten`, `hidden`, `priced`, `rename = \"..\"`, `wrap = \"..\"`, `client = \"..\"`, `lead = \"..\"` or `accumulation = Variant`",
                 ));
             }
         }
@@ -299,8 +303,8 @@ fn starts_block(text: &str) -> bool {
     ordered || ["- ", "* ", "+ ", "> ", "|", "#"].iter().any(|start| text.starts_with(start))
 }
 
-/// `collect` with the field's metadata fragments on the path, its lead's, its doc comment's
-/// and its accumulation's, as long as it runs.
+/// `collect` with the field's metadata fragments on the path, its lead's, its doc comment's,
+/// its accumulation's and whether it's priced, as long as it runs.
 fn with_metadata_fragments(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
     let fragments = field
         .lead
@@ -314,6 +318,7 @@ fn with_metadata_fragments(field: &FieldModel, collect: ProcMacro2TokenStream) -
                 ::bitview_traversable::MetadataFragment::Accumulation(::bitview_traversable::Accumulation::#accumulation)
             }
         }))
+        .chain(field.priced.then(|| quote! { ::bitview_traversable::MetadataFragment::Priced }))
         .collect::<Vec<_>>();
     if fragments.is_empty() {
         return collect;

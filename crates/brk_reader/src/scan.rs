@@ -2,8 +2,6 @@ use std::{fs::File, io, os::unix::fs::FileExt};
 
 use crate::{XORBytes, XORIndex};
 
-const MAGIC_BYTES: [u8; 4] = [0xF9, 0xBE, 0xB4, 0xD9];
-
 /// A frame's header: the magic, then the payload's length.
 const HEAD_LEN: usize = 8;
 /// The longest run of unwritten bytes taken for a hole rather than the file's end: one frame of
@@ -18,10 +16,16 @@ const MAX_HOLE: usize = HEAD_LEN + 4_000_000;
 /// over to the frames Core wrote after it. Stops at the first other gap: the preallocated zero
 /// tail, or the file's end once Core trims that tail on rollover. Lazy: a caller that stops at the
 /// blocks it wants reads no further (the tail's check reads up to a frame's worth of zeros).
-pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Frames<'_>> {
+pub fn frames(
+    file: &File,
+    xor_bytes: XORBytes,
+    magic: [u8; 4],
+    start: usize,
+) -> io::Result<Frames<'_>> {
     Ok(Frames {
         file,
         xor_bytes,
+        magic,
         offset: start,
         file_len: file.metadata()?.len() as usize,
         done: false,
@@ -32,6 +36,7 @@ pub fn frames(file: &File, xor_bytes: XORBytes, start: usize) -> io::Result<Fram
 pub struct Frames<'a> {
     file: &'a File,
     xor_bytes: XORBytes,
+    magic: [u8; 4],
     offset: usize,
     file_len: usize,
     done: bool,
@@ -41,12 +46,24 @@ impl Frames<'_> {
     /// One hop: the frame at the offset, or over a hole (`None`, the offset moved), or the end
     /// (`None`, done).
     fn hop(&mut self) -> io::Result<Option<(usize, usize)>> {
-        if let Some(len) = frame_at(self.file, self.xor_bytes, self.offset, self.file_len)? {
+        if let Some(len) = frame_at(
+            self.file,
+            self.xor_bytes,
+            self.magic,
+            self.offset,
+            self.file_len,
+        )? {
             let frame = (self.offset + HEAD_LEN, len);
             self.offset += HEAD_LEN + len;
             return Ok(Some(frame));
         }
-        match after_hole(self.file, self.xor_bytes, self.offset, self.file_len)? {
+        match after_hole(
+            self.file,
+            self.xor_bytes,
+            self.magic,
+            self.offset,
+            self.file_len,
+        )? {
             Some(next) => self.offset = next,
             None => self.done = true,
         }
@@ -76,6 +93,7 @@ impl Iterator for Frames<'_> {
 fn frame_at(
     file: &File,
     xor_bytes: XORBytes,
+    magic: [u8; 4],
     offset: usize,
     file_len: usize,
 ) -> io::Result<Option<usize>> {
@@ -89,10 +107,7 @@ fn frame_at(
     }
     XORIndex::at_offset(offset).bytes(&mut head, xor_bytes);
     let len = u32::from_le_bytes([head[4], head[5], head[6], head[7]]) as usize;
-    Ok(
-        (head[..4] == MAGIC_BYTES && len != 0 && offset + HEAD_LEN + len <= file_len)
-            .then_some(len),
-    )
+    Ok((head[..4] == magic && len != 0 && offset + HEAD_LEN + len <= file_len).then_some(len))
 }
 
 /// Where the frame after a hole at `offset` begins: a run of unwritten bytes (zeros on disk,
@@ -102,6 +117,7 @@ fn frame_at(
 fn after_hole(
     file: &File,
     xor_bytes: XORBytes,
+    magic: [u8; 4],
     offset: usize,
     file_len: usize,
 ) -> io::Result<Option<usize>> {
@@ -115,7 +131,7 @@ fn after_hole(
         return Ok(None);
     }
     for start in end.saturating_sub(HEAD_LEN - 1).max(1)..=end {
-        if frame_at(file, xor_bytes, offset + start, file_len)?.is_some() {
+        if frame_at(file, xor_bytes, magic, offset + start, file_len)?.is_some() {
             return Ok(Some(offset + start));
         }
     }

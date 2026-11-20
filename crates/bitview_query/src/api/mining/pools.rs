@@ -1,6 +1,7 @@
 use std::{borrow::Cow, cmp::Reverse};
 
-use bitview_primitives::{Count, Day1, Hashrate, Pool, PoolSlug, pools};
+use bitview_plugin_pools::pools;
+use bitview_primitives::{Count, Day1, Hashrate, Pool, PoolSlug};
 use bitview_types::{
     PoolBlockCounts, PoolBlockShares, PoolDetail, PoolDetailInfo, PoolHashrateEntry, PoolInfo,
     PoolStats, PoolsSummary, TimePeriod,

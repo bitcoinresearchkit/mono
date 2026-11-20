@@ -1,10 +1,10 @@
 use std::ops::{AddAssign, Range, SubAssign};
 
-use bitview_compute::{WRITE_INTERVAL, write_chunks, write_locked};
+use bitview_compute::{write_chunks, write_locked};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{BLOCKS_PER_HALVING, Cents, CentsSats, Height, Sats};
+use brk_types::{Cents, CentsSats, Height, Sats};
 use rayon::{current_num_threads, prelude::*};
 use statedb::Reader;
 use vecdb::ReadableVec;
@@ -13,10 +13,9 @@ use super::{FloorBandId, FloorBands, ModeId, ModeVecs, Modes, Percentiles};
 
 /// The first block whose outputs count toward a floor band: the second halving's, by which
 /// Bedrock's calibration has left its early years behind.
-pub const FLOOR_SUPPLY_START: usize = 2 * BLOCKS_PER_HALVING as usize;
-
-// The pass's write chunks never straddle it.
-const _: () = assert!(FLOOR_SUPPLY_START.is_multiple_of(WRITE_INTERVAL));
+fn floor_supply_start() -> usize {
+    2 * brk_types::chain().halving_interval as usize
+}
 
 /// What a band holds: unspent supply and its capital (each output at its creation price).
 #[derive(Clone, Copy, Default)]
@@ -72,12 +71,12 @@ impl SubAssign for Change {
 }
 
 /// Each mode's holdings by the floor band spot sat in when they were created, from
-/// [`FLOOR_SUPPLY_START`], less what has been spent since.
+/// the second halving, less what has been spent since.
 #[derive(Default)]
 pub struct EntrySupply {
-    /// Each block's spot price from [`FLOOR_SUPPLY_START`]: its outputs' creation price.
+    /// Each block's spot price from the second halving: its outputs' creation price.
     prices: Vec<Cents>,
-    /// Each block's band per mode from [`FLOOR_SUPPLY_START`]: where its outputs are held.
+    /// Each block's band per mode from the second halving: where its outputs are held.
     bands: Vec<Modes<Option<FloorBandId>>>,
     /// The holdings before block `held_end`.
     held: Modes<FloorBands<Holding>>,
@@ -95,16 +94,13 @@ impl EntrySupply {
         history: &Reader<'_>,
         prices: &dyn ReadableVec<Height, Cents>,
     ) -> Result<()> {
-        let index = |height: usize| height.max(FLOOR_SUPPLY_START) - FLOOR_SUPPLY_START;
+        let start_height = floor_supply_start();
+        let index = |height: usize| height.max(start_height) - start_height;
         self.prices.truncate(index(range.start));
         self.bands.truncate(index(range.start));
         let classified = self.bands.len();
-        let (from, end) = (
-            FLOOR_SUPPLY_START + classified,
-            range.end.max(FLOOR_SUPPLY_START),
-        );
-        self.prices
-            .extend(prices.collect_range_dyn(from, end));
+        let (from, end) = (start_height + classified, range.end.max(start_height));
+        self.prices.extend(prices.collect_range_dyn(from, end));
         self.bands.resize(index(end), Modes::default());
         // One mode's floors at a time bounds the memory a long rebuild takes.
         for &mode in ModeId::ALL {
@@ -123,9 +119,9 @@ impl EntrySupply {
         }
         if self.held_end != range.start {
             self.held = Modes::default();
-            if range.start > FLOOR_SUPPLY_START {
+            if range.start > start_height {
                 let state = history.state_at(range.start)?;
-                let amounts = &state.amounts()[FLOOR_SUPPLY_START..range.start];
+                let amounts = &state.amounts()[start_height..range.start];
                 for ((amount, &price), bands) in amounts.iter().zip(&self.prices).zip(&self.bands) {
                     for held in held_in(&mut self.held, bands) {
                         *held = held.after(Change::of(price, amount.sats));
@@ -179,28 +175,29 @@ impl EntrySupply {
 
     /// Each block's change in holdings since the start of `chunk`: its creations join its bands,
     /// its spends leave the bands of the blocks that created what they spend. None before
-    /// [`FLOOR_SUPPLY_START`], which no chunk straddles.
+    /// the second halving.
     fn changes(
         &self,
         chunk: Range<usize>,
         history: &Reader<'_>,
     ) -> Result<Vec<Modes<FloorBands<Change>>>> {
         let mut changes = Vec::with_capacity(chunk.len());
-        if chunk.start < FLOOR_SUPPLY_START {
-            debug_assert!(chunk.end <= FLOOR_SUPPLY_START);
-            changes.resize(chunk.len(), Modes::default());
+        let start_height = floor_supply_start();
+        let start = chunk.start.max(start_height).min(chunk.end);
+        changes.resize(start - chunk.start, Modes::default());
+        if start == chunk.end {
             return Ok(changes);
         }
-        let mut diffs = history.diffs(chunk.start)?;
+        let mut diffs = history.diffs(start)?;
         let mut change = Modes::<FloorBands<Change>>::default();
-        for height in chunk {
+        for height in start..chunk.end {
             let diff = diffs.advance()?.expect("history covers the floors");
-            let index = height - FLOOR_SUPPLY_START;
+            let index = height - start_height;
             for held in held_in(&mut change, &self.bands[index]) {
                 *held += Change::of(self.prices[index], diff.created.sats);
             }
             for (origin, amount) in diff.removed() {
-                if let Some(index) = (origin as usize).checked_sub(FLOOR_SUPPLY_START) {
+                if let Some(index) = (origin as usize).checked_sub(start_height) {
                     for held in held_in(&mut change, &self.bands[index]) {
                         *held -= Change::of(self.prices[index], amount.sats);
                     }

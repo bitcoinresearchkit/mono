@@ -15,6 +15,7 @@ pub(crate) fn rust_type(ty: &Ty) -> String {
         Ty::Integer(format) => rust_integer(format.as_deref()),
         Ty::Number => "f64".to_owned(),
         Ty::Boolean => "bool".to_owned(),
+        Ty::Nullable(item) => format!("Option<{}>", rust_type(item)),
         _ => "serde_json::Value".to_owned(),
     }
 }
