@@ -72,8 +72,6 @@ function info(name, signal = /** @type {AbortSignal | undefined} */ (undefined))
     known.set(name, meta);
     return meta;
   }, (error) => {
-    // (One given up isn't a failure: it's gone, asked anew the next time.)
-    if (error?.name === "AbortError") return;
     failedInfos.add(name);
     if (error?.status === 404) gone.add(name);
   }, signal);
@@ -165,10 +163,10 @@ async function refetchTail(endpoint, index, held, to = undefined) {
 }
 /**
  * Fetch once by interval (fine ones by chunk); `fresh` refetches the tail, keeping cached data if that fails. `signal`:
- * the asker's, giving up a first fetch (see cachedLoad); a fine interval's chunks aren't given up.
+ * the asker's, giving up a first fetch (see cachedLoad).
  */
 function load(name, index, fresh = false, span = /** @type {Span | null} */ (null), signal = /** @type {AbortSignal | undefined} */ (undefined)) {
-  if (span) return loadSpan(name, index, span, fresh);
+  if (span) return loadSpan(name, index, span, fresh, signal);
   const key = `${name}@${index}`;
   const times = (/** @type {number} */ start, /** @type {number} */ count) => timesAt(index, start, count);
   return cachedLoad(loads, key, fresh, KEPT_LOADS, async (cached, stop) => {
@@ -191,7 +189,8 @@ const underWay = new WeakMap();
  * A load kept in `cache` (the `most` used last): asked once; `fresh`, asked again, what was there kept if that fails.
  * A first one that fails stays (`failed` notes it: Retry and the live refresh ask again), so each edit doesn't. A
  * first one asked with a `signal` is given up, its fetch aborted (`make`'s `stop`) and out of the cache, once every
- * asker's signal has given it up; never once one without a signal has asked for it.
+ * asker's signal has given it up (not a failure: asked anew the next time); never once one without a signal has asked
+ * for it.
  * @template T @param {Map<string, Promise<T>>} cache
  * @param {(cached: Promise<T> | undefined, stop?: AbortSignal) => Promise<T>} make
  */
@@ -218,7 +217,7 @@ function cachedLoad(cache, /** @type {string} */ key, /** @type {boolean} */ fre
   }
   if (cached) lastUsed(cache, key, result);
   // (A held one let go of meanwhile (pruned, forgotten): a new load starts over, nothing behind.)
-  else (behind.delete(key), request.catch(failed), cache.set(key, result));
+  else (behind.delete(key), request.catch((error) => stop?.signal.aborted || failed(error)), cache.set(key, result));
   prune(cache, most);
   return result;
 }
@@ -246,15 +245,15 @@ const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
 const chunks = new Map();
 /** Chunks that failed, asked for again when the view reaches for them (not at each redraw). */
 const failedChunks = new Set();
-function loadChunk(name, index, k, fresh) {
+function loadChunk(name, index, k, fresh, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
   const key = `${name}@${index}#${k}`;
-  return cachedLoad(chunks, key, fresh, KEPT_CHUNKS, async (cached) => {
+  return cachedLoad(chunks, key, fresh, KEPT_CHUNKS, async (cached, stop) => {
     if (k >= latestChunk(index) - 1) askedAt.set(key, liveHeight);
     const endpoint = client.seriesEndpoint(name, /** @type {"minute10"} */ (index));
     const joined = await refetchTail(endpoint, index, fresh && cached ? await cached.catch(() => null) : null, (k + 1) * CHUNK);
-    const response = joined ?? (await endpoint.slice(k * CHUNK, (k + 1) * CHUNK).fetch());
+    const response = joined ?? (await endpoint.slice(k * CHUNK, (k + 1) * CHUNK).fetch({ signal: stop }));
     return { start: response.start, data: response.data, version: response.version };
-  }, () => failedChunks.add(key));
+  }, () => failedChunks.add(key), signal);
 }
 /** Each chart's span at each fine interval, kept as it grows (and once the chart is left). @type {Map<string, Span>} */
 const spans = new Map();
@@ -297,9 +296,9 @@ function spanOf(doc) {
 }
 /** A series over a span: its chunks in one run (the run kept while they're the same chunks). */
 const spanned = new Map();
-function loadSpan(name, index, { from, to, live }, fresh, again = false) {
+function loadSpan(name, index, { from, to, live }, fresh, signal = /** @type {AbortSignal | undefined} */ (undefined), again = false) {
   const latest = latestChunk(index);
-  const parts = Array.from({ length: to - from + 1 }, (_, i) => loadChunk(name, index, from + i, fresh && from + i >= latest - 1));
+  const parts = Array.from({ length: to - from + 1 }, (_, i) => loadChunk(name, index, from + i, fresh && from + i >= latest - 1, signal));
   const key = `${name}@${index}`, kept = spanned.get(key);
   if (kept && kept.parts.length === parts.length && kept.parts.every((part, i) => part === parts[i])) return kept.value;
   // Chunks that failed are left out at either end (a live span's newest must load); the newest run between is kept.
@@ -316,7 +315,7 @@ function loadSpan(name, index, { from, to, live }, fresh, again = false) {
     if (new Set(loaded.map((part) => part.version)).size > 1) {
       if (again) throw Object.assign(new Error("Being recomputed"), { recomputing: true });
       forget(name, index);
-      return loadSpan(name, index, { from, to, live }, false, true);
+      return loadSpan(name, index, { from, to, live }, false, signal, true);
     }
     const start = loaded[0]?.start ?? (from + first) * CHUNK;
     const data = [];

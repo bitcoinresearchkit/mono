@@ -1163,10 +1163,21 @@ const drawingIds = new WeakMap();
 let drawingsNumbered = 0;
 const drawingId = (/** @type {object} */ drawn) => drawingIds.get(drawn) ?? (drawingIds.set(drawn, ++drawingsNumbered), drawingsNumbered);
 /**
- * The mini charts being drawn (a chart's tile, a card's, ⌘K's), by what they're drawn of: one ask at a time each, and
- * the signal it may be given up by. @type {Map<string, { drawn: Promise<(Preview & { key: string }) | null>, signal?: AbortSignal }>}
+ * The mini charts being drawn (a chart's tile, a card's, ⌘K's), by what they're drawn of: one ask at a time each, where
+ * it's framed (its frames, and a preset's slot: its tile, written once near sight, see slotHtml), and what gives it up
+ * (see giveUpUnframed).
+ * @type {Map<string, { framed: string, drawn: Promise<(Preview & { key: string }) | null>, stop: AbortController }>}
  */
 const plotsDrawing = new Map();
+/**
+ * Every drawing under way with no frame of its chart left in the page, nor a slot for its tile (its tile dropped by a key
+ * typed, ⌘K's preview moved on, a page of tiles put aside) given up, its fetches no other asker wants with it (see cachedLoad). Called
+ * once a page of frames is written anew. Out of the map before it's aborted: an ask meanwhile (the tile back) draws
+ * anew rather than joining one that will paint nothing.
+ */
+function giveUpUnframed() {
+  for (const [ask, { framed, stop }] of plotsDrawing) if (!document.querySelector(framed)) plotsDrawing.delete(ask), stop.abort();
+}
 /**
  * A chart's drawing, shown wherever it's framed (its tile, a template's card, ⌘K's preview): in the frames still
  * waiting, or (`all`: a new drawing) in all of them; none (a failed fetch) ends their wait.
@@ -1187,18 +1198,18 @@ function paint(id, drawn, all = false) {
 /**
  * A chart's drawing, made if it's out of date, kept (and stored, a moment later), and shown wherever it's framed:
  * from `index`'s data (a template's weekly: enough at this size, over as much time as its chart shows). null when a
- * fetch failed, or the drawing did (reported): nothing is kept, the next time tries again. `signal`: its asker's,
- * giving it up (its fetches no other asker wants aborted, see cachedLoad; nothing painted, null).
- * @param {Chart} doc @param {AbortSignal} [signal] @returns {Promise<(Preview & { key: string }) | null>}
+ * fetch failed, or the drawing did (reported): nothing is kept, the next time tries again. Given up once no frame of
+ * its chart is left (see giveUpUnframed): nothing painted, null.
+ * @param {Chart} doc @returns {Promise<(Preview & { key: string }) | null>}
  */
-function drawPreview(doc, index = doc.index, signal = undefined) {
+function drawPreview(doc, index = doc.index) {
   const key = previewKey(doc), have = previews.get(doc.id);
-  if (have?.key === key) return Promise.resolve(have);
-  // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers; one that may be given up
-  // (it then paints nothing) only an ask with its own signal: one without, or with another, draws its own, its fetches
-  // shared (see cachedLoad).
+  if (have?.key === key) return paint(doc.id, have), Promise.resolve(have);
+  // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers.
   const ask = JSON.stringify([doc.id, key, index]), going = plotsDrawing.get(ask);
-  if (going && (!going.signal || going.signal === signal)) return going.drawn;
+  if (going) return going.drawn;
+  const stop = new AbortController(), signal = stop.signal, preset = doc.id.startsWith("preset:") ? Number(doc.id.slice(7)) : -1, at = preset >= 0 ? preset : presetIndex(doc);
+  const framed = `[data-plot="${CSS.escape(doc.id)}"]${at >= 0 ? `, .tile-slot[data-slot="${at}"]` : ""}`;
   const drawing = (async () => {
     index = await sampleable(doc, index, signal);
     const copy = { ...structuredClone(doc), index };
@@ -1210,18 +1221,18 @@ function drawPreview(doc, index = doc.index, signal = undefined) {
     // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
     if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
     // (A preset let go meanwhile, out of the last looked at: its drawing isn't kept either.)
-    if (doc.id.startsWith("preset:") && !presetDocs.has(Number(doc.id.slice(7)))) return null;
+    if (preset >= 0 && !presetDocs.has(preset)) return null;
     // (A preset's: which one, by its place, see templateDoc.)
     // (Its heatmaps' days not all in: shown, kept unkeyed, drawn again the next time it's asked for.)
-    const drawn = { key: heat.whole === false ? "" : key, ...previewOf(copy, data, previewBars(doc, index), PREVIEW, heat, bubbles), ...(doc.id.startsWith("preset:") ? { of: presetKey(Number(doc.id.slice(7))) } : {}) };
+    const drawn = { key: heat.whole === false ? "" : key, ...previewOf(copy, data, previewBars(doc, index), PREVIEW, heat, bubbles), ...(preset >= 0 ? { of: presetKey(preset) } : {}) };
     // (The last drawn last: kept first, see savePreviews.)
     previews.delete(doc.id);
     previews.set(doc.id, drawn);
     savePreviewsSoon();
     return drawn;
   })().catch((error) => (reportError(new Error(`${doc.id}: its drawing failed`, { cause: error })), null))
-    .then((made) => (signal?.aborted || paint(doc.id, made, true), made)).finally(() => plotsDrawing.get(ask)?.drawn === drawing && plotsDrawing.delete(ask));
-  plotsDrawing.set(ask, { drawn: drawing, signal });
+    .then((made) => (signal.aborted || paint(doc.id, made, true), made)).finally(() => plotsDrawing.get(ask)?.drawn === drawing && plotsDrawing.delete(ask));
+  plotsDrawing.set(ask, { framed, drawn: drawing, stop });
   return drawing;
 }
 /**
@@ -1810,8 +1821,6 @@ function renderGallery() {
   if (kept) placeGallery(kept);
   restoreFocus($("gallery"), focus);
   for (const frame of all$(".pending[data-plot]", $("gallery"))) watchTile(frame);
-  // (A drawing under way for a tile the grid no longer has (a key typed meanwhile): given up, its fetches with it.)
-  for (const [i, stop] of galleryDrawings) if (!$("gallery").querySelector(`[data-preset="${i}"], [data-slot="${i}"]`)) galleryDrawings.delete(i), stop.abort();
   shelvesSoon();
 }
 /**
@@ -1945,8 +1954,6 @@ function fitShelf(row, at, size, full, cut) {
 // Each tile drawn once it's in view (on a shelf, scrolled to), one at a time; let go of if it's left before its turn
 // (a preset on two shelves, the recommended's and its section's: while either's in view).
 const galleryQueue = /** @type {Set<number>} */ (new Set()), gallerySeen = /** @type {Set<Element>} */ (new Set());
-/** The tiles' drawings under way, by preset: what gives each up (see renderGallery). @type {Map<number, AbortController>} */
-const galleryDrawings = new Map();
 const presetOf = (/** @type {Element} */ frame) => Number(/** @type {HTMLElement | null} */ (frame.closest("[data-preset]"))?.dataset.preset);
 // (Its root the grid's own scroller: from the window's, what's past the scroller's edge is cut off, margin or not. Its
 // margin a screen, the scroller's height in pixels (a percentage there is of its width), made again as it's resized.)
@@ -3980,7 +3987,7 @@ export {
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
   duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryDrawings, galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions,
+  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions,
   groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
   KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph,
   morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,
