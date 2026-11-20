@@ -15,6 +15,7 @@ mod quiet;
 static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
 
 fn main() -> ExitCode {
+    bitview_default::build_thread_pool();
     match run() {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {

@@ -13,7 +13,7 @@ impl ComputePlugin for Vecs {
         context: UpdateContext<'_>,
     ) -> Result<()> {
         let exit = context.exit();
-        let Dependencies { indexer, price } = dependencies;
+        let Dependencies { indexer, price, .. } = dependencies;
 
         let spot = &price.spot.cents.height;
         let starting_lengths = indexer.compute_start();
