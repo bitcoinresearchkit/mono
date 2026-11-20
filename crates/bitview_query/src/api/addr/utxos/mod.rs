@@ -3,11 +3,9 @@ use bitview_primitives::{Lengths, TxOutIndex};
 use bitview_types::Utxo;
 use brk_mempool::PendingUtxos;
 use brk_types::{Address, BlockHash, Height, Sats, TxIndex, TxStatus, Txid, Vout};
+use vecdb::VecIndex;
 
-use crate::{Error, OptionData, Query, Result, api::addr::parse_addr};
-
-// Keep a few independent reads in flight without filling the kernel's advice queue.
-const READ_BATCH: usize = 32;
+use crate::{Error, OptionData, Query, Result, api::addr::parse_addr, read_sorted};
 
 /// An owned UTXO selection retaining only rollback protection until consumed.
 pub struct ResolvedAddrUtxos {
@@ -52,26 +50,26 @@ impl Query {
                 let height = self.confirmed_status_height_bounded(last_tx, lengths)?;
                 // The unspent set as of the pin (unavailable while a lowered publication sits
                 // below what the stores hold), without what pending transactions spend, read
-                // until one past the cap.
-                let txids = self.indexer().vecs().transactions.txid.reader();
+                // until one past the cap: each round reads as many as the cap still allows, their
+                // txids in one batch.
+                let txids = &self.indexer().vecs().transactions.txid;
                 let mut spends = pending.spends();
                 let mut outpoints = Vec::new();
                 let mut unspent = pin
                     .addr_unspent_outpoints(output_type, type_index)
                     .ok_or_else(|| Error::updating())?;
-                let mut batch = Vec::with_capacity(READ_BATCH);
                 while outpoints.len() <= max_utxos {
-                    let count = (max_utxos - outpoints.len()).saturating_add(1).min(READ_BATCH);
-                    batch.clear();
-                    for outpoint in unspent.by_ref().take(count) {
-                        batch.push(outpoint?);
-                    }
+                    let count = (max_utxos - outpoints.len()).saturating_add(1);
+                    let batch = unspent
+                        .by_ref()
+                        .take(count)
+                        .collect::<brk_error::Result<Vec<_>>>()?;
                     if batch.is_empty() {
                         break;
                     }
-                    txids.prefetch(batch.iter().map(|&(tx, _)| tx));
-                    for &(tx_index, vout) in &batch {
-                        let txid = txids.try_get(tx_index).data()?;
+                    let rows: Vec<usize> = batch.iter().map(|&(tx, _)| tx.to_usize()).collect();
+                    let read = read_sorted(txids, &rows)?;
+                    for ((tx_index, vout), txid) in batch.into_iter().zip(read) {
                         if !spends.spent(&txid, vout) {
                             outpoints.push((tx_index, txid, vout));
                         }
@@ -104,69 +102,54 @@ impl Query {
             ..
         } = resolved;
         let lengths = pin.lengths();
-        let outputs = self.unspent_outputs(&outpoints, lengths)?;
-
-        // Statuses read other vectors: the raw readers above are released by now.
-        let mut cached_status: Option<(Height, TxStatus)> = None;
-        let mut utxos = Vec::with_capacity(outputs.len() + pending.created.len());
+        let values = self.unspent_values(&outpoints, lengths)?;
+        // Outpoints in transaction order: their heights are non-decreasing.
         let tx_heights = self.plugins().mappings.tx_heights.load();
         let mut tx_heights = tx_heights.cursor();
-        let hashes = &self.indexer().vecs().blocks.blockhash;
-        let mut heights = [Height::ZERO; READ_BATCH];
-        for batch in outputs.chunks(READ_BATCH) {
-            let heights = &mut heights[..batch.len()];
-            for (&(tx, _, _, _), height) in batch.iter().zip(&mut *heights) {
-                *height = tx_heights.get(tx).data()?;
-            }
-            hashes.prefetch(heights.iter().copied());
-            for (&(_, txid, vout, value), &height) in batch.iter().zip(heights.iter()) {
-                let status = if let Some((h, ref s)) = cached_status
-                    && h == height
-                {
-                    s.clone()
-                } else {
-                    let s = self.confirmed_status_at_bounded(height, lengths)?;
-                    cached_status = Some((height, s.clone()));
-                    s
-                };
-                utxos.push(Utxo { txid, vout, status, value });
-            }
-        }
-        utxos.extend(pending.created.into_iter().map(|(txid, vout, value)| Utxo {
+        let heights = outpoints
+            .iter()
+            .map(|&(tx, ..)| tx_heights.get(tx).data())
+            .collect::<Result<Vec<Height>>>()?;
+        let statuses = self.confirmed_statuses_bounded(&heights, lengths)?;
+
+        let confirmed = outpoints.into_iter().zip(values).zip(statuses).map(
+            |(((_, txid, vout), value), status)| Utxo {
+                txid,
+                vout,
+                status,
+                value,
+            },
+        );
+        let pending = pending.created.into_iter().map(|(txid, vout, value)| Utxo {
             txid,
             vout,
             status: TxStatus::UNCONFIRMED,
             value,
-        }));
-        Ok(utxos)
+        });
+        Ok(confirmed.chain(pending).collect())
     }
 
-    /// The confirmed outpoints' values.
-    fn unspent_outputs(
+    /// The confirmed outpoints' values, in their (transaction) order: their output indexes are
+    /// sorted too, so the values are one batch read.
+    fn unspent_values(
         &self,
         outpoints: &[(TxIndex, Txid, Vout)],
         lengths: Lengths,
-    ) -> Result<Vec<(TxIndex, Txid, Vout, Sats)>> {
-        let vecs = self.indexer().vecs();
+    ) -> Result<Vec<Sats>> {
         let ranges = self.indexer().output_ranges(lengths);
-        let value_reader = vecs.outputs.value.reader();
-        let mut outputs = Vec::with_capacity(outpoints.len());
-        let mut indexes = [TxOutIndex::ZERO; READ_BATCH];
-        for batch in outpoints.chunks(READ_BATCH) {
-            ranges.prefetch(batch.iter().map(|&(tx, _, _)| tx));
-            let indexes = &mut indexes[..batch.len()];
-            for (&(tx, _, vout), output) in batch.iter().zip(&mut *indexes) {
-                *output = ranges
+        ranges.prefetch(outpoints.iter().map(|&(tx, ..)| tx));
+        let rows = outpoints
+            .iter()
+            .map(|&(tx, _, vout)| {
+                ranges
                     .get(tx)
                     .and_then(|outputs| outputs.get(vout))
-                    .ok_or(Error::Internal("UTXO outside transaction output boundaries"))?;
-            }
-            value_reader.prefetch(indexes.iter().copied());
-            for (&(tx, txid, vout), &output) in batch.iter().zip(indexes.iter()) {
-                let value = value_reader.try_get(output).data()?;
-                outputs.push((tx, txid, vout, value));
-            }
-        }
-        Ok(outputs)
+                    .map(TxOutIndex::to_usize)
+                    .ok_or(Error::Internal(
+                        "UTXO outside transaction output boundaries",
+                    ))
+            })
+            .collect::<Result<Vec<usize>>>()?;
+        read_sorted(&self.indexer().vecs().outputs.value, &rows)
     }
 }

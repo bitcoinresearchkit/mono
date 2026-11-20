@@ -62,11 +62,6 @@ where
             .map(|compact| self.decode(compact))
     }
 
-    /// Starts reading the compact rows' pages. A row identifies its overflow slot only when read.
-    pub fn prefetch(&self, indexes: impl IntoIterator<Item = I>) {
-        self.compact.prefetch(indexes);
-    }
-
     #[inline(always)]
     pub(crate) fn compact(
         &self,
