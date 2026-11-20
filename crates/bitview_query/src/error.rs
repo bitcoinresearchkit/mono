@@ -2,6 +2,7 @@ use std::{borrow::Cow, fmt, result::Result as StdResult};
 
 use brk_error::Updating;
 use thiserror::Error as ThisError;
+use vecdb::{ReadableVec, VecIndex, VecValue};
 
 pub type Result<T> = StdResult<T, Error>;
 
@@ -106,6 +107,24 @@ impl<T> OptionData<T> for Option<T> {
     #[inline]
     fn data(self) -> Result<T> {
         self.ok_or(Error::Internal("data unavailable"))
+    }
+}
+
+/// The values at sorted `rows`, read as one batch; a short read fails naming the column and the
+/// row where it stopped.
+pub(crate) fn read_sorted<I: VecIndex, T: VecValue>(
+    column: &impl ReadableVec<I, T>,
+    rows: &[usize],
+) -> Result<Vec<T>> {
+    let values = column.read_sorted_at(rows);
+    match rows.get(values.len()) {
+        None => Ok(values),
+        Some(&index) => Err(vecdb::Error::IndexTooHigh {
+            index,
+            len: column.len(),
+            name: column.name().to_owned(),
+        }
+        .into()),
     }
 }
 
