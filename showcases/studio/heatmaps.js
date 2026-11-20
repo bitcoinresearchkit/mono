@@ -1,6 +1,6 @@
 // @ts-check
 // Heatmaps (the URPD, a day a column) and bubbles.
-import { columnWidth, Custom, press, Profile } from "/modules/bitview-charts/index.js";
+import { columnWidth, Custom, placeIndex, press, Profile } from "/modules/bitview-charts/index.js";
 import { capitalized, inSentence } from "/studio/words.js";
 import {
   boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
@@ -364,7 +364,7 @@ function heatColor(value, most, look, pixels, at) {
   const felt = heatFelt(value, most);
   if (!felt) return;
   const place = look.measure === "pnl" ? 0.5 + (Math.sign(value) * felt) / 2 : felt;
-  const [r, g, b] = look.gradient ? look.gradient[Math.round(place * (look.gradient.length - 1))] : value < 0 ? look.down : look.up;
+  const [r, g, b] = look.gradient ? look.gradient[placeIndex(place, look.gradient.length)] : value < 0 ? look.down : look.up;
   pixels[at] = r;
   pixels[at + 1] = g;
   pixels[at + 2] = b;

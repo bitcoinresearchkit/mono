@@ -1,7 +1,9 @@
 // @ts-check
 // Words on a color: white or black by one rule (see whiteOn), each color measured once; a tag's look (its fill as it
-// is, its words), and words in a color over the data (outlined). And a fill's or a stroke's style as a vertical
-// gradient (a fade, or colors by value, hard-edged at their heights), kept till it changes.
+// is, its words), and words in a color over the data (outlined). Gradients by value: their colors mixed once (see
+// gradientTable), a value's place in them (see Gradient). And a fill's or a stroke's style as a vertical gradient (a
+// fade, colors by value hard-edged at their heights, or a gradient's colors at their values' heights), kept till it
+// changes.
 
 const ink = new Map();
 /** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
@@ -209,22 +211,59 @@ function rgb(c) {
   return c.length === 4 ? [c[0], c[1], c[2]] : Array.from(c, (v) => Math.round(255 * (Math.min(1, Math.max(0, v)) <= 0.0031308 ? 12.92 * Math.min(1, Math.max(0, v)) : 1.055 * Math.min(1, Math.max(0, v)) ** (1 / 2.4) - 0.055)));
 }
 
+/** Under this chroma a color has no hue of its own (a gray): mixed, it takes its neighbor's. */
+const GRAY = 0.02;
+
 /**
- * A gradient's 256 colors (RGBA, 0 to 255, a color each 4), its `stops` (any CSS colors, evenly apart) blended in OKLab
- * (no muddy midpoints: a hue's lightness and chroma move together), their opacities straight (a see-through stop the
- * color of the stop it fades to or from: a fade not through black, nor through another stop's hue); one stop, its color.
- * @param {string[]} stops
+ * A gradient's `steps` colors (256 unless asked), evenly from 0% to 100%, as `oklch(…)` (any canvas or CSS takes it,
+ * a page can tone it for its theme): its `stops` (each where it is, 0 to 100, and any CSS color; in order) mixed in
+ * OKLCH, lightness and chroma straight and hue the shorter way round (a gray one taking its neighbor's), so two far
+ * apart stay vivid between (OKLab took blue to yellow through gray); their opacities straight, a see-through stop the
+ * color of the one it fades to or from (a fade not through black); past its outer ones, theirs.
+ * @param {readonly (readonly [number, string])[]} stops @param {number} [steps]
+ * @returns {string[]}
  */
-export function gradientTable(stops) {
-  const table = new Uint8ClampedArray(256 * 4), labs = stops.map((stop) => [...oklab(read(stop)), read(stop)[3]]), last = labs.length - 1;
-  for (let k = 0; k < 256; k++) {
-    const at = last > 0 ? (k / 255) * last : 0, i = Math.min(Math.max(0, last - 1), Math.floor(at)), t = last > 0 ? at - i : 0, a = labs[i], b = labs[Math.min(i + 1, last)];
-    // (A see-through end of the segment its other end's color: each visible stop fades in its own.)
-    const from = a[3] === 0 ? b : a, to = b[3] === 0 ? a : b, c = rgb(lin(from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t, from[2] + (to[2] - from[2]) * t));
-    (table[k * 4] = c[0]), (table[k * 4 + 1] = c[1]), (table[k * 4 + 2] = c[2]), (table[k * 4 + 3] = a[3] + (b[3] - a[3]) * t);
-  }
-  return table;
+export function gradientTable(stops, steps = 256) {
+  const rows = mixes(stops, steps);
+  return Array.from({ length: steps }, (_, k) => {
+    const at = k * 4, a = rows[at + 3];
+    return `oklch(${+rows[at].toFixed(4)} ${+rows[at + 1].toFixed(4)} ${+rows[at + 2].toFixed(1)}${a < 255 ? ` / ${+(a / 255).toFixed(3)}` : ""})`;
+  });
 }
+
+/**
+ * A gradient's `steps` colors (see gradientTable) as OKLCH and opacity, a color each 4: lightness, chroma, hue in
+ * degrees, opacity 0 to 255.
+ * @param {readonly (readonly [number, string])[]} stops @param {number} steps
+ */
+function mixes(stops, steps) {
+  const lchs = stops.map(([, color]) => lchOf(color)), rows = new Float64Array(steps * 4), last = stops.length - 1;
+  for (let k = 0; k < steps; k++) {
+    const at = steps > 1 ? (k / (steps - 1)) * 100 : 0, next = stops.findIndex(([where]) => where >= at);
+    const [i, j, t] = next <= 0 ? [next < 0 ? last : 0, next < 0 ? last : 0, 0] : [next - 1, next, (at - stops[next - 1][0]) / Math.max(1e-9, stops[next][0] - stops[next - 1][0])];
+    const a = lchs[i][3] === 0 ? lchs[j] : lchs[i], b = lchs[j][3] === 0 ? lchs[i] : lchs[j];
+    const from = a[1] < GRAY ? b[2] : a[2], to = b[1] < GRAY ? a[2] : b[2], turn = ((((to - from) % 360) + 540) % 360) - 180;
+    (rows[k * 4] = a[0] + (b[0] - a[0]) * t), (rows[k * 4 + 1] = a[1] + (b[1] - a[1]) * t), (rows[k * 4 + 2] = (((from + turn * t) % 360) + 360) % 360);
+    rows[k * 4 + 3] = lchs[i][3] + (lchs[j][3] - lchs[i][3]) * t;
+  }
+  return rows;
+}
+
+/**
+ * A CSS color as OKLCH and opacity (lightness, chroma, hue in degrees, opacity 0 to 255): an `oklch(…)` read as
+ * written (none of its chroma clipped to sRGB, as a canvas's writing would), any other as the canvas reads it.
+ * @param {string} color @returns {number[]}
+ */
+function lchOf(color) {
+  const call = /^oklch\(\s*([\d.e+-]+%?)\s+([\d.e+-]+%?)\s+([\d.e+-]+)(?:deg)?\s*(?:\/\s*([\d.e+-]+%?)\s*)?\)$/.exec(color.trim());
+  const num = (/** @type {string} */ part, /** @type {number} */ whole) => (part.endsWith("%") ? (parseFloat(part) / 100) * whole : parseFloat(part));
+  if (call) return [num(call[1], 1), num(call[2], 0.4), parseFloat(call[3]), call[4] === undefined ? 255 : Math.round(Math.min(1, Math.max(0, num(call[4], 1))) * 255)];
+  const channels = read(color), [L, a, b] = oklab(channels);
+  return [L, Math.hypot(a, b), ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360, channels[3]];
+}
+
+/** Where a place (0 to 1, clamped) falls in a gradient's `n` colors: the nearest one's index. @param {number} place @param {number} n */
+export const placeIndex = (place, n) => Math.round((place < 0 ? 0 : place > 1 ? 1 : place) * (n - 1));
 
 /**
  * A color's sRGB channels and opacity (0 to 255), as the canvas reads it: from the canvas's own writing of it (#rrggbb,
@@ -332,7 +371,7 @@ function hex(c) {
 const blends = new Map();
 
 /**
- * A fade's stops from `from` to `to`, nine evenly apart, blended in OKLab (see gradientTable): worked out once a pair,
+ * A fade's stops from `from` to `to`, nine evenly apart, mixed in OKLCH (see gradientTable): worked out once a pair,
  * so a gradient made anew (its heights changed: a baseline's base as its scale refits) costs only its stops.
  * @param {string} from @param {string} to
  */
@@ -340,15 +379,61 @@ function blended(from, to) {
   const key = from + "|" + to;
   let stops = blends.get(key);
   if (stops === undefined) {
-    const table = gradientTable([from, to]);
+    // (Of 256, each an eighth on to the nearest; its opacity rounded to a channel's 0 to 255 first.)
+    const rows = mixes([[0, from], [100, to]], 256), byte = new Uint8ClampedArray(1);
     stops = Array.from({ length: 9 }, (_, k) => {
-      const at = Math.round((k / 8) * 255) * 4;
-      return `rgba(${table[at]}, ${table[at + 1]}, ${table[at + 2]}, ${(table[at + 3] / 255).toFixed(3)})`;
+      const at = Math.round((k / 8) * 255) * 4, h = (rows[at + 2] * Math.PI) / 180, c = rgb(lin(rows[at], rows[at + 1] * Math.cos(h), rows[at + 1] * Math.sin(h)));
+      byte[0] = rows[at + 3];
+      return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${(byte[0] / 255).toFixed(3)})`;
     });
     if (blends.size > 256) blends.clear();
     blends.set(key, stops);
   }
   return stops;
+}
+
+/**
+ * Colors by value along a gradient: `colors` (any CSS colors, evenly apart: a gradientTable's), a value's the one
+ * nearest its place from `lo` (0) to `hi` (1), past them the outer ones' (`lo` and `hi` the same: the middle one).
+ * Continuous marks take it by height (a line's stroke, an area's fill: see Fill's graded), discrete ones each its own
+ * (dots, bars: see index).
+ */
+export class Gradient {
+  /** @param {readonly string[]} colors @param {number} lo @param {number} hi */
+  constructor(colors, lo, hi) {
+    this.colors = colors;
+    this.lo = lo;
+    this.hi = hi;
+    /** Its colors' sRGB channels and opacity (0 to 255), read once a style needs them. @type {number[][] | null} */
+    this.read = null;
+  }
+
+  /** Where `v` is from its `lo` (0) to its `hi` (1), unclamped (none: NaN). @param {number} v */
+  place(v) {
+    return this.hi > this.lo ? (v - this.lo) / (this.hi - this.lo) : 0.5;
+  }
+
+  /** The index of `v`'s color (none: NaN). @param {number} v */
+  index(v) {
+    return placeIndex(this.place(v), this.colors.length);
+  }
+
+  /** `v`'s color (none: null). @param {number} v */
+  color(v) {
+    return v === v ? this.colors[this.index(v)] : null;
+  }
+
+  /** Each of `values`' color's index (none: 0), into `out` where it's as long. @param {Float64Array} values @param {Uint16Array | null} out */
+  indexes(values, out) {
+    const n = values.length, into = out && out.length === n ? out : new Uint16Array(n);
+    for (let i = 0; i < n; i++) into[i] = values[i] === values[i] ? this.index(values[i]) : 0;
+    return into;
+  }
+
+  /** Its colors' channels (see read). */
+  channels() {
+    return (this.read ??= this.colors.map(read));
+  }
 }
 
 /** @typedef {{ value: number, color: string }} Zone a color from a value up (see Fill's zoned) */
@@ -387,6 +472,64 @@ export class Fill {
     // (A zoned style's spans (see zoneSpans): reused, a draw each.)
     /** @type {number[]} */
     this.spans = [];
+    // (A graded style (see graded), apart from the others, and what it was made of: its gradients, its height and
+    // where its scale put its ends and middle; its colors' heights, reused.)
+    /** @type {CanvasGradient | string | null} */
+    this.byValue = null;
+    /** @type {Gradient | null} */
+    this.of = null;
+    /** @type {Gradient | null} */
+    this.fadeOf = null;
+    (this.seen = NaN), (this.ya = NaN), (this.yb = NaN), (this.ym = NaN);
+    this.ys = new Float64Array(0);
+  }
+
+  /**
+   * Colors by value, by height: `gradient`'s colors where `scale` puts their values on a canvas `height` tall (any
+   * scale: a log one's too; one it can't show, a log scale's 0 or under, none), mixed straight between them as the
+   * canvas mixes; past its ends, theirs. With `fade` (a gradient as long, each color what its own fades to at the
+   * foot: an area's), each height's mixed toward its own there, as far as it is down the canvas. Made again only as
+   * either gradient, the height or the scale change: three of its heights read a draw, nothing made.
+   * @param {CanvasRenderingContext2D} g @param {Gradient} gradient @param {{ y: (v: number) => number }} scale @param {number} height @param {Gradient | null} [fade]
+   * @returns {CanvasGradient | string}
+   */
+  graded(g, gradient, scale, height, fade = null) {
+    const lo = gradient.lo, hi = gradient.hi, ya = scale.y(lo), yb = scale.y(hi), ym = scale.y((lo + hi) / 2);
+    if (this.byValue && this.of === gradient && this.fadeOf === fade && this.seen === height && Object.is(this.ya, ya) && Object.is(this.yb, yb) && Object.is(this.ym, ym)) return this.byValue;
+    (this.of = gradient), (this.fadeOf = fade), (this.seen = height), (this.ya = ya), (this.yb = yb), (this.ym = ym);
+    const colors = gradient.colors, n = colors.length, ys = this.ys.length >= n ? this.ys : (this.ys = new Float64Array(n));
+    // (Its colors' heights; the first and last shown.)
+    let f = -1, l = -1;
+    for (let k = 0; k < n; k++) {
+      const y = (ys[k] = scale.y(n > 1 ? lo + ((hi - lo) * k) / (n - 1) : lo));
+      if (y - y === 0) (f = f < 0 ? k : f), (l = k);
+    }
+    const mid = colors[Math.floor(n / 2)];
+    if (!(hi > lo)) return (this.byValue = fade ? this.style(g, mid, fade.colors[Math.floor(n / 2)], 0, height) : mid);
+    if (f < 0 || !(height > 0)) return (this.byValue = colors[0]);
+    const top = gradient.channels(), foot = fade ? fade.channels() : null, s = ys[l] > ys[f] ? 1 : -1, made = g.createLinearGradient(0, 0, 0, height);
+    // (Where height `y` falls among its colors, as an index: between the two either side of it, by pixels, as the
+    // canvas mixes; past them, the end's.)
+    const at = (/** @type {number} */ y) => {
+      if (f === l || (y - ys[f]) * s <= 0) return f;
+      if ((y - ys[l]) * s >= 0) return l;
+      let k = f;
+      while (k + 1 < l && (ys[k + 1] - y) * s <= 0) k++;
+      const d = ys[k + 1] - ys[k];
+      return d ? k + (y - ys[k]) / d : k;
+    };
+    const stop = (/** @type {number} */ y, /** @type {number} */ p) => {
+      const k = Math.floor(p), t = p - k, j = Math.min(k + 1, n - 1), c = [0, 0, 0, 0], down = y / height;
+      for (let ch = 0; ch < 4; ch++) {
+        const over = top[k][ch] + (top[j][ch] - top[k][ch]) * t;
+        c[ch] = foot ? over + (foot[k][ch] + (foot[j][ch] - foot[k][ch]) * t - over) * down : over;
+      }
+      made.addColorStop(down, `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${(c[3] / 255).toFixed(3)})`);
+    };
+    stop(0, at(0));
+    for (let k = f; k <= l; k++) if (ys[k] > 0 && ys[k] < height) stop(ys[k], k);
+    stop(height, at(height));
+    return (this.byValue = made);
   }
 
   /**
@@ -426,7 +569,7 @@ export class Fill {
     const key = `${from}|${to}|${top}|${bottom}`;
     if (!this.gradient || this.key !== key) {
       const gradient = g.createLinearGradient(0, top, 0, bottom);
-      // (Blended in OKLab, not the canvas's sRGB: nine stops, an eighth apart.)
+      // (Mixed in OKLCH (see gradientTable), not the canvas's sRGB: nine stops, an eighth apart.)
       const stops = blended(from, to);
       for (let k = 0; k < stops.length; k++) gradient.addColorStop(k / (stops.length - 1), stops[k]);
       const above = painted(from), below = painted(to);

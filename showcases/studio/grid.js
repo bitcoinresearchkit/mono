@@ -2,7 +2,7 @@
 // The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them.
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
-import { columnWidth, indexed, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
+import { columnWidth, indexed, PARTIAL as PARTIAL_SHARE, placeIndex, press } from "/modules/bitview-charts/index.js";
 import { capitalized, shownStep } from "/studio/words.js";
 import {
   acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartById, chartNow, css, deleteChart, deleteFolder, dialogsShown,
@@ -2819,7 +2819,7 @@ function seriesMark(layer) {
   const span = (ys?.length ?? 2) - 1, x = (i) => 0.8 + (i / span) * 14.4, y = (value) => 11 - value * 10;
   let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
   // (A gradient's, a bar of its colors, low to high, whatever its type.)
-  if (layer.byGradient && layer.gradient) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(ink(table[Math.round((k / 7) * (table.length - 1))]))}"/>`).join(""))(gradientTable(layer.gradient));
+  if (layer.byGradient && layer.gradient) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(ink(table[placeIndex(k / 7, table.length)]))}"/>`).join(""))(gradientTable(layer.gradient));
   // A cloud's, a band in its color.
   else if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
   // (A signal's, its mark.)

@@ -2,7 +2,7 @@
 // The chart: drawing a chart's layers and panes, its readouts, keys and navigator.
 import {
   Band, Bars, Candles, channels, columnWidth, Custom, DARK, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,
-  Profile, rightBlank, Scale, Shade,
+  placeIndex, Profile, rightBlank, Scale, Shade,
 } from "/modules/bitview-charts/index.js";
 import { OKLCH } from "/studio/palette.js";
 import { hexToOklch, oklchToHex } from "/studio/color.js";
@@ -44,7 +44,7 @@ import {
   placeSaid, priceSpan, profileName, readingLine, viewHeat, viewProfile,
 } from "/studio/heatmaps.js";
 import {
-  bandOf, fadingOf, focusKey, GRADIENT_STEPS, gradientPlaces, gradientTable, labelOf, layerById, levelSteps, modeOf,
+  bandOf, fadingOf, focusKey, gradientPlaces, gradientTable, labelOf, layerById, levelSteps, modeOf,
   named, paneMode, rangeOf, restoreFocus, stackOf,
 } from "/studio/inspector.js";
 import { renderRanges } from "/studio/menus.js";
@@ -2064,7 +2064,7 @@ function colorsAt(doc, layer, data, seen = new Set()) {
   // By a gradient: its color at its value's place between its lowest and highest (see gradientPlaces).
   if (layer.byGradient && layer.gradient && values) {
     const table = gradientTable(layer.gradient), places = gradientPlaces(values, Boolean(layer.upToDate));
-    return (i) => (Number.isNaN(places[i]) ? null : table[Math.round(places[i] * (GRADIENT_STEPS - 1))]);
+    return (i) => (Number.isNaN(places[i]) ? null : table[placeIndex(places[i], table.length)]);
   }
   // By its levels: the highest one at or under its value, its color; under them all, its own.
   if (layer.byLevels && values && layer.levels?.length) {

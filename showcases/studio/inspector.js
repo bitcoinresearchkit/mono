@@ -1,6 +1,6 @@
 // @ts-check
 // A layer's inspector: picking layers, their settings, gradients, adding layers.
-import { press, stack as stackColumns } from "/modules/bitview-charts/index.js";
+import { gradientTable as mixedTable, placeIndex, press, stack as stackColumns } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
   acrossUnfit, afterHands, byBlock, byTouch, chart, chartById, chooseDrawings, chosen, clearLayerPicks, client,
@@ -883,7 +883,7 @@ const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "p
  * mixing, between its stops, would be another: through gray where they're mixed in sRGB).
  * @param {[number, string][]} stops
  */
-const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${cssColor(table[Math.round((k / 16) * (table.length - 1))])} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
+const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${cssColor(table[placeIndex(k / 16, table.length)])} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
 /** Each gradient's colors, by its stops: see gradientTable. @type {Map<string, string[]>} */
 const gradientTables = new Map();
 /** The page's ink as the dark shows it (`--ink`'s dark side): as colors are kept, see gradientTable. */
@@ -891,24 +891,15 @@ const INK_KEPT = "#f7f8f8";
 /** How many colors a gradient is drawn in (each a value's place, rounded to the nearest of so many). */
 const GRADIENT_STEPS = 64;
 /**
- * A gradient's colors as kept (each `oklch(…)`, as a color picked is: ink shows it in the theme), `GRADIENT_STEPS`
- * of them from 0% to 100%: between two stops, mixed in OKLCH, lightness and chroma straight and hue the shorter
- * way round (a gray one taking its neighbor's: no hue of its own), so two far apart stay vivid between (mixed in
- * OKLab, blue to yellow went through gray); past its outer ones, theirs.
+ * A gradient's colors as kept, `GRADIENT_STEPS` of them from 0% to 100%: the library's (see its gradientTable, mixed in
+ * OKLCH), each `oklch(…)` as a color picked is (ink shows it in the theme), its stops read as Studio names them.
  * @param {[number, string][]} stops @returns {string[]}
  */
 function gradientTable(stops) {
   const key = JSON.stringify(stops), had = gradientTables.get(key);
   if (had) return had;
   // (Ink mixed as it's kept, the dark's: the light shows it dark as any other color, see ink.)
-  const lchs = stops.map(([, color]) => (color === "ink" ? hexToOklch(INK_KEPT) : oklchOf(color))), GRAY = 0.02;
-  const table = Array.from({ length: GRADIENT_STEPS }, (_, k) => {
-    const at = (k / (GRADIENT_STEPS - 1)) * 100, next = stops.findIndex(([where]) => where >= at);
-    const [a, b, t] = next <= 0 ? [next < 0 ? stops.length - 1 : 0, next < 0 ? stops.length - 1 : 0, 0] : [next - 1, next, (at - stops[next - 1][0]) / Math.max(1e-9, stops[next][0] - stops[next - 1][0])];
-    const [l0, c0, h0] = lchs[a], [l1, c1, h1] = lchs[b];
-    const from = c0 < GRAY ? h1 : h0, to = c1 < GRAY ? h0 : h1, turn = ((((to - from) % 360) + 540) % 360) - 180;
-    return `oklch(${+(l0 + (l1 - l0) * t).toFixed(4)} ${+(c0 + (c1 - c0) * t).toFixed(4)} ${+((((from + turn * t) % 360) + 360) % 360).toFixed(1)})`;
-  });
+  const table = mixedTable(stops.map(([at, color]) => [at, ((/** @type {number[]} */ [l, c, h]) => `oklch(${l} ${c} ${h})`)(color === "ink" ? hexToOklch(INK_KEPT) : oklchOf(color))]), GRADIENT_STEPS);
   if (gradientTables.size > 200) gradientTables.clear();
   gradientTables.set(key, table);
   return table;
@@ -1275,7 +1266,7 @@ function addStop(layer, at) {
   // (Never on one already there: each color its own place, see moveStop.)
   if (stops.some(([where]) => where === place)) return -1;
   const k = stops.findIndex(([where]) => where > place), index = k < 0 ? stops.length : k;
-  stops.splice(index, 0, [place, table[Math.round((place / 100) * (GRADIENT_STEPS - 1))]]);
+  stops.splice(index, 0, [place, table[placeIndex(place / 100, table.length)]]);
   return index;
 }
 /**
@@ -2844,7 +2835,7 @@ export {
   completeSeries, completion, completionsAt, copyName, dashRow, drawPlanes, drawWhenReady, dropSuggestions,
   duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, fadingOf, faintOf, fillOf,
   fitChoices, fitOf, FITS, fitsAt, flushPick, focusKey, formatChoices, formatMenu, formulaDrafts, formulaFieldLeft,
-  formulaInputs, fromChoices, fromPage, goneSaid, GRADIENT_STEPS, gradientCss, gradientEdit, gradientPlaces,
+  formulaInputs, fromChoices, fromPage, goneSaid, gradientCss, gradientEdit, gradientPlaces,
   gradientSwatch, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, isUnfinished,
   keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, leaveFormula, levelRows,
   levelSteps, levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName,
