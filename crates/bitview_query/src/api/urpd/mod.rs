@@ -236,12 +236,20 @@ impl Query {
             close: plugins.price.spot.cents.height.collect_one(height).data()?,
         };
         if weight == UrpdWeight::None {
-            header.build(cells.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
+            header.build(
+                cells
+                    .project_buckets(aggregation, &[], [ages])
+                    .map(|b| (b.label, b.price, b.raw[0])),
+            )
         } else {
-            header.build(cells.project(&[Some(&weights)], [ages]).filter_map(|b| {
-                let sats = b.weighted[0][0];
-                (sats != Sats::ZERO).then_some((b.price, sats))
-            }))
+            header.build(
+                cells
+                    .project_buckets(aggregation, &[Some(&weights)], [ages])
+                    .filter_map(|b| {
+                        let sats = b.weighted[0][0];
+                        (sats != Sats::ZERO).then_some((b.label, b.price, sats))
+                    }),
+            )
         }
     }
 }

@@ -1,34 +1,87 @@
+use std::{array, sync::LazyLock};
+
 use bitview_primitives::CentsCompact;
+use bitview_types::UrpdAggregation;
+use brk_types::Cents;
 
-use crate::COST_BASIS_PRICE_DIGITS;
+/// The union of all interval boundaries is the coarsest grid that can answer every request.
+/// The ordinal of a boundary is the price part of a persisted cell key. Changing these
+/// boundaries requires a new URPD history format revision.
+pub(crate) static GRID: LazyLock<PriceGrid> = LazyLock::new(PriceGrid::new);
 
-/// Prices below this many cents aren't rounded.
-const EXACT_PRICES: u32 = 10u32.pow(COST_BASIS_PRICE_DIGITS);
-/// The rounded prices a decade above those holds.
-const PRICES_PER_DECADE: u32 = EXACT_PRICES - EXACT_PRICES / 10;
-/// Every price rounding can produce, a place each.
-pub(crate) const PRICE_PLACES: usize = (EXACT_PRICES + PRICES_PER_DECADE * (u32::MAX.ilog10() + 1 - COST_BASIS_PRICE_DIGITS)) as usize;
+// The price field of a persisted cell key has room for the 314,727 supported places.
+pub(crate) const PLACE_BITS: u32 = 19;
+pub(crate) const PLACE_MASK: u32 = (1 << PLACE_BITS) - 1;
 
-/// A rounded price's place among all the prices rounding can produce, in ascending price order.
-#[inline]
-pub(crate) fn price_place(rounded: CentsCompact) -> usize {
-    let cents = rounded.inner();
-    if cents < EXACT_PRICES {
-        return cents as usize;
-    }
-    let decade = cents.ilog10() - COST_BASIS_PRICE_DIGITS;
-    let leading = cents / 10u32.pow(decade + 1);
-    (EXACT_PRICES + PRICES_PER_DECADE * decade + leading - EXACT_PRICES / 10) as usize
+pub(crate) struct PriceGrid {
+    edges: Vec<u32>,
+    rows: [Vec<Row>; UrpdAggregation::ALL.len()],
 }
 
-/// The rounded price at `place`: `price_place`'s inverse over the places a price reaches.
-#[inline]
-pub(crate) fn place_price(place: usize) -> CentsCompact {
-    let place = place as u32;
-    if place < EXACT_PRICES {
-        return CentsCompact::new(place);
+/// A run of stored cells with the same raw valuation and requested bucket.
+pub(crate) struct Row {
+    pub raw: CentsCompact,
+    pub bucket: CentsCompact,
+    pub raw_start: u32,
+    pub start: u32,
+    pub end: u32,
+}
+
+impl PriceGrid {
+    fn new() -> Self {
+        let mut edges = Vec::new();
+        for agg in UrpdAggregation::ALL {
+            let mut lower = 0;
+            while lower < u64::from(u32::MAX) {
+                edges.push(lower as u32);
+                lower = agg.interval(Cents::new(lower)).1;
+            }
+        }
+        edges.sort_unstable();
+        edges.dedup();
+        assert!(edges.len() <= PLACE_MASK as usize + 1, "URPD grid exceeds its key field");
+        let rows = array::from_fn(|i| Self::bucket_rows(&edges, UrpdAggregation::ALL[i]));
+        Self { edges, rows }
     }
-    let decade = (place - EXACT_PRICES) / PRICES_PER_DECADE;
-    let leading = (place - EXACT_PRICES) % PRICES_PER_DECADE + EXACT_PRICES / 10;
-    CentsCompact::new(leading * 10u32.pow(decade + 1))
+
+    pub fn len(&self) -> usize {
+        self.edges.len()
+    }
+
+    pub fn place(&self, cents: u32) -> u32 {
+        (self.edges.partition_point(|&edge| edge <= cents) - 1) as u32
+    }
+
+    pub fn rows(&self, agg: UrpdAggregation) -> &[Row] {
+        &self.rows[agg as usize]
+    }
+
+    fn bucket_rows(edges: &[u32], agg: UrpdAggregation) -> Vec<Row> {
+        let mut rows = Vec::new();
+        let mut raw_start = 0;
+        let (mut raw, mut raw_end) = (0, 0);
+        let (mut label, mut bucket_end) = (0, 0);
+        let mut end = 0;
+        while end < edges.len() {
+            let start = end;
+            let lower = u64::from(edges[start]);
+            if lower == raw_end {
+                (raw, raw_end) = UrpdAggregation::Raw.interval(Cents::new(lower));
+                raw_start = start as u32;
+            }
+            if lower == bucket_end {
+                (label, bucket_end) = agg.interval(Cents::new(lower));
+            }
+            let upper = raw_end.min(bucket_end);
+            end += edges[start..].partition_point(|&p| u64::from(p) < upper);
+            rows.push(Row {
+                raw: CentsCompact::new(raw as u32),
+                bucket: CentsCompact::new(label as u32),
+                raw_start,
+                start: start as u32,
+                end: end as u32,
+            });
+        }
+        rows
+    }
 }

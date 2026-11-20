@@ -28,7 +28,10 @@ impl UrpdHeader {
     /// Aggregates the distribution's entries into buckets in one pass and writes them as the
     /// JSON of `Urpd`: they arrive unique and sorted by price from its projection, so nothing is
     /// rehashed or re-sorted.
-    pub fn build(self, entries: impl IntoIterator<Item = (CentsCompact, Sats)>) -> Result<Vec<u8>> {
+    pub fn build(
+        self,
+        entries: impl IntoIterator<Item = (CentsCompact, CentsCompact, Sats)>,
+    ) -> Result<Vec<u8>> {
         let close = self.close;
         // The URPD history rejects unpriced blocks, the close's included.
         debug_assert!(!close.is_nan(), "URPD close is priced");
@@ -56,7 +59,7 @@ impl UrpdHeader {
                 unrealized_pnl: i64::from(CentsSigned::from(unrealized_pnl)),
             });
         };
-        for (price, supply) in entries {
+        for (label, price, supply) in entries {
             // Weights are within [0, 1]: a weighted mass never exceeds the raw one.
             debug_assert!(!supply.is_max(), "URPD entry below the sats sentinel");
             total += u64::from(supply);
@@ -65,7 +68,7 @@ impl UrpdHeader {
                 "URPD supply within all money"
             );
             let price = Cents::from(price);
-            let floor = self.aggregation.bucket_floor(price);
+            let floor = Cents::from(label);
             debug_assert!(
                 current.is_none_or(|(last, ..)| last <= floor),
                 "URPD prices arrive sorted"

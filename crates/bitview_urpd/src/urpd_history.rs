@@ -1,22 +1,18 @@
-use std::{array, io, ops::Range, path::Path};
+use std::{io, ops::Range, path::Path};
 
 use bitview_cohort::{AGE_RANGE_COUNT, AgeRange, AgeRangeId};
-use bitview_primitives::CentsCompact;
+use bitview_types::UrpdAggregation;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Height, Version};
 use statedb::CellHistory;
 
-use crate::{
-    COST_BASIS_PRICE_DIGITS, ProjectedBucket,
-    price_place::{PRICE_PLACES, place_price, price_place},
-    projection::Projection,
-};
+use crate::{ProjectedBucket, price_place::{GRID, PLACE_BITS, PLACE_MASK}, projection::Projection};
 
 /// Revision of the cells' layout and meaning, part of their version.
-const FORMAT: Version = Version::ONE;
+const FORMAT: Version = Version::new(3);
 
 /// The UTXO set's realized price distribution after every block: an age range's sats at one
-/// rounded creation price is a cell (key `age × PRICE_PLACES + place`), kept as each block's
+/// creation-price interval is a cell, ordered by age and then descending price, kept as each block's
 /// changes with periodic checkpoints. A read restores one block's cells without the origins.
 pub struct UrpdHistory {
     cells: CellHistory,
@@ -136,7 +132,7 @@ impl UrpdHistory {
         }
         self.live = Some(Live {
             urpd,
-            places: round(prices)?,
+            places: price_places(prices)?,
         });
         Ok(())
     }
@@ -152,12 +148,12 @@ impl UrpdHistory {
         let Live { urpd, places } = (self.live.as_mut())
             .ok_or(Error::Internal("URPD history pushed to before its restore"))?;
         if places.len() < prices.len() {
-            places.extend(round(&prices[places.len()..])?);
+            places.extend(price_places(&prices[places.len()..])?);
         }
         let cells = &mut self.changes;
         cells.clear();
         cells.extend(changes.into_iter().map(|(age, origin, sats)| {
-            ((age.index() * PRICE_PLACES) as u32 + places[origin], sats)
+            (cell_key(age.index(), places[origin]), sats)
         }));
         // One change per cell, by key, none zero.
         cells.sort_unstable_by_key(|&(key, _)| key);
@@ -183,39 +179,49 @@ impl UrpdHistory {
     }
 }
 
-/// Each price's place once rounded.
-fn round(prices: &[Cents]) -> Result<Vec<u32>> {
+// A checkpoint's first key for an age names that column's highest price. Restoring
+// it can allocate the entire column before writing its balances.
+fn cell_key(age: usize, place: u32) -> u32 {
+    ((age as u32) << PLACE_BITS) | (PLACE_MASK ^ place)
+}
+
+/// Locate each exact origin price before any grouping or valuation.
+fn price_places(prices: &[Cents]) -> Result<Vec<u32>> {
     prices
         .iter()
         .map(|&price| {
             if price.is_nan() {
                 return Err(Error::Internal("unpriced block in the URPD history"));
             }
-            let rounded = CentsCompact::from(price).round_to_significant(COST_BASIS_PRICE_DIGITS);
-            Ok(price_place(rounded) as u32)
+            let cents = price.inner();
+            if cents >= u64::from(u32::MAX) {
+                return Err(Error::Internal(
+                    "URPD creation price exceeds the compact price range",
+                ));
+            }
+            Ok(GRID.place(cents as u32))
         })
         .collect()
 }
 
 /// One block's distribution: each age range's sats over every price place, with each place's
 /// nonzero ages, so a projection walks the occupied places in price order.
+#[derive(Default)]
 pub struct UrpdCells {
+    /// Only the prefix an age has reached. Most of the full grid is above historical prices.
     amounts: [Vec<u64>; AGE_RANGE_COUNT],
     occupied: Vec<u32>,
-    /// Past the highest place ever occupied: prices above it have never held sats, so a
-    /// projection stops there (about 37,000 of the 64,000 places at today's prices).
-    top: usize,
     hash: [u8; 32],
 }
 
-impl Default for UrpdCells {
-    fn default() -> Self {
-        Self {
-            amounts: array::from_fn(|_| vec![0; PRICE_PLACES]),
-            occupied: vec![0; PRICE_PLACES],
-            top: 0,
-            hash: [0; 32],
-        }
+// The first allocation is zero-filled by the allocator. Most checkpoint columns
+// reach their final length on their first entry.
+#[cold]
+fn grow<T: Clone + Default>(column: &mut Vec<T>, len: usize) {
+    if column.is_empty() {
+        *column = vec![T::default(); len];
+    } else {
+        column.resize(len, T::default());
     }
 }
 
@@ -226,9 +232,19 @@ impl UrpdCells {
     }
 
     fn add(&mut self, key: u32, change: i64) -> io::Result<()> {
-        let (age, place) = (key as usize / PRICE_PLACES, key as usize % PRICE_PLACES);
+        let age = (key >> PLACE_BITS) as usize;
+        let place = (!key & PLACE_MASK) as usize;
         let column = (self.amounts.get_mut(age))
             .ok_or_else(|| io::Error::other("URPD cell outside the age ranges"))?;
+        if place >= column.len() {
+            if place >= GRID.len() {
+                return Err(io::Error::other("URPD cell outside the price grid"));
+            }
+            grow(column, place + 1);
+            if place >= self.occupied.len() {
+                grow(&mut self.occupied, place + 1);
+            }
+        }
         let sats = &mut column[place];
         *sats = (sats.checked_add_signed(change))
             .ok_or_else(|| io::Error::other("URPD cell out of range"))?;
@@ -236,7 +252,6 @@ impl UrpdCells {
             self.occupied[place] &= !(1 << age);
         } else {
             self.occupied[place] |= 1 << age;
-            self.top = self.top.max(place + 1);
         }
         Ok(())
     }
@@ -247,8 +262,9 @@ impl UrpdCells {
             column
                 .iter()
                 .enumerate()
+                .rev()
                 .filter(|&(_, &sats)| sats != 0)
-                .map(move |(place, &sats)| ((age * PRICE_PLACES + place) as u32, sats))
+                .map(move |(place, &sats)| (cell_key(age, place as u32), sats))
         })
     }
 
@@ -260,11 +276,49 @@ impl UrpdCells {
         weights: &[Option<&AgeRange<f64>>; N],
         cohorts: [&[AgeRangeId]; C],
     ) -> impl Iterator<Item = ProjectedBucket<N, C>> + 'a + use<'a, N, C> {
+        self.project_buckets(UrpdAggregation::Raw, weights, cohorts)
+    }
+
+    /// Keep the raw price for valuation. Within one raw price split across requested
+    /// buckets, differences of cumulative whole sats allocate its rounding remainder in
+    /// price order and give the same weighted total as the raw projection.
+    pub fn project_buckets<'a, const N: usize, const C: usize>(
+        &'a self,
+        aggregation: UrpdAggregation,
+        weights: &[Option<&AgeRange<f64>>; N],
+        cohorts: [&[AgeRangeId]; C],
+    ) -> impl Iterator<Item = ProjectedBucket<N, C>> + 'a + use<'a, N, C> {
         let projection = Projection::new(weights, cohorts);
-        (self.occupied[..self.top].iter().enumerate())
-            .filter(|&(_, &ages)| ages != 0)
-            .filter_map(move |(place, &ages)| {
-                projection.bucket(place_price(place), &self.amounts, place, ages)
-            })
+        let rows = GRID.rows(aggregation);
+        let count = rows.partition_point(|row| (row.start as usize) < self.occupied.len());
+        let mut previous = None;
+        rows[..count].iter().filter_map(move |row| {
+            let start = if N == 0 { row.start } else { row.raw_start } as usize;
+            let end = (row.end as usize).min(self.occupied.len());
+            let mut bucket = if start + 1 == end {
+                projection.bucket(row, self.occupied[start], |age| self.amounts[age][start])
+            } else {
+                let occupied = self.occupied[start..end].iter().fold(0, |mask, ages| mask | ages);
+                projection.bucket(row, occupied, |age| {
+                    let column = &self.amounts[age];
+                    column[start..end.min(column.len())].iter().sum()
+                })
+            }?;
+            if N != 0
+                && aggregation != UrpdAggregation::Raw
+                && let Some(prior) = previous.replace(bucket)
+                && prior.price == bucket.price
+            {
+                for (value, prior) in bucket.raw.iter_mut().zip(prior.raw) {
+                    *value -= prior;
+                }
+                for (values, prior) in bucket.weighted.iter_mut().zip(prior.weighted) {
+                    for (value, prior) in values.iter_mut().zip(prior) {
+                        *value -= prior;
+                    }
+                }
+            }
+            Some(bucket)
+        })
     }
 }
