@@ -81,12 +81,14 @@ impl DefaultPlugins {
         Ok(landed)
     }
 
-    /// Rolls every plugin back to before `first`, the start of the last `UNDO_TAIL` blocks the
-    /// bulk sync wrote with undo, for the benchmark's replay of them.
+    /// Rolls every plugin back to before `first`, the start of the run's last `UNDO_TAIL` blocks,
+    /// for the benchmark's replay of them. The address state lands at the newest undo record at
+    /// or below `first`, as on a reorg (below it when the run's last update was shorter than the
+    /// tail); the replay's first, unmeasured update recomputes it from there.
     #[cfg(feature = "bench-cpu")]
     pub fn rewind_for_replay(&mut self, first: Height, context: UpdateContext<'_>) -> Result<()> {
         let starting = self.indexer.lengths_before(first)?;
-        if self.roll_back(&starting, context)? != usize::from(first) {
+        if self.roll_back(&starting, context)? == 0 {
             return Err(Error::Internal("Address undo does not reach the replay's first block"));
         }
         Ok(())
