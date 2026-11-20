@@ -332,17 +332,13 @@ fn pending_views_settle_what_newer_blocks_mined_or_conflicted() {
             (info, tx.clone())
         })
         .collect();
-    let live = txs
-        .iter()
-        .map(|tx| crate::key::TxKey::from(&id(tx)))
-        .collect();
-    let diff = preparer::prepare(&live, new, &Confirmed::default(), &state);
+    let diff = preparer::prepare(&[], new, &Confirmed::default(), &state);
     applier::apply(
         &mut state,
         &Snapshot::default(),
         diff,
         &Confirmed::default(),
-        |txid| live.contains(&crate::key::TxKey::from(txid)),
+        &RapidHashSet::default(),
     );
     let funding = TxOut::from((script.clone(), Sats::from(5_000u64)));
     let addr = funding.addr_bytes().unwrap();

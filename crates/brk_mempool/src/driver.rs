@@ -9,14 +9,16 @@ use std::{
 use brk_error::{Error, Result};
 use brk_rpc::MempoolObservation;
 use brk_types::{BlockHash, TxOut, Txid, Vout};
-use rapidhash::RapidHashMap;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rapidhash::{RapidHashMap, RapidHashSet};
 use tracing::{error, info, warn};
 
 use crate::{
     Mempool, TipFacts,
-    key::TxKey,
-    steps::{Confirmed, applier, preparer, prevouts},
+    steps::{
+        Confirmed, applier,
+        preparer::{self, Listing},
+        prevouts,
+    },
 };
 
 const PERIOD: Duration = Duration::from_millis(1000);
@@ -115,14 +117,17 @@ impl Mempool {
             return Err(Error::updating());
         }
         let tip = rpc.tip_hash;
-        let mut live: FxHashSet<_> = rpc.live_txids.iter().map(TxKey::from).collect();
-        self.fetched
-            .retain(|txid, _| live.contains(&TxKey::from(txid)) && !self.state.txs.contains(txid));
+        let pooled = self.state.txs.len();
+        let Listing { unpooled, departed } = Listing::of(&self.state.txs, rpc.live_txids);
+        let listed = pooled - departed.len() + unpooled.len();
+        if !self.fetched.is_empty() {
+            let unpooled_set: RapidHashSet<&Txid> = unpooled.iter().collect();
+            self.fetched.retain(|txid, _| unpooled_set.contains(txid));
+        }
         let confirmed = self.confirmed(tip)?;
-        let requested: Vec<_> = rpc
-            .live_txids
+        let requested: Vec<_> = unpooled
             .into_iter()
-            .filter(|txid| !self.state.txs.contains(txid) && !self.fetched.contains_key(txid))
+            .filter(|txid| !self.fetched.contains_key(txid))
             .collect();
         self.client.fetch_new_pool_data(&requested, |entry, body| {
             self.fetched.insert(entry.txid, (entry, body));
@@ -137,12 +142,12 @@ impl Mempool {
             .collect();
         self.hold_back_for(&missed)?;
 
-        let omitted = self.omit_missed(&missed, &mut live);
+        let omitted = self.omit_missed(&missed);
         let new = self
             .fetched
-            .extract_if(|txid, _| omitted.is_empty() || !omitted.contains(&TxKey::from(txid)))
+            .extract_if(|txid, _| omitted.is_empty() || !omitted.contains(txid))
             .map(|(_, pair)| pair);
-        let diff = preparer::prepare(&live, new, &confirmed, &self.state);
+        let diff = preparer::prepare(&departed, new, &confirmed, &self.state);
         // This cycle supersedes what an earlier one withheld.
         self.withheld = None;
         if !diff.removed.is_empty() && self.rebuilder.snapshot().ensure_projection().is_err() {
@@ -150,13 +155,14 @@ impl Mempool {
             self.rebuilder
                 .tick(&self.state, rpc.min_fee, &modified_fees);
         }
-        let listed = |txid: &Txid| {
-            let key = TxKey::from(txid);
-            live.contains(&key) || omitted.contains(&key)
-        };
         let state = &mut self.state;
         let snapshot = self.rebuilder.snapshot();
-        applier::apply(state, snapshot, diff, &confirmed, listed);
+        applier::apply(state, snapshot, diff, &confirmed, &omitted);
+        debug_assert_eq!(
+            state.txs.len() + omitted.len(),
+            listed,
+            "the pool is Core's listing less what is held back"
+        );
         state.graveyard.set_confirmed_tip(tip, &mut state.upkeep);
         state.ancestry.follow(tip, confirmed.path());
         self.unread_cycles = 0;
@@ -239,28 +245,27 @@ impl Mempool {
         }
     }
 
-    /// Takes this cycle's misses and their descendants out of `live`, returning them. Only held
-    /// pairs are walked: a pooled transaction is already published and stays, whatever its
-    /// parent; a held child of a miss waits with its pair, to enter once the parent pairs.
-    fn omit_missed(&self, missed: &[Txid], live: &mut FxHashSet<TxKey>) -> FxHashSet<TxKey> {
-        let mut omitted = FxHashSet::default();
+    /// This cycle's misses and their descendants, to leave out of it. Only held pairs are
+    /// walked: a pooled transaction is already published and stays, whatever its parent; a held
+    /// child of a miss waits with its pair, to enter once the parent pairs.
+    fn omit_missed(&self, missed: &[Txid]) -> RapidHashSet<Txid> {
+        let mut omitted = RapidHashSet::default();
         if missed.is_empty() {
             return omitted;
         }
-        let mut children: FxHashMap<TxKey, Vec<TxKey>> = FxHashMap::default();
+        let mut children: RapidHashMap<Txid, Vec<Txid>> = RapidHashMap::default();
         for (txid, (_, tx)) in &self.fetched {
             for input in &tx.input {
                 children
-                    .entry(TxKey::from(&Txid::from(input.previous_output.txid)))
+                    .entry(Txid::from(input.previous_output.txid))
                     .or_default()
-                    .push(TxKey::from(txid));
+                    .push(*txid);
             }
         }
-        let mut stack: Vec<_> = missed.iter().map(TxKey::from).collect();
-        while let Some(key) = stack.pop() {
-            if live.remove(&key) {
-                omitted.insert(key);
-                stack.extend(children.remove(&key).into_iter().flatten());
+        let mut stack = missed.to_vec();
+        while let Some(txid) = stack.pop() {
+            if omitted.insert(txid) {
+                stack.extend(children.remove(&txid).into_iter().flatten());
             }
         }
         omitted

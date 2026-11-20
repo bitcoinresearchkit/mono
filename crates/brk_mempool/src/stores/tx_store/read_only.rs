@@ -43,6 +43,12 @@ impl ReadOnlyTxStore {
         (record.entry.txid == *txid).then_some(record)
     }
 
+    /// `txid`'s position in [`Self::records`]'s order, if pooled.
+    pub fn position(&self, txid: &Txid) -> Option<usize> {
+        let position = self.records.position(&TxKey::from(txid))?;
+        (self.record_at(position).entry.txid == *txid).then_some(position)
+    }
+
     /// Lookup by key alone, without [`Self::record`]'s txid check: for keys taken from this
     /// store's own indexes.
     pub fn record_by_key(&self, key: &TxKey) -> Option<&TxRecord> {
