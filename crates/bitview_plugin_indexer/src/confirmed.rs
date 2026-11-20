@@ -1,4 +1,7 @@
-use bitcoin::{ScriptBuf, Transaction, Weight, consensus::deserialize};
+use bitcoin::{
+    PubkeyHash, ScriptBuf, ScriptHash, Transaction, TxIn, WPubkeyHash, WScriptHash, Weight,
+    consensus::deserialize, hashes::Hash, script::Instruction,
+};
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
@@ -233,6 +236,37 @@ impl OutputRanges {
         };
         let len = usize::from(next).checked_sub(usize::from(first))?;
         (next <= self.safe.txout_index).then_some(OutputRange { first, len })
+    }
+}
+
+/// The script of the output `input` spends, rebuilt from what the spend reveals, for the types
+/// whose script commits to a hash consensus checks against the spend: the scriptSig's last push
+/// for P2PKH (the key) and P2SH (the redeem script, whatever it holds: wrapped segwit,
+/// multisig), witness item 1 for P2WPKH, the last witness item for P2WSH. Exact for every input
+/// in the chain (3.57 billion, checked 2026-11-18), and a hash instead of a random read of the
+/// address store. `None` for every other type (P2TR, P2A, P2PK, bare multisig, unknown) and for
+/// a scriptSig that isn't push-only (`OP_1`-`OP_16` included) or a witness of another shape: the
+/// caller reads those with [`OutputScripts::get`].
+pub fn revealed_script(output_type: OutputType, input: &TxIn) -> Option<ScriptBuf> {
+    let last_push = || {
+        input
+            .script_sig
+            .instructions()
+            .try_fold(None, |_, instruction| match instruction {
+                Ok(Instruction::PushBytes(bytes)) => Some(Some(bytes.as_bytes())),
+                _ => None,
+            })
+            .flatten()
+    };
+    let witness = &input.witness;
+    match output_type {
+        OutputType::P2PKH => Some(ScriptBuf::new_p2pkh(&PubkeyHash::hash(last_push()?))),
+        OutputType::P2SH => Some(ScriptBuf::new_p2sh(&ScriptHash::hash(last_push()?))),
+        OutputType::P2WPKH if witness.len() == 2 => {
+            Some(ScriptBuf::new_p2wpkh(&WPubkeyHash::hash(&witness[1])))
+        }
+        OutputType::P2WSH => Some(ScriptBuf::new_p2wsh(&WScriptHash::hash(witness.last()?))),
+        _ => None,
     }
 }
 

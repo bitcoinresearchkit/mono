@@ -1,13 +1,12 @@
 use crate::{ReadPin, check_bound};
 use bitcoin::Transaction as BitcoinTransaction;
-use bitview_plugin_indexer::SafeLengths;
+use bitview_plugin_indexer::{SafeLengths, revealed_script};
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
 use brk_types::{
     BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps32, Transaction, TxIn,
     TxIndex, TxOut, TxStatus, Txid, Vout, Weight,
 };
-use rustc_hash::FxHashMap;
 use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, OptionData, Query, Result};
@@ -107,7 +106,8 @@ impl Query {
             status: TxStatus,
             decoded: BitcoinTransaction,
             first_txin_index: TxInIndex,
-            outpoints: Vec<OutPoint>,
+            /// Per input; `None` for the coinbase's.
+            prevouts: Vec<Option<TxOut>>,
         }
 
         // One mapping for the request; the cursor answers a block's transactions in O(1).
@@ -115,7 +115,6 @@ impl Query {
         let mut tx_heights = tx_heights.cursor();
 
         let mut decoded_txs: Vec<DecodedTx> = Vec::with_capacity(len);
-        let mut total_inputs: usize = 0;
         let mut cached_status: Option<(Height, TxStatus)> = None;
 
         for &pos in &order {
@@ -142,8 +141,6 @@ impl Query {
 
             let decoded = indexer.read_tx_at(position, *total_size as usize)?;
 
-            total_inputs += decoded.input.len();
-
             decoded_txs.push(DecodedTx {
                 pos,
                 tx_index,
@@ -153,90 +150,97 @@ impl Query {
                 status,
                 decoded,
                 first_txin_index,
-                outpoints: Vec::new(),
+                prevouts: Vec::new(),
             });
         }
 
         // Sequential input cursors reuse decompressed pages, and reading output type, type index
         // and value from the input vecs avoids random reads of the output vecs.
-        let mut outpoint_cursor = indexer.vecs().inputs.outpoint.cursor();
         let mut input_output_type_cursor = indexer.vecs().inputs.output_type.cursor();
-        let mut input_type_index_cursor = indexer.vecs().inputs.type_index.cursor();
         let mut input_value_cursor = indexer.vecs().inputs.value.cursor();
+        let mut outpoint_cursor = indexer.vecs().inputs.outpoint.cursor();
+        let mut input_type_index_cursor = indexer.vecs().inputs.type_index.cursor();
 
-        // Distinct transactions spend distinct outpoints: one row per prevout, no map.
-        let mut prevouts: Vec<(OutPoint, OutputType, TypeIndex, Sats)> =
-            Vec::with_capacity(total_inputs);
-
-        for dtx in &mut decoded_txs {
-            let start = usize::from(dtx.first_txin_index);
-            let count = dtx.decoded.input.len();
-            let mut outpoints = Vec::with_capacity(count);
-            for i in 0..count {
-                let op: OutPoint = outpoint_cursor.get(start + i).data()?;
-                if op.is_not_coinbase() {
-                    let ot: OutputType = input_output_type_cursor.get(start + i).data()?;
-                    let ti: TypeIndex = input_type_index_cursor.get(start + i).data()?;
-                    let val: Sats = input_value_cursor.get(start + i).data()?;
-                    prevouts.push((op, ot, ti, val));
-                }
-                outpoints.push(op);
+        // A prevout's value is always read; its script is rebuilt from the spending input where
+        // the spend reveals it, and only the rest read their outpoint, type index and script.
+        let mut reads: Vec<(usize, usize, OutPoint, OutputType, TypeIndex, Sats)> = Vec::new();
+        for (t, dtx) in decoded_txs.iter_mut().enumerate() {
+            if dtx.decoded.is_coinbase() {
+                dtx.prevouts = vec![None];
+                continue;
             }
-            dtx.outpoints = outpoints;
+            let start = usize::from(dtx.first_txin_index);
+            dtx.prevouts = dtx
+                .decoded
+                .input
+                .iter()
+                .enumerate()
+                .map(|(j, txin)| {
+                    let i = start + j;
+                    let output_type: OutputType = input_output_type_cursor.get(i).data()?;
+                    let value: Sats = input_value_cursor.get(i).data()?;
+                    if let Some(script) = revealed_script(output_type, txin) {
+                        return Ok(Some(TxOut::from((script, value))));
+                    }
+                    let outpoint: OutPoint = outpoint_cursor.get(i).data()?;
+                    let type_index: TypeIndex = input_type_index_cursor.get(i).data()?;
+                    reads.push((t, j, outpoint, output_type, type_index, value));
+                    Ok(None)
+                })
+                .collect::<Result<_>>()?;
         }
 
-        // Sort by (output_type, type_index) for sequential BytesVec access within each address
+        // Sorted by (output_type, type_index) for sequential BytesVec access within each address
         // type's file; non-address output indices are chronological within each script type, so
         // a decoded parent serves its adjacent outputs.
-
+        reads.sort_unstable_by_key(|&(_, _, _, output_type, type_index, _)| {
+            (output_type, type_index)
+        });
         let mut scripts = indexer.output_scripts();
-
-        prevouts.sort_unstable_by_key(|&(_, ot, ti, _)| (ot, ti));
-
-        let mut prevout_map: FxHashMap<OutPoint, TxOut> =
-            FxHashMap::with_capacity_and_hasher(prevouts.len(), Default::default());
-
-        let prevout_count = prevouts.len();
-        for (op, output_type, type_index, value) in prevouts {
-            let script_pubkey =
-                scripts.get(op.tx_index(), op.vout(), output_type, type_index, value)?;
-            prevout_map.insert(op, TxOut::from((script_pubkey, value)));
+        for (t, j, outpoint, output_type, type_index, value) in reads {
+            let script_pubkey = scripts.get(
+                outpoint.tx_index(),
+                outpoint.vout(),
+                output_type,
+                type_index,
+                value,
+            )?;
+            decoded_txs[t].prevouts[j] = Some(TxOut::from((script_pubkey, value)));
         }
         drop(scripts);
-        debug_assert_eq!(prevout_map.len(), prevout_count, "an outpoint spent twice");
 
         let mut txs: Vec<Option<Transaction>> = (0..len).map(|_| None).collect();
 
         for dtx in decoded_txs {
             let weight = Weight::from(dtx.decoded.weight());
+            let is_coinbase = dtx.decoded.is_coinbase();
             let input: Vec<TxIn> = dtx
                 .decoded
                 .input
                 .into_iter()
-                .enumerate()
-                .map(|(j, txin)| {
-                    let outpoint = dtx.outpoints[j];
-                    let is_coinbase = outpoint.is_coinbase();
-
-                    let (prev_txid, prev_vout, prevout) = if is_coinbase {
-                        (Txid::COINBASE, Vout::MAX, None)
+                .zip(dtx.prevouts)
+                .map(|(txin, prevout)| {
+                    // Every slot is filled by now, derived from the spend or read from the store; a failed read returned early.
+                    debug_assert!(prevout.is_some() != is_coinbase, "prevout slot left unfilled");
+                    let (txid, vout) = if is_coinbase {
+                        (Txid::COINBASE, Vout::MAX)
                     } else {
-                        let prev_txid = Txid::from(txin.previous_output.txid);
-                        let prev_txout = prevout_map.remove(&outpoint).data()?;
-                        (prev_txid, outpoint.vout(), Some(prev_txout))
+                        (
+                            Txid::from(txin.previous_output.txid),
+                            Vout::from(txin.previous_output.vout),
+                        )
                     };
-
-                    Ok(TxIn {
-                        txid: prev_txid,
-                        vout: prev_vout,
+                    TxIn {
+                        txid,
+                        vout,
                         prevout,
                         script_sig: txin.script_sig,
                         witness: txin.witness,
                         is_coinbase,
                         sequence: txin.sequence.0,
-                    })
+                    }
                 })
-                .collect::<Result<_>>()?;
+                .collect();
 
             let output: Vec<TxOut> = dtx.decoded.output.into_iter().map(TxOut::from).collect();
 
