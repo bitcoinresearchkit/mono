@@ -25,7 +25,6 @@
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <!-- (The serif the year's caption is set in, asked for at once, so the caption doesn't re-wrap when it arrives.) -->
     <link rel="preload" href="/assets/fonts/InstrumentSerif-Italic.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="/assets/craft.css" />
     <style>
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
@@ -337,6 +336,7 @@
           padding: 0 10px;
           color: var(--ink);
           font: italic 400 19px / 1 var(--serif);
+          font-variant-numeric: tabular-nums;
           white-space: nowrap;
         }
       }
@@ -739,6 +739,7 @@
         time {
           color: var(--answer);
           font: italic 400 16px / 1.3 var(--serif);
+          font-variant-numeric: tabular-nums;
         }
 
         span {
@@ -940,6 +941,7 @@
         }
       }
     </style>
+    <link rel="stylesheet" href="/assets/craft.css" />
   </head>
   <body>
     <div class="page">

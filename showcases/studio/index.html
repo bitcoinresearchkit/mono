@@ -47,7 +47,6 @@
     <!-- The presets, read (made in a worker on a first visit) while the app downloads: run before it, which imports it. -->
     <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
-    <link rel="stylesheet" href="/assets/craft.css" />
     <style>
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
@@ -10875,6 +10874,7 @@
         }
       </style>
     </noscript>
+    <link rel="stylesheet" href="/assets/craft.css" />
   </head>
   <body class="boot">
     <article id="page-info"><!-- page-info-body --><!-- /page-info-body --></article>

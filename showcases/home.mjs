@@ -103,10 +103,13 @@ const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => 
 for (const [file, page] of [[relative(HERE, PAGE), html], ...pages.map((file) => [file, readFileSync(join(HERE, file), "utf8")])])
   for (const { rel, href } of tags(page, "link"))
     if ((rel === "preload" || rel === "modulepreload") && href?.startsWith("/") && !existsSync(join(HERE, href.split("?")[0]))) problems.push(`${file}: preloads ${href}, no such file`);
-// ── Every page links the craft rules (assets/craft.css: balanced headings, pretty text, tabular digits), ahead of its own styles ──
+// ── Every page links the craft rules (assets/craft.css: balanced headings, pretty text, tabular digits), after its own styles (the body rule wins a tie by order) ──
 
-for (const [file, page] of [[relative(HERE, PAGE), html], ...pages.map((file) => [file, readFileSync(join(HERE, file), "utf8")])])
-  if (!tags(page, "link").some(({ rel, href }) => rel === "stylesheet" && href === "/assets/craft.css")) problems.push(`${file}: no <link rel="stylesheet" href="/assets/craft.css" /> in its head`);
+for (const [file, page] of [[relative(HERE, PAGE), html], ...pages.map((file) => [file, readFileSync(join(HERE, file), "utf8")])]) {
+  const at = page.indexOf('<link rel="stylesheet" href="/assets/craft.css"');
+  if (at < 0) problems.push(`${file}: no <link rel="stylesheet" href="/assets/craft.css" /> in its head`);
+  else if (at < page.lastIndexOf("</style>", page.indexOf("</head>"))) problems.push(`${file}: links /assets/craft.css before its own <style>: last in the head, so its body rule wins a tie`);
+}
 // ── Metric-matched local faces, kept inline while the web fonts load ──
 
 const fallbackFonts = `/* fallback fonts */
