@@ -51,7 +51,7 @@ mod stores;
 mod vecs;
 mod warm;
 
-pub use confirmed::{OutputRange, OutputRanges, OutputScripts};
+pub use confirmed::{OutputRange, OutputRanges, OutputScripts, revealed_script};
 pub use constants::overwritten_output;
 pub use has::HasIndexer;
 pub use processor::transaction::analysis::policy::FIRST_V29_POLICY_HEIGHT;
