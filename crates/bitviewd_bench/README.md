@@ -91,7 +91,7 @@ thread, so their small metadata reads are part of the recorded I/O.
 ### Serial replay CPU
 
 The timed run's plugins overlap on threads, so their durations say nothing about the CPU each
-one spends. After the run, on a fresh data directory (a resumed one has no replay), the last 10
+one spends. After the run, fresh or resumed, the last 10
 blocks (`UNDO_TAIL`, the undo the run already keeps) are rolled back and applied again one at a
 time, with Bitcoin Core on its full chain. The first is unmeasured: it restores the plugins' live
 state. Each of the others is one production update with the composition's forks run one branch at

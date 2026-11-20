@@ -60,8 +60,6 @@ struct Inner {
     path: PathBuf,
     disk: Arc<Mutex<DiskMonitor>>,
     trace: Arc<TraceMonitor>,
-    /// Plugin data was already there: its undo does not cover a replay.
-    resumed: bool,
     /// The first Bitview or build seen beside the run: it is not comparable.
     overlap: Arc<Mutex<Option<String>>>,
     stop: Arc<AtomicBool>,
@@ -137,7 +135,6 @@ impl Benchmark {
                 &path.join("disk.csv"),
             )?)),
             trace,
-            resumed,
             overlap: Arc::default(),
             path,
             stop: Arc::new(AtomicBool::new(false)),
@@ -150,11 +147,8 @@ impl Benchmark {
     }
 
     /// After the timed run: replays its last blocks serially, one plugin at a time, and records
-    /// each plugin's CPU per block (see the README). A resumed run has no replay.
+    /// each plugin's CPU per block (see the README).
     pub fn replay(&self, plugins: &mut DefaultPlugins, context: UpdateContext<'_>) -> Result<()> {
-        if self.0.resumed {
-            return Ok(());
-        }
         replay::run(self.path(), plugins, context)
     }
 
