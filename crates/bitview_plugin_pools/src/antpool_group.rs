@@ -11,18 +11,24 @@ use brk_exit::Exit;
 use brk_types::Height;
 use vecdb::{AnyVec, BytesVec, ReadableVec, VecIndex, Version};
 
+/// Height of the first block of 2022-07-01 (Bitview's day mapping, checked against Core): the start
+/// of Q3 2022, when mainnet.observer assumes the first pools began sharing AntPool's block
+/// templates. Per-pool dates aren't public, so every member but AntPool counts from here.
+const SHARING_ASSUMED_FROM: usize = 743_088;
+
 /// Below this height Braiins shared AntPool's block templates: from it, stratum observers see it
 /// building its own.
 const BRAIINS_LEFT_ANTPOOL_GROUP: usize = 956_057;
 
 /// Raised whenever the group's members or dates change, so the series that count it are computed again.
-pub(crate) const ANTPOOL_GROUP_VERSION: Version = Version::new(1);
+pub(crate) const ANTPOOL_GROUP_VERSION: Version = Version::new(2);
 
-/// A pool counted with AntPool: those sharing its block templates, Braiins only while it did.
+/// A pool counted with AntPool: AntPool throughout, the pools sharing its block templates from
+/// `SHARING_ASSUMED_FROM`, and Braiins only until it left.
 pub(crate) fn in_antpool_group(pool: PoolSlug, height: usize) -> bool {
     match pool {
-        PoolSlug::AntPool
-        | PoolSlug::Poolin
+        PoolSlug::AntPool => true,
+        PoolSlug::Poolin
         | PoolSlug::UltimusPool
         | PoolSlug::SecPool
         | PoolSlug::SigmapoolCom
@@ -30,8 +36,10 @@ pub(crate) fn in_antpool_group(pool: PoolSlug, height: usize) -> bool {
         | PoolSlug::Rawpool
         | PoolSlug::Luxor
         | PoolSlug::CloverPool
-        | PoolSlug::MiningSquared => true,
-        PoolSlug::BraiinsPool => height < BRAIINS_LEFT_ANTPOOL_GROUP,
+        | PoolSlug::MiningSquared => height >= SHARING_ASSUMED_FROM,
+        PoolSlug::BraiinsPool => {
+            (SHARING_ASSUMED_FROM..BRAIINS_LEFT_ANTPOOL_GROUP).contains(&height)
+        }
         _ => false,
     }
 }
