@@ -145,7 +145,8 @@ clears); avoid reflecting programmatic calls. A programmatic
   lines, its edges the two, colored by which one is over); `zones` (`{ value, color, fade }` low to high), an area
   filled by value, parted exactly where its line crosses a zone's value, each part fading as the whole would;
   `gradient`, a `Gradient`: an area filled by value, by height in one fill, each height's color fading to
-  `gradientFade`'s there (a gradient as long) as far down the pane as it is.
+  `gradientFade`'s there (a gradient as long) as far down the pane as it is (not a baseline's: its sides' colors
+  say which side it's on).
 - `Bars({ values, base, color, colors, palette, gradient, radius, partial })` (`gradient`: each bar by its value) (`partial`: its last bar at `PARTIAL` of its opacity), `Candles({ open, high, low, close, up, down, upWick,
   downWick, upBorder, downBorder, color, width, tag, priceLine, format, marker })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a

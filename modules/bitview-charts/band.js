@@ -65,7 +65,8 @@ export class Band {
    * fades to from its value up, its own under them all (an area colored by its levels: its fill parted exactly where its
    * line crosses one, each part fading as the whole would; see Fill's zoned). `gradient`: its fill by value along a
    * Gradient (see color.js), by height, one fill (see Fill's graded), each height's color fading to `gradientFade`'s
-   * there (a gradient as long; none, no fade) as far down the pane as it is; `zones` before it.
+   * there (a gradient as long; none, no fade) as far down the pane as it is; `zones` before it; not a baseline's
+   * (`below`: its two sides' colors say which side it's on).
    * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[], zones?: readonly BandZone[] | null, gradient?: import("./color.js").Gradient | null, gradientFade?: import("./color.js").Gradient | null }} options
    */
   constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [], zones = null, gradient = null, gradientFade = null }) {

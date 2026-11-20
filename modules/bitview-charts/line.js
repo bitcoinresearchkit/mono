@@ -9,7 +9,7 @@
 
 import { Summary, FIRST } from "./summary.js";
 import { kept } from "./format.js";
-import { Fill, Gradient, painted, zoneSpans } from "./color.js";
+import { Fill, painted, zoneSpans } from "./color.js";
 import { NOISE, firstFrom } from "./timeline.js";
 import { measure, measuring } from "./recorder.js";
 
@@ -261,7 +261,7 @@ export class Line {
    * height, one stroke (see Fill's graded), its dots each by its own value (its `colors` and `palette` the gradient's;
    * `zones` before it); `partial`, its last point's period still running (a year so far): the segment
    * to it dashed (bars: that bar faint), where its points have room (a pixel or more each).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, gradient?: Gradient | null, partial?: boolean }} [options]
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, gradient?: import("./color.js").Gradient | null, partial?: boolean }} [options]
    */
   constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, zones = null, gradient = null, partial = false } = {}) {
     this.color = color;
@@ -284,7 +284,7 @@ export class Line {
     this.curve = curve;
     /** @type {readonly import("./color.js").Zone[] | null} */
     this.zones = zones && zones.length ? zones : null;
-    /** @type {Gradient | null} */
+    /** @type {import("./color.js").Gradient | null} */
     this.gradient = gradient;
     this.partial = partial;
     // (Its dashes' anchors: the first and last points its last draw drew (-1: none yet), its path's length at each from
@@ -293,7 +293,8 @@ export class Line {
     this.dashFirstAt = 0;
     this.dashLast = -1;
     this.dashLastAt = 0;
-    // (Its stroke's style by its zones, kept till they or its scale change; where they lie, a measure each: see zoneSpans.)
+    // (Its stroke's style by its zones or its gradient, kept till they or its scale change; where zones lie, a measure
+    // each: see zoneSpans.)
     /** @type {Fill | null} */
     this.zoned = null;
     /** @type {number[]} */
@@ -342,14 +343,14 @@ export class Line {
   /** One value set in place (a live point), its block's extremes made again. @param {number} i @param {number} value */
   set(i, value) {
     // (Its gradient's colors kept up in place: one point's.)
-    const kept = this.graded !== null && this.gradedVersion === this.version && i < this.graded.length;
+    const inPlace = this.graded !== null && this.gradedVersion === this.version && i < this.graded.length;
     this.version++;
     this.values[i] = value;
-    if (kept && this.gradient && this.graded) (this.graded[i] = value === value ? this.gradient.index(value) : 0), (this.gradedVersion = this.version);
+    if (inPlace && this.gradient && this.graded) (this.graded[i] = value === value ? this.gradient.index(value) : 0), (this.gradedVersion = this.version);
     this.summary?.set(i);
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, gradient?: Gradient | null, partial?: boolean }} look */
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, gradient?: import("./color.js").Gradient | null, partial?: boolean }} look */
   setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, zones = this.zones, gradient = this.gradient, partial = this.partial }) {
     this.version++;
     this.drifts = false;

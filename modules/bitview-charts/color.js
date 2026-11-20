@@ -405,7 +405,7 @@ export class Gradient {
     this.lo = lo;
     this.hi = hi;
     /** Its colors' sRGB channels and opacity (0 to 255), read once a style needs them. @type {number[][] | null} */
-    this.read = null;
+    this.rgba = null;
   }
 
   /** Where `v` is from its `lo` (0) to its `hi` (1), unclamped (none: NaN). @param {number} v */
@@ -432,7 +432,7 @@ export class Gradient {
 
   /** Its colors' channels (see read). */
   channels() {
-    return (this.read ??= this.colors.map(read));
+    return (this.rgba ??= this.colors.map(read));
   }
 }
 
@@ -489,24 +489,26 @@ export class Fill {
    * scale: a log one's too; one it can't show, a log scale's 0 or under, none), mixed straight between them as the
    * canvas mixes; past its ends, theirs. With `fade` (a gradient as long, each color what its own fades to at the
    * foot: an area's), each height's mixed toward its own there, as far as it is down the canvas. Made again only as
-   * either gradient, the height or the scale change: three of its heights read a draw, nothing made.
+   * either gradient, the height or the scale change: three of its heights read a draw (its top's, half its top's and
+   * its foot's: two shown on any scale whose top is, enough to tell a linear one's or a log one's mapping), nothing made.
    * @param {CanvasRenderingContext2D} g @param {Gradient} gradient @param {{ y: (v: number) => number }} scale @param {number} height @param {Gradient | null} [fade]
    * @returns {CanvasGradient | string}
    */
   graded(g, gradient, scale, height, fade = null) {
-    const lo = gradient.lo, hi = gradient.hi, ya = scale.y(lo), yb = scale.y(hi), ym = scale.y((lo + hi) / 2);
+    const lo = gradient.lo, hi = gradient.hi, ya = scale.y(lo), yb = scale.y(hi), ym = scale.y(hi > 0 ? hi / 2 : (lo + hi) / 2);
     if (this.byValue && this.of === gradient && this.fadeOf === fade && this.seen === height && Object.is(this.ya, ya) && Object.is(this.yb, yb) && Object.is(this.ym, ym)) return this.byValue;
     (this.of = gradient), (this.fadeOf = fade), (this.seen = height), (this.ya = ya), (this.yb = yb), (this.ym = ym);
-    const colors = gradient.colors, n = colors.length, ys = this.ys.length >= n ? this.ys : (this.ys = new Float64Array(n));
+    const colors = gradient.colors, n = colors.length, mid = placeIndex(0.5, n);
+    if (!(hi > lo)) return (this.byValue = fade ? this.style(g, colors[mid], fade.colors[mid], 0, height) : colors[mid]);
+    if (!(height > 0)) return (this.byValue = colors[mid]);
+    const ys = this.ys.length >= n ? this.ys : (this.ys = new Float64Array(n));
     // (Its colors' heights; the first and last shown.)
     let f = -1, l = -1;
     for (let k = 0; k < n; k++) {
       const y = (ys[k] = scale.y(n > 1 ? lo + ((hi - lo) * k) / (n - 1) : lo));
       if (y - y === 0) (f = f < 0 ? k : f), (l = k);
     }
-    const mid = colors[Math.floor(n / 2)];
-    if (!(hi > lo)) return (this.byValue = fade ? this.style(g, mid, fade.colors[Math.floor(n / 2)], 0, height) : mid);
-    if (f < 0 || !(height > 0)) return (this.byValue = colors[0]);
+    if (f < 0) return (this.byValue = colors[0]);
     const top = gradient.channels(), foot = fade ? fade.channels() : null, s = ys[l] > ys[f] ? 1 : -1, made = g.createLinearGradient(0, 0, 0, height);
     // (Where height `y` falls among its colors, as an index: between the two either side of it, by pixels, as the
     // canvas mixes; past them, the end's.)
