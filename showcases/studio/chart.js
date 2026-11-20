@@ -972,7 +972,7 @@ function stretchAcross(/** @type {number} */ run, /** @type {number} */ shown, /
   // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
   // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
   // the same (see stretchDrawn).)
-  const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? xOfTime(time) : null);
+  const ranged = presetShown && !glideTarget() && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? xOfTime(time) : null);
   // (Max's room before the first value anything shown has, as applyRange keeps it.)
   const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
   drawnStretch = { legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
@@ -1299,47 +1299,20 @@ function applyRange(doc, data, animate = false) {
   if (animate) glide(target, doc.range);
   else showSpan(target);
 }
-let gliding = 0;
-/** Where a glide in flight is going, and the preset it goes to (null for zooms). */
-let glideTarget = null, glidePreset = null;
-/** The range a glide last set, till the chart has taken it (its next frame: read before, it says the one before). */
-let glideLast = /** @type {{ from: number, to: number } | null} */ (null);
-function stopGlide() {
-  cancelAnimationFrame(gliding);
-  glideTarget = glidePreset = null;
-  glideLast = null;
-}
-/** The view's range as it's being moved to: a glide's last step, else the chart's own (a move from it starts there, not a step back). */
-const viewRange = () => glideLast ?? shownSpan();
+/** The preset a glide in flight goes to (null for zooms); read only while one flies (the controller's target). */
+let glidePreset = null;
+/** Where a glide in flight is going; null: none. */
+const glideTarget = () => engine.controller.target;
 /** Moves the view to a window over a moment, easing out, instead of jumping. */
 function glide(target, preset = null) {
-  // (From where the one going was, before it's stopped: a view moved otherwise (rebuilt, panned) stops it too.)
-  const from = viewRange();
-  stopGlide();
-  if (!(target.from < target.to)) return;
   target = within(target);
   target = ontoData(target) ?? target;
-  // Mid-rebuild (an interval swapping its data) the chart can report no window, or an inverted one: jump instead.
-  if (!from || !(from.from < from.to) || reduced.matches) return showSpan(target);
-  glideTarget = target;
   glidePreset = preset;
-  const since = motionTime();
-  const step = (now) => {
-    const t = Math.min(1, since(now) / MOTION.page), eased = 1 - (1 - t) ** 3;
-    const next = { from: from.from + (target.from - from.from) * eased, to: from.to + (target.to - from.to) * eased };
-    if (!(next.from < next.to)) return stopGlide();
-    showSpan(next);
-    // (Kept till the chart's taken it, a frame on.)
-    glideLast = next;
-    requestAnimationFrame(() => glideLast === next && (glideLast = null));
-    if (t < 1) gliding = requestAnimationFrame(step);
-    else glideTarget = glidePreset = null;
-  };
-  gliding = requestAnimationFrame(step);
+  engine.controller.viewTo(target, reduced.matches ? 0 : MOTION.page);
 }
 /** Whether the view still shows the chart's range preset: resizes keep it, pans and zooms leave it. */
 function showsPreset() {
-  if (glidePreset !== null) return glidePreset === chart.range;
+  if (glideTarget() && glidePreset !== null) return glidePreset === chart.range;
   // In bars, against the preset's own window: empty room past the data counts (a time range stops at the data,
   // and zoomed out past both ends it would read as "Max").
   const range = shownSpan();
@@ -1349,7 +1322,7 @@ function showsPreset() {
 }
 /** Closer or wider around the view's middle; showing the latest, it stays at the right edge (as the chart's wheel does). */
 function zoom(factor) {
-  const range = viewRange();
+  const range = engine.controller.range;
   if (!range) return;
   const width = Math.min(mostBars(), Math.max(10, (range.to - range.from) * factor)), center = (range.from + range.to) / 2;
   // (At the latest: it stays where it is, its room after it as wide as ever.)
@@ -3212,7 +3185,7 @@ function reachOut() {
   // (As prefetch: its first frames, and the rest it asks for, come before the chart does when a link is read first.)
   const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
   const range = shownSpan();
-  if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
+  if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || glideTarget() || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
   const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
   // Holding the most, growing at one end lets go of the other: not when the view would then be close to that one
   // (it would grow back there, and on, to and fro).
@@ -3238,7 +3211,7 @@ export {
   samePaint, sayValue, SCALE_MODES, seriesIn, seriesPane, seriesScale, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownRange, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
-  stopGlide, stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, subAt, tagAt, unitFor, units, updateLegends,
-  updateReadout, updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, viewRange, WHEEL_QUIET,
+  stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, subAt, tagAt, unitFor, units, updateLegends,
+  updateReadout, updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, WHEEL_QUIET,
   whenSubmenu, windows, writeText, zoom,
 };

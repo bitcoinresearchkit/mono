@@ -14,11 +14,12 @@
 // a trackpad's sideways scroll pans (a diagonal swipe both at once).
 
 import { Timeline, lastIn, rightBlank } from "./timeline.js";
+import { Controller } from "./controller.js";
 import { Pane } from "./pane.js";
 import { TimeAxis } from "./axis.js";
 import { Crosshair } from "./crosshair.js";
 
-export { Timeline, Pane, TimeAxis, lastIn, rightBlank };
+export { Timeline, Controller, Pane, TimeAxis, lastIn, rightBlank };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars, PARTIAL } from "./bars.js";
@@ -131,10 +132,6 @@ export function press(down, { end, move, captor, signal }) {
 
 /** An axis' least width (CSS pixels): a short label's, as "0". */
 const AXIS_LEAST = 28;
-/** A flick's speed kept each millisecond: a chart's glide, two thirds of iOS's lists' (0.998), not years past what it was flicked for. */
-const SLOWING = 0.997;
-/** A flick's speed (CSS pixels a millisecond) as its finger's over its last moments (this many milliseconds); slower, none (a drag let go where it stopped). */
-const FLICK_SPAN = 50, FLICK_LEAST = 0.25;
 
 /**
  * @param {HTMLElement} element
@@ -152,9 +149,9 @@ export class Chart {
 
   /**
    * @param {HTMLElement} element
-   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean }} [options]
+   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean, clock?: () => (now?: number) => number }} [options]
    */
-  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, maxSpacing, dateFormat, embedded = false } = {}) {
+  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, maxSpacing, dateFormat, embedded = false, clock } = {}) {
     this.element = element;
     /**
      * In a page that scrolls: a finger's mostly vertical swipe scrolls the page, the browser deciding (`touch-action:
@@ -177,6 +174,8 @@ export class Chart {
     this.refit = false;
     this.timeHeight = timeHeight;
     this.time = new Timeline({ maxSpacing });
+    /** How the view moves: the wheel, a flick gliding on, moves eased to a range (see Controller). */
+    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left, clock });
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);
@@ -210,11 +209,6 @@ export class Chart {
     this.whole = true;
     this.moved = false;
     this.seams = false;
-    /**
-     * A flick gliding on: its speed (CSS pixels a millisecond), its last frame's time, its speed kept each millisecond
-     * (SLOWING; more where it'd pass an end: it eases into it, see #fling), and its way left to that end.
-     */
-    this.glide = { speed: 0, at: 0, slowing: SLOWING, left: Infinity };
     /** @type {((from: number, to: number) => void)[]} */
     this.rangeListeners = [];
     /** @type {(() => void)[]} */
@@ -318,7 +312,7 @@ export class Chart {
   show(span) {
     const { from, to } = this.time;
     this.time.show(span);
-    this.#stopIfChanged(from, to);
+    if (this.time.from !== from || this.time.to !== to) this.controller.halt();
     this.invalidate(true);
   }
 
@@ -330,21 +324,7 @@ export class Chart {
    * @param {number} from @param {number} to @param {{ exact?: boolean }} [options]
    */
   setRange(from, to, options) {
-    const exact = options?.exact === true, time = this.time, span = to - from, wasFrom = time.from, wasTo = time.to;
-    // (From where it truly is: its kept part of a pixel counted once.)
-    if (!exact && time.length && Math.abs(span - (time.to - time.from)) <= span * 1e-9) time.pan((time.from - from) * time.spacing - time.rest);
-    else time.setRange(from, to);
-    this.#stopIfChanged(wasFrom, wasTo);
-    this.invalidate();
-  }
-
-  /** Stop momentum after a view setter actually moved the timeline. @param {number} from @param {number} to */
-  #stopIfChanged(from, to) {
-    if (this.time.from !== from || this.time.to !== to) this.#stopGlide();
-  }
-
-  #stopGlide() {
-    this.glide.speed = 0;
+    this.controller.setRange(from, to, options);
   }
 
   get range() {
@@ -542,21 +522,7 @@ export class Chart {
   /** @param {number} now */
   #frame(now) {
     this.frame = 0;
-    const glide = this.glide;
-    if (glide.speed) {
-      // (Its move over the frame as its speed falls through it (not at its end's speed); come to its least speed, a
-      // flick easing into an end moves the rest of its way there.)
-      const dt = Math.min(64, now - glide.at), decay = glide.slowing ** dt, ln = -Math.log(glide.slowing);
-      glide.at = now;
-      let by = ln < Infinity ? (glide.speed * (1 - decay)) / ln : 0;
-      glide.speed *= decay;
-      const ends = Math.abs(glide.speed) < 0.02;
-      if (ends && glide.left < Infinity) by = Math.sign(by || glide.speed) * glide.left;
-      glide.left -= Math.abs(by);
-      if (!this.time.pan(by) || ends) this.#stopGlide();
-      else (this.moved = true), this.#schedule();
-      if (ends && by) (this.moved = true), this.#schedule();
-    }
+    this.controller.step(now);
     // (Nothing moved since the last frame, its pictures moved or stretched before: drawn whole now, the seams gone; till
     // then they're kept, a move of less than a pixel moving nothing.)
     const whole = this.whole || (this.seams && !this.moved);
@@ -722,9 +688,6 @@ export class Chart {
     // (A price axis' last click or tap: when, where and which, for a second one on it (a double-click, a double tap: iOS
     // sends no dblclick) fitting it again; forgotten at any release that isn't a click.)
     let tapAt = -Infinity, tapX = 0, tapY = 0, tapPane = /** @type {Pane | null} */ (null), tapSide = "";
-    // (A drag's last moves: its speed as it's let go (see FLICK_SPAN).)
-    const trail = new Float64Array(16), trailAt = new Float64Array(16);
-    let trailEnd = 0, trailSize = 0;
     const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
     const signal = this.listening.signal;
     const take = (/** @type {PointerEvent} */ event) => {
@@ -736,11 +699,10 @@ export class Chart {
       const id = event.pointerId, stop = press(event, { captor: element, signal, end: (release, lost) => ended(id, release, lost) });
       // (On a separator: it's dragged, nothing else.)
       const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
-      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), (this.#stopGlide()), this.#clearPointer());
+      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), this.controller.stop(), this.#clearPointer());
       const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop });
-      this.#stopGlide();
-      trailSize = 0;
+      this.controller.grab();
       clearTimeout(this.holding);
       // (A held finger's crosshair going at the next frame: gone now.)
       if (this.letting) cancelAnimationFrame(this.letting), this.#clearPointer();
@@ -796,23 +758,18 @@ export class Chart {
         if (!at.moved) return;
         const box = element.getBoundingClientRect();
         scaleAxis(at.axis, event.clientX - box.left, event.clientY - box.top);
-        (at.x = event.clientX), (at.y = event.clientY), (trailSize = 0);
+        (at.x = event.clientX), (at.y = event.clientY);
+        this.controller.forget();
         return void this.invalidate();
       }
       if (down.size === 1) {
-        time.pan(event.clientX - at.x);
+        this.controller.drag(event.clientX - at.x, event.clientX, event.timeStamp);
         if (at.pane) slide(at.pane, event.clientY - at.y);
-        trail[trailEnd] = event.clientX;
-        trailAt[trailEnd] = event.timeStamp;
-        trailEnd = (trailEnd + 1) % trail.length;
-        trailSize = Math.min(trail.length, trailSize + 1);
       } else if (down.size === 2) {
         // (About the fingers' middle as it was, then moved with it: what's under each stays under it.)
         let other = at;
         for (const each of down.values()) if (each !== at) other = each;
-        const was = Math.abs(at.x - other.x), now = Math.abs(event.clientX - other.x);
-        if (was > 8 && now > 8) time.zoom(plotX((at.x + other.x) / 2), was / now);
-        time.pan((event.clientX - at.x) / 2);
+        this.controller.pinch(plotX((at.x + other.x) / 2), Math.abs(at.x - other.x), Math.abs(event.clientX - other.x), (event.clientX - at.x) / 2);
       }
       (at.x = event.clientX), (at.y = event.clientY);
       // (A mouse or pen's crosshair where it is now, the chart moved under it.)
@@ -837,10 +794,10 @@ export class Chart {
       this.holding = 0;
       // (The finger holding the crosshair let go: it goes at the next frame (a page's own lifting handled first, as a
       // touch's end came after it: Studio keeps it there); no glide.)
-      if (held === id) return void ((held = -1), (trailSize = 0), (tapAt = -Infinity), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
+      if (held === id) return void ((held = -1), this.controller.forget(), (tapAt = -Infinity), (this.letting = requestAnimationFrame(() => ((this.letting = 0), this.#clearPointer()))));
       // (Let go where it began: a click.)
       if (event && !down.size && !pinched && !at.moved && Math.hypot(event.clientX - at.startX, event.clientY - at.startY) < 6) {
-        trailSize = 0;
+        this.controller.forget();
         const axis = at.axis;
         const again = axis && axis.pane === tapPane && axis.side === tapSide && event.timeStamp - tapAt < 350 && Math.hypot(event.clientX - tapX, event.clientY - tapY) < 24;
         (tapAt = axis && !again ? event.timeStamp : -Infinity), (tapX = event.clientX), (tapY = event.clientY), (tapPane = axis?.pane ?? null), (tapSide = axis?.side ?? "");
@@ -852,19 +809,8 @@ export class Chart {
       tapAt = -Infinity;
       // (A pinch's end, a finger at a time: no glide (a zoom has no momentum; the finger left lifts as it stops). A
       // mouse's or a pen's drag: none either, as a desktop's charts (a finger's flick alone glides on).)
-      if (down.size || pinched || !event || fine(event) || trailSize < 2) return void (trailSize = 0);
-      // (Its speed as it was let go: over its last moves alone (a finger slowing to a stop lets go slow), and only if it
-      // was still moving then (held still a moment, none); too slow, none.)
-      const last = (trailEnd + trail.length - 1) % trail.length;
-      let first = last;
-      for (let k = 1; k < trailSize; k++) {
-        const i = (last - k + trail.length) % trail.length;
-        if (trailAt[last] - trailAt[i] > FLICK_SPAN) break;
-        first = i;
-      }
-      const ms = trailAt[last] - trailAt[first], speed = ms > 0 ? (trail[last] - trail[first]) / ms : 0, stale = event.timeStamp - trailAt[last] >= FLICK_SPAN;
-      trailSize = 0;
-      if (!stale && Math.abs(speed) >= FLICK_LEAST) this.#fling(speed);
+      if (down.size || pinched || !event || fine(event)) return void this.controller.forget();
+      this.controller.flick(event.timeStamp);
     };
     // (Embedded: the browser scrolls the page unless a touchmove's default is cancelled, which touch-action can't say
     // "vertical unless held" for: cancelled while a finger holds the crosshair or two of the chart's own fingers pinch
@@ -880,15 +826,6 @@ export class Chart {
       }
       if (failed) throw error;
     };
-    element.addEventListener("wheel", (event) => {
-      event.preventDefault();
-      const scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? this.height : 1;
-      // (A pinch zooms alone; a scroll both at once, a trackpad's diagonal swipe panning and zooming together.)
-      if (event.deltaY) time.zoom(plotX(event.clientX), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.001)));
-      if (event.deltaX && !event.ctrlKey) time.pan(-event.deltaX * scale);
-      this.#stopGlide();
-      this.invalidate();
-    }, { passive: false, signal });
   }
 
   /**
@@ -912,20 +849,6 @@ export class Chart {
     if (target === this.timeAxis.canvas) return true;
     for (const pane of this.panes) if (target === pane.canvas || target === pane.axisCanvas || target === pane.leftCanvas) return true;
     return false;
-  }
-
-  /**
-   * A flick let go at `speed` (CSS pixels a millisecond): it glides on, slowing by SLOWING a millisecond (its travel `speed /
-   * -ln(SLOWING)`); where that would pass an end, slowing faster to come to rest there (held at it, it stopped dead).
-   * @param {number} speed
-   */
-  #fling(speed) {
-    const glide = this.glide, room = this.time.room(speed), passes = Math.abs(speed) / -Math.log(SLOWING) > room;
-    glide.slowing = passes ? Math.exp(-Math.abs(speed) / Math.max(room, 1e-9)) : SLOWING;
-    glide.left = passes ? room : Infinity;
-    glide.speed = speed;
-    glide.at = performance.now();
-    this.invalidate();
   }
 
   /** A click at a pointer's place: its point, pane and series told to the click's listeners. @param {PointerEvent} event */
@@ -965,7 +888,7 @@ export class Chart {
     cancelAnimationFrame(this.letting);
     clearTimeout(this.holding);
     this.frame = this.holding = this.letting = 0;
-    this.#stopGlide();
+    this.controller.destroy();
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();

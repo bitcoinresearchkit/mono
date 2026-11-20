@@ -1527,7 +1527,7 @@ function stepSignal(/** @type {1 | -1} */ by) {
   const range = shownSpan();
   if (!resolved || !range) return;
   // (From where the view's going, a glide under way: pressed again on the way, the next on, not the same again.)
-  const middle = glideTarget ? (glideTarget.from + glideTarget.to) / 2 : (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
+  const going = glideTarget(), middle = going ? (going.from + going.to) / 2 : (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
   const at = by > 0 ? turns.find((i) => i > middle + 0.01) : turns.findLast((i) => i < middle - 0.01);
   // (Minutes and hours: what's loaded only, said.)
   if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in the loaded range" : ""}`);
