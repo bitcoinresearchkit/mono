@@ -201,6 +201,11 @@ impl<K: Hash + Eq + Clone, V: Clone, S: BuildHasher + Clone> CowIndexMap<K, V, S
         self.positions.contains_key(key)
     }
 
+    /// `key`'s position in dense order.
+    pub fn position(&self, key: &K) -> Option<usize> {
+        self.positions.get(key).map(|&position| position as usize)
+    }
+
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
         let position = *self.positions.get(key)?;
         self.entries
@@ -237,10 +242,6 @@ impl<K: Hash + Eq + Clone, V: Clone, S: BuildHasher + Clone> CowIndexMap<K, V, S
     /// `(key, value)` pairs in dense order.
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
         self.entries.iter().map(|(key, value)| (key, value))
-    }
-
-    pub fn values(&self) -> impl Iterator<Item = &V> {
-        self.entries.iter().map(|(_, value)| value)
     }
 }
 

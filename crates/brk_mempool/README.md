@@ -64,8 +64,7 @@ cycles in a row is logged once. Under steady churn (a new miss every cycle) publ
 every other cycle, and a transaction a chain replaced on a cycle right after a hold, buried then,
 stays vanished.
 Unread blocks are retried before fetching bodies, ten cycles at most: what the unread blocks
-mined then reads vanished. A panic on an unwinding build restores private state from the last
-publication.
+mined then reads vanished.
 
 Restored pending records are trusted while Core still lists their txids. A same-txid witness swap
 during downtime is accepted without refreshing the restored body.

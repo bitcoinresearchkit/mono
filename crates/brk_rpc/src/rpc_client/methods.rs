@@ -19,7 +19,7 @@ use super::{
         GetBlockCount, GetBlockHeaderVerbose, GetBlockchainInfo, GetChainTip, GetMempoolInfo,
     },
     rpc_call::RpcCall,
-    txid_array_parser::TxidArrayParser,
+    txid_array_parser::parse_txid_array,
 };
 
 /// Bitcoin Core's `-5` (`RPC_INVALID_ADDRESS_OR_KEY`): a block hash the node
@@ -141,7 +141,7 @@ impl Client {
 
         Ok(MempoolObservation {
             state: MempoolState {
-                live_txids: TxidArrayParser::parse(txids_raw?.get())?,
+                live_txids: parse_txid_array(txids_raw?.get())?,
                 min_fee: Self::build_min_fee(info.mempool_min_fee)?,
                 tip_hash: Self::parse_block_hash(&tip, "getbestblockhash")?,
                 loaded: info.loaded,

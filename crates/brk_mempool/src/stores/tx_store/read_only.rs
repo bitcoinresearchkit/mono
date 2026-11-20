@@ -1,9 +1,8 @@
 use brk_oracle::{HistogramRaw, Tally};
 use brk_types::{MempoolTxSummary, Timestamp, Transaction, Txid};
-use rustc_hash::FxBuildHasher;
+use rapidhash::fast::RandomState;
 
 use crate::{
-    key::TxKey,
     state::TxEntry,
     stores::{LivePayments, cow::CowIndexMap},
 };
@@ -13,7 +12,7 @@ use super::TxRecord;
 /// Query data shared by the working store and each completed publication.
 #[derive(Clone, Default)]
 pub struct ReadOnlyTxStore {
-    pub(super) records: CowIndexMap<TxKey, TxRecord, FxBuildHasher>,
+    pub(super) records: CowIndexMap<Txid, TxRecord, RandomState>,
     pub(super) content_revision: u64,
     pub(super) membership_revision: u64,
     /// The latest arrivals by Core's first-seen time, newest first.
@@ -23,7 +22,7 @@ pub struct ReadOnlyTxStore {
 
 impl ReadOnlyTxStore {
     pub fn contains(&self, txid: &Txid) -> bool {
-        self.get(txid).is_some()
+        self.records.contains_key(txid)
     }
 
     pub fn len(&self) -> usize {
@@ -39,14 +38,12 @@ impl ReadOnlyTxStore {
     }
 
     pub fn record(&self, txid: &Txid) -> Option<&TxRecord> {
-        let record = self.records.get(&TxKey::from(txid))?;
-        (record.entry.txid == *txid).then_some(record)
+        self.records.get(txid)
     }
 
-    /// Lookup by key alone, without [`Self::record`]'s txid check: for keys taken from this
-    /// store's own indexes.
-    pub fn record_by_key(&self, key: &TxKey) -> Option<&TxRecord> {
-        self.records.get(key)
+    /// `txid`'s position in [`Self::records`]'s order, if pooled.
+    pub fn position(&self, txid: &Txid) -> Option<usize> {
+        self.records.position(txid)
     }
 
     /// The record at `index` in dense storage order, [`Self::records`]'s.
@@ -57,13 +54,13 @@ impl ReadOnlyTxStore {
             .1
     }
 
-    /// `(key, record)` pairs in dense storage order.
-    pub fn records(&self) -> impl Iterator<Item = (&TxKey, &TxRecord)> {
+    /// `(txid, record)` pairs in dense storage order.
+    pub fn records(&self) -> impl Iterator<Item = (&Txid, &TxRecord)> {
         self.records.iter()
     }
 
     pub fn txids(&self) -> impl Iterator<Item = &Txid> {
-        self.records.values().map(|r| &r.entry.txid)
+        self.records.iter().map(|(txid, _)| txid)
     }
 
     /// The revision of every mutation that can change the txid array or serialized tx bodies,

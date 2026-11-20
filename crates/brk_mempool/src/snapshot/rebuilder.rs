@@ -21,10 +21,6 @@ pub struct Rebuilder {
 }
 
 impl Rebuilder {
-    pub fn restore(&mut self, snapshot: Arc<Snapshot>) {
-        self.snapshot = snapshot;
-    }
-
     /// Reuse the private graph only when all of its inputs are unchanged.
     /// Publication and diff history are committed together by the writer.
     pub fn tick(&mut self, state: &State, min_fee: FeeRate, modified_fees: &[(Txid, i64)]) {
@@ -56,7 +52,7 @@ impl Rebuilder {
         leftovers: &mut ChunkCache,
         previous: &Snapshot,
     ) -> Snapshot {
-        let (txs, key_to_idx, chunks) = Snapshot::build_txs(&state.txs, modified_fees, cache);
+        let (txs, txid_to_idx, chunks) = Snapshot::build_txs(&state.txs, modified_fees, cache);
         let mut projection = partition::partition(&txs, &chunks, NUM_BLOCKS, leftovers);
         // An empty pool still has a block 0, and a lone block holding more than a block stays the
         // catch-all after an empty one.
@@ -76,7 +72,7 @@ impl Rebuilder {
             .map(|block| block.iter().map(|(index, _)| record_of(index)).unzip())
             .collect();
 
-        let mut snapshot = Snapshot::build(txs, &projection.blocks, key_to_idx, chunks, min_fee);
+        let mut snapshot = Snapshot::build(txs, &projection.blocks, txid_to_idx, chunks, min_fee);
         snapshot.set_served(
             blocks,
             state.txs.content_revision(),

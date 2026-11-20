@@ -11,10 +11,9 @@
 use bitcoin::Transaction as BitcoinTransaction;
 use brk_types::{MempoolEntryInfo, Transaction, Txid, Vout};
 use rapidhash::RapidHashMap;
-use rustc_hash::FxHashSet;
 
 use super::Confirmed;
-use crate::{State, key::TxKey};
+use crate::{State, stores::ReadOnlyTxStore};
 
 pub mod pool_diff;
 pub mod tx_addition;
@@ -24,8 +23,35 @@ pub use pool_diff::PoolDiff;
 pub use tx_addition::TxAddition;
 pub use tx_removal::TxRemoval;
 
+/// Core's listing set against the pool in one pass.
+pub struct Listing {
+    /// The listed txids the pool doesn't hold, in Core's listing order: asked in a random one,
+    /// Core's lookups make a cold pool's first publication about 40 % slower.
+    pub unpooled: Vec<Txid>,
+    /// The pooled transactions the listing lacks, by position in [`ReadOnlyTxStore::records`]'s
+    /// order.
+    pub departed: Vec<usize>,
+}
+
+impl Listing {
+    pub fn of(pool: &ReadOnlyTxStore, listing: Vec<Txid>) -> Self {
+        let mut listed = vec![false; pool.len()];
+        let mut unpooled = Vec::new();
+        for txid in listing {
+            match pool.position(&txid) {
+                Some(position) => listed[position] = true,
+                None => unpooled.push(txid),
+            }
+        }
+        let departed = (0..listed.len())
+            .filter(|&position| !listed[position])
+            .collect();
+        Self { unpooled, departed }
+    }
+}
+
 pub fn prepare(
-    live: &FxHashSet<TxKey>,
+    departed: &[usize],
     new: impl IntoIterator<Item = (MempoolEntryInfo, BitcoinTransaction)>,
     confirmed: &Confirmed,
     state: &State,
@@ -35,36 +61,36 @@ pub fn prepare(
         .map(|(info, tx)| TxAddition::new(&info, tx, &state.txs, &state.graveyard))
         .collect();
     PoolDiff {
-        removed: classify_removals(live, &added, confirmed, state),
+        removed: classify_removals(departed, &added, confirmed, state),
         added,
     }
 }
 
-/// One `(key, reason)` per pooled tx gone from the live set, in store order.
+/// One `(txid, reason)` per pooled tx gone from the listing, in store order.
 fn classify_removals(
-    live: &FxHashSet<TxKey>,
+    departed: &[usize],
     added: &[TxAddition],
     confirmed: &Confirmed,
     state: &State,
-) -> Vec<(TxKey, TxRemoval)> {
+) -> Vec<(Txid, TxRemoval)> {
     let spent_by = build_spent_by(added);
-    let mut removed: Vec<_> = state
-        .txs
-        .records()
-        .filter(|(key, _)| !live.contains(key))
-        .map(|(key, record)| (*key, removal_reason(&record.tx, &spent_by, confirmed)))
+    let mut removed: Vec<_> = departed
+        .iter()
+        .map(|&position| {
+            let record = state.txs.record_at(position);
+            (
+                record.entry.txid,
+                removal_reason(&record.tx, &spent_by, confirmed),
+            )
+        })
         .collect();
-    TxRemoval::inherit(&mut removed, |key| {
-        state
-            .txs
-            .record_by_key(&key)
-            .into_iter()
-            .flat_map(move |record| {
-                state
-                    .outpoint_spends
-                    .children(&state.txs, key, &record.tx)
-                    .map(|(key, _)| key)
-            })
+    TxRemoval::inherit(&mut removed, |txid| {
+        state.txs.record(&txid).into_iter().flat_map(move |record| {
+            state
+                .outpoint_spends
+                .children(&state.txs, &record.tx)
+                .map(|child| child.entry.txid)
+        })
     });
     removed
 }

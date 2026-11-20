@@ -11,7 +11,7 @@ use brk_rpc::Client;
 use brk_types::{Transaction, TxOut, Txid, Vin, Vout};
 use rapidhash::RapidHashMap;
 
-use crate::{key::TxKey, state::State, stores::tx_store::TxRecord};
+use crate::{state::State, stores::tx_store::TxRecord};
 
 /// Fill every unfilled prevout of the pool the cycle can resolve. Same-cycle parents (pooled or
 /// retained) are filled directly. The remainder go through `resolver` in one batched call.
@@ -19,12 +19,9 @@ pub fn fill<F>(state: &mut State, resolver: F)
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {
-    let unresolved = state.txs.unresolved().iter().map(|key| {
-        let record = state
-            .txs
-            .record_by_key(key)
-            .expect("unresolved tx is pooled");
-        (*key, record)
+    let unresolved = state.txs.unresolved().iter().map(|txid| {
+        let record = state.txs.record(txid).expect("unresolved tx is pooled");
+        (*txid, record)
     });
     let parent = |txid: &Txid| {
         state.txs.get(txid).or_else(|| {
@@ -36,15 +33,12 @@ where
     };
     let (in_mempool, holes) = gather(unresolved, parent);
     let external = resolve_external(holes, resolver);
-    for (key, fills) in in_mempool.into_iter().chain(external) {
-        let record = state
-            .txs
-            .record_by_key(&key)
-            .expect("unresolved tx is pooled");
+    for (txid, fills) in in_mempool.into_iter().chain(external) {
+        let record = state.txs.record(&txid).expect("unresolved tx is pooled");
         state
             .addrs
             .resolve(record, fills.iter().map(|(_, prevout)| prevout));
-        state.txs.apply_fills(&key, fills);
+        state.txs.apply_fills(&txid, fills);
     }
 }
 
@@ -66,14 +60,14 @@ pub fn rpc_resolver(
 /// confirmed or unknown). Retained parents let the
 /// children of a just-mined parent resolve before the chain publishes its block.
 fn gather<'a, 'p>(
-    unresolved: impl Iterator<Item = (TxKey, &'a TxRecord)>,
+    unresolved: impl Iterator<Item = (Txid, &'a TxRecord)>,
     parent: impl Fn(&Txid) -> Option<&'p Transaction>,
 ) -> (
-    Vec<(TxKey, Vec<(Vin, TxOut)>)>,
-    Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
+    Vec<(Txid, Vec<(Vin, TxOut)>)>,
+    Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
 ) {
-    let mut filled: Vec<(TxKey, Vec<(Vin, TxOut)>)> = Vec::new();
-    let mut holes: Vec<(TxKey, Vec<(Vin, Txid, Vout)>)> = Vec::new();
+    let mut filled: Vec<(Txid, Vec<(Vin, TxOut)>)> = Vec::new();
+    let mut holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)> = Vec::new();
     for (into, record) in unresolved {
         let mut tx_fills: Vec<(Vin, TxOut)> = Vec::new();
         let mut tx_holes: Vec<(Vin, Txid, Vout)> = Vec::new();
@@ -104,9 +98,9 @@ fn gather<'a, 'p>(
 /// resolver once, then re-attribute resolved entries to their
 /// consumer txs.
 fn resolve_external<F>(
-    holes: Vec<(TxKey, Vec<(Vin, Txid, Vout)>)>,
+    holes: Vec<(Txid, Vec<(Vin, Txid, Vout)>)>,
     resolver: F,
-) -> Vec<(TxKey, Vec<(Vin, TxOut)>)>
+) -> Vec<(Txid, Vec<(Vin, TxOut)>)>
 where
     F: Fn(&[(Txid, Vout)]) -> RapidHashMap<(Txid, Vout), TxOut>,
 {

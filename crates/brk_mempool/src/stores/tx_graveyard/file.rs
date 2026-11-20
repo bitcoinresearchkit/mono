@@ -5,8 +5,11 @@
 //! clean shutdown it holds the pool's records too, so a restart publishes after one cycle instead
 //! of reloading the pool from Core. Periodic saves carry no pool.
 //!
-//! The file is one lz4-compressed image, written whole to a temporary file, flushed, and renamed
-//! over the old one, so a crash mid-save leaves the last complete save. Whatever a body determines
+//! The file is one lz4-compressed image, written whole to a temporary file and renamed over the
+//! old one, so a crashed process mid-save leaves the last complete save. It is not flushed to the
+//! drive: a power cut or kernel crash can leave a file that doesn't read, which loading sets aside
+//! (an empty graveyard, as before the first save); on macOS each flush is a full drive-cache
+//! flush, two per save. Whatever a body determines
 //! (txid, wtxid, size, weight, sigops, policy vsize, its own RBF signaling) is derived on reading
 //! and never taken from the file.
 
@@ -110,7 +113,7 @@ impl GraveyardFile {
         }
     }
 
-    /// Writes `graveyard`, taken at `taken`, whole, flushed, then renamed over the last save.
+    /// Writes `graveyard`, taken at `taken`, whole, then renamed over the last save.
     /// `pending` gives the pool's record of a pending replacer, and its chunk rate: one is saved
     /// as a tombstone taken now (its tree's head), so a restart finds its tree whether it's still
     /// pending (it comes back, exhumed), confirmed meanwhile (the blocks since tell it mined) or
@@ -135,11 +138,8 @@ impl GraveyardFile {
         let dir = self.path.parent().unwrap_or(Path::new("."));
         fs::create_dir_all(dir)?;
         let temporary = self.path.with_extension("saving");
-        let mut file = File::create(&temporary)?;
-        file.write_all(&bytes)?;
-        file.sync_all()?;
+        File::create(&temporary)?.write_all(&bytes)?;
         fs::rename(&temporary, &self.path)?;
-        File::open(dir)?.sync_all()?;
         *saved = Saved {
             taken: Some(taken),
             revision: Some(graveyard.revision()),
@@ -385,7 +385,7 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
             (0..count)
                 .map(|_| {
                     let record = read_record(&mut input)?;
-                    if !keys.insert(record.entry.key()) {
+                    if !keys.insert(record.entry.txid) {
                         return Err(Error::Parse("a pool transaction twice".into()));
                     }
                     Ok(record)

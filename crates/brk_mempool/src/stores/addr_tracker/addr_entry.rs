@@ -1,9 +1,9 @@
 use std::{iter::Rev, slice, sync::Arc};
 
-use brk_types::{AddressMempoolStats, Timestamp, TxidPrefix};
+use brk_types::{AddressMempoolStats, Timestamp, Txid, TxidPrefix};
 use smallvec::SmallVec;
 
-use crate::{key::TxKey, stores::tx_store::TxRecord};
+use crate::stores::tx_store::TxRecord;
 
 /// Pending transactions an address keeps in a sorted inline vector before shared leaves take over
 /// (and below half of it, back): either way an insert or a removal stays cheap however many it
@@ -21,12 +21,12 @@ pub struct AddrEntry {
 }
 
 /// A pending transaction as an address's pages order it: by first sighting, then the txid's
-/// prefix (a public tie-break), then its key.
+/// prefix (a public tie-break), then the whole txid.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct AddrTx {
     pub first_seen: Timestamp,
     pub prefix: TxidPrefix,
-    pub key: TxKey,
+    pub txid: Txid,
 }
 
 impl From<&TxRecord> for AddrTx {
@@ -34,7 +34,7 @@ impl From<&TxRecord> for AddrTx {
         Self {
             first_seen: record.entry.first_seen,
             prefix: TxidPrefix::from(&record.entry.txid),
-            key: record.entry.key(),
+            txid: record.entry.txid,
         }
     }
 }
