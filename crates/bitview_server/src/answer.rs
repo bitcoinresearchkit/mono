@@ -372,9 +372,10 @@ impl AppState {
         .await
     }
 
-    /// Answers a read whose tag is known before it runs (made as the server starts): a request
-    /// holding the tag gets its `304` here, on its own thread, where it would otherwise queue for
-    /// `gate` behind the bodies being built; any other is built on a worker once admitted.
+    /// Answers a read whose tag is known before it runs (made as the server starts, so only a
+    /// release changes the bytes and the answer is settled): a request holding the tag gets its
+    /// `304` here, on its own thread, where it would otherwise queue for `gate` behind the bodies
+    /// being built; any other is built on a worker once admitted.
     #[cfg(feature = "series")]
     pub async fn respond_named(
         &self,
@@ -383,11 +384,12 @@ impl AppState {
         tag: Etag,
         build: impl FnOnce(&Query) -> Result<Content> + Clone + Send + 'static,
     ) -> Response {
-        if tag.matches(headers) {
-            return self.respond_now(headers, Answer::new(tag, build));
+        let matches = tag.matches(headers);
+        let answer = move || Answer::new(tag, build).settled(true);
+        if matches {
+            return self.respond_now(headers, answer());
         }
-        self.respond(headers, gate, move |_| Ok(Answer::new(tag, build)))
-            .await
+        self.respond(headers, gate, move |_| Ok(answer())).await
     }
 
     /// Answers from memory on the caller's thread: only for an answer that reads no disk.
