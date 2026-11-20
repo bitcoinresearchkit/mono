@@ -4,7 +4,7 @@ use std::{
     any::Any,
     net::SocketAddr,
     num::NonZero,
-    sync::Arc,
+    sync::{Arc, OnceLock},
     thread,
     time::{Duration, Instant},
 };
@@ -59,7 +59,6 @@ pub use api::ApiRoutes;
 
 pub use bitview_website::Website;
 pub use error::Error;
-pub use etag::set_build_tag as set_etag_build_tag;
 pub use port::Port;
 
 pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig};
@@ -69,7 +68,20 @@ use raw_body::RawBodyPermit;
 #[cfg(feature = "series")]
 use series_bodies::SeriesBodies;
 
-const VERSION: &str = env!("BITVIEW_SERVER_VERSION");
+static VERSION: OnceLock<&'static str> = OnceLock::new();
+
+/// Names what the application was built from: the version `/version` and `/health` report and
+/// the digest of its sources that prefixes every ETag. Call before starting the server. It
+/// lives with the application, not here, so a new commit rebuilds only the binary: embedders
+/// that don't call it report the crate's version and tag by their executable's hash.
+pub fn set_build(version: &'static str, tag: &'static str) {
+    VERSION.set(version).expect("Build is already set");
+    etag::set_build_tag(tag);
+}
+
+fn build_version() -> &'static str {
+    VERSION.get().copied().unwrap_or(concat!("v", env!("CARGO_PKG_VERSION")))
+}
 
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);

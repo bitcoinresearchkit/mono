@@ -50,7 +50,7 @@ from those; no route sets a cache header.
 **The tag.** Every API ETag is weak and starts with a build hash. Bitviewd hashes
 its source inputs and dependency lockfile at build time, so independent builds
 of the same inputs can share validators. Applications embedding the server can
-supply their own build tag and otherwise use their executable's
+supply their own build tag (`set_build`) and otherwise use their executable's
 hash. The rest is made of what the body is read from, under the same pin the
 body is read under: the block that fixes it (a block by hash, a confirmed
 transaction, a point of the UTXO set), the tip (whole-history statistics,

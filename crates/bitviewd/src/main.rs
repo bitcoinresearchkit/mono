@@ -9,7 +9,7 @@ use bitview_default::DefaultPlugins;
 static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
 
 fn main() -> ExitCode {
-    bitview::set_etag_build_tag(env!("BITVIEW_SOURCE_TAG"));
+    bitview::set_build(env!("BITVIEW_VERSION"), env!("BITVIEW_SOURCE_TAG"));
     match run(DefaultPlugins::import) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {

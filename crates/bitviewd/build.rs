@@ -1,4 +1,4 @@
-use std::{env, fs, io, path::Path};
+use std::{env, fs, io, path::Path, process::Command};
 
 use sha2::{Digest, Sha256};
 
@@ -21,6 +21,28 @@ fn main() {
     }
     let tag: String = hash.finalize()[..8].iter().map(|byte| format!("{byte:02x}")).collect();
     println!("cargo::rustc-env=BITVIEW_SOURCE_TAG={tag}");
+
+    // A build from the repository reports its commit, a release its version. The commit is read
+    // here, in the leaf binary, so a new commit recompiles bitviewd alone and not the server and
+    // everything above it.
+    let version = if root.join(".git").exists() {
+        commit(root)
+    } else {
+        format!("v{}", env!("CARGO_PKG_VERSION"))
+    };
+    println!("cargo::rustc-env=BITVIEW_VERSION={version}");
+}
+
+fn commit(root: &Path) -> String {
+    let git = |args: &[&str]| {
+        let output = Command::new("git").current_dir(root).args(args).output()
+            .expect("running git to determine the Bitview version");
+        assert!(output.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&output.stderr));
+        String::from_utf8(output.stdout).unwrap().trim_end().to_owned()
+    };
+    let log = git(&["rev-parse", "--path-format=absolute", "--git-path", "logs/HEAD"]);
+    println!("cargo::rerun-if-changed={log}");
+    git(&["rev-parse", "--short=7", "HEAD"])
 }
 
 fn hash_input(path: &Path, hash: &mut Sha256) -> io::Result<()> {

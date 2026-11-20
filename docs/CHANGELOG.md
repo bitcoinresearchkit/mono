@@ -9,7 +9,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 ## Unreleased
 
 - Bitviewd prefixes API ETags with a digest of its build sources and locked dependencies. Independent builds
-  from the same inputs share validators, and local source edits invalidate them.
+  from the same inputs share validators, and local source edits invalidate them. A new commit now recompiles only
+  `bitviewd`; Rust applications embedding the server report `v{version}` (was the commit) unless they name their build
+  with `bitview::set_build(version, tag)`.
 
 - Blocks now carry this server's own audit, recorded live from its mempool the moment each block
   arrives: match rate, expected fees and weight, similarity, and which transactions were missing,

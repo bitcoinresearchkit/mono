@@ -12,13 +12,13 @@ use jiff::Timestamp;
 
 use super::AppState;
 use crate::{
-    VERSION,
     answer::{Answer, Content, JSON},
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
     params::Empty,
     request_state::RequestState,
+    build_version,
 };
 
 mod disk;
@@ -35,7 +35,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 let mut response = Json(Health {
                     status: HealthStatus::Healthy,
                     service: Cow::Borrowed("brk"),
-                    version: ServerVersion(Cow::Borrowed(VERSION)),
+                    version: ServerVersion(Cow::Borrowed(build_version())),
                     timestamp,
                     started_at: state.started_at.to_string(),
                     uptime_seconds: uptime.as_secs(),
@@ -136,6 +136,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
 }
 
 async fn version(headers: HeaderMap, _: Empty, RequestState(state): RequestState) -> Response {
-    let content = Content::new(JSON, format!("\"{VERSION}\""));
+    let content = Content::new(JSON, format!("\"{}\"", build_version()));
     state.respond_now(&headers, Answer::built(content))
 }
