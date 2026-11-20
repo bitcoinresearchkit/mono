@@ -156,10 +156,12 @@
       </p>
       <ul>
         <li>
-          Before August 2010 (block 74,641), there is no price, and it reads zero. From then until January 5, 2015,
-          the price comes from an older record of exchange prices, whose original source isn't documented; by its end
-          it followed Bitstamp. From January 5, 2015, it comes from Bitfinex's minute closing prices. From block 340,000 (later in
-          January 2015) on, it's estimated from the chain itself, not read from an exchange.
+          Before August 2010 (block 74,641), there is no price, and it reads zero. Through 2011, it is the last Mt. Gox
+          trade at or before each block's time, from Bitcoincharts' archive of Mt. Gox trades as the Internet Archive
+          captured it. From 2012 until January 5, 2015, it comes from an older record of exchange prices, kept as it
+          was; its original source isn't documented, and by its end it followed Bitstamp. From January 5, 2015, it is
+          the last Bitfinex trade at or before each block's time. From block 340,000 (later in January 2015) on, it's
+          estimated from the chain itself, not read from an exchange.
         </li>
         <li>
           Mining pools are recognized with the public
@@ -246,9 +248,9 @@
       </p>
       <ul>
         <li>
-          the exchange prices before block 340,000: the older record has no documented source or terms, and Bitfinex's
-          prices are under Bitfinex's terms. What Bitview computes from them is under CC BY 4.0 only as far as Bitview
-          holds rights in it;
+          the exchange prices before block 340,000: the Mt. Gox trades (from Bitcoincharts' archive, via the Internet
+          Archive) and the Bitfinex trades are under their own terms, and the older record in between has no documented
+          source or terms. What Bitview computes from them is under CC BY 4.0 only as far as Bitview holds rights in it;
         </li>
         <li>
           the list of mining pools, under <a href="https://github.com/mempool/mining-pools">its own license</a>, and
