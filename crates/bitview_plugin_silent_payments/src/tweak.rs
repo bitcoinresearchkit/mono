@@ -1,7 +1,7 @@
 //! BIP352 from the receiver's side: the public key each input contributes, then the tweak of the
 //! transaction, `input_hash·A`, which a wallet multiplies by its scan key. Keys are found as bytes
 //! and parsed once per block ([`Points`]): parsing takes a square root, and a block's transactions
-//! spend the same keys over and over (a third as many distinct Taproot keys as spends at the tip).
+//! spend the same keys over and over.
 
 use bitcoin::{
     TxIn,
@@ -72,8 +72,8 @@ pub fn input_key(prevout: &Prevout, input: &TxIn) -> Option<Key> {
 }
 
 /// The key of a P2PKH spend, malleated scriptSigs included: the last 33-byte window of the
-/// scriptSig that hashes to the spent output's key hash (only a hash160 collision could make a
-/// second window match, so the one that does is the key, valid or not).
+/// scriptSig that hashes to the spent output's key hash (another window matches only with the same
+/// bytes, the same key, or by a hash160 collision, so the first match is the key, valid or not).
 fn p2pkh_key(script_sig: &[u8], hash: &[u8; 20]) -> Option<Key> {
     script_sig.windows(33).rev().find_map(|window| {
         (hash160::Hash::hash(window).as_byte_array() == hash)
