@@ -17,3 +17,4 @@ cargo clean
 cargo upgrade --incompatible
 cargo update
 cargo check --workspace
+echo "Cargo.lock: $(grep -c "^name = " Cargo.lock) packages"
