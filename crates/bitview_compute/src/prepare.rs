@@ -80,7 +80,7 @@ pub fn write_chunks(range: Range<usize>) -> impl Iterator<Item = Range<usize>> {
 
 /// Blocks at the end of every update written with undo: a reorg removing at most this many
 /// blocks rolls back to at or before its start, however long the update was.
-const UNDO_TAIL: usize = 10;
+pub const UNDO_TAIL: usize = 10;
 
 /// Where the protected tail of an update over `range` starts: its last [`UNDO_TAIL`] blocks.
 pub fn undo_tail_start(range: &Range<usize>) -> usize {

@@ -54,13 +54,15 @@ fn run() -> Result<()> {
         }
     });
 
-    benchmark.measure(|| {
+    let update_context = UpdateContext::new(&exit);
+    let mut plugins = benchmark.measure(|| {
         bootstrap(
             ImportContext::new(&data_path, &exit),
             |context| DefaultPlugins::import(context, &reader),
-            UpdateContext::new(&exit),
+            update_context,
         )
     })?;
+    benchmark.replay(&mut plugins, update_context)?;
     info!("Benchmark saved to {}", benchmark.path().display());
     Ok(())
 }

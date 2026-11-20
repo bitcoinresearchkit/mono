@@ -33,9 +33,10 @@ pub use bitview_query::{Error, QueryPluginSet, Result};
 pub use bitview_server::set_build;
 pub use bootstrap::bootstrap;
 pub use config::{Config, DEFAULT_CACHE_BUDGET};
+// Public for `bitviewd_bench`'s replay, which runs the production update one block at a time.
+pub use update::update;
 
 use bitview_plugin::ComputePluginSet;
-use update::update;
 
 /// How often an idle server reads what the next update will: an update a minute after the last
 /// still finds it in memory, one ten minutes after mostly on disk.

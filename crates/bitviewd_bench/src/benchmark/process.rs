@@ -133,8 +133,18 @@ fn usage() -> io::Result<libc::rusage> {
     Ok(unsafe { usage.assume_init() })
 }
 
+/// This process's user plus system CPU time, in microseconds.
+pub fn cpu_micros() -> io::Result<u64> {
+    let usage = usage()?;
+    Ok(micros(usage.ru_utime) + micros(usage.ru_stime))
+}
+
 fn millis(time: libc::timeval) -> u64 {
-    time.tv_sec as u64 * 1_000 + time.tv_usec as u64 / 1_000
+    micros(time) / 1_000
+}
+
+fn micros(time: libc::timeval) -> u64 {
+    time.tv_sec as u64 * 1_000_000 + time.tv_usec as u64
 }
 
 /// System-wide swap in use.

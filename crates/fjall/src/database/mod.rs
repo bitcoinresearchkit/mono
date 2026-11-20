@@ -64,6 +64,15 @@ impl Database {
         &self.inner.config.path
     }
 
+    /// Waits for every queued or in-flight compaction. Call after all ingestions have joined.
+    ///
+    /// # Errors
+    /// Returns an error if a compaction worker has died.
+    #[cfg(feature = "bench-cpu")]
+    pub fn wait_for_compaction(&self) -> Result<()> {
+        self.inner.worker_pool.wait_idle()
+    }
+
     /// The directory where the named keyspace stores its tables.
     #[must_use]
     pub fn keyspace_path(&self, name: &str) -> PathBuf {

@@ -11,7 +11,7 @@ mod weighted;
 pub use cohort_accounting::{CohortAccounting, collect_age_range};
 pub use cohort_weight::{collect_cohort_weights, resolve_cohort_weight};
 pub use prepare::{
-    Inputs, WRITE_INTERVAL, prepare_computed, undo_chunks, undo_tail_start, write_chunks,
+    Inputs, UNDO_TAIL, WRITE_INTERVAL, prepare_computed, undo_chunks, undo_tail_start, write_chunks,
     write_locked,
 };
 pub use statistics::{

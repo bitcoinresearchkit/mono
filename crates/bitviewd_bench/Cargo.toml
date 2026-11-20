@@ -12,7 +12,8 @@ brk_alloc = { workspace = true }
 vecdb = { workspace = true }
 brk_exit = { workspace = true }
 bitview = { workspace = true }
-bitview_default = { workspace = true }
+bitview_compute = { workspace = true }
+bitview_default = { workspace = true, features = ["bench-cpu"] }
 brk_error = { workspace = true }
 brk_logger = { workspace = true }
 brk_reader = { workspace = true }
