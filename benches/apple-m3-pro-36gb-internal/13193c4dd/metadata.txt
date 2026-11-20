@@ -13,3 +13,6 @@ dirty=false
 blocks_path=/Users/k/Library/Application Support/Bitcoin/blocks
 data_path=/Users/k/.bitview
 cache_budget=2147483648
+
+comparable=false
+comparable_reason=not recorded clean
