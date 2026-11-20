@@ -220,8 +220,11 @@ impl Query {
                 .into_iter()
                 .zip(dtx.prevouts)
                 .map(|(txin, prevout)| {
-                    // Every slot is filled by now, derived from the spend or read from the store; a failed read returned early.
-                    debug_assert!(prevout.is_some() != is_coinbase, "prevout slot left unfilled");
+                    // A failed store read returned early, so every slot is filled.
+                    debug_assert!(
+                        prevout.is_some() != is_coinbase,
+                        "prevout slot left unfilled"
+                    );
                     let (txid, vout) = if is_coinbase {
                         (Txid::COINBASE, Vout::MAX)
                     } else {
