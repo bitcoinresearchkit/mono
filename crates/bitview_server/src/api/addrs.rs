@@ -214,7 +214,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         | -> crate::error::Result<Response> {
             let validation = AddressValidation::from_addr(path.checked()?);
             // The URL fixes the address and the build prefix covers changes to validation.
-            let answer = Answer::ready("d".to_owned(), Content::json(&validation)?);
+            let answer = Answer::ready("d".to_owned(), Content::json(&validation)?).settled(true);
             Ok(state.respond_now(&headers, answer))
         }, |op| op
             .id("validate_address")

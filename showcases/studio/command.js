@@ -49,7 +49,7 @@ import {
 } from "/studio/formulas.js";
 import {
   batch, chartCounts, chartKeys, chartMark, chartPick, childrenOf, clearPicks, derivedTitle, drawPreview, folderById,
-  folderChoices, folderPath, folderRows, go, isOpen, moveToFolder, newChart, newFolder, outOf, paint, pickChart,
+  folderChoices, folderPath, folderRows, giveUpUnframed, go, isOpen, moveToFolder, newChart, newFolder, outOf, pickChart,
   picked, placeNames, previewKey, previewSvg, seePaletteMarks, setTheme, stepChart, titleOf, treeOf,
 } from "/studio/grid.js";
 import {
@@ -1001,7 +1001,12 @@ function drawOptions(/** @type {number} */ to) {
 }
 
 const sparks = new Map();
+/** The active row's preview, and the drawing of the chart it showed given up if no other frame shows it. */
 function preview() {
+  previewActive();
+  giveUpUnframed();
+}
+function previewActive() {
   updatePaletteKeys();
   const item = palette.items[palette.active];
   const panel = $("palette-preview");
@@ -1461,7 +1466,7 @@ function previewChart(panel, doc) {
 function plotIn(doc, index = doc.index) {
   if (!doc.layers.length) return "";
   const drawn = previews.get(doc.id);
-  if (drawn?.key !== previewKey(doc)) void drawPreview(doc, index).then((fresh) => paint(doc.id, fresh));
+  if (drawn?.key !== previewKey(doc)) void drawPreview(doc, index);
   return `<span class="palette-plot ${drawn ? "" : "pending"}" data-plot="${escapeHtml(doc.id)}">${drawn ? previewSvg(drawn, `palette-plot-${doc.id}`) : ""}</span>`;
 }
 /** A row's preview: its own; for a page, what's in it; else its name and value. */

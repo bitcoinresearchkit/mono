@@ -85,7 +85,7 @@ impl Query {
         }
         let prices = prices.into_iter().rev().map(Dollars::from).collect();
         let pin = chain.read_pin(self);
-        let audits = self.audit_summaries_at(heights.iter().copied().map(usize::from), &pin)?;
+        let audits = self.audits_at_heights(&heights, &pin)?;
         drop(pin);
 
         Ok(ResolvedPoolBlocks {

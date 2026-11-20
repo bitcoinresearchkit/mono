@@ -29,12 +29,13 @@ use crate::{
     request_state::RequestState,
 };
 
-/// A page of the names, at most a thousand of them, from the registry in memory.
+/// A page of the names, at most a thousand of them, from the registry in memory: settled, as only
+/// a release changes it.
 pub fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
     let tag = state.series_bodies.list.clone();
     state.respond_now(
         headers,
-        Answer::json(tag, move |q| Ok(q.series_list(pagination))),
+        Answer::json(tag, move |q| Ok(q.series_list(pagination))).settled(true),
     )
 }
 
@@ -64,8 +65,9 @@ pub async fn serve_series_info(
     let Some(info) = state.query.sync(|q| q.resolve_series_info(&series)) else {
         return Err(missing_series(&state, &series));
     };
+    // Registry facts only, so only a release changes them.
     let tag = state.series_bodies.info.clone();
-    Ok(state.respond_now(headers, Answer::json(tag, move |_| Ok(info.into_info()))))
+    Ok(state.respond_now(headers, Answer::json(tag, move |_| Ok(info.into_info())).settled(true)))
 }
 
 fn validate_name(series: &SeriesName) -> Result<()> {

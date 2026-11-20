@@ -126,7 +126,7 @@ impl Query {
             .cents
             .height
             .for_each_range_dyn_at(begin, end, &mut |cents| prices.push(Dollars::from(cents)));
-        let audits = self.audit_summaries_at(begin..end, &blocks.read_pin(self))?;
+        let audits = self.audit_range(begin, end, &blocks.read_pin(self))?;
         ResolvedBlocksV1::new(blocks, prices, self.stale_blocks(), audits)
     }
 }
