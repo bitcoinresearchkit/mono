@@ -1,8 +1,8 @@
 // @ts-check
 // The chart: drawing a chart's layers and panes, its readouts, keys and navigator.
 import {
-  Band, Bars, Candles, channels, columnWidth, Custom, DARK, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,
-  Profile, rightBlank, Scale, Shade,
+  Band, Bars, Candles, channels, columnWidth, Custom, DARK, Gradient, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,
+  placeIndex, Profile, rightBlank, Scale, Shade,
 } from "/modules/bitview-charts/index.js";
 import { OKLCH } from "/studio/palette.js";
 import { hexToOklch, oklchToHex } from "/studio/color.js";
@@ -44,8 +44,8 @@ import {
   placeSaid, priceSpan, profileName, readingLine, viewHeat, viewProfile,
 } from "/studio/heatmaps.js";
 import {
-  bandOf, fadingOf, focusKey, GRADIENT_STEPS, gradientPlaces, gradientTable, labelOf, layerById, levelSteps, modeOf,
-  named, paneMode, rangeOf, restoreFocus, stackOf,
+  bandOf, fadingOf, focusKey, gradientTable, labelOf, layerById, levelSteps, modeOf,
+  named, paneMode, rangeOf, restoreFocus, stackOf, upToDatePlaces,
 } from "/studio/inspector.js";
 import { renderRanges } from "/studio/menus.js";
 /** @import { Levels } from "/modules/bitview-charts/index.js" */
@@ -2061,10 +2061,16 @@ function colorsAt(doc, layer, data, seen = new Set()) {
     }
   }
   const result = data.results.get(layer.id), values = result?.values, top = layer.color, under = belowOf(layer);
-  // By a gradient: its color at its value's place between its lowest and highest (see gradientPlaces).
+  // By a gradient: its color at its value's place between its lowest and highest of all its history, the Gradient the
+  // library draws by (see buildChart's graded); `upToDate`, of its history up to it (see upToDatePlaces).
   if (layer.byGradient && layer.gradient && values) {
-    const table = gradientTable(layer.gradient), places = gradientPlaces(values, Boolean(layer.upToDate));
-    return (i) => (Number.isNaN(places[i]) ? null : table[Math.round(places[i] * (GRADIENT_STEPS - 1))]);
+    const table = gradientTable(layer.gradient);
+    if (!layer.upToDate) {
+      const gradient = new Gradient(table, ...rangeOf(values));
+      return (i) => (Number.isFinite(values[i]) ? gradient.color(values[i]) : null);
+    }
+    const places = upToDatePlaces(values);
+    return (i) => (Number.isNaN(places[i]) ? null : table[placeIndex(places[i], table.length)]);
   }
   // By its levels: the highest one at or under its value, its color; under them all, its own.
   if (layer.byLevels && values && layer.levels?.length) {

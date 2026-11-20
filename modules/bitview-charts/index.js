@@ -35,7 +35,7 @@ export { Legend } from "./legend.js";
 export { picture } from "./picture.js";
 export { Scale, indexed } from "./scale.js";
 export { compact } from "./format.js";
-export { channels, inkOn } from "./color.js";
+export { channels, Gradient, gradientTable, inkOn, placeIndex } from "./color.js";
 
 /** @type {import("./pane.js").Theme} */
 export const DARK = { background: "#0e0f11", text: "#8a8f98", grid: "rgba(255, 255, 255, 0.06)", font: "12px system-ui, sans-serif", crosshair: "rgba(247, 248, 248, 0.4)", across: "rgba(247, 248, 248, 0.25)", badge: "#f7f8f8", separator: "rgba(255, 255, 255, 0.14)", active: "#f2660f" };

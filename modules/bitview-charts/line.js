@@ -245,6 +245,25 @@ class Columns {
   }
 }
 
+/** Points sorted by color (see byColor): their indices, ORDER, each color's from STARTS[color] to STARTS[color + 1]. */
+let ORDER = new Int32Array(0), STARTS = new Int32Array(0);
+/**
+ * Points `a` to `b` sorted by their `colors` (of `count`) into ORDER and STARTS, a counting sort: one walk each, where a
+ * pass a color over all of them is a walk a color.
+ * @param {Uint8Array | Uint16Array} colors @param {number} count @param {number} a @param {number} b
+ */
+function byColor(colors, count, a, b) {
+  if (ORDER.length < b - a + 1) ORDER = new Int32Array(b - a + 1);
+  if (STARTS.length < count + 1) STARTS = new Int32Array(count + 1);
+  STARTS.fill(0, 0, count + 1);
+  for (let i = a; i <= b; i++) STARTS[colors[i] + 1]++;
+  for (let k = 0; k < count; k++) STARTS[k + 1] += STARTS[k];
+  for (let i = a; i <= b; i++) ORDER[STARTS[colors[i]]++] = i;
+  // (Each start moved to the next's: back one color.)
+  for (let k = count; k > 0; k--) STARTS[k] = STARTS[k - 1];
+  STARTS[0] = 0;
+}
+
 export class Line {
   /**
    * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes
@@ -257,11 +276,13 @@ export class Line {
    * dashes from where its path starts); `curve`, bowed through its points (zoomed in), as the chart library's
    * curves (each segment's bend from its points' neighbors); `zones`, its colors by value, low to high, each from its
    * value up, its own under them all (a line colored by its levels, a baseline's by its base: its color changing exactly
-   * where it crosses one, see Fill's zoned); `partial`, its last point's period still running (a year so far): the segment
+   * where it crosses one, see Fill's zoned); `gradient`, its colors by value along a Gradient (see color.js): its line by
+   * height, one stroke (see Fill's graded), its dots each by its own value (its `colors` and `palette` the gradient's;
+   * `zones` before it); `partial`, its last point's period still running (a year so far): the segment
    * to it dashed (bars: that bar faint), where its points have room (a pixel or more each).
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, partial?: boolean }} [options]
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, gradient?: import("./color.js").Gradient | null, partial?: boolean }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, zones = null, partial = false } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false, stroke = true, format = null, outline = null, dots = 0, marker = 3, steps = false, dash = null, curve = false, zones = null, gradient = null, partial = false } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
@@ -282,6 +303,8 @@ export class Line {
     this.curve = curve;
     /** @type {readonly import("./color.js").Zone[] | null} */
     this.zones = zones && zones.length ? zones : null;
+    /** @type {import("./color.js").Gradient | null} */
+    this.gradient = gradient;
     this.partial = partial;
     // (Its dashes' anchors: the first and last points its last draw drew (-1: none yet), its path's length at each from
     // its dash origin.)
@@ -289,11 +312,16 @@ export class Line {
     this.dashFirstAt = 0;
     this.dashLast = -1;
     this.dashLastAt = 0;
-    // (Its stroke's style by its zones, kept till they or its scale change; where they lie, a measure each: see zoneSpans.)
+    // (Its stroke's style by its zones or its gradient, kept till they or its scale change; where zones lie, a measure
+    // each: see zoneSpans.)
     /** @type {Fill | null} */
-    this.zoned = null;
+    this.strokeFill = null;
     /** @type {number[]} */
     this.spans = [];
+    // (Each point's color in its gradient (see pointColors), made once a version.)
+    /** @type {Uint16Array | null} */
+    this.graded = null;
+    this.gradedVersion = -1;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     // (Its last point with a value, found once a version: NaN, none.)
@@ -333,16 +361,19 @@ export class Line {
 
   /** One value set in place (a live point), its block's extremes made again. @param {number} i @param {number} value */
   set(i, value) {
+    // (Its gradient's colors kept up in place: one point's.)
+    const graded = this.gradedVersion === this.version ? this.graded : null, gradient = this.gradient;
     this.version++;
     this.values[i] = value;
+    if (graded && gradient && i < graded.length) (graded[i] = value === value ? gradient.index(value) : 0), (this.gradedVersion = this.version);
     this.summary?.set(i);
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, partial?: boolean }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, zones = this.zones, partial = this.partial }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | Uint16Array | null, palette?: string[], tag?: boolean, priceLine?: boolean, stroke?: boolean, format?: ((v: number, step?: number) => string) | null, outline?: string | null, dots?: number, marker?: number, steps?: boolean, dash?: number[] | null, curve?: boolean, zones?: readonly import("./color.js").Zone[] | null, gradient?: import("./color.js").Gradient | null, partial?: boolean }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine, stroke = this.stroke, format, outline = this.outline, dots = this.dots, marker = this.marker, steps = this.steps, dash = this.dash, curve = this.curve, zones = this.zones, gradient = this.gradient, partial = this.partial }) {
     this.version++;
     this.drifts = false;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.zones = zones && zones.length ? zones : null), (this.partial = partial);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine), (this.stroke = stroke), (this.outline = outline), (this.dots = dots), (this.marker = marker), (this.steps = steps), (this.dash = dash && dash.length ? dash : null), (this.curve = curve), (this.zones = zones && zones.length ? zones : null), (this.gradient = gradient), (this.partial = partial);
     if (format !== undefined) this.format = format && kept(format);
   }
 
@@ -406,9 +437,23 @@ export class Line {
 
   /** Its color at a point: its own, or its palette's there. @param {number} i */
   colorAt(i) {
-    // (By its zones, its value's: its tag, its dots and its crosshair's dot in the color its line has there.)
+    // (By its zones or its gradient, its value's: its tag, its dots and its crosshair's dot in the color its line has
+    // there.)
     if (this.zones) return zoneOf(this.zones, this.values[i], this.color);
+    if (this.gradient) return this.gradient.color(this.values[i]) ?? this.color;
     return this.colors && this.palette.length ? this.palette[this.colors[i]] ?? this.color : this.color;
+  }
+
+  /** Its points' colors, each an index into pointPalette(): by its gradient, its values' there; else its `colors` (none: null). */
+  pointColors() {
+    if (!this.gradient) return this.colors && this.palette.length ? this.colors : null;
+    if (this.gradedVersion !== this.version) (this.graded = this.gradient.indexes(this.values, this.graded)), (this.gradedVersion = this.version);
+    return this.graded;
+  }
+
+  /** What pointColors() index: its gradient's colors, else its palette. @returns {readonly string[]} */
+  pointPalette() {
+    return this.gradient ? this.gradient.colors : this.palette;
   }
 
   /**
@@ -575,8 +620,8 @@ export class Line {
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   #stroke(g, time, scale, x0, x1, dpr) {
-    // (By its zones, those alone: its palette none, as in colorAt and its dots.)
-    const zones = this.zones, colors = !zones && this.colors && this.palette.length ? this.colors : null;
+    // (By its zones or its gradient, those alone: its palette none, as in colorAt.)
+    const zones = this.zones, gradient = zones ? null : this.gradient, colors = !zones && !gradient && this.colors && this.palette.length ? this.colors : null;
     // (Its points as far past the strip as its stroke reaches (its outline's, three times as wide), so a strip draws
     // what reaches in from beside it; dashed as asked.)
     const reach = Math.ceil((this.width * (this.outline ? 3 : 1)) / 2) + 1;
@@ -626,7 +671,7 @@ export class Line {
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
       const color = spans && zones ? ((k) => (k < 0 ? this.color : zones[k].color))(spans[pass * 3]) : colors && measuring && !passes ? "#000" : pass < 0 ? this.color : this.palette[pass];
       if (spans) g.save(), g.beginPath(), g.rect(x0, spans[pass * 3 + 1], x1 - x0, spans[pass * 3 + 2] - spans[pass * 3 + 1]), g.clip();
-      g.strokeStyle = zones && !spans ? (this.zoned ??= new Fill()).zoned(g, color, zones, scale, scale.height) : color;
+      g.strokeStyle = zones && !spans ? (this.strokeFill ??= new Fill()).zoned(g, color, zones, scale, scale.height) : gradient ? (this.strokeFill ??= new Fill()).graded(g, gradient, scale, scale.height) : color;
       g.beginPath();
       pen.start(g, dpr, spans ? -1 : pass, phase, dash ?? SOLID, period);
       this.#trace(time, scale, x0, x1, colors);
@@ -693,15 +738,18 @@ export class Line {
   #dots(g, time, scale, x0, x1) {
     const values = this.values, r = this.dots, ring = this.outline ? r + Math.max(1, this.width) : 0, reach = Math.max(r, ring);
     const a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)));
-    const zones = this.zones, colors = zones ? null : this.colors && this.palette.length ? this.colors : null;
-    // (Its rings, then a fill a color: by its zones, a zone's (-1 its own) or its palette's.)
-    for (let pass = ring ? -2 : colors || zones ? 0 : -1; pass < (colors ? this.palette.length : zones ? zones.length + 1 : 0); pass++) {
+    const zones = this.zones, colors = zones ? null : this.pointColors(), palette = this.pointPalette();
+    // (By its colors, its points in view sorted by color once (a counting sort): each color's pass walks its own.)
+    if (colors) byColor(colors, palette.length, a, b);
+    // (Its rings, then a fill a color: by its zones, a zone's (-1 its own), or its palette's (its gradient's).)
+    for (let pass = ring ? -2 : colors || zones ? 0 : -1; pass < (colors ? palette.length : zones ? zones.length + 1 : 0); pass++) {
       if (pass === -1 && (colors || zones)) continue;
-      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : zones ? (pass ? zones[pass - 1].color : this.color) : pass < 0 ? this.color : this.palette[pass];
+      g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : zones ? (pass ? zones[pass - 1].color : this.color) : pass < 0 ? this.color : palette[pass];
       g.beginPath();
-      for (let i = a; i <= b; i++) {
-        const v = values[i];
-        if (v !== v || (pass >= 0 && (zones ? zoneIndex(zones, v) + 1 !== pass : colors ? colors[i] !== pass : false))) continue;
+      const own = colors !== null && pass >= 0;
+      for (let k = own ? STARTS[pass] : a, end = own ? STARTS[pass + 1] : b + 1; k < end; k++) {
+        const i = own ? ORDER[k] : k, v = values[i];
+        if (v !== v || (pass >= 0 && zones && zoneIndex(zones, v) + 1 !== pass)) continue;
         const x = time.x(i), y = scale.y(v), size = pass === -2 ? ring : r;
         g.moveTo(x + size, y);
         g.arc(x, y, size, 0, 2 * Math.PI);

@@ -132,17 +132,22 @@ clears); avoid reflecting programmatic calls. A programmatic
   dot at each point that radius; `marker`, the crosshair's dot on it (its radius, 3; 0: none); `steps`, drawn as steps
   (each value held flat to the next point, then straight up or down); `curve`, bowed through its points (zoomed in);
   `zones`, `[{ value, color }]` low to high: its colors by value, each from its value up, its own under them all, changing
-  exactly where it crosses one (a line colored by levels, a baseline's by its base); `dash`, its dashes; `partial`, its
+  exactly where it crosses one (a line colored by levels, a baseline's by its base); `gradient`, a `Gradient`: its
+  colors by value, its line by height in one stroke (one vertical gradient through its scale, log included, made again
+  only as the gradient, the scale or the height change), its dots each by its own value; `dash`, its dashes; `partial`, its
   last point's period still running (a year so far): the segment to it dashed, where points have a pixel or more.
-- `Band({ lower, upper, base, color, fade, below, belowFade, to, steps, zones })`: a fill between two columns (`steps`: its
+- `Band({ lower, upper, base, color, fade, below, belowFade, to, steps, zones, gradient, gradientFade })`: a fill between two columns (`steps`: its
   edges steps); without `lower`, an area down to `base` (`to: "top"` or `"foot"`: to the pane's edge instead); with
   `below`, a baseline (under its base in that color); `fade`, `belowFade`, the colors they fade to (gradients fixed to
   the pane: from its top to its foot, a baseline's to its base and from it); `curve`, its edges bowed as a curved line;
   `colors` and `palette` (`{ color, fade }` each), colored point by point, each segment in its first point's (zoomed in,
   where its edges cross on the way to a point in another color, changing color at the crossing: a cloud between two
   lines, its edges the two, colored by which one is over); `zones` (`{ value, color, fade }` low to high), an area
-  filled by value, parted exactly where its line crosses a zone's value, each part fading as the whole would.
-- `Bars({ values, base, color, colors, palette, radius, partial })` (`partial`: its last bar at `PARTIAL` of its opacity), `Candles({ open, high, low, close, up, down, upWick,
+  filled by value, parted exactly where its line crosses a zone's value, each part fading as the whole would;
+  `gradient`, a `Gradient`: an area filled by value, by height in one fill, each height's color fading to
+  `gradientFade`'s there (a gradient as long) as far down the pane as it is (not a baseline's: its sides' colors
+  say which side it's on).
+- `Bars({ values, base, color, colors, palette, gradient, radius, partial })` (`gradient`: each bar by its value) (`partial`: its last bar at `PARTIAL` of its opacity), `Candles({ open, high, low, close, up, down, upWick,
   downWick, upBorder, downBorder, color, width, tag, priceLine, format, marker })` (a part's own color, else its body's: a hollow candle, its body the ground's):
   each with an `outline` (a color: each bar, each candle's body and wick, edged in it) and a `radius` (its corners', a
   number or one by its points' spacing). Under `BODIES_FROM` pixels a point (3), no candles: the close drawn as a
@@ -207,6 +212,17 @@ clears); avoid reflecting programmatic calls. A programmatic
 - `inkOn(color)`: white or black words on a CSS color, the chart's one rule for them (its tags', badges' and marks'
   pills'): APCA's pick, unless that falls short of WCAG 2's 4.5:1 there (its floor for small words), then the other
   (pure white's and black's ratios on a color multiply to 21, so one always reaches 4.58).
+- `gradientTable(stops, steps = 256)`: a gradient's colors, `steps` of them evenly from 0% to 100%, as `oklch(…)` (a page
+  may tone each for its theme): `stops` (`[place 0 to 100, any CSS color]`, in order) mixed in OKLCH, lightness and
+  chroma straight and hue the shorter way round (a gray stop takes its neighbor's hue), so colors far apart stay vivid
+  between (OKLab takes blue to yellow, or red to green, through gray); opacities straight; past the outer stops, theirs.
+  The chart's fades are mixed by it too.
+- `Gradient(colors, lo, hi)`: colors by value: `colors` evenly apart (a `gradientTable`'s, toned), a value's the one
+  nearest its place from `lo` (0) to `hi` (1), past them the outer ones' (`lo` and `hi` the same, the middle one). One
+  mechanism, applied two ways: continuous marks by height (a `Line`'s stroke, a `Band`'s fill), discrete marks each by
+  its own value (`Bars`, a line's `dots`: a pass a color, so for them a table of about 64, not 256), so a mark's color is
+  its value's wherever it's drawn. Never changed once made (made anew instead). `placeIndex(place, n)`,
+  the index of a place (0 to 1) in `n` colors: what it and a page's own lookups (a heatmap's cells by strength) share.
 - `channels(color)`: a CSS color's sRGB channels and opacity (0 to 255), read from the canvas's own writing of it (any
   CSS color, OKLCH and wide-gamut ones too), never a pixel: a browser resisting fingerprinting (Mullvad) gives read
   pixels noise.

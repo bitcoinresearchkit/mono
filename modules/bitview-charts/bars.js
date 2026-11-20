@@ -1,7 +1,7 @@
 // @ts-check
 // Bars: a histogram from one column (a Float64Array on the timeline), each bar from `base` to its value, rounded at its
 // value's end where it's wide enough. Colored as a line is: one color, or `colors` (a Uint8Array or Uint16Array of
-// indices into `palette`), each bar its own. Zoomed out (under 3 CSS pixels a point), each pixel column one bar, to its
+// indices into `palette`), each bar its own, or a `gradient`, each bar by its value. Zoomed out (under 3 CSS pixels a point), each pixel column one bar, to its
 // point farthest from the base, in that point's color: bars side by side, as they'd show.
 
 import { Line } from "./line.js";
@@ -14,6 +14,8 @@ const ROUND_UP = [0, 0, 0, 0], ROUND_DOWN = [0, 0, 0, 0];
 export const PARTIAL = 0.4;
 /** Its own extent, read before it widens the pane's. */
 const OWN = new Float64Array(2);
+/** Zoomed out, each pixel column's point farthest from the base (none: -1), from column FAR_FROM on: found once a draw, every color's pass reading it. */
+let FAR = new Int32Array(0), FAR_FROM = 0;
 
 /**
  * A bar's footprint, from its base to its value: one with a value (`sign` its side of the base, -1 or 1) that way, a
@@ -33,11 +35,11 @@ export class Bars extends Line {
   /**
    * `radius`, its corners' at their value's end (a number, or one by the spacing of its points); `partial`, its last bar's
    * period still running: that bar at PARTIAL of its opacity, where bars have room (see wide).
-   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number), outline?: string | null, partial?: boolean }} [options]
+   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], gradient?: import("./color.js").Gradient | null, radius?: number | ((spacing: number) => number), outline?: string | null, partial?: boolean }} [options]
    */
-  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2, outline = null, partial = false } = {}) {
+  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], gradient = null, radius = 2, outline = null, partial = false } = {}) {
     // (No crosshair dot on bars.)
-    super({ values, color, colors, palette, marker: 0, outline, partial });
+    super({ values, color, colors, palette, gradient, marker: 0, outline, partial });
     this.base = base;
     this.radius = radius;
   }
@@ -64,12 +66,13 @@ export class Bars extends Line {
    */
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.values.length) return;
-    const colors = this.colors && this.palette.length ? this.colors : null, partial = time.spacing >= 3 ? this.partialAt() : -1;
+    const colors = this.pointColors(), palette = this.pointPalette(), partial = time.spacing >= 3 ? this.partialAt() : -1;
+    if (time.spacing < 3) this.#farthest(time, scale, Math.floor(x0) - 3, Math.ceil(x1) + 3);
     // (Its outline first (each bar a pixel and a half wider all round), all of them one fill; then one fill a color. Its
     // partial bar apart, last, faint in its color, outline and all.)
     if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, null, -1, Math.max(1.5, 1 / dpr), partial), g.fill();
-    for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
-      g.fillStyle = pass < 0 ? this.color : this.palette[pass];
+    for (let pass = colors ? 0 : -1; pass < (colors ? palette.length : 0); pass++) {
+      g.fillStyle = pass < 0 ? this.color : palette[pass];
       g.beginPath();
       this.#shapes(g, time, scale, x0, x1, dpr, colors, pass, 0, partial);
       g.fill();
@@ -112,19 +115,34 @@ export class Bars extends Line {
       }
       return;
     }
-    // (A pixel column each: its point farthest from the base.)
+    // (A pixel column each: its point farthest from the base, see #farthest.)
     for (let x = Math.floor(x0 - pad) - 1; x <= Math.ceil(x1 + pad) + 1; x++) {
-      const from = Math.max(0, Math.ceil(time.index(x) - NOISE)), to = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
+      const far = FAR[x - FAR_FROM];
+      if (far < 0 || (colors && colors[far] !== pass)) continue;
+      const y = scale.y(values[far]);
+      barShape(g, x - pad, 1 + 2 * pad, y, baseY, Math.sign(values[far] - base), dpr, pad, 0);
+    }
+  }
+
+  /**
+   * Each pixel column's point from x `from` to `to` farthest from its base, into FAR (a draw's every pass reads it, not
+   * all its points a color).
+   * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {number} from @param {number} to
+   */
+  #farthest(time, scale, from, to) {
+    const values = this.values, n = values.length, base = this.base, log = scale.mode === "log";
+    if (FAR.length < to - from + 1) FAR = new Int32Array(to - from + 1);
+    FAR_FROM = from;
+    for (let x = from; x <= to; x++) {
+      const a = Math.max(0, Math.ceil(time.index(x) - NOISE)), b = Math.min(n - 1, Math.ceil(time.index(x + 1) - NOISE) - 1);
       let far = -1, most = -1;
-      for (let i = from; i <= to; i++) {
+      for (let i = a; i <= b; i++) {
         const v = values[i];
         if (!(log ? v > 0 : v === v)) continue;
         const off = Math.abs(v - base);
         if (off > most) (most = off), (far = i);
       }
-      if (far < 0 || (colors && colors[far] !== pass)) continue;
-      const y = scale.y(values[far]);
-      barShape(g, x - pad, 1 + 2 * pad, y, baseY, Math.sign(values[far] - base), dpr, pad, 0);
+      FAR[x - from] = far;
     }
   }
 }

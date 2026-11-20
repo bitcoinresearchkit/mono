@@ -1208,6 +1208,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
       chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.marketCap, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
+      // (MVRV by its own value along a gradient: red under 1 (under its realized value, all red by 0.66), gray at 1, all
+      // green from 2. Places are of its history's range at a day (0.40 to 9.0): 0.66 at 3%, 1 at 7%, 2 at 19%.)
+      chart("MVRV by value", "MVRV colored by its value", [price(), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, type: "line", width: 2, byGradient: true, gradient: [[3, "red"], [7, "gray"], [19, "green"]], levels: [{ value: 1, color: "gray", dash: 3 }] })], { log: [2] }),
       // (The price in its MVRV's zone, date by date: under 1, under its realized value; over 3.5, far over it.)
       chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", color: "gray", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
       // (How far market cap is over realized cap, in market cap's deviations over all history: over 7, its tops.)

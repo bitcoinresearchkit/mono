@@ -2281,6 +2281,7 @@
 <url><loc>https://bitview.space/studio/presets/valuation/market-and-realized-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/market-cap-change</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/mvrv</loc></url>
+<url><loc>https://bitview.space/studio/presets/valuation/mvrv-by-value</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/price-by-mvrv-zone</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/mvrv-z-score</loc></url>
 <url><loc>https://bitview.space/studio/presets/valuation/seller-exhaustion</loc></url>
