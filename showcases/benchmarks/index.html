@@ -652,6 +652,52 @@
         visibility: hidden;
       }
 
+      /* (While they are read: a quiet block where the machines and the latest run will be, about as tall as they come at
+         each width (three machines' tabs), so almost nothing moves when they arrive. Its words stay for a screen reader;
+         the meter is what's seen of the reading.) */
+      main:has(.status.loading) {
+        --tabs: 108px;
+        --hero: 400px;
+
+        @media (min-width: 640px) {
+          --tabs: 70px;
+          --hero: 336px;
+        }
+
+        @media (min-width: 900px) {
+          --hero: 190px;
+        }
+
+        @media (min-width: 960px) {
+          --tabs: 32px;
+        }
+
+        .tabs {
+          min-height: var(--tabs);
+        }
+      }
+
+      .status.loading {
+        min-height: var(--hero);
+        border-radius: 10px;
+        background: var(--raised);
+
+        p {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+          white-space: nowrap;
+        }
+
+        .meter {
+          margin: 0;
+          max-width: none;
+          border-radius: 10px 10px 0 0;
+        }
+      }
+
       .status {
         grid-column: 1 / -1;
         color: var(--soft);
