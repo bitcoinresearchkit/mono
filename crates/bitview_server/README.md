@@ -90,9 +90,9 @@ page after a cursor; a pool's blocks before a height; height or date points
 (UTXO set and its diff, URPD, oracle histograms and payments), settled by their
 block, for a date by the next day's first block; a timestamp's historical price
 by the first block of the timestamp's four-hour bucket, which closes every
-earlier one. Latest, tip and mempool answers never are, nor are those only a
-release changes (catalogs, specifications, pool metadata): they depend on the
-server's configuration too, and are small.
+earlier one. Latest, tip and mempool answers never are. Documents only a
+release changes (the series catalog, its count and indexes, the API
+specifications, pool metadata) are settled from startup.
 
 Series ranges are settled when the URL pins them (no bound counted from the end,
 left open, past the rows or decided by a block inside the reorg window, as a

@@ -24,7 +24,7 @@ impl PreparedJson {
     }
 
     pub fn answer(&self) -> Answer {
-        Answer::ready(self.tag.clone(), Content::new(JSON, self.bytes.clone()))
+        Answer::ready(self.tag.clone(), Content::new(JSON, self.bytes.clone())).settled(true)
     }
 
     #[cfg(feature = "series")]
