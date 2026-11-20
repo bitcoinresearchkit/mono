@@ -1,6 +1,6 @@
 use bitcoin::{
-    PubkeyHash, ScriptBuf, ScriptHash, Transaction, TxIn, WPubkeyHash, WScriptHash, Weight,
-    consensus::deserialize, hashes::Hash, script::Instruction,
+    PubkeyHash, Script, ScriptBuf, ScriptHash, Transaction, TxIn, WPubkeyHash, WScriptHash, Weight,
+    consensus::deserialize, hashes::Hash,
 };
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
@@ -248,16 +248,7 @@ impl OutputRanges {
 /// a scriptSig that isn't push-only (`OP_1`-`OP_16` included) or a witness of another shape: the
 /// caller reads those with [`OutputScripts::get`].
 pub fn revealed_script(output_type: OutputType, input: &TxIn) -> Option<ScriptBuf> {
-    let last_push = || {
-        input
-            .script_sig
-            .instructions()
-            .try_fold(None, |_, instruction| match instruction {
-                Ok(Instruction::PushBytes(bytes)) => Some(Some(bytes.as_bytes())),
-                _ => None,
-            })
-            .flatten()
-    };
+    let last_push = || input.script_sig.redeem_script().map(Script::as_bytes);
     let witness = &input.witness;
     match output_type {
         OutputType::P2PKH => Some(ScriptBuf::new_p2pkh(&PubkeyHash::hash(last_push()?))),
