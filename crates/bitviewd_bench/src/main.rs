@@ -25,7 +25,7 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<()> {
-    let _machine_lock = quiet::acquire()?;
+    let quiet = quiet::acquire()?;
     let RunConfig {
         reader,
         server,
@@ -39,7 +39,13 @@ fn run() -> Result<()> {
     client.wait_for_synced_node()?;
 
     let chain_height = client.get_last_height()?;
-    let benchmark = Benchmark::new(&data_path, reader.blocks_dir(), chain_height, cache_budget)?;
+    let benchmark = Benchmark::new(
+        &data_path,
+        reader.blocks_dir(),
+        chain_height,
+        cache_budget,
+        &quiet.busiest,
+    )?;
     info!("Benchmark results: {}", benchmark.path().display());
     let exit = Exit::new();
     exit.install_signal_handlers();

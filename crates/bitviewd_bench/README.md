@@ -34,14 +34,30 @@ never replaced: repetitions of one revision on one machine sit side by side.
   run records the code that was built, not the checkout it runs next to;
 - `<run-id>` is the run's UTC start, `20261014T153012Z`.
 
-The binary holds `/tmp/bitviewd-bench.lock` for its lifetime, across data directories.
-It refuses to start beside `bitviewd`, `bitview_mcp`, another `bitviewd_bench` or a running `rustc`.
-On a mini, stop those workloads with `~/Developer/dots/shared/ship stop bitviewd mcp`
-and stop any other benchmark first. Bitcoin Core must remain running for the benchmark.
-The lock is released by the OS on exit, including a crash or kill; leave its file in place.
-A recording made by this binary passed that start check, which does not guarantee the box
-stays quiet later. A recording known to have overlapped another workload says `comparable=false`
-and a `comparable_reason` in its `metadata.txt`; an absent `comparable` means comparable.
+A full bench runs on a quiet machine, and the binary checks that itself, with no way around it
+(`src/quiet.rs`). "Quiet" means nothing power-hungry beside Bitcoin Core; ordinary system and light
+background processes pass. It holds `/tmp/bitviewd-bench.lock` for its lifetime, across data
+directories (the OS releases it on exit, crash or kill included; leave the file in place), and
+refuses to start, naming what is heavy, when:
+
+- a process named `bitview*` runs (bitviewd serving or not, bitview_mcp, a test server, another
+  bench) or `cargo`, `rustc`, `rustup`, `clippy-driver`;
+- any other process except `bitcoind` uses at least a quarter of a core (half a core in the
+  minute-by-minute watch), or moves at least 20 MB/s to or from disk, over the sample (3 s at the
+  start; two `ps` readings; disk bytes for the processes this user may inspect);
+- the whole machine's user CPU, less this bench's and `bitcoind`'s, reaches one core (system time
+  is left out: the bench causes it);
+- at the start, any other process holds 1 GiB or more.
+
+This bench and its ancestors (the `cargo run` that started it) are never judged.
+
+It only reports; it never stops a process (on a mini: `~/Developer/dots/shared/ship stop bitviewd mcp`).
+Every minute of the run the same check runs again. `metadata.txt` records the six busiest processes
+at the start (`busiest_processes`), the home volume's used and total bytes (`internal_volume`, beside
+`data_volume`: both disks' free space) and, at the end, `comparable=true|false` with a
+`comparable_reason`; false names the first heavy process seen beside the run. The benchmarks page
+shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording
+from before the check) means comparable.
 The existing `benches/.lock` also guards each data directory.
 
 The results path is printed before bootstrap starts and again after completion.

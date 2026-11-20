@@ -1,7 +1,7 @@
 use std::{
     ffi::CString,
     fmt,
-    fs::File,
+    fs::{File, OpenOptions},
     io::{self, BufWriter, Write},
     mem::MaybeUninit,
     os::unix::ffi::OsStrExt,
@@ -29,8 +29,8 @@ pub fn machine(data_path: &Path) -> String {
 
 /// A path's drive: `internal`, `external-tb` (Thunderbolt or USB4, PCIe; macOS), `external-usb`,
 /// `external` or `unknown`, and its model.
-struct Storage {
-    class: &'static str,
+pub struct Storage {
+    pub class: &'static str,
     model: String,
 }
 
@@ -79,11 +79,47 @@ pub fn write(
     writeln!(writer, "started_at_unix={started_at}")?;
     writeln!(writer, "chain_height={chain_height}")?;
     // `resumed`: the data directory already held plugin data, so the run isn't a full sync.
-    writeln!(writer, "start={}", if resumed { "resumed" } else { "fresh" })?;
+    writeln!(
+        writer,
+        "start={}",
+        if resumed { "resumed" } else { "fresh" }
+    )?;
     writeln!(writer, "blocks_path={}", blocks_path.display())?;
     writeln!(writer, "data_path={}", data_path.display())?;
     writeln!(writer, "cache_budget={cache_budget}")?;
     writer.flush()
+}
+
+/// What the quiet-machine check saw at the start (`quiet.rs`): the busiest processes and the
+/// home volume's used and total bytes, to read beside `data_volume`.
+pub fn start_state(run_path: &Path, busiest: &str) -> io::Result<()> {
+    let mut writer = OpenOptions::new()
+        .append(true)
+        .open(run_path.join("metadata.txt"))?;
+    let home = std::env::home_dir().ok_or_else(|| io::Error::other("no home directory"))?;
+    writeln!(writer, "busiest_processes={busiest}")?;
+    writeln!(writer, "internal_volume={}", volume(&home))
+}
+
+/// Whether anything but Bitcoin Core overlapped the run, with the first overlap's names: the
+/// start check passed, so only the minute-by-minute watch can say no.
+pub fn comparable(run_path: &Path, overlap: Option<&str>) -> io::Result<()> {
+    let mut writer = OpenOptions::new()
+        .append(true)
+        .open(run_path.join("metadata.txt"))?;
+    match overlap {
+        None => {
+            writeln!(writer, "comparable=true")?;
+            writeln!(
+                writer,
+                "comparable_reason=no heavy process beside it, at the start and every minute"
+            )
+        }
+        Some(names) => {
+            writeln!(writer, "comparable=false")?;
+            writeln!(writer, "comparable_reason=overlapped by {names}")
+        }
+    }
 }
 
 /// `used_bytes/total_bytes` of the volume holding `path`, empty when unavailable.
@@ -127,7 +163,7 @@ fn ram_bytes() -> String {
 
 /// From `diskutil`: the volume's location and protocol, the model of its drive.
 #[cfg(target_os = "macos")]
-fn storage(path: &Path) -> Storage {
+pub fn storage(path: &Path) -> Storage {
     let field = |info: &str, key: &str| {
         info.lines()
             .find_map(|line| line.trim().strip_prefix(key)?.strip_prefix(':'))
@@ -181,7 +217,7 @@ fn cpu() -> String {
 /// From `lsblk`: the transport, hotplug flag and model of the disk under the path's mount. A
 /// hotplug disk is `external`: Linux does not tell Thunderbolt from other hot-swap buses here.
 #[cfg(target_os = "linux")]
-fn storage(path: &Path) -> Storage {
+pub fn storage(path: &Path) -> Storage {
     let source = command(
         "findmnt",
         &["-nvo", "SOURCE", "--target", &path.to_string_lossy()],

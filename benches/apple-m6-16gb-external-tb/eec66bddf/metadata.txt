@@ -15,3 +15,6 @@ dirty=false
 blocks_path=/Volumes/External/bitcoin/blocks
 data_path=/Volumes/External/perf-final/data
 cache_budget=2147483648
+
+comparable=false
+comparable_reason=not recorded clean

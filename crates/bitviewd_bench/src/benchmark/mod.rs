@@ -23,8 +23,10 @@ use process::ProcessMonitor;
 use trace::TraceMonitor;
 use tracing::Level;
 
+use crate::quiet;
+
 mod disk;
-mod metadata;
+pub mod metadata;
 mod process;
 mod replay;
 mod trace;
@@ -62,6 +64,8 @@ struct Inner {
     trace: Arc<TraceMonitor>,
     /// Plugin data was already there: its undo does not cover a replay.
     resumed: bool,
+    /// The first Bitview or build seen beside the run: it is not comparable.
+    overlap: Arc<Mutex<Option<String>>>,
     stop: Arc<AtomicBool>,
     state: Mutex<State>,
 }
@@ -81,6 +85,7 @@ impl Benchmark {
         blocks_path: &Path,
         chain_height: Height,
         cache_budget: usize,
+        busiest: &str,
     ) -> Result<Self> {
         // The recordings are log events: a filter dropping them would leave the report empty.
         if !tracing::enabled!(target: "bitview::plugin_timing", Level::INFO) {
@@ -123,6 +128,7 @@ impl Benchmark {
             cache_budget,
             resumed,
         )?;
+        metadata::start_state(&path, busiest)?;
 
         let trace = Arc::new(TraceMonitor::new(&path)?);
         let trace_hook = Arc::clone(&trace);
@@ -137,6 +143,7 @@ impl Benchmark {
             )?)),
             trace,
             resumed,
+            overlap: Arc::default(),
             path,
             _lock: lock,
             stop: Arc::new(AtomicBool::new(false)),
@@ -150,11 +157,7 @@ impl Benchmark {
 
     /// After the timed run: replays its last blocks serially, one plugin at a time, and records
     /// each plugin's CPU per block (see the README). A resumed run has no replay.
-    pub fn replay(
-        &self,
-        plugins: &mut DefaultPlugins,
-        context: UpdateContext<'_>,
-    ) -> Result<()> {
+    pub fn replay(&self, plugins: &mut DefaultPlugins, context: UpdateContext<'_>) -> Result<()> {
         if self.0.resumed {
             return Ok(());
         }
@@ -194,6 +197,8 @@ impl Benchmark {
         let started_at = Instant::now();
 
         let disk = Arc::clone(&self.0.disk);
+        let overlap = Arc::clone(&self.0.overlap);
+        let mut watch = quiet::Watch::new()?;
         let monitors = [
             sampler(
                 &self.0.stop,
@@ -208,10 +213,17 @@ impl Benchmark {
                 DISK_INTERVAL,
                 move |elapsed, last| {
                     if last {
-                        Ok(())
-                    } else {
-                        disk.lock().record(elapsed)
+                        return Ok(());
                     }
+                    // A list that can't be read can't vouch for the minute.
+                    let seen = watch
+                        .check()
+                        .map(|names| names.join(", "))
+                        .unwrap_or_else(|e| format!("a process list that failed ({e})"));
+                    if !seen.is_empty() {
+                        overlap.lock().get_or_insert(seen);
+                    }
+                    disk.lock().record(elapsed)
                 },
             ),
         ];
@@ -271,14 +283,18 @@ impl Benchmark {
             Outcome::Complete if recorded.is_err() => Outcome::Failed,
             outcome => outcome,
         };
-        fs::write(
+        // Both files are written whatever the other's result.
+        let comparable = metadata::comparable(&self.0.path, self.0.overlap.lock().as_deref());
+        let run = fs::write(
             self.0.path.join("run.csv"),
             format!(
                 "phase,start_ms,duration_ms,status\nbootstrap,0,{:.3},{}\n",
                 elapsed.as_secs_f64() * 1_000.0,
                 outcome.as_str()
             ),
-        )?;
+        );
+        run?;
+        comparable?;
         recorded
     }
 }

@@ -989,6 +989,9 @@
           disk_bytes: disk.last("physical_bytes"),
           // Resumed when the data directory already held plugin data: its time isn't a full sync's.
           resumed: info.get("start") === "resumed",
+          // Not comparable when something else overlapped the run (the bench says so itself; an absent key is comparable).
+          comparable: info.get("comparable") !== "false",
+          comparable_reason: said("comparable_reason"),
           cycles: bands,
           curves: Object.fromEntries(Object.entries(samples).map(([key, points]) => [key, thin(points)])),
           compute: pluginSeconds(timed, "compute").map(([plugin, seconds]) => [plugin, round(seconds, 2)]),
@@ -999,7 +1002,9 @@
       /** A run's start and status alone, from its two small files: enough to choose the machine shown first. */
       async function head(run) {
         const [meta, done] = await Promise.all(["metadata.txt", "run.csv"].map((name) => (run.files.has(name) ? text(`${run.folder}/${name}`) : null)));
-        run.started_at = startedAt(metadata(meta));
+        const info = metadata(meta);
+        run.started_at = startedAt(info);
+        run.comparable = info.get("comparable") !== "false";
         run.status = statusOf(csv(done, "run.csv"));
       }
       /** A machine's runs, oldest first, each read whole; one that can't be is said and skipped, never hiding the others. */
@@ -1053,7 +1058,7 @@
       const runs = () => machines[machine].runs;
       const complete = () => runs().filter((r) => r.status === "complete");
       /** The complete runs from an empty data directory: full syncs. */
-      const fullSyncs = () => complete().filter((r) => !r.resumed);
+      const fullSyncs = () => complete().filter((r) => !r.resumed && r.comparable);
 
       // ── Machines ──
       function tabs() {
@@ -1172,7 +1177,7 @@
       // ── Every run ──
       function table() {
         const list = [...runs()].reverse();
-        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status / tip</th><th>Full run time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}${r.resumed ? ", resumed" : ""} · ${grouped(r.chain_height)}</td><td>${duration(r.duration_s)}</td><td>${duration(split(r).indexing)}</td><td>${duration(split(r).compute)}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
+        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status / tip</th><th>Full run time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}${r.resumed ? ", resumed" : ""}${r.comparable ? "" : `, <span title="${escape(r.comparable_reason ?? "")}">not comparable</span>`} · ${grouped(r.chain_height)}</td><td>${duration(r.duration_s)}</td><td>${duration(split(r).indexing)}</td><td>${duration(split(r).compute)}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
       }
       $("runs").addEventListener("click", (e) => {
         const label = e.target.closest("tr[data-label]")?.dataset.label;
@@ -1234,12 +1239,14 @@
         const r = valid ? mine : selected, o = valid ? theirs : compared;
         const reached = [selected, compared].map((run, k) => run?.chain_height ?? tips[k]);
         $("run-title").innerHTML = `${escape(rev(selected))} <small>${dated(selected.started_at)} · ${escape(selected.status ?? "unknown")} in ${duration(selected.duration_s)}</small>`;
-        $("compare").innerHTML = `<option value="">nothing</option>` + machines.flatMap((m, k) => [...(m.runs ?? m.folders)].sort((a, b) => b.started_at - a.started_at || order(a.label ?? a.folder, b.label ?? b.folder)).filter((x) => x !== selected).map((x) => {
+        $("compare").innerHTML = `<option value="">nothing</option>` + machines.flatMap((m, k) => [...(m.runs ?? m.folders)].sort((a, b) => b.started_at - a.started_at || order(a.label ?? a.folder, b.label ?? b.folder)).filter((x) => x !== selected && x.comparable && selected.comparable).map((x) => {
           const label = x.label ?? (x.folder.slice(m.name.length + 1) || "run");
           return `<option value="${escape(JSON.stringify([k, label]))}"${compared?.machine === m.name && compared?.label === label ? " selected" : ""}>${escape(machineWords(m.name))} · ${escape(x.revision ? rev(x) : label.split("/")[0])}${x.duration_s == null ? "" : ` · ${duration(x.duration_s)}`}</option>`;
         })).join("");
-        $("comparison-note").hidden = !compared;
-        $("comparison-note").textContent = valid
+        $("comparison-note").hidden = !compared && selected.comparable;
+        $("comparison-note").textContent = !selected.comparable
+          ? `Not comparable: ${selected.comparable_reason ?? "something else ran beside it"}. It is shown alone and never set against another run.`
+          : valid
           ? `Charts cut through initial indexed height ${grouped(height)} (linear estimates between samples): ${runName(selected)} ${duration(r.duration_s)}, ${runName(compared)} ${duration(o.duration_s)} to index. ${runName(reached[0] >= reached[1] ? selected : compared)} went ${grouped(Math.abs(reached[0] - reached[1]))} more blocks (${grouped(reached[0])} vs ${grouped(reached[1])}). Memory and disk are sampled at that time; later compute work is excluded. These are indexing times; whole-run values are above. Select nothing for full curves.`
           : "No common recorded indexing range, or a resumed run: showing whole runs; time and resources are not height matched.";
         const shades = { indexing: "var(--cycle-indexing)", compute: "var(--cycle-compute)", "catch-up": "var(--cycle-catch-up)" };
@@ -1345,7 +1352,7 @@
         // (The table's redrawn: a run's button that had focus gets it back.)
         const focused = document.activeElement?.closest?.("#runs tr[data-label]")?.dataset.label;
         selected = r;
-        if (compared === r) compared = null;
+        if (compared === r || !r.comparable) compared = null;
         runByRun();
         table();
         detail();
@@ -1358,10 +1365,10 @@
         if (!runs().length) return notice("None of this machine's runs could be read.");
         $("more").hidden = false;
         hero();
-        selected ??= complete().at(-1) ?? runs().at(-1);
+        selected ??= fullSyncs().at(-1) ?? complete().at(-1) ?? runs().at(-1);
         // (Compared, at first, with the complete run before it: what changed.)
         if (compared === null) {
-          const all = complete(), k = all.indexOf(selected);
+          const all = complete().filter((r) => r.comparable), k = all.indexOf(selected);
           compared = k > 0 ? all[k - 1] : null;
         }
         pick(selected);
