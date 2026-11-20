@@ -48,7 +48,7 @@ import {
   describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, endReveal,
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
   fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
-  glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
+  glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
   intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, lookKey,
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
@@ -2281,7 +2281,7 @@ function storeView(asDrawn, leaving = false) {
   const times = resolved?.times;
   if (!chartShown() || (!asDrawn && shownIndex() !== chart.index) || !times?.length || !engine.time.width) return;
   // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
-  const range = (asDrawn && glideTarget()) || shownSpan();
+  const range = (asDrawn && engine.controller.target) || shownSpan();
   // (Linked, every chart's, a range's too: the one each opens on; said only once it's moved since it was in line with
   // it (see linkedAt).)
   const all = viewsNow(), key = viewKey(chart.id), shown = range ? viewRecord(range, times) : null;
@@ -3394,7 +3394,7 @@ function buildChart(doc, data, refit) {
   // cut to their new heights), as everything here changes, never a cut.)
   const paneIds = (/** @type {string} */ shape) => shape.split(",").map((pane) => pane.split(":")[0]).join();
   if (prior?.doc.id === doc.id && paneIds(priorShape) !== paneIds(panesShape) && !reduced.matches && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
-  const glidingTo = glideTarget();
+  const glidingTo = engine.controller.target;
   engine.controller.stop();
   const was = new Map(drawn);
   drawn.clear();
@@ -4204,7 +4204,7 @@ function viewMoved() {
 const released = () => ((movedSince = true), restSoon());
 function atRest() {
   restFrame = 0;
-  if (movedSince || glideTarget() || performance.now() - wheelAt < WHEEL_QUIET) return void ((movedSince = false), restSoon());
+  if (movedSince || engine.controller.target || performance.now() - wheelAt < WHEEL_QUIET) return void ((movedSince = false), restSoon());
   // (Held, still or not: at rest once it's let go, see the release.)
   if (pressed.size || brushDrag) return;
   viewMoving = false;
@@ -4541,10 +4541,8 @@ let brushDrag = null;
 $("navigator").dataset.tip = `Drag to pan, drag an edge to zoom, ${CLICK} to jump`;
 $("navigator").addEventListener("pointerdown", (event) => {
   if (event.button !== 0 || brushDrag) return;
-  // (Taken mid-glide: on from its last step, read before it's stopped (by the glide that jumps, else here).)
-  const n = resolved?.times.length ?? 0, last = engine.controller.range;
-  const range = shownSpan();
-  if (n < 2 || !range || !last) return engine.controller.stop();
+  const n = resolved?.times.length ?? 0, range = shownSpan();
+  if (n < 2 || !range) return engine.controller.stop();
   const rect = $("navigator").getBoundingClientRect();
   const x = event.clientX - rect.left;
   // Hit-tested on the overview as it's painted (mid-move, too), which then lands where it was going.
@@ -4553,11 +4551,11 @@ $("navigator").addEventListener("pointerdown", (event) => {
   let mode = "pan";
   if (Math.abs(x - left) <= grip) mode = "left";
   else if (Math.abs(x - painted) <= grip) mode = "right";
-  let start = last;
+  let start = range;
   if (mode === "pan" && (x < left || x > painted)) {
     // Jump: center the same window where the person clicked, gliding there (as every move of the view's goes), and
     // drag on from there.
-    const half = (last.to - last.from) / 2;
+    const half = (range.to - range.from) / 2;
     start = within({ from: at(x) - half, to: at(x) + half });
     start = ontoData(start) ?? start;
     glide(start);

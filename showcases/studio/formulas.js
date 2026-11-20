@@ -10,7 +10,7 @@ import {
   CHUNK, FINE, fitsFrom, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, outreaches, SPAN_DAYS, SPAN_LETTERS,
   windowPoints,
 } from "/studio/intervals.js";
-import { glideTarget, idOf, lastUsed, paneBox, shownSpan, showSpan } from "/studio/chart.js";
+import { idOf, lastUsed, paneBox, shownSpan, showSpan } from "/studio/chart.js";
 import { supportedIntervals } from "/studio/menus.js";
 /** @import { Layer } from "/studio/vocabulary.js" */
 
@@ -969,9 +969,9 @@ function dragBrush(event) {
   const rect = $("navigator").getBoundingClientRect();
   const x = event.clientX - rect.left;
   // (Dragged on as its jump glides: from where the view is now, the glide given up; a click's jitter, not a drag.)
-  if (glideTarget()) {
+  if (engine.controller.target) {
     if (Math.abs(x - brushDrag.x) < 3) return;
-    const now = engine.controller.range;
+    const now = shownSpan();
     engine.controller.stop();
     if (now) Object.assign(brushDrag, { x, range: now });
     return;

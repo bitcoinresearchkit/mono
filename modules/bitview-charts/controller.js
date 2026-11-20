@@ -13,8 +13,8 @@
 import { Timeline } from "./timeline.js";
 import { motionClock, motionTime } from "./clock.js";
 
-/** A flick's speed kept each millisecond: a chart's glide, two thirds of iOS's lists' (0.998), not years past what it was flicked for. */
-const SLOWING = 0.997;
+/** A flick's speed kept each millisecond: a chart's glide, two thirds of iOS's lists' (0.998), not years past what it was flicked for; its rate of slowing. */
+const SLOWING = 0.997, RATE = -Math.log(SLOWING);
 /** A flick's speed (CSS pixels a millisecond) as its finger's over its last moments (this many milliseconds); slower, none (a drag let go where it stopped). */
 const FLICK_SPAN = 50, FLICK_LEAST = 0.25;
 /** The fingers' least distance (CSS pixels) a pinch zooms by: nearer, it only pans. */
@@ -23,11 +23,11 @@ const PINCH_LEAST = 8;
 export class Controller {
   #time;
   #move;
-  /** A flick gliding on: its speed (CSS pixels a millisecond; 0: none), its clock and last frame's time on it, its speed kept each millisecond (SLOWING; more where it'd pass an end: it eases into it, see #fling), and its way left to that end. */
+  /** A flick gliding on: its speed (CSS pixels a millisecond; 0: none), its clock and last frame's time on it, its rate of slowing (RATE; more where it'd pass an end: it eases into it, see #fling), and its way left to that end. */
   #speed = 0;
   #clock = motionClock();
   #at = 0;
-  #slowing = SLOWING;
+  #rate = RATE;
   #left = Infinity;
   /** A drag's last moves (its x and when): its speed as it's let go (see FLICK_SPAN). */
   #trail = new Float64Array(16);
@@ -40,15 +40,15 @@ export class Controller {
   #from = { from: 0, to: 0 };
   #duration = 0;
   #since = motionTime();
-  #listening = new AbortController();
 
   /**
    * @param {HTMLElement} element where the wheel is heard
    * @param {Timeline} time the view it moves
-   * @param {{ move: () => void, left: () => number }} options `move`: the view moved, to be drawn; `left`: CSS pixels from
-   * the element's left to its plot (a wheel zooms about the pointer there)
+   * @param {{ move: () => void, left: () => number, signal: AbortSignal }} options `move`: the view moved, to be drawn;
+   * `left`: CSS pixels from the element's left to its plot (a wheel zooms about the pointer there); `signal`: its wheel
+   * heard till it aborts
    */
-  constructor(element, time, { move, left }) {
+  constructor(element, time, { move, left, signal }) {
     this.#time = time;
     this.#move = move;
     element.addEventListener("wheel", (event) => {
@@ -59,10 +59,9 @@ export class Controller {
       if (event.deltaX && !event.ctrlKey) time.pan(-event.deltaX * scale);
       this.stop();
       move();
-    }, { passive: false, signal: this.#listening.signal });
+    }, { passive: false, signal });
   }
 
-  /** The view (none without data). */
   get range() {
     return this.#time.length ? { from: this.#time.from, to: this.#time.to } : null;
   }
@@ -89,13 +88,12 @@ export class Controller {
     this.#move();
   }
 
-  /** The view slid to `from`, `to`, and drawn. @param {number} from @param {number} to */
+  /** @param {number} from @param {number} to */
   #set(from, to) {
     this.#time.slide(from, to);
     this.#move();
   }
 
-  /** A flick's end: the view stays where it is. */
   halt() {
     this.#speed = 0;
   }
@@ -161,8 +159,8 @@ export class Controller {
    * @param {number} speed @param {number} at the release's time
    */
   #fling(speed, at) {
-    const room = this.#time.room(speed), passes = Math.abs(speed) / -Math.log(SLOWING) > room;
-    this.#slowing = passes ? Math.exp(-Math.abs(speed) / Math.max(room, 1e-9)) : SLOWING;
+    const room = this.#time.room(speed), passes = Math.abs(speed) / RATE > room;
+    this.#rate = passes ? Math.abs(speed) / Math.max(room, 1e-9) : RATE;
     this.#left = passes ? room : Infinity;
     this.#speed = speed;
     this.#clock = motionClock();
@@ -180,9 +178,9 @@ export class Controller {
     if (!this.#speed) return;
     // (Its move over the frame as its speed falls through it (not at its end's speed); come to its least speed, a flick
     // easing into an end moves the rest of its way there.)
-    const at = this.#clock(now), dt = Math.min(64, at - this.#at), decay = this.#slowing ** dt, ln = -Math.log(this.#slowing);
+    const at = this.#clock(now), dt = Math.min(64, at - this.#at), decay = Math.exp(-this.#rate * dt);
     this.#at = at;
-    let by = ln < Infinity ? (this.#speed * (1 - decay)) / ln : 0;
+    let by = (this.#speed * (1 - decay)) / this.#rate;
     this.#speed *= decay;
     const ends = Math.abs(this.#speed) < 0.02;
     if (ends && this.#left < Infinity) by = Math.sign(by || this.#speed) * this.#left;
@@ -190,11 +188,5 @@ export class Controller {
     if (!this.#time.pan(by) || ends) this.halt();
     else this.#move();
     if (ends && by) this.#move();
-  }
-
-  /** Its wheel no longer heard, its motion ended. */
-  destroy() {
-    this.stop();
-    this.#listening.abort();
   }
 }

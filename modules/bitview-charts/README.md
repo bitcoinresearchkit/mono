@@ -40,7 +40,7 @@ chart.show(365);                                 // the last 365 points in view
   `addPane(options)`, `removePane(pane)`, `show(span)` (stops a flick when the view changes), `setRange(from, to, options?)` (logical indices,
   fractions allowed, within the zoom's bounds: narrower, centred at the closest; moved as a pan, by whole pixels, where
   as wide as the view; `{ exact: true }`, at its endpoints as given; stops a flick when the effective range changes),
-  `range`, `onRange(listener)`,
+  `onRange(listener)`,
   `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
   `setCrosshair(index, y)`,
   `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
@@ -70,14 +70,10 @@ chart.show(365);                                 // the last 365 points in view
   each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
-- `chart.controller` (Studio uses it): how the view moves. It hears the element's wheel, and moves the view for the
-  pointers the chart arbitrates: `grab()` (a press took the view: motion ends), `drag(dx, x, at)`, `pinch(x, was, now,
-  dx)`, `flick(at)` (a drag let go at an event's time: it glides on at its speed, easing into an end), `forget()` (a drag
-  that won't flick). `viewTo({ from, to }, duration)` eases the view there (cubic, out) from where it is (`range`;
-  `target`: where it goes, null at rest), at once with no duration (a reduced motion); a flick and an eased move are
-  stepped by the chart's frame, drawn in the frame that moved them. `halt()` ends a flick, `stop()` every motion.
-  Motion times come from `clock.js`'s `motionClock()` and `motionTime()` (a frame's time made steady where the browser
-  rounds it), which pages use for their own motions too.
+- `chart.controller` (Studio uses it): how the view moves: the wheel, a flick, an eased `viewTo({ from, to }, duration)`
+  (cubic, out; at once with no duration). `range` is the view, `target` where an eased move goes (null at rest), `halt()`
+  ends a flick, `stop()` every motion. `clock.js`'s `motionClock()` and `motionTime()` make a frame's time steady where
+  the browser rounds it.
 - Presses: `press(pointerdown, { end, move?, captor?, signal? })` (exported) follows a press to its end however it
   ends, so the chart's presses and a page's own (a slider's drag, a long press, a list's reorder) end alike: `end` is
   told once, with the pointerup at a release, else with null at its pointercancel, its capture lost by `captor`, the

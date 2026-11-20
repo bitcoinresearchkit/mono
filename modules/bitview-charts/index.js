@@ -174,8 +174,10 @@ export class Chart {
     this.refit = false;
     this.timeHeight = timeHeight;
     this.time = new Timeline({ maxSpacing });
+    /** Its listeners, gone with it (see destroy). */
+    this.listening = new AbortController();
     /** How the view moves: the wheel, a flick gliding on, moves eased to a range (see Controller). */
-    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left });
+    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left, signal: this.listening.signal });
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);
@@ -219,8 +221,6 @@ export class Chart {
     this.drawnTo = NaN;
     // (Its frame's callback, made once: none made each frame.)
     this.tick = (/** @type {number} */ now) => this.#frame(now);
-    /** Its listeners, gone with it (see destroy). */
-    this.listening = new AbortController();
     /** A touch's hold waiting to show the crosshair (a timer; 0: none). */
     this.holding = 0;
     /** A held finger's crosshair going at the next frame (a frame's request; 0: none): see the pointer's lifting. */
@@ -310,14 +310,14 @@ export class Chart {
 
   /** The last `span` points in view; stop momentum if the view changes. @param {number} span */
   show(span) {
-    this.#view(() => this.time.show(span));
+    const { from, to } = this.time;
+    this.time.show(span);
+    this.#halt(from, to);
     this.invalidate(true);
   }
 
-  /** The view set by `set`: a flick ends if it changed. @param {() => void} set */
-  #view(set) {
-    const { from, to } = this.time;
-    set();
+  /** A flick ends if the view moved from `from`, `to`. @param {number} from @param {number} to */
+  #halt(from, to) {
     if (this.time.from !== from || this.time.to !== to) this.controller.halt();
   }
 
@@ -329,12 +329,11 @@ export class Chart {
    * @param {number} from @param {number} to @param {{ exact?: boolean }} [options]
    */
   setRange(from, to, options) {
-    this.#view(() => (options?.exact === true ? this.time.setRange(from, to) : this.time.slide(from, to)));
+    const was = this.time.from, wasTo = this.time.to;
+    if (options?.exact === true) this.time.setRange(from, to);
+    else this.time.slide(from, to);
+    this.#halt(was, wasTo);
     this.invalidate();
-  }
-
-  get range() {
-    return { from: this.time.from, to: this.time.to };
   }
 
   /**
@@ -894,7 +893,6 @@ export class Chart {
     cancelAnimationFrame(this.letting);
     clearTimeout(this.holding);
     this.frame = this.holding = this.letting = 0;
-    this.controller.destroy();
     this.crosshair.canvas.remove();
     this.listening.abort();
     this.resizer.disconnect();

@@ -898,7 +898,7 @@ const timelineOf = (/** @type {number[]} */ times) => timelines.get(times) ?? ((
  */
 const showTimes = (times) => ((line) => engine.time.times !== line && engine.setTimes(line))(timelineOf(times));
 /** The points in view (fractions allowed) as the timeline has them; none without data. */
-const shownSpan = () => (engine.time.length ? { from: engine.time.from, to: engine.time.to } : null);
+const shownSpan = () => engine.controller.range;
 const EXACT_RANGE = { exact: true };
 /** The view moved to show from point `from` to `to`. @param {{ from: number, to: number }} span @param {{ exact?: boolean }} [options] */
 const showSpan = (span, options) => engine.setRange(span.from, span.to, options);
@@ -972,7 +972,7 @@ function stretchAcross(/** @type {number} */ run, /** @type {number} */ shown, /
   // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
   // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
   // the same (see stretchDrawn).)
-  const ranged = presetShown && !glideTarget() && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? xOfTime(time) : null);
+  const ranged = presetShown && !engine.controller.target && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? xOfTime(time) : null);
   // (Max's room before the first value anything shown has, as applyRange keeps it.)
   const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
   drawnStretch = { legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
@@ -1301,8 +1301,6 @@ function applyRange(doc, data, animate = false) {
 }
 /** The glide last asked for: its target and the preset it goes to (null for zooms); it counts while that target is the controller's. @type {{ to: { from: number, to: number }, preset: string | null } | null} */
 let glided = null;
-/** Where a glide in flight is going; null: none. */
-const glideTarget = () => engine.controller.target;
 /** Moves the view to a window over a moment, easing out, instead of jumping. */
 function glide(target, preset = null) {
   target = within(target);
@@ -1312,7 +1310,7 @@ function glide(target, preset = null) {
 }
 /** Whether the view still shows the chart's range preset: resizes keep it, pans and zooms leave it. */
 function showsPreset() {
-  if (glided?.preset != null && glideTarget() === glided.to) return glided.preset === chart.range;
+  if (glided?.preset != null && engine.controller.target === glided.to) return glided.preset === chart.range;
   // In bars, against the preset's own window: empty room past the data counts (a time range stops at the data,
   // and zoomed out past both ends it would read as "Max").
   const range = shownSpan();
@@ -1322,7 +1320,7 @@ function showsPreset() {
 }
 /** Closer or wider around the view's middle; showing the latest, it stays at the right edge (as the chart's wheel does). */
 function zoom(factor) {
-  const range = engine.controller.range;
+  const range = shownSpan();
   if (!range) return;
   const width = Math.min(mostBars(), Math.max(10, (range.to - range.from) * factor)), center = (range.from + range.to) / 2;
   // (At the latest: it stays where it is, its room after it as wide as ever.)
@@ -3185,7 +3183,7 @@ function reachOut() {
   // (As prefetch: its first frames, and the rest it asks for, come before the chart does when a link is read first.)
   const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
   const range = shownSpan();
-  if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || glideTarget() || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
+  if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || engine.controller.target || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
   const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
   // Holding the most, growing at one end lets go of the other: not when the view would then be close to that one
   // (it would grow back there, and on, to and fro).
@@ -3200,7 +3198,7 @@ export {
   dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, edges, endReveal, EXACT_RANGE, fadedNow,
   fadeLayer, failedChunks, failure, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
   fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, gapped, glide,
-  glideRows, glides, glideTarget, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
+  glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
   keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads, lookKey,
   mapResult, marginsOf, markLegends, markSignals, menuPicks, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT,
