@@ -1,7 +1,7 @@
 use bitview_compute::{prepare_computed, write_chunks, write_locked};
 use bitview_primitives::{RARITY_PERCENTILES_LEN, RarityPercentileId, Score};
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, PerBlock, Price, shapes::RarityPercentiles};
+use bitview_vecs::{IndexSources, PerBlock, Price, shapes::RarityMeterBands};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
@@ -26,7 +26,7 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
     /// boundaries when both are positive, otherwise linearly interpolated. Null before
     /// height 210,000, where calibration starts.
     #[traversable(lead = "Rarity bands: the prices any of its references calls rare.")]
-    pub prices: RarityPercentiles<Price<PerBlock<Cents, M>>>,
+    pub prices: RarityMeterBands<Price<PerBlock<Cents, M>>>,
     /// Signed count of combined extreme boundaries crossed by spot price.
     /// Negative values mean spot is below lower bands and therefore unusually
     /// low; positive values mean it is above upper bands and unusually high;
@@ -63,7 +63,7 @@ impl RarityMeterInner {
         mappings: &IndexSources,
     ) -> Result<Self> {
         let version = version + VERSION;
-        let prices = RarityPercentiles::try_from_fn(|id| {
+        let prices = RarityMeterBands::try_from_fn(|id| {
             Price::import(db, &price_name(prefix, id), version, mappings)
         })?;
 

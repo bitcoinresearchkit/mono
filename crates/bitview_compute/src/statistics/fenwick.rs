@@ -31,6 +31,31 @@ impl<N: Copy + Default + for<'a> AddAssign<&'a N>> FenwickTree<N> {
         }
     }
 
+    /// Point-update that grows a tree initialized with a power-of-two size as needed.
+    #[inline]
+    pub fn add_growing(&mut self, bucket: usize, delta: &N) {
+        if bucket + 1 >= self.tree.len() {
+            self.grow(bucket);
+        }
+        self.add(bucket, delta);
+    }
+
+    #[cold]
+    fn grow(&mut self, bucket: usize) {
+        let old_size = self.tree.len() - 1;
+        debug_assert!(old_size.is_power_of_two());
+        let size = (bucket + 1).next_power_of_two();
+        let total = self.tree[old_size];
+        self.tree.resize(size + 1, N::default());
+        // Only the new ancestors of the old root cover earlier buckets. Copying the
+        // root preserves their sum in the original update order, including floating-point ties.
+        let mut parent = old_size * 2;
+        while parent <= size {
+            self.tree[parent] = total;
+            parent *= 2;
+        }
+    }
+
     /// Prefix sum of buckets [0, bucket] inclusive (0-indexed).
     pub fn prefix_sum(&self, bucket: usize) -> N {
         let mut result = N::default();

@@ -21,8 +21,8 @@ pub struct Component<M: StorageMode = Rw> {
     /// spot-to-reference ratio is ranked against observations since height
     /// 210,000 with a 210,000-block backward half-life. Low percentiles represent
     /// rare low valuations and high percentiles rare high valuations. Ratios
-    /// include the represented block, are rounded to 0.001, clamped from 0
-    /// through 43, and exclude undefined values. A percentile below the median
+    /// include the represented block, are rounded to 0.001, and exclude
+    /// undefined values. A percentile below the median
     /// reads the lower edge of its 0.001 step and one above it the upper edge,
     /// so spot crosses a band only from a more extreme step, never by its own
     /// observation. Each price band equals the reference price multiplied by its
@@ -38,7 +38,7 @@ pub struct Component<M: StorageMode = Rw> {
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
-const VERSION: Version = Version::new(16);
+const VERSION: Version = Version::new(17);
 
 impl Component {
     /// `price` is the reference price's id: the bands are `<price>_rarity_<percentile>` and their
