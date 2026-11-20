@@ -1,7 +1,7 @@
 // @ts-check
 // Bars: a histogram from one column (a Float64Array on the timeline), each bar from `base` to its value, rounded at its
 // value's end where it's wide enough. Colored as a line is: one color, or `colors` (a Uint8Array or Uint16Array of
-// indices into `palette`), each bar its own. Zoomed out (under 3 CSS pixels a point), each pixel column one bar, to its
+// indices into `palette`), each bar its own, or a `gradient`, each bar by its value. Zoomed out (under 3 CSS pixels a point), each pixel column one bar, to its
 // point farthest from the base, in that point's color: bars side by side, as they'd show.
 
 import { Line } from "./line.js";
@@ -33,11 +33,11 @@ export class Bars extends Line {
   /**
    * `radius`, its corners' at their value's end (a number, or one by the spacing of its points); `partial`, its last bar's
    * period still running: that bar at PARTIAL of its opacity, where bars have room (see wide).
-   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], radius?: number | ((spacing: number) => number), outline?: string | null, partial?: boolean }} [options]
+   * @param {{ values?: Float64Array, base?: number, color?: string, colors?: Uint8Array | Uint16Array | null, palette?: string[], gradient?: import("./color.js").Gradient | null, radius?: number | ((spacing: number) => number), outline?: string | null, partial?: boolean }} [options]
    */
-  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], radius = 2, outline = null, partial = false } = {}) {
+  constructor({ values, base = 0, color = "#f7f8f8", colors = null, palette = [], gradient = null, radius = 2, outline = null, partial = false } = {}) {
     // (No crosshair dot on bars.)
-    super({ values, color, colors, palette, marker: 0, outline, partial });
+    super({ values, color, colors, palette, gradient, marker: 0, outline, partial });
     this.base = base;
     this.radius = radius;
   }
@@ -64,12 +64,12 @@ export class Bars extends Line {
    */
   draw(g, time, scale, x0, x1, dpr) {
     if (!this.values.length) return;
-    const colors = this.colors && this.palette.length ? this.colors : null, partial = time.spacing >= 3 ? this.partialAt() : -1;
+    const colors = this.pointColors(), palette = this.pointPalette(), partial = time.spacing >= 3 ? this.partialAt() : -1;
     // (Its outline first (each bar a pixel and a half wider all round), all of them one fill; then one fill a color. Its
     // partial bar apart, last, faint in its color, outline and all.)
     if (this.outline) (g.fillStyle = this.outline), g.beginPath(), this.#shapes(g, time, scale, x0, x1, dpr, null, -1, Math.max(1.5, 1 / dpr), partial), g.fill();
-    for (let pass = colors ? 0 : -1; pass < (colors ? this.palette.length : 0); pass++) {
-      g.fillStyle = pass < 0 ? this.color : this.palette[pass];
+    for (let pass = colors ? 0 : -1; pass < (colors ? palette.length : 0); pass++) {
+      g.fillStyle = pass < 0 ? this.color : palette[pass];
       g.beginPath();
       this.#shapes(g, time, scale, x0, x1, dpr, colors, pass, 0, partial);
       g.fill();
