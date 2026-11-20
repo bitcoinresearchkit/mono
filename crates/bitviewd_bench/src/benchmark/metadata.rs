@@ -90,7 +90,7 @@ pub fn write(
     writer.flush()
 }
 
-/// What the clean-machine check saw at the start (`quiet.rs`): the busiest processes and the
+/// What the quiet-machine check saw at the start (`quiet.rs`): the busiest processes and the
 /// home volume's used and total bytes, to read beside `data_volume`.
 pub fn start_state(run_path: &Path, busiest: &str) -> io::Result<()> {
     let mut writer = OpenOptions::new()
@@ -115,7 +115,7 @@ pub fn comparable(run_path: &Path, overlap: Option<&str>) -> io::Result<()> {
             writeln!(writer, "comparable=true")?;
             writeln!(
                 writer,
-                "comparable_reason=no Bitview or Rust build beside it, at the start and every minute"
+                "comparable_reason=no heavy process beside it, at the start and every minute"
             )
         }
         Some(names) => {

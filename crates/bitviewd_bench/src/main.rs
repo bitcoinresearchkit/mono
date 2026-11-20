@@ -33,7 +33,6 @@ fn run() -> Result<()> {
         server,
         cache_budget,
     } = Config::import()?;
-    quiet::check_disks(&server.data_path, &blocks_path)?;
     Budgeted::init_global(cache_budget)?;
     init(Some(&server.logs_path()))?;
     raise_fd_limit();
