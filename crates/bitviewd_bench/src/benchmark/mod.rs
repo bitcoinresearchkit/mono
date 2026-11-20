@@ -157,11 +157,7 @@ impl Benchmark {
 
     /// After the timed run: replays its last blocks serially, one plugin at a time, and records
     /// each plugin's CPU per block (see the README). A resumed run has no replay.
-    pub fn replay(
-        &self,
-        plugins: &mut DefaultPlugins,
-        context: UpdateContext<'_>,
-    ) -> Result<()> {
+    pub fn replay(&self, plugins: &mut DefaultPlugins, context: UpdateContext<'_>) -> Result<()> {
         if self.0.resumed {
             return Ok(());
         }
@@ -202,6 +198,7 @@ impl Benchmark {
 
         let disk = Arc::clone(&self.0.disk);
         let overlap = Arc::clone(&self.0.overlap);
+        let mut watch = quiet::Watch::new()?;
         let monitors = [
             sampler(
                 &self.0.stop,
@@ -219,7 +216,8 @@ impl Benchmark {
                         return Ok(());
                     }
                     // A list that can't be read can't vouch for the minute.
-                    let seen = quiet::overlap()
+                    let seen = watch
+                        .check()
                         .map(|names| names.join(", "))
                         .unwrap_or_else(|e| format!("a process list that failed ({e})"));
                     if !seen.is_empty() {
@@ -285,15 +283,18 @@ impl Benchmark {
             Outcome::Complete if recorded.is_err() => Outcome::Failed,
             outcome => outcome,
         };
-        metadata::comparable(&self.0.path, self.0.overlap.lock().as_deref())?;
-        fs::write(
+        // Both files are written whatever the other's result.
+        let comparable = metadata::comparable(&self.0.path, self.0.overlap.lock().as_deref());
+        let run = fs::write(
             self.0.path.join("run.csv"),
             format!(
                 "phase,start_ms,duration_ms,status\nbootstrap,0,{:.3},{}\n",
                 elapsed.as_secs_f64() * 1_000.0,
                 outcome.as_str()
             ),
-        )?;
+        );
+        run?;
+        comparable?;
         recorded
     }
 }

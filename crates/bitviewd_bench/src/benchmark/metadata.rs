@@ -96,12 +96,9 @@ pub fn start_state(run_path: &Path, busiest: &str) -> io::Result<()> {
     let mut writer = OpenOptions::new()
         .append(true)
         .open(run_path.join("metadata.txt"))?;
+    let home = std::env::home_dir().ok_or_else(|| io::Error::other("no home directory"))?;
     writeln!(writer, "busiest_processes={busiest}")?;
-    writeln!(
-        writer,
-        "internal_volume={}",
-        volume(&std::env::home_dir().unwrap_or_default())
-    )
+    writeln!(writer, "internal_volume={}", volume(&home))
 }
 
 /// Whether anything but Bitcoin Core overlapped the run, with the first overlap's names: the

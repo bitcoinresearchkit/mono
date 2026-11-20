@@ -1002,8 +1002,9 @@
       /** A run's start and status alone, from its two small files: enough to choose the machine shown first. */
       async function head(run) {
         const [meta, done] = await Promise.all(["metadata.txt", "run.csv"].map((name) => (run.files.has(name) ? text(`${run.folder}/${name}`) : null)));
-        run.started_at = startedAt(metadata(meta));
-        run.comparable = metadata(meta).get("comparable") !== "false";
+        const info = metadata(meta);
+        run.started_at = startedAt(info);
+        run.comparable = info.get("comparable") !== "false";
         run.status = statusOf(csv(done, "run.csv"));
       }
       /** A machine's runs, oldest first, each read whole; one that can't be is said and skipped, never hiding the others. */
