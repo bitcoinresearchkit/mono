@@ -1,11 +1,13 @@
+use bitview_primitives::Multiple;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
+use brk_types::{Cents, Dollars, Height, Version};
+use derive_more::{Deref, DerefMut};
+use vecdb::{BinaryTransform, Database, Ident, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::{
-    IndexSources, LazyPerBlock, PercentilesVecs, Price, PriceWithMvrv, PriceWithRatio,
-    shapes::ByPercentile,
+    IndexSources, LazyIndexedVec, LazyPerBlock, PercentilesVecs, Price, PriceWithRatio,
+    ops::Quotient, shapes::ByPercentile,
 };
 
 /// A cohort's creation prices: its means with their spot ratios, and the percentile views of
@@ -20,7 +22,7 @@ pub struct CostBasisMeans<M: StorageMode = Rw> {
 pub struct CostBasisByCoin<M: StorageMode = Rw> {
     /// The weighted mean; undefined (null) while the cohort holds no supply.
     #[traversable(lead = "Realized price: what the bitcoin held cost, on average, each coin at the price it last moved at.")]
-    pub avg: PriceWithMvrv<M>,
+    pub avg: RealizedPriceWithMvrv<M>,
     /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
     /// the cohort holds no supply.
     #[traversable(lead = "Realized price: what the bitcoin held cost, on average, each coin at the price it last moved at.")]
@@ -36,6 +38,21 @@ pub struct CostBasisByCoin<M: StorageMode = Rw> {
     /// most 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null) without supply.
     #[traversable(lead = "Median realized price: about half the coins last moved below it, half above.")]
     median_realized_price: Price<LazyPerBlock<Cents>>,
+}
+
+/// `PriceWithMvrv` with its own MVRV: market cap over realized cap, not the spot ratio of the
+/// cent-rounded price. It exists for that description; clients see the same `PriceWithMvrv`.
+#[derive(Deref, DerefMut, Traversable)]
+#[traversable(client = "PriceWithMvrv")]
+pub struct RealizedPriceWithMvrv<M: StorageMode = Rw> {
+    #[deref]
+    #[deref_mut]
+    #[traversable(flatten)]
+    price: PriceWithRatio<M>,
+    /// MVRV (market value to realized value) divides the cohort's market cap by its realized cap.
+    /// It is undefined (null) while realized cap is zero.
+    #[traversable(lead = "MVRV is the cohort's market cap divided by its realized cap.")]
+    mvrv: LazyPerBlock<Multiple>,
 }
 
 #[derive(Traversable)]
@@ -64,8 +81,9 @@ pub struct CostBasisByDollar<M: StorageMode = Rw> {
 impl CostBasisMeans {
     /// `name` gives each id from its metric (`cost_basis_by_coin_avg` ->
     /// `sth_cost_basis_by_coin_avg`). The means are lazy over `realized_price` and
-    /// `capitalized_price`, with stored spot ratios; the median aliases take `percentile_version`,
-    /// the version of the percentiles' owner.
+    /// `capitalized_price`, with stored spot ratios, and the MVRV is lazy over `market_cap` and
+    /// `realized_cap`; the median aliases take `percentile_version`, the version of the
+    /// percentiles' owner.
     #[allow(clippy::too_many_arguments)]
     pub fn import(
         db: &Database,
@@ -74,20 +92,39 @@ impl CostBasisMeans {
         percentile_version: Version,
         realized_price: &impl ReadableCloneableVec<Height, Cents>,
         capitalized_price: &impl ReadableCloneableVec<Height, Cents>,
+        market_cap: &impl ReadableCloneableVec<Height, Dollars>,
+        realized_cap: &impl ReadableCloneableVec<Height, Cents>,
         by_coin: &PercentilesVecs,
         by_dollar: &PercentilesVecs,
         indexes: &IndexSources,
     ) -> Result<Self> {
+        let mvrv_name = name("mvrv");
+        let mvrv_source = LazyIndexedVec::new(
+            &format!("{mvrv_name}_source"),
+            version,
+            market_cap,
+            realized_cap,
+            |_, market: Dollars, realized: Cents| {
+                Quotient::<Multiple>::apply(market, Dollars::from(realized))
+            },
+        );
         Ok(Self {
             by_coin: CostBasisByCoin {
-                avg: PriceWithMvrv::import(
-                    db,
-                    &name("cost_basis_by_coin_avg"),
-                    &name("mvrv"),
-                    version,
-                    realized_price,
-                    indexes,
-                )?,
+                avg: RealizedPriceWithMvrv {
+                    price: PriceWithRatio::import(
+                        db,
+                        &name("cost_basis_by_coin_avg"),
+                        version,
+                        realized_price,
+                        indexes,
+                    )?,
+                    mvrv: LazyPerBlock::from_height_source::<Ident>(
+                        &mvrv_name,
+                        version,
+                        &mvrv_source,
+                        indexes,
+                    ),
+                },
                 realized_price: Price::from_height_source(
                     &name("realized_price"),
                     version,

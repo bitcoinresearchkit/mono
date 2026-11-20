@@ -34,15 +34,27 @@ impl CohortVecs {
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
         let name = |metric: &str| id.metric_name(metric);
+        let supply = LazySpotValuePerBlock::from_sats_source(
+            &name("mobile_supply"),
+            version,
+            id.select(&sources.weighted_supply),
+            mappings,
+            spot_price,
+        );
+        let realized_cap = id.select(&sources.weighted_realized_cap);
+        let cost_basis = CostBasisVecs::import(
+            db,
+            &name("mobile"),
+            version,
+            mappings,
+            id.select(&sources.weighted_realized_price),
+            id.select(&sources.weighted_capitalized_price),
+            &supply.market_cap.height,
+            realized_cap,
+        )?;
         Ok(Self {
             mobile: MobileVecs {
-                supply: LazySpotValuePerBlock::from_sats_source(
-                    &name("mobile_supply"),
-                    version,
-                    id.select(&sources.weighted_supply),
-                    mappings,
-                    spot_price,
-                ),
+                supply,
                 supply_in_loss_share: LazyPerBlock::from_height_source::<FixedToPercent>(
                     &name("mobile_supply_in_loss_share"),
                     version,
@@ -52,23 +64,16 @@ impl CohortVecs {
                 capital: LazyFiatPerBlock::from_cents_source(
                     &name("mobile_capital"),
                     version,
-                    id.select(&sources.weighted_realized_cap),
+                    realized_cap,
                     mappings,
                 ),
                 realized_cap: LazyFiatPerBlock::from_cents_source(
                     &name("mobile_realized_cap"),
                     version,
-                    id.select(&sources.weighted_realized_cap),
+                    realized_cap,
                     mappings,
                 ),
-                cost_basis: CostBasisVecs::import(
-                    db,
-                    &name("mobile"),
-                    version,
-                    mappings,
-                    id.select(&sources.weighted_realized_price),
-                    id.select(&sources.weighted_capitalized_price),
-                )?,
+                cost_basis,
             },
             immobile: ImmobileVecs {
                 supply: LazySpotValuePerBlock::from_sats_source(

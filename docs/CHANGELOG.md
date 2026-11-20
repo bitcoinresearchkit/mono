@@ -8,6 +8,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Holder MVRV, including the mobile (coinflow) and awake (cointime) series, divides market
+  cap by realized cap. Using a realized price rounded to cents had left the all-holder series
+  empty at blocks 74,641–77,815 and could distort values while the realized price was a few
+  cents.
+
 - Bitviewd serves the chain Bitcoin Core runs: mainnet, testnet3, testnet4, signet or regtest. Block files, the
   cookie and the default index directory follow Core's chain subdirectory, and an index made on another chain is
   refused. Addresses parse and render with the chain's encodings; subsidies, epochs, countdowns and the difficulty
