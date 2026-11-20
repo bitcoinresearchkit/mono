@@ -424,12 +424,12 @@ const previewShown = (doc, data, most) => {
  * @param {Chart} doc its own interval's @param {{ times: number[], results: Map<string, any> }} data the picture's @param {string} index the picture's
  * @returns {Promise<Map<string, Float64Array> | null>}
  */
-async function bubblesAt(doc, data, index) {
+async function bubblesAt(doc, data, index, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
   const layers = doc.layers.filter((layer) => layer.type === "bubbles" && !layer.hidden), times = data.times, n = times.length;
   if (!layers.length || !(INTERVAL_DAYS[index] > INTERVAL_DAYS[doc.index])) return new Map();
   // (The chart as it's drawn, a copy: its frame and its view's span shared with it, see resolve and spanOf.)
-  const fine = await resolve(structuredClone(doc)).catch(() => null);
-  if (!fine || retryFailed(fine, doc.index)) return null;
+  const fine = await resolve(structuredClone(doc), false, signal).catch(() => null);
+  if (!fine || signal?.aborted || retryFailed(fine, doc.index)) return null;
   return new Map(layers.flatMap((layer) => {
     const values = fine.results.get(layer.id)?.values, own = data.results.get(layer.id)?.values;
     if (!values || !own) return [];
@@ -1162,7 +1162,10 @@ function previewSvg(drawn, place, size = PREVIEW) {
 const drawingIds = new WeakMap();
 let drawingsNumbered = 0;
 const drawingId = (/** @type {object} */ drawn) => drawingIds.get(drawn) ?? (drawingIds.set(drawn, ++drawingsNumbered), drawingsNumbered);
-/** The mini charts being drawn (a chart's tile, a card's, ⌘K's), by what they're drawn of: one ask at a time each. */
+/**
+ * The mini charts being drawn (a chart's tile, a card's, ⌘K's), by what they're drawn of: one ask at a time each, and
+ * the signal it may be given up by. @type {Map<string, { drawn: Promise<(Preview & { key: string }) | null>, signal?: AbortSignal }>}
+ */
 const plotsDrawing = new Map();
 /**
  * A chart's drawing, shown wherever it's framed (its tile, a template's card, ⌘K's preview): in the frames still
@@ -1184,21 +1187,25 @@ function paint(id, drawn, all = false) {
 /**
  * A chart's drawing, made if it's out of date, kept (and stored, a moment later), and shown wherever it's framed:
  * from `index`'s data (a template's weekly: enough at this size, over as much time as its chart shows). null when a
- * fetch failed, or the drawing did (reported): nothing is kept, the next time tries again.
- * @param {Chart} doc @returns {Promise<(Preview & { key: string }) | null>}
+ * fetch failed, or the drawing did (reported): nothing is kept, the next time tries again. `signal`: its asker's,
+ * giving it up (its fetches no other asker wants aborted, see cachedLoad; nothing painted, null).
+ * @param {Chart} doc @param {AbortSignal} [signal] @returns {Promise<(Preview & { key: string }) | null>}
  */
-function drawPreview(doc, index = doc.index) {
+function drawPreview(doc, index = doc.index, signal = undefined) {
   const key = previewKey(doc), have = previews.get(doc.id);
   if (have?.key === key) return Promise.resolve(have);
-  // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers.
-  const ask = JSON.stringify([doc.id, key, index]);
-  if (!plotsDrawing.has(ask)) plotsDrawing.set(ask, (async () => {
-    index = await sampleable(doc, index);
+  // Asked again while it's being drawn (⌘K's highlight, the grid), the same drawing answers; one that may be given up
+  // (it then paints nothing) only an ask with its own signal: one without, or with another, draws its own, its fetches
+  // shared (see cachedLoad).
+  const ask = JSON.stringify([doc.id, key, index]), going = plotsDrawing.get(ask);
+  if (going && (!going.signal || going.signal === signal)) return going.drawn;
+  const drawing = (async () => {
+    index = await sampleable(doc, index, signal);
     const copy = { ...structuredClone(doc), index };
-    const data = await resolve(copy).catch(() => null);
-    if (!data || retryFailed(data, index) || previewKey(doc) !== key) return null;
+    const data = await resolve(copy, false, signal).catch(() => null);
+    if (!data || signal?.aborted || retryFailed(data, index) || previewKey(doc) !== key) return null;
     // (Its heatmaps' days, a column of the tile each few pixels: see heatSamples.)
-    const [heat, bubbles] = await Promise.all([heatSamples(copy, data, previewBars(doc, index), HEAT_TILE_COLUMNS), bubblesAt(doc, data, index)]);
+    const [heat, bubbles] = await Promise.all([heatSamples(copy, data, previewBars(doc, index), HEAT_TILE_COLUMNS), bubblesAt(doc, data, index, signal)]);
     if (!bubbles || previewKey(doc) !== key) return null;
     // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
     if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
@@ -1212,16 +1219,18 @@ function drawPreview(doc, index = doc.index) {
     previews.set(doc.id, drawn);
     savePreviewsSoon();
     return drawn;
-  })().catch((error) => (reportError(new Error(`${doc.id}: its drawing failed`, { cause: error })), null)).then((drawn) => (paint(doc.id, drawn, true), drawn)).finally(() => plotsDrawing.delete(ask)));
-  return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
+  })().catch((error) => (reportError(new Error(`${doc.id}: its drawing failed`, { cause: error })), null))
+    .then((made) => (signal?.aborted || paint(doc.id, made, true), made)).finally(() => plotsDrawing.get(ask)?.drawn === drawing && plotsDrawing.delete(ask));
+  plotsDrawing.set(ask, { drawn: drawing, signal });
+  return drawing;
 }
 /**
  * A picture's interval as asked for, else the chart's own (a series without it: one only by the day): its series'
  * intervals the catalog's (indexed just after load), else their infos' asked for first (see intervalsOf).
  * @param {Chart} doc @param {string} index
  */
-async function sampleable(doc, index) {
-  if (index !== doc.index && !seriesIn(doc).every(intervalsOf)) await Promise.allSettled(seriesIn(doc).map(info));
+async function sampleable(doc, index, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
+  if (index !== doc.index && !seriesIn(doc).every(intervalsOf)) await Promise.allSettled(seriesIn(doc).map((name) => info(name, signal)));
   return supportedIntervals(doc)(index) ? index : doc.index;
 }
 /** A preset's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
@@ -1801,6 +1810,8 @@ function renderGallery() {
   if (kept) placeGallery(kept);
   restoreFocus($("gallery"), focus);
   for (const frame of all$(".pending[data-plot]", $("gallery"))) watchTile(frame);
+  // (A drawing under way for a tile the grid no longer has (a key typed meanwhile): given up, its fetches with it.)
+  for (const [i, stop] of galleryDrawings) if (!$("gallery").querySelector(`[data-preset="${i}"], [data-slot="${i}"]`)) galleryDrawings.delete(i), stop.abort();
   shelvesSoon();
 }
 /**
@@ -1934,6 +1945,8 @@ function fitShelf(row, at, size, full, cut) {
 // Each tile drawn once it's in view (on a shelf, scrolled to), one at a time; let go of if it's left before its turn
 // (a preset on two shelves, the recommended's and its section's: while either's in view).
 const galleryQueue = /** @type {Set<number>} */ (new Set()), gallerySeen = /** @type {Set<Element>} */ (new Set());
+/** The tiles' drawings under way, by preset: what gives each up (see renderGallery). @type {Map<number, AbortController>} */
+const galleryDrawings = new Map();
 const presetOf = (/** @type {Element} */ frame) => Number(/** @type {HTMLElement | null} */ (frame.closest("[data-preset]"))?.dataset.preset);
 // (Its root the grid's own scroller: from the window's, what's past the scroller's edge is cut off, margin or not. Its
 // margin a screen, the scroller's height in pixels (a percentage there is of its width), made again as it's resized.)
@@ -3967,7 +3980,7 @@ export {
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
   duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions,
+  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryDrawings, galleryFound, galleryQueue, gallerySeen, galleryWait, go, gridActions,
   groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
   KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph,
   morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,

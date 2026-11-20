@@ -61,19 +61,22 @@ const known = new Map();
 const failedInfos = new Set();
 /** Names the server doesn't have (renamed or removed): they leave the recent list. */
 const gone = new Set();
-/** Series info, fetched once; a failure stays until Retry clears it, so edits don't refetch it. */
-function info(name) {
-  let request = infos.get(name);
-  if (!request) {
+/**
+ * Series info, fetched once; a failure stays until Retry clears it, so edits don't refetch it. `signal`: the asker's,
+ * giving it up (see cachedLoad).
+ */
+function info(name, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
+  return cachedLoad(infos, name, false, Infinity, async (_, stop) => {
     // (The search's worker has the catalog: what it says of a series, at once; else, or if it doesn't know it, Bitview.)
-    request = aboutOf(name).then((meta) => meta ?? client.getSeriesInfo(name)).then((meta) => (known.set(name, meta), meta));
-    request.catch((error) => {
-      failedInfos.add(name);
-      if (error?.status === 404) gone.add(name);
-    });
-    infos.set(name, request);
-  }
-  return request;
+    const meta = (await aboutOf(name)) ?? (await client.getSeriesInfo(name, { signal: stop }));
+    known.set(name, meta);
+    return meta;
+  }, (error) => {
+    // (One given up isn't a failure: it's gone, asked anew the next time.)
+    if (error?.name === "AbortError") return;
+    failedInfos.add(name);
+    if (error?.status === 404) gone.add(name);
+  }, signal);
 }
 /**
  * The intervals a series is charted at: the catalog's (indexed just after load), else its info's; undefined while
@@ -107,8 +110,9 @@ function holder() {
  * Past `most` entries the open chart doesn't hold, the least recently used go. `held`: what it holds, by key (its
  * series', by default; a cache by chart, its own). @param {Map<string, unknown>} cache
  */
-function prune(cache, most, held = holder()) {
-  const loose = [...cache.keys()].filter((key) => !held(key));
+function prune(cache, most, held = /** @type {((key: string) => boolean) | undefined} */ (undefined)) {
+  if (cache.size <= most) return;
+  const holds = held ?? holder(), loose = [...cache.keys()].filter((key) => !holds(key));
   for (const key of loose.slice(0, Math.max(0, loose.length - most))) cache.delete(key);
 }
 /**
@@ -159,35 +163,75 @@ async function refetchTail(endpoint, index, held, to = undefined) {
   const tail = await endpoint.slice(Math.max(held.start, held.start + held.data.length - (MUTABLE[index] ?? 1)), to).fetch(), keep = tail.start - held.start;
   return tail.version === held.version && keep >= 0 && keep <= held.data.length ? { tail, keep, start: held.start, data: held.data.slice(0, keep).concat(tail.data), version: tail.version } : null;
 }
-/** Fetch once by interval (fine ones by chunk); `fresh` refetches the tail, keeping cached data if that fails. */
-function load(name, index, fresh = false, span = /** @type {Span | null} */ (null)) {
+/**
+ * Fetch once by interval (fine ones by chunk); `fresh` refetches the tail, keeping cached data if that fails. `signal`:
+ * the asker's, giving up a first fetch (see cachedLoad); a fine interval's chunks aren't given up.
+ */
+function load(name, index, fresh = false, span = /** @type {Span | null} */ (null), signal = /** @type {AbortSignal | undefined} */ (undefined)) {
   if (span) return loadSpan(name, index, span, fresh);
   const key = `${name}@${index}`;
   const times = (/** @type {number} */ start, /** @type {number} */ count) => timesAt(index, start, count);
-  return cachedLoad(loads, key, fresh, KEPT_LOADS, async (cached) => {
+  return cachedLoad(loads, key, fresh, KEPT_LOADS, async (cached, stop) => {
     askedAt.set(key, liveHeight);
     const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
     const held = fresh && cached ? await cached.catch(() => null) : null;
     const joined = await refetchTail(endpoint, index, held);
     if (joined && held) return { start: joined.start, data: joined.data, times: held.times.slice(0, joined.keep).concat(times(joined.tail.start, joined.tail.data.length)), version: joined.version };
-    const response = await endpoint.fetch();
+    const response = await endpoint.fetch({ signal: stop });
     return { start: response.start, data: response.data, times: times(response.start, response.data.length), version: response.version };
-  });
+  }, undefined, signal);
 }
 /**
- * A load kept in `cache` (the `most` used last): asked once; `fresh`, asked again, what was there kept if that fails.
- * A first one that fails stays (`failed` notes it: Retry and the live refresh ask again), so each edit doesn't.
- * @template T @param {Map<string, Promise<T>>} cache @param {(cached: Promise<T> | undefined) => Promise<T>} make
+ * The first loads under way that may be given up (asked with a signal, see cachedLoad): each one's going, and the
+ * askers still wanting it. None for one that can't: an asker without a signal has wanted it.
+ * @type {WeakMap<Promise<unknown>, { stop: AbortController, wanting: Set<AbortSignal> }>}
  */
-function cachedLoad(cache, /** @type {string} */ key, /** @type {boolean} */ fresh, /** @type {number} */ most, make, failed = () => {}) {
+const underWay = new WeakMap();
+/**
+ * A load kept in `cache` (the `most` used last): asked once; `fresh`, asked again, what was there kept if that fails.
+ * A first one that fails stays (`failed` notes it: Retry and the live refresh ask again), so each edit doesn't. A
+ * first one asked with a `signal` is given up, its fetch aborted (`make`'s `stop`) and out of the cache, once every
+ * asker's signal has given it up; never once one without a signal has asked for it.
+ * @template T @param {Map<string, Promise<T>>} cache
+ * @param {(cached: Promise<T> | undefined, stop?: AbortSignal) => Promise<T>} make
+ */
+function cachedLoad(cache, /** @type {string} */ key, /** @type {boolean} */ fresh, /** @type {number} */ most, make, failed = (/** @type {any} */ _error) => {}, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
   const cached = cache.get(key);
-  if (cached && !fresh) return lastUsed(cache, key, cached);
-  const request = make(cached), result = cached ? request.then((value) => (behind.delete(key), value), () => (behind.add(key), cached)) : request;
+  if (cached && !fresh) {
+    const going = underWay.get(cached);
+    if (going) signal ? want(going, signal) : keep(cached, going);
+    return lastUsed(cache, key, cached);
+  }
+  // (Asked by one given up already: nothing sent, nothing kept.)
+  if (!cached && signal?.aborted) return Promise.reject(signal.reason);
+  const stop = signal && !cached ? new AbortController() : null;
+  const request = make(cached, stop?.signal), result = cached ? request.then((value) => (behind.delete(key), value), () => (behind.add(key), cached)) : request;
+  if (stop) {
+    const going = { stop, wanting: new Set() };
+    underWay.set(result, going);
+    // (Given up: out of the cache first, so no one joins it while it fails.)
+    stop.signal.addEventListener("abort", () => cache.get(key) === result && cache.delete(key), { once: true });
+    // (Come, it's kept: an asker giving up later lets go of nothing.)
+    const done = () => keep(result, going);
+    result.then(done, done);
+    want(going, /** @type {AbortSignal} */ (signal));
+  }
   if (cached) lastUsed(cache, key, result);
   // (A held one let go of meanwhile (pruned, forgotten): a new load starts over, nothing behind.)
   else (behind.delete(key), request.catch(failed), cache.set(key, result));
   prune(cache, most);
   return result;
+}
+/** A load under way no longer given up: its askers' signals let go of it. @param {Promise<unknown>} load @param {{ wanting: Set<AbortSignal> }} going */
+const keep = (load, going) => (underWay.delete(load), going.wanting.clear());
+/**
+ * A load under way wanted by one more asker: given up once every asker's signal has (see cachedLoad).
+ * @param {{ stop: AbortController, wanting: Set<AbortSignal> }} going @param {AbortSignal} signal
+ */
+function want(going, signal) {
+  if (signal.aborted) return;
+  going.wanting.add(signal);
+  signal.addEventListener("abort", () => going.wanting.delete(signal) && !going.wanting.size && going.stop.abort(), { once: true });
 }
 // Fine intervals, by chunk: each chart holds a span of them (`spans`), the latest two at first; the view reaching
 // either end of it loads the next one out. Older chunks are final, fetched once; the latest two again as blocks
@@ -390,7 +434,7 @@ const alignedOn = (/** @type {number} */ lo, /** @type {number[]} */ times) => {
  * Fetches every series the chart reads, its layers' and those its formulas name, at its interval; aligns them on
  * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
  */
-async function resolve(doc, fresh = false) {
+async function resolve(doc, fresh = false, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
   const layers = drawLayers(doc), drawing = { ...doc, layers };
   const sources = /** @type {(Layer & { series: string })[]} */ (layers.filter((layer) => layer.series));
   const named = formulaSeries(drawing);
@@ -402,7 +446,7 @@ async function resolve(doc, fresh = false) {
     if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
     // Known to lack this interval (any by date, by block only): say so without asking for its data.
     const lacking = intervalsOf(name)?.includes(doc.index) === false;
-    const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
+    const [about, series] = await Promise.allSettled([info(name, signal), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc), signal)]);
     if (about.status === "rejected") return { error: about.reason };
     const meta = about.value;
     units.set(name, unitOf(meta.type));
