@@ -21,8 +21,8 @@ const BUILDERS: [&str; 5] = ["cargo", "rustc", "rustup", "clippy-driver", "cargo
 /// Heavy by what it does, over a window (3 s at the start, the minute between two watch
 /// readings mid-run, so a burst averages out and only sustained load counts): a process using
 /// at least a quarter of a core at the start (a refusal is retryable) or half a core mid-run
-/// (system bursts, PerfPowerServices at 47% or launchd at 37% instantaneous, average near a
-/// quarter over a minute), or moving at least 20 MB/s to or from disk (the disk reading covers
+/// (system bursts, PerfPowerServices at 47% instantaneous, average near a quarter over a
+/// minute), or moving at least 20 MB/s to or from disk (the disk reading covers
 /// the processes this user can inspect; the CPU covers all). Bitcoin Core is what the bench
 /// runs beside, and this bench's own ancestors (the `cargo run` that started it) are not judged.
 const START_WINDOW: Duration = Duration::from_secs(3);
@@ -31,14 +31,14 @@ const WATCH_CORES: f64 = 0.5;
 const DISK_BYTES_PER_S: f64 = 20e6;
 /// Heavy by what it does in total: the whole machine's USER CPU over the window, minus the user
 /// time of this bench, its ancestors and Bitcoin Core, at least one core's worth. It sees what
-/// per-process rates cannot: processes born and dead inside the window (a dd loop, a compile of
-/// many `cc1`). System time is left out on purpose: the bench itself causes it (kernel_task is
+/// per-process rates cannot: processes born and dead inside the window (a compile of many
+/// `cc1`, a busy script). System time is left out on purpose: the bench itself causes it (kernel_task is
 /// invisible to `ps` yet in the host's system ticks: disk writeback, compression and swap
-/// measured 0.2 to 0.9 of a core), while foreign work worth refusing (a build, a dd loop, a
-/// busy script) burns user time. The clean reference run (1fcbd0e99) had at most 65% of a core
-/// in its three busiest non-bench, non-bitcoind rows of any minute (PerfPowerServices 47%,
-/// launchd 37%, WindowServer 26%, never together), so a full core is above that noise and
-/// below any real job (a build uses all cores; one dd loop one).
+/// measured 0.2 to 0.9 of a core), while foreign CPU work worth refusing (a build, a busy
+/// script) burns user time; short-lived disk writers (a dd loop) are mostly system time and
+/// pass. The clean reference run (1fcbd0e99) had at most 65% of a core in its three busiest
+/// non-bench, non-bitcoind rows of any minute (user and system, the top three only), so a full
+/// core of user time is above that noise and below any real build, which uses every core.
 const MACHINE_CORES: f64 = 1.0;
 /// At the start only: a process other than Bitcoin Core holding this much memory is a server
 /// someone left running, however it is named (a test server is a binary named by its sha).
