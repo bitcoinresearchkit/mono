@@ -42,9 +42,14 @@ refuses to start, naming what is heavy, when:
 
 - a process named `bitview*` runs (bitviewd serving or not, bitview_mcp, a test server, another
   bench) or `cargo`, `rustc`, `rustup`, `clippy-driver`;
-- any other process except `bitcoind` uses at least a quarter of a core, or moves at least
-  20 MB/s to or from disk, over a 3 s sample (two `ps` readings; disk bytes for the processes this
-  user may inspect).
+- any other process except `bitcoind` uses at least a quarter of a core (half a core in the
+  minute-by-minute watch), or moves at least 20 MB/s to or from disk, over the sample (3 s at the
+  start; two `ps` readings; disk bytes for the processes this user may inspect);
+- the whole machine's user CPU, less this bench's and `bitcoind`'s, reaches one core (system time
+  is left out: the bench causes it);
+- at the start, any other process holds 1 GiB or more.
+
+This bench and its ancestors (the `cargo run` that started it) are never judged.
 
 It only reports; it never stops a process (on a mini: `~/Developer/dots/shared/ship stop bitviewd mcp`).
 Every minute of the run the same check runs again. `metadata.txt` records the six busiest processes
