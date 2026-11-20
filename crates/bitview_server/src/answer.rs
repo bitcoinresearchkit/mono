@@ -41,7 +41,8 @@ enum Kind {
     /// They change at any time: the tip, the mempool, whatever the URL doesn't pin.
     Live,
     /// Derived from chain data the URL pins below the reorg window (JSON, CSV, the hash at a
-    /// height): a release may reshape them, a deeper reorg replace them.
+    /// height), or prepared at startup from what only a release changes (catalogs,
+    /// specifications): a release may reshape them, a deeper reorg replace them.
     Settled,
     /// Bytes permanently fixed at this URL: hash-committed chain data or an immutable,
     /// server-local observation. No release changes them.
