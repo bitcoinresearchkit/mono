@@ -5,9 +5,11 @@ pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
 use brk_types::{BlockHash, Height, MempoolBlockHash, MempoolBlockIndex, OutPoint, TxIndex, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
-use vecdb::ReadableVec;
+use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, ReadPin, RepresentationId, Result};
+use crate::{
+    Error, OptionData, Query, ReadPin, RepresentationId, Result, first_at,
+};
 
 pub mod rbf;
 
@@ -116,16 +118,12 @@ impl Query {
         // Only the first reader of this publication and tip runs this.
         let spends = || -> Result<Vec<_>> {
             let vecs = self.indexer().vecs();
-            let after = height.incremented();
-            let first = if after < lengths.height {
-                vecs.inputs.first_txin_index.collect_one(after).data()?
-            } else {
-                lengths.txin_index
-            };
+            let total = lengths.txin_index.to_usize();
+            let first = first_at(&vecs.inputs.first_txin_index, height.incremented(), lengths, total)?;
             let mut outpoint = vecs.inputs.outpoint.cursor();
             let mut spender = vecs.inputs.tx_index.cursor();
             let txid = vecs.transactions.txid.reader();
-            let inputs = usize::from(first)..usize::from(lengths.txin_index);
+            let inputs = first..total;
             let mut spends = Vec::with_capacity(inputs.len());
             for input in inputs {
                 let spent: OutPoint = outpoint.get(input).data()?;

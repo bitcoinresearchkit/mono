@@ -11,12 +11,12 @@ use bitcoin::{
 };
 use bitview_plugin_outputs::published_spend;
 use bitview_plugin_silent_payments::{DUST_FLOOR, TAPROOT_ACTIVATION, is_on_curve, spent_outputs};
-use bitview_primitives::{Lengths, TxInIndex};
+use bitview_primitives::TxInIndex;
 use bitview_types::{BlindbitFilter, BlindbitFilterKind, BlindbitSpentIndex, BlindbitUtxo};
 use brk_types::{BlockHash, Height, OutputType, Sats, SpentOutputHash, Timestamp, Tweak, TxIndex, Vout};
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
+use crate::{Error, OptionData, Query, ReadPin, Result, block_span, check_bound, end_span};
 
 /// A published block the BlindBit routes answer for, with the pin it was resolved under: every
 /// read of the answer stays in that publication.
@@ -99,37 +99,6 @@ impl BlockOutputs {
             })
             .map(move |output| (Vout::from(output - self.bounds[tx]), output))
     }
-}
-
-/// The block's span of a column whose per-height firsts are `firsts`: up to the next height's
-/// first, or `total` (the publication's length) for the publication's last block, whatever may
-/// follow it unpublished.
-fn first_span<I: VecIndex>(
-    firsts: &impl ReadableVec<Height, I>,
-    height: usize,
-    lengths: Lengths,
-    total: usize,
-) -> Result<Range<usize>> {
-    let start = firsts.collect_one_at(height).data()?.to_usize();
-    let end = if height + 1 < lengths.height.to_usize() {
-        firsts.collect_one_at(height + 1).data()?.to_usize()
-    } else {
-        total
-    };
-    Ok(start..end)
-}
-
-/// The block's span of a column whose per-height ends are `ends`: read from its height and the
-/// one before alone.
-fn end_span<I: VecIndex>(
-    ends: &impl ReadableVec<Height, I>,
-    height: usize,
-) -> Result<Range<usize>> {
-    let start = match height.checked_sub(1) {
-        Some(before) => ends.collect_one_at(before).data()?.to_usize(),
-        None => 0,
-    };
-    Ok(start..ends.collect_one_at(height).data()?.to_usize())
 }
 
 fn compact_size(bytes: &mut &[u8]) -> Option<usize> {
@@ -282,7 +251,7 @@ impl Query {
                 &silent_payments.spent_outputs_filter,
             ),
         };
-        let span = end_span(ends, block.height.to_usize())?;
+        let span = end_span(ends, block.height)?;
         let data = bytes.collect_range_at(span.start, span.end);
         if data.len() != span.len() {
             return Err(Error::Internal("Filter bytes missing"));
@@ -306,9 +275,9 @@ impl Query {
                 .map_err(|_| Error::Internal("Invalid raw block payload"))?;
             let vecs = self.indexer().vecs();
             let lengths = block.pin.lengths();
-            let inputs = first_span(
+            let inputs = block_span(
                 &vecs.inputs.first_txin_index,
-                height,
+                block.height,
                 lengths,
                 lengths.txin_index.to_usize(),
             )?;
@@ -397,10 +366,7 @@ impl Query {
 
     /// The block's eligible transactions' rows.
     fn blindbit_rows(&self, block: &BlindbitBlock) -> Result<Range<usize>> {
-        end_span(
-            &self.plugins().silent_payments.end_tweak_index,
-            block.height.to_usize(),
-        )
+        end_span(&self.plugins().silent_payments.end_tweak_index, block.height)
     }
 
     /// The rows' transactions.
@@ -448,17 +414,16 @@ impl Query {
     /// The block's outputs, by transaction.
     fn blindbit_block_outputs(&self, block: &BlindbitBlock, least: Sats) -> Result<BlockOutputs> {
         let vecs = self.indexer().vecs();
-        let height = block.height.to_usize();
         let lengths = block.pin.lengths();
-        let txs = first_span(
+        let txs = block_span(
             &vecs.transactions.first_tx_index,
-            height,
+            block.height,
             lengths,
             lengths.tx_index.to_usize(),
         )?;
-        let txouts = first_span(
+        let txouts = block_span(
             &vecs.outputs.first_txout_index,
-            height,
+            block.height,
             lengths,
             lengths.txout_index.to_usize(),
         )?;

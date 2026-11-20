@@ -1,4 +1,4 @@
-use crate::{ReadPin, check_bound};
+use crate::{ReadPin, block_span, check_bound};
 use bitcoin::Transaction as BitcoinTransaction;
 use bitview_plugin_indexer::{SafeLengths, revealed_script};
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
@@ -281,15 +281,17 @@ impl Query {
         if height >= safe.height {
             return Err(Error::OutOfRange("Block height out of range".into()));
         }
-        let first_tx_index = &self.indexer().vecs().transactions.first_tx_index;
-        let first = first_tx_index.collect_one(height).data()?;
-        let next_height = height.incremented();
-        let next = if next_height < safe.height {
-            first_tx_index.collect_one(next_height).data()?
-        } else {
-            safe.tx_index
-        };
-        let count = Self::block_tx_count(first, next, safe.tx_index)?;
-        Ok((first.to_usize(), count as usize))
+        let txs = block_span(
+            &self.indexer().vecs().transactions.first_tx_index,
+            height,
+            safe,
+            safe.tx_index.to_usize(),
+        )?;
+        let count = Self::block_tx_count(
+            TxIndex::from(txs.start),
+            TxIndex::from(txs.end),
+            safe.tx_index,
+        )?;
+        Ok((txs.start, count as usize))
     }
 }

@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, Range};
 #[cfg(feature = "series")]
 use std::sync::Arc;
 
@@ -7,10 +7,14 @@ use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{DifficultyEpoch, HalvingEpoch, Index, Lengths};
 #[cfg(feature = "full-api")]
 use brk_types::{BlockHash, Height};
+#[cfg(feature = "full-api")]
+use vecdb::VecIndex;
 #[cfg(feature = "series")]
 use vecdb::{ReadBounds, ReadScope, ReadableVec};
 
 use crate::{Error, Query, Result};
+#[cfg(feature = "full-api")]
+use crate::OptionData;
 
 #[cfg(feature = "series")]
 pub(crate) struct PublishedBounds {
@@ -76,6 +80,51 @@ pub(crate) fn check_bound<T: PartialOrd>(pin: &SafeLengths, index: T, bound: T) 
         return Err(Error::updating());
     }
     Ok(())
+}
+
+/// Where the block at `height` starts in a column whose per-height firsts are `firsts`: read at
+/// `height` below the publication's last block (`lengths`), and `total`, the publication's
+/// length of that column, for any height at or past it. A bound is never read from the writer's
+/// unpublished rows, the start bound of a block past the pin included.
+#[cfg(feature = "full-api")]
+pub(crate) fn first_at<I: VecIndex>(
+    firsts: &impl ReadableVec<Height, I>,
+    height: Height,
+    lengths: Lengths,
+    total: usize,
+) -> Result<usize> {
+    if height < lengths.height {
+        Ok(firsts.collect_one(height).data()?.to_usize())
+    } else {
+        Ok(total)
+    }
+}
+
+/// The block at `height`'s span of that column: from its first to the next block's, as
+/// [`first_at`] reads them.
+#[cfg(feature = "full-api")]
+pub(crate) fn block_span<I: VecIndex>(
+    firsts: &impl ReadableVec<Height, I>,
+    height: Height,
+    lengths: Lengths,
+    total: usize,
+) -> Result<Range<usize>> {
+    Ok(first_at(firsts, height, lengths, total)?
+        ..first_at(firsts, height.incremented(), lengths, total)?)
+}
+
+/// The block at `height`'s span of a column whose per-height ends are `ends`: read from its
+/// height and the one before alone.
+#[cfg(feature = "full-api")]
+pub(crate) fn end_span<I: VecIndex>(
+    ends: &impl ReadableVec<Height, I>,
+    height: Height,
+) -> Result<Range<usize>> {
+    let start = match height.decremented() {
+        Some(before) => ends.collect_one(before).data()?.to_usize(),
+        None => 0,
+    };
+    Ok(start..ends.collect_one(height).data()?.to_usize())
 }
 
 impl Query {
