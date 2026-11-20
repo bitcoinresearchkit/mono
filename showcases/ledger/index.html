@@ -19,6 +19,20 @@
     <link rel="preload" href="/assets/fonts/InstrumentSerif-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/assets/fonts/InstrumentSerif-Italic.woff2" as="font" type="font/woff2" crossorigin />
     <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
       /* fallback fonts */
       /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
          vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
@@ -652,7 +666,6 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/assets/craft.css" />
   </head>
   <body>
     <header class="bar">

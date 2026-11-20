@@ -24,6 +24,20 @@
     <title>The Satoshi Trail · Bitview</title>
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
     <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
       @font-face {
         font-family: "Lilex";
         src: url("/assets/fonts/Lilex.core.woff2")
@@ -614,7 +628,6 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/assets/craft.css" />
   </head>
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>

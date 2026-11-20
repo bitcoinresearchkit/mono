@@ -27,6 +27,20 @@
     <link rel="preconnect" href="https://api.github.com" crossorigin />
     <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
     <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
       /* A lab report: a quiet ground, numbers in a monospace, one accent; every value measured, none claimed. */
       :root {
         color-scheme: light dark;
@@ -741,7 +755,6 @@
         }
       }
     </style>
-    <link rel="stylesheet" href="/assets/craft.css" />
   </head>
   <body>
     <header class="bar">
