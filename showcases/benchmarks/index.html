@@ -287,6 +287,7 @@
 
       .hero {
         position: relative;
+        container-type: inline-size;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 20px 40px;
@@ -357,12 +358,25 @@
         }
       }
 
+      /* (A usual host line, "Apple M6 · 16.0 GiB memory · external-tb WD_BLACK SN850X 2000GB · 12 cores · 1.00 GiB cache · commit
+         adc1881c8", wraps to three lines in a hero narrower than 390px, two below 740px, one above: its height kept for it from
+         the first layout, when only dashes are in it, so what lands doesn't move the card's lower edge. A shorter host leaves
+         a blank line or two; a longer one grows by its extra lines.) */
       .host {
+        box-sizing: content-box;
         grid-column: 1 / -1;
         border-top: 1px solid var(--line);
         padding-top: 14px;
         color: var(--soft);
         font-size: 13px;
+
+        @container (width < 740px) {
+          min-height: 2lh;
+        }
+
+        @container (width < 390px) {
+          min-height: 3lh;
+        }
 
         a {
           color: var(--accent-text);
