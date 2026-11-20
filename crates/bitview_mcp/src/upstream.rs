@@ -129,16 +129,12 @@ impl Upstream {
                 "application/json, text/plain, text/csv, application/octet-stream",
             )
             .body(Empty::new())
-            .map_err(|error| format!("Bitview API request failed: {error}"))?;
-        let response = self.client.request(request).await.map_err(|error| {
-            let mut message = format!("Bitview API request failed: {error}");
-            let mut source = error.source();
-            while let Some(cause) = source {
-                let _ = write!(message, ": {cause}");
-                source = cause.source();
-            }
-            message
-        })?;
+            .map_err(|error| failure("Bitview API request failed", &error))?;
+        let response = self
+            .client
+            .request(request)
+            .await
+            .map_err(|error| failure("Bitview API request failed", &error))?;
         let header = |name| {
             response
                 .headers()
@@ -160,7 +156,7 @@ impl Upstream {
         let mut incoming = response.into_body();
         while let Some(frame) = incoming.frame().await {
             let frame =
-                frame.map_err(|error| format!("Bitview API response read failed: {error}"))?;
+                frame.map_err(|error| failure("Bitview API response read failed", &error))?;
             if let Ok(data) = frame.into_data() {
                 match &mut decoder {
                     Some(decoder) => decoder.write_all(&data),
@@ -208,8 +204,26 @@ fn body_error(error: io::Error) -> String {
             MAX_RESPONSE_BYTES / (1024 * 1024)
         )
     } else {
-        format!("Bitview API response read failed: {error}")
+        failure("Bitview API response read failed", &error)
     }
+}
+
+/// `what: error`, then each cause down its `source()` chain. hyper-util's own text is only "client error (Connect)",
+/// the refused connection or bad certificate under it is what the caller needs. A cause whose text repeats the one
+/// above it adds nothing and is skipped.
+fn failure(what: &str, error: &impl Error) -> String {
+    let mut message = format!("{what}: {error}");
+    let mut last = error.to_string();
+    let mut source = error.source();
+    while let Some(cause) = source {
+        let text = cause.to_string();
+        if text != last {
+            let _ = write!(message, ": {text}");
+            last = text;
+        }
+        source = cause.source();
+    }
+    message
 }
 
 /// A scalar as a URL writes it; none for an object or a nested list.
