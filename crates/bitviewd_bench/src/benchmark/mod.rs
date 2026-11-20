@@ -1,5 +1,5 @@
 use std::{
-    fs::{self, File},
+    fs,
     io::{Error as IoError, ErrorKind},
     mem,
     path::{Path, PathBuf},
@@ -58,8 +58,6 @@ const DISK_INTERVAL: Duration = Duration::from_secs(60);
 
 struct Inner {
     path: PathBuf,
-    /// Held for the run: one benchmark per data directory at a time.
-    _lock: File,
     disk: Arc<Mutex<DiskMonitor>>,
     trace: Arc<TraceMonitor>,
     /// Plugin data was already there: its undo does not cover a replay.
@@ -95,9 +93,6 @@ impl Benchmark {
         }
         let reports = data_path.join("benches");
         fs::create_dir_all(&reports)?;
-        let lock = File::create(reports.join(".lock"))?;
-        lock.try_lock()
-            .map_err(|_| Error::Internal("Another benchmark is running on this data directory"))?;
         // Every run keeps its own directory, named by its UTC start (`20261014T153012Z`, then
         // `-1`, `-2`... for restarts within the same second), so repetitions of one revision compare.
         let started_at = Timestamp::now();
@@ -145,7 +140,6 @@ impl Benchmark {
             resumed,
             overlap: Arc::default(),
             path,
-            _lock: lock,
             stop: Arc::new(AtomicBool::new(false)),
             state: Mutex::new(State::Ready),
         })))

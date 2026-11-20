@@ -58,7 +58,6 @@ at the start (`busiest_processes`), the home volume's used and total bytes (`int
 `comparable_reason`; false names the first heavy process seen beside the run. The benchmarks page
 shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording
 from before the check) means comparable.
-The existing `benches/.lock` also guards each data directory.
 
 The results path is printed before bootstrap starts and again after completion.
 For example, `--bitviewdir /Volumes/External/bitview` writes reports beneath
