@@ -3582,7 +3582,7 @@ function buildChart(doc, data, refit) {
       const lineZones = zones((look) => ({ color: lineOf(look) })), lineGradient = gradient(lineOf);
       const [kind, look] = layer.type === "dots" ? ["line", { line: { color: paint.color, width: 1.5, dash: [], steps: false, curve: false, marker: MARKER.radius, stroke: false, dots: radius, zones: null, gradient: lineGradient, partial: false } }]
         : layer.type === "area" || stackedLine ? ["band", { line: { ...stroke, color: paint.line, zones: lineZones, gradient: lineGradient }, band: { gradient: gradient((look) => look.fill), gradientFade: gradient((look) => look.fade), color: paint.fill, fade: paint.fade, below: null, belowFade: null, base: 0, to: layer.fill === "above" && !stackedLine ? "top" : "foot", steps: stroke.steps, curve: stroke.curve, zones: zones((look) => ({ color: look.fill, fade: look.fade })) } }]
-        : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER, partial, gradient: gradient(lineOf) } }]
+        : layer.type === "histogram" ? ["bars", { bars: { color: paint.color, base, radius: stack ? 0 : BAR_CORNER, partial, gradient: lineGradient } }]
         // (A baseline's line by its base: its second color under it, its own from it up.)
         : layer.type === "baseline" ? ["band", { line: { ...stroke, color: paint.under, zones: [{ value: base, color: paint.line }], gradient: null }, band: { gradient: null, gradientFade: null, color: paint.fill, fade: paint.fade, below: paint.below, belowFade: paint.belowFade, base, to: "base", steps: stroke.steps, curve: stroke.curve, zones: null } }]
         : ["line", { line: { ...stroke, color: paint.color, zones: lineZones, gradient: lineGradient } }];

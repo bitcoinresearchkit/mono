@@ -245,6 +245,25 @@ class Columns {
   }
 }
 
+/** Points sorted by color (see byColor): their indices, ORDER, each color's from STARTS[color] to STARTS[color + 1]. */
+let ORDER = new Int32Array(0), STARTS = new Int32Array(0);
+/**
+ * Points `a` to `b` sorted by their `colors` (of `count`) into ORDER and STARTS, a counting sort: one walk each, where a
+ * pass a color over all of them is a walk a color.
+ * @param {Uint8Array | Uint16Array} colors @param {number} count @param {number} a @param {number} b
+ */
+function byColor(colors, count, a, b) {
+  if (ORDER.length < b - a + 1) ORDER = new Int32Array(b - a + 1);
+  if (STARTS.length < count + 1) STARTS = new Int32Array(count + 1);
+  STARTS.fill(0, 0, count + 1);
+  for (let i = a; i <= b; i++) STARTS[colors[i] + 1]++;
+  for (let k = 0; k < count; k++) STARTS[k + 1] += STARTS[k];
+  for (let i = a; i <= b; i++) ORDER[STARTS[colors[i]]++] = i;
+  // (Each start moved to the next's: back one color.)
+  for (let k = count; k > 0; k--) STARTS[k] = STARTS[k - 1];
+  STARTS[0] = 0;
+}
+
 export class Line {
   /**
    * `tag`: its last value in a badge on its pane's axis, in its color (written by `format`, else as its side writes
@@ -720,14 +739,17 @@ export class Line {
     const values = this.values, r = this.dots, ring = this.outline ? r + Math.max(1, this.width) : 0, reach = Math.max(r, ring);
     const a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)));
     const zones = this.zones, colors = zones ? null : this.pointColors(), palette = this.pointPalette();
+    // (By its colors, its points in view sorted by color once (a counting sort): each color's pass walks its own.)
+    if (colors) byColor(colors, palette.length, a, b);
     // (Its rings, then a fill a color: by its zones, a zone's (-1 its own), or its palette's (its gradient's).)
     for (let pass = ring ? -2 : colors || zones ? 0 : -1; pass < (colors ? palette.length : zones ? zones.length + 1 : 0); pass++) {
       if (pass === -1 && (colors || zones)) continue;
       g.fillStyle = pass === -2 ? /** @type {string} */ (this.outline) : zones ? (pass ? zones[pass - 1].color : this.color) : pass < 0 ? this.color : palette[pass];
       g.beginPath();
-      for (let i = a; i <= b; i++) {
-        const v = values[i];
-        if (v !== v || (pass >= 0 && (zones ? zoneIndex(zones, v) + 1 !== pass : colors ? colors[i] !== pass : false))) continue;
+      const own = colors !== null && pass >= 0;
+      for (let k = own ? STARTS[pass] : a, end = own ? STARTS[pass + 1] : b + 1; k < end; k++) {
+        const i = own ? ORDER[k] : k, v = values[i];
+        if (v !== v || (pass >= 0 && zones && zoneIndex(zones, v) + 1 !== pass)) continue;
         const x = time.x(i), y = scale.y(v), size = pass === -2 ? ring : r;
         g.moveTo(x + size, y);
         g.arc(x, y, size, 0, 2 * Math.PI);

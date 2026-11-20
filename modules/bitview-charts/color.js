@@ -1,9 +1,7 @@
 // @ts-check
 // Words on a color: white or black by one rule (see whiteOn), each color measured once; a tag's look (its fill as it
-// is, its words), and words in a color over the data (outlined). Gradients by value: their colors mixed once (see
-// gradientTable), a value's place in them (see Gradient). And a fill's or a stroke's style as a vertical gradient (a
-// fade, colors by value hard-edged at their heights, or a gradient's colors at their values' heights), kept till it
-// changes.
+// is, its words), and words in a color over the data (outlined). And a fill's or a stroke's style as a vertical gradient
+// (a fade, or colors by value hard-edged at their heights), kept till it changes.
 
 const ink = new Map();
 /** A canvas a color is written by (any CSS color: a name, hex, rgb(), oklch()), read from its writing. @type {CanvasRenderingContext2D | null} */
@@ -379,13 +377,7 @@ function blended(from, to) {
   const key = from + "|" + to;
   let stops = blends.get(key);
   if (stops === undefined) {
-    // (Of 256, each an eighth on to the nearest; its opacity rounded to a channel's 0 to 255 first.)
-    const rows = mixes([[0, from], [100, to]], 256), byte = new Uint8ClampedArray(1);
-    stops = Array.from({ length: 9 }, (_, k) => {
-      const at = Math.round((k / 8) * 255) * 4, h = (rows[at + 2] * Math.PI) / 180, c = rgb(lin(rows[at], rows[at + 1] * Math.cos(h), rows[at + 1] * Math.sin(h)));
-      byte[0] = rows[at + 3];
-      return `rgba(${c[0]}, ${c[1]}, ${c[2]}, ${(byte[0] / 255).toFixed(3)})`;
-    });
+    stops = gradientTable([[0, from], [100, to]], 9);
     if (blends.size > 256) blends.clear();
     blends.set(key, stops);
   }
@@ -412,14 +404,9 @@ export class Gradient {
     this.rgba = null;
   }
 
-  /** Where `v` is from its `lo` (0) to its `hi` (1), unclamped (none: NaN). @param {number} v */
-  place(v) {
-    return this.hi > this.lo ? (v - this.lo) / (this.hi - this.lo) : 0.5;
-  }
-
-  /** The index of `v`'s color (none: NaN). @param {number} v */
+  /** The index of `v`'s color, by its place from its `lo` (0) to its `hi` (1) (none: NaN). @param {number} v */
   index(v) {
-    return placeIndex(this.place(v), this.colors.length);
+    return placeIndex(this.hi > this.lo ? (v - this.lo) / (this.hi - this.lo) : 0.5, this.colors.length);
   }
 
   /** `v`'s color (none: null). @param {number} v */
@@ -524,14 +511,13 @@ export class Fill {
       const d = ys[k + 1] - ys[k];
       return d ? k + (y - ys[k]) / d : k;
     };
-    const stop = (/** @type {number} */ y, /** @type {number} */ p) => {
-      const k = Math.floor(p), t = p - k, j = Math.min(k + 1, n - 1), c = [0, 0, 0, 0], down = y / height;
-      for (let ch = 0; ch < 4; ch++) {
-        const over = top[k][ch] + (top[j][ch] - top[k][ch]) * t;
-        c[ch] = foot ? over + (foot[k][ch] + (foot[j][ch] - foot[k][ch]) * t - over) * down : over;
-      }
-      made.addColorStop(down, `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${(c[3] / 255).toFixed(3)})`);
+    // (Channel `c` at index `p` (between its two colors), `down` of the way down the pane to its fade's.)
+    const mix = (/** @type {number} */ p, /** @type {number} */ down, /** @type {number} */ c) => {
+      const k = Math.floor(p), t = p - k, j = Math.min(k + 1, n - 1), over = top[k][c] + (top[j][c] - top[k][c]) * t;
+      return foot ? over + (foot[k][c] + (foot[j][c] - foot[k][c]) * t - over) * down : over;
     };
+    const stop = (/** @type {number} */ y, /** @type {number} */ p, down = y / height) =>
+      made.addColorStop(down, `rgba(${Math.round(mix(p, down, 0))}, ${Math.round(mix(p, down, 1))}, ${Math.round(mix(p, down, 2))}, ${(mix(p, down, 3) / 255).toFixed(3)})`);
     stop(0, at(0));
     for (let k = f; k <= l; k++) if (ys[k] > 0 && ys[k] < height) stop(ys[k], k);
     stop(height, at(height));
