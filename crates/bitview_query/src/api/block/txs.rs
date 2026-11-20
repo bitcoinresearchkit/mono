@@ -4,12 +4,12 @@ use bitview_plugin_indexer::{SafeLengths, revealed_script};
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use bitview_types::BlockTxIndex;
 use brk_types::{
-    BlkPosition, Height, OutPoint, OutputType, RawLockTime, Sats, SigOps32, Transaction, TxIn,
-    TxIndex, TxOut, TxStatus, Txid, Vout, Weight,
+    Height, OutPoint, OutputType, RawLockTime, Sats, SigOps32, Transaction, TxIn, TxIndex, TxOut,
+    TxStatus, Txid, Vout, Weight,
 };
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result, read_sorted};
 
 impl Query {
     pub(crate) fn block_txs_at_height(
@@ -91,11 +91,28 @@ impl Query {
 
         let indexer = self.indexer();
 
-        let txids = indexer.vecs().transactions.txid.reader();
-        let mut total_size_cursor = indexer.vecs().transactions.total_size.cursor();
-        let mut sigops_cursor = indexer.vecs().transactions.total_sigop_cost.cursor();
-        let mut first_txin_cursor = indexer.vecs().transactions.first_txin_index.cursor();
-        let mut position_cursor = indexer.vecs().transactions.position.cursor();
+        // The transactions are scattered over years of blocks. Each round reads its columns with
+        // `read_sorted`, which asks for a column's pages together before reading any, so the
+        // device serves them as one batch rather than one fault at a time. Round 1: the
+        // transactions' columns, and their blocks' hashes and times.
+        let sorted: Vec<TxIndex> = order.iter().map(|&pos| indices[pos]).collect();
+        let rows: Vec<usize> = sorted.iter().map(|tx| tx.to_usize()).collect();
+        let columns = &indexer.vecs().transactions;
+        let txids = read_sorted(&columns.txid, &rows)?;
+        let sizes = read_sorted(&*columns.total_size, &rows)?;
+        let sigops = read_sorted(&*columns.total_sigop_cost, &rows)?;
+        let first_inputs = read_sorted(&columns.first_txin_index, &rows)?;
+        let positions = read_sorted(&columns.position, &rows)?;
+
+        // One mapping for the request; the cursor answers a block's transactions in O(1).
+        let tx_heights = self.plugins().mappings.tx_heights.load();
+        let mut tx_heights = tx_heights.cursor();
+        // Every index is below `safe.tx_index` (checked above).
+        let heights = sorted
+            .iter()
+            .map(|&tx| tx_heights.get(tx).data())
+            .collect::<Result<Vec<Height>>>()?;
+        let statuses = self.confirmed_statuses_bounded(&heights, safe)?;
 
         struct DecodedTx {
             pos: usize,
@@ -110,85 +127,74 @@ impl Query {
             prevouts: Vec<Option<TxOut>>,
         }
 
-        // One mapping for the request; the cursor answers a block's transactions in O(1).
-        let tx_heights = self.plugins().mappings.tx_heights.load();
-        let mut tx_heights = tx_heights.cursor();
-
         let mut decoded_txs: Vec<DecodedTx> = Vec::with_capacity(len);
-        let mut cached_status: Option<(Height, TxStatus)> = None;
-
-        for &pos in &order {
-            let tx_index = indices[pos];
-            let idx = tx_index.to_usize();
-
-            let txid: Txid = txids.try_get_at(idx).data()?;
-            let total_size: Bytes32 = total_size_cursor.get(idx).data()?;
-            let total_sigop_cost: SigOps32 = sigops_cursor.get(idx).data()?;
-            let first_txin_index: TxInIndex = first_txin_cursor.get(idx).data()?;
-            let position: BlkPosition = position_cursor.get(idx).data()?;
-
-            // Every index is below `safe.tx_index` (checked above).
-            let height: Height = tx_heights.get(tx_index).data()?;
-            let status = if let Some((h, ref s)) = cached_status
-                && h == height
-            {
-                s.clone()
-            } else {
-                let s = self.confirmed_status_at_bounded(height, safe)?;
-                cached_status = Some((height, s.clone()));
-                s
-            };
-
-            let decoded = indexer.read_tx_at(position, *total_size as usize)?;
-
+        for (k, ((&pos, &tx_index), status)) in order.iter().zip(&sorted).zip(statuses).enumerate()
+        {
+            let decoded = indexer.read_tx_at(positions[k], *sizes[k] as usize)?;
             decoded_txs.push(DecodedTx {
                 pos,
                 tx_index,
-                txid,
-                total_size,
-                total_sigop_cost,
+                txid: txids[k],
+                total_size: sizes[k],
+                total_sigop_cost: sigops[k],
                 status,
                 decoded,
-                first_txin_index,
+                first_txin_index: first_inputs[k],
                 prevouts: Vec::new(),
             });
         }
 
-        // Sequential input cursors reuse decompressed pages, and reading output type, type index
-        // and value from the input vecs avoids random reads of the output vecs.
-        let mut input_output_type_cursor = indexer.vecs().inputs.output_type.cursor();
-        let mut input_value_cursor = indexer.vecs().inputs.value.cursor();
-        let mut outpoint_cursor = indexer.vecs().inputs.outpoint.cursor();
-        let mut input_type_index_cursor = indexer.vecs().inputs.type_index.cursor();
+        // Round 2: every input's output type and value, read from the input vecs rather than at
+        // random in the output vecs. A coinbase has no prevout to read.
+        let inputs = &indexer.vecs().inputs;
+        let input_rows: Vec<usize> = decoded_txs
+            .iter()
+            .filter(|dtx| !dtx.decoded.is_coinbase())
+            .flat_map(|dtx| {
+                let start = usize::from(dtx.first_txin_index);
+                start..start + dtx.decoded.input.len()
+            })
+            .collect();
+        let output_types = read_sorted(&inputs.output_type, &input_rows)?;
+        let values = read_sorted(&*inputs.value, &input_rows)?;
 
-        // A prevout's value is always read; its script is rebuilt from the spending input where
-        // the spend reveals it, and only the rest read their outpoint, type index and script.
-        let mut reads: Vec<(usize, usize, OutPoint, OutputType, TypeIndex, Sats)> = Vec::new();
+        // A prevout's script is rebuilt from the spending input where the spend reveals it; the
+        // rest are read in round 3: (tx, input, position in `input_rows`).
+        let mut unrevealed: Vec<(usize, usize, usize)> = Vec::new();
+        let mut at = 0;
         for (t, dtx) in decoded_txs.iter_mut().enumerate() {
             if dtx.decoded.is_coinbase() {
                 dtx.prevouts = vec![None];
                 continue;
             }
-            let start = usize::from(dtx.first_txin_index);
             dtx.prevouts = dtx
                 .decoded
                 .input
                 .iter()
                 .enumerate()
                 .map(|(j, txin)| {
-                    let i = start + j;
-                    let output_type: OutputType = input_output_type_cursor.get(i).data()?;
-                    let value: Sats = input_value_cursor.get(i).data()?;
-                    if let Some(script) = revealed_script(output_type, txin) {
-                        return Ok(Some(TxOut::from((script, value))));
+                    let k = at + j;
+                    let script = revealed_script(output_types[k], txin);
+                    if script.is_none() {
+                        unrevealed.push((t, j, k));
                     }
-                    let outpoint: OutPoint = outpoint_cursor.get(i).data()?;
-                    let type_index: TypeIndex = input_type_index_cursor.get(i).data()?;
-                    reads.push((t, j, outpoint, output_type, type_index, value));
-                    Ok(None)
+                    script.map(|script| TxOut::from((script, values[k])))
                 })
-                .collect::<Result<_>>()?;
+                .collect();
+            at += dtx.decoded.input.len();
         }
+
+        // Round 3: the unrevealed prevouts' outpoints and type indexes.
+        let rows: Vec<usize> = unrevealed.iter().map(|&(_, _, k)| input_rows[k]).collect();
+        let outpoints = read_sorted(&*inputs.outpoint, &rows)?;
+        let type_indexes = read_sorted(&*inputs.type_index, &rows)?;
+        let mut reads: Vec<(usize, usize, OutPoint, OutputType, TypeIndex, Sats)> = unrevealed
+            .into_iter()
+            .zip(outpoints.into_iter().zip(type_indexes))
+            .map(|((t, j, k), (outpoint, type_index))| {
+                (t, j, outpoint, output_types[k], type_index, values[k])
+            })
+            .collect();
 
         // Sorted by (output_type, type_index) for sequential BytesVec access within each address
         // type's file; non-address output indices are chronological within each script type, so
