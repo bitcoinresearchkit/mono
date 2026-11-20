@@ -329,6 +329,18 @@
           font-size: 12px;
         }
 
+        /* (The CPU time's line, "6h 47m user, 2h 39m system", wraps in a cell narrower than it is: two lines kept for it there,
+           so the dashes held in its place and the digits that land take the same room.) */
+        > div {
+          container-type: inline-size;
+        }
+
+        .cpu small {
+          @container (width < 11rem) {
+            min-height: 2lh;
+          }
+        }
+
         dd {
           margin: 2px 0 0;
           color: var(--ink);
@@ -1173,7 +1185,8 @@
         const h = r?.host ?? {}, s = r?.cycles ? split(r) : {};
         const cpu = (r?.cpu_user_s ?? r?.cpu_system_s) == null ? null : (r.cpu_user_s ?? 0) + (r.cpu_system_s ?? 0);
         const commit = !r ? "–" : r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r);
-        const host = [h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape);
+        // Before any run is known, the line has its fields as dashes, so the card's first layout already holds it.
+        const host = r ? [h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape) : ["–", "– memory", "–", "– cores", "– cache"];
         return `
           <div><div class="kicker">Latest full sync, ${dated(r?.started_at)}</div><div class="big">${duration(r?.duration_s)}</div>
             <div class="what">to read and compute <span class="num">${grouped(r?.chain_height)}</span> blocks</div></div>
@@ -1181,7 +1194,7 @@
             <div><dt>Peak memory</dt><dd>${bytes(r?.peak_memory?.bytes)}<small>${escape(r?.peak_memory?.name ?? "")}</small></dd></div>
             <div><dt>Data directory</dt><dd>${bytes(r?.disk_bytes)}<small>at the end</small></dd></div>
             <div><dt>Read, written</dt><dd>${bytes(r?.read_bytes)}<small>${bytes(r?.written_bytes)} written</small></dd></div>
-            <div><dt>CPU time</dt><dd>${duration(cpu)}<small>${duration(r?.cpu_user_s)} user, ${duration(r?.cpu_system_s)} system</small></dd></div>
+            <div class="cpu"><dt>CPU time</dt><dd>${duration(cpu)}<small>${duration(r?.cpu_user_s)} user, ${duration(r?.cpu_system_s)} system</small></dd></div>
             <div><dt>Indexing</dt><dd>${duration(s.indexing)}<small>reading the blocks</small></dd></div>
             <div><dt>Compute</dt><dd>${duration(s.compute)}<small>every series</small></dd></div>
           </dl>
