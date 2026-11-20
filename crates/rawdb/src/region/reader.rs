@@ -1,4 +1,4 @@
-use std::{mem, slice};
+use std::{mem, ops::Range, slice};
 
 use parking_lot::lock_api::RawRwLock;
 
@@ -62,45 +62,44 @@ impl Reader {
         self.read(offset, self.len - offset)
     }
 
-    /// Advise a short batch of sorted, fixed-width reads, once per missing page.
-    pub fn prefetch(&self, offsets: impl DoubleEndedIterator<Item = usize>, width: usize) {
+    /// Starts reading a batch of byte ranges, so the device serves their pages together rather
+    /// than one fault at a time. Ranges on the same or adjacent VM pages share one advisory. A
+    /// lone run gets none (one fault reads it as fast).
+    pub fn prefetch(&self, ranges: impl IntoIterator<Item = Range<usize>>) {
         #[cfg(unix)]
         {
-            use super::residency::{is_page_resident, vm_page_size};
+            use super::residency::vm_page_size;
 
             let Some(page_size) = vm_page_size() else { return; };
-            if width == 0 || width > self.len {
-                return;
-            }
             let data = &self._db.inner.data;
             let mapping = data.mapping();
             let base = self.base.addr() - mapping.as_ptr().addr();
-            let mut offsets = offsets.filter(|&offset| offset <= self.len - width);
-            let Some(tail) = offsets.next_back() else { return; };
-            let tail_page = (base + tail + width - 1) / page_size * page_size;
-            // A repeated lookup already touched the tail. Earlier batches can also
-            // warm the head of a cold batch, so sample its far end.
-            if is_page_resident(mapping, tail_page, page_size) {
+            let mut runs: Vec<Range<usize>> = ranges
+                .into_iter()
+                .filter(|range| !range.is_empty() && range.end <= self.len)
+                .map(|range| {
+                    (base + range.start) / page_size * page_size
+                        ..(base + range.end).next_multiple_of(page_size)
+                })
+                .collect();
+            // Linear on input that is already sorted, as most batches are.
+            runs.sort_unstable_by_key(|run| run.start);
+            runs.dedup_by(|next, run| {
+                let joins = next.start <= run.end;
+                if joins {
+                    run.end = run.end.max(next.end);
+                }
+                joins
+            });
+            if runs.len() < 2 {
                 return;
             }
-            let mut last = None;
-            for offset in offsets.chain(std::iter::once(tail)) {
-                let start = base + offset;
-                let first = start / page_size * page_size;
-                let end = (start + width).next_multiple_of(page_size);
-                for page in (first..end).step_by(page_size) {
-                    if last.is_some_and(|last| page <= last) {
-                        continue;
-                    }
-                    last = Some(page);
-                    if page == tail_page || !is_page_resident(mapping, page, page_size) {
-                        data.prefetch(page, page_size);
-                    }
-                }
+            for run in runs {
+                data.advise_read(run.start, run.len());
             }
         }
         #[cfg(not(unix))]
-        let _ = (offsets, width);
+        let _ = ranges;
     }
 }
 

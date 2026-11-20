@@ -121,6 +121,30 @@ where
         }
     }
 
+    /// Each page's body, plus its chunk's shared header the first time the chunk comes up. The
+    /// reader would merge repeated pages and headers too, but this keeps its input short and
+    /// sorted: two ranges per index cost ~30 µs more per 4,096 dense indices (measured
+    /// 2026-11-20).
+    fn prefetch(&self, stored: usize, indices: impl Iterator<Item = usize>) {
+        let pages = self.pages.read_recursive();
+        let mut last_page = None;
+        let mut last_chunk = None;
+        let ranges = indices
+            .filter(|&index| index < stored)
+            .map(|index| index / Self::PER_PAGE)
+            .filter(|&number| last_page.replace(number) != Some(number))
+            .filter_map(|number| pages.get(number))
+            .flat_map(|page| {
+                let chunk = page.chunk_start_page;
+                let header = (last_chunk.replace(chunk) != Some(chunk))
+                    .then_some(page.header_start as usize..page.header_end as usize);
+                let body = page.start as usize..page.end() as usize;
+                header.into_iter().chain(std::iter::once(body))
+            });
+        // The page table before the region's reader: the lock order every read uses.
+        self.region.create_reader().prefetch(ranges);
+    }
+
     /// One decoded page at a time, through one decoder.
     fn for_each_chunk(
         &self,

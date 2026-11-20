@@ -1,13 +1,13 @@
 use std::slice::from_ref;
 
 use bitview_plugin_outputs::published_spend;
-use bitview_primitives::{Lengths, TxOutIndex};
+use bitview_primitives::{Lengths, TxInIndex, TxOutIndex};
 use brk_mempool::ReadOnlyState;
-use brk_types::{BlockHash, Height, Timestamp, TxIndex, TxOutspend, TxStatus, Txid, Vin, Vout};
+use brk_types::{BlockHash, Height, TxIndex, TxOutspend, Txid, Vin, Vout};
 use serde_json::to_vec;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, ReadPin, RepresentationId, Result};
+use crate::{Error, OptionData, Query, ReadPin, RepresentationId, Result, read_sorted};
 
 impl Query {
     fn outspend(
@@ -135,13 +135,18 @@ impl Query {
         if !requested.is_sorted_by_key(|&(input, _)| input) {
             requested.sort_unstable_by_key(|&(input, _)| input);
         }
-        let mut input_txs = indexer.vecs().inputs.tx_index.cursor();
+
+        // The spends' pages are scattered over years of blocks. Each column's pages are asked for
+        // together before any is read, so the device serves them as one batch, not one fault at a
+        // time. Round 1: each spending input's transaction, and that transaction's first input.
+        let input_txs = &indexer.vecs().inputs.tx_index;
+        input_txs.prefetch(requested.iter().map(|&(input, _)| TxInIndex::from(input)));
+        let mut input_txs = input_txs.cursor();
         let mut first_inputs = indexer.vecs().transactions.first_txin_index.cursor();
-        let txid_reader = indexer.vecs().transactions.txid.reader();
-        let tx_heights = self.plugins().mappings.tx_heights.load();
-        let mut tx_heights = tx_heights.cursor();
-        let mut cached_status: Option<(Height, BlockHash, Timestamp)> = None;
-        let mut cached_spender: Option<(TxIndex, usize, Txid, TxStatus)> = None;
+        // (spender, its first input), in index order
+        let mut spenders: Vec<(TxIndex, usize)> = Vec::new();
+        // (output, its spender in `spenders`, vin)
+        let mut spends = Vec::with_capacity(requested.len());
         for (input, output) in requested {
             let (start, chunk) = input_txs.chunk_at(input).data()?;
             let local = input - start;
@@ -149,49 +154,45 @@ impl Query {
             if spending_tx_index >= bound.tx_index {
                 break;
             }
-            let (_, first, txid, status) = if let Some(spender) = &cached_spender
-                && spender.0 == spending_tx_index
-            {
-                spender
-            } else {
-                // A transaction owns a run in the input index. Only a run that starts
-                // before this chunk needs the separate first-input column.
-                let first = if start != 0 && chunk[0] == spending_tx_index {
-                    first_inputs
-                        .get(spending_tx_index.to_usize())
-                        .data()?
-                        .to_usize()
-                } else {
-                    start + chunk[..local].partition_point(|&tx| tx < spending_tx_index)
-                };
-                let spending_txid = txid_reader.try_get(spending_tx_index).data()?;
-                let spending_height: Height = tx_heights.get(spending_tx_index).data()?;
-                if spending_height >= bound.height {
-                    return Err(Error::UnknownTxid);
+            let first = match spenders.last() {
+                Some(&(spender, first)) if spender == spending_tx_index => first,
+                _ => {
+                    // A transaction owns a run in the input index. Only a run that starts
+                    // before this chunk needs the separate first-input column.
+                    let first = if start != 0 && chunk[0] == spending_tx_index {
+                        first_inputs
+                            .get(spending_tx_index.to_usize())
+                            .data()?
+                            .to_usize()
+                    } else {
+                        start + chunk[..local].partition_point(|&tx| tx < spending_tx_index)
+                    };
+                    spenders.push((spending_tx_index, first));
+                    first
                 }
-
-                let (block_hash, block_time) = if let Some((height, hash, time)) = cached_status
-                    && height == spending_height
-                {
-                    (hash, time)
-                } else {
-                    let (hash, time) = self.block_hash_and_time(spending_height)?;
-                    cached_status = Some((spending_height, hash, time));
-                    (hash, time)
-                };
-
-                cached_spender.insert((
-                    spending_tx_index,
-                    first,
-                    spending_txid,
-                    TxStatus::confirmed(spending_height, block_hash, block_time),
-                ))
             };
+            spends.push((output, spenders.len() - 1, checked_vin(input, first)?));
+        }
+
+        // Round 2: each spender's txid, and its block's hash and time.
+        let tx_heights = self.plugins().mappings.tx_heights.load();
+        let mut tx_heights = tx_heights.cursor();
+        let heights = spenders
+            .iter()
+            .map(|&(spender, _)| tx_heights.get(spender).data())
+            .collect::<Result<Vec<Height>>>()?;
+        let rows: Vec<usize> = spenders
+            .iter()
+            .map(|(spender, _)| spender.to_usize())
+            .collect();
+        let txids = read_sorted(&indexer.vecs().transactions.txid, &rows)?;
+        let statuses = self.confirmed_statuses_bounded(&heights, bound)?;
+        for (output, spender, vin) in spends {
             outspends[output] = TxOutspend {
                 spent: true,
-                txid: Some(*txid),
-                vin: Some(checked_vin(input, *first)?),
-                status: Some(status.clone()),
+                txid: Some(txids[spender]),
+                vin: Some(vin),
+                status: Some(statuses[spender].clone()),
             };
         }
         Ok(outspends)

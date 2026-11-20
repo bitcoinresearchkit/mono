@@ -24,6 +24,10 @@ pub(crate) trait PersistedReads<T: VecValue> {
     /// The values at sorted `indices`, all below `stored`.
     fn read_sorted(&self, stored: usize, indices: &[usize], out: &mut Vec<T>);
 
+    /// Starts reading the stored pages of point reads at sorted `indices`; those at or past
+    /// `stored` are pushed values and need none.
+    fn prefetch(&self, stored: usize, indices: impl Iterator<Item = usize>);
+
     /// Lends `[from, to)` in chunks; false, visiting nothing, when only a buffered read can.
     fn for_each_chunk(
         &self,
@@ -116,6 +120,10 @@ pub(crate) fn read_into<T: VecValue>(
     }
 }
 
+/// Each chunk's pages are asked for together before any is read, so a sparse read is served as one
+/// batch rather than one fault at a time, cached or not. The chunk bounds how much is asked at
+/// once; a compressed page that straddles two chunks is decoded once per chunk, one extra page
+/// decode per 4,096 values.
 #[inline]
 pub(crate) fn read_sorted<T: VecValue>(
     v: &impl StoredReads<T>,
@@ -123,19 +131,45 @@ pub(crate) fn read_sorted<T: VecValue>(
     out: &mut Vec<T>,
 ) {
     if let Some(cache) = v.cache() {
-        return cache.read_source(
-            Request::Sorted(indices),
-            out,
-            || v.layers(),
-            |stored, missing| v.persisted().load(stored, missing),
-        );
+        for batch in indices.chunks(READ_CHUNK_SIZE) {
+            cache.read_source(
+                Request::Sorted(batch),
+                out,
+                || v.layers(),
+                |stored, missing| {
+                    let persisted = v.persisted();
+                    persisted.prefetch(stored, missing.iter().flat_map(Range::clone));
+                    persisted.load(stored, missing)
+                },
+            );
+        }
+        return;
     }
     let (stored, pushed) = v.layers();
     let indices = &indices[..indices.partition_point(|&i| i < stored + pushed.len())];
     let split = indices.partition_point(|&i| i < stored);
     out.reserve(indices.len());
-    v.persisted().read_sorted(stored, &indices[..split], out);
+    let persisted = v.persisted();
+    for batch in indices[..split].chunks(READ_CHUNK_SIZE) {
+        persisted.prefetch(stored, batch.iter().copied());
+        persisted.read_sorted(stored, batch, out);
+    }
     out.extend(indices[split..].iter().map(|&i| pushed[i - stored].clone()));
+}
+
+/// Starts reading the stored pages that point reads at sorted `indices` will touch: the retained
+/// cache needs none.
+pub(crate) fn prefetch<T: VecValue>(
+    v: &impl StoredReads<T>,
+    indices: impl Iterator<Item = usize>,
+) {
+    let stored = v.layers().0;
+    match v.cache() {
+        Some(cache) => v
+            .persisted()
+            .prefetch(stored, cache.missing(indices).into_iter()),
+        None => v.persisted().prefetch(stored, indices),
+    }
 }
 
 pub(crate) fn for_each_chunk<I: VecIndex, T: VecValue, V>(

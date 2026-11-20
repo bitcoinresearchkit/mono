@@ -8,12 +8,11 @@ use bitcoin::{
 use bitview_plugin_indexer::{OutputRange, SafeLengths};
 use bitview_primitives::Lengths;
 use bitview_types::{MerkleNode, MerkleProof};
-use brk_types::{
-    BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix, merkle_level,
-};
+use brk_types::{Height, Transaction, TxIndex, TxStatus, Txid, TxidPrefix, merkle_level};
+use std::{iter::repeat_n, slice::from_ref};
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, Result};
+use crate::{Error, OptionData, Query, Result, read_sorted};
 
 pub(crate) mod body;
 pub mod confirmed;
@@ -42,14 +41,6 @@ impl Query {
             .ok_or_else(out_of_range)?;
         let height = self.confirmed_status_height_bounded(index, published)?;
         Ok((txid, published.is_settled(height)))
-    }
-
-    #[inline]
-    fn block_hash_and_time(&self, height: Height) -> Result<(BlockHash, Timestamp)> {
-        let indexer = self.indexer();
-        let hash = indexer.vecs().blocks.blockhash.collect_one(height).data()?;
-        let time = indexer.vecs().blocks.timestamp.collect_one(height).data()?;
-        Ok((hash, time))
     }
 
     /// The transaction's status, and whether its block lies below the reorg window. A transaction
@@ -215,11 +206,32 @@ impl Query {
         height: Height,
         bound: Lengths,
     ) -> Result<TxStatus> {
-        if height >= bound.height {
+        self.confirmed_statuses_bounded(from_ref(&height), bound)?
+            .pop()
+            .data()
+    }
+
+    /// The status of a transaction at each of `heights`, non-decreasing as transactions' heights
+    /// in index order are: each block's hash and time read once, every block in one batch.
+    pub(crate) fn confirmed_statuses_bounded(
+        &self,
+        heights: &[Height],
+        bound: Lengths,
+    ) -> Result<Vec<TxStatus>> {
+        debug_assert!(heights.is_sorted(), "heights out of order");
+        if heights.last().is_some_and(|&height| height >= bound.height) {
             return Err(Error::UnknownTxid);
         }
-        let (block_hash, block_time) = self.block_hash_and_time(height)?;
-        Ok(TxStatus::confirmed(height, block_hash, block_time))
+        let runs = heights.chunk_by(Height::eq);
+        let rows: Vec<usize> = runs.clone().map(|run| run[0].to_usize()).collect();
+        let blocks = &self.indexer().vecs().blocks;
+        let hashes = read_sorted(&blocks.blockhash, &rows)?;
+        let times = read_sorted(&blocks.timestamp, &rows)?;
+        let mut statuses = Vec::with_capacity(heights.len());
+        for ((run, hash), time) in runs.zip(hashes).zip(times) {
+            statuses.extend(repeat_n(TxStatus::confirmed(run[0], hash, time), run.len()));
+        }
+        Ok(statuses)
     }
 }
 

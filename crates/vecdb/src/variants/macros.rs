@@ -201,6 +201,22 @@ macro_rules! impl_read_write_storage {
 /// through its [`StoredReads`](crate::variants::stored_reads::StoredReads).
 macro_rules! impl_stored_readable {
     ($vec:ident, $strategy:ident) => {
+        impl<I, T, S, C: $crate::cache::CachePolicy> $vec<I, T, S, C>
+        where
+            I: $crate::VecIndex,
+            T: $crate::VecValue,
+            S: $strategy<T>,
+        {
+            /// Starts reading the stored pages of a batch of point reads at sorted indexes, so
+            /// the device serves them together (see [`rawdb::Reader::prefetch`]).
+            pub fn prefetch(&self, indexes: impl IntoIterator<Item = I>) {
+                $crate::variants::stored_reads::prefetch(
+                    self,
+                    indexes.into_iter().map($crate::VecIndex::to_usize),
+                )
+            }
+        }
+
         impl<I, T, S, C: $crate::cache::CachePolicy> $crate::ReadableVec<I, T> for $vec<I, T, S, C>
         where
             I: $crate::VecIndex,

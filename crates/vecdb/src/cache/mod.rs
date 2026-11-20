@@ -81,6 +81,13 @@ impl<T: VecValue> Cache<T> {
         self.healthy.load(Relaxed) && from <= to && to <= len() && self.copy_range(from, to, out)
     }
 
+    /// The indexes not retained, the only ones whose reads touch stored pages. One lock for the
+    /// batch, released before the caller takes any of the source's.
+    pub(crate) fn missing(&self, indices: impl Iterator<Item = usize>) -> Vec<usize> {
+        let table = self.table.read();
+        indices.filter(|&index| table.at(index).is_none()).collect()
+    }
+
     fn read_scope<R>(&self, read: impl FnOnce() -> R) -> R {
         let _gate = self.gate.read_recursive();
         assert!(self.healthy.load(Relaxed), "unpublished source");
