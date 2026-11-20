@@ -1,9 +1,7 @@
 mod tx_in;
 use std::{
+    mem,
     ops::{ControlFlow, Range},
-    panic::resume_unwind,
-    sync::mpsc,
-    thread,
 };
 
 use bitview_plugin_indexer::Indexer;
@@ -137,59 +135,35 @@ impl<'a, const BY_ADDRESS: bool> ColumnReaders<'a, BY_ADDRESS> {
         }
     }
 
-    /// Runs `process` on the batches in order, until it breaks, while a reader
-    /// thread fills the next batch's columns, so reads stay off the processing path.
-    /// A single batch (an ordinary 1-3 block update) has nothing to overlap: it is read
-    /// and processed in place.
+    /// Runs `process` on the batches in order, until it breaks, reading the next batch's columns
+    /// beside it (a `rayon::join`: the read is a job an idle worker steals, never a thread blocked
+    /// on a channel), so reads stay off the processing path. A single batch (an ordinary 1-3
+    /// block update) has nothing to overlap: it is read and processed in place.
     pub fn for_each_batch(
         &mut self,
         bounds: &BlockBounds,
-        mut process: impl FnMut(&Batch<'_>, &BatchColumns) -> Result<ControlFlow<()>>,
+        mut process: impl FnMut(&Batch<'_>, &BatchColumns) -> Result<ControlFlow<()>> + Send,
     ) -> Result<()> {
-        if bounds.blocks.len() <= BATCH_BLOCKS {
-            let mut columns = BatchColumns::default();
-            for batch in bounds.batches() {
-                self.collect(&batch, &mut columns)?;
-                if process(&batch, &columns)?.is_break() {
-                    break;
-                }
-            }
+        let mut batches = bounds.batches();
+        let Some(mut batch) = batches.next() else {
             return Ok(());
-        }
-        thread::scope(|scope| {
-            let (filled_tx, filled_rx) = mpsc::sync_channel(1);
-            let (free_tx, free_rx) = mpsc::channel();
-            let reader = scope.spawn(move || {
-                let mut columns = BatchColumns::default();
-                for batch in bounds.batches() {
-                    self.collect(&batch, &mut columns)?;
-                    if filled_tx.send((batch, columns)).is_err() {
-                        break;
-                    }
-                    // Wait for a buffer back; none means processing stopped.
-                    let Ok(free) = free_rx.recv() else { break };
-                    columns = free;
-                }
-                Ok(())
-            });
-            let _ = free_tx.send(BatchColumns::default());
-
-            let mut processed = Ok(());
-            for (batch, columns) in filled_rx {
-                match process(&batch, &columns) {
-                    Ok(ControlFlow::Continue(())) => {}
-                    Ok(ControlFlow::Break(())) => break,
-                    Err(error) => {
-                        processed = Err(error);
-                        break;
-                    }
-                }
-                let _ = free_tx.send(columns);
+        };
+        let (mut columns, mut next_columns) = (BatchColumns::default(), BatchColumns::default());
+        self.collect(&batch, &mut columns)?;
+        for next in batches {
+            let (processed, read) = join(
+                || process(&batch, &columns),
+                || self.collect(&next, &mut next_columns),
+            );
+            let flow = processed?;
+            read?;
+            if flow.is_break() {
+                return Ok(());
             }
-            drop(free_tx);
-            let read = reader.join().unwrap_or_else(|panic| resume_unwind(panic));
-            processed.and(read)
-        })
+            batch = next;
+            mem::swap(&mut columns, &mut next_columns);
+        }
+        process(&batch, &columns).map(drop)
     }
 
     /// Reads `batch`'s output and input columns in parallel.
