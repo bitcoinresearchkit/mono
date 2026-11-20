@@ -1,0 +1,20 @@
+/* The craft rules every showcase gets, linked first in each page's head ahead of its own <style>: one place, so a page
+   and every future one has them without saying so.
+   - Headings balance their lines and text pretties its last: no one-word last lines. Zero specificity (:where), so a
+     page's own text-wrap wins.
+   - Digits are equal width, so a number that changes (a price, a count, a clock) never shifts what sits beside it.
+     !important and on every element: a `font:` shorthand anywhere resets font-variant-numeric to normal, so an
+     inherited value or a plain rule is undone by the next `font: 14px/1.5 …`. No page wants proportional digits. */
+:where(h1, h2, h3, h4, h5, h6) {
+  text-wrap: balance;
+}
+
+:where(p, li, dd, blockquote, figcaption) {
+  text-wrap: pretty;
+}
+
+*,
+::before,
+::after {
+  font-variant-numeric: tabular-nums !important;
+}
