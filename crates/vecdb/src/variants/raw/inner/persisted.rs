@@ -74,6 +74,10 @@ where
         }
     }
 
+    fn prefetch(&self, stored: usize, indices: impl Iterator<Item = usize>) {
+        VecReader::<usize, T, S>::from_region(self.region, stored).prefetch(indices);
+    }
+
     fn for_each_chunk(
         &self,
         stored: usize,

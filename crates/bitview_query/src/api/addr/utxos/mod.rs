@@ -69,9 +69,7 @@ impl Query {
                     if batch.is_empty() {
                         break;
                     }
-                    if batch.len() > 1 {
-                        txids.prefetch(batch.iter().map(|&(tx, _)| tx));
-                    }
+                    txids.prefetch(batch.iter().map(|&(tx, _)| tx));
                     for &(tx_index, vout) in &batch {
                         let txid = txids.try_get(tx_index).data()?;
                         if !spends.spent(&txid, vout) {
@@ -120,9 +118,7 @@ impl Query {
             for (&(tx, _, _, _), height) in batch.iter().zip(&mut *heights) {
                 *height = tx_heights.get(tx).data()?;
             }
-            if batch.len() > 1 {
-                hashes.reader().prefetch(heights.iter().copied());
-            }
+            hashes.prefetch(heights.iter().copied());
             for (&(_, txid, vout, value), &height) in batch.iter().zip(heights.iter()) {
                 let status = if let Some((h, ref s)) = cached_status
                     && h == height
@@ -157,9 +153,7 @@ impl Query {
         let mut outputs = Vec::with_capacity(outpoints.len());
         let mut indexes = [TxOutIndex::ZERO; READ_BATCH];
         for batch in outpoints.chunks(READ_BATCH) {
-            if batch.len() > 1 {
-                ranges.prefetch(batch.iter().map(|&(tx, _, _)| tx));
-            }
+            ranges.prefetch(batch.iter().map(|&(tx, _, _)| tx));
             let indexes = &mut indexes[..batch.len()];
             for (&(tx, _, vout), output) in batch.iter().zip(&mut *indexes) {
                 *output = ranges
@@ -167,9 +161,7 @@ impl Query {
                     .and_then(|outputs| outputs.get(vout))
                     .ok_or(Error::Internal("UTXO outside transaction output boundaries"))?;
             }
-            if batch.len() > 1 {
-                value_reader.prefetch(indexes.iter().copied());
-            }
+            value_reader.prefetch(indexes.iter().copied());
             for (&(tx, txid, vout), &output) in batch.iter().zip(indexes.iter()) {
                 let value = value_reader.try_get(output).data()?;
                 outputs.push((tx, txid, vout, value));

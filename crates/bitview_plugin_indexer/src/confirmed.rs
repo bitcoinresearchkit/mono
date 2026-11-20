@@ -213,10 +213,11 @@ pub struct OutputRanges {
 }
 
 impl OutputRanges {
-    /// Advise both boundaries of each transaction in a short sorted batch.
-    pub fn prefetch(&self, transactions: impl DoubleEndedIterator<Item = TxIndex>) {
+    /// Starts reading both boundaries of each transaction in a sorted batch.
+    pub fn prefetch(&self, transactions: impl IntoIterator<Item = TxIndex>) {
         self.first_txout.prefetch(
             transactions
+                .into_iter()
                 .flat_map(|tx| [tx, tx.incremented()])
                 .filter(|&tx| tx < self.safe.tx_index),
         );

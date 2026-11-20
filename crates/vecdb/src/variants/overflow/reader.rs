@@ -62,8 +62,8 @@ where
             .map(|compact| self.decode(compact))
     }
 
-    /// Advise the compact rows. A row identifies its overflow slot when read.
-    pub fn prefetch(&self, indexes: impl DoubleEndedIterator<Item = I>) {
+    /// Starts reading the compact rows' pages. A row identifies its overflow slot only when read.
+    pub fn prefetch(&self, indexes: impl IntoIterator<Item = I>) {
         self.compact.prefetch(indexes);
     }
 
