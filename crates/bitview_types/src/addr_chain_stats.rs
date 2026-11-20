@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 ///
 /// Based on mempool.space's format with type_index extension.
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::emitted::every_key_required)]
 pub struct AddressChainStats {
     /// Current confirmed balance in satoshis
     pub balance: Sats,
@@ -37,5 +38,5 @@ pub struct AddressChainStats {
     pub type_index: Option<TypeIndex>,
 
     /// Realized price (average cost basis) in USD
-    pub realized_price: Dollars,
+    pub realized_price: Option<Dollars>,
 }

@@ -137,6 +137,9 @@ impl Query {
         pin: ReadPin,
         settled: bool,
     ) -> Result<ResolvedUrpd> {
+        if bitview_vecs::first_price_height().is_none() {
+            return Err(Error::NoData);
+        }
         let ages = cohort.age_range_ids();
         check_bound(&pin, height, pin.lengths().height)?;
         if height >= pin.lengths().height {

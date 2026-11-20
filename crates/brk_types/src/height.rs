@@ -22,9 +22,6 @@ use std::fs;
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Pco, PrintableIndex, Stamp, VecIndex};
 
-pub const BLOCKS_PER_DIFF_EPOCH: u32 = 2016;
-pub const BLOCKS_PER_HALVING: u32 = 210_000;
-
 /// A block height: how many blocks came before it.
 #[derive(
     Debug,
@@ -76,18 +73,20 @@ impl Height {
     }
 
     pub fn left_before_next_diff_adj(self) -> u32 {
-        BLOCKS_PER_DIFF_EPOCH - (*self % BLOCKS_PER_DIFF_EPOCH)
+        let interval = crate::chain().difficulty_interval;
+        interval - *self % interval
     }
 
     pub fn left_before_next_halving(self) -> u32 {
-        BLOCKS_PER_HALVING - (*self % BLOCKS_PER_HALVING)
+        let interval = crate::chain().halving_interval;
+        interval - *self % interval
     }
 
     /// Bitcoin Core's `GetBlockSubsidy`: 50 BTC shifted right once per halving.
     pub fn subsidy(self) -> Sats {
         Sats::from(
             u64::from(Sats::FIFTY_BTC)
-                .checked_shr(self.0 / BLOCKS_PER_HALVING)
+                .checked_shr(self.0 / crate::chain().halving_interval)
                 .unwrap_or(0),
         )
     }

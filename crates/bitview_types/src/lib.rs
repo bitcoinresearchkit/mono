@@ -6,6 +6,7 @@ pub use deser::de_plain;
 mod tests;
 #[macro_use]
 mod with_range_format;
+mod emitted;
 mod addr_chain_stats;
 mod addr_hash_prefix_matches;
 mod addr_stats;

@@ -4,13 +4,14 @@ use serde::{Deserialize, Serialize};
 
 /// A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::emitted::every_key_required)]
 pub struct PricePoint {
     /// Unix timestamp: a historical close's, or for the current price when it was derived (the
     /// mempool publication counted in it, else the tip block's time)
     pub time: Timestamp,
     /// BTC/USD price
     #[serde(rename = "USD")]
-    pub usd: Dollars,
+    pub usd: Option<Dollars>,
 }
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]

@@ -26,7 +26,6 @@ full-api = [
     "dep:bitview_plugin_silent_payments",
     "dep:bitview_plugin_transactions",
     "dep:bitview_plugin_utxo_set",
-    "dep:bitview_vecs",
     "dep:brk_cpfp",
     "dep:brk_oracle",
     "dep:parking_lot",
@@ -34,7 +33,7 @@ full-api = [
     "dep:statedb",
 ]
 # The generic series API: any composition with the mappings plugin can serve it.
-series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:itoa", "dep:quickmatch"]
+series = ["dep:arc-swap", "dep:bitview_catalog", "dep:bitview_plugin_mappings", "dep:bitview_vecs", "dep:itoa", "dep:quickmatch"]
 
 [dependencies]
 arc-swap = { workspace = true, optional = true }

@@ -105,9 +105,8 @@ impl Cents {
     /// price, which buys no whole-sats amount. A NaN price has no whole-sats value.
     #[inline]
     pub fn sats_per_dollar(self) -> Option<Sats> {
-        debug_assert!(!self.is_nan(), "a NaN price has no sats per dollar");
         (100 * Sats::ONE_BTC_U64)
-            .checked_div(self.inner())
+            .checked_div(self.finite_inner()?)
             .map(Sats::new)
     }
 

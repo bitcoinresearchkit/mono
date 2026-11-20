@@ -1,6 +1,11 @@
-use std::{env, fmt, net::Ipv6Addr, path::PathBuf};
+use std::{
+    env, fmt,
+    net::Ipv6Addr,
+    path::{Path, PathBuf},
+};
 
 use brk_error::{Error, Result};
+use brk_types::Chain;
 
 use crate::{Auth, Client};
 
@@ -43,16 +48,16 @@ impl ConnectArgs {
             })
     }
 
-    pub fn blocks_dir(&self) -> Result<PathBuf> {
+    pub fn blocks_dir(&self, chain: &Chain) -> Result<PathBuf> {
         match &self.blocksdir {
             Some(dir) => Ok(dir.clone()),
-            None => Ok(self.bitcoin_dir()?.join("blocks")),
+            None => Ok(self.bitcoin_dir()?.join(chain.subdir).join("blocks")),
         }
     }
 
     fn url(&self) -> String {
         let host = self.rpcconnect.as_deref().unwrap_or("localhost");
-        let port = self.rpcport.unwrap_or(8332);
+        let port = self.rpcport.unwrap_or(Chain::MAIN.rpc_port);
         // An IPv6 address (`::1`) needs brackets before the port.
         if host.parse::<Ipv6Addr>().is_ok() {
             format!("http://[{host}]:{port}")
@@ -61,13 +66,36 @@ impl ConnectArgs {
         }
     }
 
-    /// Relative cookie paths are inside the data directory, like `bitcoin-cli`'s.
+    /// Relative cookie paths are inside the chain's data directory, like `bitcoin-cli`'s. A default
+    /// port names its chain; a custom one names none, so the data directory's own cookie comes
+    /// first, as on mainnet, and else the one chain subdirectory holding one.
     fn cookie_path(&self) -> Result<PathBuf> {
-        Ok(match &self.rpccookiefile {
-            Some(path) if path.is_relative() => self.bitcoin_dir()?.join(path),
-            Some(path) => path.clone(),
-            None => self.bitcoin_dir()?.join(".cookie"),
-        })
+        let relative = self
+            .rpccookiefile
+            .as_deref()
+            .unwrap_or(Path::new(".cookie"));
+        if relative.is_absolute() {
+            return Ok(relative.to_owned());
+        }
+        let base = self.bitcoin_dir()?;
+        let port = self.rpcport.unwrap_or(Chain::MAIN.rpc_port);
+        if let Some(chain) = Chain::ALL.iter().find(|chain| chain.rpc_port == port) {
+            return Ok(base.join(chain.subdir).join(relative));
+        }
+        let own = base.join(relative);
+        if own.is_file() {
+            return Ok(own);
+        }
+        let mut cookies = Chain::ALL
+            .iter()
+            .map(|chain| base.join(chain.subdir).join(relative))
+            .filter(|path| path.is_file());
+        match (cookies.next(), cookies.next()) {
+            (Some(_), Some(_)) => Err(Error::Parse(
+                "several Core chains' cookies for a custom RPC port: set --rpccookiefile".into(),
+            )),
+            (cookie, _) => Ok(cookie.unwrap_or(own)),
+        }
     }
 
     /// User and password when a password is set, else the cookie file when there is one

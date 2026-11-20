@@ -8,7 +8,7 @@ use bitcoin::{block::Header, consensus};
 use bitview_plugin::{
     ComputePlugin, ImportContext, Plugin, PluginId, PluginStorage, UpdateContext,
 };
-use bitview_primitives::Lengths;
+use bitview_primitives::{HalvingEpoch, Lengths};
 use bitview_traversable::{AnyStoredVec, Traversable, TreeNode};
 use brk_error::{Error, Result};
 use brk_exit::Exit;
@@ -202,6 +202,13 @@ impl Indexer {
         let i = Instant::now();
         let vecs = Vecs::import(&plugin_path, STORAGE.schema_version())?;
         info!("Loaded indexer vectors in {:.2?}", i.elapsed());
+        if let Some(genesis) = vecs.blocks.blockhash.collect_one(Height::ZERO)
+            && *genesis != reader.chain().network.chain_hash().to_bytes()
+        {
+            return Err(Error::Internal(
+                "indexed genesis belongs to another network: use its own --bitviewdir",
+            ));
+        }
 
         let i = Instant::now();
         let stores = Stores::import(&plugin_path, STORAGE.schema_version())?;
@@ -529,6 +536,16 @@ impl Indexer {
         let buffers = &mut self.buffers;
 
         let end = reader.client().get_last_height()?;
+        let last = HalvingEpoch::last_height();
+        if end > last {
+            return Err(Error::OutOfRange(
+                format!(
+                    "Core's tip {end} is past height {last}, the last whose halving epoch fits \
+                     the u8 halving_epoch index"
+                )
+                .into(),
+            ));
+        }
         #[cfg(feature = "bench-cpu")]
         let end = self.tip_cap.map_or(end, |cap| end.min(cap));
         for block in reader.after(prev_hash, end)? {

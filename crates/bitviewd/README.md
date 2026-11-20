@@ -13,8 +13,9 @@ arguments, configuration files, logging, signal handling, and serving.
 ## Requirements
 
 - Linux or macOS
-- Bitcoin Core on mainnet (testnet, signet and regtest are not supported) with
-  `server=1` in `bitcoin.conf`
+- Bitcoin Core on mainnet, testnet3, testnet4, public signet or regtest with
+  `server=1` in `bitcoin.conf`. Bitview's mining templates are available on
+  mainnet and regtest.
 - Access to `blk*.dat` files, complete from genesis for the initial sync (no
   pruned node)
 - About 290 GiB of disk space for the current default composition, plus Bitcoin

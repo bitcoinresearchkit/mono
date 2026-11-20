@@ -85,7 +85,7 @@ impl ResolvedHistoricalPrice<'_> {
                 Ok(Some(PricePoint {
                     // MAX_BUCKETS proves this arithmetic fits u32.
                     time: Timestamp::new(INDEX_EPOCH + (index as u32 + 1) * HOUR4_INTERVAL),
-                    usd: Dollars::from(cents),
+                    usd: Some(Dollars::from(cents)),
                 }))
             };
             let (prices, settled) = match timestamp {

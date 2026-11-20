@@ -35,10 +35,13 @@ impl CentsSigned {
         self.0 == i64::MIN
     }
 
-    /// `minuend - subtrahend`, both unsigned: a profit less a loss.
+    /// `minuend - subtrahend`, both unsigned: a profit less a loss, or NaN if either is missing.
     #[inline]
     pub const fn from_difference(minuend: Cents, subtrahend: Cents) -> Self {
-        Self::new(minuend.inner() as i64 - subtrahend.inner() as i64)
+        match (minuend.finite_inner(), subtrahend.finite_inner()) {
+            (Some(minuend), Some(subtrahend)) => Self::new(minuend as i64 - subtrahend as i64),
+            _ => Self::NAN,
+        }
     }
 
     /// NaN when either is; else the difference, none on overflow (or when it'd be the sentinel).

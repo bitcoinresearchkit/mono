@@ -48,27 +48,32 @@ pub enum Fragment {
     Detail(&'static str),
 }
 
-/// A piece of a series' metadata, from a field on its path: a piece of its description, or an
+/// A piece of a series' metadata, from a field on its path: a piece of its description, an
 /// accumulation (`#[traversable(accumulation = Flow)]`), the nearest one on its path the
-/// series' own.
+/// series' own, or `Priced` (`#[traversable(priced)]`): its values depend on the BTC/USD price,
+/// whatever its type.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum MetadataFragment {
     Description(Fragment),
     Accumulation(Accumulation),
+    Priced,
 }
 
-/// A series' metadata fragments, apart: its description's, in path order, and its accumulation,
-/// the one declared nearest it ([`Accumulation::UNDECLARED`] if none is).
-pub fn split_metadata(fragments: &[MetadataFragment]) -> (Vec<Fragment>, Accumulation) {
+/// A series' metadata fragments, apart: its description's, in path order, its accumulation,
+/// the one declared nearest it ([`Accumulation::UNDECLARED`] if none is), and whether a field on
+/// its path is priced.
+pub fn split_metadata(fragments: &[MetadataFragment]) -> (Vec<Fragment>, Accumulation, bool) {
     let mut description = Vec::with_capacity(fragments.len());
     let mut accumulation = Accumulation::UNDECLARED;
+    let mut priced = false;
     for &fragment in fragments {
         match fragment {
             MetadataFragment::Description(fragment) => description.push(fragment),
             MetadataFragment::Accumulation(declared) => accumulation = declared,
+            MetadataFragment::Priced => priced = true,
         }
     }
-    (description, accumulation)
+    (description, accumulation, priced)
 }
 
 /// Whether two paths give a series the same metadata: the same accumulation may be declared at

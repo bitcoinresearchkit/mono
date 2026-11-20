@@ -6,6 +6,7 @@ use crate::{BlockOrphan, BlockPool};
 
 /// Extended block data matching mempool.space /api/v1/blocks extras
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[schemars(transform = crate::emitted::every_key_required)]
 pub struct BlockExtras {
     /// Total fees in satoshis
     #[serde(rename = "totalFees")]
@@ -27,7 +28,7 @@ pub struct BlockExtras {
     /// Total block reward (subsidy + fees) in satoshis
     pub reward: Sats,
 
-    pub pool: BlockPool,
+    pub pool: Option<BlockPool>,
 
     /// Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
     #[serde(rename = "avgFee")]
@@ -147,5 +148,5 @@ pub struct BlockExtras {
     pub similarity: Option<f64>,
 
     /// USD price at block height
-    pub price: Dollars,
+    pub price: Option<Dollars>,
 }

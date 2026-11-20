@@ -23,8 +23,17 @@ use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 use concentration::Concentration;
 use pool_heights::PoolHeights;
 
-const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("pools"), Version::new(13));
+pub const STORAGE: PluginStorage =
+    PluginStorage::new(PluginId::new("pools"), Version::new(13)).mainnet_only();
 pub const ID: PluginId = STORAGE.id();
+
+pub fn pools() -> &'static Pools {
+    if STORAGE.available() {
+        bitview_primitives::mainnet_pools()
+    } else {
+        Pools::empty()
+    }
+}
 
 #[derive(Traversable, Plugin)]
 #[plugin(storage = STORAGE)]
@@ -93,7 +102,7 @@ impl Traversable for BySlug {
         path_fragments: &mut Vec<bitview_traversable::MetadataFragment>,
         metadata: &mut BTreeMap<&'a str, Vec<bitview_traversable::MetadataFragment>>,
     ) {
-        let pools = bitview_primitives::pools();
+        let pools = pools();
         for (slug, vecs) in &self.0 {
             let lead = bitview_traversable::MetadataFragment::Description(
                 bitview_traversable::Fragment::Lead(pools.get(*slug).lead),

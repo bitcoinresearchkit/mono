@@ -99,8 +99,12 @@ impl AddressBytes {
     /// Parse an address string to a ScriptBuf. A P2PK "address" is its 33- or 65-byte key field
     /// in hex, as the index keeps it: P2PK-shaped, not necessarily a valid public key.
     pub fn addr_to_script(addr: &str) -> Result<ScriptBuf, Error> {
+        Self::parse_script(addr, Some(crate::chain().network))
+    }
+
+    pub(crate) fn parse_script(addr: &str, network: Option<Network>) -> Result<ScriptBuf, Error> {
         if let Ok(addr) = Address::from_str(addr) {
-            if !addr.is_valid_for_network(Network::Bitcoin) {
+            if network.is_some_and(|network| !addr.is_valid_for_network(network)) {
                 return Err(Error::InvalidNetwork);
             }
             let addr = addr.assume_checked();
@@ -147,7 +151,7 @@ impl FromStr for AddressBytes {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let script = Self::addr_to_script(s)?;
+        let script = Self::parse_script(s, None)?;
         let output_type = OutputType::from(&script);
         Self::try_from((&script, output_type))
     }

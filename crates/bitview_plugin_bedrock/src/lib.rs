@@ -52,7 +52,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     walk: M::WriteOnly<UrpdWalk>,
     entry_supply: M::WriteOnly<EntrySupply>,
 
-    #[traversable(flatten)]
+    #[traversable(flatten, priced)]
     #[traversable(lead = "Bedrock: price floors where holders' losses would reach their historic extremes.")]
     modes: Modes<ModeVecs<M>>,
 }

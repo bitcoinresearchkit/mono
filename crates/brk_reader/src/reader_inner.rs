@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, fs::File, path::PathBuf, sync::Arc};
 
 use arc_swap::ArcSwap;
+use bitcoin::Network;
 use brk_error::Result;
 use brk_rpc::Client;
-use brk_types::BlockHash;
+use brk_types::{BlockHash, Chain};
 use parking_lot::Mutex;
 
 use crate::XORBytes;
@@ -25,14 +26,18 @@ pub struct AppendPosition {
 pub struct ReaderInner {
     blk_file_cache: ArcSwap<BTreeMap<u16, Arc<File>>>,
     append_position: Mutex<Option<AppendPosition>>,
+    pub chain: &'static Chain,
+    pub magic: [u8; 4],
     pub xor_bytes: XORBytes,
     pub blocks_dir: PathBuf,
     pub client: Client,
 }
 
 impl ReaderInner {
-    pub fn new(blocks_dir: PathBuf, client: &Client) -> Result<Self> {
+    pub fn new(blocks_dir: PathBuf, client: &Client, network: Network) -> Result<Self> {
         Ok(Self {
+            chain: Chain::for_network(network),
+            magic: network.magic().to_bytes(),
             xor_bytes: XORBytes::read(&blocks_dir)?.unwrap_or_default(),
             blk_file_cache: ArcSwap::default(),
             append_position: Mutex::default(),
