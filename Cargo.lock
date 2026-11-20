@@ -1168,6 +1168,7 @@ dependencies = [
  "bitview_compute",
  "bitview_primitives",
  "bitview_traversable",
+ "bitview_types",
  "bitview_vecs",
  "brk_error",
  "brk_exit",

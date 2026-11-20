@@ -1,8 +1,7 @@
 use bitview_cohort::{AGE_RANGE_COUNT, AGE_RANGE_IDS, AgeRange, AgeRangeId};
-use bitview_primitives::CentsCompact;
 use brk_types::Sats;
 
-use crate::ProjectedBucket;
+use crate::{ProjectedBucket, price_place::Row};
 
 /// Per-block weights and filters in the histogram's age order. Bucket projection
 /// multiplies each occupied age once per model, rounding only after aggregation.
@@ -27,10 +26,9 @@ impl<const N: usize, const C: usize> Projection<N, C> {
 
     pub fn bucket(
         &self,
-        price: CentsCompact,
-        amounts: &[Vec<u64>; AGE_RANGE_COUNT],
-        slot: usize,
+        row: &Row,
         occupied: u32,
+        amount: impl Fn(usize) -> u64,
     ) -> Option<ProjectedBucket<N, C>> {
         let mut occupied = occupied & self.ages;
         if occupied == 0 {
@@ -41,7 +39,7 @@ impl<const N: usize, const C: usize> Projection<N, C> {
         while occupied != 0 {
             let age = occupied.trailing_zeros() as usize;
             occupied &= occupied - 1;
-            let sats = amounts[age][slot];
+            let sats = amount(age);
             let weights = &self.weights[age];
             let age_bit = 1 << age;
             let contribution = weights.map(|weight| sats as f64 * weight);
@@ -55,7 +53,8 @@ impl<const N: usize, const C: usize> Projection<N, C> {
             }
         }
         Some(ProjectedBucket {
-            price,
+            price: row.raw,
+            label: row.bucket,
             raw,
             // Conversion already floors positive mass to whole sats.
             weighted: masses.map(|row| row.map(|mass| Sats::new(mass as u64))),
