@@ -76,6 +76,13 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
         Some(self.buf[local].clone())
     }
 
+    /// Lends the decoded chunk containing an index and the absolute position of its first value.
+    /// Like `get`, this does not move the sequential position.
+    pub fn chunk_at(&mut self, index: usize) -> Option<(usize, &[T])> {
+        self.ensure_buffered_at(index)?;
+        Some((self.buf_start, &self.buf))
+    }
+
     /// Collects a range into a reusable output buffer, retaining the decoded
     /// chunk for the next call. Supports gaps and backward reads.
     pub fn collect_range_into_at(&mut self, from: usize, to: usize, out: &mut Vec<T>) {
@@ -186,10 +193,7 @@ impl<'a, I: VecIndex, T: VecValue, V: ReadableVec<I, T> + ?Sized> Cursor<'a, I, 
         self.buf_start = aligned;
         self.source.read_into_at(aligned, end, &mut self.buf);
 
-        if self.buf.is_empty() {
-            None
-        } else {
-            Some(at - aligned)
-        }
+        let local = at - aligned;
+        (local < self.buf.len()).then_some(local)
     }
 }
