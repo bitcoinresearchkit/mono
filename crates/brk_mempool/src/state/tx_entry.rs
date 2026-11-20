@@ -1,8 +1,6 @@
 use bitcoin::Wtxid;
 use brk_types::{MempoolEntryInfo, Sats, Timestamp, Txid, VSize, Weight};
 
-use crate::key::TxKey;
-
 /// Per-tx facts needed for projection. Chunk rates live on the snapshot, computed when its
 /// graph is rebuilt.
 #[derive(Debug, Clone)]
@@ -33,10 +31,5 @@ impl TxEntry {
             first_seen: info.first_seen,
             rbf,
         }
-    }
-
-    #[inline]
-    pub fn key(&self) -> TxKey {
-        TxKey::from(&self.txid)
     }
 }

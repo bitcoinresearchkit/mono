@@ -19,7 +19,6 @@ pub mod audit;
 mod chain_waker;
 mod driver;
 mod json;
-mod key;
 mod read_only;
 mod snapshot;
 mod state;

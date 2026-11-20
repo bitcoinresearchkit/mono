@@ -16,13 +16,13 @@ use std::{
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
 use brk_types::{FeeRate, MempoolBlock, MempoolBlockHash, TagHasher, Transaction, Txid};
-use builder::KeyIndex;
+use builder::TxidIndex;
 pub use rebuilder::Rebuilder;
 use serde_json::to_vec;
 pub use snap_tx::SnapTx;
 pub use tx_index::TxIndex;
 
-use crate::{JsonBody, json, key::TxKey, stores::tx_store::TxRecord};
+use crate::{JsonBody, json, stores::tx_store::TxRecord};
 
 #[derive(Default)]
 pub struct Snapshot {
@@ -36,7 +36,7 @@ pub struct Snapshot {
     pub(crate) block_stats: Vec<BlockStats>,
     pub(crate) fees: fees::FeeView,
     min_fee: FeeRate,
-    key_to_idx: KeyIndex,
+    txid_to_idx: TxidIndex,
     /// Every component's chunks as linearized for this snapshot, and each transaction's chunk:
     /// CPFP answers read them instead of linearizing again.
     chunks: partition::Chunks,
@@ -84,7 +84,7 @@ impl Snapshot {
     pub(crate) fn build(
         txs: Vec<SnapTx>,
         blocks: &[Vec<(TxIndex, FeeRate)>],
-        key_to_idx: KeyIndex,
+        txid_to_idx: TxidIndex,
         chunks: partition::Chunks,
         min_fee: FeeRate,
     ) -> Self {
@@ -97,7 +97,7 @@ impl Snapshot {
             block_stats,
             fees,
             min_fee,
-            key_to_idx,
+            txid_to_idx,
             chunks,
             chunk_of,
             served: Vec::new(),
@@ -178,8 +178,7 @@ impl Snapshot {
     }
 
     fn idx_of_txid(&self, txid: &Txid) -> Option<TxIndex> {
-        let index = *self.key_to_idx.get(&TxKey::from(txid))?;
-        (self.txs[index.as_usize()].txid == *txid).then_some(index)
+        self.txid_to_idx.get(txid).copied()
     }
 
     /// Linearized chunk rate for a live tx. Recomputed each

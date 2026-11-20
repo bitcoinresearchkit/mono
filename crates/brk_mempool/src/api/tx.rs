@@ -10,7 +10,6 @@ use serde::Serializer;
 
 use crate::{
     JsonBody, PendingView, PublishedEntry, PublishedTx, ReadOnlyState, TxRemoval, json,
-    key::{OutpointKey, TxKey},
     state::Pool,
 };
 
@@ -76,8 +75,7 @@ impl ReadOnlyState {
         Ok(Some(Self::outspend_for(state, txid, vout, view)))
     }
 
-    /// Pending spend status for an output whose parent may be confirmed. The spender's full
-    /// input list is checked to rule out key collisions.
+    /// Pending spend status for an output whose parent may be confirmed.
     pub fn outspend(&self, txid: &Txid, vout: Vout, view: &PendingView) -> Result<TxOutspend> {
         let state = self.pool()?.at(view.tip())?;
         Ok(Self::outspend_for(state, txid, vout, view))
@@ -141,23 +139,21 @@ impl ReadOnlyState {
         outspends: &mut [TxOutspend],
         view: &PendingView,
     ) {
-        let parent = TxKey::from(txid);
         let mut scanned = FxHashSet::default();
         for index in 0..outspends.len() {
             if outspends[index].spent {
                 continue;
             }
-            let outpoint = OutpointKey::new(parent, Vout::from(index));
-            let Some(spender_key) = state.outpoint_spends.get(&outpoint) else {
+            let Some(spender_txid) = state.outpoint_spends.get(&(*txid, Vout::from(index))) else {
                 continue;
             };
-            if !scanned.insert(spender_key) {
+            if !scanned.insert(spender_txid) {
                 continue;
             }
             let Some(spender) = state
                 .txs
-                .record_by_key(&spender_key)
-                .filter(|spender| view.pending(&spender.entry.txid))
+                .record(&spender_txid)
+                .filter(|_| view.pending(&spender_txid))
             else {
                 continue;
             };
@@ -169,10 +165,7 @@ impl ReadOnlyState {
                     continue;
                 };
                 if !outspend.spent
-                    && state
-                        .outpoint_spends
-                        .get(&OutpointKey::new(parent, input.vout))
-                        == Some(spender_key)
+                    && state.outpoint_spends.get(&(*txid, input.vout)) == Some(spender_txid)
                 {
                     *outspend = TxOutspend {
                         spent: true,

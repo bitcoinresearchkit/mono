@@ -10,7 +10,6 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     ReadOnlyState,
-    key::{OutpointKey, TxKey},
     state::{BehindSlot, Pool},
 };
 
@@ -34,7 +33,7 @@ pub struct PendingView {
     /// The tip the reader is pinned at.
     reader: BlockHash,
     /// Pooled transactions hidden from this reader.
-    settled: FxHashSet<TxKey>,
+    settled: FxHashSet<Txid>,
     /// Transactions whose fate this reader can't know yet.
     limbo: FxHashSet<Txid>,
 }
@@ -48,7 +47,7 @@ impl PendingView {
         self.settled.is_empty()
     }
 
-    pub(crate) fn settled(&self) -> &FxHashSet<TxKey> {
+    pub(crate) fn settled(&self) -> &FxHashSet<Txid> {
         &self.settled
     }
 
@@ -65,12 +64,7 @@ impl PendingView {
 
     /// Whether a pooled transaction is still pending for this reader.
     pub(crate) fn pending(&self, txid: &Txid) -> bool {
-        self.pending_key(&TxKey::from(txid))
-    }
-
-    /// [`Self::pending`] by the transaction's key.
-    pub(crate) fn pending_key(&self, key: &TxKey) -> bool {
-        self.settled.is_empty() || !self.settled.contains(key)
+        self.settled.is_empty() || !self.settled.contains(txid)
     }
 
     /// Whether this reader can't know `txid`'s fate yet, because a reorg isn't followed yet.
@@ -161,13 +155,10 @@ fn slot_for(pool: &Pool, reader: BlockHash) -> BehindSlot {
 /// A pooled transaction spending one of those outpoints was either mined (the spender is itself)
 /// or conflicted (the spender is another). Whatever spends from a conflicted one can't confirm
 /// either, so its descendants are settled too. A mined transaction's children stay pending.
-fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<TxKey> {
-    let mut candidates: Vec<TxKey> = spends
+fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<Txid> {
+    let mut candidates: Vec<Txid> = spends
         .keys()
-        .filter_map(|&(txid, vout)| {
-            pool.outpoint_spends
-                .get(&OutpointKey::new(TxKey::from(&txid), vout))
-        })
+        .filter_map(|outpoint| pool.outpoint_spends.get(outpoint))
         .collect();
     candidates.sort_unstable();
     candidates.dedup();
@@ -175,7 +166,7 @@ fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<TxKey> {
     let mut conflicted = Vec::new();
     for record in candidates
         .iter()
-        .filter_map(|key| pool.txs.record_by_key(key))
+        .filter_map(|txid| pool.txs.record(txid))
     {
         let tx = &record.tx;
         let Some(spender) = tx
@@ -185,17 +176,14 @@ fn settled_by(pool: &Pool, spends: &Spends) -> FxHashSet<TxKey> {
         else {
             continue;
         };
-        settled.insert(record.entry.key());
+        settled.insert(record.entry.txid);
         if *spender != tx.txid {
             conflicted.push(record);
         }
     }
     while let Some(record) = conflicted.pop() {
-        for (key, child) in pool
-            .outpoint_spends
-            .children(&pool.txs, record.entry.key(), &record.tx)
-        {
-            if settled.insert(key) {
+        for child in pool.outpoint_spends.children(&pool.txs, &record.tx) {
+            if settled.insert(child.entry.txid) {
                 conflicted.push(child);
             }
         }
@@ -214,7 +202,7 @@ fn limbo(
     pool: &Pool,
     left: usize,
     spends: &Spends,
-    settled: &mut FxHashSet<TxKey>,
+    settled: &mut FxHashSet<Txid>,
 ) -> FxHashSet<Txid> {
     let blocks = pool.ancestry.blocks();
     debug_assert!(left < blocks.len(), "the common block is one of the pool's");
@@ -242,13 +230,8 @@ fn limbo(
         .collect();
     while let Some(record) = orphans.pop() {
         if limbo.insert(record.tx.txid) {
-            let key = record.entry.key();
-            settled.insert(key);
-            orphans.extend(
-                pool.outpoint_spends
-                    .children(&pool.txs, key, &record.tx)
-                    .map(|(_, child)| child),
-            );
+            settled.insert(record.tx.txid);
+            orphans.extend(pool.outpoint_spends.children(&pool.txs, &record.tx));
         }
     }
     limbo

@@ -7,11 +7,10 @@ use brk_error::Result;
 use brk_types::{
     AddressBytes, AddressMempoolStats, Sats, TagHasher, TxOut, Txid, TxidPrefix, Vout,
 };
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{
     PendingView, PublishedTx, ReadOnlyState,
-    key::{OutpointKey, TxKey},
     state::Pool,
     stores::{addr_tracker::AddrTx, tx_store::TxRecord},
 };
@@ -36,7 +35,6 @@ impl PendingUtxos {
     pub fn spends(&self) -> Spends<'_> {
         Spends {
             pending: self,
-            filter: SpendFilter::default(),
             met: FxHashSet::default(),
         }
     }
@@ -45,7 +43,6 @@ impl PendingUtxos {
 /// The pending spenders of the outpoints asked about, met so far.
 pub struct Spends<'a> {
     pending: &'a PendingUtxos,
-    filter: SpendFilter,
     met: FxHashSet<Txid>,
 }
 
@@ -57,7 +54,11 @@ impl Spends<'_> {
         let Some((pool, view)) = &self.pending.pool else {
             return false;
         };
-        let Some(spender) = self.filter.spender(pool, view, txid, vout) else {
+        let Some(spender) = pool
+            .outpoint_spends
+            .get(&(*txid, vout))
+            .filter(|spender| view.pending(spender))
+        else {
             return false;
         };
         self.met.insert(spender);
@@ -84,49 +85,6 @@ fn token_part(role: u8, txid: &Txid) -> u64 {
     hasher.write_u8(role);
     txid.hash(&mut hasher);
     hasher.finish()
-}
-
-/// The pending spenders found so far, each with its txid and the outpoints its inputs spend.
-/// `None` for one the reader's view settled.
-#[derive(Default)]
-struct SpendFilter(FxHashMap<TxKey, Option<(Txid, Inputs)>>);
-
-/// The outpoints a transaction's inputs spend.
-type Inputs = FxHashSet<(Txid, Vout)>;
-
-impl SpendFilter {
-    /// The pending transaction spending `txid:vout`, if any.
-    fn spender(
-        &mut self,
-        pool: &Pool,
-        view: &PendingView,
-        txid: &Txid,
-        vout: Vout,
-    ) -> Option<Txid> {
-        let key = pool
-            .outpoint_spends
-            .get(&OutpointKey::new(TxKey::from(txid), vout))?;
-        // The stored key can collide: the spender's own inputs decide.
-        self.0
-            .entry(key)
-            .or_insert_with(|| {
-                pool.txs
-                    .record_by_key(&key)
-                    .filter(|spender| view.pending(&spender.entry.txid))
-                    .map(|spender| {
-                        let inputs = spender
-                            .tx
-                            .input
-                            .iter()
-                            .map(|input| (input.txid, input.vout))
-                            .collect();
-                        (spender.entry.txid, inputs)
-                    })
-            })
-            .as_ref()
-            .filter(|(_, inputs)| inputs.contains(&(*txid, vout)))
-            .map(|(spender, _)| *spender)
-    }
 }
 
 impl ReadOnlyState {
@@ -166,15 +124,15 @@ impl ReadOnlyState {
         if view.settled().len() < entry.txs.len() {
             view.settled()
                 .iter()
-                .filter_map(|key| state.txs.record_by_key(key))
+                .filter_map(|txid| state.txs.record(txid))
                 .filter(|record| entry.txs.contains(&AddrTx::from(*record)))
                 .for_each(&mut take_out);
         } else {
             entry
                 .txs
                 .iter()
-                .filter(|tx| !view.pending_key(&tx.key))
-                .filter_map(|tx| state.txs.record_by_key(&tx.key))
+                .filter(|tx| !view.pending(&tx.txid))
+                .filter_map(|tx| state.txs.record(&tx.txid))
                 .for_each(&mut take_out);
         }
         Ok(stats)
@@ -201,11 +159,11 @@ impl ReadOnlyState {
         };
         let pays = |txout: &TxOut| txout.addr_bytes().as_ref() == Some(addr);
         let enough = max.saturating_add(entry.stats.spent_txo_count as usize);
-        for at in entry.txs.iter().filter(|tx| view.pending_key(&tx.key)) {
+        for at in entry.txs.iter().filter(|tx| view.pending(&tx.txid)) {
             if pending.created.len() > enough {
                 break;
             }
-            let Some(record) = state.txs.record_by_key(&at.key) else {
+            let Some(record) = state.txs.record(&at.txid) else {
                 continue;
             };
             pending.token ^= token_part(OWN, &record.entry.txid);
@@ -220,10 +178,12 @@ impl ReadOnlyState {
         }
         // Drop outputs a pending transaction spends. Such a spender pays from the address's own
         // output, so it is one of the address's transactions and already in the token.
-        let mut spends = SpendFilter::default();
-        pending
-            .created
-            .retain(|(txid, vout, _)| spends.spender(state, view, txid, *vout).is_none());
+        pending.created.retain(|(txid, vout, _)| {
+            !state
+                .outpoint_spends
+                .get(&(*txid, *vout))
+                .is_some_and(|spender| view.pending(&spender))
+        });
         pending
             .created
             .sort_unstable_by_key(|(txid, vout, _)| (TxidPrefix::from(txid), *vout));
@@ -254,7 +214,7 @@ impl ReadOnlyState {
             .is_some_and(|entry| entry.txs.contains(&AddrTx::from(record))))
     }
 
-    /// Pending txs touching `addr`, newest first by `first_seen` (ties by txid prefix, then key),
+    /// Pending txs touching `addr`, newest first by `first_seen` (ties by txid prefix, then txid),
     /// after the `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
     /// that isn't one of the address's transactions has none after it. O(log n + the page) in
     /// the address's pending transactions (more past the chain's newer blocks: those settled are
@@ -282,8 +242,8 @@ impl ReadOnlyState {
             return Ok(Vec::new());
         };
         Ok(newest
-            .filter(|tx| view.pending_key(&tx.key))
-            .filter_map(|tx| state.txs.record_by_key(&tx.key))
+            .filter(|tx| view.pending(&tx.txid))
+            .filter_map(|tx| state.txs.record(&tx.txid))
             .take(limit)
             .map(PublishedTx::from_record)
             .collect())

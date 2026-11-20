@@ -5,21 +5,19 @@ use std::mem;
 
 use brk_cpfp::Cluster;
 use brk_types::{Txid, Weight};
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rapidhash::RapidHashMap;
+use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
 use super::{SnapTx, Snapshot, TxIndex, cluster, partition::Chunks};
-use crate::{
-    key::TxKey,
-    stores::{TxStore, tx_store::TxRecord},
-};
+use crate::stores::{TxStore, tx_store::TxRecord};
 
-pub type KeyIndex = FxHashMap<TxKey, TxIndex>;
+pub type TxidIndex = RapidHashMap<Txid, TxIndex>;
 
-/// A component member's identity for the cache: its key, policy weight and modified fee.
-type MemberId = (TxKey, Weight, i64);
+/// A component member's identity for the cache: its txid, policy weight and modified fee.
+type MemberId = (Txid, Weight, i64);
 
-/// Each multi-transaction component's linearization from the last rebuild, by its members (keys,
+/// Each multi-transaction component's linearization from the last rebuild, by its members (txids,
 /// policy weights and modified fees, sorted): those fix its graph (a txid fixes inputs and fee; a
 /// witness variant or a prevout fill can change the weight, an operator's delta the modified
 /// fee), so an unchanged one is reused as is. Only the components of the latest rebuild are kept.
@@ -42,11 +40,7 @@ impl ChunkCache {
         members.extend(component.iter().map(|&m| {
             let t = &txs[m.as_usize()];
             (
-                (
-                    TxKey::from(&t.txid),
-                    t.sigops.adjust_weight(t.weight),
-                    t.modified,
-                ),
+                (t.txid, t.sigops.adjust_weight(t.weight), t.modified),
                 m,
             )
         }));
@@ -86,13 +80,11 @@ impl Snapshot {
         txs: &TxStore,
         modified_fees: &[(Txid, i64)],
         cache: &mut ChunkCache,
-    ) -> (Vec<SnapTx>, KeyIndex, Chunks) {
+    ) -> (Vec<SnapTx>, TxidIndex, Chunks) {
         let n = txs.len();
-        let mut key_to_idx = KeyIndex::with_capacity_and_hasher(n, FxBuildHasher);
-        let mut keys: Vec<TxKey> = Vec::with_capacity(n);
-        for (i, (key, _)) in txs.records().enumerate() {
-            key_to_idx.entry(*key).or_insert(TxIndex::from(i));
-            keys.push(*key);
+        let mut txid_to_idx = TxidIndex::with_capacity_and_hasher(n, Default::default());
+        for (i, (txid, _)) in txs.records().enumerate() {
+            txid_to_idx.entry(*txid).or_insert(TxIndex::from(i));
         }
         let modified_of = |txid: &Txid| {
             modified_fees
@@ -110,8 +102,7 @@ impl Snapshot {
         for (i, (_, record)) in txs.records().enumerate() {
             let mut parents: SmallVec<[TxIndex; 2]> = SmallVec::new();
             for input in &record.tx.input {
-                if let Some(&parent) = key_to_idx.get(&TxKey::from(&input.txid))
-                    && snap_txs[parent.as_usize()].txid == input.txid
+                if let Some(&parent) = txid_to_idx.get(&input.txid)
                     && !parents.contains(&parent)
                 {
                     parents.push(parent);
@@ -122,7 +113,7 @@ impl Snapshot {
 
         Self::mirror_children(&mut snap_txs);
         let chunks = Self::linearize(&mut snap_txs, cache);
-        (snap_txs, key_to_idx, chunks)
+        (snap_txs, txid_to_idx, chunks)
     }
 
     fn live_tx(record: &TxRecord, modified: Option<i64>) -> SnapTx {

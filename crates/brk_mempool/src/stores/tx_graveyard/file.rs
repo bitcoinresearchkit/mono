@@ -385,7 +385,7 @@ fn decode(compressed: &[u8]) -> Result<(TxGraveyard, Vec<TxRecord>)> {
             (0..count)
                 .map(|_| {
                     let record = read_record(&mut input)?;
-                    if !keys.insert(record.entry.key()) {
+                    if !keys.insert(record.entry.txid) {
                         return Err(Error::Parse("a pool transaction twice".into()));
                     }
                     Ok(record)

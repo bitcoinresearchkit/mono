@@ -16,7 +16,7 @@ use crate::{
     snapshot::Rebuilder,
     snapshot::{
         SnapTx, Snapshot, TxIndex,
-        builder::{ChunkCache, KeyIndex},
+        builder::{ChunkCache, TxidIndex},
         cluster,
         partition::{Chunks, partition},
     },
@@ -127,7 +127,7 @@ fn cpfp_answers_match_a_fresh_linearization() {
     let snapshot = Snapshot::build(
         txs.clone(),
         &[Vec::new()],
-        KeyIndex::default(),
+        TxidIndex::default(),
         chunks(&txs),
         FeeRate::default(),
     );
@@ -865,7 +865,7 @@ fn address_transactions_keep_page_order() {
     let tx = |seed: u32| AddrTx {
         first_seen: Timestamp::from((seed % 7) as usize),
         prefix: TxidPrefix::from(&txid((seed % 251) as u8)),
-        key: crate::key::TxKey::from(&txid((seed % 251) as u8)),
+        txid: txid((seed % 251) as u8),
     };
     let mut entry = AddrEntry::default();
     let mut model: Vec<AddrTx> = Vec::new();
@@ -950,7 +950,7 @@ fn snapshot_after(
     let mut snapshot = Snapshot::build(
         txs,
         &indexed,
-        KeyIndex::default(),
+        TxidIndex::default(),
         Chunks::default(),
         FeeRate::default(),
     );

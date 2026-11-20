@@ -243,10 +243,6 @@ impl<K: Hash + Eq + Clone, V: Clone, S: BuildHasher + Clone> CowIndexMap<K, V, S
     pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
         self.entries.iter().map(|(key, value)| (key, value))
     }
-
-    pub fn values(&self) -> impl Iterator<Item = &V> {
-        self.entries.iter().map(|(_, value)| value)
-    }
 }
 
 /// A first-in first-out queue in [`CHUNK`]-element chunks behind `Arc`s: pushing copies the

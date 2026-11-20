@@ -13,7 +13,7 @@ use brk_types::{MempoolEntryInfo, Transaction, Txid, Vout};
 use rapidhash::RapidHashMap;
 
 use super::Confirmed;
-use crate::{State, key::TxKey, stores::ReadOnlyTxStore};
+use crate::{State, stores::ReadOnlyTxStore};
 
 pub mod pool_diff;
 pub mod tx_addition;
@@ -66,35 +66,31 @@ pub fn prepare(
     }
 }
 
-/// One `(key, reason)` per pooled tx gone from the listing, in store order.
+/// One `(txid, reason)` per pooled tx gone from the listing, in store order.
 fn classify_removals(
     departed: &[usize],
     added: &[TxAddition],
     confirmed: &Confirmed,
     state: &State,
-) -> Vec<(TxKey, TxRemoval)> {
+) -> Vec<(Txid, TxRemoval)> {
     let spent_by = build_spent_by(added);
     let mut removed: Vec<_> = departed
         .iter()
         .map(|&position| {
             let record = state.txs.record_at(position);
             (
-                record.entry.key(),
+                record.entry.txid,
                 removal_reason(&record.tx, &spent_by, confirmed),
             )
         })
         .collect();
-    TxRemoval::inherit(&mut removed, |key| {
-        state
-            .txs
-            .record_by_key(&key)
-            .into_iter()
-            .flat_map(move |record| {
-                state
-                    .outpoint_spends
-                    .children(&state.txs, key, &record.tx)
-                    .map(|(key, _)| key)
-            })
+    TxRemoval::inherit(&mut removed, |txid| {
+        state.txs.record(&txid).into_iter().flat_map(move |record| {
+            state
+                .outpoint_spends
+                .children(&state.txs, &record.tx)
+                .map(|child| child.entry.txid)
+        })
     });
     removed
 }

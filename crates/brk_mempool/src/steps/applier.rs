@@ -5,7 +5,6 @@ use rapidhash::RapidHashSet;
 
 use crate::{
     Snapshot, TxRemoval,
-    key::TxKey,
     state::State,
     steps::{
         Confirmed,
@@ -28,13 +27,13 @@ pub fn apply(
     let PoolDiff { added, removed } = diff;
     // A signaling one leaving lets go of what signaled through it alone.
     let mut orphaned = Vec::new();
-    for (key, reason) in removed {
-        if let Some(record) = state.txs.record_by_key(&key)
+    for (txid, reason) in removed {
+        if let Some(record) = state.txs.record(&txid)
             && record.entry.rbf
         {
             orphaned.extend(state.pooled_children(&record.tx));
         }
-        bury_one(state, prev_snapshot, &key, reason);
+        bury_one(state, prev_snapshot, &txid, reason);
     }
     let mut entered = Vec::with_capacity(added.len());
     for TxAddition { tx, entry } in added {
@@ -59,8 +58,8 @@ pub fn apply(
     );
 }
 
-fn bury_one(state: &mut State, prev_snapshot: &Snapshot, key: &TxKey, reason: TxRemoval) {
-    let record = state.remove(key);
+fn bury_one(state: &mut State, prev_snapshot: &Snapshot, txid: &Txid, reason: TxRemoval) {
+    let record = state.remove(txid);
     let chunk_rate = prev_snapshot
         .chunk_rate_for(&record.entry.txid)
         .unwrap_or_else(|| record.own_rate());
