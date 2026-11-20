@@ -1,7 +1,7 @@
 //! Offline snapshots of Bitview's API and storage surface, used as refactoring gates.
 //!
 //! The tools import every plugin into a temporary directory without a node and render deterministic text. Without arguments they
-//! record a local baseline under `snapshots/` (gitignored; the previous one is kept as
+//! record a local baseline under `snapshots/` at the repository root (gitignored; the previous one is kept as
 //! `<file>.prev`); `--check` compares against it and writes `<file>.new` when they differ.
 //! Versions are those of a fresh import: dependency versions applied by computation are
 //! not included, so a changed version formula must be reviewed by hand.

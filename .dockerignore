@@ -11,8 +11,7 @@
 **/target
 **/node_modules
 **/.DS_Store
-# Re-excluded below the whitelist: local snapshot baselines, local assistant
-# settings (reachable through the showcases -> modules symlink) and logs.
-crates/bitview_devtools/snapshots
+# Re-excluded below the whitelist: local assistant settings (reachable through the
+# showcases -> modules symlink) and logs.
 **/.claude
 **/*.log
