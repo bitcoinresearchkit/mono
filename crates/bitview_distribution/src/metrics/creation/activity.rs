@@ -15,8 +15,8 @@ pub struct CreationActivity<M: StorageMode = Rw> {
     /// price.
     #[traversable(lead = "Transfer volume: the bitcoin spent.")]
     pub transfer_volume: CumulativeValue<M>,
-    /// Coin days destroyed (CDD) by the cohort's outputs: each spent output's
-    /// BTC value multiplied by its age in fractional days.
+    /// Coin days destroyed (CDD) sums each spent output's BTC value times its age in fractional
+    /// days. The clock is the running maximum of block-header times.
     #[traversable(
         lead = "Coin days destroyed (CDD): coins spent, each times the days it was held, so old coins moving count most."
     )]
