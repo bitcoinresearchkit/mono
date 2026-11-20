@@ -1328,6 +1328,14 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
   got `304` for a body whose `spent` had changed; and under `--cdn` a block went out `immutable` once its larger
   outputs were spent, a small one still unspent. It is final only once every listed output is spent and settled
 
+- Block prices of 2010 to 2011 (heights 74,641 to 160,036) are the last Mt. Gox trade at or before each block's
+  time, from Bitcoincharts' archive of Mt. Gox trades as the Internet Archive captured it; those from January 5, 2015
+  (heights 337,525 to 339,994) the last Bitfinex trade at or before it (minute closes before). Block time is the
+  running maximum of header times, so no price comes from a later trade. The old 2010 to 2011 prices were off the
+  last trade by 2.0% in the median hour and 20.0% at the 99th percentile, and over 5% at 20.6% of blocks; now 0.34%,
+  7.55% and 3.2%. Prices from 2012 to January 4, 2015 (heights 160,037 to 337,524) and the oracle's seed hour stay as
+  they were. 63,052 block prices change, and every series computed from the price is recomputed on upgrade.
+
 ## [v0.13.0](https://github.com/bitcoinresearchkit/mono/releases/tag/v0.13.0) - 2026-10-30
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value

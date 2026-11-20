@@ -116,7 +116,7 @@ The oracle consumes one pre-built histogram per block via `process_histogram(&hi
 
 The caller filters as it builds the histogram, applying the [step 1](#1-filter-outputs) rules. `PaymentFilter::for_height(height).histogram(txs)` builds a fresh block histogram from non-coinbase transaction outputs. Incremental live callers use `PaymentFilter::MODERN.for_each_bin(outputs, emit)`, which applies the modern fan-out cap without requiring a height.
 
-The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000 (from height 337,525, 2015-01-05, when the original source went stale after Bitstamp's halt: Bitfinex minute closes at each block's time, except the seed at 339,999, which keeps the price the measured path below starts from).
+The initial seed must be close to the real price at the starting height. The crate includes typed pre-oracle helpers for exchange prices at heights 0..340,000, made by `src/generate-prices.js` (its header says how); the seed at 339,999 keeps the price the measured path below starts from.
 
 ## Configuration
 

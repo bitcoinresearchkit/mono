@@ -22,7 +22,7 @@ use vecdb::{Database, PcoVec, Rw, StorageMode};
 use crate::{ohlc::OhlcPrice, split::SplitPrice};
 
 const STORAGE: PluginStorage =
-    PluginStorage::new(PluginId::new("price"), Version::new(20 + ORACLE_VERSION));
+    PluginStorage::new(PluginId::new("price"), Version::new(21 + ORACLE_VERSION));
 pub const ID: PluginId = STORAGE.id();
 
 #[derive(Traversable, Plugin)]
