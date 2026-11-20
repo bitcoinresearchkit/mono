@@ -19,7 +19,7 @@ import { Pane } from "./pane.js";
 import { TimeAxis } from "./axis.js";
 import { Crosshair } from "./crosshair.js";
 
-export { Timeline, Controller, Pane, TimeAxis, lastIn, rightBlank };
+export { Timeline, Pane, TimeAxis, lastIn, rightBlank };
 export { Line, FAINT } from "./line.js";
 export { Band } from "./band.js";
 export { Bars, PARTIAL } from "./bars.js";
@@ -149,9 +149,9 @@ export class Chart {
 
   /**
    * @param {HTMLElement} element
-   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean, clock?: () => (now?: number) => number }} [options]
+   * @param {{ theme?: import("./pane.js").Theme, axis?: number, leftAxis?: number, timeHeight?: number, maxSpacing?: number, dateFormat?: (t: number) => string, embedded?: boolean }} [options]
    */
-  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, maxSpacing, dateFormat, embedded = false, clock } = {}) {
+  constructor(element, { theme = DARK, axis = 64, leftAxis = axis, timeHeight = 26, maxSpacing, dateFormat, embedded = false } = {}) {
     this.element = element;
     /**
      * In a page that scrolls: a finger's mostly vertical swipe scrolls the page, the browser deciding (`touch-action:
@@ -175,7 +175,7 @@ export class Chart {
     this.timeHeight = timeHeight;
     this.time = new Timeline({ maxSpacing });
     /** How the view moves: the wheel, a flick gliding on, moves eased to a range (see Controller). */
-    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left, clock });
+    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left });
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);
@@ -310,10 +310,15 @@ export class Chart {
 
   /** The last `span` points in view; stop momentum if the view changes. @param {number} span */
   show(span) {
-    const { from, to } = this.time;
-    this.time.show(span);
-    if (this.time.from !== from || this.time.to !== to) this.controller.halt();
+    this.#view(() => this.time.show(span));
     this.invalidate(true);
+  }
+
+  /** The view set by `set`: a flick ends if it changed. @param {() => void} set */
+  #view(set) {
+    const { from, to } = this.time;
+    set();
+    if (this.time.from !== from || this.time.to !== to) this.controller.halt();
   }
 
   /**
@@ -324,7 +329,8 @@ export class Chart {
    * @param {number} from @param {number} to @param {{ exact?: boolean }} [options]
    */
   setRange(from, to, options) {
-    this.controller.setRange(from, to, options);
+    this.#view(() => (options?.exact === true ? this.time.setRange(from, to) : this.time.slide(from, to)));
+    this.invalidate();
   }
 
   get range() {

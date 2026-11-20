@@ -19,7 +19,7 @@ import {
   within,
 } from "/studio/app.js";
 import { $, all$, closest, composing, escapeHtml, keyText, TOUCH } from "/studio/dom.js";
-import { motionTime } from "/studio/timing.js";
+import { motionTime } from "/modules/bitview-charts/clock.js";
 import { clamp, lowerBound } from "/studio/math.js";
 import {
   amount, AXIS_CHARS, axisTicks, dateLabel, format, growth, MONTHS, precise, PRECISE, SI_UNITS, unitOf, WIDEST_VALUES,
@@ -1299,20 +1299,20 @@ function applyRange(doc, data, animate = false) {
   if (animate) glide(target, doc.range);
   else showSpan(target);
 }
-/** The preset a glide in flight goes to (null for zooms); read only while one flies (the controller's target). */
-let glidePreset = null;
+/** The glide last asked for: its target and the preset it goes to (null for zooms); it counts while that target is the controller's. @type {{ to: { from: number, to: number }, preset: string | null } | null} */
+let glided = null;
 /** Where a glide in flight is going; null: none. */
 const glideTarget = () => engine.controller.target;
 /** Moves the view to a window over a moment, easing out, instead of jumping. */
 function glide(target, preset = null) {
   target = within(target);
   target = ontoData(target) ?? target;
-  glidePreset = preset;
+  glided = { to: target, preset };
   engine.controller.viewTo(target, reduced.matches ? 0 : MOTION.page);
 }
 /** Whether the view still shows the chart's range preset: resizes keep it, pans and zooms leave it. */
 function showsPreset() {
-  if (glideTarget() && glidePreset !== null) return glidePreset === chart.range;
+  if (glided?.preset != null && glideTarget() === glided.to) return glided.preset === chart.range;
   // In bars, against the preset's own window: empty room past the data counts (a time range stops at the data,
   // and zoomed out past both ends it would read as "Max").
   const range = shownSpan();

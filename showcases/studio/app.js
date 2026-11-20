@@ -15,7 +15,8 @@ import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
   MAC, NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
-import { motionClock, motionTime, whenIdle } from "/studio/timing.js";
+import { motionClock } from "/modules/bitview-charts/clock.js";
+import { whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import {
   ago, dollarsAndCents, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes, toTheCent,
@@ -3020,7 +3021,7 @@ resized.observe($("navigator"));
 resized.observe($("overview"));
 // The chart (bitview-charts): its timeline (`engine.time`), its panes, its drawing. On an element of its own in the
 // page's box, sized by the page (Studio sizes and pins it while a motion stretches its picture: see `resized`).
-const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })), { clock: motionTime });
+const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })));
 // (Its date axis at least as high as a control's reach, a finger's by touch: it's dragged to scale time, and Full
 // screen in the corner beside it fits its reach there, never over the price scale. Before its first layout.)
 engine.timeHeight = Math.max(engine.timeHeight, parseFloat(css("--control-hit")));
@@ -3828,8 +3829,8 @@ function layOutLegends() {
 }
 /** The chart as ⌘K shows a look on it, while it does (sized as it shows). @type {Chart | null} */
 let lookDoc = null;
-// The person takes over: a drag or a scroll stops any glide.
-for (const type of ["pointerdown", "wheel"]) $("chart").addEventListener(type, () => engine.controller.stop(), { capture: true, passive: true });
+// The person takes over: a press stops any glide (a wheel does by itself).
+$("chart").addEventListener("pointerdown", () => engine.controller.stop(), { capture: true, passive: true });
 
 // Legends at the top of each pane, and the values beside each layer, follow the crosshair.
 let hoverTime = null;

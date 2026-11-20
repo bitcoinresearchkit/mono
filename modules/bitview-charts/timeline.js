@@ -157,6 +157,18 @@ export class Timeline {
   }
 
   /**
+   * The view moved to show from point `from` to `to` (within the zoom's bounds: narrower, centred at the closest). As wide
+   * as it is (a glide's step, a navigator's drag), moved as a pan is, by whole pixels (the rest kept); else as setRange.
+   * @param {number} from @param {number} to
+   */
+  slide(from, to) {
+    const span = to - from;
+    // (From where it truly is: its kept part of a pixel counted once.)
+    if (this.length && Math.abs(span - (this.to - this.from)) <= span * 1e-9) this.pan((this.from - from) * this.spacing - this.rest);
+    else this.setRange(from, to);
+  }
+
+  /**
    * The plot's width changed: keep the same points from edge to edge, with the spacing the new width makes.
    * @param {number} width
    */
