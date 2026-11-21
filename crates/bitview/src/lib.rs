@@ -20,7 +20,7 @@ use tokio::{
     runtime::{Builder, Runtime},
     task::JoinHandle,
 };
-use tracing::{debug, info, warn};
+use tracing::{debug, error, info, warn};
 use vecdb::{Budgeted, ReadOnlyClone};
 
 mod bootstrap;
@@ -69,6 +69,11 @@ where
     exit.install_signal_handlers();
 
     let result = run_with(config, exit.clone(), import);
+    // The day log and `/api/server/logs` end with what ended the run; the caller's stderr line
+    // covers a failure before logging started.
+    if let Err(error) = &result {
+        error!(%error, "Fatal error");
+    }
     // Past bootstrap, detached threads keep the databases open, so nothing dropped on the way
     // here joined their background work (the indexer's ingestion, a compaction): returning now
     // would end the process inside its critical section.

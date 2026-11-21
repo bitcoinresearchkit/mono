@@ -50,8 +50,12 @@ where
         return Ok(output);
     };
     let _lock = context.exit().lock();
-    plugins.commit(complete)?;
+    plugins
+        .commit(complete)
+        .map_err(|error| error.context("commit"))?;
     info!("Update published in {:.2?}", start.elapsed());
-    plugins.write_published()?;
+    plugins
+        .write_published()
+        .map_err(|error| error.context("write published state"))?;
     Ok(output)
 }
