@@ -1,9 +1,11 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::MutableVec;
-use crate::{AnyStoredVec, ChangeData, ImportOptions, Result, Stamp, StoredVec, VecIndex};
+use crate::{
+    AnyStoredVec, ChangeData, ImportOptions, ImportableVec, Result, Stamp, StoredVec, VecIndex,
+};
 
-pub trait MutableRawVec: StoredVec {
+pub trait MutableRawVec: StoredVec + ImportableVec {
     type Reader;
 
     /// Imports without resetting: a version or format mismatch is an error, so the

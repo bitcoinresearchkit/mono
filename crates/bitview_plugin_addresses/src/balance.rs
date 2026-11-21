@@ -220,7 +220,7 @@ pub struct Balances<M: StorageMode = Rw> {
     #[traversable(lead = "Addresses, each with a balance of")]
     pub bands: AmountRange<BalanceVecs<M>, ZeroBalanceVecs<M>>,
     #[traversable(hidden)]
-    pub capital: CachedSeries<Height, Cents, M>,
+    pub capital: CachedSeries<Cents, M>,
 }
 
 impl Balances {
@@ -233,6 +233,7 @@ impl Balances {
             ctx.db,
             "address_capital_cents",
             ctx.version + Version::new(3),
+            ctx.mappings,
         )?;
         let address_capital = capital.read_only_boxed_clone();
         let totals = ShareTotals {

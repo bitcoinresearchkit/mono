@@ -21,7 +21,7 @@ impl Vecs {
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
-        let supply = import_cached(&db, "unspent_sats", version)?;
+        let supply = import_cached(&db, "unspent_sats", version, mappings)?;
         let circulating_supply = LazyPerBlock::from_height_source::<Convert>(
             "circulating_supply",
             version,

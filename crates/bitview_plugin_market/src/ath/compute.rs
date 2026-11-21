@@ -52,7 +52,7 @@ impl Vecs {
 }
 
 fn compute_seconds_since(
-    seconds_since: &mut CachedSeries<Height, Seconds>,
+    seconds_since: &mut CachedSeries<Seconds>,
     starting_height: Height,
     high: &impl ReadableVec<Height, Cents>,
     prices: &impl ReadableVec<Height, Cents>,
@@ -93,7 +93,7 @@ fn compute_seconds_since(
 /// it: a completed interval counts at the block that ends it. Null before the first price, the
 /// first ATH.
 fn compute_days_between_max(
-    days_between_max: &mut CachedSeries<Height, Days>,
+    days_between_max: &mut CachedSeries<Days>,
     starting_height: Height,
     seconds_since: &impl ReadableVec<Height, Seconds>,
     timestamps: &impl ReadableVec<Height, Timestamp>,

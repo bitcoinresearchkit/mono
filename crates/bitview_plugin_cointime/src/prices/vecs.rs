@@ -1,7 +1,7 @@
 use bitview_primitives::{Multiple, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio};
-use brk_types::{Cents, Height};
+use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -45,9 +45,9 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(lead = "Cointime price: the value of the holding time spent, for each unit stored.")]
     pub cointime: PriceWithMvrv<M>,
     #[traversable(hidden)]
-    pub(super) vaulted_cents: CachedSeries<Height, Cents, M>,
+    pub(super) vaulted_cents: CachedSeries<Cents, M>,
     #[traversable(hidden)]
-    pub(super) active_cents: CachedSeries<Height, Cents, M>,
+    pub(super) active_cents: CachedSeries<Cents, M>,
     #[traversable(hidden)]
-    pub(super) true_market_mean_cents: CachedSeries<Height, Cents, M>,
+    pub(super) true_market_mean_cents: CachedSeries<Cents, M>,
 }

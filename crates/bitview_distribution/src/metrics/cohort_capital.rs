@@ -83,7 +83,7 @@ pub struct CohortCapital<M: StorageMode = Rw> {
     #[traversable(flatten)]
     views: CapitalViews,
     #[traversable(hidden)]
-    stored: CachedSeries<Height, Cents, M>,
+    stored: CachedSeries<Cents, M>,
 }
 
 impl CohortCapital {
@@ -100,7 +100,7 @@ impl CohortCapital {
         window_starts: &Windows<&LazyWindowStartVec>,
         all_capital: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
-        let stored = import_stored(db, &name("realized_cap_cents"), version)?;
+        let stored = import_stored(db, &name("realized_cap_cents"), version, mappings)?;
         Ok(Self {
             views: CapitalViews::new(name, version, &stored, all_capital, mappings, window_starts),
             stored,

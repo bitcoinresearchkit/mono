@@ -21,7 +21,12 @@ impl Vecs {
         let ranges = AgeRange::try_from_fn(|id| -> Result<_> {
             let name = CohortContext::Utxo.full_name(id.cohort());
             let name = |metric: &str| format!("{name}_{metric}");
-            let mobility_source = import_cached(db, &name("mobility_bounded_source"), version)?;
+            let mobility_source = import_cached(
+                db,
+                &name("mobility_bounded_source"),
+                version,
+                mappings,
+            )?;
             let supply = &id.select(&age.ranges).supply.total.stored;
             Ok(RangeVecs {
                 spending_rate: PerBlock::import(db, &name("spending_rate"), version, mappings)?,

@@ -24,6 +24,12 @@ pub trait AnyStoredVec: AnyVec {
     #[doc(hidden)]
     fn write(&mut self) -> Result<bool>;
 
+    /// Writes what the last [`write`](Self::write) held back for after the update is published.
+    /// Most vectors hold nothing back. Returns whether it wrote anything.
+    fn write_held(&mut self) -> Result<bool> {
+        Ok(false)
+    }
+
     #[doc(hidden)]
     fn db(&self) -> Database;
 

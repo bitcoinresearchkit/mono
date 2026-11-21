@@ -17,15 +17,16 @@ pub use fiat::Fiat;
 pub use supply::Supply;
 
 use brk_error::Result;
-use brk_types::{Height, Version};
+use brk_types::Version;
 use vecdb::{Database, PcoVecValue};
 
-use bitview_vecs::{CachedSeries, import_cached};
+use bitview_vecs::{CachedSeries, IndexSources, import_cached};
 
 pub(crate) fn import_stored<T: PcoVecValue>(
     db: &Database,
     name: &str,
     version: Version,
-) -> Result<CachedSeries<Height, T>> {
-    import_cached(db, name, version + Version::TWO)
+    indexes: &IndexSources,
+) -> Result<CachedSeries<T>> {
+    import_cached(db, name, version + Version::TWO, indexes)
 }

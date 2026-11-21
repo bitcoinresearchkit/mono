@@ -27,10 +27,10 @@ impl Vecs {
             &all_chain.supply,
             |_, cap, supply| Cents::from(f64::from(cap) / f64::from(Bitcoin::from(supply))),
         );
-        let vaulted_cents = import_cached(db, "vaulted_price_cents", version)?;
-        let active_cents = import_cached(db, "active_price_cents", version)?;
+        let vaulted_cents = import_cached(db, "vaulted_price_cents", version, mappings)?;
+        let active_cents = import_cached(db, "active_price_cents", version, mappings)?;
         let true_market_mean_cents =
-            import_cached(db, "true_market_mean_cents", version + Version::ONE)?;
+            import_cached(db, "true_market_mean_cents", version + Version::ONE, mappings)?;
         let true_market_mean = PriceWithRatio::import(
             db,
             "true_market_mean",

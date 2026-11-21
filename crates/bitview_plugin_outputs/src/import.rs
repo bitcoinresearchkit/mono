@@ -31,7 +31,7 @@ impl Vecs {
         let per_second =
             LazyPerSecondWindows::new("outputs_per_second", version, &count.rolling.sum);
         let types = by_type::Vecs::import(&db, version, mappings, window_starts)?;
-        let unspendable_value = import_cached(&db, "unspendable_output_value", version)?;
+        let unspendable_value = import_cached(&db, "unspendable_output_value", version, mappings)?;
         let non_op_return_count = by_type::non_op_return_output_count(
             version + Version::TWO,
             &types.types.unspendable.op_return.count.cumulative.height,

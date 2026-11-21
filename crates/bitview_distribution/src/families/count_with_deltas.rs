@@ -3,7 +3,7 @@ use bitview_primitives::{Count, CountSigned, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlockWithDeltas, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
-use brk_types::{Height, Version};
+use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
@@ -14,7 +14,7 @@ pub struct CountWithDeltas<M: StorageMode = Rw> {
     #[traversable(flatten)]
     count: LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
     #[traversable(hidden)]
-    pub stored: CachedSeries<Height, Count, M>,
+    pub stored: CachedSeries<Count, M>,
 }
 
 impl CountWithDeltas {
@@ -25,7 +25,7 @@ impl CountWithDeltas {
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
-        let stored = import_stored(db, name, version)?;
+        let stored = import_stored(db, name, version, mappings)?;
         let count = LazyPerBlockWithDeltas::from_height_source(
             name,
             version,

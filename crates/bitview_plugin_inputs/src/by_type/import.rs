@@ -23,6 +23,7 @@ impl Vecs {
                 db,
                 &format!("{}_prevout_count_cumulative", kind.key()),
                 version,
+                mappings,
             )
         })?;
         let tx_count_stored = SpendableType::try_from_fn(|kind| {
@@ -30,6 +31,7 @@ impl Vecs {
                 db,
                 &format!("tx_count_with_{}_prevout_cumulative", kind.key()),
                 version,
+                mappings,
             )
         })?;
         // Coinbase transactions spend no outputs.

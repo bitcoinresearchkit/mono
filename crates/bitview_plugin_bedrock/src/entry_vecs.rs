@@ -21,9 +21,9 @@ pub struct EntryVecs<M: StorageMode = Rw> {
     #[traversable(lead = "Entry capital: what that bitcoin cost.")]
     pub entry_capital: FloorBands<LazyFiatPerBlock<Cents>>,
     #[traversable(hidden)]
-    supply_stored: FloorBands<CachedSeries<Height, Sats, M>>,
+    supply_stored: FloorBands<CachedSeries<Sats, M>>,
     #[traversable(hidden)]
-    capital_stored: FloorBands<CachedSeries<Height, Cents, M>>,
+    capital_stored: FloorBands<CachedSeries<Cents, M>>,
 }
 
 impl EntryVecs {
@@ -39,6 +39,7 @@ impl EntryVecs {
                 db,
                 &format!("{name}_entry_supply_{}_sats", id.name()),
                 version,
+                mappings,
             )
         })?;
         let capital_stored = FloorBands::try_from_fn(|id| {
@@ -46,6 +47,7 @@ impl EntryVecs {
                 db,
                 &format!("{name}_entry_capital_{}_cents", id.name()),
                 version,
+                mappings,
             )
         })?;
         Ok(Self {

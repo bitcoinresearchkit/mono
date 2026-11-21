@@ -12,7 +12,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::CachedSeries;
 use brk_error::{OptionData, Result};
 use brk_exit::Exit;
-use brk_types::{Height, Sats, SigOps, VSize};
+use brk_types::{Sats, SigOps, VSize};
 use rayon::prelude::*;
 use tracing::info;
 use vecdb::{AnyStoredVec, AnyVec, ComputeVec, ReadableVec, VecIndex, WritableVec};
@@ -98,7 +98,7 @@ impl Vecs {
         indexer: &Indexer,
         mappings: &MappingsVecs,
         vsize: &mut TxDistribution<VSize>,
-        transfer_volume: &mut CachedSeries<Height, Sats>,
+        transfer_volume: &mut CachedSeries<Sats>,
         valued: &mut Valued<'_>,
         exit: &Exit,
     ) -> Result<()> {
@@ -115,7 +115,7 @@ impl Vecs {
     fn outputs_mut<'a>(
         &'a mut self,
         vsize: &'a mut TxDistribution<VSize>,
-        transfer_volume: &'a mut CachedSeries<Height, Sats>,
+        transfer_volume: &'a mut CachedSeries<Sats>,
         valued: &'a mut Valued<'_>,
     ) -> ([&'a mut dyn AnyStoredVec; 6], Vec<&'a mut dyn AnyStoredVec>) {
         let (parent_flag, [parent_count, parent_value]) = self.cpfp_parent.stored_mut();
@@ -153,7 +153,7 @@ impl Vecs {
         indexer: &Indexer,
         mappings: &MappingsVecs,
         vsize: &mut TxDistribution<VSize>,
-        transfer_volume: &mut CachedSeries<Height, Sats>,
+        transfer_volume: &mut CachedSeries<Sats>,
         valued: &mut Valued<'_>,
         exit: &Exit,
     ) -> Result<()> {
@@ -409,7 +409,7 @@ impl Vecs {
         &mut self,
         batch: &mut Batch,
         vsize: &mut TxDistribution<VSize>,
-        transfer_volume: &mut CachedSeries<Height, Sats>,
+        transfer_volume: &mut CachedSeries<Sats>,
         valued: &mut Valued<'_>,
         cumulative: &mut (Sats, Sats),
         exit: &Exit,
@@ -482,7 +482,7 @@ impl Vecs {
     fn write_fees(
         &mut self,
         vsize: &mut TxDistribution<VSize>,
-        transfer_volume: &mut CachedSeries<Height, Sats>,
+        transfer_volume: &mut CachedSeries<Sats>,
         valued: &mut Valued<'_>,
         exit: &Exit,
     ) -> Result<()> {

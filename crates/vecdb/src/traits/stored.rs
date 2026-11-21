@@ -1,9 +1,9 @@
-use crate::{
-    ImportableVec, ReadableCloneableVec, ReadableVec, TypedVec, VecIndex, VecValue, WritableVec,
-};
+use crate::{ReadableCloneableVec, ReadableVec, TypedVec, VecIndex, VecValue, WritableVec};
 
+/// A vector that writes rows and hands out read-only clones. How one is imported is its own
+/// ([`ImportableVec`](crate::ImportableVec) for the ones a name and a version describe).
 pub trait StoredVec:
-    ImportableVec + TypedVec + WritableVec<Self::I, Self::T> + ReadableCloneableVec<Self::I, Self::T>
+    TypedVec + WritableVec<Self::I, Self::T> + ReadableCloneableVec<Self::I, Self::T>
 where
     Self::I: VecIndex,
     Self::T: VecValue,

@@ -68,7 +68,7 @@ pub struct AddressVecs<M: StorageMode = Rw> {
     /// The supply the addresses hold, and the outputs they received and inputs they spent:
     /// the shares' and average balance's denominators.
     #[traversable(hidden)]
-    pub(crate) supply: CachedSeries<Height, Sats, M>,
+    pub(crate) supply: CachedSeries<Sats, M>,
     #[traversable(hidden)]
     outputs: CumulativeSource<Count, M>,
     #[traversable(hidden)]
@@ -80,7 +80,7 @@ pub struct StoredCount<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub value: LazyPerBlock<Count>,
     #[traversable(hidden)]
-    pub stored: CachedSeries<Height, Count, M>,
+    pub stored: CachedSeries<Count, M>,
 }
 
 #[derive(Clone, Traversable)]
@@ -200,16 +200,23 @@ impl AddressVecs {
     pub fn import(ctx: &ImportContext<'_>, prefix: &str) -> Result<Self> {
         let name = |metric: &str| format!("{prefix}{metric}");
         let count_version = ctx.version + Version::ONE;
-        let supply = import_cached(ctx.db, &name("address_supply_sats"), count_version)?;
+        let supply = import_cached(
+            ctx.db,
+            &name("address_supply_sats"),
+            count_version,
+            ctx.mappings,
+        )?;
         let outputs = CumulativeSource::import(
             ctx.db,
             &name("address_output_count_cumulative"),
             count_version,
+            ctx.mappings,
         )?;
         let inputs = CumulativeSource::import(
             ctx.db,
             &name("address_input_count_cumulative"),
             count_version,
+            ctx.mappings,
         )?;
         let funded = CountWithDeltas::import(
             ctx.db,
@@ -296,7 +303,7 @@ impl AddressVecs {
 
     /// The running counters at the end of `height`, `None` without that block.
     pub fn restore(&self, height: Height) -> Option<MemberState> {
-        let count = |vec: &CachedSeries<Height, Count>| vec.collect_one(height).map(u64::from);
+        let count = |vec: &CachedSeries<Count>| vec.collect_one(height).map(u64::from);
         let supply = |supply: &PredicateSupply| supply.value.stored.collect_one(height);
         let reuse = |vecs: &ReuseVecs| -> Option<ReuseState> {
             Some(ReuseState {
@@ -326,7 +333,7 @@ impl AddressVecs {
 
 impl StoredCount {
     fn import(ctx: &ImportContext<'_>, name: &str, version: Version) -> Result<Self> {
-        let stored = import_cached(ctx.db, name, version)?;
+        let stored = import_cached(ctx.db, name, version, ctx.mappings)?;
         let value = LazyPerBlock::from_height_source::<Ident>(name, version, &stored, ctx.mappings);
         Ok(Self { value, stored })
     }
@@ -395,8 +402,8 @@ impl AvgBalance {
     fn new(
         ctx: &ImportContext<'_>,
         name: &str,
-        supply: &CachedSeries<Height, Sats>,
-        funded: &CachedSeries<Height, Count>,
+        supply: &CachedSeries<Sats>,
+        funded: &CachedSeries<Count>,
     ) -> Self {
         let version = ctx.version + Version::TWO;
         let btc = LazyIndexedVec::new(
@@ -434,7 +441,7 @@ impl ReuseVecs {
         prefix: &str,
         predicate: &str,
         activity: &ActivityVecs,
-        address_supply: &CachedSeries<Height, Sats>,
+        address_supply: &CachedSeries<Sats>,
         outputs: &impl ReadableCloneableVec<Height, Count>,
         inputs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
@@ -547,7 +554,7 @@ impl PredicateSupply {
     fn import(
         ctx: &ImportContext<'_>,
         name: &str,
-        address_supply: &CachedSeries<Height, Sats>,
+        address_supply: &CachedSeries<Sats>,
     ) -> Result<Self> {
         let version = ctx.version + Version::ONE;
         let value = Supply::import(ctx.db, name, version, ctx.mappings, ctx.spot)?;

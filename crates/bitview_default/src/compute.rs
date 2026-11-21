@@ -34,6 +34,7 @@ use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
 use bitview_plugin_utxo_set::{Dependencies as UtxoSetDependencies, UrpdConsumer};
 use bitview_plugin_utxos::Dependencies as UtxosDependencies;
 use bitview_primitives::Lengths;
+use bitview_traversable::Traversable;
 #[cfg(feature = "bench-cpu")]
 use brk_error::Error;
 use brk_error::Result;
@@ -162,20 +163,17 @@ impl DefaultPlugins {
         let indexer = self.indexer.as_ref();
         let from = indexer.compute_start().height;
 
-        // Price reads only the indexer.
-        let (mappings, price) = join(
-            || {
-                timed_compute(
-                    &mut *self.mappings,
-                    MappingsDependencies { indexer },
-                    context,
-                )
-            },
-            || timed_compute(&mut *self.price, PriceDependencies { indexer }, context),
-        );
-        mappings?;
-        price?;
+        timed_compute(
+            &mut *self.mappings,
+            MappingsDependencies { indexer },
+            context,
+        )?;
         let mappings = self.mappings.as_ref();
+        timed_compute(
+            &mut *self.price,
+            PriceDependencies { indexer, mappings },
+            context,
+        )?;
         let price = self.price.as_ref();
 
         let (entry, coinflow, supply, cointime, bedrock, rarity_meter) = (
@@ -558,8 +556,20 @@ impl ComputePluginSet for DefaultPlugins {
     }
 
     fn write_published(&mut self) -> Result<()> {
-        let _step = serial::step(bitview_plugin_addresses::ID);
-        self.addresses.write_published_state()
+        {
+            let _step = serial::step(bitview_plugin_addresses::ID);
+            self.addresses.write_published_state()?;
+        }
+        // What the update's writes held back until it was published (a day's closes).
+        let start = Instant::now();
+        let mut wrote = false;
+        for vec in self.iter_any_stored_mut() {
+            wrote |= vec.write_held()?;
+        }
+        if wrote {
+            info!("Wrote held rows in {:.2?}", start.elapsed());
+        }
+        Ok(())
     }
 
     // The reads an update spends most of its time on when idle minutes left them on disk: the

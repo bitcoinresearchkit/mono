@@ -26,7 +26,7 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = price.spot.cents.height.read_only_boxed_clone();
-        let columns = AgeAggregate::try_from_fn(|id| Columns::import(&db, id, version))?;
+        let columns = AgeAggregate::try_from_fn(|id| Columns::import(&db, id, version, mappings))?;
         let cohorts = AgeAggregate::try_build(&Imports {
             db: &db,
             v: version,

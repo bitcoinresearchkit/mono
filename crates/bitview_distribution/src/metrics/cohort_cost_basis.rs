@@ -2,7 +2,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, Price, import_cached};
 use brk_error::Result;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Cents, Version};
 use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 /// A cohort's mean creation price; `name` gives each series name from its metric
@@ -13,7 +13,7 @@ pub struct CohortCostBasis<M: StorageMode = Rw> {
     /// weighted by satoshis.
     by_coin: ByCoin,
     #[traversable(hidden)]
-    stored: CachedSeries<Height, Cents, M>,
+    stored: CachedSeries<Cents, M>,
 }
 
 #[derive(Clone, Traversable)]
@@ -35,7 +35,7 @@ impl CohortCostBasis {
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let stored = import_cached(db, &name("cost_basis_by_coin_avg_cents"), version)?;
+        let stored = import_cached(db, &name("cost_basis_by_coin_avg_cents"), version, mappings)?;
         let price =
             |metric: &str| Price::from_height_source(&name(metric), version, &stored, mappings);
         Ok(Self {

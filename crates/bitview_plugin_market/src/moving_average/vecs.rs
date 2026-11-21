@@ -1,7 +1,6 @@
 use bitview_primitives::CentsFract;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, PriceWithRatio};
-use brk_types::Height;
 use vecdb::{Rw, StorageMode};
 
 use super::{periods::Periods, sma::SmaVecs};
@@ -25,5 +24,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub(crate) ema: Periods<PriceWithRatio<M>>,
     #[traversable(hidden)]
     /// Exact exponential-average state in fractional cents; the views round it to whole cents.
-    pub(crate) ema_stored: Periods<CachedSeries<Height, CentsFract, M>>,
+    pub(crate) ema_stored: Periods<CachedSeries<CentsFract, M>>,
 }

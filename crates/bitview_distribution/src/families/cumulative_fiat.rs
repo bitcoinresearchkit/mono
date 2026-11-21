@@ -29,6 +29,7 @@ impl<C: FiatType> CumulativeFiat<C> {
             db,
             &format!("{name}_cumulative_cents"),
             version + Version::TWO,
+            mappings,
         )?;
         let value = LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
             name,

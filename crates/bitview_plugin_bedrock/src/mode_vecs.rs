@@ -1,7 +1,7 @@
 use bitview_primitives::{BoundedRatio, Percent};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, Price};
-use brk_types::{Cents, Height};
+use brk_types::Cents;
 use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
 
 use super::{EntryVecs, ModeResult, Percentiles, PriceBands};
@@ -26,9 +26,9 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     pub floor: EntryVecs<M>,
     #[traversable(hidden)]
     pub(crate) supply_in_loss_share_threshold_stored:
-        Percentiles<CachedSeries<Height, BoundedRatio, M>>,
+        Percentiles<CachedSeries<BoundedRatio, M>>,
     #[traversable(hidden)]
-    pub(crate) prices_stored: PriceBands<CachedSeries<Height, Cents, M>>,
+    pub(crate) prices_stored: PriceBands<CachedSeries<Cents, M>>,
 }
 
 impl ModeVecs {

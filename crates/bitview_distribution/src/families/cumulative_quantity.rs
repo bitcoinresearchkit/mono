@@ -33,7 +33,12 @@ where
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored =
-            CumulativeSource::import(db, &format!("{name}_cumulative"), version + Version::TWO)?;
+            CumulativeSource::import(
+                db,
+                &format!("{name}_cumulative"),
+                version + Version::TWO,
+                mappings,
+            )?;
         let value = LazyPerBlockCumulativeRolling::from_cumulative_source(
             name,
             version,

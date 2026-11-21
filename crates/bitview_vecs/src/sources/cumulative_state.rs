@@ -57,7 +57,7 @@ impl<R: Clone + Default> CumulativeState<R> {
 
     /// Appends to `stored` the running total through one more block of `value`.
     #[inline(always)]
-    pub(crate) fn push(&mut self, stored: &mut CachedSeries<Height, R>, value: R)
+    pub(crate) fn push(&mut self, stored: &mut CachedSeries<R>, value: R)
     where
         R: PcoVecValue + AddAssign,
     {

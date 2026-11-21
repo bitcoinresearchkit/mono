@@ -118,7 +118,7 @@ pub(crate) struct Valued<'a> {
     pub nonstandard_flag: &'a mut PcoVec<TxIndex, Boolean>,
     pub nonstandard_count: &'a mut PerBlockCumulativeRolling<Count>,
     /// Inscription transactions' fees through every block, in sats.
-    pub inscription_fees: &'a mut CachedSeries<Height, Sats>,
+    pub inscription_fees: &'a mut CachedSeries<Sats>,
     /// Every transaction's virtual size through every block.
     pub vsize_total: &'a mut PerBlockCumulative<VSize>,
     /// What BIP-69's order would match by chance through every block.
