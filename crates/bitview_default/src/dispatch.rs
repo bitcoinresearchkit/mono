@@ -6,21 +6,6 @@ use rayon::Scope;
 
 use crate::serial;
 
-/// `rayon::join`, except in the serial CPU replay (see [`serial`]): there the branches run one
-/// after the other, so a step's process CPU is its own. The parallel work inside each plugin is
-/// unchanged. The caller runs `left` and waits for `right`, which any worker may take, the
-/// caller's own wait included: `right` is never the longer side.
-pub fn join<A: Send, B: Send>(
-    left: impl FnOnce() -> A + Send,
-    right: impl FnOnce() -> B + Send,
-) -> (A, B) {
-    if serial::enabled() {
-        (left(), right())
-    } else {
-        rayon::join(left, right)
-    }
-}
-
 /// The first error of the roots, reported once the scope ends.
 pub type Failed = Mutex<Option<Error>>;
 

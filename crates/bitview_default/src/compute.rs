@@ -47,7 +47,7 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{
     DefaultPlugins,
-    dispatch::{Failed, Meet, Root, join, spread},
+    dispatch::{Failed, Meet, Root, spread},
     serial,
     timing::{Timed, log_compute, timed_compute},
 };
@@ -140,8 +140,8 @@ impl DefaultPlugins {
     /// Market runs on the caller, which then takes branches too.
     /// The second of Inputs and Outputs to complete goes on with the UTXO set, the walk of its
     /// history (the URPD history, Age and Profitability) and Holders; the second of that chain and
-    /// Mining's to complete goes on with Coinflow beside Supply and Cointime beside Entry, then
-    /// Bedrock beside the Rarity meter. The scope ends once every plugin has.
+    /// Mining's to complete goes on with Coinflow, Supply, Cointime, Entry, Bedrock and the Rarity
+    /// meter, one after another. The scope ends once every plugin has.
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
         brk_alloc::collect();
         let failed = Failed::default();
@@ -211,105 +211,80 @@ impl DefaultPlugins {
                     .cents
                     .height
                     .read_only_boxed_clone();
-                // Each join runs its longer side in place, and pushes only a side shorter than
-                // every plugin that may be waiting beside it: Coinflow (the longest) beside Supply
-                // and Cointime beside Entry, then Bedrock beside the Rarity meter. Coinflow reads
-                // Age, not Holders.
-                let (coinflow_done, cointime_done) = join(
-                    || {
-                        timed_compute(
-                            &mut *coinflow,
-                            CoinflowDependencies {
-                                urpd,
-                                indexer,
-                                mappings,
-                                price,
-                                age,
-                            },
-                            context,
-                        )
+                // One after another, in place: a plugin pushed beside another could be taken by a
+                // worker waiting in a long plugin's join (Addresses' block loop) and hold it to
+                // the end, 100 s for Cointime from zero. Coinflow reads Age, not Holders.
+                timed_compute(
+                    &mut *coinflow,
+                    CoinflowDependencies {
+                        urpd,
+                        indexer,
+                        mappings,
+                        price,
+                        age,
                     },
-                    || -> Result<()> {
-                        let (cointime_done, entry_done) = join(
-                            || -> Result<()> {
-                                timed_compute(
-                                    &mut *supply,
-                                    SupplyDependencies {
-                                        indexer,
-                                        outputs,
-                                        mining,
-                                        price,
-                                    },
-                                    context,
-                                )?;
-                                timed_compute(
-                                    &mut *cointime,
-                                    CointimeDependencies {
-                                        urpd,
-                                        indexer,
-                                        mappings,
-                                        price,
-                                        inflation_rate: &supply.inflation_rate,
-                                        volume_1y: &transactions.transfer_volume.sum._1y,
-                                        age,
-                                        holders,
-                                    },
-                                    context,
-                                )
-                            },
-                            || {
-                                timed_compute(
-                                    &mut *entry,
-                                    EntryDependencies {
-                                        sources,
-                                        walk,
-                                        from,
-                                        capitalized_price: &capitalized_price,
-                                    },
-                                    context,
-                                )
-                            },
-                        );
-                        cointime_done?;
-                        entry_done
+                    context,
+                )?;
+                timed_compute(
+                    &mut *supply,
+                    SupplyDependencies {
+                        indexer,
+                        outputs,
+                        mining,
+                        price,
                     },
-                );
-                coinflow_done?;
-                cointime_done?;
+                    context,
+                )?;
+                timed_compute(
+                    &mut *cointime,
+                    CointimeDependencies {
+                        urpd,
+                        indexer,
+                        mappings,
+                        price,
+                        inflation_rate: &supply.inflation_rate,
+                        volume_1y: &transactions.transfer_volume.sum._1y,
+                        age,
+                        holders,
+                    },
+                    context,
+                )?;
+                timed_compute(
+                    &mut *entry,
+                    EntryDependencies {
+                        sources,
+                        walk,
+                        from,
+                        capitalized_price: &capitalized_price,
+                    },
+                    context,
+                )?;
                 let (cointime, coinflow) = (&*cointime, &*coinflow);
-                let (bedrock_done, rarity_meter_done) = join(
-                    || {
-                        timed_compute(
-                            &mut *bedrock,
-                            BedrockDependencies {
-                                urpd,
-                                history: &history,
-                                price,
-                                indexer,
-                                age,
-                                holders,
-                                cointime,
-                                coinflow,
-                            },
-                            context,
-                        )
+                timed_compute(
+                    &mut *bedrock,
+                    BedrockDependencies {
+                        urpd,
+                        history: &history,
+                        price,
+                        indexer,
+                        age,
+                        holders,
+                        cointime,
+                        coinflow,
                     },
-                    || {
-                        timed_compute(
-                            &mut *rarity_meter,
-                            RarityMeterDependencies {
-                                indexer,
-                                price,
-                                holders,
-                                cointime,
-                                coinflow,
-                            },
-                            context,
-                        )
+                    context,
+                )?;
+                timed_compute(
+                    &mut *rarity_meter,
+                    RarityMeterDependencies {
+                        indexer,
+                        price,
+                        holders,
+                        cointime,
+                        coinflow,
                     },
-                );
-                bedrock_done?;
-                rarity_meter_done
+                    context,
+                )
             },
         ));
 

@@ -34,42 +34,37 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
         let start = indexer.compute_start().height;
 
-        // The spend index reads only indexer columns: it runs beside everything else.
-        let (spent, created) = join(
-            || spent.compute(indexer, mappings, exit),
-            || -> Result<()> {
-                let outputs = &indexer.vecs().outputs;
-                // Price-independent output facts; require neither Inputs nor transaction
-                // analysis.
-                value::compute_sats(
-                    value::Targets {
-                        op_return: &mut op_return_value.cumulative.sats.height,
-                        unspendable_value,
-                        values: &mut types.values,
-                        coinbase,
-                    },
-                    creations,
-                    usize::from(start)..outputs.first_txout_index.len(),
-                    indexer,
-                    exit,
-                )?;
-                db.flush();
-                count.compute(start, &mappings.lookback.window_starts(), exit)?;
-                let (fiat, counts) = join(
-                    || op_return_value.compute_cents(start, &price.spot.cents.height, exit),
-                    || types.compute(indexer, exit),
-                );
-                fiat?;
-                counts?;
-                for output in types.values.iter_mut() {
-                    output
-                        .value
-                        .compute_cents(start, &price.spot.cents.height, exit)?;
-                }
-                pubkeys.compute(start, &indexer.vecs().transactions.counters, exit)
+        // The spend index and the output values each read every output: in place, one after the
+        // other, parallel inside. Pushed beside the other, either could be taken by a worker
+        // waiting in another plugin's join and hold it to its end.
+        spent.compute(indexer, mappings, exit)?;
+        let outputs = &indexer.vecs().outputs;
+        // Price-independent output facts; require neither Inputs nor transaction analysis.
+        value::compute_sats(
+            value::Targets {
+                op_return: &mut op_return_value.cumulative.sats.height,
+                unspendable_value,
+                values: &mut types.values,
+                coinbase,
             },
+            creations,
+            usize::from(start)..outputs.first_txout_index.len(),
+            indexer,
+            exit,
+        )?;
+        db.flush();
+        count.compute(start, &mappings.lookback.window_starts(), exit)?;
+        let (fiat, counts) = join(
+            || op_return_value.compute_cents(start, &price.spot.cents.height, exit),
+            || types.compute(indexer, exit),
         );
-        spent?;
-        created
+        fiat?;
+        counts?;
+        for output in types.values.iter_mut() {
+            output
+                .value
+                .compute_cents(start, &price.spot.cents.height, exit)?;
+        }
+        pubkeys.compute(start, &indexer.vecs().transactions.counters, exit)
     }
 }
