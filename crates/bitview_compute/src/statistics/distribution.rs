@@ -1,10 +1,7 @@
 use brk_error::Result;
 
 use brk_exit::Exit;
-use vecdb::{
-    AnyStoredVec, CachePolicy, PcoVec, PcoVecValue, ReadableVec, VecIndex, VecValue, Version,
-    WritableVec,
-};
+use vecdb::{ReadableVec, VecIndex, VecValue, Version, WritableVec};
 
 use super::{DistributionStats, Retained, window::SortedWindow};
 use crate::prepare_computed;
@@ -16,19 +13,20 @@ const CHUNK: usize = 20_000;
 /// from one sorted window, continuing the `retained` window when it is current. Rows before
 /// `first` have none (NaN), and no window reaches before it (dollar values: the first price). A
 /// window starting after its row is empty: NaN.
-pub fn compute_rolling_distribution_from_starts<I, T, A, P: CachePolicy>(
+pub fn compute_rolling_distribution_from_starts<I, T, A, V>(
     max_from: I,
     first: usize,
     window_starts: &impl ReadableVec<I, I>,
     values: &impl ReadableVec<I, A>,
-    mut outputs: DistributionStats<&mut PcoVec<I, T, P>>,
+    mut outputs: DistributionStats<&mut V>,
     retained: &mut Retained<SortedWindow>,
     exit: &Exit,
 ) -> Result<()>
 where
     I: VecIndex,
-    T: PcoVecValue + From<f64>,
+    T: VecValue + From<f64>,
     A: VecValue + Copy,
+    V: WritableVec<I, T>,
     f64: From<A>,
 {
     let version =

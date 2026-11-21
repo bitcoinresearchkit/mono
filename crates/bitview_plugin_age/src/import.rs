@@ -25,7 +25,7 @@ impl Vecs {
         let db = STORAGE.open_database(context, 20_000_000)?;
         let version = STORAGE.schema_version();
         let spot = prices.spot.cents.height.read_only_boxed_clone();
-        let all_capital = import_cached(&db, "capital_cents", version + Version::TWO)?;
+        let all_capital = import_cached(&db, "capital_cents", version + Version::TWO, mappings)?;
         let capital = all_capital.read_only_boxed_clone();
         let totals = ShareTotals {
             supply: all_supply,

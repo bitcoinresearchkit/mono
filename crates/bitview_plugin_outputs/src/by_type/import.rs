@@ -20,6 +20,7 @@ impl Vecs {
                 db,
                 &format!("{}_output_count_cumulative", kind.key()),
                 version,
+                mappings,
             )
         })?;
         let tx_count_stored = ByType::try_from_fn(|kind| {
@@ -27,6 +28,7 @@ impl Vecs {
                 db,
                 &format!("tx_count_with_{}_output_cumulative", kind.key()),
                 version,
+                mappings,
             )
         })?;
         let outputs = mappings.output_count_source();

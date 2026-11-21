@@ -2,7 +2,7 @@ use bitview_compute::{AverageWindow, Retained};
 use bitview_primitives::Multiple;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, PriceWithRatio};
-use brk_types::{Cents, Height};
+use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
 use super::periods::Periods;
@@ -24,6 +24,6 @@ pub(crate) struct StoredSma<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub price: PriceWithRatio<M>,
     #[traversable(hidden)]
-    pub cents: CachedSeries<Height, Cents, M>,
+    pub cents: CachedSeries<Cents, M>,
     pub window: M::WriteOnly<Retained<AverageWindow>>,
 }

@@ -13,7 +13,7 @@ pub struct Supply<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub value: LazySpotValuePerBlock,
     #[traversable(hidden)]
-    pub stored: CachedSeries<Height, Sats, M>,
+    pub stored: CachedSeries<Sats, M>,
 }
 
 impl Supply {
@@ -24,7 +24,7 @@ impl Supply {
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let stored = import_stored(db, &format!("{name}_sats"), version)?;
+        let stored = import_stored(db, &format!("{name}_sats"), version, mappings)?;
         let value =
             LazySpotValuePerBlock::from_sats_source(name, version, &stored, mappings, spot_price);
         Ok(Self { value, stored })

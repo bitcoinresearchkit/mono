@@ -32,7 +32,7 @@ pub struct Component<M: StorageMode = Rw> {
 
     /// The stored ratio percentiles behind `bands`, in parts per million.
     #[traversable(hidden)]
-    ratios: RarityPercentiles<CachedSeries<Height, PartsPerMillion32, M>>,
+    ratios: RarityPercentiles<CachedSeries<PartsPerMillion32, M>>,
 
     price: M::WriteOnly<ComponentPrice>,
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
@@ -55,7 +55,12 @@ impl Component {
         let version = version + VERSION;
         let component_price = ComponentPrice::new(price_source, ratio_source);
         let ratios = RarityPercentiles::try_from_fn(|id| {
-            import_cached(db, &format!("{price}_ratio_rarity_{}_ppm", id.suffix()), version)
+            import_cached(
+                db,
+                &format!("{price}_ratio_rarity_{}_ppm", id.suffix()),
+                version,
+                mappings,
+            )
         })?;
         let bands = RarityPercentiles::from_fn(|id| {
             let suffix = id.suffix();

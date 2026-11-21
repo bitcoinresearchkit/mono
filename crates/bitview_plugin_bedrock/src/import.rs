@@ -24,6 +24,7 @@ impl ModeVecs {
                     id.name()
                 ),
                 version,
+                mappings,
             )
         })?;
         let supply_in_loss_share_threshold = Percentiles::from_fn(|id| {
@@ -35,7 +36,7 @@ impl ModeVecs {
             )
         });
         let prices_stored = PriceBands::try_from_fn(|id| {
-            import_cached(db, &format!("{name}_{}_cents", id.suffix()), version)
+            import_cached(db, &format!("{name}_{}_cents", id.suffix()), version, mappings)
         })?;
         let prices = PriceBands::from_fn(|id| {
             Price::from_height_source(

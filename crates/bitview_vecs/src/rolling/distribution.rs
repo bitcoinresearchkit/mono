@@ -9,9 +9,9 @@ use brk_types::{Height, Version};
 use derive_more::{Deref, DerefMut};
 use rayon::prelude::{IntoParallelIterator, ParallelIterator};
 use schemars::JsonSchema;
-use vecdb::{Budgeted, Database, PcoVec, ReadableVec, Rw, StorageMode, VecValue};
+use vecdb::{Database, ReadableVec, Rw, StorageMode, VecValue};
 
-use crate::{IndexSources, RollingWindows, WindowStarts};
+use crate::{CachedSeries, IndexSources, RollingWindows, WindowStarts};
 
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingDistribution<T, M: StorageMode = Rw>
@@ -75,7 +75,7 @@ where
 
         macro_rules! window {
             ($w:ident) => {
-                DistributionStats::<&mut PcoVec<Height, T, Budgeted>> {
+                DistributionStats::<&mut CachedSeries<T>> {
                     min: &mut min.$w.height,
                     max: &mut max.$w.height,
                     p10: &mut p10.$w.height,

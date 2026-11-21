@@ -27,8 +27,13 @@ impl CumulativeValue {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         let stored = |unit: &str| format!("{name}_cumulative_{unit}");
-        let sats = CumulativeSource::import(db, &stored("sats"), version + Version::TWO)?;
-        let cents = CumulativeSource::import(db, &stored("cents"), version + Version::TWO)?;
+        let sats = CumulativeSource::import(db, &stored("sats"), version + Version::TWO, mappings)?;
+        let cents = CumulativeSource::import(
+            db,
+            &stored("cents"),
+            version + Version::TWO,
+            mappings,
+        )?;
         let value = LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
             name,
             version,

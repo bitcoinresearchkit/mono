@@ -45,7 +45,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     #[traversable(lead = "Immobile part: these coins, by how unlikely they are to be spent.")]
     pub immobile: SideVecs,
     #[traversable(hidden)]
-    pub(crate) mobility_source: CachedSeries<Height, BoundedRatio, M>,
+    pub(crate) mobility_source: CachedSeries<BoundedRatio, M>,
 }
 
 impl<M: StorageMode> Vecs<M> {

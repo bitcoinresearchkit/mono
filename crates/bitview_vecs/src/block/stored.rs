@@ -1,6 +1,6 @@
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Height, Version};
+use brk_types::Version;
 use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
 use vecdb::{Database, PcoVecValue, Rw, StorageMode};
@@ -13,7 +13,7 @@ pub struct PerBlock<T, M: StorageMode = Rw>
 where
     T: PcoVecValue + PartialOrd + JsonSchema,
 {
-    pub height: CachedSeries<Height, T, M>,
+    pub height: CachedSeries<T, M>,
     #[deref]
     #[deref_mut]
     #[traversable(flatten)]
@@ -30,7 +30,7 @@ where
         version: Version,
         indexes: &IndexSources,
     ) -> Result<Self> {
-        let height = import_cached(db, name, version)?;
+        let height = import_cached(db, name, version, indexes)?;
 
         let resolutions = Resolutions::from_source(name, &height, version, indexes);
 

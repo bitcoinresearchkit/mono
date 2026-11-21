@@ -2,7 +2,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, FiatType, LazyFiatPerBlock};
 use brk_error::Result;
-use brk_types::{Cents, Height, Version};
+use brk_types::{Cents, Version};
 use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 use super::import_stored;
@@ -13,7 +13,7 @@ pub struct Fiat<C: FiatType = Cents, M: StorageMode = Rw> {
     #[traversable(flatten)]
     value: LazyFiatPerBlock<C>,
     #[traversable(hidden)]
-    pub stored: CachedSeries<Height, C, M>,
+    pub stored: CachedSeries<C, M>,
 }
 
 impl<C: FiatType> Fiat<C> {
@@ -23,7 +23,7 @@ impl<C: FiatType> Fiat<C> {
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let stored = import_stored(db, &format!("{name}_cents"), version)?;
+        let stored = import_stored(db, &format!("{name}_cents"), version, mappings)?;
         let value = LazyFiatPerBlock::from_cents_source(name, version, &stored, mappings);
         Ok(Self { value, stored })
     }

@@ -1,6 +1,5 @@
 use bitview_compute::{WRITE_INTERVAL, prepare_computed, write_chunks, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
-use bitview_plugin_indexer::Indexer;
 use bitview_primitives::Float64;
 use bitview_vecs::first_price_height;
 use brk_error::{OptionData, Result};
@@ -16,7 +15,8 @@ use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecIndex, WritableVec};
 use crate::{Dependencies, Vecs, feed_blocks_with, warm_oracle};
 
 impl Vecs {
-    fn compute_prices(&mut self, indexer: &Indexer, exit: &Exit) -> Result<()> {
+    fn compute_prices(&mut self, dependencies: Dependencies<'_>, exit: &Exit) -> Result<()> {
+        let Dependencies { indexer, mappings } = dependencies;
         let starting_height = indexer.compute_start().height;
 
         let source_version: Version = [
@@ -29,7 +29,7 @@ impl Vecs {
         ]
         .into_iter()
         .sum();
-        let total_heights = indexer.vecs().blocks.timestamp.len();
+        let total_heights = mappings.timestamp.monotonic.len();
         if first_price_height().is_none() {
             // No BTC/USD history on this chain: one missing price per block keeps dependents
             // aligned to heights without inventing prices. The oracle never runs here.
@@ -134,7 +134,6 @@ impl ComputePlugin for Vecs {
         dependencies: Self::Dependencies<'_>,
         context: UpdateContext<'_>,
     ) -> Result<()> {
-        let Dependencies { indexer } = dependencies;
-        self.compute_prices(indexer, context.exit())
+        self.compute_prices(dependencies, context.exit())
     }
 }

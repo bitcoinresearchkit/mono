@@ -1,7 +1,7 @@
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use brk_error::Result;
-use brk_types::{Height, Version};
+use brk_types::Version;
 use vecdb::{AnyStoredVec, Database, Rw, StorageMode, WritableVec};
 
 use crate::{CachedSeries, IndexSources, LazyPercentPerBlock, import_cached};
@@ -66,7 +66,7 @@ pub struct DensityVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub series: Density<LazyPercentPerBlock<PartsPerMillion32>>,
     #[traversable(hidden)]
-    stored: Density<CachedSeries<Height, PartsPerMillion32, M>>,
+    stored: Density<CachedSeries<PartsPerMillion32, M>>,
 }
 
 impl DensityVecs {
@@ -77,9 +77,9 @@ impl DensityVecs {
         indexes: &IndexSources,
     ) -> Result<Self> {
         let stored = Density::try_from_fn(|suffix| {
-            import_cached(db, &format!("{name}{suffix}_ppm"), version)
+            import_cached(db, &format!("{name}{suffix}_ppm"), version, indexes)
         })?;
-        let view = |source: &CachedSeries<Height, PartsPerMillion32>, suffix| {
+        let view = |source: &CachedSeries<PartsPerMillion32>, suffix| {
             LazyPercentPerBlock::from_height_source(
                 &format!("{name}{suffix}"),
                 version,

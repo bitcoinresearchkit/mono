@@ -9,7 +9,7 @@ use base::{
 };
 use variants::*;
 
-pub use rawdb::{Database, Error as RawDBError, PAGE_SIZE, Reader};
+pub use rawdb::{Database, Error as RawDBError, PAGE_SIZE, Reader, Region};
 
 #[cfg(feature = "derive")]
 pub use vecdb_derive::{Bytes, Pco};

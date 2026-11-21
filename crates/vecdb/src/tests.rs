@@ -16,8 +16,9 @@ use std::{
 
 use crate::{
     AnyStoredVec, AnyVec, Budgeted, BytesVec, Database, DeltaSub, Header, ImportOptions,
-    LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, RawStrategy, ReadWriteRawVec,
-    ReadableCloneableVec, ReadableVec, Stamp, StoredVec, Version, cache::CachePolicy,
+    ImportableVec, LazyDeltaVec, LazyVec, MutableVec, OverflowVec, OverflowVecValue, RawStrategy,
+    ReadWriteRawVec, ReadableCloneableVec, ReadableVec, Stamp, StoredVec, Version,
+    cache::CachePolicy,
 };
 
 /// Undo records each vector keeps: deeper rollbacks do not land (the caller may rebuild).
@@ -604,7 +605,7 @@ macro_rules! check_range_cursor {
 
 /// What the harness needs from a variant beyond [`StoredVec`]: in-place mutations (mutable
 /// variants only) and checks of the variant's own readers.
-trait Variant: StoredVec<I = usize, T = u64> {
+trait Variant: StoredVec<I = usize, T = u64> + ImportableVec {
     const MUTABLE: bool;
 
     /// Replaces the values at distinct indexes; with `previous`, the stored ones all equal it.

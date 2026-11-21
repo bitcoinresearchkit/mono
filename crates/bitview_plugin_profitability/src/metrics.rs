@@ -3,8 +3,8 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CachedSeries, LazyFiatPerBlock, LazyPercentPerBlock, LazySpotValuePerBlock, import_cached,
-    ops::Quotient,
+    CachedSeries, IndexSources, LazyFiatPerBlock, LazyPercentPerBlock, LazySpotValuePerBlock,
+    import_cached, ops::Quotient,
 };
 use brk_error::Result;
 use brk_types::{Cents, Height, Sats, Version};
@@ -15,8 +15,8 @@ use crate::{
     terms::{TERMS, Terms},
 };
 
-type Bands<T, M> = Terms<ProfitabilityRange<CachedSeries<Height, T, M>>>;
-type Totals<T, M> = Terms<CachedSeries<Height, T, M>>;
+type Bands<T, M> = Terms<ProfitabilityRange<CachedSeries<T, M>>>;
+type Totals<T, M> = Terms<CachedSeries<T, M>>;
 
 /// The 25 profitability bands for all, short-term and long-term holders.
 #[derive(Traversable)]
@@ -82,10 +82,10 @@ struct BandCapital {
 
 /// A band's stored series and its filter's totals.
 struct BandSources<'a> {
-    supply: &'a CachedSeries<Height, Sats>,
-    capital: &'a CachedSeries<Height, Cents>,
-    supply_total: &'a CachedSeries<Height, Sats>,
-    capital_share: &'a CachedSeries<Height, PartsPerMillion32>,
+    supply: &'a CachedSeries<Sats>,
+    capital: &'a CachedSeries<Cents>,
+    supply_total: &'a CachedSeries<Sats>,
+    capital_share: &'a CachedSeries<PartsPerMillion32>,
 }
 
 impl Band {
@@ -137,10 +137,10 @@ impl Metrics {
         mappings: &Mappings,
         spot: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Box<Self>> {
-        let supply_stored = Self::import_bands(db, "supply_sats", version)?;
-        let capital_stored = Self::import_bands(db, "realized_cap_cents", version)?;
-        let supply_total = Self::import_totals(db, "profitability_supply_sats", version)?;
-        let capital_share_stored = Self::import_bands(db, "capital_share_ppm", version)?;
+        let supply_stored = Self::import_bands(db, "supply_sats", version, mappings)?;
+        let capital_stored = Self::import_bands(db, "realized_cap_cents", version, mappings)?;
+        let supply_total = Self::import_totals(db, "profitability_supply_sats", version, mappings)?;
+        let capital_share_stored = Self::import_bands(db, "capital_share_ppm", version, mappings)?;
         let terms = Terms::from_fn(|term| {
             ProfitabilityRange::from_fn(|band| {
                 let band_name = band.select(&PROFITABILITY_RANGE_NAMES).id;
@@ -171,6 +171,7 @@ impl Metrics {
         db: &Database,
         metric: &str,
         version: Version,
+        indexes: &IndexSources,
     ) -> Result<Bands<T, Rw>> {
         Terms::try_from_fn(|term| {
             ProfitabilityRange::try_from_fn(|band| {
@@ -179,6 +180,7 @@ impl Metrics {
                     db,
                     &term.metric_name(&format!("{band_name}_{metric}")),
                     version,
+                    indexes,
                 )
             })
         })
@@ -188,8 +190,9 @@ impl Metrics {
         db: &Database,
         metric: &str,
         version: Version,
+        indexes: &IndexSources,
     ) -> Result<Totals<T, Rw>> {
-        Terms::try_from_fn(|term| import_cached(db, &term.metric_name(metric), version))
+        Terms::try_from_fn(|term| import_cached(db, &term.metric_name(metric), version, indexes))
     }
 
     pub(crate) fn push(&mut self, bands: &ProfitabilityRange<Bucket>, totals: &Bucket) {

@@ -19,9 +19,9 @@ pub(crate) struct Imports<'a> {
     pub spot: &'a ReadableBoxedVec<Height, Cents>,
     pub cost_basis: &'a CostBasisVecs,
     /// The under-an-hour band's cumulative transfer volume in cents, which aSOPR leaves out.
-    pub under_1h_volume: &'a CachedSeries<Height, Cents>,
+    pub under_1h_volume: &'a CachedSeries<Cents>,
     /// The under-an-hour band's cumulative value destroyed, which aSOPR leaves out.
-    pub under_1h_value_destroyed: &'a CachedSeries<Height, Cents>,
+    pub under_1h_value_destroyed: &'a CachedSeries<Cents>,
 }
 
 /// What the holder groups compute from after the block loop.

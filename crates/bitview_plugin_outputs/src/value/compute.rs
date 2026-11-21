@@ -17,9 +17,9 @@ use crate::{STORAGE, by_type::OutputValue, counts::Coinbase};
 /// What the walk over each block's outputs fills beside the creation journal.
 pub(crate) struct Targets<'a> {
     /// The value sent to OP_RETURN outputs, through every block.
-    pub(crate) op_return: &'a mut CachedSeries<Height, Sats>,
+    pub(crate) op_return: &'a mut CachedSeries<Sats>,
     /// The value sent to unspendable outputs (Core's coin-pruning rule), per block.
-    pub(crate) unspendable_value: &'a mut CachedSeries<Height, Sats>,
+    pub(crate) unspendable_value: &'a mut CachedSeries<Sats>,
     pub(crate) values: &'a mut SpendableType<OutputValue>,
     pub(crate) coinbase: &'a mut Coinbase,
 }

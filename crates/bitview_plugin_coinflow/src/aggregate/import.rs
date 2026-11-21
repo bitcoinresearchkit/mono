@@ -16,7 +16,7 @@ impl Vecs {
         mappings: &MappingsVecs,
         spot_price: &ReadableBoxedVec<Height, Cents>,
     ) -> Result<Self> {
-        let sources = WeightedCohortSources::import(db, "mobile", "immobile", version)?;
+        let sources = WeightedCohortSources::import(db, "mobile", "immobile", version, mappings)?;
         let cohorts = AgeAggregate::try_from_fn(|id| {
             CohortVecs::new(db, id, version, &sources, mappings, spot_price)
         })?;

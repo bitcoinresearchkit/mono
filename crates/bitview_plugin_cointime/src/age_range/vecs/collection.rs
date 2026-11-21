@@ -49,7 +49,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     #[traversable(lead = "Dormant part: these coins, by how much of their holding time is still stored.")]
     pub dormant: SideVecs,
     #[traversable(hidden)]
-    pub(crate) wakefulness_source: CachedSeries<Height, BoundedRatio, M>,
+    pub(crate) wakefulness_source: CachedSeries<BoundedRatio, M>,
 }
 
 impl<M: StorageMode> Vecs<M> {
@@ -58,7 +58,7 @@ impl<M: StorageMode> Vecs<M> {
         AgeRange::from_fn(|id| &id.select(&self.ranges).wakefulness_source)
     }
 
-    pub(crate) fn wakefulness_sources(&self) -> AgeRange<&CachedSeries<Height, BoundedRatio, M>> {
+    pub(crate) fn wakefulness_sources(&self) -> AgeRange<&CachedSeries<BoundedRatio, M>> {
         AgeRange::from_fn(|id| &id.select(&self.ranges).wakefulness_source)
     }
 }

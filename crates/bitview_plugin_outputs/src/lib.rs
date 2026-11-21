@@ -19,7 +19,7 @@ use bitview_vecs::{
     CachedSeries, LazyPerBlockCumulativeRolling, LazyPerSecondWindows,
     PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling,
 };
-use brk_types::{Height, Sats, Version};
+use brk_types::{Sats, Version};
 use statedb::Creations;
 use vecdb::{Database, Rw, StorageMode};
 
@@ -54,7 +54,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// The value sent to provably unspendable outputs (`OP_RETURN`, or a locking
     /// script over 10,000 bytes) in each block: the burned value's share of outputs.
     #[traversable(hidden)]
-    pub unspendable_value: CachedSeries<Height, Sats, M>,
+    pub unspendable_value: CachedSeries<Sats, M>,
     /// Transaction outputs by locking-script type, including coinbase outputs
     /// and coinbase transactions.
     types: TypesVecs<M>,

@@ -1,120 +1,159 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_primitives::{CoinDays, Count, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{CachedSeries, CumulativeState, import_cached, ops::Quotient};
+use bitview_vecs::{CachedSeries, CumulativeState, IndexSources, import_cached, ops::Quotient};
 use brk_error::Result;
-use brk_types::{Cents, CentsSigned, Height, Sats, Version};
+use brk_types::{Cents, CentsSigned, Sats, Version};
 use vecdb::{AnyVec, BinaryTransform, Database, ReadableVec, Rw, StorageMode, WritableVec};
 
 use crate::accounting::AccountingTotals;
 
 #[derive(Traversable)]
 pub(crate) struct Columns<M: StorageMode = Rw> {
-    pub supply: CachedSeries<Height, Sats, M>,
-    pub count: CachedSeries<Height, Count, M>,
-    pub spent_count: CachedSeries<Height, Count, M>,
-    pub volume_sats: CachedSeries<Height, Sats, M>,
-    pub volume_cents: CachedSeries<Height, Cents, M>,
-    pub volume_profit_sats: CachedSeries<Height, Sats, M>,
-    pub volume_profit_cents: CachedSeries<Height, Cents, M>,
-    pub volume_loss_cents: CachedSeries<Height, Cents, M>,
-    pub cdd: CachedSeries<Height, CoinDays, M>,
-    pub cap: CachedSeries<Height, Cents, M>,
-    pub profit: CachedSeries<Height, Cents, M>,
-    pub loss: CachedSeries<Height, Cents, M>,
-    pub value_destroyed: CachedSeries<Height, Cents, M>,
-    pub unrealized_profit: CachedSeries<Height, Cents, M>,
-    pub unrealized_loss: CachedSeries<Height, Cents, M>,
-    pub supply_profit: CachedSeries<Height, Sats, M>,
-    pub price: CachedSeries<Height, Cents, M>,
-    pub capitalized_price: CachedSeries<Height, Cents, M>,
-    pub peak_regret: CachedSeries<Height, Cents, M>,
-    pub nupl: CachedSeries<Height, PartsPerMillionSigned32, M>,
-    pub cap_profit: CachedSeries<Height, Cents, M>,
-    pub cap_loss: CachedSeries<Height, Cents, M>,
+    pub supply: CachedSeries<Sats, M>,
+    pub count: CachedSeries<Count, M>,
+    pub spent_count: CachedSeries<Count, M>,
+    pub volume_sats: CachedSeries<Sats, M>,
+    pub volume_cents: CachedSeries<Cents, M>,
+    pub volume_profit_sats: CachedSeries<Sats, M>,
+    pub volume_profit_cents: CachedSeries<Cents, M>,
+    pub volume_loss_cents: CachedSeries<Cents, M>,
+    pub cdd: CachedSeries<CoinDays, M>,
+    pub cap: CachedSeries<Cents, M>,
+    pub profit: CachedSeries<Cents, M>,
+    pub loss: CachedSeries<Cents, M>,
+    pub value_destroyed: CachedSeries<Cents, M>,
+    pub unrealized_profit: CachedSeries<Cents, M>,
+    pub unrealized_loss: CachedSeries<Cents, M>,
+    pub supply_profit: CachedSeries<Sats, M>,
+    pub price: CachedSeries<Cents, M>,
+    pub capitalized_price: CachedSeries<Cents, M>,
+    pub peak_regret: CachedSeries<Cents, M>,
+    pub nupl: CachedSeries<PartsPerMillionSigned32, M>,
+    pub cap_profit: CachedSeries<Cents, M>,
+    pub cap_loss: CachedSeries<Cents, M>,
     peak: M::WriteOnly<CumulativeState<Cents>>,
 }
 impl Columns {
-    pub fn import(db: &Database, id: AgeAggregateId, version: Version) -> Result<Self> {
+    pub fn import(
+        db: &Database,
+        id: AgeAggregateId,
+        version: Version,
+        indexes: &IndexSources,
+    ) -> Result<Self> {
         Ok(Self {
-            supply: import_cached(db, &id.metric_name("supply_sats"), version)?,
-            count: import_cached(db, &id.metric_name("utxo_count"), version)?,
+            supply: import_cached(db, &id.metric_name("supply_sats"), version, indexes)?,
+            count: import_cached(db, &id.metric_name("utxo_count"), version, indexes)?,
             spent_count: import_cached(
                 db,
                 &id.metric_name("spent_utxo_count_cumulative"),
                 version,
+                indexes,
             )?,
             volume_sats: import_cached(
                 db,
                 &id.metric_name("transfer_volume_cumulative_sats"),
                 version,
+                indexes,
             )?,
             volume_cents: import_cached(
                 db,
                 &id.metric_name("transfer_volume_cumulative_cents"),
                 version,
+                indexes,
             )?,
             volume_profit_sats: import_cached(
                 db,
                 &id.metric_name("transfer_volume_in_profit_cumulative_sats"),
                 version,
+                indexes,
             )?,
             volume_profit_cents: import_cached(
                 db,
                 &id.metric_name("transfer_volume_in_profit_cumulative_cents"),
                 version,
+                indexes,
             )?,
             volume_loss_cents: import_cached(
                 db,
                 &id.metric_name("transfer_volume_in_loss_cumulative_cents"),
                 version,
+                indexes,
             )?,
             cdd: import_cached(
                 db,
                 &id.metric_name("coindays_destroyed_cumulative"),
                 version,
+                indexes,
             )?,
-            cap: import_cached(db, &id.metric_name("realized_cap_cents"), version)?,
+            cap: import_cached(db, &id.metric_name("realized_cap_cents"), version, indexes)?,
             profit: import_cached(
                 db,
                 &id.metric_name("realized_profit_cumulative_cents"),
                 version,
+                indexes,
             )?,
             loss: import_cached(
                 db,
                 &id.metric_name("realized_loss_cumulative_cents"),
                 version,
+                indexes,
             )?,
             value_destroyed: import_cached(
                 db,
                 &id.metric_name("value_destroyed_cumulative_cents"),
                 version,
+                indexes,
             )?,
             unrealized_profit: import_cached(
                 db,
                 &id.metric_name("unrealized_profit_cents"),
                 version,
+                indexes,
             )?,
-            unrealized_loss: import_cached(db, &id.metric_name("unrealized_loss_cents"), version)?,
-            supply_profit: import_cached(db, &id.metric_name("supply_in_profit_sats"), version)?,
-            price: import_cached(db, &id.metric_name("cost_basis_by_coin_avg_cents"), version)?,
+            unrealized_loss: import_cached(
+                db,
+                &id.metric_name("unrealized_loss_cents"),
+                version,
+                indexes,
+            )?,
+            supply_profit: import_cached(
+                db,
+                &id.metric_name("supply_in_profit_sats"),
+                version,
+                indexes,
+            )?,
+            price: import_cached(
+                db,
+                &id.metric_name("cost_basis_by_coin_avg_cents"),
+                version,
+                indexes,
+            )?,
             capitalized_price: import_cached(
                 db,
                 &id.metric_name("cost_basis_by_dollar_avg_cents"),
                 version,
+                indexes,
             )?,
             peak_regret: import_cached(
                 db,
                 &id.metric_name("realized_peak_regret_cumulative_cents"),
                 version,
+                indexes,
             )?,
-            nupl: import_cached(db, &id.metric_name("nupl_ppm"), version + Version::ONE)?,
+            nupl: import_cached(db, &id.metric_name("nupl_ppm"), version + Version::ONE, indexes)?,
             cap_profit: import_cached(
                 db,
                 &id.metric_name("realized_cap_in_profit_cents"),
                 version,
+                indexes,
             )?,
-            cap_loss: import_cached(db, &id.metric_name("realized_cap_in_loss_cents"), version)?,
+            cap_loss: import_cached(
+                db,
+                &id.metric_name("realized_cap_in_loss_cents"),
+                version,
+                indexes,
+            )?,
             peak: Default::default(),
         })
     }

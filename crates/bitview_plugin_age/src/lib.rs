@@ -38,7 +38,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     all_supply: ReadableBoxedVec<Height, Sats>,
     /// The capital of every age range together, each cohort's capital share's denominator.
     #[traversable(hidden)]
-    all_capital: CachedSeries<Height, Cents, M>,
+    all_capital: CachedSeries<Cents, M>,
     /// Ages run on monotonic block time, the running maximum of block-header times.
     pub ranges: Box<AgeRange<RangeVecs<M>>>,
     /// Realized HODL (RHODL) ratio: realized cap of the 1d–1w band divided by
@@ -67,7 +67,7 @@ impl<M: StorageMode> Vecs<M> {
     }
 
     /// The capital of every age range together: all unspent outputs at their creation price.
-    pub fn all_capital(&self) -> &CachedSeries<Height, Cents, M> {
+    pub fn all_capital(&self) -> &CachedSeries<Cents, M> {
         &self.all_capital
     }
 
