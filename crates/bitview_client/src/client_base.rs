@@ -35,14 +35,16 @@ impl Default for BitviewClientOptions {
     }
 }
 
-/// How long a server that failed is passed over: a misconfigured `bitview-origin` costs at most
+/// How long a server that is gone is passed over: a misconfigured `bitview-origin` costs at most
 /// one retried request per period, and a restarted server is taken back after it.
 const REFUSE: Duration = Duration::from_secs(600);
 
 /// Reuses connections through `ureq::Agent`. When several servers answer one URL, each names
 /// itself in `bitview-origin` and the requests after go to it, so what one server minted (a
-/// diff's `since`) stays with it; one that fails (network, timeout, 5xx) is passed over and the
-/// GET goes through the configured URL again. POSTs dispatch once. Clones share the server.
+/// diff's `since`) stays with it. Whatever such an answer says, 5xx included, is the server's own
+/// and goes to the caller; a server that fails to answer (network, timeout) or answers without the
+/// header is gone: it is passed over and a GET goes through the configured URL again. POSTs
+/// dispatch once. Clones share the server.
 #[derive(Debug, Clone)]
 pub struct BitviewClientBase {
     agent: Agent,
@@ -89,18 +91,35 @@ impl BitviewClientBase {
     ) -> Result<T> {
         let send = |base: &str| self.agent.get(format!("{base}{path}")).call();
         let pinned = self.pin().server.clone();
-        if let Some(server) = pinned {
-            if let Ok(response) = send(&server)
-                && !response.status().is_server_error()
-                && let Ok(result) = self.read(response, &read)
-            {
-                return result;
-            }
-            self.refuse(&server);
+        if let Some(server) = pinned
+            && let (true, Ok(result)) = self.answer(Some(&server), send(&server), &read)
+        {
+            return result;
         }
         send(&self.base_url)
             .and_then(|response| self.read(response, read))
             .map_err(|error| BitviewError::new(error.to_string()))?
+    }
+
+    /// Reads the `response` to a request. A pinned `server` keeps its pin only when the answer
+    /// names it and reads as an answer (an HTTP error included), which `true` says; any other
+    /// outcome refuses it. The one place the rule lives: a GET goes on through the configured
+    /// URL after a refusal, a POST returns what it got.
+    fn answer<T>(
+        &self,
+        pinned: Option<&str>,
+        response: std::result::Result<Response<Body>, ureq::Error>,
+        read: impl FnOnce(BodyWithConfig<'_>) -> std::result::Result<T, ureq::Error>,
+    ) -> (bool, Attempt<T>) {
+        let named = response.as_ref().is_ok_and(names_server);
+        let attempt = response.and_then(|response| self.read(response, read));
+        let kept = named && attempt.is_ok();
+        if let Some(server) = pinned
+            && !kept
+        {
+            self.refuse(server);
+        }
+        (kept, attempt)
     }
 
     fn refuse(&self, server: &str) {
@@ -149,7 +168,7 @@ impl BitviewClientBase {
     }
 
     pub fn get_json<T: DeserializeOwned>(&self, path: &str) -> Result<T> {
-        self.get(path, |body| body.read_json())
+        parse_json(self.get_bytes(path)?)
     }
 
     pub fn get_text(&self, path: &str) -> Result<String> {
@@ -167,7 +186,7 @@ impl BitviewClientBase {
         body: &str,
         content_type: &str,
     ) -> Result<T> {
-        self.post(path, body, content_type, |body| body.read_json())
+        parse_json(self.post_bytes(path, body, content_type)?)
     }
 
     /// POSTs `body` as `content_type`, reading the text answer.
@@ -198,20 +217,10 @@ impl BitviewClientBase {
             .build()
             .header("Content-Type", content_type)
             .send(body);
-        let result = response
-            .and_then(|response| self.read(response, read))
+        let (_, attempt) = self.answer(pinned.as_deref(), response, read);
+        attempt
             .map_err(|error| BitviewError::new(error.to_string()))
-            .flatten();
-        if let Some(server) = &pinned
-            && result.as_ref().is_err_and(|error| {
-                error
-                    .status
-                    .is_none_or(|status| status >= 500 || status == 408)
-            })
-        {
-            self.refuse(server);
-        }
-        result
+            .flatten()
     }
 
     /// The outer error is a failed transport. A received HTTP error or bad payload is the
@@ -224,7 +233,7 @@ impl BitviewClientBase {
         let status = response.status();
         if !status.is_success() {
             let text = response.body_mut().read_to_string();
-            if !status.is_server_error() && text.is_ok() {
+            if text.is_ok() {
                 self.follow(response.headers());
             }
             return Ok(Err(Self::http_error(status, text.unwrap_or_default())));
@@ -233,12 +242,8 @@ impl BitviewClientBase {
         let value = match read(response.body_mut().with_config().limit(u64::MAX)) {
             Ok(value) => value,
             Err(error) => {
-                // For a streaming JSON body, serde wraps transport errors in its own error.
-                let payload_error = match &error {
-                    ureq::Error::Json(error) => !error.is_io(),
-                    ureq::Error::Io(error) => error.kind() == ErrorKind::InvalidData,
-                    _ => false,
-                };
+                let payload_error =
+                    matches!(&error, ureq::Error::Io(error) if error.kind() == ErrorKind::InvalidData);
                 return if payload_error {
                     Ok(Err(BitviewError::new(error.to_string())))
                 } else {
@@ -249,6 +254,16 @@ impl BitviewClientBase {
         self.follow(response.headers());
         Ok(Ok(value))
     }
+}
+
+/// An answer carrying `bitview-origin` came from the server itself, whatever its status.
+fn names_server(response: &Response<Body>) -> bool {
+    response.headers().contains_key("bitview-origin")
+}
+
+fn parse_json<T: DeserializeOwned>(bytes: Vec<u8>) -> Result<T> {
+    serde_json::from_slice(&bytes)
+        .map_err(|error| BitviewError::new(format!("Unexpected JSON response: {error}")))
 }
 
 /// Decodes a typed text body (a hash, txid or hex string) with its type's string deserializer.
