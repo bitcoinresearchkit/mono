@@ -363,7 +363,10 @@ impl DefaultPlugins {
             &mut *self.pools,
         );
         // Blocks, then Transactions, in place: pushed beside Transactions, Blocks could be taken
-        // by Market's waits. It is short against the chain, which the tail rarely waits for.
+        // by Market's waits. From zero it adds 4 s to this chain's 830, which ends long before
+        // Addresses; at the tip the tail waits for the history side instead (Mining ended after
+        // Holders in 1 of 40 single heavy regtest blocks), and Blocks as a root of its own meeting
+        // Transactions at Mining measured no faster.
         let mining_chain: Root<'s> = Box::new(move || {
             timed_compute(&mut *blocks, BlocksDependencies { indexer, mappings }, context)?;
             timed_compute(
@@ -472,6 +475,7 @@ impl DefaultPlugins {
         spread(
             scope,
             failed,
+            context,
             vec![addresses, mining_chain, utxos, outputs, inputs, silent_payments],
             || {
                 timed_compute(
