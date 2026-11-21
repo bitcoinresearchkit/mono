@@ -46,7 +46,7 @@ use vecdb::ReadableCloneableVec;
 
 use crate::{
     DefaultPlugins,
-    dispatch::{Failed, Meet, Root, join, pin},
+    dispatch::{Failed, Meet, Root, join, spread},
     serial,
     timing::{Timed, log_compute, timed_compute},
 };
@@ -115,9 +115,10 @@ impl DefaultPlugins {
     }
 
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
-    /// plugin's internal order, inside rayon's pool. The long branches are pinned, each to a worker
-    /// of its own: Inputs, Outputs, Transactions (Blocks beside it, then Mining, OP_RETURN and
-    /// Pools), Addresses, UTXOs and Silent payments; Market runs on the caller.
+    /// plugin's internal order, inside rayon's pool. The long branches each run whole on the first
+    /// worker to come free, out of reach of other workers' waits: Inputs, Outputs, Transactions
+    /// (after Blocks, then Mining, OP_RETURN and Pools), Addresses, UTXOs and Silent payments.
+    /// Market runs on the caller, which then takes branches too.
     /// The second of Inputs and Outputs to complete goes on with the UTXO set, the walk of its
     /// history (the URPD history, Age and Profitability) and Holders; the second of that chain and
     /// Mining's to complete goes on with Coinflow beside Supply and Cointime beside Entry, then
@@ -361,24 +362,19 @@ impl DefaultPlugins {
             &mut *self.op_return,
             &mut *self.pools,
         );
-        // Transactions on the root's worker, Blocks the side another worker may take.
+        // Blocks, then Transactions, in place: pushed beside Transactions, Blocks could be taken
+        // by Market's waits. It is short against the chain, which the tail rarely waits for.
         let mining_chain: Root<'s> = Box::new(move || {
-            let (transactions_done, blocks_done) = join(
-                || {
-                    timed_compute(
-                        &mut *transactions,
-                        TransactionsDependencies {
-                            indexer,
-                            mappings,
-                            price,
-                        },
-                        context,
-                    )
+            timed_compute(&mut *blocks, BlocksDependencies { indexer, mappings }, context)?;
+            timed_compute(
+                &mut *transactions,
+                TransactionsDependencies {
+                    indexer,
+                    mappings,
+                    price,
                 },
-                || timed_compute(&mut *blocks, BlocksDependencies { indexer, mappings }, context),
-            );
-            transactions_done?;
-            blocks_done?;
+                context,
+            )?;
             let (blocks, transactions): (&_, &_) = (blocks, transactions);
             timed_compute(
                 &mut *mining,
@@ -469,22 +465,25 @@ impl DefaultPlugins {
                 context,
             )
         });
-        // The chains the tail waits for first: a pool with fewer workers than roots runs the
-        // later ones after them.
-        pin(
+        // Longest path first (from zero on m6-2: Addresses 1188 s, Transactions to the tail's end
+        // 830 s, UTXOs 769 s, Outputs 540 s and Inputs 516 s to the tail's end, Silent payments
+        // 488 s), so a pool with fewer workers than roots leaves the shorter ones waiting.
+        let market = &mut *self.market;
+        spread(
             scope,
             failed,
-            vec![inputs, outputs, mining_chain, addresses, utxos, silent_payments],
-        );
-
-        timed_compute(
-            &mut *self.market,
-            MarketDependencies {
-                indexer,
-                price,
-                mappings,
+            vec![addresses, mining_chain, utxos, outputs, inputs, silent_payments],
+            || {
+                timed_compute(
+                    market,
+                    MarketDependencies {
+                        indexer,
+                        price,
+                        mappings,
+                    },
+                    context,
+                )
             },
-            context,
         )
     }
 }

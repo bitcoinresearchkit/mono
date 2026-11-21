@@ -1,4 +1,4 @@
-use std::{mem, sync::Mutex};
+use std::sync::{Arc, Mutex};
 
 use brk_error::{Error, Result};
 use rayon::Scope;
@@ -20,7 +20,7 @@ pub fn join<A: Send, B: Send>(
     }
 }
 
-/// The first error of the pinned roots, reported once the scope ends.
+/// The first error of the roots, reported once the scope ends.
 pub type Failed = Mutex<Option<Error>>;
 
 fn record(failed: &Failed, result: Result<()>) {
@@ -30,72 +30,96 @@ fn record(failed: &Failed, result: Result<()>) {
 }
 
 /// A branch that holds its worker for long: a plugin's loop over the blocks, or a chain of them.
-/// Boxed, as the roots are different closures dealt to the workers at run time.
+/// Boxed, as the roots are different closures queued together.
 pub type Root<'s> = Box<dyn FnOnce() -> Result<()> + Send + 's>;
 
-/// Runs each root on a worker of its own, other than the caller's, round robin over them when the
-/// roots outnumber them, keeping errors in `failed`. A broadcast job runs only on its own worker,
-/// so no worker waiting in a join can take a root and hold its own work until the root ends, as
-/// it can a whole plugin pushed by a join or a spawn. In the serial CPU replay the roots run now,
-/// in order.
-pub fn pin<'s>(scope: &Scope<'s>, failed: &'s Failed, roots: Vec<Root<'s>>) {
-    if serial::enabled() {
-        roots.into_iter().for_each(|root| record(failed, root()));
-        return;
+/// Runs `own` on the caller and the roots on the other workers, each root taken by the first
+/// worker to come free, the caller too once `own` is done; errors from the roots go to `failed`.
+/// The roots are broadcast jobs, which only their own worker runs, so no worker waiting in a join
+/// can take one and hold its own work until the root ends, as it can a whole plugin pushed by a
+/// join or a spawn; the caller's copy does nothing, or `own`'s waits would take roots. Call it with
+/// the pool otherwise idle: a worker already waiting inside another job would run roots there. In
+/// the serial CPU replay `own` runs, then the roots in order.
+pub fn spread<'s>(
+    scope: &Scope<'s>,
+    failed: &'s Failed,
+    roots: Vec<Root<'s>>,
+    own: impl FnOnce() -> Result<()>,
+) -> Result<()> {
+    let queue = Arc::new(Mutex::new(roots.into_iter().rev().collect::<Vec<_>>()));
+    if !serial::enabled() {
+        let caller = rayon::current_thread_index();
+        let shared = queue.clone();
+        scope.spawn_broadcast(move |_, context| {
+            if Some(context.index()) != caller {
+                drain(&shared, failed);
+            }
+        });
     }
-    let threads = rayon::current_num_threads();
-    let caller = rayon::current_thread_index();
-    let others = (0..threads)
-        .filter(|&index| Some(index) != caller)
-        .collect::<Vec<_>>();
-    let mut queues = (0..threads).map(|_| Vec::new()).collect::<Vec<_>>();
-    for (index, root) in roots.into_iter().enumerate() {
-        // A pool of one has only the caller, which runs its roots once its own work waits.
-        let worker = others.get(index % others.len().max(1)).copied().unwrap_or(0);
-        queues[worker].push(root);
+    let own = own();
+    drain(&queue, failed);
+    own
+}
+
+fn drain(queue: &Mutex<Vec<Root<'_>>>, failed: &Failed) {
+    loop {
+        let Some(root) = queue.lock().unwrap().pop() else {
+            return;
+        };
+        record(failed, root());
     }
-    let queues = queues.into_iter().map(Mutex::new).collect::<Vec<_>>();
-    scope.spawn_broadcast(move |_, context| {
-        let roots = mem::take(&mut *queues[context.index()].lock().unwrap());
-        roots.into_iter().for_each(|root| record(failed, root()));
-    });
 }
 
 /// Where two branches meet: each hands its value over, and the second to arrive runs `then` with
 /// both, in place. Neither waits for the other; one that fails never arrives, so `then` never runs.
 pub struct Meet<A, B, F> {
-    state: Mutex<(Option<A>, Option<B>, Option<F>)>,
+    slots: Mutex<Slots<A, B, F>>,
+}
+
+struct Slots<A, B, F> {
+    left: Option<A>,
+    right: Option<B>,
+    then: Option<F>,
+}
+
+impl<A, B, F> Slots<A, B, F> {
+    fn met(&mut self) -> Option<(A, B, F)> {
+        match (self.left.take(), self.right.take()) {
+            (Some(left), Some(right)) => Some((left, right, self.then.take().expect("met twice"))),
+            (left, right) => {
+                (self.left, self.right) = (left, right);
+                None
+            }
+        }
+    }
 }
 
 impl<A, B, F: FnOnce(A, B) -> Result<()>> Meet<A, B, F> {
     pub fn new(then: F) -> Self {
         Self {
-            state: Mutex::new((None, None, Some(then))),
+            slots: Mutex::new(Slots {
+                left: None,
+                right: None,
+                then: Some(then),
+            }),
         }
     }
 
     pub fn left(&self, value: A) -> Result<()> {
-        self.arrive(|state| state.0 = Some(value))
+        let met = {
+            let mut slots = self.slots.lock().unwrap();
+            slots.left = Some(value);
+            slots.met()
+        };
+        met.map_or(Ok(()), |(left, right, then)| then(left, right))
     }
 
     pub fn right(&self, value: B) -> Result<()> {
-        self.arrive(|state| state.1 = Some(value))
-    }
-
-    fn arrive(&self, hand_over: impl FnOnce(&mut (Option<A>, Option<B>, Option<F>))) -> Result<()> {
         let met = {
-            let mut state = self.state.lock().unwrap();
-            hand_over(&mut state);
-            match &mut *state {
-                (left @ Some(_), right @ Some(_), then) => {
-                    Some((left.take(), right.take(), then.take()))
-                }
-                _ => None,
-            }
+            let mut slots = self.slots.lock().unwrap();
+            slots.right = Some(value);
+            slots.met()
         };
-        match met {
-            Some((Some(left), Some(right), Some(then))) => then(left, right),
-            _ => Ok(()),
-        }
+        met.map_or(Ok(()), |(left, right, then)| then(left, right))
     }
 }
