@@ -33,6 +33,8 @@ impl ComputePlugin for Vecs {
             revealed,
             coinbase_witness,
         } = counts;
+        // The walks over every input in place (see `dispatch::spread`), the per-block counts
+        // beside them.
         let (spends_result, rest_result) = join(
             || {
                 crate::spends::compute(
@@ -43,7 +45,8 @@ impl ComputePlugin for Vecs {
                     Height::from(indexer.vecs().blocks.blockhash.len()),
                     ages,
                     exit,
-                )
+                )?;
+                types.compute(indexer, exit)
             },
             || {
                 count.compute(
@@ -51,7 +54,6 @@ impl ComputePlugin for Vecs {
                     &mappings.lookback.window_starts(),
                     exit,
                 )?;
-                types.compute(indexer, exit)?;
                 revealed.compute(
                     indexer.compute_start().height,
                     &indexer.vecs().transactions.counters,

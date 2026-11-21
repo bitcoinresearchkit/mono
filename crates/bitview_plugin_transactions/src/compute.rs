@@ -48,10 +48,8 @@ impl ComputePlugin for Vecs {
         let (feature_counts, feature_values, shapes, bip69_expected) = features.split_mut();
         let (version_counts, version_values) = versions.split_mut();
 
-        // Patterns and the fee pass read every transaction: each runs in place, one after the
-        // other, parallel inside. Pushed beside the other, either could be taken by a worker
-        // waiting in another plugin's join (Addresses' block loop) and hold it to its end; only
-        // height-level stages are pushed.
+        // Patterns and then the fee pass, each a walk over every transaction, in place (see
+        // `dispatch::spread`); only the per-block counts are pushed.
         let (patterns_done, counts_done) = join(
             || {
                 patterns.compute(indexer, mappings, exit)?;

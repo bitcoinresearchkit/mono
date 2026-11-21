@@ -1,10 +1,11 @@
 use std::{sync::Arc, time::Instant};
 
-use bitview_distribution::walk::{Reader, Sources, Walk};
+use bitview_distribution::walk::{Reader, Sources};
 
 use bitview_plugin::{BootstrapAction, ComputePlugin, ComputePluginSet, PluginId, UpdateContext};
 use bitview_plugin_addresses::Dependencies as AddressesDependencies;
 use bitview_plugin_age::Vecs as Age;
+use bitview_plugin_coinflow::Vecs as Coinflow;
 use bitview_plugin_holders::Vecs as Holders;
 use bitview_plugin_inputs::Vecs as Inputs;
 use bitview_plugin_mining::Vecs as Mining;
@@ -139,8 +140,8 @@ impl DefaultPlugins {
     /// (after Blocks, then Mining, OP_RETURN and Pools), Addresses, UTXOs and Silent payments.
     /// Market runs on the caller, which then takes branches too.
     /// The second of Inputs and Outputs to complete goes on with the UTXO set, the walk of its
-    /// history (the URPD history, Age and Profitability) and Holders; the second of that chain and
-    /// Mining's to complete goes on with Coinflow, Supply, Cointime, Entry, Bedrock and the Rarity
+    /// history (the URPD history, Age and Profitability), Holders, Coinflow and Entry; the second
+    /// of that chain and Mining's to complete goes on with Supply, Cointime, Bedrock and the Rarity
     /// meter, one after another. The scope ends once every plugin has.
     fn compute_dependents(&mut self, context: UpdateContext<'_>) -> Result<()> {
         brk_alloc::collect();
@@ -176,9 +177,7 @@ impl DefaultPlugins {
         )?;
         let price = self.price.as_ref();
 
-        let (entry, coinflow, supply, cointime, bedrock, rarity_meter) = (
-            &mut *self.entry,
-            &mut *self.coinflow,
+        let (supply, cointime, bedrock, rarity_meter) = (
             &mut *self.supply,
             &mut *self.cointime,
             &mut *self.bedrock,
@@ -186,45 +185,16 @@ impl DefaultPlugins {
         );
         let tail = Arc::new(Meet::new(
             move |(mining, transactions): (&Mining, &Transactions),
-                  (outputs, history, walk, urpd, age, holders): (
+                  (outputs, history, urpd, age, holders, coinflow): (
                 &Outputs,
                 Reader<'_>,
-                &Walk,
                 &UrpdHistory,
                 &Age,
                 &Holders,
+                &Coinflow,
             )|
                   -> Result<()> {
-                let prices = price.spot.cents.height.read_only_boxed_clone();
-                let timestamps = mappings.timestamp.monotonic.read_only_boxed_clone();
-                let sources = Sources {
-                    history: &history,
-                    prices: &prices,
-                    timestamps: &timestamps,
-                };
-                let capitalized_price = holders
-                    .cohorts
-                    .all
-                    .cost_basis
-                    .by_dollar
-                    .avg
-                    .cents
-                    .height
-                    .read_only_boxed_clone();
-                // One after another, in place: a plugin pushed beside another could be taken by a
-                // worker waiting in a long plugin's join (Addresses' block loop) and hold it to
-                // the end, 100 s for Cointime from zero. Coinflow reads Age, not Holders.
-                timed_compute(
-                    &mut *coinflow,
-                    CoinflowDependencies {
-                        urpd,
-                        indexer,
-                        mappings,
-                        price,
-                        age,
-                    },
-                    context,
-                )?;
+                // One after another, in place (see `dispatch::spread`).
                 timed_compute(
                     &mut *supply,
                     SupplyDependencies {
@@ -249,17 +219,7 @@ impl DefaultPlugins {
                     },
                     context,
                 )?;
-                timed_compute(
-                    &mut *entry,
-                    EntryDependencies {
-                        sources,
-                        walk,
-                        from,
-                        capitalized_price: &capitalized_price,
-                    },
-                    context,
-                )?;
-                let (cointime, coinflow) = (&*cointime, &*coinflow);
+                let cointime: &_ = cointime;
                 timed_compute(
                     &mut *bedrock,
                     BedrockDependencies {
@@ -288,11 +248,13 @@ impl DefaultPlugins {
             },
         ));
 
-        let (utxo_set, age, profitability, holders) = (
+        let (utxo_set, age, profitability, holders, coinflow, entry) = (
             &mut *self.utxo_set,
             &mut *self.age,
             &mut *self.profitability,
             &mut *self.holders,
+            &mut *self.coinflow,
+            &mut *self.entry,
         );
         let history_tail = tail.clone();
         let history_chain = Arc::new(Meet::new(
@@ -342,7 +304,38 @@ impl DefaultPlugins {
                 let (walk, urpd, age): (&_, &_, &_) = (walk, urpd, age);
 
                 timed_compute(&mut *holders, HoldersDependencies { from, age, price }, context)?;
-                history_tail.right((outputs, history, walk, urpd, age, &*holders))
+                // Coinflow and Entry read only this chain's results: here, off the tail's path.
+                timed_compute(
+                    &mut *coinflow,
+                    CoinflowDependencies {
+                        urpd,
+                        indexer,
+                        mappings,
+                        price,
+                        age,
+                    },
+                    context,
+                )?;
+                let capitalized_price = holders
+                    .cohorts
+                    .all
+                    .cost_basis
+                    .by_dollar
+                    .avg
+                    .cents
+                    .height
+                    .read_only_boxed_clone();
+                timed_compute(
+                    &mut *entry,
+                    EntryDependencies {
+                        sources,
+                        walk,
+                        from,
+                        capitalized_price: &capitalized_price,
+                    },
+                    context,
+                )?;
+                history_tail.right((outputs, history, urpd, age, &*holders, &*coinflow))
             },
         ));
 

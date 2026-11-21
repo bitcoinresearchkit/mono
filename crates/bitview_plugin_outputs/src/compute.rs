@@ -34,9 +34,7 @@ impl ComputePlugin for Vecs {
         let exit = context.exit();
         let start = indexer.compute_start().height;
 
-        // The spend index and the output values each read every output: in place, one after the
-        // other, parallel inside. Pushed beside the other, either could be taken by a worker
-        // waiting in another plugin's join and hold it to its end.
+        // Each walk over every output in place (see `dispatch::spread`).
         spent.compute(indexer, mappings, exit)?;
         let outputs = &indexer.vecs().outputs;
         // Price-independent output facts; require neither Inputs nor transaction analysis.
@@ -54,12 +52,12 @@ impl ComputePlugin for Vecs {
         )?;
         db.flush();
         count.compute(start, &mappings.lookback.window_starts(), exit)?;
-        let (fiat, counts) = join(
-            || op_return_value.compute_cents(start, &price.spot.cents.height, exit),
+        let (counts, fiat) = join(
             || types.compute(indexer, exit),
+            || op_return_value.compute_cents(start, &price.spot.cents.height, exit),
         );
-        fiat?;
         counts?;
+        fiat?;
         for output in types.values.iter_mut() {
             output
                 .value

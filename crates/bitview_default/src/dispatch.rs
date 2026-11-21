@@ -27,6 +27,11 @@ pub type Root<'s> = Box<dyn FnOnce() -> Result<()> + Send + 's>;
 /// the pool otherwise idle: a worker already waiting inside another job would run roots there. In
 /// the serial CPU replay `own` runs, then the roots in order. Once a shutdown is pending, no root
 /// starts: the drainers park, and the process exits when the running ones' sections end.
+///
+/// Inside a root, the same holds for every join: its pushed side can be taken by a worker waiting
+/// in any other join and is run to its end first. So a root never pushes a stage that walks every
+/// transaction, input or output, or a whole plugin: those run in place, one after another, and
+/// only per-block or per-batch work is pushed.
 pub fn spread<'s>(
     scope: &Scope<'s>,
     failed: &'s Failed,
