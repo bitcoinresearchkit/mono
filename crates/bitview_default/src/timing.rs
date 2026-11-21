@@ -65,6 +65,8 @@ pub fn timed_import<T>(plugin: PluginId, import: impl FnOnce() -> Result<T>) -> 
     timed(Phase::Import, plugin, || import().map(Box::new))
 }
 
+/// Wall time until the plugin returns. A plugin waiting in a rayon join runs stolen work meanwhile,
+/// so a short leaf (Market) can read minutes from zero while doing a few seconds of its own.
 pub fn timed_compute<P: ComputePlugin>(
     plugin: &mut P,
     dependencies: P::Dependencies<'_>,
