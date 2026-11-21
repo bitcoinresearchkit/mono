@@ -95,6 +95,7 @@ where
             }
             if file_stamp != current {
                 return Err(Error::StampMismatch {
+                    name: self.name().to_string(),
                     file: file_stamp,
                     vec: current,
                 });

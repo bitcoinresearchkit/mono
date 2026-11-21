@@ -8,6 +8,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- A kill or crash while the indexer saves blocks no longer deletes the index: the next start rolls back
+  to the last saved block and resumes. The stores keep that point in `stores/lengths`. The indexer's format
+  version moves to 50, so an existing index rebuilds once on upgrade.
+
 - Holder MVRV, including the mobile (coinflow) and awake (cointime) series, divides market
   cap by realized cap. Using a realized price rounded to cents had left the all-holder series
   empty at blocks 74,641–77,815 and could distort values while the realized price was a few

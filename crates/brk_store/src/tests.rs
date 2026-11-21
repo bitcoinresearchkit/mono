@@ -169,7 +169,7 @@ where
         let after = pairs(self.ingested.range(group(high)));
         if let Some(ingest) = store.take_pending_ingest() {
             thread::scope(|scope| {
-                let ingesting = scope.spawn(|| ingest.run());
+                let ingesting = scope.spawn(|| ingest.run(&|| Ok(())));
                 // Views taken meanwhile hold the batch whole or not at all. Their count varies,
                 // so they draw from their own generator.
                 let mut rng = Rng(self.rng.next());

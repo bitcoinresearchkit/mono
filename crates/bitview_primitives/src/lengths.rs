@@ -139,7 +139,9 @@ impl Lengths {
         self.clamp_addr_indexes_to(other);
     }
 
+    /// Counts a finished block: its transactions, inputs and outputs, and the height after it.
     pub fn add_block(&mut self, tx_count: usize, input_count: usize, output_count: usize) {
+        self.height = self.height.incremented();
         self.tx_index += TxIndex::from(tx_count);
         self.txin_index += TxInIndex::from(input_count);
         self.txout_index += TxOutIndex::from(output_count);

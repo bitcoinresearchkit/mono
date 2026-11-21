@@ -1,8 +1,8 @@
 #![doc = include_str!("../README.md")]
 
 use std::{
-    cmp::Ordering,
     hash::Hash,
+    iter,
     marker::PhantomData,
     ops::{Bound, RangeBounds},
     path::Path,
@@ -31,7 +31,7 @@ use pending::Pending;
 
 pub use any::*;
 pub use kind::*;
-pub use pending_ingest::PendingIngest;
+pub use pending_ingest::{PendingIngest, Ready};
 pub use bytes::ByteStore;
 
 const BLOCK_CACHE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
@@ -178,7 +178,27 @@ where
             })
     }
 
-    fn ingest_hashed(keyspace: &Keyspace, puts: FxHashMap<K, V>, dels: FxHashSet<K>) -> Result<()> {
+    /// The record under `key` as ingested, without the pending writes.
+    fn ingested(keyspace: &Keyspace, key: &K) -> Result<Option<V::Bytes>> {
+        Ok(keyspace.get_as::<V::Bytes>(key.to_store_bytes().as_ref())?)
+    }
+
+    /// Whether ingesting `change` changes what the keyspace holds.
+    fn changes(keyspace: &Keyspace, change: &Item<K, V>) -> Result<bool> {
+        Ok(match change {
+            Item::Value { key, value } => Self::ingested(keyspace, key)?
+                .is_none_or(|stored| stored.as_ref() != value.to_store_bytes().as_ref()),
+            Item::Tomb(key) => Self::ingested(keyspace, key)?.is_some(),
+        })
+    }
+
+    fn ingest_hashed(
+        keyspace: &Keyspace,
+        puts: FxHashMap<K, V>,
+        dels: FxHashSet<K>,
+        ready: Ready<'_>,
+        changes_only: bool,
+    ) -> Result<()> {
         let mut puts: Vec<_> = puts.into_iter().collect();
         let mut dels: Vec<_> = dels.into_iter().collect();
 
@@ -187,54 +207,56 @@ where
 
         let mut puts = puts.into_iter().peekable();
         let mut dels = dels.into_iter().peekable();
-        let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
+        // The buffers are unique and disjoint, and this merge emits them in strict key order.
+        let changes = iter::from_fn(|| match (puts.peek(), dels.peek()) {
+            (Some((put_key, _)), Some(del_key)) if put_key > del_key => dels.next().map(Item::Tomb),
+            (Some((put_key, _)), Some(del_key)) if put_key == del_key => {
+                unreachable!("key is both inserted and deleted")
+            }
+            (Some(_), _) => puts.next().map(|(key, value)| Item::Value { key, value }),
+            (None, _) => dels.next().map(Item::Tomb),
+        });
+        Self::ingest(keyspace, changes, ready, changes_only)
+    }
 
-        // The buffers are unique and disjoint, and this merge emits them in
-        // strict key order, so release builds can skip re-cloning each key.
-        loop {
-            match (puts.peek(), dels.peek()) {
-                (Some((put_key, _)), Some(del_key)) => match put_key.cmp(del_key) {
-                    Ordering::Less => {
-                        let (key, value) = puts.next().unwrap();
-                        ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
-                    }
-                    Ordering::Greater => {
-                        ingestion.write_weak_tombstone(dels.next().unwrap().to_store_bytes())?;
-                    }
-                    Ordering::Equal => unreachable!("key is both inserted and deleted"),
-                },
-                (Some(_), None) => {
-                    let (key, value) = puts.next().unwrap();
+    fn ingest_sequential(
+        keyspace: &Keyspace,
+        mut changes: Vec<Item<K, V>>,
+        ready: Ready<'_>,
+        changes_only: bool,
+    ) -> Result<()> {
+        // Equal-key operations must retain their arrival order.
+        changes.sort_by(|left, right| left.key().cmp(right.key()));
+        let changes = changes
+            .chunk_by(|left, right| left.key() == right.key())
+            .filter_map(|same_key| Item::reduce(same_key).cloned());
+        Self::ingest(keyspace, changes, ready, changes_only)
+    }
+
+    /// Writes `changes`, in strict key order, into one table published once `ready` returns
+    /// `Ok`; with `changes_only`, only those that change what the keyspace holds.
+    fn ingest(
+        keyspace: &Keyspace,
+        changes: impl Iterator<Item = Item<K, V>>,
+        ready: Ready<'_>,
+        changes_only: bool,
+    ) -> Result<()> {
+        let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
+        for change in changes {
+            if changes_only && !Self::changes(keyspace, &change)? {
+                continue;
+            }
+            match change {
+                Item::Value { key, value } => {
                     ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
                 }
-                (None, Some(_)) => {
-                    ingestion.write_weak_tombstone(dels.next().unwrap().to_store_bytes())?;
-                }
-                (None, None) => break,
+                Item::Tomb(key) => ingestion.write_weak_tombstone(key.to_store_bytes())?,
             }
         }
 
         // Store keyspaces are mutated only through these ingestion phases, so
         // no journaled Fjall write can race their completion.
-        ingestion.finish()?;
-        Ok(())
-    }
-
-    fn ingest_sequential(keyspace: &Keyspace, mut changes: Vec<Item<K, V>>) -> Result<()> {
-        // Equal-key operations must retain their arrival order.
-        changes.sort_by(|left, right| left.key().cmp(right.key()));
-
-        let mut ingestion = keyspace.start_ingestion_as::<K::Bytes, V::Bytes>()?;
-        for same_key in changes.chunk_by(|left, right| left.key() == right.key()) {
-            match Item::reduce(same_key) {
-                Some(Item::Value { key, value }) => {
-                    ingestion.write(key.to_store_bytes(), value.to_store_bytes())?;
-                }
-                Some(Item::Tomb(key)) => ingestion.write_weak_tombstone(key.to_store_bytes())?,
-                None => {}
-            }
-        }
-
+        ready()?;
         ingestion.finish()?;
         Ok(())
     }
@@ -299,9 +321,13 @@ where
 
         let keyspace = self.keyspace.clone();
 
-        Some(PendingIngest::new(move || match pending {
-            Pending::Hashed { puts, dels } => Self::ingest_hashed(&keyspace, puts, dels),
-            Pending::Sequential(changes) => Self::ingest_sequential(&keyspace, changes),
+        Some(PendingIngest::new(move |ready, changes_only| match pending {
+            Pending::Hashed { puts, dels } => {
+                Self::ingest_hashed(&keyspace, puts, dels, ready, changes_only)
+            }
+            Pending::Sequential(changes) => {
+                Self::ingest_sequential(&keyspace, changes, ready, changes_only)
+            }
         }))
     }
 }

@@ -1,26 +1,25 @@
 use std::{
     ops::{Range, RangeBounds},
+    panic::resume_unwind,
     path::Path,
+    thread,
     time::Instant,
 };
 
 use bitview_primitives::{
     AddrHash, AddrTypeId, BlockHashPrefix, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
-use brk_error::{OptionData, Result};
-use brk_store::{AnyStore, Kind, PendingIngest, Store, StoreView, open_database};
+use brk_error::{Error, OptionData, Result};
+use brk_store::{AnyStore, Kind, PendingIngest, Ready, Store, StoreView, open_database};
 use brk_types::{Height, OutPoint, OutputType, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
-use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use tracing::debug;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use super::Vecs;
 use crate::{Lengths, constants::overwritten_tx_index};
-use checkpoint::{
-    DeferredStoresCommit, PendingStoresCheckpoint, PersistedStoresCheckpoint, StoresCheckpoint,
-};
+use checkpoint::StoresCheckpoint;
 
 mod addr_keys;
 mod checkpoint;
@@ -169,7 +168,7 @@ impl Stores {
             utxo_values = Store::import(db, path, "utxo_values", version, Kind::Recent),
         };
 
-        let mut stores = Self {
+        Ok(Self {
             db: database.clone(),
             checkpoint: StoresCheckpoint::new(path),
             addr_type_to_addr_hash_to_addr_index: addr_hashes,
@@ -181,17 +180,27 @@ impl Stores {
                 entries: utxos,
                 large_values: utxo_values,
             },
-        };
-
-        if stores.checkpoint.next_height()?.is_none() && stores.is_empty()? {
-            stores.checkpoint.initialize_empty()?;
-        }
-
-        Ok(stores)
+        })
     }
 
-    pub(crate) fn next_height(&self) -> Result<Option<Height>> {
-        self.checkpoint.next_height()
+    /// The lengths the stores' checkpoint holds. Empty stores without one get genesis, written
+    /// here: the import's lock is held.
+    pub(crate) fn committed(&mut self) -> Result<Lengths> {
+        if let Some(lengths) = self.checkpoint.read()? {
+            return Ok(lengths);
+        }
+        if !self.is_empty()? {
+            return Err(Error::InvalidData("Indexer stores hold data without a checkpoint"));
+        }
+        let genesis = Lengths::default();
+        self.checkpoint.write(&genesis)?;
+        Ok(genesis)
+    }
+
+    /// Records that the stores hold `lengths`: after their ingestion in a commit, before it in a
+    /// rollback.
+    pub(crate) fn checkpoint(&self, lengths: &Lengths) -> Result<()> {
+        self.checkpoint.write(lengths)
     }
 
     /// Every store, once: commits and the emptiness check walk this one list.
@@ -220,21 +229,18 @@ impl Stores {
         )
     }
 
-    pub(crate) fn begin_commit(&self, completed_height: Height) -> Result<PendingStoresCheckpoint> {
-        self.checkpoint.begin(completed_height)
+    /// Ingests every store's pending writes, each published once `ready` returns `Ok`.
+    pub(crate) fn ingest(&mut self, ready: Ready<'_>) -> Result<()> {
+        let i = Instant::now();
+        ingest_each(self.take_pending_ingests(), |ingest| ingest.run(ready))?;
+        debug!("Stores persisted in {:?}", i.elapsed());
+        Ok(())
     }
 
-    pub(crate) fn persist(
-        &mut self,
-        checkpoint: PendingStoresCheckpoint,
-    ) -> Result<PersistedStoresCheckpoint> {
-        let i = Instant::now();
-        let ingests = self.take_pending_ingests();
-        let persisted =
-            checkpoint.persist(|| ingests.into_par_iter().try_for_each(PendingIngest::run))?;
-        debug!("Stores persisted in {:?}", i.elapsed());
-
-        Ok(persisted)
+    /// Ingests only the pending writes that change what each store holds: an undo replayed over
+    /// stores holding any part of what it removes.
+    pub(crate) fn ingest_changes(&mut self) -> Result<()> {
+        ingest_each(self.take_pending_ingests(), PendingIngest::run_changes)
     }
 
     fn take_pending_ingests(&mut self) -> Vec<PendingIngest> {
@@ -243,18 +249,21 @@ impl Stores {
             .collect()
     }
 
-    /// Takes every store's pending writes into a commit that begins the checkpoint only when it
-    /// persists, so the stores keep their last checkpoint until then.
-    pub(crate) fn take_deferred_commit(
+    /// Takes every store's pending writes into a commit to run off this thread: it ingests them,
+    /// then checkpoints `lengths`.
+    pub(crate) fn take_commit(
         &mut self,
-        completed_height: Height,
-    ) -> DeferredStoresCommit {
-        DeferredStoresCommit::new(
-            self.db.clone(),
-            self.take_pending_ingests(),
-            self.checkpoint.clone(),
-            completed_height,
-        )
+        lengths: Lengths,
+    ) -> impl FnOnce() -> Result<()> + Send + 'static {
+        let database = self.db.clone();
+        let ingests = self.take_pending_ingests();
+        let checkpoint = self.checkpoint.clone();
+        move || {
+            ingest_each(ingests, |ingest| ingest.run(&|| Ok(())))?;
+            // Open until the ingestion ends.
+            drop(database);
+            checkpoint.write(&lengths)
+        }
     }
 
     /// Stages the removal of the blocks from `starting_lengths` on, restoring the older outputs
@@ -264,10 +273,6 @@ impl Stores {
         vecs: &Vecs,
         starting_lengths: &Lengths,
     ) -> Result<()> {
-        debug_assert!(starting_lengths.height != Height::ZERO);
-        debug_assert!(starting_lengths.tx_index != TxIndex::ZERO);
-        debug_assert!(starting_lengths.txout_index != TxOutIndex::ZERO);
-
         self.rollback_block_metadata(vecs, starting_lengths);
         self.rollback_txids(vecs, starting_lengths);
         self.rollback_outputs_and_inputs(vecs, starting_lengths)?;
@@ -492,6 +497,25 @@ impl Stores {
             utxos: &mut self.utxos,
         }
     }
+}
+
+/// Runs `run` on every ingestion, each on its own OS thread: they block on file writes and on
+/// their `ready`, which would starve the rayon pool that the dependents' compute and the vectors'
+/// write beside them join on.
+fn ingest_each(
+    ingests: Vec<PendingIngest>,
+    run: impl Fn(PendingIngest) -> Result<()> + Sync,
+) -> Result<()> {
+    let run = &run;
+    thread::scope(|scope| {
+        let ingests = ingests
+            .into_iter()
+            .map(|ingest| scope.spawn(move || run(ingest)))
+            .collect::<Vec<_>>();
+        ingests
+            .into_iter()
+            .try_for_each(|ingest| ingest.join().unwrap_or_else(|panic| resume_unwind(panic)))
+    })
 }
 
 fn valid_rollback_boundaries(

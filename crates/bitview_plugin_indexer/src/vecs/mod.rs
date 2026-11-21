@@ -81,29 +81,35 @@ impl Vecs {
     /// Truncates every stored vec to its index's length in `starting_lengths`, stamped as of the
     /// block before them.
     pub fn rollback_if_needed(&mut self, starting_lengths: &Lengths) -> Result<()> {
-        let saved_height = starting_lengths.last_height().unwrap_or_default();
-        let stamp = Stamp::from(u64::from(saved_height));
+        let stamp = stamp_of(starting_lengths);
         self.blocks.reset_median_window();
         for vec in self.iter_any_stored_mut() {
-            let len = Index::try_from(vec.index_type_name())
-                .ok()
-                .and_then(|index| starting_lengths.get(index))
-                .expect("an index the indexer counts");
+            let len = len_in(starting_lengths, vec.index_type_name());
             vec.update_stamp(stamp);
             vec.any_truncate_if_needed_at(len)?;
         }
         Ok(())
     }
 
-    pub fn flush(&mut self, height: Height) -> Result<()> {
-        self.stamped_write(height)?;
+    /// Whether every stored vec holds exactly `lengths`: its index's rows, stamped as of the block
+    /// before them.
+    pub fn holds(&self, lengths: &Lengths) -> bool {
+        let stamp = stamp_of(lengths);
+        self.iter_any_stored_vec().all(|vec| {
+            vec.stamp() == stamp && vec.len() == len_in(lengths, vec.index_type_name())
+        })
+    }
+
+    pub fn flush(&mut self, lengths: &Lengths) -> Result<()> {
+        self.write(lengths)?;
         self.db.flush();
         Ok(())
     }
 
-    pub fn stamped_write(&mut self, height: Height) -> Result<()> {
+    /// Writes every stored vec, stamped as of the block before `lengths`.
+    pub fn write(&mut self, lengths: &Lengths) -> Result<()> {
         self.blocks.compute_median_times();
-        let stamp = Stamp::from(height);
+        let stamp = stamp_of(lengths);
         let vecs = self.iter_any_stored_mut().collect::<Vec<_>>();
         let count = vecs.len();
         vecs.into_par_iter()
@@ -132,16 +138,6 @@ impl Vecs {
         Height::from(min_stamp).incremented()
     }
 
-    pub fn all_empty(&self) -> bool {
-        self.iter_any_stored_vec().all(|vec| vec.len() == 0)
-    }
-
-    pub fn checkpoints_match(&self) -> bool {
-        let mut stamps = self.iter_any_stored_vec().map(|vec| vec.stamp());
-        let first = stamps.next();
-        stamps.all(|stamp| Some(stamp) == first)
-    }
-
     fn iter_any_stored_vec(&self) -> impl Iterator<Item = &dyn AnyStoredVec> {
         self.blocks
             .iter_any()
@@ -152,4 +148,17 @@ impl Vecs {
             .chain(self.scripts.iter_any())
             .chain(self.op_return.iter_any())
     }
+}
+
+/// The stamp of vectors holding `lengths`: the block before them (zero when empty).
+fn stamp_of(lengths: &Lengths) -> Stamp {
+    Stamp::from(lengths.last_height().unwrap_or_default())
+}
+
+/// A stored vec's length in `lengths`, by the name of its index.
+fn len_in(lengths: &Lengths, index_type_name: &str) -> usize {
+    Index::try_from(index_type_name)
+        .ok()
+        .and_then(|index| lengths.get(index))
+        .expect("an index the indexer counts")
 }
