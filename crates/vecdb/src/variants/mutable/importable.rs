@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::{MutableRawVec, MutableVec};
-use crate::{Bytes, Error, ImportOptions, ImportableVec, Result};
+use crate::{Bytes, Error, ImportOptions, ImportableVec, Result, log_reset};
 
 impl<V> MutableVec<V>
 where
@@ -42,9 +42,20 @@ where
     fn import_with(options: ImportOptions) -> Result<Self> {
         match Self::import_strict_with(options) {
             Err(error) if error.is_schema_mismatch() => {
-                options
-                    .db
-                    .remove_region_if_exists(&Self::holes_region_name_with(options.name))?;
+                let holes_region = Self::holes_region_name_with(options.name);
+                log_reset(
+                    options.db,
+                    &error,
+                    format_args!(
+                        "{}: discarding holes region {holes_region} ({} bytes)",
+                        options.name,
+                        options
+                            .db
+                            .region(&holes_region)
+                            .map_or(0, |region| region.meta().byte_len())
+                    ),
+                );
+                options.db.remove_region_if_exists(&holes_region)?;
                 Ok(Self::from_parts(
                     V::import_with(options)?,
                     BTreeSet::new(),

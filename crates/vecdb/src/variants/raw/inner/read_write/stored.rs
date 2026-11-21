@@ -1,11 +1,9 @@
 use std::marker::PhantomData;
 
-use log::debug;
-
 use super::{super::RawStrategy, ReadOnlyRawVec, ReadWriteRawVec};
 use crate::{
     ImportOptions, ImportableVec, ReadableBoxedVec, ReadableCloneableVec, Result, StoredVec,
-    VecIndex, VecValue, cache::CachePolicy, remove_vec_with,
+    VecIndex, VecValue, cache::CachePolicy, reset_vec_with,
 };
 
 impl<I, T, S, C: CachePolicy> ImportableVec for ReadWriteRawVec<I, T, S, C>
@@ -17,8 +15,7 @@ where
     fn import_with(options: ImportOptions) -> Result<Self> {
         match Self::import_strict_with(options) {
             Err(error) if error.is_schema_mismatch() => {
-                debug!("Resetting {}...", options.name);
-                remove_vec_with::<I>(options.db, options.name)?;
+                reset_vec_with::<I>(options.db, options.name, &error, &[])?;
                 Self::import_strict_with(options)
             }
             res => res,

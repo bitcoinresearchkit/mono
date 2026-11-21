@@ -1,11 +1,9 @@
 use std::{marker::PhantomData, sync::Arc};
 
-use log::debug;
-
 use super::{super::CompressionStrategy, ReadOnlyCompressedVec, ReadWriteCompressedVec};
 use crate::{
     Error, ImportOptions, ImportableVec, ReadableBoxedVec, ReadableCloneableVec, Result, StoredVec,
-    VecIndex, VecValue, cache::CachePolicy, remove_vec_with,
+    VecIndex, VecValue, cache::CachePolicy, reset_vec_with,
 };
 
 impl<I, T, S, C: CachePolicy> ImportableVec for ReadWriteCompressedVec<I, T, S, C>
@@ -20,11 +18,12 @@ where
             Err(error)
                 if error.is_schema_mismatch() || matches!(error, Error::CorruptedRegion { .. }) =>
             {
-                debug!("Resetting {}...", options.name);
-                remove_vec_with::<I>(options.db, options.name)?;
-                options
-                    .db
-                    .remove_region_if_exists(&Self::pages_region_name_with(options.name))?;
+                reset_vec_with::<I>(
+                    options.db,
+                    options.name,
+                    &error,
+                    &[&Self::pages_region_name_with(options.name)],
+                )?;
                 Self::import_strict_with(options)
             }
             res => res,

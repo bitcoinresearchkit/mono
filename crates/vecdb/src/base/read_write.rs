@@ -1,5 +1,6 @@
-use std::{fs, marker::PhantomData, ops::Deref, path::PathBuf, sync::Arc};
+use std::{fmt, fs, marker::PhantomData, ops::Deref, path::PathBuf, sync::Arc};
 
+use log::Level;
 use parking_lot::Mutex;
 use rawdb::Database;
 
@@ -201,11 +202,59 @@ pub(crate) fn clear_pushed<T>(pushed: &mut Vec<T>) {
     }
 }
 
-/// Removes a vec's region and its rollback history (an import-time reset), so a later rollback
-/// never walks into change files of the vec's previous life.
-pub(crate) fn remove_vec_with<I: VecIndex>(db: &Database, name: &str) -> Result<()> {
-    db.remove_region_if_exists(&vec_region_name_with::<I>(name))?;
+/// Resets a vec that import rejected with `error` (an import-time reset): removes its region, the
+/// `extra` regions it cannot be read without and its rollback history, so a later rollback never
+/// walks into change files of the vec's previous life. Logs what was discarded.
+pub(crate) fn reset_vec_with<I: VecIndex>(
+    db: &Database,
+    name: &str,
+    error: &Error,
+    extra: &[&str],
+) -> Result<()> {
+    let vec_region = vec_region_name_with::<I>(name);
+    let bytes = |region: &str| {
+        db.region(region)
+            .map_or(0, |region| region.meta().byte_len())
+    };
+    let stamp = db
+        .region(&vec_region)
+        .and_then(|region| Header::read_unverified(&region).ok())
+        .map(|header| header.stamp());
+    let extras: String = extra
+        .iter()
+        .map(|region| format!(", region {region} ({} bytes)", bytes(region)))
+        .collect();
+    let changes = fs::read_dir(changes_path_with::<I>(db, name)).map_or(0, Iterator::count);
+    log_reset(
+        db,
+        error,
+        format_args!(
+            "{name}: discarding region {vec_region} ({} bytes, header stamp {stamp:?}){extras} and {changes} change files, now empty (len 0, stamp 0)",
+            bytes(&vec_region)
+        ),
+    );
+    db.remove_region_if_exists(&vec_region)?;
+    for region in extra {
+        db.remove_region_if_exists(region)?;
+    }
     remove_changes_with::<I>(db, name)
+}
+
+/// Logs stored data an import is about to discard, after `error` rejected it. A new version,
+/// format or value size is a deliberate reset that an upgrade repeats for every vec (debug);
+/// any other cause is a torn or corrupt vec, whose data is lost (error).
+pub(crate) fn log_reset(db: &Database, error: &Error, discarded: fmt::Arguments) {
+    let level = match error {
+        Error::DifferentVersion { .. }
+        | Error::DifferentFormat { .. }
+        | Error::DifferentValueSize { .. } => Level::Debug,
+        _ => Level::Error,
+    };
+    log::log!(
+        level,
+        "{}: import reset after {error}: {discarded}",
+        db.path().display()
+    );
 }
 
 fn remove_changes_with<I: VecIndex>(db: &Database, name: &str) -> Result<()> {

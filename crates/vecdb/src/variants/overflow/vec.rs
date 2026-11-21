@@ -278,6 +278,7 @@ where
 
         if compact.stamp() != overflow.stamp() {
             return Err(Error::StampMismatch {
+                name: overflow_region,
                 file: overflow.stamp(),
                 vec: compact.stamp(),
             });

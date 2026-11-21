@@ -49,8 +49,14 @@ pub enum Error {
     DifferentFormat { received: Format, expected: Format },
     #[error("Value size mismatch: received {received} bytes, expected {expected} bytes")]
     DifferentValueSize { received: u16, expected: u16 },
-    #[error("Stamp mismatch: file stamp {file:?} != vec stamp {vec:?}")]
-    StampMismatch { file: Stamp, vec: Stamp },
+    /// `name`'s stored stamp (`file`: a change file's, or an overflow vec's other half) is not
+    /// the vec's (`vec`).
+    #[error("Stamp mismatch in {name}: file stamp {file:?} != vec stamp {vec:?}")]
+    StampMismatch {
+        name: String,
+        file: Stamp,
+        vec: Stamp,
+    },
     #[error("Corrupted region {name}: invalid length {region_len}")]
     CorruptedRegion { name: String, region_len: usize },
     #[error("Decompression mismatch: expected {expected_len} values, got {actual_len}")]
