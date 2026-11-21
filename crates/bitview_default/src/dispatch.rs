@@ -6,21 +6,6 @@ use rayon::Scope;
 
 use crate::serial;
 
-/// `rayon::join`, except in the serial CPU replay (see [`serial`]): there the branches run one
-/// after the other, so a step's process CPU is its own. The parallel work inside each plugin is
-/// unchanged. The caller runs `left` and waits for `right`, which any worker may take, the
-/// caller's own wait included: `right` is never the longer side.
-pub fn join<A: Send, B: Send>(
-    left: impl FnOnce() -> A + Send,
-    right: impl FnOnce() -> B + Send,
-) -> (A, B) {
-    if serial::enabled() {
-        (left(), right())
-    } else {
-        rayon::join(left, right)
-    }
-}
-
 /// The first error of the roots, reported once the scope ends.
 pub type Failed = Mutex<Option<Error>>;
 
@@ -42,6 +27,11 @@ pub type Root<'s> = Box<dyn FnOnce() -> Result<()> + Send + 's>;
 /// the pool otherwise idle: a worker already waiting inside another job would run roots there. In
 /// the serial CPU replay `own` runs, then the roots in order. Once a shutdown is pending, no root
 /// starts: the drainers park, and the process exits when the running ones' sections end.
+///
+/// Inside a root, the same holds for every join: its pushed side can be taken by a worker waiting
+/// in any other join and is run to its end first. So a root never pushes a stage that walks every
+/// transaction, input or output, or a whole plugin: those run in place, one after another, and
+/// only per-block or per-batch work is pushed.
 pub fn spread<'s>(
     scope: &Scope<'s>,
     failed: &'s Failed,
