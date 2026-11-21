@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use bitview_plugin::UpdateContext;
 use brk_error::{Error, Result};
 use rayon::Scope;
 
@@ -39,30 +40,34 @@ pub type Root<'s> = Box<dyn FnOnce() -> Result<()> + Send + 's>;
 /// can take one and hold its own work until the root ends, as it can a whole plugin pushed by a
 /// join or a spawn; the caller's copy does nothing, or `own`'s waits would take roots. Call it with
 /// the pool otherwise idle: a worker already waiting inside another job would run roots there. In
-/// the serial CPU replay `own` runs, then the roots in order.
+/// the serial CPU replay `own` runs, then the roots in order. Once a shutdown is pending, no root
+/// starts: the drainers park, and the process exits when the running ones' sections end.
 pub fn spread<'s>(
     scope: &Scope<'s>,
     failed: &'s Failed,
+    context: UpdateContext<'s>,
     roots: Vec<Root<'s>>,
     own: impl FnOnce() -> Result<()>,
 ) -> Result<()> {
     let queue = Arc::new(Mutex::new(roots.into_iter().rev().collect::<Vec<_>>()));
     if !serial::enabled() {
         let caller = rayon::current_thread_index();
+        debug_assert!(caller.is_some(), "spread runs on a pool worker, or every copy drains");
         let shared = queue.clone();
-        scope.spawn_broadcast(move |_, context| {
-            if Some(context.index()) != caller {
-                drain(&shared, failed);
+        scope.spawn_broadcast(move |_, broadcast| {
+            if Some(broadcast.index()) != caller {
+                drain(&shared, failed, context);
             }
         });
     }
     let own = own();
-    drain(&queue, failed);
+    drain(&queue, failed, context);
     own
 }
 
-fn drain(queue: &Mutex<Vec<Root<'_>>>, failed: &Failed) {
+fn drain(queue: &Mutex<Vec<Root<'_>>>, failed: &Failed, context: UpdateContext<'_>) {
     loop {
+        context.exit().park_if_shutting_down();
         let Some(root) = queue.lock().unwrap().pop() else {
             return;
         };
@@ -106,18 +111,17 @@ impl<A, B, F: FnOnce(A, B) -> Result<()>> Meet<A, B, F> {
     }
 
     pub fn left(&self, value: A) -> Result<()> {
-        let met = {
-            let mut slots = self.slots.lock().unwrap();
-            slots.left = Some(value);
-            slots.met()
-        };
-        met.map_or(Ok(()), |(left, right, then)| then(left, right))
+        self.arrive(|slots| slots.left = Some(value))
     }
 
     pub fn right(&self, value: B) -> Result<()> {
+        self.arrive(|slots| slots.right = Some(value))
+    }
+
+    fn arrive(&self, hand_over: impl FnOnce(&mut Slots<A, B, F>)) -> Result<()> {
         let met = {
             let mut slots = self.slots.lock().unwrap();
-            slots.right = Some(value);
+            hand_over(&mut slots);
             slots.met()
         };
         met.map_or(Ok(()), |(left, right, then)| then(left, right))
