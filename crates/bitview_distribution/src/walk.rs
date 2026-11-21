@@ -12,7 +12,8 @@ use bitview_compute::{Inputs, WRITE_INTERVAL};
 use bitview_primitives::CentsCompact;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Height, Timestamp, Version};
-use statedb::{Amount, BlockDiff, Reader, State};
+pub use statedb::Reader;
+use statedb::{Amount, BlockDiff, State};
 use vecdb::{AnyVec, ReadableBoxedVec, ReadableVec};
 
 /// What the walk reads: the history, and each block's price and monotonic time.
