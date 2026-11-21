@@ -1,0 +1,25 @@
+version=0.13.0
+revision=1e2cd2cf9359da7e4d4471021a607cf329c6d10e
+dirty=false
+profile=release
+rustc=rustc 1.100.0 (0ef1bc386 2026-11-09)
+rustflags=-C target-cpu=apple-m5
+target=aarch64-apple-darwin
+hostname=minis-Mac-Mini-2.local
+cpu=Apple M6
+ram_bytes=17179869184
+storage=external-tb WD_BLACK SN850X 2000GB
+blocks_storage=external-tb WD_BLACK SN850X 2000GB
+data_volume=906495090688/2000189177856
+blocks_volume=906495090688/2000189177856
+parallelism=12
+started_at_unix=1795289139
+chain_height=976940
+start=fresh
+blocks_path=/Volumes/External/bitcoin/blocks
+data_path=/Volumes/External/bitview
+cache_budget=1073741824
+busiest_processes=socketfilterfw 2%, WindowServer 1%, SecurityAgent 0%, logd 0%, centaurid 0%, smd 0%
+internal_volume=74789957632/245054767104
+comparable=true
+comparable_reason=no heavy process beside it, at the start and every minute
