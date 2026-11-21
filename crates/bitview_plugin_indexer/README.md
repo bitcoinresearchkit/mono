@@ -38,8 +38,9 @@ The indexer implements the [`bitview_plugin`](../bitview_plugin) lifecycle. It
 validates the Bitcoin Core block source, resumes from its persisted checkpoint,
 processes blocks sequentially, saving periodically and publishing the
 pipeline-safe lengths when each update commits. Store and vector commits are
-coordinated so a restart cannot expose half-committed state (vectors written
-ahead of a stores commit that a quit interrupted roll back on import). Each
+coordinated so a restart cannot expose half-committed state: the stores' marker
+(`stores/lengths`) moves last on the way up and first on the way down, and a start after
+any stop, a kill included, undoes the stores to it and truncates the vectors to it. Each
 publication also pins the address unspent-outpoint stores as of its lengths
 (`SafeLengths::addr_unspent_outpoints`), so address UTXO listings never see a
 later block's spends; a lowered publication leaves them unavailable until the

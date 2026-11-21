@@ -1,7 +1,14 @@
 #![doc = include_str!("../README.md")]
 
 use std::{
-    collections::BTreeMap, fs, io::ErrorKind, mem, path::Path, sync::Arc, thread, time::Instant,
+    collections::BTreeMap,
+    fs,
+    io::ErrorKind,
+    mem,
+    path::Path,
+    sync::{Arc, RwLock},
+    thread,
+    time::Instant,
 };
 
 use bitcoin::{block::Header, consensus};
@@ -14,7 +21,7 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_reader::{Reader, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
-use crossbeam_channel::{Receiver, bounded};
+use crossbeam_channel::{Receiver, SendError, bounded};
 use tracing::{debug, error, info, warn};
 use vecdb::{
     AnyExportableVec, AnyVec, Database, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,
@@ -75,6 +82,8 @@ pub struct Indexer<M: StorageMode = Rw> {
     resume: M::WriteOnly<Option<ResumePoint>>,
     /// Where dependents recompute from in this update ([`Indexer::compute_start`]).
     compute_start: M::WriteOnly<Lengths>,
+    /// The lengths of the indexed data: the stores' checkpoint once the ingestion in flight ends.
+    lengths: M::WriteOnly<Lengths>,
     /// The outcome of the update's stores ingestion and checkpoint, running in the background.
     ingestion: M::WriteOnly<Option<Receiver<Result<()>>>>,
     /// Whether the next resume reads back the newest blocks' positions: set at import, as a node
@@ -222,6 +231,7 @@ impl Indexer {
             floor: RollbackFloor::load(&plugin_path)?,
             resume: None,
             compute_start: Lengths::default(),
+            lengths: Lengths::default(),
             ingestion: None,
             recheck_newest: true,
             #[cfg(feature = "bench-cpu")]
@@ -229,8 +239,9 @@ impl Indexer {
             state: Arc::default(),
         };
 
-        indexer.drop_uncommitted_rows()?;
-        let lengths = indexer.validate_import(&plugin_path)?;
+        let lengths = indexer.recover()?;
+        indexer.validate_import(&plugin_path, &lengths)?;
+        indexer.lengths = lengths;
         // Dependents' rows beside an empty indexer (deleted, reset or not yet indexed) can't be
         // vouched for: removed now, inside the import's lock and before any of them opens, so
         // each restarts from its own empty data and resumes from it. A kill during the removal
@@ -252,62 +263,55 @@ impl Indexer {
         Ok(indexer)
     }
 
-    /// A crash or a failed ingestion after the vectors' write leaves them ahead of the stores'
-    /// checkpoint: roll them back to it, with the rollback floor, so dependents recompute too.
-    fn drop_uncommitted_rows(&mut self) -> Result<()> {
-        let Some(store_height) = self.stores.next_height()? else {
-            return Ok(());
-        };
-        if store_height >= self.vecs.next_height() || !self.vecs.checkpoints_match() {
-            return Ok(());
+    /// Brings the vectors to the stores' checkpoint ([`stores::StoresCheckpoint`]). Anything that
+    /// stopped a commit or a rollback midway (a kill, a panic, a failed write, an exit while the
+    /// stores ingest) left the vectors above it: rolled back here, with the rollback floor, so
+    /// dependents recompute too.
+    fn recover(&mut self) -> Result<Lengths> {
+        let committed = self.stores.committed()?;
+        if self.vecs.holds(&committed) {
+            return Ok(committed);
         }
-        let (Some(lengths), Some(completed_height)) = (
-            Lengths::at(store_height, &self.vecs),
-            store_height.decremented(),
-        ) else {
-            return Ok(());
-        };
+        let height = self.vecs.next_height();
         warn!(
-            "Indexer vectors at {} ahead of the stores at {store_height}: rolling them back",
-            self.vecs.next_height()
+            "Indexer vectors at {height} past the stores' checkpoint at {}: rolling them back",
+            committed.height
         );
-        self.floor.lower_to(store_height)?;
-        self.vecs.rollback_if_needed(&lengths)?;
-        self.vecs.flush(completed_height)
+        self.floor.lower_to(committed.height)?;
+        // Vectors that all hold one height's rows finished their write: the stores may hold any
+        // part of the rows above the checkpoint (a death while they ingested or undid them), and
+        // the undo writes only what differs. Otherwise the vectors' write (or truncation) stopped
+        // midway, with the stores at the checkpoint.
+        if height > committed.height
+            && Lengths::at(height, &self.vecs).is_some_and(|top| self.vecs.holds(&top))
+        {
+            self.stores.rollback_if_needed(&self.vecs, &committed)?;
+            self.stores.ingest_changes()?;
+        }
+        self.vecs.rollback_if_needed(&committed)?;
+        self.vecs.flush(&committed)?;
+        if !self.vecs.holds(&committed) {
+            warn!(
+                "Indexer vectors end below the stores' checkpoint at {}",
+                committed.height
+            );
+            return Err(Error::InvalidData(
+                "Indexer vectors end below the stores' checkpoint",
+            ));
+        }
+        Ok(committed)
     }
 
-    /// The lengths the data holds, checked against its own checkpoints and the node; or
-    /// [`Error::InvalidData`] naming the failed check, which rebuilds the indexer. An empty
-    /// indexer first records the node's mask beside it.
-    fn validate_import(&self, plugin_path: &Path) -> Result<Lengths> {
+    /// Checks the data that holds `lengths` against the node; or [`Error::InvalidData`] naming
+    /// the failed check, which rebuilds the indexer. An empty indexer first records the node's
+    /// mask beside it.
+    fn validate_import(&self, plugin_path: &Path, lengths: &Lengths) -> Result<()> {
         let reader = &self.reader;
-        let vec_height = self.vecs.next_height();
-        let store_height = self.stores.next_height()?;
-        let is_empty = vec_height.is_zero() && store_height == Some(Height::ZERO);
-        let local_lengths = if is_empty {
-            Lengths::default()
-        } else if let Some(lengths) = Lengths::from_local(&self.vecs, &self.stores)? {
-            lengths
-        } else {
-            return Err(Error::InvalidData(
-                "Indexer checkpoints are missing, inconsistent, or incomplete",
-            ));
-        };
-        // An interrupted parallel write can leave vectors at different checkpoints, or written
-        // vectors beside an empty tip.
-        let blockhash = &self.vecs.blocks.blockhash;
-        if !self.vecs.checkpoints_match()
-            || blockhash.len() != usize::from(vec_height)
-            || (blockhash.is_empty() && !self.vecs.all_empty())
-        {
-            return Err(Error::InvalidData(
-                "Indexer vectors stopped at different heights",
-            ));
-        }
-
         // The node's mask, recorded beside the data indexed from its blocks.
         match XORBytes::read(plugin_path) {
-            Ok(None) if is_empty => write_xor_marker(plugin_path, reader.xor_bytes())?,
+            Ok(None) if lengths.height.is_zero() => {
+                write_xor_marker(plugin_path, reader.xor_bytes())?
+            }
             Ok(Some(marker)) if marker == reader.xor_bytes() => {}
             Ok(_) | Err(Error::WrongLength { .. }) => {
                 return Err(Error::InvalidData(
@@ -317,8 +321,9 @@ impl Indexer {
             Err(error) => return Err(error),
         }
 
+        let blockhash = &self.vecs.blocks.blockhash;
         if blockhash.is_empty() {
-            return Ok(local_lengths);
+            return Ok(());
         }
 
         // Below the newest blocks, which a node's crash can move and a resume reads back: a
@@ -334,7 +339,7 @@ impl Indexer {
             ));
         }
 
-        Ok(local_lengths)
+        Ok(())
     }
 
     /// `lengths`, lowered to the rollback floor when one lies below them.
@@ -409,15 +414,17 @@ impl Indexer {
                 break;
             }
         }
-        match Lengths::resume_at(next, &self.vecs, &self.stores)? {
-            Some(lengths) => Ok(ResumePoint {
-                lengths,
-                prev_hash: next.decremented().map(hash_at),
-            }),
-            None => Err(Error::Internal(
-                "Indexer became inconsistent after import; drop and re-import it",
-            )),
-        }
+        debug_assert_eq!(self.lengths.height, Height::from(blockhash.len()));
+        let lengths = if next == self.lengths.height {
+            self.lengths
+        } else {
+            warn!("Reorg detected: rolling back from {} to {next}", self.lengths.height);
+            Lengths::at(next, &self.vecs).ok_or(Error::Internal("Missing indexer rollback lengths"))?
+        };
+        Ok(ResumePoint {
+            lengths,
+            prev_hash: next.decremented().map(hash_at),
+        })
     }
 
     /// The lengths a reorg rolls back to: some only when the node's active chain orphaned blocks
@@ -427,13 +434,13 @@ impl Indexer {
         let resume = self.resume_point()?;
         let starting_lengths = resume.lengths;
         self.resume = Some(resume);
-        Ok((starting_lengths.height < self.vecs.next_height()).then_some(starting_lengths))
+        Ok((starting_lengths.height < self.lengths.height).then_some(starting_lengths))
     }
 
     /// Rolls back to `starting_lengths`, first publishing the prefix below them once no reader
     /// holds a later publication. Callers hold the exit lock.
     pub fn roll_back_to(&mut self, starting_lengths: &Lengths) -> Result<()> {
-        let local_height = self.vecs.next_height();
+        let local_height = self.lengths.height;
         if local_height == starting_lengths.height {
             return Ok(());
         }
@@ -444,18 +451,16 @@ impl Indexer {
         self.state
             .lower_before(starting_lengths, self.tip_of(starting_lengths));
 
-        let completed_height = starting_lengths
-            .height
-            .decremented()
-            .ok_or(Error::Internal("Cannot roll back before genesis"))?;
+        // The checkpoint first: the rows above it are uncommitted from here, and a start that
+        // finds the vectors still holding them finishes the undo ([`Self::recover`]).
+        self.stores.checkpoint(starting_lengths)?;
         self.stores
             .rollback_if_needed(&self.vecs, starting_lengths)?;
+        self.stores.ingest(&|| Ok(()))?;
         self.vecs.rollback_if_needed(starting_lengths)?;
-
-        let checkpoint = self.stores.begin_commit(completed_height)?;
-        let persisted = self.stores.persist(checkpoint)?;
-        self.vecs.flush(completed_height)?;
-        persisted.publish()
+        self.vecs.flush(starting_lengths)?;
+        self.lengths = *starting_lengths;
+        Ok(())
     }
 
     /// Stops the updates that follow at `tip`, so a benchmark replays a recorded prefix one block
@@ -502,32 +507,34 @@ impl Indexer {
         self.buffers.continue_from(prev_hash);
 
         let mut lengths = starting_lengths;
-        let mut pending_export_height = None;
         let mut pending_blocks = 0;
         let mut pending_records = 0;
 
-        let export =
-            move |stores: &mut Stores, vecs: &mut Vecs, completed_height: Height| -> Result<()> {
-                let i = Instant::now();
-                let _lock = exit.lock();
-                let checkpoint = stores.begin_commit(completed_height)?;
-                thread::scope(|s| -> Result<()> {
-                    let stores_res = s.spawn(|| stores.persist(checkpoint));
-                    let vecs_res = s.spawn(|| -> Result<()> {
-                        let i = Instant::now();
-                        vecs.flush(completed_height)?;
-                        debug!("Vecs exported in {:?}", i.elapsed());
-                        Ok(())
-                    });
-                    let persisted = stores_res.join().unwrap()?;
-                    vecs_res.join().unwrap()?;
-                    // The shared checkpoint becomes visible only once both databases are written.
-                    persisted.publish()?;
-                    Ok(())
-                })?;
-                info!("Saved indexer data in {:.2?}", i.elapsed());
-                Ok(())
-            };
+        let export = move |stores: &mut Stores, vecs: &mut Vecs, lengths: &Lengths| -> Result<()> {
+            let i = Instant::now();
+            let _lock = exit.lock();
+            // The stores write their tables beside the vectors and publish them only once the
+            // vectors hold every row they come from, the order a start's recovery relies on.
+            let vectors = RwLock::new(false);
+            let mut written = vectors.write().unwrap();
+            thread::scope(|s| -> Result<()> {
+                let stores_res = s.spawn(|| {
+                    stores.ingest(&|| match vectors.read() {
+                        Ok(written) if *written => Ok(()),
+                        _ => Err(Error::Internal("Indexer vectors failed to write")),
+                    })
+                });
+                let vecs_res = vecs.flush(lengths);
+                *written = vecs_res.is_ok();
+                drop(written);
+                debug!("Vecs exported in {:?}", i.elapsed());
+                let stores_res = stores_res.join().unwrap();
+                vecs_res.and(stores_res)
+            })?;
+            stores.checkpoint(lengths)?;
+            info!("Saved indexer data in {:.2?}", i.elapsed());
+            Ok(())
+        };
 
         let mut readers = Readers::new(&self.vecs);
 
@@ -559,12 +566,11 @@ impl Indexer {
                 }
             };
             let height = block.height();
+            debug_assert_eq!(lengths.height, height);
 
             if unlikely(height.is_multiple_of(100)) {
                 info!("Indexing block {height}...");
             }
-
-            lengths.height = height;
 
             vecs.blocks.position.push(block.position());
             block
@@ -619,7 +625,6 @@ impl Indexer {
                 .add_block(tx_count, input_count, output_count);
             buffers.finish_block(*block.hash());
             block_freer::free(block);
-            pending_export_height = Some(height);
             pending_blocks += 1;
             pending_records += tx_count + input_count + output_count;
 
@@ -629,9 +634,8 @@ impl Indexer {
             {
                 debug!("Export batch: {pending_blocks} blocks, {pending_records} records");
                 drop(readers);
-                export(stores, vecs, height)?;
+                export(stores, vecs, &lengths)?;
                 readers = Readers::new(vecs);
-                pending_export_height = None;
                 pending_blocks = 0;
                 pending_records = 0;
             }
@@ -639,15 +643,17 @@ impl Indexer {
 
         drop(readers);
 
-        let Some(completed_height) = pending_export_height else {
+        if pending_blocks == 0 {
+            self.lengths = lengths;
             return Ok(());
-        };
+        }
 
         // One lock from the vectors' write to the stores' checkpoint: a quit waits for both, so
         // it never leaves the vectors ahead of the stores.
         let lock = exit.lock();
-        let deferred_commit = self.stores.take_deferred_commit(completed_height);
-        self.vecs.stamped_write(completed_height)?;
+        self.vecs.write(&lengths)?;
+        let commit = self.stores.take_commit(lengths);
+        self.lengths = lengths;
 
         // Ingestion runs beside the dependents' compute, and the commit waits for it; the
         // vectors' compaction runs after the update, off the publication path.
@@ -656,13 +662,13 @@ impl Indexer {
         self.vecs.db().run_bg(move |_| {
             let _lock = lock;
             let i = Instant::now();
-            let result = deferred_commit
-                .persist()
-                .and_then(|persisted| persisted.publish());
+            let result = commit();
             if result.is_ok() {
                 info!("Saved indexer data in {:.2?}", i.elapsed());
             }
-            let _ = done.send(result);
+            if let Err(SendError(Err(error))) = done.send(result) {
+                error!("Indexer stores ingestion failed after its update ended: {error}");
+            }
             Ok(())
         });
 
@@ -687,19 +693,7 @@ impl Indexer {
     /// Finishes the indexer's own writes and returns the lengths a commit publishes.
     pub fn prepare_commit(&mut self) -> Result<Lengths> {
         self.finish_ingestion()?;
-        Ok(match Lengths::from_local(&self.vecs, &self.stores)? {
-            Some(lengths) => lengths,
-            None if self.vecs.next_height().is_zero()
-                && self.stores.next_height()? == Some(Height::ZERO) =>
-            {
-                Lengths::default()
-            }
-            None => {
-                return Err(Error::Internal(
-                    "Indexer checkpoints became inconsistent during the update",
-                ));
-            }
-        })
+        Ok(self.lengths)
     }
 
     /// Publishes `lengths` from [`Self::prepare_commit`] as the pipeline-wide safe-lengths
@@ -728,6 +722,7 @@ impl ReadOnlyClone for Indexer {
             floor: (),
             resume: (),
             compute_start: (),
+            lengths: (),
             ingestion: (),
             recheck_newest: (),
             #[cfg(feature = "bench-cpu")]
