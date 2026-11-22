@@ -2,7 +2,7 @@
 // How a Chart's view moves: the wheel (a mouse's notches, a trackpad's scroll and its momentum), a drag's pan and a
 // flick gliding on once let go, a pinch, and a move eased from where the view is to where a page sends it (a range
 // button, a slider, play, the keys' zoom). The chart's pointers' arbitration (what a press means: a crosshair, an axis,
-// a separator) is the chart's; it tells the controller what moved the view. Studio uses it as `chart.controller`.
+// a separator) is the chart's; it tells the controller what moved the view. A page reaches it as `chart.controller`.
 //
 //   chart.controller.viewTo({ from: 400, to: 800 }, 250);   // eased there, over 250 ms
 //   chart.controller.range;                                   // where the view is (a move from it starts there)
@@ -44,18 +44,21 @@ export class Controller {
   /**
    * @param {HTMLElement} element where the wheel is heard
    * @param {Timeline} time the view it moves
-   * @param {{ move: () => void, left: () => number, signal: AbortSignal }} options `move`: the view moved, to be drawn;
-   * `left`: CSS pixels from the element's left to its plot (a wheel zooms about the pointer there); `signal`: its wheel
-   * heard till it aborts
+   * @param {{ move: () => void, left: () => number, signal?: AbortSignal, embedded?: boolean }} options `move`: the view
+   * moved, to be drawn; `left`: CSS pixels from the element's left to its plot (a wheel zooms about the pointer there);
+   * `signal`: its wheel heard till it aborts (none: as long as the page); `embedded`, a chart in a page that scrolls: a mostly vertical wheel scrolls
+   * the page, a pinch (a trackpad's, a ctrl wheel) zooms, a sideways scroll pans
    */
-  constructor(element, time, { move, left, signal }) {
+  constructor(element, time, { move, left, signal, embedded = false }) {
     this.#time = time;
     this.#move = move;
     element.addEventListener("wheel", (event) => {
+      if (embedded && !event.ctrlKey && Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
       event.preventDefault();
       const box = element.getBoundingClientRect(), scale = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? box.height : 1;
-      // (A pinch zooms alone; a scroll both at once, a trackpad's diagonal swipe panning and zooming together.)
-      if (event.deltaY) time.zoom(event.clientX - box.left - left(), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.001)));
+      // (A pinch zooms alone; a scroll both at once, a trackpad's diagonal swipe panning and zooming together; embedded,
+      // a sideways scroll only pans.)
+      if (event.deltaY && (event.ctrlKey || !embedded)) time.zoom(event.clientX - box.left - left(), Math.exp(event.deltaY * scale * (event.ctrlKey ? 0.01 : 0.001)));
       if (event.deltaX && !event.ctrlKey) time.pan(-event.deltaX * scale);
       this.stop();
       move();

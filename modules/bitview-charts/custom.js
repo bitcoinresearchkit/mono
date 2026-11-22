@@ -14,7 +14,8 @@
 // view as it is: what it draws found again from it, once). Its options: `fixed` (what it draws holds its place
 // as the view moves, a mark at the plot's edge: its pane drawn whole when the view changes), `over` (drawn over everything, the
 // crosshair too, on its pane's layer over it, whole each frame: labels and handles placed in the plot, its pane's
-// picture moved without them) or `behind` (drawn behind every series, whatever their order: a backdrop). After a
+// picture moved without them), `behind` (drawn behind every series, whatever their order: a backdrop) or `crosshair`
+// (drawn with the crosshair, on its layer, each frame it shows, over its lines and under its dots: a line down its day). After a
 // change of what it draws, `changed()`, then the chart's invalidate().
 
 /**
@@ -32,8 +33,8 @@
  */
 
 export class Custom {
-  /** @param {Hooks} hooks @param {{ fixed?: boolean, over?: boolean, behind?: boolean }} [options] */
-  constructor(hooks, { fixed = false, over = false, behind = false } = {}) {
+  /** @param {Hooks} hooks @param {{ fixed?: boolean, over?: boolean, behind?: boolean, crosshair?: boolean }} [options] */
+  constructor(hooks, { fixed = false, over = false, behind = false, crosshair = false } = {}) {
     this.hooks = hooks;
     /** Not drawn, fitted, tagged or hit (its pane drawn whole after a change: its chart's invalidate(true)). */
     this.hidden = false;
@@ -47,6 +48,8 @@ export class Custom {
     this.over = over;
     /** Drawn behind every series, whatever their order. */
     this.behind = behind;
+    /** Drawn with the crosshair, over its lines and under its dots, each frame it shows: never in its pane's picture. */
+    this.crosshair = crosshair;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     /** Read on its side's scale: it has an extent (else, drawn as it likes, its pane's grid isn't its side's for it). */

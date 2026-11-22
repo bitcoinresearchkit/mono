@@ -44,8 +44,8 @@ const TAG = PILL;
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
  * moves (its pane drawn whole on a view change, its picture never moved); `dashed`, its picture can't be stretched by a zoom
- * (its dashes would stretch with it); `immovable`, nor moved by a pan (a curve's dashes run from where its path starts:
- * drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too, on a layer of
+ * (its dashes would stretch with it); `immovable`, nor moved by a pan, nor stretched (a curve's dashes run from where its
+ * path starts: drawn whole as the view moves, kept as it is still); `over`, drawn over everything, the crosshair too, on a layer of
  * its own drawn whole each frame (its pane's picture moved without it); `scaled: false`, not read on its side's scale
  * (its grid by the other's); `overlay`, a scale of its own (unseen, the pane's height, linear or log, fitted to it
  * each frame from every series sharing it, with their margins: a volume along the pane's foot; a side's scale used
@@ -59,7 +59,8 @@ const TAG = PILL;
  * the chart's theme (its ground, its font: words in a pill); `behind`, drawn behind every series whatever their order (a
  * backdrop: levels across); `drawOver`, what it draws over everything as well, on that layer, each frame (its marks'
  * words: never in a picture a pan moves, so they can keep to the view), each box it draws told to `drew` (the layer
- * cleared there alone at the next frame).
+ * cleared there alone at the next frame); `crosshair`, drawn with the crosshair (see its draw), never in its picture;
+ * `drawDots`, its dots alone from `x0` to `x1` (a mark's, a line's own), drawn again by the crosshair over its line down.
  * @typedef {{
  *   version: number,
  *   hidden?: boolean,
@@ -68,6 +69,7 @@ const TAG = PILL;
  *   dashed?: boolean,
  *   immovable?: boolean,
  *   over?: boolean,
+ *   crosshair?: boolean,
  *   scaled?: boolean,
  *   overlay?: Scale | null,
  *   fit?: ((a: number, b: number, positive: boolean, out: Float64Array) => void) | null,
@@ -80,6 +82,7 @@ const TAG = PILL;
  *   extent(a: number, b: number, positive: boolean, out: Float64Array, time?: import("./timeline.js").Timeline): void,
  *   viewed?(time: import("./timeline.js").Timeline): void,
  *   draw(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
+ *   drawDots?(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme): void,
  *   drawOver?(g: CanvasRenderingContext2D, time: import("./timeline.js").Timeline, scale: Scale, x0: number, x1: number, dpr: number, theme: Theme, drew: (x: number, y: number, width: number, height: number) => void): void,
  * }} Series
  */
@@ -760,7 +763,7 @@ export class Pane {
       // (Brought up to the view first: what it draws may hang on it (bubbles sized to the largest in view).)
       if (!series.hidden) series.viewed?.(time);
       if (series.over) (overs += series.version), (own ||= !series.hidden);
-      else (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean(series.dashed && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
+      else if (!series.crosshair) (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean((series.dashed || series.immovable) && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));
       // (An overlay's scale changed: drawn whole, as a side's is.)
       if (series.overlay && !series.overlay.unchanged) overlaid = false;
     }
@@ -997,7 +1000,7 @@ export class Pane {
     const from = this.#from(time);
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
-      if (series.hidden || series.over) continue;
+      if (series.hidden || series.over || series.crosshair) continue;
       const scale = this.scaleOf(k);
       if (scale.relative) {
         const base = series.first(from);

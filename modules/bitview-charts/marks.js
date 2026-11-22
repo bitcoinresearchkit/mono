@@ -370,6 +370,11 @@ export class Marks {
     }
   }
 
+  /** Its dots again (all its picture is), over the crosshair's lines (see the crosshair's draw). @param {Parameters<Marks["draw"]>} args */
+  drawDots(...args) {
+    this.draw(...args);
+  }
+
   /**
    * Its words, over everything (its pane's layer over it, drawn whole each frame: a picture moved by a pan never holds
    * them, so they can keep to the view): each in the chart's one pill, the marks it holds counted beside it, quieter

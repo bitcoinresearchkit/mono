@@ -209,7 +209,7 @@ function rgb(c) {
   return c.length === 4 ? [c[0], c[1], c[2]] : Array.from(c, (v) => Math.round(255 * (Math.min(1, Math.max(0, v)) <= 0.0031308 ? 12.92 * Math.min(1, Math.max(0, v)) : 1.055 * Math.min(1, Math.max(0, v)) ** (1 / 2.4) - 0.055)));
 }
 
-/** Under this chroma a color has no hue of its own (a gray): mixed, it takes its neighbor's. */
+/** At or under this chroma a color has no hue of its own (a gray, as a page writes one: `oklch(0.76 0.02 250)`): mixed, it takes its neighbor's. */
 const GRAY = 0.02;
 
 /**
@@ -240,7 +240,7 @@ function mixes(stops, steps) {
     const at = steps > 1 ? (k / (steps - 1)) * 100 : 0, next = stops.findIndex(([where]) => where >= at);
     const [i, j, t] = next <= 0 ? [next < 0 ? last : 0, next < 0 ? last : 0, 0] : [next - 1, next, (at - stops[next - 1][0]) / Math.max(1e-9, stops[next][0] - stops[next - 1][0])];
     const a = lchs[i][3] === 0 ? lchs[j] : lchs[i], b = lchs[j][3] === 0 ? lchs[i] : lchs[j];
-    const from = a[1] < GRAY ? b[2] : a[2], to = b[1] < GRAY ? a[2] : b[2], turn = ((((to - from) % 360) + 540) % 360) - 180;
+    const from = a[1] <= GRAY ? b[2] : a[2], to = b[1] <= GRAY ? a[2] : b[2], turn = ((((to - from) % 360) + 540) % 360) - 180;
     (rows[k * 4] = a[0] + (b[0] - a[0]) * t), (rows[k * 4 + 1] = a[1] + (b[1] - a[1]) * t), (rows[k * 4 + 2] = (((from + turn * t) % 360) + 360) % 360);
     rows[k * 4 + 3] = lchs[i][3] + (lchs[j][3] - lchs[i][3]) * t;
   }

@@ -301,6 +301,8 @@ export class Line {
     /** @type {number[] | null} */
     this.dash = dash && dash.length ? dash : null;
     this.curve = curve;
+    /** Which palette colors a draw's points have (see #used), kept. */
+    this.used = new Uint8Array(0);
     /** @type {readonly import("./color.js").Zone[] | null} */
     this.zones = zones && zones.length ? zones : null;
     /** @type {import("./color.js").Gradient | null} */
@@ -611,7 +613,7 @@ export class Line {
     if (!this.values.length) return;
     if (this.stroke) this.#stroke(g, time, scale, x0, x1, dpr);
     // (Its dots over its line.)
-    if (this.dots) this.#dots(g, time, scale, x0, x1);
+    this.drawDots(g, time, scale, x0, x1);
   }
 
   /**
@@ -668,7 +670,10 @@ export class Line {
     // what's hit, a see-through zone none.)
     const spans = zones && measuring ? zoneSpans(zones, scale, scale.height, this.spans) : null;
     const passes = spans ? spans.length / 3 : colors && (!measuring || !this.palette.every(painted)) ? this.palette.length : 0;
+    // (A color's pass traces every point in view: one for a color none of them has, skipped.)
+    const used = colors && passes && !spans ? this.#used(time, x0, x1, colors) : null;
     for (let pass = passes ? 0 : -1; pass < passes; pass++) {
+      if (used && !used[pass]) continue;
       const color = spans && zones ? ((k) => (k < 0 ? this.color : zones[k].color))(spans[pass * 3]) : colors && measuring && !passes ? "#000" : pass < 0 ? this.color : this.palette[pass];
       if (spans) g.save(), g.beginPath(), g.rect(x0, spans[pass * 3 + 1], x1 - x0, spans[pass * 3 + 2] - spans[pass * 3 + 1]), g.clip();
       g.strokeStyle = zones && !spans ? (this.strokeFill ??= new Fill()).zoned(g, color, zones, scale, scale.height) : gradient ? (this.strokeFill ??= new Fill()).graded(g, gradient, scale, scale.height) : color;
@@ -683,6 +688,17 @@ export class Line {
     }
     if (dash) g.setLineDash(SOLID), (g.lineDashOffset = 0);
     if (period > 0) (this.dashLast = pen.lastId), (this.dashLastAt = pen.last);
+  }
+
+  /**
+   * Which of its palette's colors its points from x `x0` to `x1` have (and a column and a point past each end, as #trace draws), 1 each.
+   * @param {import("./timeline.js").Timeline} time @param {number} x0 @param {number} x1 @param {Uint8Array | Uint16Array} colors
+   */
+  #used(time, x0, x1, colors) {
+    const used = this.used.length === this.palette.length ? this.used.fill(0) : (this.used = new Uint8Array(this.palette.length));
+    const a = Math.max(0, Math.floor(time.index(Math.floor(x0) - 2)) - 1), b = Math.min(this.values.length - 1, Math.ceil(time.index(Math.ceil(x1) + 2)) + 1);
+    for (let i = a; i <= b; i++) used[colors[i]] = 1;
+    return used;
   }
 
   /** Its partial point (see `partial`): its last with a value, whatever its scale shows; none, -1. */
@@ -731,11 +747,13 @@ export class Line {
   }
 
   /**
-   * Its dots from x `x0` to `x1` (and those reaching in), each color's in one fill, ringed in its outline first.
+   * Its dots from x `x0` to `x1` (and those reaching in), each color's in one fill, ringed in its outline first (none
+   * without `dots`): in its picture, and again over the crosshair's lines (see the crosshair's draw).
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1
    */
-  #dots(g, time, scale, x0, x1) {
+  drawDots(g, time, scale, x0, x1) {
+    if (!this.dots || !this.values.length) return;
     const values = this.values, r = this.dots, ring = this.outline ? r + Math.max(1, this.width) : 0, reach = Math.max(r, ring);
     const a = Math.max(0, Math.floor(time.index(x0 - reach))), b = Math.min(values.length - 1, Math.ceil(time.index(x1 + reach)));
     const zones = this.zones, colors = zones ? null : this.pointColors(), palette = this.pointPalette();

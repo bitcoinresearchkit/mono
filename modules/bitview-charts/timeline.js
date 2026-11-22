@@ -59,6 +59,8 @@ export class Timeline {
     this.minSpacing = minSpacing;
     this.maxSpacing = maxSpacing;
     this.minDataShare = minDataShare;
+    /** The first point with data (a page's series starting after its times do): where its data begins, as the view's held on it (see held). */
+    this.first = 0;
     /** A pan's part of a pixel, kept for the next. */
     this.rest = 0;
     /**
@@ -140,12 +142,16 @@ export class Timeline {
 
   /** The last `span` points in view, the first at the left edge, the right offset past the last. @param {number} span */
   show(span) {
+    const { from, to } = this.shown(span);
+    this.setRange(from, to);
+  }
+
+  /** The range `show(span)` sets (a page's eased move aimed there). @param {number} span */
+  shown(span) {
     // (Up to the zoom's bound, or as close as a resize kept it: see kept.)
     const spacing = Math.min(Math.max(this.dataWidth / Math.max(span - 1, 0), this.minSpacing), Math.max(this.maxSpacing, this.width / this.kept));
-    this.to = this.length - 1 + this.rightOffset / spacing;
-    this.from = this.to - this.width / spacing;
-    this.rest = 0;
-    this.limit();
+    const to = this.length - 1 + this.rightOffset / spacing;
+    return { from: to - this.width / spacing, to };
   }
 
   /** @param {number} from @param {number} to */
@@ -225,7 +231,8 @@ export class Timeline {
    * most all of the data (a tenth to spare) and the right offset, or `minSpacing`. @param {number} span
    */
   within(span) {
-    const least = Math.min(this.width / this.maxSpacing, this.kept), most = this.minSpacing > 0 ? this.width / this.minSpacing : (Math.max(this.length, 2) * 1.1 * this.width) / this.dataWidth;
+    const least = Math.min(this.width / this.maxSpacing, this.kept);
+    const most = this.minSpacing > 0 ? this.width / this.minSpacing : (Math.max(this.length - this.first, 2) * 1.1 * this.width) / this.dataWidth;
     return Math.min(Math.max(span, least), Math.max(most, least));
   }
 
@@ -235,14 +242,14 @@ export class Timeline {
    * @param {number} from @param {number} to
    */
   held(from, to) {
-    const span = to - from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
-    return from > last - hold ? last - hold - from : to < hold ? hold - to : 0;
+    const span = to - from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last - this.first);
+    return from > last - hold ? last - hold - from : to < this.first + hold ? this.first + hold - to : 0;
   }
 
   /** How far it can pan (CSS pixels) to `px`'s side (over 0: earlier points coming in) before an end holds it. @param {number} px */
   room(px) {
-    const span = this.to - this.from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last);
-    return Math.max(0, (px > 0 ? this.to - hold : last - hold - this.from) * this.spacing);
+    const span = this.to - this.from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last - this.first);
+    return Math.max(0, (px > 0 ? this.to - this.first - hold : last - hold - this.from) * this.spacing);
   }
 
   /** Its spacing within bounds, and its data holding its share of the view (all of it where there's less). */

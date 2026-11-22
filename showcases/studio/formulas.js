@@ -1,16 +1,16 @@
 // @ts-check
 // What a formula is: its words, parsed, checked and computed over aligned layers.
 import { bandNames, inBands } from "/studio/bands.js";
-import { brushDrag, chart, engine, EXAMPLE, flowsAt, indexAt, resolved, timeAt, tree, windowTooLong, within } from "/studio/app.js";
+import { chart, engine, EXAMPLE, flowsAt, indexAt, timeAt, tree, windowTooLong } from "/studio/app.js";
 import { isSeriesName } from "/studio/catalog-walk.js";
-import { $, escapeHtml } from "/studio/dom.js";
+import { escapeHtml } from "/studio/dom.js";
 import { grouped } from "/studio/format.js";
 import { failing } from "/studio/vocabulary.js";
 import {
   CHUNK, FINE, fitsFrom, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, outreaches, SPAN_DAYS, SPAN_LETTERS,
   windowPoints,
 } from "/studio/intervals.js";
-import { idOf, lastUsed, paneBox, shownSpan, showSpan } from "/studio/chart.js";
+import { idOf, lastUsed, paneBox } from "/studio/chart.js";
 import { supportedIntervals } from "/studio/menus.js";
 /** @import { Layer } from "/studio/vocabulary.js" */
 
@@ -963,37 +963,6 @@ const unfitHere = (formulas) => {
   const supported = supportedIntervals(chart), fit = INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
   return `Not at ${INTERVAL_LABEL[chart.index]}${fit.length ? `: ${INTERVAL_LABEL[fit[0]]}${fit.length > 1 ? ` to ${INTERVAL_LABEL[/** @type {string} */ (fit.at(-1))]}` : ""}` : ""}`;
 };
-/** The brush dragged by its press's pointer (see press). @param {PointerEvent} event */
-function dragBrush(event) {
-  if (!brushDrag) return;
-  const rect = $("navigator").getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  // (Dragged on as its jump glides: from where the view is now, the glide given up; a click's jitter, not a drag.)
-  if (engine.controller.target) {
-    if (Math.abs(x - brushDrag.x) < 3) return;
-    const now = shownSpan();
-    engine.controller.stop();
-    if (now) Object.assign(brushDrag, { x, range: now });
-    return;
-  }
-  // (The timeline or the strip changed under it (another interval, a block, a resize): taken up again from here, not
-  // moved by the old one's bars a pixel.)
-  if (brushDrag.times !== resolved?.times || brushDrag.width !== rect.width) {
-    const now = shownSpan(), n = resolved?.times.length ?? 0;
-    if (!now || n < 2) return;
-    Object.assign(brushDrag, { x, perPixel: (n - 1) / rect.width, range: now, times: resolved?.times, width: rect.width });
-  }
-  const delta = (x - brushDrag.x) * brushDrag.perPixel;
-  let { from, to } = brushDrag.range;
-  if (brushDrag.mode === "pan") {
-    from += delta;
-    to += delta;
-  } else if (brushDrag.mode === "left") from = Math.min(from + delta, to - 10);
-  else to = Math.max(to + delta, from + 10);
-  // An edge dragged out past the most the view shows: the other edge gives way.
-  showSpan(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
-}
-
 /** The pane under a point of the page (its index, its box), or none. */
 function paneAt(clientY) {
   for (let i = 0; i < engine.panes.length; i++) {
@@ -1011,7 +980,7 @@ function nearestFinite(values, i) {
   return -1;
 }
 export {
-  argNames, bandSum, breaksAt, COMPARES, dragBrush, evaluate, FUNCTIONS, GENESIS, hasFunction, highlightFormula,
+  argNames, bandSum, breaksAt, COMPARES, evaluate, FUNCTIONS, GENESIS, hasFunction, highlightFormula,
   isBandSum, nearestFinite, paneAt, parse, PERIODS_TAKEN, plainOperators, refsOf, renamed, restarts, rolling,
   seriesNamed, seriesUnnamed, shiftSpan, shiftSpanError, turnsInto, unfitHere, unitOfNode, unstarted, VALUES, windowsOf,
 };

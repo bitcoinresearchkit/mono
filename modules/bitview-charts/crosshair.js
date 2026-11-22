@@ -2,7 +2,9 @@
 // The crosshair: over the whole chart, its own canvas (the panes' pictures never drawn again for it): a line down every
 // pane at a point (the nearest to where it's pointed), a line across the pane pointed at, at the pointer's height; the
 // point's date on the time axis and the height's value on that pane's axis, each in a badge. And a separator between
-// panes pointed at or dragged, along it in the theme's active color.
+// panes pointed at or dragged, along it in the theme's active color. Lines first, dots over them: its lines, then a
+// page's own that go with it (a Custom's `crosshair`: a line down a day), then each series' own dots its line down
+// crosses, drawn again, and its dots on the lines; a page's layers over the panes (words, a dot of its own) over it all.
 
 import { kept } from "./format.js";
 import { FAINT } from "./line.js";
@@ -99,10 +101,43 @@ export class Crosshair {
       g.stroke();
       g.setLineDash(NONE);
     }
+    const from = Math.max(0, time.firstVisible), on = x >= 0 && x <= plot;
+    // (Each pane's own lines with it (a page's), then the dots its line down crosses: each series' own (a mark's, a
+    // line's), in the picture under it, drawn again in a strip about it as wide as it is, with its smoothed edges. Not
+    // along its line across: dashed, faint and moving with the pointer, where a line's dots would be drawn again the
+    // plot's width each frame.)
+    for (const each of panes) {
+      g.save();
+      g.beginPath();
+      g.rect(0, each.top, plot, each.height);
+      g.clip();
+      g.translate(0, each.top);
+      for (let s = 0; s < each.series.length; s++) {
+        const series = each.series[s];
+        if (series.crosshair && !series.hidden) series.draw(g, time, each.scaleOf(s), 0, plot, dpr, theme);
+      }
+      if (on && painted(theme.crosshair)) {
+        g.beginPath();
+        g.rect(x - 1, 0, 2, each.height);
+        g.clip();
+        for (let s = 0; s < each.series.length; s++) {
+          const series = each.series[s], scale = each.scaleOf(s);
+          if (!series.drawDots || series.hidden) continue;
+          if (scale.relative) {
+            const base = series.first(from);
+            if (!base || base !== base) continue;
+            scale.setBase(base);
+          }
+          g.globalAlpha = series.faint ? FAINT : 1;
+          series.drawDots(g, time, scale, x - 1, x + 1, dpr, theme);
+        }
+      }
+      g.restore();
+    }
     // (Its dot on each line at its point (a line's `marker` its radius), ringed in the ground, within its pane's plot; the
     // line pointed at's larger, in a ring of its color, over the others: which one the crosshair reads.)
-    if (x >= 0 && x <= plot) {
-      const from = Math.max(0, time.firstVisible), pointed = this.pointed !== undefined ? this.pointed : this.hit;
+    if (on) {
+      const pointed = this.pointed !== undefined ? this.pointed : this.hit;
       let focus = NaN, focusY = NaN, focusColor = "", focusMarker = 0;
       for (let p = 0; p < panes.length; p++) {
         const each = panes[p];
@@ -172,13 +207,14 @@ export class Crosshair {
       const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
       if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right", PILL, "", within);
     }
-    // (Its date on the time axis, its point's; past the last, as the points' step goes on.)
-    const times = time.times, k = Math.round(i), at = time.timeAt(k);
-    if (at === at && x >= 0 && x <= plot) {
-      // (Points less than a day apart (the last one's from the one before it): its time too.)
-      const n = times.length, fine = n > 1 && (k < n - 1 ? times[k + 1] - times[k] : times[n - 1] - times[n - 2]) < DAY;
+    // (Its date on the time axis, its point's; past the last, as the points' step goes on. Points less than a day apart
+    // (the last one's from the one before it): its time too. Written as nothing (a page saying the date elsewhere): no
+    // badge, as a value's.)
+    const times = time.times, k = Math.round(i), at = time.timeAt(k), m = times.length;
+    const words = at === at && x >= 0 && x <= plot ? (m > 1 && (k < m - 1 ? times[k + 1] - times[k] : times[m - 1] - times[m - 2]) < DAY ? this.fine : this.day)(at) : "";
+    if (words) {
       // (Its middle where it's drawn: at the point, slid in from an edge.)
-      const words = (fine ? this.fine : this.day)(at), half = g.measureText(words).width / 2 + 6, middle = Math.max(within[0] + half, Math.min(x, within[1] - half));
+      const half = g.measureText(words).width / 2 + 6, middle = Math.max(within[0] + half, Math.min(x, within[1] - half));
       // (The time axis' labels it touches covered with the ground: none shows cut beside it, as none shows under a tag.)
       g.fillStyle = theme.background;
       for (let n = 0; n < axis.drawnCount; n++) {
