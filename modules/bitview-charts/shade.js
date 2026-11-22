@@ -63,7 +63,9 @@ export class Shade {
     if (from >= to) return;
     const half = (Math.max(time.spacing, 1) * dpr) / 2, height = scale.height * dpr;
     g.save();
-    g.setTransform(1, 0, 0, 1, 0, 0);
+    // (In device pixels, kept where the page moved it: a shade drawn in a band of a page's own canvas.)
+    const { e, f } = g.getTransform();
+    g.setTransform(1, 0, 0, 1, e, f);
     // (The stretch being made: where it starts (NaN: none), its color; the last point's index and column.)
     let start = NaN, color = "", last = NaN, column = 0;
     const fill = (/** @type {number} */ end) => {

@@ -177,7 +177,7 @@ export class Chart {
     /** Its listeners, gone with it (see destroy). */
     this.listening = new AbortController();
     /** How the view moves: the wheel, a flick gliding on, moves eased to a range (see Controller). */
-    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left, signal: this.listening.signal });
+    this.controller = new Controller(element, this.time, { move: () => this.invalidate(), left: () => this.left, signal: this.listening.signal, embedded });
     this.timeAxis = new TimeAxis();
     this.crosshair = new Crosshair();
     if (dateFormat) this.crosshair.setFormat(dateFormat);

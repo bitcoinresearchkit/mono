@@ -8,17 +8,17 @@ import { OKLCH } from "/studio/palette.js";
 import { hexToOklch, oklchToHex } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
-  averageFor, bandLit, BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex, catalogIntervals,
+  averageFor, bandLit, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex, catalogIntervals,
   changesOf, chart, chartHeight, chartSans, chartSize, CHART_TEXT, client, CLOUD, cohortName, commit, crossMoved, css, dataRevision,
   chartShown, displayed, draft, EMPTY, engine, exporting, fitMargins, footPinned, fromShort, fromUnfit, goneLayer, grow,
   heatKnown, home, hoverTime, indexAt, indexCatalog, keepStretch, keyAway, keyTime, keyValue, layerPicks, light,
-  liveHeight, lookDoc, lookShown, morphFrom, mostBars, MOTION, motionsSized, ontoData, openingView, paintNavigator,
+  liveHeight, lookDoc, lookShown, morphFrom, mostBars, MOTION, motionsSized, navBar, ontoData, openingView, paintNavigator,
   panelShown, pending, placing, pointedLayer, pointerOnChart, profileColor, profileLit, reaching, reduced, resolved,
   rowSizes, selected, shownOklch, signalShown, sizeChart, sizeHeld, SPAN, spanKey, spanParts, spotlight, submenus,
   subSetups, tagLit, timeAt, timesAt, tokensNow, tool, updateRowChanges, viewMoving, viewTimes, widest, windowTooLong,
   within,
 } from "/studio/app.js";
-import { $, all$, closest, composing, escapeHtml, keyText, TOUCH } from "/studio/dom.js";
+import { $, all$, closest, composing, escapeHtml, keyText } from "/studio/dom.js";
 import { motionTime } from "/modules/bitview-charts/clock.js";
 import { clamp, lowerBound } from "/studio/math.js";
 import {
@@ -3118,18 +3118,6 @@ function overviewSpan(/** @type {number} */ n) {
   const e = eased(t);
   return { from: morphFrom.from * (1 - e), to: morphFrom.to + (n - 1 - morphFrom.to) * e, t: e };
 }
-/** The window's edges as shown, in pixels of a strip `width` wide: no narrower than `min`, within the strip. */
-function brushSpan(/** @type {number} */ left, /** @type {number} */ right, /** @type {number} */ width, min = BRUSH_MIN) {
-  const from = Math.min(left, width - min);
-  return [from, from + Math.max(right - left, min)];
-}
-/** Where the window shows on the navigator (`rect`), in its pixels, and how near its edges a pointer takes them. */
-function brushOn(/** @type {DOMRect} */ rect, /** @type {number} */ n, /** @type {{ from: number, to: number }} */ range) {
-  const span = overviewSpan(n), perPixel = (span.to - span.from) / rect.width, px = (/** @type {number} */ at) => clamp((at - span.from) / perPixel, 0, rect.width);
-  const [left, right] = brushSpan(px(range.from), px(range.to), rect.width);
-  // Each visible grip ends 5px from the edge; touch gets 2px more without taking the window's body.
-  return { span, perPixel, left, right, grip: TOUCH ? 7 : 5 };
-}
 function placeBrush() {
   const brush = $("brush");
   const n = resolved?.times.length ?? 0;
@@ -3189,7 +3177,7 @@ function reachOut() {
   // (As prefetch: its first frames, and the rest it asks for, come before the chart does when a link is read first.)
   const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
   const range = shownSpan();
-  if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || engine.controller.target || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
+  if (!span || reaching || viewMoving || pressed.size || navBar.dragging || presetShown || engine.controller.target || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
   const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
   // Holding the most, growing at one end lets go of the other: not when the view would then be close to that one
   // (it would grow back there, and on, to and fro).
@@ -3197,7 +3185,7 @@ function reachOut() {
   if (side) void grow(span, side);
 }
 export {
-  alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles,
+  alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, bubbleAt, Bubbles,
   build, built, BY_BLOCK, byColor, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme,
   chartWidth, chipText, chunkAt, chunked, chunks, Cloud, colorChain, colorNow, colorsAt, columnBy, crossHeld, crossOn,
   crossSet, cssColor, cutsOf, dailyOf, dashFor, dataKey, datedIntervals, defaultSize, describePlot, dotLineOf,

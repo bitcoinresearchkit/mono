@@ -405,5 +405,4 @@ export class Band {
     outline.close();
     g.fill();
   }
-
 }

@@ -2,6 +2,7 @@
 import { BitviewClient } from "/modules/bitview-client/index.js";
 import XKCD from "/modules/xkcd-colors/index.js";
 // (Studio's chart library: bitview-charts.)
+import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
@@ -42,7 +43,7 @@ import {
 // (Studio's functions, by what they do, in modules of their own; what runs at its start runs from here, in order. The
 // state written from several of its sections, and its own sections' state (library, toast, live, ...), is kept here.)
 import {
-  alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, brushOn, brushSpan, bubbleAt, Bubbles, build,
+  alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, bubbleAt, Bubbles, build,
   built, BY_BLOCK, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme, chartWidth, chipText,
   chunkAt, chunked, chunks, Cloud, columnBy, crossHeld, crossOn, crossSet, cssColor, dailyOf, dashFor, dataKey,
   describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, endReveal,
@@ -80,7 +81,7 @@ import {
   tagShapes, tickOn, timeLine, toggleBelt, turnBelt, upright, wordsIn, wordsOn,
 } from "/studio/drawing.js";
 import {
-  bandSum, dragBrush, FUNCTIONS, isBandSum, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere, windowsOf,
+  bandSum, FUNCTIONS, isBandSum, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere, windowsOf,
 } from "/studio/formulas.js";
 import {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
@@ -4221,7 +4222,7 @@ function atRest() {
   restFrame = 0;
   if (movedSince || engine.controller.target || performance.now() - wheelAt < WHEEL_QUIET) return void ((movedSince = false), restSoon());
   // (Held, still or not: at rest once it's let go, see the release.)
-  if (pressed.size || brushDrag) return;
+  if (pressed.size || navBar.dragging) return;
   viewMoving = false;
   valuesSoon();
   reachOut();
@@ -4392,7 +4393,7 @@ function paintNavigator(lit) {
   const label = (/** @type {string} */ said) => $("navigator").getAttribute("aria-label") !== said && $("navigator").setAttribute("aria-label", said);
   if (!(lit && shown)) label(`Overview of ${over}: ${keys}`);
   else {
-    const [left, right] = brushSpan(lit.left * w, lit.right * w, w, BRUSH_MIN * ratio);
+    const [left, right] = windowOn(lit.left * w, lit.right * w, w, BRUSH_MIN * ratio);
     outside.rect(0, 0, w, h);
     outside.roundRect(left, 0, right - left, h, 8 * ratio);
     // (Said, always; painted, and so measured, only while it's pointed at or dragged: at rest, the time axis above
@@ -4551,51 +4552,24 @@ async function grow(span, by) {
   restSoon();
 }
 
-let brushDrag = null;
 // (Said as a finger does it, where it's one.)
 $("navigator").dataset.tip = `Drag to pan, drag an edge to zoom, ${CLICK} to jump`;
-$("navigator").addEventListener("pointerdown", (event) => {
-  if (event.button !== 0 || brushDrag) return;
-  const n = resolved?.times.length ?? 0, range = shownSpan();
-  if (n < 2 || !range) return engine.controller.stop();
-  const rect = $("navigator").getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  // Hit-tested on the overview as it's painted (mid-move, too), which then lands where it was going.
-  const { span, perPixel, left, right: painted, grip } = brushOn(rect, n, range), at = (/** @type {number} */ px) => span.from + px * perPixel;
-  morphFrom = null;
-  let mode = "pan";
-  if (Math.abs(x - left) <= grip) mode = "left";
-  else if (Math.abs(x - painted) <= grip) mode = "right";
-  let start = range;
-  if (mode === "pan" && (x < left || x > painted)) {
-    // Jump: center the same window where the person clicked, gliding there (as every move of the view's goes), and
-    // drag on from there.
-    const half = (range.to - range.from) / 2;
-    start = within({ from: at(x) - half, to: at(x) + half });
-    start = ontoData(start) ?? start;
-    glide(start);
-  } else engine.controller.stop();
-  brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, times: resolved?.times, width: rect.width };
-  $("navigator").setPointerCapture(event.pointerId);
-  press(event, { captor: $("navigator"), move: dragBrush, end: dropBrush });
-  $("brush").classList.add("dragging");
+/** The navigator's drags, the library's (see Navigator), on the overview as it's painted (its morph, too). */
+const navBar = new Navigator($("navigator"), engine, {
+  overview: () => ((n) => (n < 2 ? null : overviewSpan(n)))(resolved?.times.length ?? 0),
+  length: () => (resolved?.times.length ?? 0) - 1,
+  data: () => resolved?.times,
+  within,
+  glide: (range) => glide(range),
+  window: $("brush"),
+  least: BRUSH_MIN,
+  // (Each visible grip ends 5px from the edge; touch gets 2px more without taking the window's body.)
+  grip: TOUCH ? 7 : 5,
+  // (Taken: the overview lands where it was going.)
+  pressed: () => (morphFrom = null),
+  dropped: () => (placeBrush(), released()),
 });
 for (const [type, near] of /** @type {const} */ ([["pointerenter", true], ["pointerleave", false]])) $("navigator").addEventListener(type, () => ((navigatorNear = near), placeBrush()));
-// (Pointed at, not dragged: the cursor says an edge can be.)
-$("navigator").addEventListener("pointermove", (event) => {
-  const range = shownSpan(), n = resolved?.times.length ?? 0;
-  if (brushDrag || !range || n < 2) return;
-  const rect = $("navigator").getBoundingClientRect(), x = event.clientX - rect.left, { left, right, grip } = brushOn(rect, n, range);
-  $("navigator").style.cursor = Math.abs(x - left) <= grip || Math.abs(x - right) <= grip ? "ew-resize" : "";
-});
-/** The brush let go of, its press over (see press). */
-function dropBrush() {
-  if (!brushDrag) return;
-  brushDrag = null;
-  $("brush").classList.remove("dragging");
-  placeBrush();
-  released();
-}
 // Focused (tabbed to, pressed or dragged, after Go to a date), its keys move the view as its drags do: ← → a tenth of
 // it along (⇧, all of it), ↑ ↓ in and out (⇧, twice as far), Home and End to the start and to the latest.
 $("navigator").addEventListener("keydown", (event) => {
@@ -11148,7 +11122,7 @@ async function start() {
 navigate(start().finally(() => ((started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
 export {
   acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
-  BRUSH_MIN, brushDrag, bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
+  bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
   cardsSeen, catalogIndex, catalogIntervals, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
   chartShown, chartSize, CHART_TEXT, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
   cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, crossMoved, css,
@@ -11165,7 +11139,7 @@ export {
   layerPicks, layersBatch, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, lensAt, letterChip, letterOf,
   library, libraryEdits, libraryStep, light, linkView, listedPreviews, listOwed, LIVE, liveHeight, livePrice,
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,
-  menuNameOf, minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, navigations, newDraft, nextHalvings,
+  menuNameOf, minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, navBar, navigations, newDraft, nextHalvings,
   normalize, noteUse, notice, ontoData, openChart, openingView, openPalette, openView, ownerOf, paintNavigator,
   paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending, pendingRoute, phone,
   pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels, presetMarks, presets,

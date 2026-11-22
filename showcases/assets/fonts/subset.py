@@ -101,6 +101,15 @@ for name, floor in FLOOR.items():
         subsetter = subset.Subsetter(subset.Options(layout_features=[f for f in FEATURES if f not in DROPPED.get(name, [])], notdef_outline=True))
         subsetter.populate(unicodes=cps)
         subsetter.subset(font)
+        # tnum for digits only: Inter's also widens the hyphen (0.46 to 0.65 em) and the colon, comma, period, space,
+        # parentheses and maths signs, which opens gaps in running text ("long - term", a space after a bold word)
+        # under the pages' body-wide tabular-nums. A digit's alternates (ss01's) have no character and stay.
+        gsub, cmap = font["GSUB"].table, font.getBestCmap()
+        others = {name for cp, name in cmap.items() if not 0x30 <= cp <= 0x39}
+        for feature in (f.Feature for f in gsub.FeatureList.FeatureRecord if f.FeatureTag == "tnum"):
+            for index in feature.LookupListIndex:
+                for table in gsub.LookupList.Lookup[index].SubTable:
+                    table.mapping = {a: b for a, b in table.mapping.items() if a not in others}
         if floor:
             axis = next(axis for axis in font["fvar"].axes if axis.axisTag == floor)
             axis.minValue = axis.defaultValue

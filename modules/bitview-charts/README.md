@@ -42,7 +42,7 @@ chart.show(365);                                 // the last 365 points in view
   as wide as the view; `{ exact: true }`, at its endpoints as given; stops a flick when the effective range changes),
   `onRange(listener)`,
   `onLayout(listener)` (its size, its panes' places: a page's own things kept on them; a separator's drag, at each move),
-  `setCrosshair(index, y)`,
+  `setCrosshair(index, y)` (its date written by `crosshair.setFormat`: written as nothing, no badge, as a value's),
   `onCrosshair(listener)` (its point, its pane, the series a pointer's on there), `onClick(listener)` (a click or a
   tap: its point, its pane, the series hit there), `tagAt(x, y)` (the line whose tag is at a point on an axis),
   `y(series, value)` and `value(series, y)` (a value's height in its pane on its series' scale, a relative one read
@@ -66,20 +66,35 @@ chart.show(365);                                 // the last 365 points in view
   own element over the chart (a legend); its value's badge over its axis' tags (each still read beside it), its date's
   covering the time axis' labels it touches (none shows cut beside it); a dot on each line at its point, the line
   pointed at's larger, ringed in its color (`crosshair.pointed`: a page's line, null none; left undefined, the one a
-  pointer's on, as its listeners are told). Separators between panes drag to share their heights (laid out and drawn at
+  pointer's on, as its listeners are told). Lines first, dots over them: its lines, a page's own that go with it (a
+  `Custom`'s `crosshair`), then the dots its line down crosses (a mark's, a line's own, drawn again over it) and its
+  dots on the lines; a page's layers over the panes (`over`, words) over it all. Separators between panes drag to share their heights (laid out and drawn at
   each move; the separator pointed at or dragged in the theme's `active` color). A drag on a price axis scales it about its middle (its range then set by hand; a
   double-click fits it again), on the time axis zooms holding the latest point where it is (in view; else the plot's
   right edge; a double-click there tells `onTimeReset`'s listeners: the page's view to come back to).
-- `chart.controller` (Studio uses it): how the view moves: the wheel, a flick, an eased `viewTo({ from, to }, duration)`
-  (cubic, out; at once with no duration). `range` is the view, `target` where an eased move goes (null at rest), `halt()`
-  ends a flick, `stop()` every motion. `clock.js`'s `motionClock()` and `motionTime()` make a frame's time steady where
-  the browser rounds it.
+- `chart.controller`: how the view moves: the wheel, a flick, an eased `viewTo({ from, to }, duration)` (cubic, out; at
+  once with no duration). `range` is the view, `target` where an eased move goes (null at rest), `halt()` ends a flick,
+  `stop()` every motion. In an `embedded` chart a mostly vertical wheel scrolls the page, a pinch zooms, a sideways
+  scroll pans. `time.first`, the first point with data (a page's series starting after its times do): the view's held
+  on its data from there, as from a first point. `time.shown(span)` is the range `show(span)` sets (an eased move aimed
+  there). `clock.js`'s `motionClock()` and `motionTime()` make a frame's time steady where the browser rounds it.
 - Presses: `press(pointerdown, { end, move?, captor?, signal? })` (exported) follows a press to its end however it
   ends, so the chart's presses and a page's own (a slider's drag, a long press, a list's reorder) end alike: `end` is
   told once, with the pointerup at a release, else with null at its pointercancel, its capture lost by `captor`, the
   window left, a mouse or pen moving with no button down, or a touch the browser forgot (below; then `lost` true);
   `move` hears its moves. Its events are heard on the window in the capture phase, before any element's listeners, so
   only a listener before it on the window itself could stop them. It returns its stop (`end` untold).
+- Navigator (`navigator.js`): `new Navigator(strip, chart, hooks)` gives a strip of the whole history (the page paints
+  it) its drags: the window dragged pans the view, an edge (within `grip` CSS pixels) moves that end (10 points at
+  least), a press off it glides the view there (centred, held on the data) and a drag goes on from where the glide
+  has got to; a change of the page's `data()` or of the strip's width mid-drag takes it up again from the view. A
+  finger's mostly vertical swipe on the strip scrolls the page (`touch-action: pan-y`, set on it): a finger's press is
+  taken once it moves more sideways than up or down, or lifts, so a scroll begun there neither jumps nor stops the view.
+  Hooks: `overview()` (the points across the strip as painted now; null, nothing to navigate), `length()` (across it
+  at rest: a drag's scale), `data()`, `within(range, keep)` (a view as long as the page lets one be), `glide(range)`,
+  `window` (the element `dragging` while held), `least` (the window's least width, which `windowOn(left, right,
+  width, least)` applies to what the page paints), `grip`, `pressed?()`, `dropped?()`, `signal?`. `dragging` says
+  whether it's held.
 - Forgotten touches: iOS WebKit can hand a touch to a native gesture and send it neither pointerup nor pointercancel
   (WebKit bug 239014). A press on such a touch ends (with null) once it's proved gone, and a press the chart took
   meanwhile as a pinch's second finger is pressed again alone. Only the browser's proof counts: a
@@ -251,12 +266,13 @@ clears); avoid reflecting programmatic calls. A programmatic
   (a negative member counted as none), `scale` the factor taken (100 over the whole).
 - Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
   color, below })`; then `chart.invalidate()`.
-- `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind })`: a page's own
+- `Custom({ draw, extent, first, distance, axisTags, timeTags, margins, viewed }, { fixed, over, behind, crosshair })`: a page's own
   (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of its pane's picture (see custom.js); its own tags
   on a price axis or the time axis (a drawing's value, its date), a price axis' over its lines'; `viewed`, told before each draw of its pane (what it
   draws found again from the view, once); `fixed`, held in place as the view moves (its pane drawn whole on a
   view or content change, kept while unchanged); `over`, over everything, the crosshair too, on a layer of its own drawn whole each frame (labels and handles
-  placed in the plot); `behind`, behind every series; `changed()` after a change.
+  placed in the plot); `behind`, behind every series; `crosshair`, drawn with the crosshair, each frame it shows, over
+  its lines and under its dots (a line down its day); `changed()` after a change.
 - `picture(chart)`: the chart as one canvas (an Export, a card).
 - `compact(v, step)`: a value as a scale writes it unless told otherwise (four significant digits at most, thousands as
   K, M, B, T; given `step`, its ticks' around it, a decimal past theirs).
