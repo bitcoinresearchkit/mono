@@ -133,7 +133,7 @@ impl Serialize for TxIn {
         )?;
         state.serialize_field("scriptsig_asm", &DisplayStr(Asm(&self.script_sig)))?;
         if has_witness {
-            state.serialize_field("witness", &self.witness)?;
+            state.serialize_field("witness", &WitnessHex(&self.witness))?;
         }
         state.serialize_field("is_coinbase", &self.is_coinbase)?;
         state.serialize_field("sequence", &self.sequence)?;
@@ -148,5 +148,15 @@ impl Serialize for TxIn {
         }
 
         state.end()
+    }
+}
+
+/// A witness as its items in hex, as rust-bitcoin serializes it, through [`HexBytes`]: rust-bitcoin
+/// writes each item through its slower hex encoder.
+struct WitnessHex<'a>(&'a Witness);
+
+impl Serialize for WitnessHex<'_> {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_seq(self.0.iter().map(|item| DisplayStr(HexBytes(item))))
     }
 }
