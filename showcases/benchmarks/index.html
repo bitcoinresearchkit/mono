@@ -1015,7 +1015,12 @@
       }
       const metadata = (content) => new Map(lines(content ?? "").flatMap((line) => (line.includes("=") ? [[line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]] : [])));
       const startedAt = (meta) => (/^\+?\d+$/.test(meta.get("started_at_unix") ?? "") ? Number(meta.get("started_at_unix")) : 0);
-      const statusOf = (sheet) => sheet?.strings("status").pop() ?? null;
+      /** A phase's row of run.csv: `bootstrap`, then the serial recompute's `serial_compute` in a run from after it. */
+      function runPhase(sheet, phase) {
+        const k = sheet?.strings("phase").indexOf(phase) ?? -1;
+        return k < 0 ? null : { ms: sheet.numbers("duration_ms")[k], status: sheet.strings("status")[k] };
+      }
+      const statusOf = (sheet) => runPhase(sheet, "bootstrap")?.status ?? null;
 
       /** Indexer heights: the `source` column when recorded, else the rows before the first drop (older files mixed
        * compute-phase logs in after indexing). */
@@ -1058,13 +1063,14 @@
         });
       }
       /** Each plugin's CPU seconds computing the whole chain from zero alone (the bench's serial recompute), most first, and
-       * all of the recompute's; none for a run from before it. */
+       * all of the recompute's; none for a run from before it. The indexer is left out (it only indexes the blocks that
+       * arrived meanwhile), and the history walk the UTXO set leads, which no plugin owns, says it is shared. */
       function serialCompute(content, file) {
         const sheet = csv(content, file);
         if (!sheet) return { plugins: [], total: null };
         const ms = sheet.numbers("serial_cpu_ms"), rows = sheet.strings("plugin").slice(0, ms.length).map((plugin, i) => [plugin, round(ms[i] / 1000, 2)]);
         return {
-          plugins: rows.filter(([plugin]) => plugin !== "total" && plugin !== "unattributed").sort(([a], [b]) => order(a, b)).sort((a, b) => b[1] - a[1]),
+          plugins: rows.filter(([plugin]) => !["total", "unattributed", "indexer"].includes(plugin)).map(([plugin, seconds]) => [plugin === "walk" ? "walk (shared)" : plugin, seconds]).sort(([a], [b]) => order(a, b)).sort((a, b) => b[1] - a[1]),
           total: rows.find(([plugin]) => plugin === "total")?.[1] ?? null,
         };
       }
@@ -1106,7 +1112,7 @@
         const info = metadata(meta), run = csv(done, at("run.csv"));
         const timed = timings(rest[5], at("timings.csv")), heights = progress(rest[4], at("progress.csv")), parts = breakdown(rest[6], at("disk_breakdown.csv"));
         const cpu_from_zero = serialCompute(rest[7], at("serial_compute.csv"));
-        const ms = run ? run.numbers("duration_ms").pop() : undefined;
+        const ms = runPhase(run, "bootstrap")?.ms;
         const end = ms != null ? ms / 1000 : memory.times.at(-1);
         const peak = [["peak_physical_bytes", "peak footprint"], ["peak_resident_bytes", "peak resident"]].map(([column, name]) => [name, memory.max(column)]).find(([, bytes]) => bytes != null);
         const growth = (counters, column, scale = 1) => (counters.growth(column) == null ? null : round(counters.growth(column) / scale, 1));
@@ -1136,6 +1142,7 @@
           cycles: bands,
           curves: Object.fromEntries(Object.entries(samples).map(([key, points]) => [key, thin(points)])),
           cpu_from_zero,
+          recompute: runPhase(run, "serial_compute"),
           silent_payments: timed.some((t) => t.plugin === SILENT_PAYMENTS),
           breakdown: parts,
         };
@@ -1522,21 +1529,23 @@
         bars();
       });
 
+      /** Why a run has no plugin CPU from zero. */
+      const noCpu = (run) => (run.resumed ? "a resumed run has no recompute" : run.recompute ? `its recompute ${run.recompute.status}` : "it is from before the recompute");
       // ── Bars: compute per plugin, the data directory by component ──
       /** Each name in either run (the compared one's own after, with none of its own), a bar as long as its share. */
-      function barList(el, rows, other, fmt) {
+      function barList(el, rows, other, fmt, empty = "Not recorded for this run.") {
         const names = [...rows.map(([n]) => n), ...(other ?? []).map(([n]) => n).filter((n) => !rows.some(([m]) => m === n))];
         const max = Math.max(1e-9, ...rows.map(([, v]) => v), ...(other ?? []).map(([, v]) => v));
         el.innerHTML = names.map((name) => {
           const v = rows.find(([n]) => n === name)?.[1], o = other?.find(([n]) => n === name)?.[1];
           const bar = (value, cls) => (value == null ? "" : `<span class="bar${cls}" style="width:${(value / max) * 100}%"></span>`);
           return `<div class="row"><span class="name" title="${escape(name)}">${escape(name)}</span><span class="track">${bar(v, "")}${other ? bar(o, " other") : ""}</span><span class="value">${v == null ? "–" : fmt(v)}${other ? `<small>${o == null ? "–" : fmt(o)}</small>` : ""}</span></div>`;
-        }).join("") || `<span class="name">Not recorded for this run.</span>`;
+        }).join("") || `<span class="name">${escape(empty)}</span>`;
       }
       function bars() {
         $("totals-note").hidden = !compared;
         $("totals-note").textContent = compared ? `Whole-run totals, not height matched: solid ${runName(selected)} (${grouped(selected.chain_height)} blocks); dashed ${runName(compared)} (${grouped(compared.chain_height)} blocks). Plugin CPU and the final component disk breakdown have no height samples; neither is scaled or cut.` : "";
-        barList($("compute"), selected.cpu_from_zero.plugins, compared?.cpu_from_zero.plugins, duration);
+        barList($("compute"), selected.cpu_from_zero.plugins, compared?.cpu_from_zero.plugins, duration, `Not recorded: ${noCpu(selected)}.`);
         barList($("breakdown"), selected.breakdown, compared?.breakdown, bytes);
       }
 
@@ -1601,7 +1610,7 @@
         if (pool.length < 2) return (note.textContent = "No other full sync of this machine and profile to hold it to yet.");
         const { apart, rows, unjudged } = judge(selected, pool), held = rows.filter((row) => row.seen);
         $("best-count").textContent = held.length ? `${held.filter((row) => row.worse).length} of ${held.length} noticeably worse` : "";
-        note.textContent = `Best of up to ${pool.length} comparable full syncs on this machine and profile. Worse: over ${WORSE * 100}% and ${TIME.floor} s above the best; the 10% is the gap within which three in four categories of two runs of one commit stayed. Stages and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments; a plugin, its CPU computing the chain from zero alone, to every run that recorded it${selected.cpu_from_zero.total == null ? " (this run is from before that recording, so it has no plugin rows)" : ""}. Compute CPU from zero is that whole recompute's, its imports and what no plugin accounts for included. Indexing is cut at a shared height, the rest are whole runs${apart ? `, their tips up to ${grouped(apart)} blocks apart` : ""}. A time under ${TIME.floor} s reads as ${TIME.floor} s${unjudged ? ` (${unjudged} such rows of this run are left out)` : ""}.`;
+        note.textContent = `Best of up to ${pool.length} comparable full syncs on this machine and profile. Worse: over ${WORSE * 100}% and ${TIME.floor} s above the best; the 10% is the gap within which three in four categories of two runs of one commit stayed. Stages and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments; a plugin, its CPU computing the chain from zero alone, to every run that recorded it${selected.cpu_from_zero.total == null ? ` (this run has no plugin rows: ${noCpu(selected)})` : ""}. Compute CPU from zero is that whole recompute's, its imports and what no plugin accounts for included. Indexing is cut at a shared height, the rest are whole runs${apart ? `, their tips up to ${grouped(apart)} blocks apart` : ""}. A time under ${TIME.floor} s reads as ${TIME.floor} s${unjudged ? ` (${unjudged} such rows of this run are left out)` : ""}.`;
         const best = (row) => (row.seen ? `${row.best.floored ? "≤ " : ""}${row.unit.fmt(row.best.value)}` : "–");
         const holder = (row) => (!row.seen ? "no other run" : row.best.run === selected ? "this run" : `<button type="button" class="pick" data-label="${escape(row.best.run.label)}">${escape(rev(row.best.run))}</button>`);
         $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}" tabindex="-1"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}</td><td>${best(row)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `${row.best.floored ? "≥ " : "+"}${grouped(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
