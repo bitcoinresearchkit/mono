@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use bitcoin::hex::DisplayHex;
 use brk_types::{Transaction, Txid};
-use serde_json::to_vec;
 
 use super::body::ResolvedTxBody;
 use crate::{Query, RepresentationId, Result};
@@ -37,14 +36,13 @@ impl Query {
     /// Build JSON bytes without repeating the transaction-prefix lookup.
     pub fn transaction_json_resolved(&self, transaction: ResolvedTransaction) -> Result<Vec<u8>> {
         match transaction.source {
-            ResolvedTxBody::Memory { value: tx, .. } => Ok(to_vec(tx.as_ref()).unwrap()),
+            ResolvedTxBody::Memory { value: tx, .. } => Ok(tx.to_json()),
             ResolvedTxBody::Chain(transaction) => {
                 let read = self.read_indexer()?;
                 let (_, index, _) = read.revalidate_confirmed_tx(transaction)?;
                 let value = self.transaction_by_index(index, read.pin())?;
                 drop(read);
-                let bytes = to_vec(&value).unwrap();
-                Ok(bytes)
+                Ok(value.to_json())
             }
         }
     }

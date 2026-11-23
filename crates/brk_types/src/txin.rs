@@ -1,20 +1,16 @@
 #[cfg(feature = "schemars")]
 use std::borrow::Cow;
 
-use bitcoin::{Script, ScriptBuf, Sequence, TxIn as BitcoinTxIn, Witness, transaction::OutPoint};
+use bitcoin::{ScriptBuf, Sequence, TxIn as BitcoinTxIn, Witness, transaction::OutPoint};
 #[cfg(feature = "schemars")]
 use schemars::{JsonSchema, Schema, SchemaGenerator};
-use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
+use serde::Deserialize;
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
 #[cfg(feature = "schemars")]
 use crate::Hex;
-use crate::{
-    TxOut, Txid, Vout,
-    bytes::{Asm, DisplayStr, HexBytes},
-    tx::p2sh_redeem_script,
-};
+use crate::{TxOut, Txid, Vout};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxIn {
@@ -93,70 +89,5 @@ impl From<&TxIn> for BitcoinTxIn {
             sequence: Sequence(txin.sequence),
             witness: txin.witness.clone(),
         }
-    }
-}
-
-impl Serialize for TxIn {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let has_witness = !self.witness.is_empty();
-        let prevout_script = self.prevout.as_ref().map(|p| p.script_pubkey.as_script());
-
-        let is_p2sh = !self.is_coinbase && prevout_script.is_some_and(Script::is_p2sh);
-        let redeem_script = is_p2sh
-            .then(|| p2sh_redeem_script(&self.script_sig))
-            .flatten();
-
-        let inner_witness = prevout_script.and_then(|spk| {
-            if spk.is_p2wsh() || redeem_script.is_some_and(Script::is_p2wsh) {
-                self.witness.witness_script()
-            } else if spk.is_p2tr() {
-                self.witness.taproot_leaf_script().map(|leaf| leaf.script)
-            } else {
-                None
-            }
-        });
-
-        let field_count =
-            7 + has_witness as usize + is_p2sh as usize + inner_witness.is_some() as usize;
-
-        let mut state = serializer.serialize_struct("TxIn", field_count)?;
-
-        state.serialize_field("txid", &self.txid)?;
-        state.serialize_field("vout", &self.vout)?;
-        state.serialize_field("prevout", &self.prevout)?;
-        state.serialize_field(
-            "scriptsig",
-            &DisplayStr(HexBytes(self.script_sig.as_bytes())),
-        )?;
-        state.serialize_field("scriptsig_asm", &DisplayStr(Asm(&self.script_sig)))?;
-        if has_witness {
-            state.serialize_field("witness", &WitnessHex(&self.witness))?;
-        }
-        state.serialize_field("is_coinbase", &self.is_coinbase)?;
-        state.serialize_field("sequence", &self.sequence)?;
-        if is_p2sh {
-            state.serialize_field(
-                "inner_redeemscript_asm",
-                &DisplayStr(Asm(redeem_script.unwrap_or(Script::new()))),
-            )?;
-        }
-        if let Some(script) = inner_witness {
-            state.serialize_field("inner_witnessscript_asm", &DisplayStr(Asm(script)))?;
-        }
-
-        state.end()
-    }
-}
-
-/// A witness as its items in hex, as rust-bitcoin serializes it, through [`HexBytes`]: rust-bitcoin
-/// writes each item through its slower hex encoder.
-struct WitnessHex<'a>(&'a Witness);
-
-impl Serialize for WitnessHex<'_> {
-    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.collect_seq(self.0.iter().map(|item| DisplayStr(HexBytes(item))))
     }
 }

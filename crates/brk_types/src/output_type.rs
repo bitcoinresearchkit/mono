@@ -71,48 +71,74 @@ impl fmt::Display for OutputType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
-#[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[serde(rename_all = "lowercase")]
-/// Output type names used by Esplora and mempool.space.
+/// Output type names used by Esplora and mempool.space: `as_str` holds them, for the JSON writer
+/// and the schema alike.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OutputTypeNormalized {
     P2PK,
     P2PKH,
-    #[serde(rename = "multisig")]
     P2MS,
     P2SH,
-    #[serde(rename = "op_return")]
     OpReturn,
-    #[serde(rename = "v0_p2wpkh")]
     P2WPKH,
-    #[serde(rename = "v0_p2wsh")]
     P2WSH,
-    #[serde(rename = "v1_p2tr")]
     P2TR,
-    #[serde(rename = "anchor")]
     P2A,
     Empty,
     Unknown,
 }
 
+impl OutputTypeNormalized {
+    #[cfg(feature = "schemars")]
+    const ALL: [Self; 11] = [
+        Self::P2PK,
+        Self::P2PKH,
+        Self::P2MS,
+        Self::P2SH,
+        Self::OpReturn,
+        Self::P2WPKH,
+        Self::P2WSH,
+        Self::P2TR,
+        Self::P2A,
+        Self::Empty,
+        Self::Unknown,
+    ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::P2PK => "p2pk",
+            Self::P2PKH => "p2pkh",
+            Self::P2MS => "multisig",
+            Self::P2SH => "p2sh",
+            Self::OpReturn => "op_return",
+            Self::P2WPKH => "v0_p2wpkh",
+            Self::P2WSH => "v0_p2wsh",
+            Self::P2TR => "v1_p2tr",
+            Self::P2A => "anchor",
+            Self::Empty => "empty",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
 impl fmt::Display for OutputTypeNormalized {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        fmt::Display::fmt(
-            match self {
-                Self::P2PK => "p2pk",
-                Self::P2PKH => "p2pkh",
-                Self::P2MS => "multisig",
-                Self::P2SH => "p2sh",
-                Self::OpReturn => "op_return",
-                Self::P2WPKH => "v0_p2wpkh",
-                Self::P2WSH => "v0_p2wsh",
-                Self::P2TR => "v1_p2tr",
-                Self::P2A => "anchor",
-                Self::Empty => "empty",
-                Self::Unknown => "unknown",
-            },
-            f,
-        )
+        f.pad(self.as_str())
+    }
+}
+
+#[cfg(feature = "schemars")]
+impl JsonSchema for OutputTypeNormalized {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "OutputTypeNormalized".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        schemars::json_schema!({
+            "description": "Output type names used by Esplora and mempool.space.",
+            "type": "string",
+            "enum": Self::ALL.map(Self::as_str),
+        })
     }
 }
 

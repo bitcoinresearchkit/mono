@@ -13,7 +13,7 @@ use bitview_http::{IMMUTABLE, REVALIDATE};
 #[cfg(feature = "full-api")]
 use bitview_query::RepresentationId;
 use bitview_query::{Error as QueryError, Query, Result};
-use brk_types::tag_hash;
+use brk_types::{Transaction, tag_hash, txs_json};
 use serde::Serialize;
 use serde_json::to_vec;
 use tokio::{
@@ -166,6 +166,11 @@ impl Content {
 
     pub fn json(value: &impl Serialize) -> Result<Self> {
         Ok(Self::new(JSON, to_vec(value)?))
+    }
+
+    /// A JSON array of transactions, through their own writer.
+    pub fn txs<'a>(txs: impl IntoIterator<Item = &'a Transaction>) -> Self {
+        Self::new(JSON, txs_json(txs))
     }
 
     pub fn text(text: impl Into<Bytes>) -> Self {

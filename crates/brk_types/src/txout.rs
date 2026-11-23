@@ -4,16 +4,13 @@ use std::borrow::Cow;
 use bitcoin::{ScriptBuf, TxOut as BitcoinTxOut};
 #[cfg(feature = "schemars")]
 use schemars::{JsonSchema, Schema, SchemaGenerator};
-use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
+use serde::Deserialize;
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
-use crate::{
-    Address, AddressBytes, OutputType, Sats,
-    bytes::{Asm, DisplayStr, HexBytes},
-};
 #[cfg(feature = "schemars")]
-use crate::{Hex, OutputTypeNormalized};
+use crate::{Address, Hex, OutputTypeNormalized};
+use crate::{AddressBytes, OutputType, Sats};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxOut {
@@ -101,32 +98,5 @@ impl From<(ScriptBuf, Sats)> for TxOut {
             script_pubkey: script,
             value,
         }
-    }
-}
-
-impl Serialize for TxOut {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let output_type = self.output_type();
-        // As Esplora, P2PK has no address here; the pubkey hex stands for one only in the
-        // address endpoints.
-        let addr = (!matches!(output_type, OutputType::P2PK65 | OutputType::P2PK33))
-            .then(|| Address::try_from((&self.script_pubkey, output_type)).ok())
-            .flatten();
-        let field_count = if addr.is_some() { 5 } else { 4 };
-        let mut state = serializer.serialize_struct("TxOut", field_count)?;
-        state.serialize_field(
-            "scriptpubkey",
-            &DisplayStr(HexBytes(self.script_pubkey.as_bytes())),
-        )?;
-        state.serialize_field("scriptpubkey_asm", &DisplayStr(Asm(&self.script_pubkey)))?;
-        state.serialize_field("scriptpubkey_type", &output_type.normalized())?;
-        if let Some(addr) = &addr {
-            state.serialize_field("scriptpubkey_address", addr)?;
-        }
-        state.serialize_field("value", &self.value)?;
-        state.end()
     }
 }

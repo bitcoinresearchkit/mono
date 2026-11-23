@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use brk_types::{FeeRate, SigOps, Transaction, TxIn, TxOut, Vin, Weight, tag_hash};
-use serde_json::to_vec;
 
 use crate::state::TxEntry;
 
@@ -86,7 +85,7 @@ impl TxRecord {
     }
 
     pub fn digest_of(tx: &Transaction) -> u64 {
-        // Serialized whole, then hashed at once: twice as fast as hashing serde's small writes.
-        tag_hash(&to_vec(tx).expect("transaction fields serialize"))
+        // Its JSON whole, then hashed at once: twice as fast as hashing small writes.
+        tag_hash(&tx.to_json())
     }
 }

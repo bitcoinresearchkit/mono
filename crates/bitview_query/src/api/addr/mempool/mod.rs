@@ -1,6 +1,5 @@
 use brk_mempool::PublishedTx;
-use brk_types::{Address, BlockHash};
-use serde::Serializer;
+use brk_types::{Address, BlockHash, txs_json};
 
 use crate::{Error, Query, RepresentationId, Result, api::addr::parse_addr};
 
@@ -13,11 +12,7 @@ impl ResolvedAddrMempoolTxs {
     }
 
     pub fn json(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-        serde_json::Serializer::new(&mut bytes)
-            .collect_seq(self.0.iter().map(|published| published.tx.as_ref()))
-            .expect("transactions serialize");
-        bytes
+        txs_json(self.0.iter().map(|published| published.tx.as_ref()))
     }
 }
 

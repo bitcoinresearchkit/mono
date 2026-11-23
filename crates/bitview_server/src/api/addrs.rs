@@ -6,8 +6,7 @@ use axum::{
 };
 use bitview_primitives::BlockHashPrefix;
 use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressValidation, Utxo};
-use brk_types::{Address, Transaction, Txid};
-use serde_json::to_vec;
+use brk_types::{Address, Transaction, Txid, txs_json};
 
 use crate::{
     AppState,
@@ -44,7 +43,10 @@ impl AppState {
             let anchor = BlockHashPrefix::from(&source.activity_anchor());
             let settled = source.is_settled();
             let tag = format!("a-{:x}", *anchor);
-            Ok(Answer::json(tag, move |q| q.addr_txs_chain_resolved(source)).settled(settled))
+            Ok(Answer::new(tag, move |q| {
+                Ok(Content::txs(&q.addr_txs_chain_resolved(source)?))
+            })
+            .settled(settled))
         })
         .await
     }
@@ -247,7 +249,11 @@ async fn serve_txs(
                 let (identity, settled) = (resolved.identity(), resolved.is_settled());
                 Ok((resolved, identity, settled))
             },
-            |q, resolved| Ok(to_vec(&q.addr_txs_resolved(resolved)?)?),
+            |q, resolved| {
+                Ok(txs_json(
+                    q.addr_txs_resolved(resolved)?.iter().map(|tx| &**tx),
+                ))
+            },
         )
         .await
 }
