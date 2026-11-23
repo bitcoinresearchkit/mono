@@ -15,8 +15,8 @@ use std::{
 // Shared by all data directories and users on this machine. Never unlink a lock file:
 // another process could otherwise lock a different inode at the same path.
 const LOCK_PATH: &str = "/tmp/bitviewd-bench.lock";
-/// Heavy by what it is: any process named `bitview*` (bitviewd serving or not, bitview_mcp, a
-/// test server, another bench) or a Rust build, whatever it does at the moment sampled.
+/// Heavy by what it is: any process named `bitview*` (bitviewd serving or not, a test server,
+/// another bench) or a Rust build, whatever it does at the moment sampled.
 const BUILDERS: [&str; 5] = ["cargo", "rustc", "rustup", "clippy-driver", "cargo-clippy"];
 /// Heavy by what it does, over a window (3 s at the start, the minute between two watch
 /// readings mid-run, so a burst averages out and only sustained load counts): a process using

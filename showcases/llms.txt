@@ -29,10 +29,10 @@ Never invent a series id: only ids the API returned exist.
 
 ## MCP
 
-- Endpoint: https://mcp.bitview.space/
+- Endpoint: https://bitview.space/mcp
 - Transport: Streamable HTTP
 - Authentication: None
-- [Setup for each assistant](https://mcp.bitview.space/)
+- [Setup for each assistant](https://bitview.space/mcp)
 
 The MCP server is stateless and read-only, with a tool for most of these operations.
 
@@ -45,7 +45,7 @@ The MCP server is stateless and read-only, with a tool for most of these operati
 ## Agent Skill
 
 - [SKILL.md](https://bitview.space/.well-known/agent-skills/bitview/SKILL.md), listed in the [skill index](https://bitview.space/.well-known/agent-skills/index.json)
-- [Claude Code plugin](https://mcp.bitview.space/#connect) with the skill and the MCP server
+- [Claude Code plugin](https://bitview.space/mcp#connect) with the skill and the MCP server
 
 ## Source and licenses
 

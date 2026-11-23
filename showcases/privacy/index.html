@@ -9,7 +9,7 @@
     <title>Privacy · Bitview</title>
     <meta
       name="description"
-      content="What Bitview receives and keeps: no accounts, cookies or tracking; request logs without IP addresses or user agents; support emails kept to answer them and for nothing else. Covers bitview.space and mcp.bitview.space."
+      content="What Bitview receives and keeps: no accounts, cookies or tracking; request logs without IP addresses or user agents; support emails kept to answer them and for nothing else. Covers bitview.space and its MCP server."
     />
     <link rel="canonical" href="https://bitview.space/privacy/" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
@@ -121,7 +121,7 @@
       <a class="home" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
 
       <h1>Privacy</h1>
-      <p class="updated">Last updated November 17, 2026</p>
+      <p class="updated">Last updated November 23, 2026</p>
 
       <h2 id="scope">What this covers</h2>
       <p>
@@ -131,12 +131,10 @@
         <li>
           <a href="https://bitview.space/">bitview.space</a>: the website and its apps, the REST API and its
           <a href="/openapi.json">OpenAPI description</a>, <a href="/llms.txt">llms.txt</a> and
-          <a href="/llms-full.txt">llms-full.txt</a>, and the Agent Skill, which calls the API.
+          <a href="/llms-full.txt">llms-full.txt</a>, the Agent Skill, which calls the API, and the
+          <a href="https://bitview.space/mcp">MCP server</a>, which the Claude Code plugin uses together with the skill.
         </li>
-        <li>
-          <a href="https://mcp.bitview.space/">mcp.bitview.space</a>: the MCP server, which the Claude Code plugin
-          uses together with the skill.
-        </li>
+        <li>mcp.bitview.space: the MCP server's older address, the same server.</li>
       </ul>
       <p>Bitview is open source, and anyone can run it. A server someone else runs is theirs, under their own policy.</p>
 
@@ -160,9 +158,10 @@
 
       <h2 id="mcp">The MCP server</h2>
       <p>
-        At its default log level, the MCP server logs its start (the address it listens on and its tool count) and no
-        tool call. Each tool call becomes a GET request to the bitview.space API, which logs it like any other request,
-        as above. It keeps no sessions, and no record of what was asked or answered.
+        The MCP server is part of the bitview.space server. Each tool call is answered by the API request it names,
+        which is logged as one line like any other request, as above: its path and query show on the
+        <a href="/logs/">Logs</a> page too. Nothing else about the call is logged, and the server keeps no sessions and
+        no record of what was asked or answered.
       </p>
 
       <h2 id="network">Network providers</h2>
@@ -203,8 +202,8 @@
         last opened each app. They stay on your device and are never sent.
       </p>
       <p>
-        Two pages load files from elsewhere: the Benchmarks page reads its results from GitHub, and the MCP server's
-        page loads its fonts from jsDelivr. Those services receive the request as for any page they serve.
+        One page loads files from elsewhere: the Benchmarks page reads its results from GitHub, which receives the
+        request as for any page it serves.
       </p>
 
       <h2 id="email">Email</h2>

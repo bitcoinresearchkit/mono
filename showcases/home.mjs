@@ -226,7 +226,7 @@ if (!check) {
 // (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
 // screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons. A page without
 // a launch tag, as the footer's legal ones, links no icon, so has none.)
-const MCP_ICON = join(HERE, "..", "crates", "bitview_mcp", "assets", "logo.png");
+const MCP_ICON = join(HERE, "..", "crates", "bitview_server", "mcp", "logo.png");
 /** The touch icons at the root, Bitview's own icon: iOS asks for the precomposed one first, then the other, and link
  * previews for either. */
 const TOUCH_ICONS = ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"];
@@ -524,7 +524,7 @@ async function makePictures() {
         // there rather than reading a page's, as iOS and link previews do.)
         if (name === "bitview") {
           for (const file of [MCP_ICON, ...TOUCH_ICONS.map((icon) => join(HERE, icon))]) writeFileSync(file, Buffer.from(shot.data, "base64"));
-          console.log(`made bitview_mcp's logo.png, ${TOUCH_ICONS.join(" and ")}`);
+          console.log(`made the MCP server's logo.png, ${TOUCH_ICONS.join(" and ")}`);
         }
       } finally {
         await tab.close();

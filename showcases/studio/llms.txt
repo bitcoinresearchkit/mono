@@ -99,7 +99,7 @@ A link is the whole chart, not a change to one: to change it, write it again, ch
 
 Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).
 
-An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.
+An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://bitview.space/mcp, no sign-in), for the search and the data as tools.
 
 ## The presets' sections
 

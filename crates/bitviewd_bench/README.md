@@ -41,8 +41,7 @@ background processes pass. It holds `/tmp/bitviewd-bench.lock` for its lifetime,
 directories (the OS releases it on exit, crash or kill included; leave the file in place), and
 refuses to start, naming what is heavy, when:
 
-- a process named `bitview*` runs (bitviewd serving or not, bitview_mcp, a test server, another
-  bench) or `cargo`, `rustc`, `rustup`, `clippy-driver`;
+- a process named `bitview*` runs (bitviewd serving or not, a test server, another bench) or `cargo`, `rustc`, `rustup`, `clippy-driver`;
 - any other process except `bitcoind` uses at least a quarter of a core (half a core in the
   minute-by-minute watch), or moves at least 20 MB/s to or from disk, over the sample (3 s at the
   start; two `ps` readings; disk bytes for the processes this user may inspect);

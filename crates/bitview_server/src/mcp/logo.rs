@@ -4,11 +4,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-const PNG: &[u8] = include_bytes!("../assets/logo.png");
+const PNG: &[u8] = include_bytes!("../../mcp/logo.png");
 
 const VERSION_QUERY: &str = concat!("v=", env!("CARGO_PKG_VERSION"));
 
-/// The logo's URL path: versioned, so its year-long cache never outlives a release.
+/// The logo's path under the server's URL: versioned, so its year-long cache never outlives a release.
 pub const PATH: &str = concat!("logo.png?v=", env!("CARGO_PKG_VERSION"));
 
 /// The year-long cache only under this release's versioned URL; any other revalidates.

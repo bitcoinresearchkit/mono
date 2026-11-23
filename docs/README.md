@@ -47,7 +47,7 @@ The hosted showcases, API, and MCP endpoint require no account or authentication
 - [Bitview](https://bitview.space), its front page, Studio and showcases
 - [Interactive API](https://bitview.space/api)
 - [OpenAPI](https://bitview.space/openapi.json)
-- MCP client endpoint: `https://mcp.bitview.space/`
+- MCP client endpoint: `https://bitview.space/mcp`
 - [CLI](https://crates.io/crates/bitview_cli)
 - [JavaScript](https://www.npmjs.com/package/bitview-client)
 - [Python](https://pypi.org/project/bitview-client)

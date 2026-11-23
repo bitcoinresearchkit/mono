@@ -5,7 +5,7 @@ use std::{
 
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, PublicUrl,
-    ServerConfig, Website,
+    ServerConfig, SiteUrl, Website,
 };
 use brk_error::{Error, Result};
 use brk_reader::Reader;
@@ -110,6 +110,8 @@ settings! {
             DEFAULT_MAX_UTXOS;
         publicurl: PublicUrl, "<URL>",
             "The URL reaching this server alone, sent to clients so they stay on it; only for several servers behind one URL without affinity";
+        siteurl: SiteUrl, "<URL>", "The site's public URL, which the MCP server at <URL>/mcp names itself by",
+            "http://localhost:<serverport>";
         cachebudget: usize, "<BYTES>", "Shared vector cache size in bytes", DEFAULT_CACHE_BUDGET;
     ]
     [
@@ -390,6 +392,7 @@ impl Config {
                 max_weight: self.maxweight.unwrap_or(DEFAULT_MAX_WEIGHT),
                 max_utxos: self.maxutxos.unwrap_or(DEFAULT_MAX_UTXOS),
                 public_url: self.publicurl.clone(),
+                site_url: self.siteurl.clone(),
             },
             cache_budget: self.cachebudget.unwrap_or(DEFAULT_CACHE_BUDGET),
         })

@@ -14,12 +14,12 @@ use axum::{
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 
-use crate::server::SUPPORTED_PROTOCOL_VERSIONS;
+use super::SUPPORTED_PROTOCOL_VERSIONS;
 
-const HTML: &str = include_str!("../assets/index.html");
+const HTML: &str = include_str!("../../mcp/index.html");
 
-/// The server's landing page, filled in for this instance.
-pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: usize) -> Bytes {
+/// The server's landing page, filled in for this instance: its fonts and links come from the site's origin.
+pub fn render(display_name: &str, public_url: &str, logo_url: &str, site_url: &str, tool_count: usize) -> Bytes {
     let cursor_config = BASE64_STANDARD.encode(format!(r#"{{"url":"{public_url}"}}"#));
     let [newest, .., oldest] = &SUPPORTED_PROTOCOL_VERSIONS;
     let title = format!("{display_name} MCP — Bitcoin data for AI");
@@ -29,22 +29,23 @@ pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: u
         ("TITLE", &escape_html(&title)),
         ("DESCRIPTION", &escape_html(&description)),
         ("PUBLIC_URL", &escape_html(public_url)),
-        ("API_URL", &escape_html(api_url)),
+        ("API_URL", &escape_html(site_url)),
         ("DISPLAY_NAME", &escape_html(display_name)),
-        ("LOGO_PATH", &escape_html(crate::logo::PATH)),
+        ("LOGO_URL", &escape_html(logo_url)),
         ("CURSOR_CONFIG", &escape_html(&cursor_config)),
-        ("PROTOCOL_OLDEST", oldest.as_str()),
-        ("PROTOCOL_NEWEST", newest.as_str()),
+        ("PROTOCOL_OLDEST", oldest),
+        ("PROTOCOL_NEWEST", newest),
         ("TOOL_COUNT", &tool_count.to_string()),
     ]))
 }
 
-/// Serves a rendered page: a second of reuse, then a cheap `304`. Its fonts come from the API's origin.
-pub fn route(html: Bytes, api_url: &str) -> MethodRouter {
+/// Serves a rendered page: a second of reuse, then a cheap `304`. Its fonts and logo come from the site's origin, which
+/// the page's older address is not.
+pub fn route(html: Bytes, site_url: &str) -> MethodRouter {
     let policy = HeaderValue::try_from(format!(
-        "default-src 'none'; style-src 'unsafe-inline'; font-src {api_url}; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+        "default-src 'none'; style-src 'unsafe-inline'; font-src {site_url}; img-src {site_url}; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
     ))
-    .expect("the API URL is a valid header value");
+    .expect("the site URL is a valid header value");
     document(
         html,
         "text/html; charset=utf-8",

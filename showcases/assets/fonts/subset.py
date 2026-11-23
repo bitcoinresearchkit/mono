@@ -51,7 +51,7 @@ TEXT = [
     *(ROOT / "modules/bitview-client").glob("*.js"),
     *(ROOT / "modules/bitview-charts").glob("*.js"),
     *(ROOT / "modules/xkcd-colors").glob("*.js"),
-    ROOT / "crates/bitview_mcp/assets/index.html",  # the MCP server's page, its fonts fetched from this site
+    ROOT / "crates/bitview_server/mcp/index.html",  # the MCP server's page, its fonts fetched from this site
 ]
 
 

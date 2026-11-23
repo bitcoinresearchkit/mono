@@ -12,13 +12,13 @@ claude plugin install bitview@bitview
 ## What it adds
 
 - **The `bitview` skill.** It shows Claude how to read a series (id, index, range, units) and the mistakes to avoid, and lists every endpoint. Two references load only when needed: every operation with its parameters, and a map of the series by topic.
-- **The `bitview` MCP server** at `https://mcp.bitview.space/`. It is remote, stateless and read-only, and offers one tool for each API operation.
+- **The `bitview` MCP server** at `https://bitview.space/mcp`. It is remote, stateless and read-only, and offers one tool for each API operation.
 
 ## What it runs and sends
 
 The plugin runs nothing on your machine.
 
-When Claude uses Bitview, it sends HTTPS GET requests to `bitview.space` or `mcp.bitview.space`. These carry only the query: the series ids, indexes, ranges, block hashes, transaction ids or addresses being looked up.
+When Claude uses Bitview, it sends HTTPS requests to `bitview.space`: GET requests to the API, and POST requests to the MCP server at `/mcp`. These carry only the query: the series ids, indexes, ranges, block hashes, transaction ids or addresses being looked up.
 
 - No account, API key or credential is needed or read.
 - Request logs keep no IP address, user agent or other client detail.

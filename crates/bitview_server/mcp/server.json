@@ -4,10 +4,10 @@
   "title": "Bitview",
   "description": "Read-only Bitcoin blockchain, mempool, mining, market, and on-chain analytics; no API key.",
   "version": "0.13.0",
-  "websiteUrl": "https://mcp.bitview.space/",
+  "websiteUrl": "https://bitview.space/mcp",
   "icons": [
     {
-      "src": "https://mcp.bitview.space/logo.png",
+      "src": "https://bitview.space/mcp/logo.png",
       "mimeType": "image/png",
       "sizes": [
         "512x512"
@@ -18,12 +18,12 @@
     "url": "https://github.com/bitcoinresearchkit/mono",
     "source": "github",
     "id": "824866280",
-    "subfolder": "crates/bitview_mcp"
+    "subfolder": "crates/bitview_server"
   },
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://mcp.bitview.space/"
+      "url": "https://bitview.space/mcp"
     }
   ]
 }

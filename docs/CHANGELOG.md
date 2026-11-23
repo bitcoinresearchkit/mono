@@ -8,6 +8,17 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- The MCP server is part of bitviewd, at `/mcp` (canonically https://bitview.space/mcp), and the `bitview_mcp`
+  crate and binary are gone. A tool call is the API request it names, answered by the server's own router: no
+  second process, no network hop, the API's admission and deadlines, and one log line per call. `--siteurl` names
+  the origin the server is reached at (`http://localhost:<serverport>` by default). The server's identity follows
+  that origin: bitview.space's MCP server is `space.bitview/bitview` (it was `space.bitview.mcp/bitview`) in its
+  serverInfo, every result's serverInfo `_meta` and its server card, and `urn:air:bitview.space:mcp:bitview` (it was
+  `urn:air:mcp.bitview.space:mcp:bitview`) in its AI catalog. Tool results no longer carry the `upstreamCache`
+  meta. An unknown method's error says "Method not found", and an error to a request whose id can't be read
+  carries `"id": null`. The MCP layer is Bitview's own in place of rmcp, so 35 fewer packages are in the
+  lockfile. mcp.bitview.space keeps answering, as the same server.
+
 - A kill or crash while the indexer saves blocks no longer deletes the index: the next start rolls back
   to the last saved block and resumes. The stores keep that point in `stores/lengths`. The indexer's format
   version moves to 50, so an existing index rebuilds once on upgrade.

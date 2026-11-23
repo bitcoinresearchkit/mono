@@ -16,12 +16,12 @@
     <meta property="og:site_name" content="{{DISPLAY_NAME}} MCP" />
     <meta property="og:title" content="{{TITLE}}" />
     <meta property="og:description" content="{{DESCRIPTION}}" />
-    <meta property="og:image" content="{{PUBLIC_URL}}{{LOGO_PATH}}" />
+    <meta property="og:image" content="{{LOGO_URL}}" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
     <meta property="og:image:alt" content="{{DISPLAY_NAME}}'s icon: its cube pressed into orange" />
     <meta name="twitter:card" content="summary" />
-    <link rel="icon" href="{{PUBLIC_URL}}{{LOGO_PATH}}" type="image/png" sizes="512x512" />
+    <link rel="icon" href="{{LOGO_URL}}" type="image/png" sizes="512x512" />
     <title>{{TITLE}}</title>
     <script type="application/ld+json">
       {
@@ -582,8 +582,8 @@
             </li>
           </ul>
           <p class="clients-note">
-            Tested with Claude, Claude Code, Codex, Cursor's CLI, Gemini CLI,
-            OpenCode and Qwen Code. ChatGPT and other clients on MCP
+            Tested with Claude, Claude Code, Gemini CLI, OpenCode and Qwen
+            Code. ChatGPT and other clients on MCP
             {{PROTOCOL_OLDEST}} or newer should work. If Claude says a tool
             "did not return structured content" after an update, it kept an
             old tool list: remove the connector and add it again. For anything
