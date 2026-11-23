@@ -8,6 +8,28 @@ pub use on::*;
 #[cfg(not(feature = "bench-cpu"))]
 pub use off::*;
 
+use bitview_plugin::{PluginId, UpdateContext};
+use brk_error::Result;
+use vecdb::Database;
+
+/// Runs now, in a step of `plugin`, the compaction its compute scheduled for a few seconds later
+/// (`UpdateContext::compact_database`): serially the next plugin starts at once and would count
+/// it. Under the shutdown lock, as the scheduled one. Nothing outside the serial runs.
+pub fn compact(plugin: PluginId, db: Option<&Database>, context: UpdateContext<'_>) -> Result<()> {
+    let Some(db) = db.filter(|_| enabled()) else {
+        return Ok(());
+    };
+    let _step = step(plugin);
+    // Joining wakes the scheduled compaction from its wait, which cancels it and keeps the space
+    // marked to reclaim.
+    db.sync_bg_tasks()?;
+    if db.needs_compaction() {
+        let _lock = context.exit().lock();
+        db.compact()?;
+    }
+    Ok(())
+}
+
 #[cfg(feature = "bench-cpu")]
 mod on {
     use std::{

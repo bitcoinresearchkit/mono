@@ -108,8 +108,9 @@ included) and `unattributed` (`total` less the plugins: the imports, the schedul
 helpers between steps). This is each plugin's cost from zero, the same chain for every run, where
 the timed run's intervals are its schedule; the benchmarks page holds it to the best. On m6-2
 (ed81092a9) it took about 29 minutes beside the timed run's 74, with 8,326 CPU-seconds of which
-1.4 were unattributed. The vectors' delayed compaction, 5 s after an update
-(`bitview_plugin/src/update_context.rs`), is not counted. The quiet watch runs until the recompute
+1.4 were unattributed. The compaction a plugin's compute schedules for 5 s later
+(`bitview_plugin/src/update_context.rs`) runs at once, in the plugin's own step, so it is counted as
+that plugin's (`bitview_default::serial::compact`). The quiet watch runs until the recompute
 ends, so a disturbed recompute makes the run not comparable.
 
 A resumed run has no recompute: its times aren't a full sync's, so nothing compares them.

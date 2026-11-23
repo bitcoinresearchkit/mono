@@ -262,21 +262,23 @@ impl DefaultPlugins {
                     UrpdConsumer::new(urpd, sources, from, context.exit())
                 })?;
                 let mut age_walk = Timed::new(AGE_ID, || age.consumer(sources, from, context))?;
-                let mut profitability = Timed::new(PROFITABILITY_ID, || {
+                let mut profitability_walk = Timed::new(PROFITABILITY_ID, || {
                     profitability.consumer(sources, from, context)
                 })?;
                 let start = Instant::now();
-                walk.run(sources, &mut [&mut cells, &mut age_walk, &mut profitability])?;
+                walk.run(sources, &mut [&mut cells, &mut age_walk, &mut profitability_walk])?;
                 walk_step.end();
                 log_compute(
                     WALK,
                     start.elapsed().saturating_sub(
-                        cells.walked() + age_walk.walked() + profitability.walked(),
+                        cells.walked() + age_walk.walked() + profitability_walk.walked(),
                     ),
                 );
                 cells.finish(drop);
                 age_walk.finish(AgeConsumer::keep);
-                profitability.finish(ProfitabilityConsumer::keep);
+                profitability_walk.finish(ProfitabilityConsumer::keep);
+                serial::compact(AGE_ID, Some(age.database()), context)?;
+                serial::compact(PROFITABILITY_ID, Some(profitability.database()), context)?;
                 let (walk, urpd, age): (&_, &_, &_) = (walk, urpd, age);
 
                 timed_compute(&mut *holders, HoldersDependencies { from, age, price }, context)?;

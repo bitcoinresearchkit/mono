@@ -75,7 +75,8 @@ pub fn timed_compute<P: ComputePlugin>(
     let _step = serial::step(plugin.id());
     timed(Phase::Compute, plugin.id(), || {
         plugin.compute(dependencies, context)
-    })
+    })?;
+    serial::compact(plugin.id(), plugin.database(), context)
 }
 
 /// A walk consumer timed as its plugin's compute: making it, its share of the walk, and what it
