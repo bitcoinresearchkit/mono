@@ -23,3 +23,4 @@ busiest_processes=sysmond 2%, WindowServer 1%, configd 0%, launchservicesd 0%, b
 internal_volume=74780680192/245054767104
 comparable=true
 comparable_reason=no heavy process beside it, at the start and every minute
+locked=true

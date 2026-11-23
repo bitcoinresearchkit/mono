@@ -1,6 +1,7 @@
-//! The serial CPU recompute, once the timed run has finished: every plugin but the indexer
+//! The serial recompute, once the timed run has finished: every plugin but the indexer
 //! computed again from zero over the run's indexed chain, the composition's forks run one after
-//! the other, so a plugin's process CPU is its own (`bitview_default::serial`).
+//! the other, so a plugin's process counters (retired instructions, cycles, CPU time) are its own
+//! (`bitview_default::serial`).
 
 use std::{
     fs::File,
@@ -9,13 +10,13 @@ use std::{
 };
 
 use bitview::ImportContext;
-use bitview_default::{DefaultPlugins, serial};
+use bitview_default::{DefaultPlugins, serial, serial::Counts};
 use brk_error::{Error, Result};
 
-use super::process::cpu_micros;
+use super::process::counts;
 
 /// Drops the timed run's `plugins` with every plugin's data but the indexer's, then runs the
-/// bootstrap `sync` again, serially, and writes each plugin's CPU from zero, the whole
+/// bootstrap `sync` again, serially, and writes each plugin's counters from zero, the whole
 /// bootstrap's (`total`, the imports included) and what no plugin accounts for (`unattributed`:
 /// the imports, the schedule, logging and helpers between steps).
 pub fn recompute(
@@ -25,22 +26,32 @@ pub fn recompute(
     sync: impl FnOnce() -> Result<DefaultPlugins>,
 ) -> Result<()> {
     plugins.remove_computed(import_context)?;
-    serial::start(|| cpu_micros().expect("reading the process CPU time") * 1_000);
-    let start = cpu_micros()?;
+    serial::start(|| counts().expect("reading the process counters"));
+    let start = counts()?;
     drop(sync()?);
-    let total = (cpu_micros()? - start) * 1_000;
+    let total = counts()? - start;
     let steps = serial::take();
-    let unattributed = total
-        .checked_sub(steps.values().sum::<u64>())
-        .ok_or(Error::Internal("The plugins' serial CPU exceeds the recompute's"))?;
+    let accounted: Counts = steps.values().copied().sum();
+    if accounted.instructions > total.instructions
+        || accounted.cycles > total.cycles
+        || accounted.cpu_ns > total.cpu_ns
+    {
+        return Err(Error::Internal("The plugins' serial counters exceed the recompute's"));
+    }
 
     let mut raw = BufWriter::new(File::create(path.join("serial_compute.csv"))?);
-    writeln!(raw, "plugin,serial_cpu_ms")?;
-    for (plugin, cpu) in steps
-        .into_iter()
-        .chain([("total", total), ("unattributed", unattributed)])
-    {
-        writeln!(raw, "{plugin},{:.3}", cpu as f64 / 1_000_000.0)?;
+    writeln!(raw, "plugin,instructions,cycles,cpu_ms")?;
+    for (plugin, spent) in steps.into_iter().chain([
+        ("total", total),
+        ("unattributed", total - accounted),
+    ]) {
+        writeln!(
+            raw,
+            "{plugin},{},{},{:.3}",
+            spent.instructions,
+            spent.cycles,
+            spent.cpu_ns as f64 / 1_000_000.0
+        )?;
     }
     Ok(raw.flush()?)
 }

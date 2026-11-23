@@ -1,7 +1,7 @@
 use std::{
     ffi::CString,
     fmt,
-    fs::{File, OpenOptions},
+    fs::File,
     io::{self, BufWriter, Write},
     mem::MaybeUninit,
     os::unix::ffi::OsStrExt,
@@ -71,8 +71,10 @@ pub fn write(
     // SSDs slow down as they fill: runs compare only at equal used space.
     writeln!(writer, "data_volume={}", volume(data_path))?;
     writeln!(writer, "blocks_volume={}", volume(blocks_path))?;
+    let home = std::env::home_dir().ok_or_else(|| io::Error::other("no home directory"))?;
+    writeln!(writer, "internal_volume={}", volume(&home))?;
     writeln!(writer, "parallelism={}", cores())?;
-    // The pool the plugins compute on; narrowed (`RAYON_NUM_THREADS`), the run isn't comparable.
+    // The pool the plugins compute on; narrower than `parallelism` (`RAYON_NUM_THREADS`), a run's wall time is not a full machine's.
     writeln!(writer, "rayon_threads={}", rayon::current_num_threads())?;
     writeln!(writer, "started_at_unix={started_at}")?;
     writeln!(writer, "chain_height={chain_height}")?;
@@ -86,45 +88,6 @@ pub fn write(
     writeln!(writer, "data_path={}", data_path.display())?;
     writeln!(writer, "cache_budget={cache_budget}")?;
     writer.flush()
-}
-
-/// What the quiet-machine check saw at the start (`quiet.rs`): the busiest processes and the
-/// home volume's used and total bytes, to read beside `data_volume`.
-pub fn start_state(run_path: &Path, busiest: &str) -> io::Result<()> {
-    let mut writer = OpenOptions::new()
-        .append(true)
-        .open(run_path.join("metadata.txt"))?;
-    let home = std::env::home_dir().ok_or_else(|| io::Error::other("no home directory"))?;
-    writeln!(writer, "busiest_processes={busiest}")?;
-    writeln!(writer, "internal_volume={}", volume(&home))
-}
-
-/// Whether the run measured this machine alone: rayon's pool as wide as its cores, and nothing but
-/// Bitcoin Core beside it (the start check passed, so only the minute-by-minute watch can say no,
-/// naming the first overlap).
-pub fn comparable(run_path: &Path, overlap: Option<&str>) -> io::Result<()> {
-    let mut writer = OpenOptions::new()
-        .append(true)
-        .open(run_path.join("metadata.txt"))?;
-    let (threads, cores) = (rayon::current_num_threads(), cores());
-    let reason = if threads == cores {
-        overlap.map(|names| format!("overlapped by {names}"))
-    } else {
-        Some(format!("rayon's pool has {threads} threads, not the machine's {cores}"))
-    };
-    match reason {
-        None => {
-            writeln!(writer, "comparable=true")?;
-            writeln!(
-                writer,
-                "comparable_reason=no heavy process beside it, at the start and every minute"
-            )
-        }
-        Some(reason) => {
-            writeln!(writer, "comparable=false")?;
-            writeln!(writer, "comparable_reason={reason}")
-        }
-    }
 }
 
 fn cores() -> usize {

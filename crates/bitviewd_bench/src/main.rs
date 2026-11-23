@@ -9,7 +9,6 @@ use tracing::info;
 use vecdb::Budgeted;
 
 mod benchmark;
-mod quiet;
 
 #[global_allocator]
 static GLOBAL: brk_alloc::MiMalloc = brk_alloc::MiMalloc;
@@ -26,7 +25,6 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<()> {
-    let quiet = quiet::acquire()?;
     let RunConfig {
         reader,
         server,
@@ -45,7 +43,6 @@ fn run() -> Result<()> {
         reader.blocks_dir(),
         chain_height,
         cache_budget,
-        &quiet.busiest,
     )?;
     info!("Benchmark results: {}", benchmark.path().display());
     let exit = Exit::new();

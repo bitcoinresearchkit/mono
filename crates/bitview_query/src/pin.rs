@@ -1,4 +1,6 @@
-use std::ops::{Deref, Range};
+use std::ops::Deref;
+#[cfg(feature = "full-api")]
+use std::ops::Range;
 #[cfg(feature = "series")]
 use std::sync::Arc;
 

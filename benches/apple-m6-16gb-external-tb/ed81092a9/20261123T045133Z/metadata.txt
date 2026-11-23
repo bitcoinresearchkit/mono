@@ -24,3 +24,4 @@ busiest_processes=sysmond 1%, WindowServer 1%, configd 0%, bash 0%, logd 0%, cen
 internal_volume=74798366720/245054767104
 comparable=true
 comparable_reason=no heavy process beside it, at the start and every minute
+locked=true

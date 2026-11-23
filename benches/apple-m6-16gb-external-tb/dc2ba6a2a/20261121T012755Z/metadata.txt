@@ -23,3 +23,4 @@ busiest_processes=WindowServer 1%, logd 0%, AppleCentauriAlpha 0%, tailscaled 0%
 internal_volume=74746998784/245054767104
 comparable=true
 comparable_reason=no heavy process beside it, at the start and every minute
+locked=true
