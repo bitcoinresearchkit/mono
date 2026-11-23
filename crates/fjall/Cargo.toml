@@ -13,7 +13,7 @@ name = "fjall"
 path = "src/lib.rs"
 
 [features]
-# `Database::wait_for_compaction`, for `bitviewd_bench`'s serial replay. A `--workspace` build
+# `Database::wait_for_compaction`, for `bitviewd_bench`'s serial recompute. A `--workspace` build
 # unifies it into `bitviewd`, where it stays inert (see `bitview_default`'s feature).
 bench-cpu = []
 

@@ -67,8 +67,7 @@ fn run() -> Result<()> {
             update_context,
         )
     };
-    let plugins = benchmark.measure(sync)?;
-    benchmark.serial_cpu(plugins, import_context, update_context, sync)?;
+    benchmark.measure(import_context, sync)?;
     info!("Benchmark saved to {}", benchmark.path().display());
     Ok(())
 }

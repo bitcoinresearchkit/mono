@@ -6,7 +6,7 @@ use tracing::info;
 
 /// Performs one complete steady-state update and publishes it, unless its chain did not move:
 /// returns whether it published.
-pub fn update<P>(plugins: &mut P, context: UpdateContext<'_>) -> Result<bool>
+pub(crate) fn update<P>(plugins: &mut P, context: UpdateContext<'_>) -> Result<bool>
 where
     P: ComputePluginSet,
 {

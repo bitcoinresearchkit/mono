@@ -34,13 +34,8 @@ use bitview_plugin_supply::Dependencies as SupplyDependencies;
 use bitview_plugin_transactions::Dependencies as TransactionsDependencies;
 use bitview_plugin_utxo_set::{Dependencies as UtxoSetDependencies, UrpdConsumer};
 use bitview_plugin_utxos::Dependencies as UtxosDependencies;
-use bitview_primitives::Lengths;
 use bitview_traversable::Traversable;
-#[cfg(feature = "bench-cpu")]
-use brk_error::Error;
 use brk_error::Result;
-#[cfg(feature = "bench-cpu")]
-use brk_types::Height;
 use brk_types::Transaction;
 use rayon::Scope;
 use tracing::info;
@@ -94,44 +89,11 @@ impl DefaultPlugins {
         let Some(starting) = self.indexer.reorg()? else {
             return Ok(false);
         };
-        self.roll_back(&starting, context)?;
-        Ok(true)
-    }
-
-    /// Rolls back to `starting`, the address state first. Returns the height the address state
-    /// landed on: 0 when it could not.
-    fn roll_back(&mut self, starting: &Lengths, context: UpdateContext<'_>) -> Result<usize> {
         let _lock = context.exit().lock();
-        let landed = self
-            .addresses
+        self.addresses
             .roll_back_to(usize::from(starting.height), &self.indexer)?;
-        self.indexer.roll_back_to(starting)?;
-        Ok(landed)
-    }
-
-    /// Rolls every plugin back to before `first`, the start of the run's last `UNDO_TAIL` blocks,
-    /// for the benchmark's replay of them. The address state lands at the newest undo record at
-    /// or below `first`, as on a reorg (below it when the run's last update was shorter than the
-    /// tail); the replay's first, unmeasured update recomputes it from there.
-    #[cfg(feature = "bench-cpu")]
-    pub fn rewind_for_replay(&mut self, first: Height, context: UpdateContext<'_>) -> Result<()> {
-        let starting = self.indexer.lengths_before(first)?;
-        if self.roll_back(&starting, context)? == 0 {
-            return Err(Error::Internal("Address undo does not reach the replay's first block"));
-        }
-        Ok(())
-    }
-
-    /// Stops the updates that follow at `tip`, for the benchmark's replay of a recorded prefix.
-    #[cfg(feature = "bench-cpu")]
-    pub fn cap_tip(&mut self, tip: Height) {
-        self.indexer.cap_tip(tip);
-    }
-
-    /// The height of the last block the composition has indexed.
-    #[cfg(feature = "bench-cpu")]
-    pub fn tip_height(&self) -> Option<Height> {
-        self.indexer.vecs().next_height().decremented()
+        self.indexer.roll_back_to(&starting)?;
+        Ok(true)
     }
 
     /// Closes the composition and removes every plugin's data but the indexer's, so the next

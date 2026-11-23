@@ -15,7 +15,8 @@ cargo run --release -p bitviewd_bench
 
 It reads `~/.bitview/config.toml` and accepts the same command-line options as
 `bitviewd`. Pass `--bitviewdir <EMPTY_PATH>` to measure a complete historical
-rebuild. Existing indexed data is reused.
+rebuild. Existing data is reused: such a run is marked resumed, its times aren't a
+full sync's, and it skips the serial recompute below.
 
 Each run is written to `<bitviewdir>/benches/<machine>/<revision>/<run-id>/`,
 regardless of the installation method or working directory, the layout of the
@@ -54,7 +55,7 @@ This bench and its ancestors (the `cargo run` that started it) are never judged.
 It only reports; it never stops a process (on a mini: `~/Developer/dots/shared/ship stop bitviewd mcp`).
 Every minute of the run the same check runs again. `metadata.txt` records the six busiest processes
 at the start (`busiest_processes`), the home volume's used and total bytes (`internal_volume`, beside
-`data_volume`: both disks' free space) and, at the end, `comparable=true|false` with a
+`data_volume`: both disks' free space) and, at the end (after the serial recompute), `comparable=true|false` with a
 `comparable_reason`; false names the first heavy process seen beside the run, or rayon's pool
 narrower than the machine (`rayon_threads` below `parallelism`, the cores: `RAYON_NUM_THREADS` set). The benchmarks page
 shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording
@@ -74,7 +75,6 @@ disk_breakdown.csv  # final size per component (`plugins/<id>` and top-level ent
 progress.csv        # heights from production log events, with their source (`indexer`, ...)
 run.csv             # total bootstrap duration and status (complete, failed or aborted)
 timings.csv         # every completed production plugin import and compute interval
-serial_cpu_samples.csv # the serial-replay CPU of each plugin in each block
 serial_compute.csv  # each plugin's serial CPU computing from zero over the run's indexed chain
 ```
 
@@ -94,32 +94,22 @@ thread, so their small metadata reads are part of the recorded I/O.
 
 The timed run's plugins overlap on threads, and a plugin waiting in a rayon join runs other
 plugins' stolen work, so their durations say nothing about the CPU each one spends (Market read
-327 s and 91 s in two runs of one commit). Two serial runs follow the timed one, fresh or resumed,
-the composition's forks run one branch at a time, so the process CPU (`getrusage`, user plus
-system) between a plugin's start and end is its own, less the steps nested in it (the shared
-history walk is its own `walk` step; Age, Profitability and URPD run inside it). A plugin's
-internal parallelism is unchanged.
+327 s and 91 s in two runs of one commit). So after a fresh run, every plugin's data but the
+indexer's is removed and the bootstrap runs again on the indexed chain, with the composition's
+forks run one branch at a time: each plugin computes all of it from zero alone, and the process
+CPU (`getrusage`, user plus system) between its start and end is its own, less the steps nested in
+it (the shared history walk is its own `walk` step; Age, Profitability and URPD run inside it). A
+plugin's internal parallelism is unchanged, and what the indexer leaves running in the background
+(ingestion and compaction, freeing the blocks) is joined into its step; it only indexes the blocks
+that arrived meanwhile.
 
-First the last 10
-blocks (`UNDO_TAIL`, the undo the run already keeps) are rolled back and applied again one at a
-time, with Bitcoin Core on its full chain. The first is unmeasured: it restores the plugins' live
-state. Each of the others is one production update; what it leaves running in the background (the
-indexer's ingestion and compaction, freeing the blocks) is joined into the indexer's step.
+`serial_compute.csv` has `plugin,serial_cpu_ms`, then `total` (the whole recompute, the imports
+included) and `unattributed` (`total` less the plugins: the imports, the schedule, logging and
+helpers between steps). This is each plugin's cost from zero, the same chain for every run, where
+the timed run's intervals are its schedule; the benchmarks page holds it to the best. On m6-2
+(ed81092a9) it took about 29 minutes beside the timed run's 74, with 8,326 CPU-seconds of which
+1.4 were unattributed. The vectors' delayed compaction, 5 s after an update
+(`bitview_plugin/src/update_context.rs`), is not counted. The quiet watch runs until the recompute
+ends, so a disturbed recompute makes the run not comparable.
 
-`serial_cpu_samples.csv` has `height,plugin,serial_cpu_ms`, one row per plugin per block, and
-`total` (the whole update) and `unattributed` (`total` less the plugins: the schedule, logging and
-helper threads between steps), for the 9 measured blocks.
-
-These are serial-replay CPU per block, not production CPU. The vectors' delayed compaction, 5 s
-after an update (`bitview_plugin/src/update_context.rs`), is not counted. Compare plugins with each
-other and a plugin with its own earlier run, never with the timed run's durations, and gate nothing
-on one plugin's number: each run replays other blocks, and Addresses' median read 305 ms and
-1,241 ms in two runs of one commit (dc2ba6a2a).
-
-Then every plugin's data but the indexer's is removed and the bootstrap runs again on the indexed
-chain, so each plugin computes all of it from zero, one at a time (the indexer only indexes the
-blocks that arrived meanwhile). `serial_compute.csv` has `plugin,serial_cpu_ms`, then `total` (the
-whole bootstrap) and `unattributed` (the imports, the schedule, logging and helpers between
-steps). This is each plugin's cost from zero, the same chain for every run, where the timed run's
-intervals are its schedule; the benchmarks page holds it to the best. It adds about the compute
-stage's time again, serially, to a bench.
+A resumed run has no recompute: its times aren't a full sync's, so nothing compares them.
