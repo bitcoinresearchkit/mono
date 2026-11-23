@@ -126,15 +126,42 @@
         margin-inline: auto;
       }
 
-      /* (The word "Extreme" by an extreme day's mood, over the chart and in the mood panel: small tracked caps, each
-         in its place's tag colour.) */
-      .extreme {
-        font: 700 12px / 1 var(--sans);
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
+      /* A mood's name with its tag beside it, on its baseline (named() in the script): over the chart and in the mood
+         panel, one piece sized by --named, in the colour of --state. The tag is a quiet label about the mood, not part
+         of its name: tracked caps, its colour softened toward the text's, 4.5:1 or more on every mood's wash in both
+         themes; tabular, so a longer run moves nothing. On an extreme day "Extreme" stacks over its move, the tag's
+         last line kept on the name's baseline, so nothing moves as it comes and goes; the box keeps its height.
+         Every mood's one line from 320 wide with any run yet (the longest is 220 days); a run of four digits would
+         take Optimism's 2px past it at 320. */
+      .named {
+        height: 1.05em;
+        margin: 0;
+        color: var(--state, var(--ink));
+        font: 400 var(--named) / 1 var(--serif);
+        letter-spacing: -0.01em;
+        white-space: nowrap;
 
-        &[hidden] {
-          display: none;
+        > .tag {
+          display: inline-block;
+          margin-left: 14px;
+          color: color-mix(in oklab, var(--state, var(--ink)) 65%, var(--soft));
+          font: 600 14px / 1.25 var(--sans);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          font-variant-numeric: tabular-nums;
+
+          @media (width < 480px) {
+            margin-left: 10px;
+            font-size: 12px;
+          }
+        }
+
+        .extreme {
+          display: block;
+
+          &[hidden] {
+            display: none;
+          }
         }
       }
 
@@ -231,49 +258,17 @@
           -webkit-text-stroke: calc(var(--halo-width) * 1px) var(--halo);
         }
 
+        /* (The name as large as the screen allows; its tag the mood's move and its run's day.) */
         h1 {
-          position: relative;
-          height: 1.05em;
+          --named: clamp(42px, 5vw, 64px);
           margin-top: 2px;
-          color: var(--state, var(--ink));
-          font: 400 clamp(42px, 5vw, 64px) / 1 var(--serif);
-          letter-spacing: -0.01em;
-          white-space: nowrap;
-
-          /* (Beside the name, on its baseline: the mood's move and its run's day, one quiet tag about the mood, not part
-             of its name: tracked caps, its colour softened toward the text's, 4.5:1 or more on every mood's wash in both
-             themes; tabular, so a longer run moves nothing. Every mood's, with a run of four digits (the longest yet is 220
-             days), one line from 320 wide.) */
-          :is(#run, #extreme) {
-            color: color-mix(in oklab, var(--state, var(--ink)) 65%, var(--soft));
-          }
-
-          #run {
-            display: inline-block;
-            margin-left: 14px;
-            font: 600 14px / 1.25 var(--sans);
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            font-variant-numeric: tabular-nums;
-
-            @media (width < 480px) {
-              margin-left: 10px;
-              font-size: 12px;
-            }
-          }
-
-          /* (An extreme day's word (see .extreme), over the name's first letter in the room between it and the bar, so
-             it comes and goes moving nothing, in the move's tag's colour.) */
-          #extreme {
-            position: absolute;
-            bottom: calc(100% - 0.06em);
-            left: 0.04em;
-          }
 
           /* (The mood a box the line's height, not the face's taller one: its focus ring hugs the word. Before the days
              are read, a quiet bar where it goes.) */
-          #name {
+          #hero-name {
+            position: relative;
             display: inline-block;
+            --under: -0.08em;
 
             &:empty {
               width: 3.2em;
@@ -875,11 +870,6 @@
         background: currentColor;
       }
 
-      #name {
-        position: relative;
-        --under: -0.08em;
-      }
-
       /* The compass (its look in draw.css): where it sits, and what a press, a pointer and a focus do to it. */
       .compass {
         position: relative;
@@ -1073,6 +1063,8 @@
            opened.) */
         --tint: color-mix(in srgb, var(--c) 7%, transparent);
         --rule: color-mix(in srgb, var(--c) 22%, transparent);
+        /* (Its width the grid's, so its words can size to it: see .where.) */
+        container-type: inline-size;
         display: grid;
         /* (One column held to the card: content too wide for it wraps, never pushes past its padding.) */
         grid-template-columns: minmax(0, 1fr);
@@ -1092,21 +1084,21 @@
           gap: 6px;
         }
 
-        .kicker {
-          color: var(--c);
-          font-size: 13px;
-          font-weight: 600;
+        /* (Its name and its move as the header has them (its run told in the lead, not in the tag); where its price
+           is under it, as the day is under the header's name.) */
+        h3 {
+          --named: 48px;
+          --state: var(--c);
         }
 
-        h3 {
-          color: var(--c);
-          font: 400 48px/1 var(--serif);
-
-          /* (Beside the name on its baseline, on the day's own mood: never a line of its own, whatever the mood.) */
-          .extreme {
-            margin-left: 4px;
-            color: color-mix(in oklab, var(--c) 65%, var(--soft));
-          }
+        /* (One line for every mood's, at 15px but as the card narrows: the longest, "Old holders about even, new in
+           profit", is 17.8 times its font size wide, so 5.5% of the card's width leaves it room (13.75px, 245 of 250px
+           at 320 wide). Of the card, not the screen, so the rule needn't know the page's gutters or the card's
+           padding.) */
+        .where {
+          color: var(--soft);
+          font-size: min(15px, 5.5cqi);
+          line-height: 22px;
         }
 
         h4 {
@@ -1500,7 +1492,7 @@
       </header>
 
       <section class="hero shell" id="hero" aria-labelledby="state">
-        <h1 id="state"><span class="sr">Compass: </span><span class="extreme" id="extreme" hidden>Extreme</span><span id="name" role="button" tabindex="0" aria-pressed="false" aria-label="Loading"></span><span class="sr">, </span><span id="run"></span></h1>
+        <h1 class="named" id="state"><span class="sr">Compass: </span></h1>
         <p class="day" id="when"><span id="day"></span><b id="price"></b><span id="index-at" hidden> · Index <b id="index-now"></b></span></p>
       </section>
 
@@ -1543,8 +1535,8 @@
           </div>
           <div class="mood" id="mood">
             <header>
-              <p class="kicker" id="mood-kicker"></p>
-              <h3><span id="mood-name"></span> <span class="extreme" id="mood-extreme" hidden>Extreme</span></h3>
+              <h3 class="named" id="mood-named"></h3>
+              <p class="where" id="mood-where"></p>
             </header>
             <p class="lead" id="mood-lead"></p>
             <figure>
@@ -1645,6 +1637,15 @@
 
       // Where Bitcoin's market stands, each day (its states and trends computed in market.js), told and drawn.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      /** A mood's name with its tag beside it, written into a .named `at`: its parts' ids `${id}-name`, `-extreme`
+       * (hidden but on an extreme day) and `-tag`. The header's and the mood panel's; gives the name. */
+      function named(/** @type {HTMLElement} */ at, /** @type {string} */ id) {
+        at.insertAdjacentHTML("beforeend", `<span id="${id}-name"></span><span class="sr">, </span><span class="tag"><span class="extreme" id="${id}-extreme" hidden>Extreme<span class="sr">,</span></span><span id="${id}-tag"></span></span>`);
+        return /** @type {HTMLElement} */ (at.querySelector(`#${id}-name`));
+      }
+      // (The header's name presses: it lights its mood's days.)
+      Object.assign(named($("state"), "hero"), { role: "button", tabIndex: 0, ariaPressed: "false", ariaLabel: "Loading" });
+      named($("mood-named"), "mood");
       /** An element's markup, or one of its style's properties, written only when it changes: a day told often, as Play
        * does, mostly changes little, and a write of the same words still lays the page out again. Kept as written, never
        * read back: the style gives its own spelling back ("1.6px" for "1.60px"). @type {WeakMap<Element, Record<string, string>>} */
@@ -2198,11 +2199,11 @@
         (toldDay = shownDay()), (toldDays = days), (toldFailing = failing);
         const d = days, day = shownDay(), s = d.state[day], state = STATES[s];
         sayToday();
-        give($("name"), state.name);
-        if ($("extreme").hidden !== !d.extreme[day]) $("extreme").hidden = !d.extreme[day];
+        give($("hero-name"), state.name);
+        if ($("hero-extreme").hidden !== !d.extreme[day]) $("hero-extreme").hidden = !d.extreme[day];
         give($("stage"), `var(--s-${state.id})`, "--state");
         // (What the name lights, and whether it's pressed: said again only when the day's mood changes.)
-        if ($("name").dataset.light !== String(s)) ($("name").dataset.light = String(s)), sayLitAt($("name"));
+        if ($("hero-name").dataset.light !== String(s)) ($("hero-name").dataset.light = String(s)), sayLitAt($("hero-name"));
         // (The day under the name, with its price: "Today", or its date, so the words under it aren't taken for today's;
         // today's, while the server isn't answering, as of its last answer, so a reading that's stopped isn't taken for a
         // live one.)
@@ -2211,7 +2212,7 @@
         give($("price"), usd(d.close[day]));
         // (Beside the name, its move and its run's day up to the day shown: never past it, on any day what was known that day.)
         const runs = runsOf(d)[s];
-        give($("run"), `${state.move} · Day ${day - runs[endedBy(runs, day)].first + 1}`);
+        give($("hero-tag"), `${state.move} · Day ${day - runs[endedBy(runs, day)].first + 1}`);
         // (Its index beside the price, none in the warm-up before there is one.)
         const index = Math.round(d.index[day]);
         if ($("index-at").hidden !== Number.isNaN(index)) $("index-at").hidden = Number.isNaN(index);
@@ -2791,9 +2792,11 @@
         const run = going ? { first: spells.now.first, length: day - spells.now.first + 1 } : all[ended - 1], before = going ? ended : ended - 1;
         give($("mood"), `var(--s-${s.id})`, "--c");
         give($("mood-name"), s.name);
-        // (Its move and where its price is, in the header's words; its run told without its name, said just over it.)
+        // (As the header tells the day's: its move beside its name ("Extreme" over it on the day's own mood, if extreme), and
+        // where its price is under it; its run told in the lead.)
         const where = coinsWords(s);
-        give($("mood-kicker"), `${s.move} · ${where[0].toUpperCase()}${where.slice(1)}`);
+        give($("mood-tag"), s.move);
+        give($("mood-where"), `${where[0].toUpperCase()}${where.slice(1)}`);
         const extreme = going && !!d.extreme[day];
         if ($("mood-extreme").hidden !== !extreme) $("mood-extreme").hidden = !extreme;
         const shorter = shareOf(all, before, (r) => r.length < (run?.length ?? 0));
@@ -2986,7 +2989,7 @@
           (readAt = Date.now()), (failing = false);
           repaint();
           setUpCompass();
-          $("name").removeAttribute("aria-label");
+          $("hero-name").removeAttribute("aria-label");
           chartPlay.disabled = false;
           slider.min = String(days.first);
           slider.max = String(days.last);
@@ -3000,8 +3003,10 @@
         } catch (error) {
           // (What it read forgotten, so Try again asks the server again.)
           answers.clear();
-          $("name").removeAttribute("aria-label");
-          give($("name"), "—");
+          $("hero-name").removeAttribute("aria-label");
+          give($("hero-name"), "—");
+          give($("hero-tag"), "");
+          $("hero-extreme").hidden = true;
           $("failed").replaceChildren(
             Object.assign(document.createElement("p"), { textContent: `The daily series couldn't be read: ${error instanceof Error ? error.message : error}.` }),
             Object.assign(document.createElement("button"), { type: "button", textContent: "Try again", onclick: load }),
