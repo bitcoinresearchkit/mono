@@ -1242,6 +1242,7 @@ dependencies = [
  "brk_types",
  "libc",
  "parking_lot",
+ "rayon",
  "tracing",
  "vecdb",
 ]

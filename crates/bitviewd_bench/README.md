@@ -55,7 +55,8 @@ It only reports; it never stops a process (on a mini: `~/Developer/dots/shared/s
 Every minute of the run the same check runs again. `metadata.txt` records the six busiest processes
 at the start (`busiest_processes`), the home volume's used and total bytes (`internal_volume`, beside
 `data_volume`: both disks' free space) and, at the end, `comparable=true|false` with a
-`comparable_reason`; false names the first heavy process seen beside the run. The benchmarks page
+`comparable_reason`; false names the first heavy process seen beside the run, or rayon's pool
+narrower than the machine (`rayon_threads` below `parallelism`, the cores: `RAYON_NUM_THREADS` set). The benchmarks page
 shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording
 from before the check) means comparable.
 
