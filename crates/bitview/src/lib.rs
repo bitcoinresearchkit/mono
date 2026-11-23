@@ -246,7 +246,22 @@ where
             let start = Instant::now();
             // One that moves nothing (a block the reader can't read yet, or ever: it logged why)
             // retries after the idle wait.
-            if update(&mut plugins, update_context)? {
+            // The moment readers see the new tip: the pool is woken to follow it, and its view at
+            // this tip, which hides what the block settled until the pool follows a cycle later,
+            // is built here rather than by the first reader in between.
+            let on_publish = || {
+                #[cfg(feature = "full-api")]
+                {
+                    published.published();
+                    let view_start = Instant::now();
+                    match query.sync(bitview_query::Query::build_pending_view) {
+                        Ok(()) => debug!("Pending view built in {:.2?}", view_start.elapsed()),
+                        Err(bitview_query::Error::StateUpdating(_)) => {}
+                        Err(error) => warn!(%error, "Pending view not built"),
+                    }
+                }
+            };
+            if update(&mut plugins, update_context, on_publish)? {
                 let (height, hash) = query
                     .sync(|q| q.tip_block())
                     .expect("an update publishes at least genesis");
@@ -254,8 +269,6 @@ where
                     "Updated to block {height} {hash} in {:.2?}",
                     start.elapsed()
                 );
-                #[cfg(feature = "full-api")]
-                published.published();
                 // Full, a read not yet started is due: it will see this publication.
                 #[cfg(feature = "full-api")]
                 let _ = stale_blocks.try_send(());

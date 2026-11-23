@@ -5,15 +5,24 @@ use brk_error::Result;
 use tracing::info;
 
 /// Performs one complete steady-state update and publishes it, unless its chain did not move:
-/// returns whether it published.
-pub(crate) fn update<P>(plugins: &mut P, context: UpdateContext<'_>) -> Result<bool>
+/// returns whether it published. `on_publish` runs as readers first see the publication.
+pub(crate) fn update<P>(
+    plugins: &mut P,
+    context: UpdateContext<'_>,
+    on_publish: impl FnOnce(),
+) -> Result<bool>
 where
     P: ComputePluginSet,
 {
-    run(plugins, context, |plugins, context| {
-        let moved = plugins.compute(context)?;
-        Ok((moved, moved.then_some(true)))
-    })
+    run(
+        plugins,
+        context,
+        |plugins, context| {
+            let moved = plugins.compute(context)?;
+            Ok((moved, moved.then_some(true)))
+        },
+        on_publish,
+    )
 }
 
 pub(crate) fn bootstrap_update<P>(
@@ -23,10 +32,15 @@ pub(crate) fn bootstrap_update<P>(
 where
     P: ComputePluginSet,
 {
-    run(plugins, context, |plugins, context| {
-        let action = plugins.bootstrap_compute(context)?;
-        Ok((action, Some(action == BootstrapAction::Ready)))
-    })
+    run(
+        plugins,
+        context,
+        |plugins, context| {
+            let action = plugins.bootstrap_compute(context)?;
+            Ok((action, Some(action == BootstrapAction::Ready)))
+        },
+        || (),
+    )
 }
 
 /// `compute` returns its output and how to commit: `Some(complete)`, or `None` to leave the last
@@ -35,6 +49,7 @@ fn run<P, T>(
     plugins: &mut P,
     context: UpdateContext<'_>,
     compute: impl FnOnce(&mut P, UpdateContext<'_>) -> Result<(T, Option<bool>)>,
+    on_publish: impl FnOnce(),
 ) -> Result<T>
 where
     P: ComputePluginSet,
@@ -54,6 +69,7 @@ where
         .commit(complete)
         .map_err(|error| error.context("commit"))?;
     info!("Update published in {:.2?}", start.elapsed());
+    on_publish();
     plugins
         .write_published()
         .map_err(|error| error.context("write published state"))?;

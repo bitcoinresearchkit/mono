@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use std::{
+    fs::File,
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
     sync::Arc,
@@ -88,6 +89,46 @@ impl Reader {
 
     pub fn read_raw_bytes(&self, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         let file = self.0.open_blk(position.blk_index())?;
+        self.read_raw_in(&file, position, size)
+    }
+
+    /// The bytes at each of `places`, in order. Their ranges are advised together before any is
+    /// read, so the device serves them as one batch rather than one read at a time, and each
+    /// read uses the handle its advice opened. Ranges back to back in one file (a block's
+    /// transactions) share one advice; a lone read gets none (it gains nothing from it).
+    pub fn read_raw_batch(&self, places: &[(BlkPosition, usize)]) -> Result<Vec<Vec<u8>>> {
+        let files = places
+            .iter()
+            .map(|&(position, _)| self.0.open_blk(position.blk_index()))
+            .collect::<Result<Vec<_>>>()?;
+        // (first place, start, end) of each run.
+        let mut runs: Vec<(usize, u64, u64)> = Vec::new();
+        for (k, &(position, size)) in places.iter().enumerate() {
+            let start = u64::from(position.offset());
+            let end = start + size as u64;
+            match runs.last_mut() {
+                Some((first, run_start, run_end))
+                    if places[*first].0.blk_index() == position.blk_index()
+                        && (*run_start..=*run_end).contains(&start) =>
+                {
+                    *run_end = (*run_end).max(end);
+                }
+                _ => runs.push((k, start, end)),
+            }
+        }
+        if places.len() > 1 {
+            for (first, start, end) in runs {
+                rawdb::advise_read(&files[first], start, (end - start) as usize);
+            }
+        }
+        places
+            .iter()
+            .zip(&files)
+            .map(|(&(position, size), file)| self.read_raw_in(file, position, size))
+            .collect()
+    }
+
+    fn read_raw_in(&self, file: &File, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         let mut buffer = vec![0u8; size];
         file.read_exact_at(&mut buffer, position.offset() as u64)?;
         XORIndex::at_offset(position.offset() as usize).bytes(&mut buffer, self.0.xor_bytes);
