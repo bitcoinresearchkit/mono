@@ -7,7 +7,7 @@ use axum::http::{HeaderMap, StatusCode};
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 use serde_json::{Map, Value, json};
 
-use crate::server::AppState;
+use super::AppState;
 
 /// The newest revision, back to the oldest one a real client still opens with: Codex and Gemini CLI at 2025-06-18.
 pub const SUPPORTED_PROTOCOL_VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];

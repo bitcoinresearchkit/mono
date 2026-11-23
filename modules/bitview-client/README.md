@@ -7,7 +7,7 @@ Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, me
 [npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/docs/globals.md) | [Source](https://github.com/bitcoinresearchkit/mono/tree/main/modules/bitview-client)
 
 AI clients can use the same API through the official stateless, read-only MCP
-endpoint at [mcp.bitview.space](https://mcp.bitview.space/). No authentication
+endpoint at [bitview.space/mcp](https://bitview.space/mcp). No authentication
 is required.
 
 ## Installation

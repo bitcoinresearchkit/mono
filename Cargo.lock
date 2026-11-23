@@ -421,28 +421,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bitview_mcp"
-version = "0.13.0"
-dependencies = [
- "axum",
- "base64",
- "bitview_http",
- "brk_logger",
- "flate2",
- "http-body-util",
- "hyper-util",
- "percent-encoding",
- "rustls",
- "serde",
- "serde_json",
- "tokio",
- "tower",
- "tower-http",
- "tracing",
- "webpki-roots",
-]
-
-[[package]]
 name = "bitview_plugin"
 version = "0.13.0"
 dependencies = [
@@ -1072,6 +1050,7 @@ version = "0.13.0"
 dependencies = [
  "aide",
  "axum",
+ "base64",
  "bitcoin",
  "bitview_catalog",
  "bitview_http",
@@ -1084,12 +1063,15 @@ dependencies = [
  "brk_rpc",
  "brk_types",
  "derive_more",
+ "http-body-util",
  "jiff",
+ "percent-encoding",
  "schemars",
  "serde",
  "serde_json",
  "sha2",
  "tokio",
+ "tower",
  "tower-http",
  "tracing",
 ]
@@ -1695,15 +1677,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "futures-channel"
-version = "0.3.34"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1f9e3d69d39e4862ffed03ed071a76f9a13ba1d9109d355b0f0aa6b15e393c4"
-dependencies = [
- "futures-core",
-]
-
-[[package]]
 name = "futures-core"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1860,18 +1833,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddc03d96684f9226b8a787cdb71488417b53ab5ea8fdb1dac946cb9431cc8bff"
 dependencies = [
  "bytes",
- "futures-channel",
- "futures-util",
  "http",
  "http-body",
- "httparse",
  "hyper",
- "libc",
  "pin-project-lite",
- "socket2",
  "tokio",
  "tower-service",
- "tracing",
 ]
 
 [[package]]
@@ -2691,7 +2658,6 @@ version = "1.54.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3"
 dependencies = [
- "bytes",
  "libc",
  "mio",
  "pin-project-lite",

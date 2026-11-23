@@ -15,7 +15,7 @@ let paths = ClientOutputPaths::new()
     .python("packages/bitview_client/bitview_client/__init__.py")
     .llm("showcases")
     .plugin("plugins/bitview")
-    .llm_manifest("crates/bitview_mcp/generated/manifest.json");
+    .llm_manifest("crates/bitview_server/mcp/manifest.json");
 
 generate_clients(&catalog, &openapi_json, &paths)?;
 ```

@@ -11,7 +11,7 @@ pub use http_operation::HttpOperation;
 pub use operation::Operation;
 pub use parameter::{Parameter, ParameterLocation};
 
-const MANIFEST_JSON: &str = include_str!("../generated/manifest.json");
+const MANIFEST_JSON: &str = include_str!("../../mcp/manifest.json");
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]

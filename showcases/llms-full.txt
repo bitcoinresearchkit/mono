@@ -6,7 +6,7 @@
 
 - Version: `v0.13.0`
 - Base URL: https://bitview.space
-- MCP endpoint: https://mcp.bitview.space/
+- MCP endpoint: https://bitview.space/mcp
 - Terms of use: https://bitview.space/terms/
 - Privacy policy: https://bitview.space/privacy/
 - Support: https://bitview.space/support/

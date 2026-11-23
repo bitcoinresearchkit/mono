@@ -25,12 +25,12 @@ const SUPPORT_PAGE: &str = "showcases/support/index.html";
 const SITE_PAGES: &[&str] = &[SUPPORT_PAGE];
 
 /// The MCP server's logo, which the Claude Code plugin carries as its icon.
-const MCP_LOGO: &str = "crates/bitview_mcp/assets/logo.png";
+const MCP_LOGO: &str = "crates/bitview_server/mcp/logo.png";
 const PLUGIN_ICON: &str = "plugins/bitview/.claude-plugin/icon.png";
 
 /// Every generated file, relative to the workspace root (and to the check's output root).
 const GENERATED_OUTPUTS: &[&str] = &[
-    "crates/bitview_mcp/server.json",
+    "crates/bitview_server/mcp/server.json",
     "crates/bitview_client/src/generated.rs",
     "crates/bitview_cli/src/generated.rs",
     "modules/bitview-client/core.js",
@@ -49,7 +49,7 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "plugins/bitview/skills/bitview/SKILL.md",
     "plugins/bitview/skills/bitview/references/endpoints.md",
     "plugins/bitview/skills/bitview/references/series.md",
-    "crates/bitview_mcp/generated/manifest.json",
+    "crates/bitview_server/mcp/manifest.json",
 ];
 
 type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
@@ -171,11 +171,11 @@ fn output_paths(root: &Path, scope: OutputScope) -> ClientOutputPaths {
         .python(root.join("packages/bitview_client/bitview_client/__init__.py"))
         .llm(root.join("showcases"))
         .plugin(root.join("plugins/bitview"))
-        .llm_manifest(root.join("crates/bitview_mcp/generated/manifest.json"))
+        .llm_manifest(root.join("crates/bitview_server/mcp/manifest.json"))
 }
 
 fn generate_registry_manifest(root: &Path) -> Result<()> {
-    let path = root.join("crates/bitview_mcp/server.json");
+    let path = root.join("crates/bitview_server/mcp/server.json");
     fs::create_dir_all(path.parent().unwrap())?;
     let mut contents = to_string_pretty(&json!({
         "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
@@ -183,9 +183,9 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
         "title": "Bitview",
         "description": "Read-only Bitcoin blockchain, mempool, mining, market, and on-chain analytics; no API key.",
         "version": env!("CARGO_PKG_VERSION"),
-        "websiteUrl": "https://mcp.bitview.space/",
+        "websiteUrl": "https://bitview.space/mcp",
         "icons": [{
-            "src": "https://mcp.bitview.space/logo.png",
+            "src": "https://bitview.space/mcp/logo.png",
             "mimeType": "image/png",
             "sizes": ["512x512"]
         }],
@@ -193,11 +193,11 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
             "url": env!("CARGO_PKG_REPOSITORY"),
             "source": "github",
             "id": "824866280",
-            "subfolder": "crates/bitview_mcp"
+            "subfolder": "crates/bitview_server"
         },
         "remotes": [{
             "type": "streamable-http",
-            "url": "https://mcp.bitview.space/"
+            "url": "https://bitview.space/mcp"
         }]
     }))?;
     contents.push('\n');

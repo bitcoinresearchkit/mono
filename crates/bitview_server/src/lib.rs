@@ -42,6 +42,8 @@ mod etag;
 mod extended;
 mod gates;
 mod json_error;
+#[cfg(feature = "full-api")]
+mod mcp;
 mod params;
 mod port;
 mod prepared_json;
@@ -61,7 +63,7 @@ pub use bitview_website::Website;
 pub use error::Error;
 pub use port::Port;
 
-pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig};
+pub use config::{DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, PublicUrl, ServerConfig, SiteUrl};
 
 use raw_body::RawBodyPermit;
 
@@ -139,6 +141,8 @@ impl Server {
 /// response middleware.
 pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     etag::initialize()?;
+    #[cfg(feature = "full-api")]
+    let site_url = config.site_url();
 
     #[cfg(feature = "series")]
     let series_bodies = query
@@ -233,8 +237,12 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     };
 
     let (router, openapi) = finish_openapi(router);
+    let router = router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi))));
+    // Beside the API's layers, not under them: a tool call's API request is the one line it logs.
+    #[cfg(feature = "full-api")]
+    let router = router.clone().merge(mcp::router(router, &site_url));
 
-    Ok(router.layer(Extension(Arc::new(OpenApiBodies::new(&openapi)))))
+    Ok(router)
 }
 
 pub fn finish_openapi<S: Clone + Send + Sync + 'static>(

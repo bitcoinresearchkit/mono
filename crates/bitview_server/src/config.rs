@@ -5,7 +5,7 @@ use std::{
     str::FromStr,
 };
 
-use axum::http::HeaderValue;
+use axum::http::{HeaderValue, Uri};
 use bitview_primitives::OHLCCents;
 use bitview_website::Website;
 use serde::{Serialize, Serializer};
@@ -34,12 +34,22 @@ pub struct ServerConfig {
     pub max_weight: usize,
     pub max_utxos: usize,
     pub public_url: Option<PublicUrl>,
+    /// The site's public URL; `None` is `http://localhost:<port>`.
+    pub site_url: Option<SiteUrl>,
 }
 
 impl ServerConfig {
     /// Directory for daemon and benchmark logs.
     pub fn logs_path(&self) -> PathBuf {
         self.data_path.join("logs")
+    }
+
+    /// The site's public origin, without a trailing slash.
+    pub fn site_url(&self) -> String {
+        match &self.site_url {
+            Some(SiteUrl(url)) => url.clone(),
+            None => format!("http://localhost:{}", self.port),
+        }
     }
 }
 
@@ -54,6 +64,7 @@ impl Default for ServerConfig {
             max_weight: DEFAULT_MAX_WEIGHT,
             max_utxos: DEFAULT_MAX_UTXOS,
             public_url: None,
+            site_url: None,
         }
     }
 }
@@ -89,6 +100,38 @@ impl fmt::Display for PublicUrl {
 }
 
 impl Serialize for PublicUrl {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.collect_str(self)
+    }
+}
+
+/// The site's public URL (`--siteurl`), an origin: what the MCP server at `<URL>/mcp` names itself by.
+#[derive(Debug, Clone)]
+pub struct SiteUrl(String);
+
+impl FromStr for SiteUrl {
+    type Err = String;
+
+    fn from_str(url: &str) -> Result<Self, Self::Err> {
+        let url = url.trim().trim_end_matches('/');
+        let uri: Uri = url.parse().map_err(|error| format!("not a URL: {error}"))?;
+        if !matches!(uri.scheme_str(), Some("http" | "https")) || uri.host().is_none() {
+            return Err("not an http:// or https:// URL".into());
+        }
+        if uri.query().is_some() || !matches!(uri.path(), "" | "/") || uri.authority().unwrap().as_str().contains('@') {
+            return Err("an origin has no path, query or credentials".into());
+        }
+        Ok(Self(url.to_owned()))
+    }
+}
+
+impl fmt::Display for SiteUrl {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl Serialize for SiteUrl {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.collect_str(self)
     }

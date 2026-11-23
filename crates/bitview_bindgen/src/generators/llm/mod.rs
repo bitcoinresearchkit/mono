@@ -18,7 +18,7 @@ mod manifest;
 mod skill;
 
 const BASE_URL: &str = "https://bitview.space";
-const MCP_URL: &str = "https://mcp.bitview.space/";
+const MCP_URL: &str = "https://bitview.space/mcp";
 const DEFINITION: &str = "Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node.";
 /// What an agent can ask Bitview: the skill's trigger and the MCP instructions' opening.
 const SCOPE: &str = "on-chain metrics (MVRV, realized price, SOPR, holder cohorts, supply by age), blocks, transactions, addresses, mempool and fees, mining and difficulty, and the BTC/USD price, computed from the chain since 2015";

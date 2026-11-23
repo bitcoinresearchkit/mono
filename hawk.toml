@@ -28,11 +28,6 @@ bin = "bitviewd"
 reason = "workspace binary"
 
 [[production]]
-package = "bitview_mcp"
-bin = "bitview_mcp"
-reason = "workspace binary"
-
-[[production]]
 package = "bitviewd_bench"
 bin = "bitviewd_bench"
 reason = "workspace binary"

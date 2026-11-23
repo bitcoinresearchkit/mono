@@ -51,6 +51,7 @@ pub(crate) fn render_errors(plugins: &DefaultPlugins) -> Result<Snapshot> {
                 max_weight: DEFAULT_MAX_WEIGHT,
                 max_utxos: DEFAULT_MAX_UTXOS,
                 public_url: None,
+                site_url: None,
             },
         )
         .await

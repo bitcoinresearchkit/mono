@@ -24,7 +24,7 @@
   "mcpServers": {
     "bitview": {
       "type": "http",
-      "url": "https://mcp.bitview.space/"
+      "url": "https://bitview.space/mcp"
     }
   }
 }

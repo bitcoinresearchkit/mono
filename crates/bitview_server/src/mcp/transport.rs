@@ -17,9 +17,9 @@ use axum::{
 use http_body_util::BodyExt;
 use serde_json::json;
 
-use crate::{
+use super::{
+    AppState, PATH,
     protocol::{self, Answer, SUPPORTED_PROTOCOL_VERSIONS},
-    server::AppState,
 };
 
 const PROTOCOL_VERSION_HEADER: &str = "mcp-protocol-version";
@@ -27,9 +27,9 @@ const JSON: &str = "application/json";
 const EVENT_STREAM: &str = "text/event-stream";
 const MAX_REQUEST_BYTES: usize = 64 * 1024;
 
-/// `POST /`: one JSON-RPC message, answered in full.
+/// `POST /mcp`: one JSON-RPC message, answered in full.
 pub async fn post(State(state): State<Arc<AppState>>, request: Request) -> Response {
-    let (parts, mut body) = request.into_parts();
+    let (parts, body) = request.into_parts();
     let headers = &parts.headers;
     // Only a version named outright is refused: a request naming none is served as the floor (Gemini CLI sends none).
     let version = match headers.get(PROTOCOL_VERSION_HEADER) {
@@ -50,18 +50,15 @@ pub async fn post(State(state): State<Arc<AppState>>, request: Request) -> Respo
         return plain(StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type: Content-Type must be application/json");
     }
 
-    // Counted as it arrives, whatever the framing says.
-    let mut bytes = Vec::new();
-    while let Some(frame) = body.frame().await {
-        let data = match frame {
-            Ok(frame) => frame.into_data().unwrap_or_default(),
-            Err(error) => return plain(StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to read request body: {error}")),
-        };
-        if data.len() > MAX_REQUEST_BYTES - bytes.len() {
+    let bytes = match read_capped(body, MAX_REQUEST_BYTES).await {
+        Ok(bytes) => bytes,
+        Err(BodyError::TooLarge) => {
             return plain(StatusCode::PAYLOAD_TOO_LARGE, format!("Payload Too Large: request body exceeds {MAX_REQUEST_BYTES} bytes"));
         }
-        bytes.extend_from_slice(&data);
-    }
+        Err(BodyError::Failed(error)) => {
+            return plain(StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to read request body: {error}"));
+        }
+    };
 
     let Answer { status, body } = protocol::answer(&state, headers, version, &bytes).await;
     let response = Response::builder().status(status);
@@ -72,9 +69,27 @@ pub async fn post(State(state): State<Arc<AppState>>, request: Request) -> Respo
     .expect("a status and a content type make a response")
 }
 
-/// `GET /` (and its `HEAD`) is the page. As an event stream it is MCP's GET stream, which this server has not.
+pub enum BodyError {
+    TooLarge,
+    Failed(axum::Error),
+}
+
+/// A whole body, counted as it arrives whatever its framing says, refused past `max` bytes.
+pub async fn read_capped(mut body: Body, max: usize) -> Result<Vec<u8>, BodyError> {
+    let mut bytes = Vec::new();
+    while let Some(frame) = body.frame().await {
+        let data = frame.map_err(BodyError::Failed)?.into_data().unwrap_or_default();
+        if data.len() > max - bytes.len() {
+            return Err(BodyError::TooLarge);
+        }
+        bytes.extend_from_slice(&data);
+    }
+    Ok(bytes)
+}
+
+/// `GET /mcp` (and its `HEAD`) is the page. As an event stream it is MCP's GET stream, which this server has not.
 pub async fn page_guard(request: Request, next: Next) -> Response {
-    let landing = matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == "/";
+    let landing = matches!(*request.method(), Method::GET | Method::HEAD) && request.uri().path() == PATH;
     if landing && accepts(request.headers(), EVENT_STREAM) {
         return (
             StatusCode::METHOD_NOT_ALLOWED,

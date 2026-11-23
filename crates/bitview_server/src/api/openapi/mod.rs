@@ -166,7 +166,7 @@ API for querying Bitcoin blockchain data, mempool state, and on-chain series.
 - **Series**: Thousands of on-chain time-series across multiple indexes (date, block height, etc.)
 - **Multiple formats**: JSON and CSV output
 - **For LLMs**: [`/llms.txt`](/llms.txt) for discovery, [`/api.json`](/api.json) a compact custom summary of this spec for reading (not OpenAPI); build tools from [`/openapi.json`](/openapi.json)
-- **MCP**: Stateless, read-only access to these operations at [mcp.bitview.space](https://mcp.bitview.space/), with no authentication required
+- **MCP**: Stateless, read-only access to these operations at [bitview.space/mcp](https://bitview.space/mcp), with no authentication required
 
 ### Quick start
 
@@ -200,7 +200,7 @@ Errors use `application/problem+json`:
 - [JavaScript](https://www.npmjs.com/package/bitview-client)
 - [Python](https://pypi.org/project/bitview-client/)
 - [Rust](https://crates.io/crates/bitview_client)
-- [MCP](https://mcp.bitview.space/)
+- [MCP](https://bitview.space/mcp)
 
 ### Links
 

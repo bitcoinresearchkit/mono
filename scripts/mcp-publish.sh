@@ -4,7 +4,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$SCRIPT_DIR/.."
 REGISTRY_URL="https://registry.modelcontextprotocol.io"
-MANIFEST="$ROOT_DIR/crates/bitview_mcp/server.json"
+MANIFEST="$ROOT_DIR/crates/bitview_server/mcp/server.json"
 
 CHECK_ONLY=false
 if [ "$1" = "--check" ]; then

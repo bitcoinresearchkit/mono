@@ -9,7 +9,7 @@ tools.
 Bitcoin Core blk*.dat, RPC --> brk_reader, brk_rpc --> Bitview plugin set --> Query
 Bitcoin Core mempool --------> brk_mempool --------------------------------> Query
 Query --> REST server --> Showcases and clients
-MCP clients --> MCP adapter --> REST server
+MCP clients --> REST server (/mcp)
 ```
 
 ## Layers
@@ -66,9 +66,9 @@ name lookups.
   that are not compiled into a composition are not registered.
 - [`bitviewd`](../crates/bitviewd) is the official binary: `bitview::run` with
   the default composition.
-- [`bitview_mcp`](../crates/bitview_mcp) exposes stateless, read-only MCP tools
-  generated from non-deprecated REST `GET` operations without
-  `x-mcp-ignore: true`, and forwards calls to a configured Bitview server.
+- [`bitview_server`](../crates/bitview_server) also serves MCP at `/mcp`: stateless,
+  read-only tools generated from non-deprecated REST `GET` operations without
+  `x-mcp-ignore: true`, each call answered by the server's own API routes.
 
 ## Data flow
 

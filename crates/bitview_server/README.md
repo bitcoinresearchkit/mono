@@ -39,6 +39,23 @@ server.serve().await?;
 | `/api/series` | Hierarchical series catalog |
 | `/api/series/{series}/{index}` | Series data and range queries |
 | `/api/v1/mining/...` | Hashrate, difficulty, pools |
+| `/mcp` | MCP server (with `full-api`) |
+
+## MCP
+
+`/mcp` is a stateless, read-only MCP server over Streamable HTTP, for MCP
+revisions `2025-06-18` through `2026-07-28`. Its tools are the MCP-visible API
+operations, from the catalog `cargo bindgen` writes to `mcp/manifest.json`
+(embedded at compile time, with the MCP Registry's `mcp/server.json` beside it;
+see [`bitview_bindgen`](../bitview_bindgen/README.md#regenerating)). A tool call
+is the API request it names, sent to this server's own router without a socket:
+the same handler, admission and answer as over HTTP, logged as that one request.
+
+A `GET` of `/mcp` is the server's page; `/mcp/` redirects to `/mcp`. Beside it
+are `/mcp/logo.png`, `/mcp/server-card`, `/mcp/.well-known/ai-catalog.json`, and
+`/mcp/privacy`, `/mcp/terms` and `/mcp/support`, which redirect to the site's
+pages. The server names itself by `ServerConfig::site_url` (bitviewd's
+`--siteurl`, `http://localhost:<port>` by default).
 
 ## Caching
 
