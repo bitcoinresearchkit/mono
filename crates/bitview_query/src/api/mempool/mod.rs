@@ -138,6 +138,15 @@ impl Query {
         Ok(Some((mempool, mempool.view_behind(tip, left, spends)?)))
     }
 
+    /// Builds the pool's view at the chain's tip now, for the publication step: the chain
+    /// publishes a block before the pool follows it, and otherwise the first reader in between
+    /// builds the view ([`Self::pending_view`]). `StateUpdating` while the pool hasn't
+    /// published.
+    pub fn build_pending_view(&self) -> Result<()> {
+        let (mempool, pin) = self.mempool_then_pin()?;
+        self.pending_view(mempool.as_deref(), &pin).map(drop)
+    }
+
     /// Whether the pool may answer a transaction lookup the chain answered with `error`.
     ///
     /// True when the chain doesn't hold the transaction, or when its row sits past a lowered
