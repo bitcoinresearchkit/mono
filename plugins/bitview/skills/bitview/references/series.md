@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31054 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31083 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -201,7 +201,7 @@
 
 - `cointime.activity` (25): `coinblocks_created`, `coinblocks_created_cumulative`, `coinblocks_created_sum_24h`, `coinblocks_created_sum_1w`, `coinblocks_created_sum_1m`
 - `cointime.age_ranges` (460): `age_under_1h_coindays_created`, `age_under_1h_coindays_created_cumulative`, `age_under_1h_coindays_created_sum_24h`, `age_under_1h_coindays_created_sum_1w`, `age_under_1h_coindays_created_sum_1m`
-- `cointime.cohorts` (434): `awake_supply`, `awake_supply_usd`, `awake_market_cap`, `awake_supply_in_loss_share`, `awake_capital`
+- `cointime.cohorts` (441): `awake_supply`, `awake_supply_usd`, `awake_market_cap`, `awake_supply_in_loss_share`, `awake_supply_in_profit_share`
 - `cointime.supply` (9): `vaulted_supply`, `vaulted_supply_usd`, `vaulted_market_cap`, `hodled_or_lost_supply`, `hodled_or_lost_supply_usd`
 - `cointime.value` (18): `cointime_value_destroyed`, `cointime_value_destroyed_cumulative`, `cointime_value_destroyed_sum_24h`, `cointime_value_destroyed_sum_1w`, `cointime_value_destroyed_sum_1m`
 - `cointime.caps` (7): `thermo_cap`, `investor_cap`, `active_cap`, `vaulted_cap`, `cointime_cap`
@@ -212,11 +212,11 @@
 ### coinflow
 
 - `coinflow.age_ranges` (207): `age_under_1h_spending_rate`, `age_under_1h_spending_exposure`, `age_under_1h_mobility`, `age_under_1h_mobile_supply`, `age_under_1h_mobile_supply_usd`
-- `coinflow.cohorts` (434): `mobile_supply`, `mobile_supply_usd`, `mobile_market_cap`, `mobile_supply_in_loss_share`, `mobile_capital`
+- `coinflow.cohorts` (441): `mobile_supply`, `mobile_supply_usd`, `mobile_market_cap`, `mobile_supply_in_loss_share`, `mobile_supply_in_profit_share`
 
 ### bedrock
 
-- `bedrock.awake` (39): `bedrock_awake_supply_in_loss_share_threshold_p95`, `bedrock_awake_supply_in_loss_share_threshold_p98`, `bedrock_awake_supply_in_loss_share_threshold_p99`, `bedrock_awake_supply_in_loss_share_threshold_p99_5`, `bedrock_awake_supply_in_loss_share_threshold_p99_9`
+- `bedrock.awake` (44): `bedrock_awake_supply_in_profit_share_threshold_p5`, `bedrock_awake_supply_in_profit_share_threshold_p2`, `bedrock_awake_supply_in_profit_share_threshold_p1`, `bedrock_awake_supply_in_profit_share_threshold_p0_5`, `bedrock_awake_supply_in_profit_share_threshold_p0_1`
 
 ### rarity_meter
 
@@ -236,15 +236,15 @@ Each member holds the family's series, its ids built on the member's base (`key 
 - `age.halving_epochs` (93 series each): `0` → `halving_epoch_0`, `1` → `halving_epoch_1`, `2` → `halving_epoch_2`, `3` → `halving_epoch_3`, `4` → `halving_epoch_4`, `5` → `halving_epoch_5`
 - `age.ranges` (135 series each): `under_1h` → `age_under_1h`, `1h_to_1d` → `age_1h_to_1d`, `1d_to_1w` → `age_1d_to_1w`, `1w_to_1m` → `age_1w_to_1m`, `1m_to_2m` → `age_1m_to_2m`, `2m_to_3m` → `age_2m_to_3m`, `3m_to_4m` → `age_3m_to_4m`, `4m_to_5m` → `age_4m_to_5m`, `5m_to_6m` → `age_5m_to_6m`, `6m_to_9m` → `age_6m_to_9m`, `9m_to_1y` → `age_9m_to_1y`, `1y_to_18m` → `age_1y_to_18m`, `18m_to_2y` → `age_18m_to_2y`, `2y_to_3y` → `age_2y_to_3y`, `3y_to_4y` → `age_3y_to_4y`, `4y_to_5y` → `age_4y_to_5y`, `5y_to_6y` → `age_5y_to_6y`, `6y_to_7y` → `age_6y_to_7y`, `7y_to_8y` → `age_7y_to_8y`, `8y_to_10y` → `age_8y_to_10y`, `10y_to_12y` → `age_10y_to_12y`, `12y_to_15y` → `age_12y_to_15y`, `over_15y` → `age_over_15y`
 - `age.vintages` (93 series each): `2009` → `vintage_2009`, `2010` → `vintage_2010`, `2011` → `vintage_2011`, `2012` → `vintage_2012`, `2013` → `vintage_2013`, `2014` → `vintage_2014`, `2015` → `vintage_2015`, `2016` → `vintage_2016`, `2017` → `vintage_2017`, `2018` → `vintage_2018`, `2019` → `vintage_2019`, `2020` → `vintage_2020`, `2021` → `vintage_2021`, `2022` → `vintage_2022`, `2023` → `vintage_2023`, `2024` → `vintage_2024`, `2025` → `vintage_2025`, `2026` → `vintage_2026`, `2027` → `vintage_2027`
-- `bedrock` (39 series each): `awake` → `bedrock_awake`, `mobile` → `bedrock_mobile`, `unweighted` → `bedrock_unweighted`
+- `bedrock` (44 series each): `awake` → `bedrock_awake`, `mobile` → `bedrock_mobile`, `unweighted` → `bedrock_unweighted`
 - `blocks.fullness` (4 series each): `avg` → `block_fullness_avg`, `min` → `block_fullness_min`, `max` → `block_fullness_max`, `p10` → `block_fullness_p10`, `p25` → `block_fullness_p25`, `median` → `block_fullness_median`, `p75` → `block_fullness_p75`, `p90` → `block_fullness_p90`
 - `blocks.size` (4 series each): `sum` → `block_size_sum`, `avg` → `block_size_avg`, `min` → `block_size_min`, `max` → `block_size_max`, `p10` → `block_size_p10`, `p25` → `block_size_p25`, `median` → `block_size_median`, `p75` → `block_size_p75`, `p90` → `block_size_p90`
 - `blocks.weight` (4 series each): `sum` → `block_weight_sum`, `avg` → `block_weight_avg`, `min` → `block_weight_min`, `max` → `block_weight_max`, `p10` → `block_weight_p10`, `p25` → `block_weight_p25`, `median` → `block_weight_median`, `p75` → `block_weight_p75`, `p90` → `block_weight_p90`
 - `coinflow.age_ranges` (9 series each): `under_1h` → `age_under_1h`, `1h_to_1d` → `age_1h_to_1d`, `1d_to_1w` → `age_1d_to_1w`, `1w_to_1m` → `age_1w_to_1m`, `1m_to_2m` → `age_1m_to_2m`, `2m_to_3m` → `age_2m_to_3m`, `3m_to_4m` → `age_3m_to_4m`, `4m_to_5m` → `age_4m_to_5m`, `5m_to_6m` → `age_5m_to_6m`, `6m_to_9m` → `age_6m_to_9m`, `9m_to_1y` → `age_9m_to_1y`, `1y_to_18m` → `age_1y_to_18m`, `18m_to_2y` → `age_18m_to_2y`, `2y_to_3y` → `age_2y_to_3y`, `3y_to_4y` → `age_3y_to_4y`, `4y_to_5y` → `age_4y_to_5y`, `5y_to_6y` → `age_5y_to_6y`, `6y_to_7y` → `age_6y_to_7y`, `7y_to_8y` → `age_7y_to_8y`, `8y_to_10y` → `age_8y_to_10y`, `10y_to_12y` → `age_10y_to_12y`, `12y_to_15y` → `age_12y_to_15y`, `over_15y` → `age_over_15y`
-- `coinflow.cohorts` (62 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
+- `coinflow.cohorts` (63 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
 - `cointime.activity` (6 series each): `coinblocks_created` → `coinblocks_created`, `coinblocks_destroyed` → `coinblocks_destroyed`, `coinblocks_stored` → `coinblocks_stored`
 - `cointime.age_ranges` (20 series each): `under_1h` → `age_under_1h`, `1h_to_1d` → `age_1h_to_1d`, `1d_to_1w` → `age_1d_to_1w`, `1w_to_1m` → `age_1w_to_1m`, `1m_to_2m` → `age_1m_to_2m`, `2m_to_3m` → `age_2m_to_3m`, `3m_to_4m` → `age_3m_to_4m`, `4m_to_5m` → `age_4m_to_5m`, `5m_to_6m` → `age_5m_to_6m`, `6m_to_9m` → `age_6m_to_9m`, `9m_to_1y` → `age_9m_to_1y`, `1y_to_18m` → `age_1y_to_18m`, `18m_to_2y` → `age_18m_to_2y`, `2y_to_3y` → `age_2y_to_3y`, `3y_to_4y` → `age_3y_to_4y`, `4y_to_5y` → `age_4y_to_5y`, `5y_to_6y` → `age_5y_to_6y`, `6y_to_7y` → `age_6y_to_7y`, `7y_to_8y` → `age_7y_to_8y`, `8y_to_10y` → `age_8y_to_10y`, `10y_to_12y` → `age_10y_to_12y`, `12y_to_15y` → `age_12y_to_15y`, `over_15y` → `age_over_15y`
-- `cointime.cohorts` (62 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
+- `cointime.cohorts` (63 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
 - `cointime.prices` (3 series each): `vaulted` → `vaulted`, `active` → `active`, `cointime` → `cointime`
 - `cointime.supply` (3 series each): `vaulted` → `vaulted`, `hodled_or_lost` → `hodled_or_lost`, `active` → `active`
 - `cointime.value` (6 series each): `destroyed` → `cointime_value_destroyed`, `created` → `cointime_value_created`, `stored` → `cointime_value_stored`

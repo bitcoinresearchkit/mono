@@ -2677,8 +2677,26 @@ const _Percentiles = _s({
 });
 
 /**
+ * @typedef {{
+ *   p5: SeriesPattern1<?Percent>,
+ *   p2: SeriesPattern1<?Percent>,
+ *   p1: SeriesPattern1<?Percent>,
+ *   p0_5: SeriesPattern1<?Percent>,
+ *   p0_1: SeriesPattern1<?Percent>,
+ * }} ProfitPercentiles
+ */
+const _ProfitPercentiles = _s({
+  p5: [_i1, '*_p5'],
+  p2: [_i1, '*_p2'],
+  p1: [_i1, '*_p1'],
+  p0_5: [_i1, '*_p0_5'],
+  p0_1: [_i1, '*_p0_1'],
+});
+
+/**
  * @template A
  * @typedef {{
+ *   supplyInProfitShareThreshold: ProfitPercentiles,
  *   supplyInLossShareThreshold: Percentiles<?Percent>,
  *   floor: Percentiles<?Dollars>,
  *   costBasisAboveP95Floor: Levels,
@@ -2688,6 +2706,7 @@ const _Percentiles = _s({
  */
 /** @type {_Make} */
 const _Mode = (c, b, f0) => _n(c, b, {
+  supplyInProfitShareThreshold: [_ProfitPercentiles, '*_supply_in_profit_share_threshold'],
   supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
   floor: [_Percentiles, '*_floor'],
   costBasisAboveP95Floor: [_Levels, '*_cost_basis_above_p95_floor'],
@@ -3138,11 +3157,13 @@ const _CointimeSupply = _s({
  * @typedef {{
  *   total: SpotValue,
  *   inLoss: MobileSupplyInLoss,
+ *   inProfit: MobileSupplyInLoss,
  * }} MobileSupply
  */
 const _MobileSupply = _s({
   total: [_SpotValue, '*'],
   inLoss: [_MobileSupplyInLoss, '*_supply_in_loss_share'],
+  inProfit: [_MobileSupplyInLoss, '*_supply_in_profit_share'],
 });
 
 /**
@@ -7223,7 +7244,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "d5a5195ca554572cfeb3b26fb8ee7b371bf59d075301a46308160a09bbf0edd9";
+  static HASH = "e6021df1f0f11a7501ca8ba0f2123188619085dc66cd44d87ad1030d909e71a8";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

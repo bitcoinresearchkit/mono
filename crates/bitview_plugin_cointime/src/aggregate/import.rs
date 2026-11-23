@@ -2,7 +2,7 @@ use bitview_cohort::{AgeAggregate, AgeAggregateId};
 use bitview_distribution::WeightedCohortSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_urpd::CostBasisVecs;
-use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock, ops::FixedToPercent};
+use bitview_vecs::{LazyFiatPerBlock, LazyPerBlock, LazySpotValuePerBlock, ops::BoundedToPercent};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
@@ -56,8 +56,14 @@ impl CohortVecs {
         Ok(Self {
             awake: AwakeVecs {
                 supply,
-                supply_in_loss_share: LazyPerBlock::from_height_source::<FixedToPercent>(
+                supply_in_loss_share: LazyPerBlock::from_height_source::<BoundedToPercent>(
                     &name("awake_supply_in_loss_share"),
+                    version,
+                    id.select(&sources.weighted_supply_in_loss_share),
+                    mappings,
+                ),
+                supply_in_profit_share: LazyPerBlock::from_height_source::<BoundedToPercent<true>>(
+                    &name("awake_supply_in_profit_share"),
                     version,
                     id.select(&sources.weighted_supply_in_loss_share),
                     mappings,

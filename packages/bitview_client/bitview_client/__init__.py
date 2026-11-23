@@ -3376,7 +3376,16 @@ class Percentiles(_Node, Generic[A]):
     p99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_9')
 
 
+class ProfitPercentiles(_Node):
+    p5: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_p5')
+    p2: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_p2')
+    p1: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_p1')
+    p0_5: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_p0_5')
+    p0_1: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_p0_1')
+
+
 class Mode(_Node, Generic[A]):
+    supply_in_profit_share_threshold: ProfitPercentiles = _at(ProfitPercentiles, '*_supply_in_profit_share_threshold')
     supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
     floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
     cost_basis_above_p95_floor: Levels = _at(Levels, '*_cost_basis_above_p95_floor')
@@ -3591,6 +3600,7 @@ class CointimeSupply(_Node):
 class MobileSupply(_Node):
     total: SpotValue = _at(SpotValue, '*')
     in_loss: MobileSupplyInLoss = _at(MobileSupplyInLoss, '*_supply_in_loss_share')
+    in_profit: MobileSupplyInLoss = _at(MobileSupplyInLoss, '*_supply_in_profit_share')
 
 
 class Side(_Node):
