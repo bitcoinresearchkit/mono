@@ -47,7 +47,7 @@ pub fn run(
         let tip_height = Height::from(height);
         plugins.cap_tip(tip_height);
         let start = cpu_micros()?;
-        let published = update(plugins, context)?;
+        let published = update(plugins, context, || ())?;
         let total = (cpu_micros()? - start) * 1_000;
         let steps = serial::take();
         if !published || plugins.tip_height() != Some(tip_height) {

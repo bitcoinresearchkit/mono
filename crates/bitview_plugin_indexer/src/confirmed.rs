@@ -1,10 +1,13 @@
 use bitcoin::{
     PubkeyHash, Script, ScriptBuf, ScriptHash, Transaction, TxIn, WPubkeyHash, WScriptHash, Weight,
-    consensus::deserialize, hashes::Hash,
+    consensus::deserialize,
+    hashes::Hash,
 };
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
+use brk_types::{
+    BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout, hash160, sha256,
+};
 use rapidhash::RapidHashMap;
 use vecdb::{BytesVecReader, ReadableVec, Ro, StorageMode};
 
@@ -28,9 +31,24 @@ impl<M: StorageMode> Indexer<M> {
     }
 
     /// One indexed transaction, decoded, from the position and size the caller read.
-    pub fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<Transaction> {
-        deserialize(&self.read_tx_bytes_at(position, size)?)
-            .map_err(|_| Error::Internal("Invalid indexed transaction encoding"))
+    fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<Transaction> {
+        decode_tx(&self.read_tx_bytes_at(position, size)?)
+    }
+
+    /// Indexed transactions, decoded, from the positions and sizes the caller read: their bytes
+    /// are read as one batch ([`brk_reader::Reader::read_raw_batch`]).
+    pub fn read_txs_at(&self, places: &[(BlkPosition, usize)]) -> Result<Vec<Transaction>> {
+        debug_assert!(
+            places
+                .iter()
+                .all(|&(_, size)| size as u64 <= Weight::MAX_BLOCK.to_wu()),
+            "a transaction larger than a block is a corrupt column"
+        );
+        self.reader()
+            .read_raw_batch(places)?
+            .iter()
+            .map(|bytes| decode_tx(bytes))
+            .collect()
     }
 
     /// Where the block files hold an indexed transaction, and how many bytes of it.
@@ -252,12 +270,18 @@ pub fn revealed_script(output_type: OutputType, input: &TxIn) -> Option<ScriptBu
     let last_push = || input.script_sig.redeem_script().map(Script::as_bytes);
     let witness = &input.witness;
     match output_type {
-        OutputType::P2PKH => Some(ScriptBuf::new_p2pkh(&PubkeyHash::hash(last_push()?))),
-        OutputType::P2SH => Some(ScriptBuf::new_p2sh(&ScriptHash::hash(last_push()?))),
-        OutputType::P2WPKH if witness.len() == 2 => {
-            Some(ScriptBuf::new_p2wpkh(&WPubkeyHash::hash(&witness[1])))
-        }
-        OutputType::P2WSH => Some(ScriptBuf::new_p2wsh(&WScriptHash::hash(witness.last()?))),
+        OutputType::P2PKH => Some(ScriptBuf::new_p2pkh(&PubkeyHash::from_byte_array(
+            hash160(last_push()?),
+        ))),
+        OutputType::P2SH => Some(ScriptBuf::new_p2sh(&ScriptHash::from_byte_array(hash160(
+            last_push()?,
+        )))),
+        OutputType::P2WPKH if witness.len() == 2 => Some(ScriptBuf::new_p2wpkh(
+            &WPubkeyHash::from_byte_array(hash160(&witness[1])),
+        )),
+        OutputType::P2WSH => Some(ScriptBuf::new_p2wsh(&WScriptHash::from_byte_array(
+            sha256(witness.last()?),
+        ))),
         _ => None,
     }
 }
@@ -310,4 +334,8 @@ impl OutputScripts<'_> {
                 "Indexed output missing from its transaction",
             ))
     }
+}
+
+fn decode_tx(bytes: &[u8]) -> Result<Transaction> {
+    deserialize(bytes).map_err(|_| Error::Internal("Invalid indexed transaction encoding"))
 }

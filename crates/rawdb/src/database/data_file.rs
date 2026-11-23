@@ -108,40 +108,9 @@ impl DataFile {
         &self.mmap
     }
 
-    /// Asks the kernel to start reading a range into the page cache, without waiting for it. On
-    /// Linux `posix_fadvise(WILLNEED)` is the same call as macOS's `F_RDADVISE`: file offsets on
-    /// the descriptor, queued read-ahead, no mapping touched.
     #[cfg(unix)]
     pub(crate) fn advise_read(&self, offset: usize, len: usize) {
-        #[cfg(target_os = "macos")]
-        let error = {
-            // SAFETY: zero is valid for both integer fields and the padding.
-            let mut request: libc::radvisory = unsafe { std::mem::zeroed() };
-            request.ra_offset = offset as libc::off_t;
-            request.ra_count = len.min(libc::c_int::MAX as usize) as libc::c_int;
-            // SAFETY: the descriptor stays open and fcntl copies the request.
-            let result =
-                unsafe { libc::fcntl(self.file.as_raw_fd(), libc::F_RDADVISE, &raw const request) };
-            (result < 0).then(io::Error::last_os_error)
-        };
-        #[cfg(not(target_os = "macos"))]
-        let error = {
-            // SAFETY: the descriptor stays open; the call only reads its arguments.
-            let result = unsafe {
-                libc::posix_fadvise(
-                    self.file.as_raw_fd(),
-                    offset as libc::off_t,
-                    len as libc::off_t,
-                    libc::POSIX_FADV_WILLNEED,
-                )
-            };
-            (result != 0).then(|| io::Error::from_raw_os_error(result))
-        };
-        // A hint, not a read: when it fails, the reads that follow fault the same bytes in one at
-        // a time, so the answer is unchanged and only slower. Logged, never returned.
-        if let Some(error) = error {
-            log::debug!("rawdb read advice at {offset}+{len}: {error}");
-        }
+        advise_read(&self.file, offset as u64, len);
     }
 
     /// # Safety
@@ -207,5 +176,41 @@ impl DataFile {
 
     pub(crate) fn punch_hole(&self, start: usize, len: usize) -> Result<()> {
         punch_hole(&self.file, start, len)
+    }
+}
+
+/// Asks the kernel to start reading a range of `file` into the page cache, without waiting for
+/// it. On Linux `posix_fadvise(WILLNEED)` is the same call as macOS's `F_RDADVISE`: file offsets
+/// on the descriptor, queued read-ahead, no mapping touched. Several ranges advised before any
+/// is read reach the device as one batch rather than one read at a time.
+#[cfg(unix)]
+pub fn advise_read(file: &File, offset: u64, len: usize) {
+    #[cfg(target_os = "macos")]
+    let error = {
+        // SAFETY: zero is valid for both integer fields and the padding.
+        let mut request: libc::radvisory = unsafe { std::mem::zeroed() };
+        request.ra_offset = offset as libc::off_t;
+        request.ra_count = len.min(libc::c_int::MAX as usize) as libc::c_int;
+        // SAFETY: the descriptor stays open and fcntl copies the request.
+        let result = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_RDADVISE, &raw const request) };
+        (result < 0).then(io::Error::last_os_error)
+    };
+    #[cfg(not(target_os = "macos"))]
+    let error = {
+        // SAFETY: the descriptor stays open; the call only reads its arguments.
+        let result = unsafe {
+            libc::posix_fadvise(
+                file.as_raw_fd(),
+                offset as libc::off_t,
+                len as libc::off_t,
+                libc::POSIX_FADV_WILLNEED,
+            )
+        };
+        (result != 0).then(|| io::Error::from_raw_os_error(result))
+    };
+    // A hint, not a read: when it fails, the reads that follow fetch the same bytes one at a
+    // time, so the answer is unchanged and only slower. Logged, never returned.
+    if let Some(error) = error {
+        log::debug!("read advice at {offset}+{len}: {error}");
     }
 }

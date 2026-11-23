@@ -1,8 +1,6 @@
-use sha2::{Digest, Sha256};
+use crate::sha256d;
 
-/// Bitcoin's merkle root of `hashes`; `None` of none. Double SHA-256 through `sha2`, which uses
-/// the CPU's SHA instructions when present (about 6x `bitcoin_hashes` on Apple silicon, where the
-/// latter has no hardware path).
+/// Bitcoin's merkle root of `hashes`; `None` of none. Each pair is hashed with [`sha256d`].
 pub fn merkle_root(mut hashes: Vec<[u8; 32]>) -> Option<[u8; 32]> {
     while hashes.len() > 1 {
         merkle_level(&mut hashes);
@@ -17,10 +15,10 @@ pub fn merkle_level(hashes: &mut Vec<[u8; 32]>) {
         hashes.push(hashes[hashes.len() - 1]);
     }
     for i in 0..hashes.len() / 2 {
-        let mut engine = Sha256::new();
-        engine.update(hashes[2 * i]);
-        engine.update(hashes[2 * i + 1]);
-        hashes[i] = Sha256::digest(engine.finalize()).into();
+        let mut pair = [0; 64];
+        pair[..32].copy_from_slice(&hashes[2 * i]);
+        pair[32..].copy_from_slice(&hashes[2 * i + 1]);
+        hashes[i] = sha256d(&pair);
     }
     hashes.truncate(hashes.len() / 2);
 }

@@ -127,10 +127,17 @@ impl Query {
             prevouts: Vec<Option<TxOut>>,
         }
 
+        // The raw transactions are as scattered, and are read as one batch too.
+        let places: Vec<_> = positions
+            .iter()
+            .zip(&sizes)
+            .map(|(&position, size)| (position, **size as usize))
+            .collect();
+        let decoded = indexer.read_txs_at(&places)?;
         let mut decoded_txs: Vec<DecodedTx> = Vec::with_capacity(len);
-        for (k, ((&pos, &tx_index), status)) in order.iter().zip(&sorted).zip(statuses).enumerate()
+        for (k, (((&pos, &tx_index), status), decoded)) in
+            order.iter().zip(&sorted).zip(statuses).zip(decoded).enumerate()
         {
-            let decoded = indexer.read_tx_at(positions[k], *sizes[k] as usize)?;
             decoded_txs.push(DecodedTx {
                 pos,
                 tx_index,
