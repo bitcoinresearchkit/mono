@@ -6,7 +6,7 @@ use tracing::info;
 
 /// Performs one complete steady-state update and publishes it, unless its chain did not move:
 /// returns whether it published. `on_publish` runs as readers first see the publication.
-pub fn update<P>(
+pub(crate) fn update<P>(
     plugins: &mut P,
     context: UpdateContext<'_>,
     on_publish: impl FnOnce(),

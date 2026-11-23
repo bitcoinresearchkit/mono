@@ -25,7 +25,7 @@ pub type Root<'s> = Box<dyn FnOnce() -> Result<()> + Send + 's>;
 /// can take one and hold its own work until the root ends, as it can a whole plugin pushed by a
 /// join or a spawn; the caller's copy does nothing, or `own`'s waits would take roots. Call it with
 /// the pool otherwise idle: a worker already waiting inside another job would run roots there. In
-/// the serial CPU replay `own` runs, then the roots in order. Once a shutdown is pending, no root
+/// the bench's serial CPU recompute `own` runs, then the roots in order. Once a shutdown is pending, no root
 /// starts: the drainers park, and the process exits when the running ones' sections end.
 ///
 /// Inside a root, the same holds for every join: its pushed side can be taken by a worker waiting

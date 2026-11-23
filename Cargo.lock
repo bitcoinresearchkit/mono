@@ -380,7 +380,6 @@ dependencies = [
  "bitview_plugin_transactions",
  "bitview_plugin_utxo_set",
  "bitview_plugin_utxos",
- "bitview_primitives",
  "bitview_traversable",
  "bitview_vecs",
  "brk_alloc",
@@ -1232,7 +1231,6 @@ name = "bitviewd_bench"
 version = "0.13.0"
 dependencies = [
  "bitview",
- "bitview_compute",
  "bitview_default",
  "brk_alloc",
  "brk_error",
@@ -1242,6 +1240,7 @@ dependencies = [
  "brk_types",
  "libc",
  "parking_lot",
+ "rayon",
  "tracing",
  "vecdb",
 ]

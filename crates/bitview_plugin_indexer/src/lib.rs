@@ -89,9 +89,6 @@ pub struct Indexer<M: StorageMode = Rw> {
     /// Whether the next resume reads back the newest blocks' positions: set at import, as a node
     /// that crashed while bitviewd was stopped can have moved them unseen.
     recheck_newest: M::WriteOnly<bool>,
-    /// The highest height an update indexes to, below the node's tip (a benchmark's replay).
-    #[cfg(feature = "bench-cpu")]
-    tip_cap: M::WriteOnly<Option<Height>>,
     state: Arc<State>,
 }
 
@@ -234,8 +231,6 @@ impl Indexer {
             lengths: Lengths::default(),
             ingestion: None,
             recheck_newest: true,
-            #[cfg(feature = "bench-cpu")]
-            tip_cap: None,
             state: Arc::default(),
         };
 
@@ -463,22 +458,9 @@ impl Indexer {
         Ok(())
     }
 
-    /// Stops the updates that follow at `tip`, so a benchmark replays a recorded prefix one block
-    /// at a time while the node holds the whole chain.
-    #[cfg(feature = "bench-cpu")]
-    pub fn cap_tip(&mut self, tip: Height) {
-        self.tip_cap = Some(tip);
-    }
-
-    /// The lengths before `height`, to roll back to.
-    #[cfg(feature = "bench-cpu")]
-    pub fn lengths_before(&self, height: Height) -> Result<Lengths> {
-        Lengths::at(height, &self.vecs).ok_or(Error::Internal("Missing indexer rollback lengths"))
-    }
-
     /// Joins what an update leaves running beside the plugins that follow it (the stores'
     /// ingestion and compaction, the vectors' background tasks, freeing the indexed blocks), so
-    /// that a serial replay counts it in the indexer's step.
+    /// that the bench's serial recompute counts it in the indexer's step.
     #[cfg(feature = "bench-cpu")]
     pub fn wait_for_background(&mut self) -> Result<()> {
         self.finish_ingestion()?;
@@ -553,8 +535,6 @@ impl Indexer {
                 .into(),
             ));
         }
-        #[cfg(feature = "bench-cpu")]
-        let end = self.tip_cap.map_or(end, |cap| end.min(cap));
         for block in reader.after(prev_hash, end)? {
             let block = match block {
                 Ok(block) => block,
@@ -725,8 +705,6 @@ impl ReadOnlyClone for Indexer {
             lengths: (),
             ingestion: (),
             recheck_newest: (),
-            #[cfg(feature = "bench-cpu")]
-            tip_cap: (),
             state: self.state.clone(),
         }
     }

@@ -1,6 +1,6 @@
 use std::{
-    fs,
-    io::{Error as IoError, ErrorKind},
+    fs::{self, OpenOptions},
+    io::{Error as IoError, ErrorKind, Write},
     mem,
     path::{Path, PathBuf},
     process::id as process_id,
@@ -12,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview::UpdateContext;
+use bitview::{ImportContext, UpdateContext, bootstrap};
 use bitview_default::DefaultPlugins;
 use brk_error::{Error, Result};
 use brk_logger::register_hook;
@@ -28,7 +28,7 @@ use crate::quiet;
 mod disk;
 pub mod metadata;
 mod process;
-mod replay;
+mod serial_cpu;
 mod trace;
 
 #[derive(Clone)]
@@ -62,8 +62,21 @@ struct Inner {
     trace: Arc<TraceMonitor>,
     /// The first Bitview or build seen beside the run: it is not comparable.
     overlap: Arc<Mutex<Option<String>>>,
+    /// The data directory already held plugin data: not a full sync, and no recompute.
+    resumed: bool,
     stop: Arc<AtomicBool>,
     state: Mutex<State>,
+    /// What `close` ends, once.
+    tail: Mutex<Option<Tail>>,
+}
+
+/// The quiet watch, which outlives the timed run's monitors to cover the serial recompute, and
+/// when the recompute began, if it did.
+struct Tail {
+    stop: Arc<AtomicBool>,
+    thread: JoinHandle<Result<()>>,
+    started_at: Instant,
+    recompute: Option<Instant>,
 }
 
 enum State {
@@ -137,8 +150,10 @@ impl Benchmark {
             trace,
             overlap: Arc::default(),
             path,
+            resumed,
             stop: Arc::new(AtomicBool::new(false)),
             state: Mutex::new(State::Ready),
+            tail: Mutex::new(None),
         })))
     }
 
@@ -146,31 +161,74 @@ impl Benchmark {
         &self.0.path
     }
 
-    /// After the timed run: replays its last blocks serially, one plugin at a time, and records
-    /// each plugin's CPU per block (see the README).
-    pub fn replay(&self, plugins: &mut DefaultPlugins, context: UpdateContext<'_>) -> Result<()> {
-        replay::run(self.path(), plugins, context)
-    }
-
-    pub fn measure<T>(&self, measure: impl FnOnce() -> Result<T>) -> Result<T> {
+    /// Times the bootstrap of the plugins `import` makes, then, from an empty data directory,
+    /// bootstraps them again with every plugin but the indexer from zero, one at a time,
+    /// recording each one's CPU (see the README). The quiet watch covers both.
+    pub fn measure(
+        &self,
+        import_context: ImportContext<'_>,
+        update_context: UpdateContext<'_>,
+        import: impl Fn(ImportContext<'_>) -> Result<DefaultPlugins>,
+    ) -> Result<()> {
+        let sync = || bootstrap(import_context, &import, update_context);
         self.start()?;
         let started_at = Instant::now();
         self.0.trace.start(started_at);
-        let result = measure();
+        let result = sync();
         let elapsed = started_at.elapsed();
-        self.finish(
-            if result.is_ok() {
-                Outcome::Complete
-            } else {
-                Outcome::Failed
-            },
-            Some(elapsed),
-        )?;
-        result
+        let outcome = if result.is_ok() { Outcome::Complete } else { Outcome::Failed };
+        let finished = self.finish(outcome, Some(elapsed));
+        let measured = match (result, finished) {
+            (Ok(plugins), Ok(())) if !self.0.resumed => {
+                if let Some(tail) = self.0.tail.lock().as_mut() {
+                    tail.recompute = Some(Instant::now());
+                }
+                serial_cpu::recompute(self.path(), plugins, import_context, sync)
+            }
+            (result, finished) => result.map(drop).and(finished),
+        };
+        let closed = self.close(if measured.is_ok() {
+            Outcome::Complete
+        } else {
+            Outcome::Failed
+        });
+        measured.and(closed)
     }
 
     pub fn abort(&self) -> Result<()> {
-        self.finish(Outcome::Aborted, None)
+        let finished = self.finish(Outcome::Aborted, None);
+        let closed = self.close(Outcome::Aborted);
+        finished.and(closed)
+    }
+
+    /// Stops the quiet watch, adds the recompute's row to `run.csv` with `recompute` as its status
+    /// if it began, and writes whether anything overlapped the run; once. The lock is held to the
+    /// end, so a shutdown's `abort` waits for these lines instead of exiting before them.
+    fn close(&self, recompute: Outcome) -> Result<()> {
+        let mut tail = self.0.tail.lock();
+        let Some(Tail { stop, thread, started_at, recompute: began }) = tail.take() else {
+            return Ok(());
+        };
+        stop.store(true, Ordering::Relaxed);
+        thread.thread().unpark();
+        let watched = thread
+            .join()
+            .unwrap_or(Err(Error::Internal("Benchmark watch panicked")));
+        let row = began.map_or(Ok(()), |began| {
+            let mut run = OpenOptions::new().append(true).open(self.0.path.join("run.csv"))?;
+            writeln!(
+                run,
+                "serial_compute,{:.3},{:.3},{}",
+                began.duration_since(started_at).as_secs_f64() * 1_000.0,
+                began.elapsed().as_secs_f64() * 1_000.0,
+                recompute.as_str()
+            )
+        });
+        let comparable = metadata::comparable(&self.0.path, self.0.overlap.lock().as_deref());
+        drop(tail);
+        row?;
+        comparable?;
+        watched
     }
 
     fn start(&self) -> Result<()> {
@@ -187,6 +245,26 @@ impl Benchmark {
         let disk = Arc::clone(&self.0.disk);
         let overlap = Arc::clone(&self.0.overlap);
         let mut watch = quiet::Watch::new()?;
+        let stop = Arc::new(AtomicBool::new(false));
+        let thread = sampler(&stop, started_at, DISK_INTERVAL, move |_, last| {
+            if !last {
+                // A list that can't be read can't vouch for the minute.
+                let seen = watch
+                    .check()
+                    .map(|names| names.join(", "))
+                    .unwrap_or_else(|e| format!("a process list that failed ({e})"));
+                if !seen.is_empty() {
+                    overlap.lock().get_or_insert(seen);
+                }
+            }
+            Ok(())
+        });
+        *self.0.tail.lock() = Some(Tail {
+            stop,
+            thread,
+            started_at,
+            recompute: None,
+        });
         let monitors = [
             sampler(
                 &self.0.stop,
@@ -202,14 +280,6 @@ impl Benchmark {
                 move |elapsed, last| {
                     if last {
                         return Ok(());
-                    }
-                    // A list that can't be read can't vouch for the minute.
-                    let seen = watch
-                        .check()
-                        .map(|names| names.join(", "))
-                        .unwrap_or_else(|e| format!("a process list that failed ({e})"));
-                    if !seen.is_empty() {
-                        overlap.lock().get_or_insert(seen);
                     }
                     disk.lock().record(elapsed)
                 },
@@ -271,8 +341,6 @@ impl Benchmark {
             Outcome::Complete if recorded.is_err() => Outcome::Failed,
             outcome => outcome,
         };
-        // Both files are written whatever the other's result.
-        let comparable = metadata::comparable(&self.0.path, self.0.overlap.lock().as_deref());
         let run = fs::write(
             self.0.path.join("run.csv"),
             format!(
@@ -282,7 +350,6 @@ impl Benchmark {
             ),
         );
         run?;
-        comparable?;
         recorded
     }
 }

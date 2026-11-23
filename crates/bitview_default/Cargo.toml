@@ -9,14 +9,13 @@ repository.workspace = true
 readme = "README.md"
 
 [features]
-# `serial`: the serial per-plugin CPU replay of `bitviewd_bench`. Absent, the composition is the
+# `serial`: the serial per-plugin CPU recompute of `bitviewd_bench`. Absent, the composition is the
 # production one. A `--workspace` build (for example `scripts/quick-release.sh`) unifies it into
 # `bitviewd`, where it stays inert: the serial clock is never set, so the schedule is the
 # production one. The fleet installs per crate, so it is off in production.
 bench-cpu = ["bitview_plugin_indexer/bench-cpu"]
 
 [dependencies]
-bitview_primitives = { workspace = true }
 bitview_vecs = { workspace = true }
 bitview_distribution = { workspace = true }
 bitview_plugin = { workspace = true }

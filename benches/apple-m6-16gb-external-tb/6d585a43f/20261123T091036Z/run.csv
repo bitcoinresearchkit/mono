@@ -1,0 +1,3 @@
+phase,start_ms,duration_ms,status
+bootstrap,0,4414296.256,complete
+serial_compute,4414308.400,1752901.926,complete

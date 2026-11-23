@@ -1,7 +1,7 @@
 version=0.13.0
 revision=796d664e43e9657a74720cf8e189a465406f1dcd
 dirty=false
-profile=build
+profile=release
 rustc=rustc 1.100.0 (0ef1bc386 2026-11-09)
 rustflags=-C target-cpu=native -C target-cpu=native
 target=aarch64-apple-darwin

@@ -9,8 +9,8 @@ repository.workspace = true
 readme = "README.md"
 
 [features]
-# What `bitviewd_bench`'s serial replay needs of the indexer: a cap on the tip it indexes to, its
-# background work joined into its step, and the lengths to rewind to. A `--workspace` build unifies
+# What `bitviewd_bench`'s serial recompute needs of the indexer: its background work joined into
+# its step. A `--workspace` build unifies
 # it into `bitviewd`, where it stays inert (see `bitview_default`'s feature).
 bench-cpu = ["fjall/bench-cpu"]
 

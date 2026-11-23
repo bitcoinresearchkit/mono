@@ -11,7 +11,7 @@ use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{CentsSats, Height, Sats, Timestamp, Version};
 use rayon::prelude::*;
-use vecdb::WritableVec;
+use vecdb::{Database, WritableVec};
 
 use crate::{
     Vecs,
@@ -34,6 +34,11 @@ pub struct AgeConsumer<'a> {
 }
 
 impl Vecs {
+    /// The database its walk consumer syncs and compacts, as a compute plugin's `database`.
+    pub const fn database(&self) -> &Database {
+        &self.db
+    }
+
     /// Readies the plugin for a walk over `sources`, from `from` at most: its outputs validated
     /// and cut to where they resume, the cohort states the last walk left taken.
     pub fn consumer<'a>(
