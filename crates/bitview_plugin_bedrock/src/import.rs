@@ -1,11 +1,13 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached, ops::FixedToPercent};
+use bitview_vecs::{IndexSources, LazyPerBlock, Price, import_cached, ops::BoundedToPercent};
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
 
-use crate::{EntryVecs, ModeVecs, Modes, Percentiles, PriceBands, STORAGE, Vecs};
+use crate::{
+    EntryVecs, ModeVecs, Modes, Percentiles, PriceBands, ProfitPercentiles, STORAGE, Vecs,
+};
 
 impl ModeVecs {
     pub fn import(
@@ -28,10 +30,18 @@ impl ModeVecs {
             )
         })?;
         let supply_in_loss_share_threshold = Percentiles::from_fn(|id| {
-            LazyPerBlock::from_height_source::<FixedToPercent>(
+            LazyPerBlock::from_height_source::<BoundedToPercent>(
                 &format!("{name}_supply_in_loss_share_threshold_{}", id.name()),
                 version,
                 supply_in_loss_share_threshold_stored.select(id),
+                mappings,
+            )
+        });
+        let supply_in_profit_share_threshold = ProfitPercentiles::from_fn(|id| {
+            LazyPerBlock::from_height_source::<BoundedToPercent<true>>(
+                &format!("{name}_supply_in_profit_share_threshold_{}", id.name()),
+                version,
+                supply_in_loss_share_threshold_stored.select(id.loss()),
                 mappings,
             )
         });
@@ -48,6 +58,7 @@ impl ModeVecs {
         });
         let floor = EntryVecs::import(db, name, version, mappings, spot_price)?;
         Ok(Self {
+            supply_in_profit_share_threshold,
             supply_in_loss_share_threshold,
             prices,
             floor,

@@ -18,6 +18,12 @@ pub struct AwakeVecs<M: StorageMode = Rw> {
     #[traversable(wrap = "supply/in_loss", rename = "share", priced)]
     #[traversable(lead = "Awake supply in loss: the part of it now below its cost.")]
     pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
+    /// Share of awake supply that is in profit: the exact complement of the share in loss, as
+    /// coins at their creation price are in profit. Null when the weighted supply is zero. As a
+    /// percentage.
+    #[traversable(wrap = "supply/in_profit", rename = "share", priced)]
+    #[traversable(lead = "Awake supply in profit: the part of it now at or above its cost.")]
+    pub supply_in_profit_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by wakefulness across the
     /// cohort's UTXO age ranges: the realized capitalization of the awake
     /// supply. Creation-date value is each unspent output's BTC value

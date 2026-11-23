@@ -8,6 +8,8 @@ mod narrow;
 pub use narrow::Narrow;
 mod fixed_to_percent;
 pub use fixed_to_percent::FixedToPercent;
+mod bounded_to_percent;
+pub use bounded_to_percent::BoundedToPercent;
 mod price_times;
 pub use price_times::PriceTimesRatio;
 mod quotient;

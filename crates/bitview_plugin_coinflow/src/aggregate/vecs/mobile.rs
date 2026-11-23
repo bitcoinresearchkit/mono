@@ -18,6 +18,12 @@ pub struct MobileVecs<M: StorageMode = Rw> {
     #[traversable(wrap = "supply/in_loss", rename = "share")]
     #[traversable(lead = "Mobile supply in loss: the part of it now below its cost.")]
     pub supply_in_loss_share: LazyPerBlock<Percent, BoundedRatio>,
+    /// Share of mobile supply that is in profit: the exact complement of the share in loss, as
+    /// coins at their creation price are in profit. Null when the weighted supply is zero. As a
+    /// percentage.
+    #[traversable(wrap = "supply/in_profit", rename = "share")]
+    #[traversable(lead = "Mobile supply in profit: the part of it now at or above its cost.")]
+    pub supply_in_profit_share: LazyPerBlock<Percent, BoundedRatio>,
     /// Sum of creation-date USD value multiplied by mobility across the
     /// cohort's UTXO age ranges: the realized capitalization of the mobile
     /// supply. Creation-date value is each unspent output's BTC value

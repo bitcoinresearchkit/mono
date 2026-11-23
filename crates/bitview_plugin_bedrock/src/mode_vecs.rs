@@ -4,10 +4,16 @@ use bitview_vecs::{CachedSeries, LazyPerBlock, Price};
 use brk_types::Cents;
 use vecdb::{AnyStoredVec, Rw, StorageMode, WritableVec};
 
-use super::{EntryVecs, ModeResult, Percentiles, PriceBands};
+use super::{EntryVecs, ModeResult, Percentiles, PriceBands, ProfitPercentiles};
 
 #[derive(Traversable)]
 pub struct ModeVecs<M: StorageMode = Rw> {
+    /// The low tail of the mode's prior finite supply-in-profit shares, as the
+    /// supply-in-loss thresholds are the high tail of its loss shares: each is the complement of
+    /// the loss threshold at the matching rank (95th is 5th), over the same history (the
+    /// represented block excluded, unavailable before 52,560 prior block observations).
+    #[traversable(lead = "Thin-profit threshold: the share of coins in profit it calls extreme.")]
+    pub supply_in_profit_share_threshold: ProfitPercentiles<LazyPerBlock<Percent, BoundedRatio>>,
     /// Historical supply-in-loss share that Bedrock treats as a stressed
     /// condition for this mode. It is a nearest-rank percentile of the
     /// mode's prior finite block loss shares. The represented block is excluded,

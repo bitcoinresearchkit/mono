@@ -710,7 +710,15 @@ pub mod tree {
         p99_5: SeriesPattern1<A> = "*_p99_5",
         p99_9: SeriesPattern1<A> = "*_p99_9",
     } }
+    shape! { ProfitPercentiles at "series().bedrock.awake.supply_in_profit_share_threshold" {
+        p5: SeriesPattern1<Option<Percent>> = "*_p5",
+        p2: SeriesPattern1<Option<Percent>> = "*_p2",
+        p1: SeriesPattern1<Option<Percent>> = "*_p1",
+        p0_5: SeriesPattern1<Option<Percent>> = "*_p0_5",
+        p0_1: SeriesPattern1<Option<Percent>> = "*_p0_1",
+    } }
     shape! { Mode<A> at "series().bedrock.awake" {
+        supply_in_profit_share_threshold: ProfitPercentiles = "*_supply_in_profit_share_threshold",
         supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
         floor: Percentiles<Option<Dollars>> = "*_floor",
         cost_basis_above_p95_floor: Levels = "*_cost_basis_above_p95_floor",
@@ -893,6 +901,7 @@ pub mod tree {
     shape! { MobileSupply at "series().coinflow.cohorts.all.mobile.supply" {
         total: SpotValue = "*",
         in_loss: MobileSupplyInLoss = "*_supply_in_loss_share",
+        in_profit: MobileSupplyInLoss = "*_supply_in_profit_share",
     } }
     shape! { Side at "series().coinflow.age_ranges._10y_to_12y.immobile" {
         supply: SpotValue = "*",

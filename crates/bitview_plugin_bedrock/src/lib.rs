@@ -36,7 +36,7 @@ use levels::{LevelId, Levels};
 use mode_result::ModeResult;
 use mode_vecs::ModeVecs;
 use modes::{MODE_COUNT, ModeId, Modes, Thresholds};
-use percentiles::{LossPercentileId, Percentiles};
+use percentiles::{LossPercentileId, Percentiles, ProfitPercentiles};
 use price_band_id::PriceBandId;
 use price_bands::PriceBands;
 
