@@ -47,7 +47,7 @@ impl Upstream {
         operation: &Operation,
         arguments: &Map<String, Value>,
     ) -> Result<String, String> {
-        let tool = &operation.tool.name;
+        let tool = &operation.name;
         let parameters = &operation.http.parameters;
         // Dropped silently, a misspelled filter would answer with unfiltered data.
         if let Some(unknown) = arguments.keys().find(|name| {

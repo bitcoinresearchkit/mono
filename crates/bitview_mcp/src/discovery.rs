@@ -5,7 +5,7 @@ use std::net::Ipv6Addr;
 use axum::{Router, body::Bytes, routing::MethodRouter};
 use serde_json::{Value, json, to_vec};
 
-use crate::{logo, page, server::SUPPORTED_PROTOCOL_VERSIONS};
+use crate::{logo, page, protocol::SUPPORTED_PROTOCOL_VERSIONS};
 
 const SERVER_CARD_MEDIA_TYPE: &str = "application/mcp-server-card+json";
 const AI_CATALOG_MEDIA_TYPE: &str = "application/ai-catalog+json";
@@ -37,10 +37,6 @@ fn document(value: &Value, media_type: &'static str) -> MethodRouter {
 }
 
 fn server_card(display_name: &str, public_url: &str) -> Value {
-    let versions = SUPPORTED_PROTOCOL_VERSIONS
-        .iter()
-        .map(|version| version.as_str())
-        .collect::<Vec<_>>();
     json!({
         "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
         "name": server_name(display_name, public_url),
@@ -56,7 +52,7 @@ fn server_card(display_name: &str, public_url: &str) -> Value {
         "remotes": [{
             "type": "streamable-http",
             "url": public_url,
-            "supportedProtocolVersions": versions,
+            "supportedProtocolVersions": SUPPORTED_PROTOCOL_VERSIONS,
         }],
     })
 }

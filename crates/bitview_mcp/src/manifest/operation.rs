@@ -1,10 +1,8 @@
-use rmcp::model::Tool;
-use serde::Deserialize;
-
 use super::HttpOperation;
 
-#[derive(Debug, Deserialize)]
+/// A tool by its name, and the API route it calls.
+#[derive(Debug)]
 pub struct Operation {
-    pub tool: Tool,
+    pub name: String,
     pub http: HttpOperation,
 }

@@ -19,7 +19,9 @@ mod discovery;
 mod logo;
 mod manifest;
 mod page;
+mod protocol;
 mod server;
+mod transport;
 mod upstream;
 mod upstream_response;
 mod upstream_transport;
@@ -36,7 +38,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         display_name,
     } = Arguments::parse(env::args().skip(1)).unwrap_or_else(|error| usage(&error));
     let catalog = Catalog::embedded();
-    let tool_count = catalog.tools().len();
+    let tool_count = catalog.tool_count();
     let home = page::render(&display_name, &public_url, &api_url, tool_count);
     let app = server::router(api_url, catalog, display_name, public_url, home);
     let (listener, bind) = bind_available(BIND_START).await?;

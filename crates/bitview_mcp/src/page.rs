@@ -14,7 +14,7 @@ use axum::{
 };
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 
-use crate::server::SUPPORTED_PROTOCOL_VERSIONS;
+use crate::protocol::SUPPORTED_PROTOCOL_VERSIONS;
 
 const HTML: &str = include_str!("../assets/index.html");
 
@@ -33,8 +33,8 @@ pub fn render(display_name: &str, public_url: &str, api_url: &str, tool_count: u
         ("DISPLAY_NAME", &escape_html(display_name)),
         ("LOGO_PATH", &escape_html(crate::logo::PATH)),
         ("CURSOR_CONFIG", &escape_html(&cursor_config)),
-        ("PROTOCOL_OLDEST", oldest.as_str()),
-        ("PROTOCOL_NEWEST", newest.as_str()),
+        ("PROTOCOL_OLDEST", oldest),
+        ("PROTOCOL_NEWEST", newest),
         ("TOOL_COUNT", &tool_count.to_string()),
     ]))
 }
