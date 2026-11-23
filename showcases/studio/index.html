@@ -20,7 +20,11 @@
     <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
-    <meta name="theme-color" content="#08090a" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- (The bar over the page in its ground from the first frame, the device's scheme's; the script keeps it after: see
+         syncThemeColor.) -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f7" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
     <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
          knows where it is: see showAddress). -->
     <link rel="alternate" type="text/markdown" href="https://bitview.space/studio/llms.txt" title="Bitview Studio, for assistants" />
@@ -127,15 +131,15 @@
       }
 
       /*
-       * Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks (dark until the light
-       * one is settled; light; or the device's, System), the chart and the canvases read them resolved (see css). The
+       * Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks (the device's, System,
+       * the default; or light, or dark, as chosen), the chart and the canvases read them resolved (see css). The
        * dark calibrated on the quiet end: a near-black page, one card a shade lighter, hairlines at 6% white, text in three
        * greys. The light, the same turned over: a near-white page, the card white on it, hairlines in black a shade
        * stronger (thin dark lines on white read lighter), shadows soft, tips and keys white as the menus. Color comes from
        * the data (its tone, the theme's: see toned): the chrome is monochrome, orange is the brand's.
        */
       :root {
-        color-scheme: dark;
+        color-scheme: light dark;
         /* Sizes more than one rule (or the script) shares: the panel's width beside the chart, the tablet's floating panel's
            height, a phone's sheet's two heights (fractions of the screen's: the script reads them too); a layer row's value
            and change (the script measures their room at them). */
@@ -272,13 +276,13 @@
         }
       }
 
-      /* The theme chosen: light, or the device's (dark is the default above). */
+      /* The theme chosen: light, or dark (the device's, System, is the default above). */
       :root[data-theme="light"] {
         color-scheme: light;
       }
 
-      :root[data-theme="system"] {
-        color-scheme: light dark;
+      :root[data-theme="dark"] {
+        color-scheme: dark;
       }
 
       * {
@@ -10935,7 +10939,12 @@
           if (Number.isFinite(prefs.panelWidth)) document.documentElement.style.setProperty("--panel-kept", `${Math.min(Math.max(prefs.panelWidth, 300), most(300, 0.4, 560, side))}px`);
         }
         // (The theme, as chosen: the stylesheet does the rest.)
-        document.documentElement.dataset.theme = prefs.theme === "light" || prefs.theme === "system" ? prefs.theme : "dark";
+        const theme = prefs.theme === "light" || prefs.theme === "dark" ? prefs.theme : "system";
+        document.documentElement.dataset.theme = theme;
+        // (One chosen: the bar over the page in its ground, whichever the device's.)
+        if (theme !== "system") {
+          for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.media.includes(theme) ? meta.removeAttribute("media") : meta.remove();
+        }
         const there = history.state;
         // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
@@ -11008,7 +11017,7 @@
           <p>Then, each if wanted:</p>
           <ul>
             <li>"label": its name.</li>
-            <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).</li>
+            <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme shows it (the way colors are written, whichever theme is on): the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).</li>
             <li>"colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).</li>
             <li>"gradient": [[0, "blue"], [60, "yellow"], [100, "red"]] on a line, dots, an area, bars, a cloud, a trend or a heatmap: its colors by its value instead, date by date, from its lowest value (0) to its highest (100), 2 to 4 colors, each at its place, mixed between them (past the outer ones, theirs); its lowest and highest of all its history (at an interval under a day, of what's loaded), or with "upToDate": true of its history up to each date (no hindsight); kept but off, "byGradient": false. A heatmap's by its cells' strength (its unrealized P&amp;L's: loss at 0, none at 50, profit at 100).</li>
             <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, above each level, that level's color (give each one its "color"); under them all, its own. A line or an area changes color exactly where it crosses a level, its fill parted there; dots and bars each take their own value's color.</li>

@@ -1411,7 +1411,7 @@ function readPrefs(/** @type {any} */ stored) {
     keys: stored.keys !== false,
     /** The view linked: every chart on the same dates, in every tab (see linkView); off unless turned on. */
     linkView: stored.linkView === true,
-    theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
+    theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "system"),
     belt: { on: stored.belt?.on === true, dock: ["top", "bottom", "left", "right"].includes(stored.belt?.dock) ? stored.belt.dock : "bottom", at: Number.isFinite(stored.belt?.at) ? clamp(stored.belt.at, 0, 1) : 0.5 },
     pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, start?: End, end?: End, size: number, back?: string }} */ ({ ...lookOfDrawing("trend", stored.pen), size: Number.isFinite(stored.pen?.size) ? presetSize(stored.pen.size) : TEXT_SIZE }),
   };
@@ -1435,7 +1435,7 @@ function savePrefs() {
   return written;
 }
 /**
- * The theme, as chosen (dark until the light one is settled: the default), System the device's. The page takes it
+ * The theme, as chosen, System the device's (the default). The page takes it
  * from its tokens; the chart, the charts' marks and their drawings draw again with them (and the palette's tone: see
  * toned), crossfaded where the browser can. Set before the first paint (see the page's first script), and here.
  */
@@ -1446,9 +1446,13 @@ const THEMES = /** @type {const} */ ([
 ]);
 const deviceLight = matchMedia("(prefers-color-scheme: light)");
 /** The bar over the page (a browser's, an installed app's, a phone's status bar) in the page's color under it: the grid's ground, a chart's card on a phone. */
-const themeColor = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="theme-color"]'));
+// (One a scheme in the page, for its first frame; both the theme's, whichever the device's is: the chosen one wins.)
+const themeColors = /** @type {NodeListOf<HTMLMetaElement>} */ (document.querySelectorAll('meta[name="theme-color"]'));
 // (The theme's, kept till it changes: the page coming or going reads no style for it, mid-change.)
-const syncThemeColor = () => themeColor && (themeColor.content = css(phone.matches && !document.body.hasAttribute("data-home") ? "--card" : "--app"));
+const syncThemeColor = () => {
+  const color = css(phone.matches && !document.body.hasAttribute("data-home") ? "--card" : "--app");
+  for (const meta of themeColors) meta.content = color;
+};
 new MutationObserver(syncThemeColor).observe(document.body, { attributes: true, attributeFilter: ["data-home"] });
 new MutationObserver(syncThemeColor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 deviceLight.addEventListener("change", syncThemeColor);

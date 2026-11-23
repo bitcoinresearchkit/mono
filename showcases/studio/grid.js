@@ -3299,7 +3299,7 @@ function setTheme(theme) {
   applyTheme();
 }
 function renderTheme() {
-  const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[2];
+  const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[0];
   $("home-theme").innerHTML = ICONS[icon];
   $("home-theme").setAttribute("aria-label", ($("home-theme").dataset.tip = `Theme: ${name}`));
 }
