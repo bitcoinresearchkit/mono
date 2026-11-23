@@ -73,7 +73,7 @@ cpu.csv             # cumulative user and system CPU time, every 5 s
 disk.csv            # physical data-directory size, excluding reports, every minute
 disk_breakdown.csv  # final size per component (`plugins/<id>` and top-level entries)
 progress.csv        # heights from production log events, with their source (`indexer`, ...)
-run.csv             # total bootstrap duration and status (complete, failed or aborted)
+run.csv             # the bootstrap's duration and status (complete, failed or aborted), then the serial recompute's
 timings.csv         # every completed production plugin import and compute interval
 serial_compute.csv  # each plugin's serial CPU computing from zero over the run's indexed chain
 ```
@@ -108,9 +108,10 @@ included) and `unattributed` (`total` less the plugins: the imports, the schedul
 helpers between steps). This is each plugin's cost from zero, the same chain for every run, where
 the timed run's intervals are its schedule; the benchmarks page holds it to the best. On m6-2
 (ed81092a9) it took about 29 minutes beside the timed run's 74, with 8,326 CPU-seconds of which
-1.4 were unattributed. The compaction a plugin's compute schedules for 5 s later
-(`bitview_plugin/src/update_context.rs`) runs at once, in the plugin's own step, so it is counted as
-that plugin's (`bitview_default::serial::compact`). The quiet watch runs until the recompute
+1.4 were unattributed; `run.csv`'s `serial_compute` row holds its wall time and status (`complete`,
+`failed` or `aborted`; absent when it never began). The compaction a plugin's compute schedules for
+5 s later (`bitview_plugin/src/update_context.rs`) runs at once, in the plugin's own step, so it is
+counted as that plugin's (`bitview_default::serial::compact`). The quiet watch runs until the recompute
 ends, so a disturbed recompute makes the run not comparable.
 
 A resumed run has no recompute: its times aren't a full sync's, so nothing compares them.

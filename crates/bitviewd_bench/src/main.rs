@@ -1,5 +1,5 @@
 use benchmark::Benchmark;
-use bitview::{Config, ImportContext, RunConfig, UpdateContext, bootstrap, raise_fd_limit};
+use bitview::{Config, ImportContext, RunConfig, UpdateContext, raise_fd_limit};
 use bitview_default::DefaultPlugins;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -58,16 +58,11 @@ fn run() -> Result<()> {
         }
     });
 
-    let import_context = ImportContext::new(&data_path, &exit);
-    let update_context = UpdateContext::new(&exit);
-    let sync = || {
-        bootstrap(
-            import_context,
-            |context| DefaultPlugins::import(context, &reader),
-            update_context,
-        )
-    };
-    benchmark.measure(import_context, sync)?;
+    benchmark.measure(
+        ImportContext::new(&data_path, &exit),
+        UpdateContext::new(&exit),
+        |context| DefaultPlugins::import(context, &reader),
+    )?;
     info!("Benchmark saved to {}", benchmark.path().display());
     Ok(())
 }
