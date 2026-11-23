@@ -28,9 +28,24 @@ impl<M: StorageMode> Indexer<M> {
     }
 
     /// One indexed transaction, decoded, from the position and size the caller read.
-    pub fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<Transaction> {
-        deserialize(&self.read_tx_bytes_at(position, size)?)
-            .map_err(|_| Error::Internal("Invalid indexed transaction encoding"))
+    fn read_tx_at(&self, position: BlkPosition, size: usize) -> Result<Transaction> {
+        decode_tx(&self.read_tx_bytes_at(position, size)?)
+    }
+
+    /// Indexed transactions, decoded, from the positions and sizes the caller read: their bytes
+    /// are read as one batch ([`brk_reader::Reader::read_raw_batch`]).
+    pub fn read_txs_at(&self, places: &[(BlkPosition, usize)]) -> Result<Vec<Transaction>> {
+        debug_assert!(
+            places
+                .iter()
+                .all(|&(_, size)| size as u64 <= Weight::MAX_BLOCK.to_wu()),
+            "a transaction larger than a block is a corrupt column"
+        );
+        self.reader()
+            .read_raw_batch(places)?
+            .iter()
+            .map(|bytes| decode_tx(bytes))
+            .collect()
     }
 
     /// Where the block files hold an indexed transaction, and how many bytes of it.
@@ -310,4 +325,8 @@ impl OutputScripts<'_> {
                 "Indexed output missing from its transaction",
             ))
     }
+}
+
+fn decode_tx(bytes: &[u8]) -> Result<Transaction> {
+    deserialize(bytes).map_err(|_| Error::Internal("Invalid indexed transaction encoding"))
 }

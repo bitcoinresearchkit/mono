@@ -1413,6 +1413,7 @@ dependencies = [
  "derive_more",
  "libc",
  "parking_lot",
+ "rawdb",
  "rustc-hash",
 ]
 

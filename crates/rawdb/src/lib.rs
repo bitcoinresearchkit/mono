@@ -5,6 +5,8 @@ mod database;
 mod error;
 mod region;
 
+#[cfg(unix)]
+pub use database::data_file::advise_read;
 pub use database::Database;
 pub use error::{Error, Result};
 pub use region::{Reader, Region, RegionMetadata};

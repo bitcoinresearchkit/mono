@@ -1,6 +1,7 @@
 #![doc = include_str!("../README.md")]
 
 use std::{
+    fs::File,
     os::unix::fs::FileExt,
     path::{Path, PathBuf},
     sync::Arc,
@@ -88,6 +89,31 @@ impl Reader {
 
     pub fn read_raw_bytes(&self, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         let file = self.0.open_blk(position.blk_index())?;
+        self.read_raw_in(&file, position, size)
+    }
+
+    /// The bytes at each of `places`, in order. Their ranges are advised together before any is
+    /// read, so the device serves them as one batch rather than one read at a time, and each
+    /// read uses the handle its advice opened. A lone range gets no advice (its read is as fast).
+    pub fn read_raw_batch(&self, places: &[(BlkPosition, usize)]) -> Result<Vec<Vec<u8>>> {
+        let files = places
+            .iter()
+            .map(|&(position, size)| {
+                let file = self.0.open_blk(position.blk_index())?;
+                if places.len() > 1 {
+                    rawdb::advise_read(&file, u64::from(position.offset()), size);
+                }
+                Ok(file)
+            })
+            .collect::<Result<Vec<_>>>()?;
+        places
+            .iter()
+            .zip(&files)
+            .map(|(&(position, size), file)| self.read_raw_in(file, position, size))
+            .collect()
+    }
+
+    fn read_raw_in(&self, file: &File, position: BlkPosition, size: usize) -> Result<Vec<u8>> {
         let mut buffer = vec![0u8; size];
         file.read_exact_at(&mut buffer, position.offset() as u64)?;
         XORIndex::at_offset(position.offset() as usize).bytes(&mut buffer, self.0.xor_bytes);
