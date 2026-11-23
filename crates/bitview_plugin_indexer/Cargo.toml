@@ -32,6 +32,5 @@ rapidhash = { workspace = true }
 rustc-hash = { workspace = true }
 schemars = { workspace = true }
 serde = { workspace = true }
-sha2 = { workspace = true }
 tracing = { workspace = true }
 vecdb = { workspace = true, features = ["derive", "pco"] }

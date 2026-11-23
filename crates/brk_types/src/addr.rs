@@ -6,10 +6,9 @@ use derive_more::{Deref, From};
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use super::OutputType;
-use crate::AddressBytes;
+use crate::{AddressBytes, sha256d};
 
 #[cfg(feature = "storage")]
 use vecdb::Formattable;
@@ -75,12 +74,12 @@ const BASE58_POW5: u64 = 58 * 58 * 58 * 58 * 58;
 /// Base58Check of a version byte and a 20-byte hash, as rust-bitcoin writes it. Its encoder
 /// divides a byte at a time and hashes in software, which made address text most of a large
 /// address history's JSON time; this divides 32-bit limbs by 58^5 and hashes with the CPU's SHA
-/// instructions (through `sha2`).
+/// instructions ([`sha256d`]).
 fn base58check(version: u8, hash: &[u8]) -> String {
     let mut bytes = [0; 25];
     bytes[0] = version;
     bytes[1..21].copy_from_slice(hash);
-    let checksum = Sha256::digest(Sha256::digest(&bytes[..21]));
+    let checksum = sha256d(&bytes[..21]);
     bytes[21..].copy_from_slice(&checksum[..4]);
     // The 25 bytes as seven big-endian 32-bit limbs, the first holding the version byte only.
     let mut limbs = [0u32; 7];

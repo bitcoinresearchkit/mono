@@ -1,13 +1,14 @@
 use bitcoin::{
     PubkeyHash, Script, ScriptBuf, ScriptHash, Transaction, TxIn, WPubkeyHash, WScriptHash, Weight,
     consensus::deserialize,
-    hashes::{Hash, ripemd160},
+    hashes::Hash,
 };
 use bitview_primitives::{Index40, Lengths, TxOutIndex, TypeIndex};
 use brk_error::{Error, Result};
-use brk_types::{BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout};
+use brk_types::{
+    BlkPosition, OutputType, Sats, TxIndex, TxOut, Txid, TxidPrefix, Vout, hash160, sha256,
+};
 use rapidhash::RapidHashMap;
-use sha2::{Digest, Sha256};
 use vecdb::{BytesVecReader, ReadableVec, Ro, StorageMode};
 
 use crate::{
@@ -279,16 +280,10 @@ pub fn revealed_script(output_type: OutputType, input: &TxIn) -> Option<ScriptBu
             &WPubkeyHash::from_byte_array(hash160(&witness[1])),
         )),
         OutputType::P2WSH => Some(ScriptBuf::new_p2wsh(&WScriptHash::from_byte_array(
-            Sha256::digest(witness.last()?).into(),
+            sha256(witness.last()?),
         ))),
         _ => None,
     }
-}
-
-/// RIPEMD-160 of SHA-256, its SHA-256 through `sha2`, which uses the CPU's SHA instructions:
-/// rust-bitcoin's hashes in software, which was ~3% of an address page's CPU.
-fn hash160(bytes: &[u8]) -> [u8; 20] {
-    ripemd160::Hash::hash(&Sha256::digest(bytes)).to_byte_array()
 }
 
 /// The output types whose scripts the indexer does not keep: read from their transaction.
