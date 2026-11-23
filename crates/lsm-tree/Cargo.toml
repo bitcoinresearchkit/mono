@@ -14,7 +14,7 @@ path = "src/lib.rs"
 doctest = false
 
 [dependencies]
-arc-swap = "1.9.3"
+arc-swap = "1.9.5"
 byteorder = { package = "byteorder-lite", version = "0.1.0" }
 byteview = { workspace = true }
 interval-heap = "0.0.5"
