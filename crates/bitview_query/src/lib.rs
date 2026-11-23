@@ -19,7 +19,9 @@ mod series;
 #[cfg(feature = "full-api")]
 pub use api::*;
 pub use r#async::*;
-pub(crate) use error::{OptionData, read_sorted};
+pub(crate) use error::OptionData;
+#[cfg(feature = "full-api")]
+pub(crate) use error::read_sorted;
 pub use error::{Error, Result, SeriesNotFound};
 pub use output::*;
 #[cfg(feature = "series")]

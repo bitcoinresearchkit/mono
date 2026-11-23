@@ -2,6 +2,7 @@ use std::{borrow::Cow, fmt, result::Result as StdResult};
 
 use brk_error::Updating;
 use thiserror::Error as ThisError;
+#[cfg(feature = "full-api")]
 use vecdb::{ReadableVec, VecIndex, VecValue};
 
 pub type Result<T> = StdResult<T, Error>;
@@ -112,6 +113,7 @@ impl<T> OptionData<T> for Option<T> {
 
 /// The values at sorted `rows`, read as one batch; a short read fails naming the column and the
 /// row where it stopped.
+#[cfg(feature = "full-api")]
 pub(crate) fn read_sorted<I: VecIndex, T: VecValue>(
     column: &impl ReadableVec<I, T>,
     rows: &[usize],
