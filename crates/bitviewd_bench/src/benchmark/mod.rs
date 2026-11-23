@@ -19,11 +19,9 @@ use brk_logger::register_hook;
 use brk_types::{Height, Timestamp};
 use disk::DiskMonitor;
 use parking_lot::Mutex;
-use process::ProcessMonitor;
+use process::{ProcessMonitor, counts};
 use trace::TraceMonitor;
 use tracing::Level;
-
-use crate::quiet;
 
 mod disk;
 pub mod metadata;
@@ -60,23 +58,12 @@ struct Inner {
     path: PathBuf,
     disk: Arc<Mutex<DiskMonitor>>,
     trace: Arc<TraceMonitor>,
-    /// The first Bitview or build seen beside the run: it is not comparable.
-    overlap: Arc<Mutex<Option<String>>>,
     /// The data directory already held plugin data: not a full sync, and no recompute.
     resumed: bool,
     stop: Arc<AtomicBool>,
     state: Mutex<State>,
-    /// What `close` ends, once.
-    tail: Mutex<Option<Tail>>,
-}
-
-/// The quiet watch, which outlives the timed run's monitors to cover the serial recompute, and
-/// when the recompute began, if it did.
-struct Tail {
-    stop: Arc<AtomicBool>,
-    thread: JoinHandle<Result<()>>,
-    started_at: Instant,
-    recompute: Option<Instant>,
+    /// When the recompute began, if it did, as an offset into the run and as an instant: what `close` ends, once.
+    recompute: Mutex<Option<(Duration, Instant)>>,
 }
 
 enum State {
@@ -94,7 +81,6 @@ impl Benchmark {
         blocks_path: &Path,
         chain_height: Height,
         cache_budget: usize,
-        busiest: &str,
     ) -> Result<Self> {
         // The recordings are log events: a filter dropping them would leave the report empty.
         if !tracing::enabled!(target: "bitview::plugin_timing", Level::INFO) {
@@ -102,6 +88,8 @@ impl Benchmark {
                 "LOG/RUST_LOG filters out the INFO events the benchmark records",
             ));
         }
+        // Read once now, so a platform without the counters fails before the run, not after its hours.
+        counts()?;
         let reports = data_path.join("benches");
         fs::create_dir_all(&reports)?;
         // Every run keeps its own directory, named by its UTC start (`20261014T153012Z`, then
@@ -134,7 +122,6 @@ impl Benchmark {
             cache_budget,
             resumed,
         )?;
-        metadata::start_state(&path, busiest)?;
 
         let trace = Arc::new(TraceMonitor::new(&path)?);
         let trace_hook = Arc::clone(&trace);
@@ -148,12 +135,11 @@ impl Benchmark {
                 &path.join("disk.csv"),
             )?)),
             trace,
-            overlap: Arc::default(),
             path,
             resumed,
             stop: Arc::new(AtomicBool::new(false)),
             state: Mutex::new(State::Ready),
-            tail: Mutex::new(None),
+            recompute: Mutex::new(None),
         })))
     }
 
@@ -163,7 +149,7 @@ impl Benchmark {
 
     /// Times the bootstrap of the plugins `import` makes, then, from an empty data directory,
     /// bootstraps them again with every plugin but the indexer from zero, one at a time,
-    /// recording each one's CPU (see the README). The quiet watch covers both.
+    /// recording each one's retired instructions and cycles (see the README).
     pub fn measure(
         &self,
         import_context: ImportContext<'_>,
@@ -180,9 +166,8 @@ impl Benchmark {
         let finished = self.finish(outcome, Some(elapsed));
         let measured = match (result, finished) {
             (Ok(plugins), Ok(())) if !self.0.resumed => {
-                if let Some(tail) = self.0.tail.lock().as_mut() {
-                    tail.recompute = Some(Instant::now());
-                }
+                let began = Instant::now();
+                *self.0.recompute.lock() = Some((began.duration_since(started_at), began));
                 serial_cpu::recompute(self.path(), plugins, import_context, sync)
             }
             (result, finished) => result.map(drop).and(finished),
@@ -201,34 +186,22 @@ impl Benchmark {
         finished.and(closed)
     }
 
-    /// Stops the quiet watch, adds the recompute's row to `run.csv` with `recompute` as its status
-    /// if it began, and writes whether anything overlapped the run; once. The lock is held to the
-    /// end, so a shutdown's `abort` waits for these lines instead of exiting before them.
+    /// Adds the recompute's row to `run.csv` with `recompute` as its status, if it began; once. The
+    /// lock is held to the end, so a shutdown's `abort` waits for the line instead of exiting
+    /// before it.
     fn close(&self, recompute: Outcome) -> Result<()> {
-        let mut tail = self.0.tail.lock();
-        let Some(Tail { stop, thread, started_at, recompute: began }) = tail.take() else {
+        let mut began = self.0.recompute.lock();
+        let Some((offset, began)) = began.take() else {
             return Ok(());
         };
-        stop.store(true, Ordering::Relaxed);
-        thread.thread().unpark();
-        let watched = thread
-            .join()
-            .unwrap_or(Err(Error::Internal("Benchmark watch panicked")));
-        let row = began.map_or(Ok(()), |began| {
-            let mut run = OpenOptions::new().append(true).open(self.0.path.join("run.csv"))?;
-            writeln!(
-                run,
-                "serial_compute,{:.3},{:.3},{}",
-                began.duration_since(started_at).as_secs_f64() * 1_000.0,
-                began.elapsed().as_secs_f64() * 1_000.0,
-                recompute.as_str()
-            )
-        });
-        let comparable = metadata::comparable(&self.0.path, self.0.overlap.lock().as_deref());
-        drop(tail);
-        row?;
-        comparable?;
-        watched
+        let mut run = OpenOptions::new().append(true).open(self.0.path.join("run.csv"))?;
+        Ok(writeln!(
+            run,
+            "serial_compute,{:.3},{:.3},{}",
+            offset.as_secs_f64() * 1_000.0,
+            began.elapsed().as_secs_f64() * 1_000.0,
+            recompute.as_str()
+        )?)
     }
 
     fn start(&self) -> Result<()> {
@@ -243,28 +216,6 @@ impl Benchmark {
         let started_at = Instant::now();
 
         let disk = Arc::clone(&self.0.disk);
-        let overlap = Arc::clone(&self.0.overlap);
-        let mut watch = quiet::Watch::new()?;
-        let stop = Arc::new(AtomicBool::new(false));
-        let thread = sampler(&stop, started_at, DISK_INTERVAL, move |_, last| {
-            if !last {
-                // A list that can't be read can't vouch for the minute.
-                let seen = watch
-                    .check()
-                    .map(|names| names.join(", "))
-                    .unwrap_or_else(|e| format!("a process list that failed ({e})"));
-                if !seen.is_empty() {
-                    overlap.lock().get_or_insert(seen);
-                }
-            }
-            Ok(())
-        });
-        *self.0.tail.lock() = Some(Tail {
-            stop,
-            thread,
-            started_at,
-            recompute: None,
-        });
         let monitors = [
             sampler(
                 &self.0.stop,

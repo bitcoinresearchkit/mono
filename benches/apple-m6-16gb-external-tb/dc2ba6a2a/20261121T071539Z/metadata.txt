@@ -23,3 +23,4 @@ busiest_processes=WindowServer 1%, bluetoothd 0%, AppleCentauriAlpha 0%, coresym
 internal_volume=74776408064/245054767104
 comparable=false
 comparable_reason=RAYON_NUM_THREADS=4, a rejected config (parallelism shows the CPU count, not the pool)
+locked=true

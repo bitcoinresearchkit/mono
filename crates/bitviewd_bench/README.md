@@ -35,30 +35,15 @@ never replaced: repetitions of one revision on one machine sit side by side.
   run records the code that was built, not the checkout it runs next to;
 - `<run-id>` is the run's UTC start, `20261014T153012Z`.
 
-A full bench runs on a quiet machine, and the binary checks that itself, with no way around it
-(`src/quiet.rs`). "Quiet" means nothing power-hungry beside Bitcoin Core; ordinary system and light
-background processes pass. It holds `/tmp/bitviewd-bench.lock` for its lifetime, across data
-directories (the OS releases it on exit, crash or kill included; leave the file in place), and
-refuses to start, naming what is heavy, when:
-
-- a process named `bitview*` runs (bitviewd serving or not, a test server, another bench) or `cargo`, `rustc`, `rustup`, `clippy-driver`;
-- any other process except `bitcoind` uses at least a quarter of a core (half a core in the
-  minute-by-minute watch), or moves at least 20 MB/s to or from disk, over the sample (3 s at the
-  start; two `ps` readings; disk bytes for the processes this user may inspect);
-- the whole machine's user CPU, less this bench's and `bitcoind`'s, reaches one core (system time
-  is left out: the bench causes it);
-- at the start, any other process holds 1 GiB or more.
-
-This bench and its ancestors (the `cargo run` that started it) are never judged.
-
-It only reports; it never stops a process (on a mini: `~/Developer/dots/shared/ship stop bitviewd mcp`).
-Every minute of the run the same check runs again. `metadata.txt` records the six busiest processes
-at the start (`busiest_processes`), the home volume's used and total bytes (`internal_volume`, beside
-`data_volume`: both disks' free space) and, at the end (after the serial recompute), `comparable=true|false` with a
-`comparable_reason`; false names the first heavy process seen beside the run, or rayon's pool
-narrower than the machine (`rayon_threads` below `parallelism`, the cores: `RAYON_NUM_THREADS` set). The benchmarks page
-shows such a run, flagged, and never sets it against another. An absent `comparable` (a recording
-from before the check) means comparable.
+What a run is judged on (memory perf-work.md, "What judges what"): per-stage and per-plugin results by retired
+instructions per process, which co-running work barely moves; whole-sync wall time only against runs that
+held the mini's lock, from a fresh boot, on a clean machine (`m6-2-lock run`): brain's `bench-20261120/run.sh` appends
+`locked=true` to the copied recording's `metadata.txt`, and the page and `bench-best.mjs` take a wall time into their
+bests only from such a run. The binary measures whatever machine it runs on and judges nothing: `metadata.txt` records
+the CPU, RAM, both volumes' used and total bytes (`data_volume`, `blocks_volume`, `internal_volume`) and the pool's
+width (`rayon_threads` beside `parallelism`, the cores: narrower when `RAYON_NUM_THREADS` is set). A narrower pool is
+a rejected configuration, not a measure of the machine, so the page and `bench-best.mjs` leave such a run out of every
+best, instructions too (the earlier rule, carried over).
 
 The results path is printed before bootstrap starts and again after completion.
 For example, `--bitviewdir /Volumes/External/bitview` writes reports beneath
@@ -68,13 +53,13 @@ For example, `--bitviewdir /Volumes/External/bitview` writes reports beneath
 metadata.txt        # build (revision, dirty, profile, rustc, flags, target), host (name, CPU, RAM, data and blocks storage with used/total volume bytes), chain, paths, cache budget
 memory.csv          # footprint, peak, resident size and system swap, every 5 s
 io.csv              # cumulative bytes read and written and page-ins, every 5 s
-cpu.csv             # cumulative user and system CPU time, every 5 s
+cpu.csv             # cumulative user and system CPU time, and on macOS retired instructions and cycles, every 5 s
 disk.csv            # physical data-directory size, excluding reports, every minute
 disk_breakdown.csv  # final size per component (`plugins/<id>` and top-level entries)
 progress.csv        # heights from production log events, with their source (`indexer`, ...)
 run.csv             # the bootstrap's duration and status (complete, failed or aborted), then the serial recompute's
 timings.csv         # every completed production plugin import and compute interval
-serial_compute.csv  # each plugin's serial CPU computing from zero over the run's indexed chain
+serial_compute.csv  # each plugin's retired instructions, cycles and CPU time computing from zero over the run's indexed chain
 ```
 
 On macOS the footprint and its peak are the kernel's (`physical_bytes`,
@@ -89,28 +74,28 @@ Bitcoin Core synchronization and the initial and final recursive disk scans
 are outside the timed interval. The per-minute scans run inside it, on their own
 thread, so their small metadata reads are part of the recorded I/O.
 
-### Serial CPU
+### Serial recompute
 
 The timed run's plugins overlap on threads, and a plugin waiting in a rayon join runs other
-plugins' stolen work, so their durations say nothing about the CPU each one spends (Market read
+plugins' stolen work, so their durations say nothing about what each one spends (Market read
 327 s and 91 s in two runs of one commit). So after a fresh run, every plugin's data but the
 indexer's is removed and the bootstrap runs again on the indexed chain, with the composition's
-forks run one branch at a time: each plugin computes all of it from zero alone, and the process
-CPU (`getrusage`, user plus system) between its start and end is its own, less the steps nested in
-it (the shared history walk is its own `walk` step; Age, Profitability and URPD run inside it). A
-plugin's internal parallelism is unchanged, and what the indexer leaves running in the background
-(ingestion and compaction, freeing the blocks) is joined into its step; it only indexes the blocks
-that arrived meanwhile.
+forks run one branch at a time: each plugin computes all of it from zero alone, and the process's
+counters (`proc_pid_rusage`: retired instructions and cycles; `getrusage`: user plus system CPU
+time) between its start and end are its own, less the steps nested in it (the shared history walk
+is its own `walk` step; Age, Profitability and URPD run inside it). A plugin's internal
+parallelism is unchanged, and what the indexer leaves running in the background (ingestion and
+compaction, freeing the blocks) is joined into its step; it only indexes the blocks that arrived
+meanwhile. The counters are macOS's: on Linux the recompute fails, naming that (`perf_event_open`
+waits until a Linux bench exists), and `cpu.csv` has no counter columns.
 
-`serial_compute.csv` has `plugin,serial_cpu_ms`, then `total` (the whole recompute, the imports
-included) and `unattributed` (`total` less the plugins: the imports, the schedule, logging and
-helpers between steps). This is each plugin's cost from zero, the same chain for every run, where
-the timed run's intervals are its schedule; the benchmarks page holds it to the best. On m6-2
-(ed81092a9) it took about 29 minutes beside the timed run's 74, with 8,326 CPU-seconds of which
-1.4 were unattributed; `run.csv`'s `serial_compute` row holds its wall time and status (`complete`,
-`failed` or `aborted`; absent when it never began). The compaction a plugin's compute schedules for
-5 s later (`bitview_plugin/src/update_context.rs`) runs at once, in the plugin's own step, so it is
-counted as that plugin's (`bitview_default::serial::compact`). The quiet watch runs until the recompute
-ends, so a disturbed recompute makes the run not comparable.
+`serial_compute.csv` has `plugin,instructions,cycles,cpu_ms`, then `total` (the whole recompute,
+the imports included) and `unattributed` (`total` less the plugins: the imports, the schedule,
+logging and helpers between steps). Instructions are what a run is judged on, and why they and not cycles or CPU
+time is in memory perf-work.md, "What judges what". The recompute took about 32 minutes on m6-2, with 101.8 trillion
+instructions of which 12.8 billion were unattributed; `run.csv`'s `serial_compute` row holds its wall time and status
+(`complete`, `failed` or `aborted`; absent when it never began). The compaction a plugin's compute
+schedules for 5 s later (`bitview_plugin/src/update_context.rs`) runs at once, in the plugin's own
+step, so it is counted as that plugin's (`bitview_default::serial::compact`).
 
 A resumed run has no recompute: its times aren't a full sync's, so nothing compares them.

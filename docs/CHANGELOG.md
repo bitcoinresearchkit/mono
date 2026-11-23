@@ -8,6 +8,11 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- The benchmark counts retired instructions instead of guessing whether the machine was quiet. `bitviewd_bench` no
+  longer samples other processes or writes `comparable`, and the benchmarks page holds each plugin's instructions
+  computing the chain from zero alone (`serial_compute.csv`, with cycles; macOS) to the best, flagging a row over 5%
+  worse. Whole-sync times stay, and are held only to runs recorded as having held the mini's lock
+  (`locked=true` in their metadata); earlier recordings count only where their driver's output shows the lock.
 - The MCP server is part of bitviewd, at `/mcp` (canonically https://bitview.space/mcp), and the `bitview_mcp`
   crate and binary are gone. A tool call is the API request it names, answered by the server's own router: no
   second process, no network hop, the API's admission and deadlines, and one log line per call. `--siteurl` names

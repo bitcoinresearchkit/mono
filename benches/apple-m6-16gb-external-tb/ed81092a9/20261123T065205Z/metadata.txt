@@ -24,3 +24,4 @@ busiest_processes=WindowServer 1%, rex 0%, tailscaled 0%, logd 0%, centaurid 0%,
 internal_volume=74801463296/245054767104
 comparable=true
 comparable_reason=no heavy process beside it, at the start and every minute
+locked=true

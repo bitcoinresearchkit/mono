@@ -51,6 +51,12 @@ mod on {
         pub cpu_ns: u64,
     }
 
+    const ZERO: Counts = Counts {
+        instructions: 0,
+        cycles: 0,
+        cpu_ns: 0,
+    };
+
     impl Add for Counts {
         type Output = Self;
         fn add(self, other: Self) -> Self {
@@ -89,11 +95,7 @@ mod on {
     static CLOCK: OnceLock<fn() -> Counts> = OnceLock::new();
     static LEDGER: Mutex<BTreeMap<&'static str, Counts>> = Mutex::new(BTreeMap::new());
     /// The counters of the steps that ended inside the one now running.
-    static NESTED: Mutex<Counts> = Mutex::new(Counts {
-        instructions: 0,
-        cycles: 0,
-        cpu_ns: 0,
-    });
+    static NESTED: Mutex<Counts> = Mutex::new(ZERO);
 
     pub fn start(clock: fn() -> Counts) {
         CLOCK
