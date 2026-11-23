@@ -698,6 +698,7 @@ dependencies = [
  "rustc-hash",
  "schemars",
  "serde",
+ "sha2",
  "tracing",
  "vecdb",
 ]
