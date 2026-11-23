@@ -149,7 +149,10 @@ impl AppState {
             hash,
             BlockForm::TXS,
             Some(BlockTxSelection::Page(start)),
-            move |q, block| Content::json(&block.anchor_txs(q, start, BLOCK_TXS_PAGE_SIZE)?),
+            move |q, block| {
+                let txs = block.anchor_txs(q, start, BLOCK_TXS_PAGE_SIZE)?;
+                Ok(Content::txs(&txs))
+            },
         )
         .await
     }

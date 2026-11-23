@@ -9,7 +9,7 @@ repository.workspace = true
 
 [features]
 default = []
-schemars = ["dep:schemars", "dep:serde_json", "vecdb?/schemars"]
+schemars = ["dep:schemars", "vecdb?/schemars"]
 storage = ["dep:vecdb", "brk_error/vecdb"]
 
 [dependencies]
@@ -22,9 +22,6 @@ rapidhash = { workspace = true }
 ryu = { workspace = true }
 schemars = { workspace = true, optional = true }
 serde = { workspace = true }
-serde_json = { workspace = true, optional = true }
+serde_json = { workspace = true }
 sha2 = { workspace = true }
 vecdb = { workspace = true, optional = true, features = ["derive", "pco", "serde"] }
-
-[dev-dependencies]
-serde_json = { workspace = true }

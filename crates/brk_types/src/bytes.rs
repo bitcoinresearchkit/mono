@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, io::Write, sync::LazyLock};
 
 use bitcoin::{Opcode, Script, opcodes::all::OP_PUSHBYTES_0, script::Instruction};
 
@@ -43,15 +43,6 @@ pub(crate) fn fmt_hex(bytes: &[u8], f: &mut fmt::Formatter<'_>) -> fmt::Result {
     })
 }
 
-/// Bytes displayed as lowercase hex.
-pub(crate) struct HexBytes<'a>(pub &'a [u8]);
-
-impl fmt::Display for HexBytes<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt_hex(self.0, f)
-    }
-}
-
 /// Each ASCII byte's hex digit value (either case), `NOT_HEX` for any other byte.
 const NIBBLES: [u8; 256] = {
     let mut table = [NOT_HEX; 256];
@@ -94,53 +85,38 @@ pub(crate) fn parse_reversed_hex(digits: &[u8; 64]) -> Option<[u8; 32]> {
     Some(bytes)
 }
 
-/// A script's assembly exactly as rust-bitcoin's `Display` writes it, but each push's data in one
-/// hex run: rust-bitcoin formats it a byte at a time, which was most of a large address history's
-/// JSON time. A malformed script goes to rust-bitcoin's own formatter, keeping its diagnostics.
-pub(crate) struct Asm<'a>(pub &'a Script);
-
-impl fmt::Display for Asm<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let script = self.0;
-        if script
-            .instructions()
-            .any(|instruction| instruction.is_err())
+/// Appends a script's assembly exactly as rust-bitcoin's `Display` writes it, but each push's data
+/// in one hex run: rust-bitcoin formats it a byte at a time. A malformed script is rewritten by
+/// rust-bitcoin's own formatter, keeping its diagnostics.
+pub(crate) fn push_asm(script: &Script, out: &mut Vec<u8>) {
+    let start = out.len();
+    for (n, instruction) in script.instruction_indices().enumerate() {
+        let Ok((index, instruction)) = instruction else {
+            out.truncate(start);
+            write!(out, "{script}").expect("writing to a Vec cannot fail");
+            return;
+        };
+        if n > 0 {
+            out.push(b' ');
+        }
+        // The opcode as written, so a non-minimal push keeps its PUSHDATA width.
+        out.extend_from_slice(OPCODE_NAMES[usize::from(script.as_bytes()[index])].as_bytes());
+        if let Instruction::PushBytes(data) = instruction
+            && !data.is_empty()
         {
-            return fmt::Display::fmt(script, f);
+            out.push(b' ');
+            push_hex(data.as_bytes(), out);
         }
-        for (n, (index, instruction)) in script.instruction_indices().flatten().enumerate() {
-            if n > 0 {
-                f.write_str(" ")?;
-            }
-            // The opcode as written, so a non-minimal push keeps its PUSHDATA width.
-            match Opcode::from(script.as_bytes()[index]) {
-                OP_PUSHBYTES_0 => f.write_str("OP_0")?,
-                opcode => write!(f, "{opcode:?}")?,
-            }
-            if let Instruction::PushBytes(data) = instruction
-                && !data.is_empty()
-            {
-                f.write_str(" ")?;
-                fmt_hex(data.as_bytes(), f)?;
-            }
-        }
-        Ok(())
     }
 }
 
-/// Serializes a `Display` value as a string without building one (scripts: `Asm` is assembly,
-/// `HexBytes` is hex).
-pub(crate) struct DisplayStr<T>(pub T);
-
-impl<T: fmt::Display> serde::Serialize for DisplayStr<T> {
-    #[inline]
-    fn serialize<S: serde::Serializer>(
-        &self,
-        serializer: S,
-    ) -> std::result::Result<S::Ok, S::Error> {
-        serializer.collect_str(&self.0)
-    }
-}
+/// Each opcode's assembly name, as rust-bitcoin's `Debug` writes it but `OP_0` for an empty push.
+static OPCODE_NAMES: LazyLock<[Box<str>; 256]> = LazyLock::new(|| {
+    std::array::from_fn(|byte| match Opcode::from(byte as u8) {
+        OP_PUSHBYTES_0 => "OP_0".into(),
+        opcode => format!("{opcode:?}").into(),
+    })
+});
 
 /// The impls a 32-byte hash newtype (`struct $t([u8; 32])`) shares with its rust-bitcoin
 /// counterpart `$bitcoin`: owned and zero-cost reference conversions both ways, and Bitcoin's

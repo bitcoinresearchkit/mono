@@ -5,7 +5,7 @@ use bitcoin::{
 };
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use crate::{
     CheckedSub, RawLockTime, Sats, SigOpCount, SigOps, TxIn, TxIndex, TxOut, TxStatus,
@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Transaction information compatible with mempool.space API format
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 pub struct Transaction {
     /// Internal transaction index (brk-specific, not in mempool.space)
