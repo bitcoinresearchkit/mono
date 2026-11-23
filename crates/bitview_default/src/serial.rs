@@ -1,6 +1,6 @@
-//! The serial per-plugin CPU recompute of `bitviewd_bench` (feature `bench-cpu`): the composition's
-//! forks run one branch at a time ([`crate::dispatch`]), and every step's process CPU, less what
-//! the steps nested in it took, is added to its plugin's. Without the feature each item here is
+//! The serial per-plugin recompute of `bitviewd_bench` (feature `bench-cpu`): the composition's
+//! forks run one branch at a time ([`crate::dispatch`]), and every step's process counters (retired
+//! instructions, cycles, CPU time), less what the steps nested in it took, are added to its plugin's. Without the feature each item here is
 //! inert, so a production build is the code it always was.
 
 #[cfg(feature = "bench-cpu")]
@@ -34,22 +34,68 @@ pub fn compact(plugin: PluginId, db: Option<&Database>, context: UpdateContext<'
 mod on {
     use std::{
         collections::BTreeMap,
+        iter::Sum,
         mem,
-        sync::{
-            Mutex, OnceLock,
-            atomic::{AtomicU64, Ordering},
-        },
+        ops::{Add, AddAssign, Sub},
+        sync::{Mutex, OnceLock},
     };
 
     use bitview_plugin::PluginId;
 
-    /// The process's CPU time in nanoseconds; set once, by the benchmark, to start the recompute.
-    static CLOCK: OnceLock<fn() -> u64> = OnceLock::new();
-    static LEDGER: Mutex<BTreeMap<&'static str, u64>> = Mutex::new(BTreeMap::new());
-    /// CPU of the steps that ended inside the one now running.
-    static NESTED: AtomicU64 = AtomicU64::new(0);
+    /// What a step spends: the process's retired instructions and cycles, and its CPU time in
+    /// nanoseconds. Instructions are what co-running work barely moves; the other two are not.
+    #[derive(Clone, Copy, Default)]
+    pub struct Counts {
+        pub instructions: u64,
+        pub cycles: u64,
+        pub cpu_ns: u64,
+    }
 
-    pub fn start(clock: fn() -> u64) {
+    impl Add for Counts {
+        type Output = Self;
+        fn add(self, other: Self) -> Self {
+            Self {
+                instructions: self.instructions + other.instructions,
+                cycles: self.cycles + other.cycles,
+                cpu_ns: self.cpu_ns + other.cpu_ns,
+            }
+        }
+    }
+
+    impl AddAssign for Counts {
+        fn add_assign(&mut self, other: Self) {
+            *self = *self + other;
+        }
+    }
+
+    impl Sub for Counts {
+        type Output = Self;
+        fn sub(self, other: Self) -> Self {
+            Self {
+                instructions: self.instructions - other.instructions,
+                cycles: self.cycles - other.cycles,
+                cpu_ns: self.cpu_ns - other.cpu_ns,
+            }
+        }
+    }
+
+    impl Sum for Counts {
+        fn sum<I: Iterator<Item = Self>>(counts: I) -> Self {
+            counts.fold(Self::default(), Add::add)
+        }
+    }
+
+    /// Reads the process's counters; set once, by the benchmark, to start the recompute.
+    static CLOCK: OnceLock<fn() -> Counts> = OnceLock::new();
+    static LEDGER: Mutex<BTreeMap<&'static str, Counts>> = Mutex::new(BTreeMap::new());
+    /// The counters of the steps that ended inside the one now running.
+    static NESTED: Mutex<Counts> = Mutex::new(Counts {
+        instructions: 0,
+        cycles: 0,
+        cpu_ns: 0,
+    });
+
+    pub fn start(clock: fn() -> Counts) {
         CLOCK
             .set(clock)
             .expect("the serial CPU recompute started twice");
@@ -59,8 +105,8 @@ mod on {
         CLOCK.get().is_some()
     }
 
-    /// The CPU each plugin took since the last call, by plugin id.
-    pub fn take() -> BTreeMap<&'static str, u64> {
+    /// What each plugin spent since the last call, by plugin id.
+    pub fn take() -> BTreeMap<&'static str, Counts> {
         mem::take(&mut *LEDGER.lock().expect("serial CPU ledger is poisoned"))
     }
 
@@ -70,9 +116,9 @@ mod on {
 
     struct Running {
         plugin: PluginId,
-        clock: fn() -> u64,
-        start: u64,
-        outer_nested: u64,
+        clock: fn() -> Counts,
+        start: Counts,
+        outer_nested: Counts,
     }
 
     pub fn step(plugin: PluginId) -> Step {
@@ -80,7 +126,7 @@ mod on {
             plugin,
             clock,
             start: clock(),
-            outer_nested: NESTED.swap(0, Ordering::Relaxed),
+            outer_nested: mem::take(&mut *NESTED.lock().expect("serial nesting is poisoned")),
         }))
     }
 
@@ -94,13 +140,13 @@ mod on {
                 return;
             };
             let elapsed = clock() - start;
-            let own = elapsed - NESTED.load(Ordering::Relaxed);
+            let mut nested = NESTED.lock().expect("serial nesting is poisoned");
             *LEDGER
                 .lock()
                 .expect("serial CPU ledger is poisoned")
                 .entry(plugin.as_str())
-                .or_default() += own;
-            NESTED.store(outer_nested + elapsed, Ordering::Relaxed);
+                .or_default() += elapsed - *nested;
+            *nested = outer_nested + elapsed;
         }
     }
 }

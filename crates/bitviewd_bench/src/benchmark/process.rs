@@ -5,6 +5,8 @@ use std::{
     path::Path,
 };
 
+use bitview_default::serial::Counts;
+
 #[cfg(target_os = "linux")]
 use std::{fs, io::ErrorKind};
 
@@ -23,12 +25,20 @@ const PEAK: &str = "peak_physical_bytes";
 #[cfg(target_os = "linux")]
 const PEAK: &str = "peak_resident_bytes";
 
+/// `cpu.csv`'s counters after the CPU times: the process's retired instructions and cycles
+/// (macOS's `proc_pid_rusage`; Linux has no such counter without `perf_event_open`).
+#[cfg(target_os = "macos")]
+const COUNTERS: &str = ",instructions,cycles";
+#[cfg(target_os = "linux")]
+const COUNTERS: &str = "";
+
 struct Sample {
     physical: u64,
     peak: u64,
     resident: u64,
     read: u64,
     written: u64,
+    counters: Option<(u64, u64)>,
 }
 
 impl ProcessMonitor {
@@ -41,7 +51,7 @@ impl ProcessMonitor {
         let mut io = BufWriter::new(File::create(path.join("io.csv"))?);
         writeln!(io, "timestamp_ms,read_bytes,written_bytes,page_ins")?;
         let mut cpu = BufWriter::new(File::create(path.join("cpu.csv"))?);
-        writeln!(cpu, "timestamp_ms,user_ms,system_ms")?;
+        writeln!(cpu, "timestamp_ms,user_ms,system_ms{COUNTERS}")?;
         Ok(Self {
             pid,
             memory,
@@ -65,9 +75,12 @@ impl ProcessMonitor {
             "{elapsed_ms},{},{},{}",
             sample.read, sample.written, usage.ru_majflt
         )?;
+        let counters = sample
+            .counters
+            .map_or(String::new(), |(instructions, cycles)| format!(",{instructions},{cycles}"));
         writeln!(
             self.cpu,
-            "{elapsed_ms},{},{}",
+            "{elapsed_ms},{},{}{counters}",
             millis(usage.ru_utime),
             millis(usage.ru_stime)
         )?;
@@ -78,30 +91,14 @@ impl ProcessMonitor {
 
     #[cfg(target_os = "macos")]
     fn sample(&self) -> io::Result<Sample> {
-        let mut info = MaybeUninit::<libc::rusage_info_v4>::zeroed();
-        // SAFETY: `RUSAGE_INFO_V4` fills a `rusage_info_v4`.
-        let result = unsafe {
-            libc::proc_pid_rusage(
-                self.pid as i32,
-                libc::RUSAGE_INFO_V4,
-                info.as_mut_ptr().cast(),
-            )
-        };
-        if result != 0 {
-            let error = Error::last_os_error();
-            return Err(Error::new(
-                error.kind(),
-                format!("Failed to read process usage: {error}"),
-            ));
-        }
-        // SAFETY: initialized by the successful call above.
-        let info = unsafe { info.assume_init() };
+        let info = rusage_v4(self.pid)?;
         Ok(Sample {
             physical: info.ri_phys_footprint,
             peak: info.ri_lifetime_max_phys_footprint,
             resident: info.ri_resident_size,
             read: info.ri_diskio_bytesread,
             written: info.ri_diskio_byteswritten,
+            counters: Some((info.ri_instructions, info.ri_cycles)),
         })
     }
 
@@ -118,6 +115,7 @@ impl ProcessMonitor {
             resident: proc_field(&status, "VmRSS")? * 1024,
             read: proc_field(&io, "read_bytes")?,
             written: proc_field(&io, "write_bytes")?,
+            counters: None,
         })
     }
 }
@@ -133,10 +131,43 @@ fn usage() -> io::Result<libc::rusage> {
     Ok(unsafe { usage.assume_init() })
 }
 
-/// This process's user plus system CPU time, in microseconds.
-pub fn cpu_micros() -> io::Result<u64> {
+/// A process's resource usage, with the kernel's retired-instruction and cycle counters.
+#[cfg(target_os = "macos")]
+fn rusage_v4(pid: u32) -> io::Result<libc::rusage_info_v4> {
+    let mut info = MaybeUninit::<libc::rusage_info_v4>::zeroed();
+    // SAFETY: `RUSAGE_INFO_V4` fills a `rusage_info_v4`.
+    let result = unsafe {
+        libc::proc_pid_rusage(pid as i32, libc::RUSAGE_INFO_V4, info.as_mut_ptr().cast())
+    };
+    if result != 0 {
+        let error = Error::last_os_error();
+        return Err(Error::new(
+            error.kind(),
+            format!("Failed to read process usage: {error}"),
+        ));
+    }
+    // SAFETY: initialized by the successful call above.
+    Ok(unsafe { info.assume_init() })
+}
+
+/// What this process has spent so far: the serial recompute's clock.
+#[cfg(target_os = "macos")]
+pub fn counts() -> io::Result<Counts> {
+    let info = rusage_v4(std::process::id())?;
     let usage = usage()?;
-    Ok(micros(usage.ru_utime) + micros(usage.ru_stime))
+    Ok(Counts {
+        instructions: info.ri_instructions,
+        cycles: info.ri_cycles,
+        cpu_ns: (micros(usage.ru_utime) + micros(usage.ru_stime)) * 1_000,
+    })
+}
+
+#[cfg(target_os = "linux")]
+pub fn counts() -> io::Result<Counts> {
+    Err(Error::new(
+        io::ErrorKind::Unsupported,
+        "retired-instruction counters need macOS's proc_pid_rusage",
+    ))
 }
 
 fn millis(time: libc::timeval) -> u64 {
