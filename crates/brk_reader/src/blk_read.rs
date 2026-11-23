@@ -1,5 +1,4 @@
 use std::{
-    fs::File,
     io::{BufReader, Read, Result},
     os::unix::fs::FileExt,
     sync::Arc,
@@ -8,7 +7,7 @@ use std::{
 use brk_error::Result as ErrorResult;
 use brk_types::BlkPosition;
 
-use crate::{Reader, XORBytes, XORIndex};
+use crate::{Reader, XORBytes, XORIndex, reader_inner::BlkFile};
 
 /// Sequential reader from a blk-file position, XOR-decoded. Buffered: the
 /// consensus decoders read field by field, and each unbuffered read would be
@@ -21,7 +20,7 @@ pub struct BlkRead {
 }
 
 struct PositionedFile {
-    file: Arc<File>,
+    file: Arc<BlkFile>,
     offset: u64,
 }
 

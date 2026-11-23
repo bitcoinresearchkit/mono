@@ -1,6 +1,6 @@
-use std::{collections::BTreeMap, fs::File, path::PathBuf, sync::Arc};
+use std::{fs::File, ops::Deref, path::PathBuf, sync::Arc};
 
-use arc_swap::ArcSwap;
+use arc_swap::{ArcSwap, ArcSwapOption};
 use bitcoin::Network;
 use brk_error::Result;
 use brk_rpc::Client;
@@ -9,8 +9,31 @@ use parking_lot::Mutex;
 
 use crate::XORBytes;
 
-// Bounds retained descriptors, not handles still owned by active readers.
-const MAX_CACHED_FILES: usize = 64;
+/// Open blk files kept, direct-mapped by index (5,881 files on mainnet, 2026-11): a file stays
+/// open until one a multiple of `BLK_SLOTS` away is read, and a miss replaces one slot. Bounds the
+/// descriptors kept, not handles still owned by active readers.
+const BLK_SLOTS: usize = 1024;
+
+/// An open blk file and its index.
+#[derive(Debug)]
+pub struct BlkFile {
+    index: u16,
+    file: File,
+}
+
+impl Deref for BlkFile {
+    type Target = File;
+
+    fn deref(&self) -> &File {
+        &self.file
+    }
+}
+
+type BlkSlots = Box<[ArcSwapOption<BlkFile>]>;
+
+fn empty_slots() -> Arc<BlkSlots> {
+    Arc::new((0..BLK_SLOTS).map(|_| ArcSwapOption::empty()).collect())
+}
 
 /// Where the last block streamed ends in its blk file: the next blocks are usually appended
 /// right after it.
@@ -24,7 +47,7 @@ pub struct AppendPosition {
 
 #[derive(Debug)]
 pub struct ReaderInner {
-    blk_file_cache: ArcSwap<BTreeMap<u16, Arc<File>>>,
+    blk_files: ArcSwap<BlkSlots>,
     append_position: Mutex<Option<AppendPosition>>,
     pub chain: &'static Chain,
     pub magic: [u8; 4],
@@ -39,7 +62,7 @@ impl ReaderInner {
             chain: Chain::for_network(network),
             magic: network.magic().to_bytes(),
             xor_bytes: XORBytes::read(&blocks_dir)?.unwrap_or_default(),
-            blk_file_cache: ArcSwap::default(),
+            blk_files: ArcSwap::new(empty_slots()),
             append_position: Mutex::default(),
             blocks_dir,
             client: client.clone(),
@@ -57,28 +80,28 @@ impl ReaderInner {
     /// Forgets the descriptors raw reads keep, for when the blk files may have been replaced.
     /// Active readers keep their existing handle; subsequent opens resolve the current path.
     pub fn close_blk_files(&self) {
-        self.blk_file_cache.store(Arc::default());
+        self.blk_files.store(empty_slots());
     }
 
     pub fn blk_path(&self, blk_index: u16) -> PathBuf {
         self.blocks_dir.join(format!("blk{blk_index:05}.dat"))
     }
 
-    pub fn open_blk(&self, blk_index: u16) -> Result<Arc<File>> {
-        let cache = self.blk_file_cache.load();
-        if let Some(file) = cache.get(&blk_index) {
+    pub fn open_blk(&self, blk_index: u16) -> Result<Arc<BlkFile>> {
+        let slots = self.blk_files.load();
+        let slot = &slots[usize::from(blk_index) % BLK_SLOTS];
+        let current = slot.load();
+        if let Some(file) = current.as_ref().filter(|file| file.index == blk_index) {
             return Ok(file.clone());
         }
-        let file = Arc::new(File::open(self.blk_path(blk_index))?);
-        let mut next = BTreeMap::clone(&cache);
-        if next.len() == MAX_CACHED_FILES {
-            // Favor newer block files without LRU work on hits.
-            next.pop_first();
-        }
-        next.insert(blk_index, file.clone());
-        // Only over the map this open started from: after a close (or a racing insert) the
-        // handle stays uncached, so an open begun before a close never reinserts its old inode.
-        self.blk_file_cache.compare_and_swap(&cache, Arc::new(next));
+        let file = Arc::new(BlkFile {
+            index: blk_index,
+            file: File::open(self.blk_path(blk_index))?,
+        });
+        // Only over the slot this open saw: a racing open keeps its own handle. After a close the
+        // slots are new and this lands in the dropped ones, so an open begun before a close never
+        // keeps its old inode.
+        slot.compare_and_swap(&current, Some(file.clone()));
         Ok(file)
     }
 }
