@@ -134,6 +134,20 @@ impl DefaultPlugins {
         self.indexer.vecs().next_height().decremented()
     }
 
+    /// Closes the composition and removes every plugin's data but the indexer's, so the next
+    /// bootstrap computes them all from zero over the indexed chain: the benchmark's serial
+    /// recompute.
+    #[cfg(feature = "bench-cpu")]
+    pub fn remove_computed(self, context: bitview_plugin::ImportContext<'_>) -> Result<()> {
+        drop(self);
+        let _lock = context.exit().lock();
+        bitview_plugin::PluginStorage::remove_plugin_data(
+            context,
+            |name| name == bitview_plugin_indexer::ID.as_str(),
+            "the benchmark computes it again from zero",
+        )
+    }
+
     /// Starts each plugin once every plugin its `Dependencies` borrow has computed, keeping each
     /// plugin's internal order, inside rayon's pool. The long branches each run whole on the first
     /// worker to come free, out of reach of other workers' waits: Inputs, Outputs, Transactions

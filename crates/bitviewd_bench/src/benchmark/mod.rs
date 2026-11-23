@@ -12,7 +12,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use bitview::UpdateContext;
+use bitview::{ImportContext, UpdateContext};
 use bitview_default::DefaultPlugins;
 use brk_error::{Error, Result};
 use brk_logger::register_hook;
@@ -28,7 +28,7 @@ use crate::quiet;
 mod disk;
 pub mod metadata;
 mod process;
-mod replay;
+mod serial_cpu;
 mod trace;
 
 #[derive(Clone)]
@@ -146,10 +146,17 @@ impl Benchmark {
         &self.0.path
     }
 
-    /// After the timed run: replays its last blocks serially, one plugin at a time, and records
-    /// each plugin's CPU per block (see the README).
-    pub fn replay(&self, plugins: &mut DefaultPlugins, context: UpdateContext<'_>) -> Result<()> {
-        replay::run(self.path(), plugins, context)
+    /// After the timed run, one plugin at a time: replays its last blocks and records each
+    /// plugin's CPU per block, then computes every plugin but the indexer again from zero with
+    /// `sync` and records each one's CPU (see the README).
+    pub fn serial_cpu(
+        &self,
+        plugins: DefaultPlugins,
+        import_context: ImportContext<'_>,
+        context: UpdateContext<'_>,
+        sync: impl FnOnce() -> Result<DefaultPlugins>,
+    ) -> Result<()> {
+        serial_cpu::run(self.path(), plugins, import_context, context, sync)
     }
 
     pub fn measure<T>(&self, measure: impl FnOnce() -> Result<T>) -> Result<T> {

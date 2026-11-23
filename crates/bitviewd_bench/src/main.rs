@@ -58,15 +58,17 @@ fn run() -> Result<()> {
         }
     });
 
+    let import_context = ImportContext::new(&data_path, &exit);
     let update_context = UpdateContext::new(&exit);
-    let mut plugins = benchmark.measure(|| {
+    let sync = || {
         bootstrap(
-            ImportContext::new(&data_path, &exit),
+            import_context,
             |context| DefaultPlugins::import(context, &reader),
             update_context,
         )
-    })?;
-    benchmark.replay(&mut plugins, update_context)?;
+    };
+    let plugins = benchmark.measure(sync)?;
+    benchmark.serial_cpu(plugins, import_context, update_context, sync)?;
     info!("Benchmark saved to {}", benchmark.path().display());
     Ok(())
 }

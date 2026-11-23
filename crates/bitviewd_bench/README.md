@@ -75,6 +75,7 @@ progress.csv        # heights from production log events, with their source (`in
 run.csv             # total bootstrap duration and status (complete, failed or aborted)
 timings.csv         # every completed production plugin import and compute interval
 serial_cpu_samples.csv # the serial-replay CPU of each plugin in each block
+serial_compute.csv  # each plugin's serial CPU computing from zero over the run's indexed chain
 ```
 
 On macOS the footprint and its peak are the kernel's (`physical_bytes`,
@@ -89,18 +90,21 @@ Bitcoin Core synchronization and the initial and final recursive disk scans
 are outside the timed interval. The per-minute scans run inside it, on their own
 thread, so their small metadata reads are part of the recorded I/O.
 
-### Serial replay CPU
+### Serial CPU
 
-The timed run's plugins overlap on threads, so their durations say nothing about the CPU each
-one spends. After the run, fresh or resumed, the last 10
+The timed run's plugins overlap on threads, and a plugin waiting in a rayon join runs other
+plugins' stolen work, so their durations say nothing about the CPU each one spends (Market read
+327 s and 91 s in two runs of one commit). Two serial runs follow the timed one, fresh or resumed,
+the composition's forks run one branch at a time, so the process CPU (`getrusage`, user plus
+system) between a plugin's start and end is its own, less the steps nested in it (the shared
+history walk is its own `walk` step; Age, Profitability and URPD run inside it). A plugin's
+internal parallelism is unchanged.
+
+First the last 10
 blocks (`UNDO_TAIL`, the undo the run already keeps) are rolled back and applied again one at a
 time, with Bitcoin Core on its full chain. The first is unmeasured: it restores the plugins' live
-state. Each of the others is one production update with the composition's forks run one branch at
-a time, so the process CPU (`getrusage`, user plus system) between a plugin's start and end is its
-own, less the steps nested in it (the shared history walk is its own `walk` step; Age,
-Profitability and URPD run inside it). A plugin's internal parallelism is unchanged, and what an
-update leaves running in the background (the indexer's ingestion and compaction, freeing the
-blocks) is joined into the indexer's step.
+state. Each of the others is one production update; what it leaves running in the background (the
+indexer's ingestion and compaction, freeing the blocks) is joined into the indexer's step.
 
 `serial_cpu_samples.csv` has `height,plugin,serial_cpu_ms`, one row per plugin per block, and
 `total` (the whole update) and `unattributed` (`total` less the plugins: the schedule, logging and
@@ -109,4 +113,13 @@ helper threads between steps), for the 9 measured blocks.
 These are serial-replay CPU per block, not production CPU. The vectors' delayed compaction, 5 s
 after an update (`bitview_plugin/src/update_context.rs`), is not counted. Compare plugins with each
 other and a plugin with its own earlier run, never with the timed run's durations, and gate nothing
-on one plugin's number: nine blocks of one machine in one state.
+on one plugin's number: each run replays other blocks, and Addresses' median read 305 ms and
+1,241 ms in two runs of one commit (dc2ba6a2a).
+
+Then every plugin's data but the indexer's is removed and the bootstrap runs again on the indexed
+chain, so each plugin computes all of it from zero, one at a time (the indexer only indexes the
+blocks that arrived meanwhile). `serial_compute.csv` has `plugin,serial_cpu_ms`, then `total` (the
+whole bootstrap) and `unattributed` (the imports, the schedule, logging and helpers between
+steps). This is each plugin's cost from zero, the same chain for every run, where the timed run's
+intervals are its schedule; the benchmarks page holds it to the best. It adds about the compute
+stage's time again, serially, to a bench.
