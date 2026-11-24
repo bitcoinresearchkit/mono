@@ -1591,7 +1591,7 @@
             </div>
             <figcaption><span id="distribution-span">Daily history</span>Bars: the time at each value, stacked by trend, bear at the foot. Line: the share of time below, on the right. Point or slide to read a bar; press a trend to hide it.</figcaption>
           </figure>
-          <p class="sr" id="distribution-help">Two-point buckets include their lower edge; the last includes 100. Cumulative shares count time below a bucket's lower edge, each day counting half as much every four years back. Full history through today, independent of replay. Use the arrow keys, Home and End to read buckets. Escape returns to today.</p>
+          <p class="sr" id="distribution-help">Two-point buckets include their lower edge; the last includes 100. Cumulative shares count time below a bucket's lower edge, each day counting half as much every four years back. The days counted run up to the day shown above, as known that day. Use the arrow keys, Home and End to read buckets. Escape returns to the day shown.</p>
         </div>
       </section>
 
@@ -2027,7 +2027,8 @@
       /** The sections on screen, by id. The compass (its cells' words, its trail, the strip, the panel: all as of
        * told.day) follows the day shown, which a drag on the chart moves every frame; off screen it's told only for new
        * days (at 4x CPU, telling it every frame was most of a drag's main thread: 1.8-2.4 s against 0.8 s without), and
-       * catches up as it comes into view. */
+       * catches up as it comes into view. The index chart and its distribution, as of the day too, are drawn only on
+       * screen alike (at 4x CPU during Play, drawn off screen they were 2.5 ms of a frame's 3). */
       const seen = new Set();
       /** Whether the compass is behind the day told (told while off screen). */
       let compassBehind = false;
@@ -2035,8 +2036,9 @@
         for (const e of entries) e.isIntersecting ? seen.add(e.target.id) : seen.delete(e.target.id);
         if (compassBehind && seen.has("atlas")) (compassBehind = false), tellCompass(toldDay);
         redraw();
+        refreshDistribution();
       });
-      seeing.observe($("atlas"));
+      for (const id of ["atlas", "index-chart", "distribution"]) seeing.observe($(id));
       /** The page's drawings, once a frame: a playing day moved on, the chart's series for what's lit, then the compass,
        * the strip, the index and the pan bar. */
       function frame(/** @type {number} */ now) {
@@ -2046,7 +2048,7 @@
         placeHero();
         drawCompass();
         drawStrip();
-        placeIndex();
+        if (seen.has("index-chart")) placeIndex();
         drawPan();
         if (more) redraw();
       }
@@ -2219,6 +2221,8 @@
         if (!say && shownDay() === toldDay && days === toldDays && failing === toldFailing) return sayToday();
         const anew = days !== toldDays;
         (toldDay = shownDay()), (toldDays = days), (toldFailing = failing);
+        // (The index and its distribution as of the day: drawn in the next frame.)
+        refreshDistribution(), redraw();
         const d = days, day = shownDay(), s = d.state[day], state = STATES[s];
         sayToday();
         give($("hero-name"), state.name);
@@ -2389,8 +2393,8 @@
       }
 
       // ── The index, in a part of its own: every day from a year after the first to today, in its trends' colours, on a
-      // chart of its own as the price's is (Studio's): today ringed, its value tagged on its axis and its date and price
-      // along its foot, both for the day it reads (indexDay) ──
+      // chart of its own as the price's is (Studio's), as of the day told: that day ringed, the days after it faded; its
+      // value tagged on its axis and its date and price along its foot, both for the day it reads (indexDay) ──
 
       const indexChart = $("index-chart");
       /** Its room over 100 (CSS pixels: its number's words, more than a mark's room, MARK), its tags' axis' least width, its dates' row. */
@@ -2400,13 +2404,13 @@
       indexEngine.theme = indexThemeOf(paletteOf(matchMedia("(prefers-color-scheme: dark)").matches));
       const indexPane = indexEngine.addPane({ scale: { mode: "linear", top: 0, bottom: 0 }, format: () => "" });
       /** The day its tags and its date read: the crosshair's (on the indexed days: past today, today's, as the header
-       * reads the hero's), else the last in view (as Studio's legend reads). */
+       * reads the hero's), else the day told. */
       function indexDay() {
-        const d = /** @type {Days} */ (days), time = indexEngine.time, at = indexEngine.crosshair.index;
-        return Math.max(time.first, Math.min(d.last, at === at ? at : time.lastVisible));
+        const d = /** @type {Days} */ (days), at = indexEngine.crosshair.index;
+        return at === at ? Math.max(indexEngine.time.first, Math.min(d.last, at)) : toldDay;
       }
-      /** Its quarters' numbers at its left, over the line (haloed, so the line through one stays out of its way); today
-       * ringed; its value on the day read tagged on its axis, in that day's trend's colour. */
+      /** Its quarters' numbers at its left, over the line (haloed, so the line through one stays out of its way); the
+       * day told ringed; its value on the day read tagged on its axis, in that day's trend's colour. */
       const indexMarks = indexPane.add(new Custom({
         draw(g, { time, scale }) {
           if (!days) return;
@@ -2414,10 +2418,11 @@
           (g.font = FONTS.small), (g.textBaseline = "alphabetic"), (g.textAlign = "left"), (g.lineJoin = "round");
           (g.lineWidth = 3), (g.strokeStyle = paint.app), (g.fillStyle = paint.faint);
           for (const at of INDEX_TICKS) g.strokeText(String(at), 4, scale.y(at) - 4), g.fillText(String(at), 4, scale.y(at) - 4);
-          if (d.last < time.from || d.last > time.to) return;
+          const day = toldDay, value = d.index[day];
+          if (!(day >= time.from && day <= time.to && value === value)) return;
           g.beginPath();
-          g.arc(time.x(d.last), scale.y(d.index[d.last]), 4.5, 0, Math.PI * 2);
-          (g.fillStyle = colorAt(paint, d, d.last, "trend")), g.fill();
+          g.arc(time.x(day), scale.y(value), 4.5, 0, Math.PI * 2);
+          (g.fillStyle = colorAt(paint, d, day, "trend")), g.fill();
           (g.lineWidth = 2), (g.strokeStyle = paint.app), g.stroke();
         },
         axisTags(side, add, scale) {
@@ -2435,11 +2440,11 @@
       indexMarks.fit = (_a, _b, _positive, out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
       // (Its tags read the crosshair's day: told again as it moves.)
       indexEngine.onCrosshair(() => (indexMarks.changed(), indexEngine.invalidate()));
-      /** Its series, for its days, colours and what's lit; its timeline on the indexed days, all of
+      /** Its series, for its days, colours, what's lit and the day told; its timeline on the indexed days, all of
        * them in view as they begin elsewhere (a new day moves a view ending on it with it). */
       let indexKey = "", indexPlaced = /** @type {ReturnType<typeof indexOf>} */ ([]);
       function placeIndex() {
-        const d = /** @type {Days} */ (days), key = `${drawings}|${litKey(lit)}`, from = indexedFrom(d), time = indexEngine.time;
+        const d = /** @type {Days} */ (days), key = `${drawings}|${litKey(lit)}|${toldDay}`, from = indexedFrom(d), time = indexEngine.time;
         if (time.first !== from || time.length !== d.last + 1) {
           const all = time.first !== from || !time.length;
           time.first = from;
@@ -2448,9 +2453,11 @@
         }
         if (key === indexKey) return;
         indexKey = key;
-        for (const series of indexPlaced) indexPane.remove(series);
-        indexPlaced = indexOf(d, paint, lit);
-        for (const series of indexPlaced) indexPane.add(series);
+        const placed = indexOf(d, paint, lit, toldDay);
+        if (placed !== indexPlaced) {
+          for (const series of indexPlaced) indexPane.remove(series);
+          for (const series of (indexPlaced = placed)) indexPane.add(series);
+        }
         indexMarks.changed();
         indexEngine.invalidate(true);
       }
@@ -2474,17 +2481,30 @@
       /** A distribution: each bar's time (its days, each weighted by recency) and days, the time up to each bar's top,
        * and the whole time. */
       const emptyDistribution = () => ({ counts: new Float64Array(DISTRIBUTION_BINS), days: new Uint32Array(DISTRIBUTION_BINS), cumulative: new Float64Array(DISTRIBUTION_BINS), total: 0 });
-      /** Counts and cumulative counts share exactly the same eligible days and denominator; each day by its weight, as
-       * the index ranks it. */
-      function distributionOf(/** @type {Days} */ d) {
+      /** Each indexed day's bar in its trend (trend × bars + bar; -1, none: no value) and its weight, as the index ranks
+       * it: found once for the days, so a count as of another day is one pass over typed arrays. */
+      function slotsOf(/** @type {Days} */ d) {
+        const from = indexedFrom(d), slots = new Int16Array(Math.max(0, d.last - from + 1)).fill(-1), weights = new Float64Array(slots.length);
+        for (let i = from; i <= d.last; i++) {
+          const value = distributionValue(d.index[i]);
+          if (!Number.isFinite(value)) continue;
+          slots[i - from] = STATES[d.state[i]].trend * DISTRIBUTION_BINS + bucketOf(value);
+          weights[i - from] = weight(i);
+        }
+        return { from, slots, weights };
+      }
+      /** The distribution as of `day`: the indexed days up to it, what was known then. Counts and cumulative counts share
+       * exactly the same eligible days and denominator; each day by its weight (a later day's own weights are these
+       * times a constant, so its shares are the same). */
+      function distributionOf(/** @type {ReturnType<typeof slotsOf>} */ { from, slots, weights }, /** @type {number} */ day) {
         const trends = TRENDS.map(emptyDistribution);
-        for (let i = indexedFrom(d); i <= d.last; i++) {
-          const value = distributionValue(d.index[i]), trend = trends[STATES[d.state[i]].trend];
-          if (!trend || !Number.isFinite(value)) continue;
-          const b = bucketOf(value), w = weight(i);
-          trend.counts[b] += w;
+        for (let k = 0, end = Math.min(slots.length, day - from + 1); k < end; k++) {
+          const slot = slots[k];
+          if (slot < 0) continue;
+          const trend = trends[Math.floor(slot / DISTRIBUTION_BINS)], b = slot % DISTRIBUTION_BINS;
+          trend.counts[b] += weights[k];
           trend.days[b]++;
-          trend.total += w;
+          trend.total += weights[k];
         }
         for (const trend of trends) {
           let count = 0;
@@ -2517,7 +2537,9 @@
           if (count < total && (total - count) * 1000 < total) return ">99.9%";
           return percent.format(count / total);
         };
-        let source = /** @type {Days | null} */ (null), histogram = /** @type {ReturnType<typeof distributionOf>} */ ([]);
+        // (The days' slots, found again for new days; the day counted to, the day told, counted again as it changes.)
+        let source = /** @type {Days | null} */ (null), slotted = /** @type {ReturnType<typeof slotsOf>} */ ({ from: 0, slots: new Int16Array(), weights: new Float64Array() });
+        let counted = NaN, histogram = /** @type {ReturnType<typeof distributionOf>} */ ([]);
         let selected = /** @type {number | null} */ (null), pending = 0;
         let combined = emptyDistribution();
         // (Its figures led by the bar they're at.)
@@ -2527,8 +2549,11 @@
         const belowOf = (/** @type {ReturnType<typeof emptyDistribution>} */ trend, /** @type {number} */ b) => (b ? trend.cumulative[b - 1] : 0);
         input.max = String(DISTRIBUTION_BINS - 1);
         const margins = { left: 6, right: 40, top: 24, bottom: 30 };
-        const layout = () => ({ left: margins.left, right: canvas.clientWidth - margins.right, top: margins.top, bottom: canvas.clientHeight - margins.bottom });
-        const latest = (/** @type {Days} */ d) => d.last >= indexedFrom(d) ? distributionValue(d.index[d.last]) : NaN;
+        // (Its size as last laid out, a draw reading no layout: see sized.)
+        const size = sized(canvas);
+        const layout = () => ({ left: margins.left, right: size.w - margins.right, top: margins.top, bottom: size.h - margins.bottom });
+        /** The index on the day counted to, none in the warm-up before there is one. */
+        const valueOn = (/** @type {Days} */ d) => (counted >= indexedFrom(d) ? distributionValue(d.index[counted]) : NaN);
         const schedule = () => { pending ||= requestAnimationFrame(() => { pending = 0; draw(); }); };
         const inspect = (/** @type {number | null} */ bucket) => {
           if (bucket === selected) return;
@@ -2560,7 +2585,7 @@
         });
 
         function paintBase(/** @type {CanvasRenderingContext2D} */ g, /** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined, /** @type {number} */ dpr) {
-          const w = canvas.clientWidth, h = canvas.clientHeight, { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS;
+          const { w, h } = size, { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS;
           const bar = barStyle(step);
           // (Its bars in percents of the time shown.)
           const percentOf = 100 / (combined.total || 1), maximum = Math.max(...combined.counts) * percentOf, increment = Math.max(2, 10 ** Math.floor(Math.log10(maximum || 1)) / 2);
@@ -2579,8 +2604,8 @@
           g.fillStyle = paint.faint; g.textAlign = "right"; g.fillText("Share of time below", w, 7);
           g.textAlign = "center";
           for (const value of [0, 20, 40, 60, 80, 100]) g.fillText(String(value), left + value / 100 * (right - left), h - 8);
-          // (Today's bar whole, the rest a little quieter.)
-          const today = latest(d), todays = Number.isFinite(today) ? bucketOf(today) : -1;
+          // (The day's bar whole, the rest a little quieter.)
+          const dayValue = valueOn(d), dayBar = Number.isFinite(dayValue) ? bucketOf(dayValue) : -1;
           for (let b = 0; b < DISTRIBUTION_BINS; b++) {
             const center = left + (b + 0.5) * step;
             const x = Math.round((center - bar.width / 2) * dpr) / dpr, end = Math.round((center + bar.width / 2) * dpr) / dpr;
@@ -2590,7 +2615,7 @@
               const count = histogram[t].counts[b] * percentOf;
               if (!visible[t] || !count) continue;
               const cy = y((sum + count) / ceiling), height = y(sum / ceiling) - cy;
-              g.fillStyle = withAlpha(paint.trends[t], b === todays ? 0.95 : 0.6);
+              g.fillStyle = withAlpha(paint.trends[t], b === dayBar ? 0.95 : 0.6);
               g.beginPath();
               if (t === top && bar.radius) g.roundRect(x, cy, end - x, height, [bar.radius, bar.radius, 0, 0]);
               else g.rect(x, cy, end - x, height);
@@ -2604,17 +2629,17 @@
             combined.cumulative.forEach((count, b) => g.lineTo(left + (b + 1) * step, y(count / combined.total)));
             (g.strokeStyle = paint.ink), (g.lineWidth = 1.8), g.stroke();
           }
-          // Today's value: its mark and its name under the axis (the side with room) over its bar, drawn stronger; the
-          // curve ringed where it meets the bar, its share below there said beside it (the side with room).
-          if (Number.isFinite(today) && maximum) {
-            const x = left + today / 100 * (right - left);
+          // The day's value: its mark and its name ("Today" or its date) under the axis (the side with room) over its bar,
+          // drawn stronger; the curve ringed where it meets the bar, its share below there said beside it (the side with room).
+          if (Number.isFinite(dayValue) && maximum) {
+            const x = left + dayValue / 100 * (right - left);
             g.fillStyle = paint.ink; g.beginPath(); g.moveTo(x, bottom + 5); g.lineTo(x - 4, bottom + 11); g.lineTo(x + 4, bottom + 11); g.closePath(); g.fill();
             (g.font = FONTS.strong), (g.textBaseline = "middle"), (g.lineWidth = 3), (g.lineJoin = "round"), (g.strokeStyle = paint.app);
-            const after = x + 9 + g.measureText("Today").width <= w;
-            (g.textAlign = after ? "left" : "right"), g.fillText("Today", after ? x + 9 : x - 9, bottom + 9);
+            const named = dayName(d, counted), after = x + 9 + g.measureText(named).width <= w;
+            (g.textAlign = after ? "left" : "right"), g.fillText(named, after ? x + 9 : x - 9, bottom + 9);
             if (combined.total) {
               // (Nothing below it: the headline says so, the dot on the axis needs no number.)
-              const b = bucketOf(today), cx = left + b * step, cy = y(belowOf(combined, b) / combined.total), said = share(belowOf(combined, b), combined.total);
+              const b = bucketOf(dayValue), cx = left + b * step, cy = y(belowOf(combined, b) / combined.total), said = share(belowOf(combined, b), combined.total);
               const wide = g.measureText(said).width, room = cx - 8 - wide >= left;
               g.beginPath(), g.arc(cx, cy, 3.5, 0, Math.PI * 2), (g.fillStyle = paint.ink), g.fill(), (g.lineWidth = 2), g.stroke();
               if (belowOf(combined, b)) {
@@ -2627,46 +2652,50 @@
           }
           if (!maximum) {
             g.fillStyle = paint.ink; g.textAlign = "center";
-            g.fillText(visible.some(Boolean) ? "No days in these trends" : "Choose a trend above", (left + right) / 2, (top + bottom) / 2);
+            g.fillText(!visible.some(Boolean) ? "Choose a trend above" : histogram.some((t) => t.total) ? "No days in these trends" : "No days yet", (left + right) / 2, (top + bottom) / 2);
           }
         }
 
         function readBucket(/** @type {Days} */ d, /** @type {ReturnType<typeof distributionOf>} */ histogram, /** @type {ReturnType<typeof emptyDistribution>} */ combined) {
-          const today = latest(d), b = selected ?? bucketOf(today), valid = Number.isFinite(b);
+          const dayValue = valueOn(d), b = selected ?? bucketOf(dayValue), valid = Number.isFinite(b);
+          // (Said as of the day: today's in the present, an earlier day's in the past.)
+          const named = dayName(d, counted), has = named === "Today" ? "has" : "had";
           const interval = `${b * DISTRIBUTION_WIDTH}–${(b + 1) * DISTRIBUTION_WIDTH}`;
           // (The answer in a sentence, the value and the share apart: how much of the time the line sat lower, the curve's
           // height at the bar; none, "in a lower bar" (a bar's own days are as low as the bar), and the rest by the share's own words.)
           const lower = valid && combined.total ? belowOf(combined, b) : NaN;
           const time = !lower ? "" : share(lower, combined.total).replace("<", "under ").replace(">", "over ");
-          bucketLabel.textContent = !visible.some(Boolean) || !valid || !combined.total ? "Choose a trend above"
-            : selected === null ? `Today’s index is ${Math.round(today)}: ${lower ? `it has been lower for ${time} of the time.` : "no day has sat in a lower bar."}`
-            : lower ? `The index has been lower than this bar for ${time} of the time.` : "The index has never been lower than this bar.";
+          const headline = !visible.some(Boolean) || !valid || !combined.total ? "Choose a trend above"
+            : selected === null ? `${named === "Today" ? "Today’s index is" : `On ${named} the index was`} ${Math.round(dayValue)}: ${lower ? `it ${has} been lower for ${time} of the time.` : `no day ${has} sat in a lower bar.`}`
+            : lower ? `The index ${has} been lower than this bar for ${time} of the time.` : `The index ${has} never been lower than this bar.`;
+          give(bucketLabel, headline);
           // (Its days, and when they're all one trend's, which: each trend's own count in its pill, only when it has some.)
           const held = valid ? combined.days[b] : 0, trended = TRENDS.flatMap((_, t) => (valid && visible[t] && histogram[t].days[b] ? [t] : []));
           counts.forEach((count, t) => give(count, trended.includes(t) ? grouped(histogram[t].days[b]) : ""));
           give($("distribution-at"), !valid ? "At —" : `At ${interval}: ${held ? `${grouped(held)} day${held === 1 ? "" : "s"}${trended.length === 1 ? `, all ${TRENDS[trended[0]].name.toLowerCase()}` : ""}` : "no days"}`);
-          const said = [bucketLabel.textContent, $("distribution-at").textContent, ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
+          const said = [headline, $("distribution-at").textContent, ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
           input.disabled = !valid;
           if (valid) input.value = String(b);
           input.setAttribute("aria-valuetext", said.join(". "));
         }
 
         function draw() {
-          const d = days, w = canvas.clientWidth, h = canvas.clientHeight;
+          const d = days, { w, h } = size;
           if (!d || !w || !h) return;
-          if (source !== d) (source = d), (histogram = distributionOf(d));
+          if (source !== d) (source = d), (slotted = slotsOf(d)), (counted = NaN);
+          if (counted !== toldDay) (counted = toldDay), (histogram = distributionOf(slotted, counted));
+          combined = combinedDistribution(histogram, visible);
+          // (Its words told wherever it is, their lines set before it comes into view; its picture drawn only on screen.)
+          give(spanLabel, counted < slotted.from ? "No days yet" : `${grouped(histogram.reduce((n, p) => n + p.days.reduce((a, b) => a + b, 0), 0))} days, ${dated(slotted.from)} to ${dated(counted)}, each counting half as much every four years back.`);
+          readBucket(d, histogram, combined);
+          if (!seen.has("distribution")) return;
           const dpr = density();
-          bake(w, h, dpr, String(visible), (g) => {
-            spanLabel.textContent = d.last < indexedFrom(d) ? "No days yet" : `${grouped(histogram.reduce((n, p) => n + p.days.reduce((a, b) => a + b, 0), 0))} days, ${dated(indexedFrom(d))} to ${dated(d.last)}, each counting half as much every four years back.`;
-            combined = combinedDistribution(histogram, visible);
-            paintBase(g, d, histogram, combined, dpr);
-          });
-          // (A bar picked outlined; today's has its own marks.)
+          bake(w, h, dpr, `${visible}|${counted}`, (g) => paintBase(g, d, histogram, combined, dpr));
+          // (A bar picked outlined; the day's has its own marks.)
           if (selected !== null) {
             const { left, right, top, bottom } = layout(), step = (right - left) / DISTRIBUTION_BINS, x = left + selected * step;
             context.strokeStyle = withAlpha(paint.ink, 0.45); context.lineWidth = 1; context.strokeRect(x + 0.5, top + 0.5, step - 1, bottom - top - 1);
           }
-          readBucket(d, histogram, combined);
         }
         return schedule;
       })();
