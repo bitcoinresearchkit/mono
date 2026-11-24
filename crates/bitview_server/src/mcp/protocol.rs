@@ -1,5 +1,7 @@
-//! The MCP methods a stateless, tools-only server answers, under the lifecycle rules of the three revisions it serves:
-//! `initialize` for 2025-06-18 and 2025-11-25, per-request `_meta` for 2026-07-28. Nothing is kept between requests.
+//! The MCP methods a stateless server answers, under the lifecycle rules of the three revisions it serves:
+//! `initialize` for 2025-06-18 and 2025-11-25, per-request `_meta` for 2026-07-28. Every revision has the tools;
+//! 2026-07-28 also has Bitview's skill, through the skills extension (SEP-2640) and the resources that carry its files.
+//! Nothing is kept between requests.
 
 use std::borrow::Cow;
 
@@ -7,7 +9,7 @@ use axum::http::{HeaderMap, StatusCode};
 use base64::{Engine as _, prelude::BASE64_STANDARD};
 use serde_json::{Map, Value, json};
 
-use super::AppState;
+use super::{AppState, catalog::Skill};
 
 /// The newest revision, back to the oldest one a real client still opens with: Codex and Gemini CLI at 2025-06-18.
 pub const SUPPORTED_PROTOCOL_VERSIONS: [&str; 3] = ["2026-07-28", "2025-11-25", "2025-06-18"];
@@ -20,6 +22,9 @@ const META_PROTOCOL_VERSION: &str = "io.modelcontextprotocol/protocolVersion";
 const META_CLIENT_CAPABILITIES: &str = "io.modelcontextprotocol/clientCapabilities";
 const SERVER_INFO_META: &str = "io.modelcontextprotocol/serverInfo";
 const CATALOG_TTL_MS: u64 = 3_600_000;
+const SKILLS_EXTENSION: &str = "io.modelcontextprotocol/skills";
+/// How a 2026-07-28 result says it is the answer itself.
+const COMPLETE: &str = r#""resultType":"complete","#;
 
 const PARSE_ERROR: i32 = -32700;
 const INVALID_REQUEST: i32 = -32600;
@@ -40,33 +45,110 @@ pub struct Results {
     tools_legacy: String,
     tools_per_request: String,
     discover: String,
+    skills_list: String,
+    resources_list: String,
+    /// The skill's `SKILL.md` URI, and the `skills/get` result for it.
+    skill: (String, String),
+    /// Each skill file's URI and `resources/read` result.
+    skill_files: Vec<(String, String)>,
 }
 
 impl Results {
-    pub fn new(server_info: Value, server_meta: &Map<String, Value>, instructions: &str, tools_json: &str) -> Self {
-        let tools = |result_type: &str| {
+    pub fn new(
+        server_info: Value,
+        server_meta: &Map<String, Value>,
+        instructions: &str,
+        tools_json: &str,
+        skill: &Skill,
+    ) -> Self {
+        let meta = Value::Object(server_meta.clone());
+        // A cacheable result: the same for everyone, for an hour.
+        let cacheable = |result_type: &str, key: &str, value: &str| {
             format!(
-                r#"{{{result_type}"_meta":{},"ttlMs":{CATALOG_TTL_MS},"cacheScope":"public","tools":{tools_json}}}"#,
-                Value::Object(server_meta.clone())
+                r#"{{{result_type}"_meta":{meta},"ttlMs":{CATALOG_TTL_MS},"cacheScope":"public","{key}":{value}}}"#
             )
         };
+
+        let name = skill.frontmatter["name"].as_str().expect("a skill has a name");
+        let uri = |path: &str| format!("skill://{name}/{path}");
+        let skill_uri = uri("SKILL.md");
+        debug_assert_eq!(skill.files[0].path, "SKILL.md");
+        let entry = json!({
+            "uri": skill_uri,
+            "frontmatter": skill.frontmatter,
+            "resources": skill.files.iter().map(|file| json!({
+                "uri": uri(&file.path),
+                "digest": file.digest,
+                "size": file.size,
+            })).collect::<Vec<_>>(),
+        });
+        // The skill's SKILL.md goes by its name and description, as the extension asks; a reference by its path.
+        let resources = skill.files.iter().map(|file| {
+            let mut resource = json!({ "uri": uri(&file.path), "name": file.path, "mimeType": "text/markdown" });
+            if file.path == "SKILL.md" {
+                resource["name"] = skill.frontmatter["name"].clone();
+                resource["description"] = skill.frontmatter["description"].clone();
+            }
+            resource
+        });
+        let skill_files = skill
+            .files
+            .iter()
+            .map(|file| {
+                let contents = json!([{ "uri": uri(&file.path), "mimeType": "text/markdown", "text": file.text }]);
+                (uri(&file.path), cacheable(COMPLETE, "contents", &contents.to_string()))
+            })
+            .collect();
+
         let discover = json!({
             "resultType": "complete",
             "supportedVersions": SUPPORTED_PROTOCOL_VERSIONS,
-            "capabilities": { "tools": {} },
-            "instructions": instructions,
+            "capabilities": { "tools": {}, "resources": {}, "extensions": { SKILLS_EXTENSION: {} } },
+            // Only this revision's instructions point at the skill: older ones can't read it.
+            "instructions": format!("{instructions}\n\nThe skill {skill_uri} {}", skill.pointer),
             "ttlMs": CATALOG_TTL_MS,
             "cacheScope": "public",
             "_meta": { SERVER_INFO_META: server_info },
         });
         Self {
-            tools_legacy: tools(""),
-            tools_per_request: tools(r#""resultType":"complete","#),
+            tools_legacy: cacheable("", "tools", tools_json),
+            tools_per_request: cacheable(COMPLETE, "tools", tools_json),
             discover: discover.to_string(),
+            skills_list: cacheable(COMPLETE, "skills", &json!([entry]).to_string()),
+            resources_list: cacheable(COMPLETE, "resources", &Value::Array(resources.collect()).to_string()),
+            skill: (skill_uri, cacheable(COMPLETE, "skill", &entry.to_string())),
+            skill_files,
             instructions: instructions.to_owned(),
             server_info,
         }
     }
+
+    /// `skills/get`: the entry of the skill whose `SKILL.md` is at `params.uri`.
+    fn skill(&self, params: &Map<String, Value>) -> Result<Reply<'_>, RpcError> {
+        let uri = uri_param(params, "skills/get")?;
+        let (skill_uri, result) = &self.skill;
+        if uri != skill_uri {
+            return Err(error(INVALID_PARAMS, format!("No skill is served at {uri}")));
+        }
+        Ok(Reply::Written(result))
+    }
+
+    /// `resources/read`: one of the skill's files.
+    fn read(&self, params: &Map<String, Value>) -> Result<Reply<'_>, RpcError> {
+        let uri = uri_param(params, "resources/read")?;
+        self.skill_files
+            .iter()
+            .find(|(file_uri, _)| file_uri == uri)
+            .map(|(_, result)| Reply::Written(result))
+            .ok_or_else(|| error(INVALID_PARAMS, format!("Resource not found: {uri}")))
+    }
+}
+
+fn uri_param<'a>(params: &'a Map<String, Value>, method: &str) -> Result<&'a str, RpcError> {
+    params
+        .get("uri")
+        .and_then(Value::as_str)
+        .ok_or_else(|| error(INVALID_PARAMS, format!("Invalid params: {method} needs params.uri")))
 }
 
 /// The `io.modelcontextprotocol/serverInfo` `_meta` every list and call result carries.
@@ -191,15 +273,22 @@ pub async fn answer(state: &AppState, headers: &HeaderMap, header_version: Optio
         }
     }
 
+    let results = &state.results;
+    let cursor = params.get("cursor").is_some_and(|cursor| !cursor.is_null());
     let result = match method {
         "ping" if !per_request_revision => Ok(Reply::Written("{}")),
-        "server/discover" => Ok(Reply::Written(&state.results.discover)),
-        "tools/list" if params.get("cursor").is_some_and(|cursor| !cursor.is_null()) => {
-            Err(error(INVALID_PARAMS, "The tool catalog does not accept a cursor"))
-        }
-        "tools/list" if per_request_revision => Ok(Reply::Written(&state.results.tools_per_request)),
-        "tools/list" => Ok(Reply::Written(&state.results.tools_legacy)),
+        "server/discover" => Ok(Reply::Written(&results.discover)),
+        "tools/list" if cursor => Err(error(INVALID_PARAMS, "The tool catalog does not accept a cursor")),
+        "tools/list" if per_request_revision => Ok(Reply::Written(&results.tools_per_request)),
+        "tools/list" => Ok(Reply::Written(&results.tools_legacy)),
         "tools/call" => tool_call(state, params, per_request_revision).await.map(Reply::Built),
+        "skills/list" | "resources/list" if per_request_revision && cursor => {
+            Err(error(INVALID_PARAMS, format!("{method} does not accept a cursor")))
+        }
+        "skills/list" if per_request_revision => Ok(Reply::Written(&results.skills_list)),
+        "skills/get" if per_request_revision => results.skill(params),
+        "resources/list" if per_request_revision => Ok(Reply::Written(&results.resources_list)),
+        "resources/read" if per_request_revision => results.read(params),
         _ => Err(error(METHOD_NOT_FOUND, "Method not found")),
     };
     replied(id, result, meta_version.is_some() || discover)

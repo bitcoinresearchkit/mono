@@ -57,6 +57,8 @@ mod stall_limit;
 mod state;
 
 pub use answer::CdnCacheMode;
+#[cfg(feature = "full-api")]
+pub use mcp::DESCRIPTION as MCP_DESCRIPTION;
 pub use api::ApiRoutes;
 
 pub use bitview_website::Website;

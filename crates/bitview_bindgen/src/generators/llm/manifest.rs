@@ -7,9 +7,13 @@ use std::{
 use serde::Serialize;
 use serde_json::{Map, Value, to_string_pretty};
 
-use crate::{Endpoint, Parameter, TypeSchemas, generators::write_if_changed};
+use super::{SKILL, SKILL_POINTER, skill};
+use crate::{
+    Endpoint, Parameter, TypeSchemas,
+    generators::{sha256_hex, write_if_changed},
+};
 
-const MANIFEST_SCHEMA_VERSION: u32 = 2;
+const MANIFEST_SCHEMA_VERSION: u32 = 3;
 const COMPONENT_REF_PREFIX: &str = "#/components/schemas/";
 
 #[derive(Serialize)]
@@ -17,7 +21,32 @@ const COMPONENT_REF_PREFIX: &str = "#/components/schemas/";
 struct Manifest<'a> {
     schema_version: u32,
     instructions: &'a str,
+    skill: ManifestSkill<'a>,
     operations: Vec<ManifestOperation>,
+}
+
+/// The skill the server serves as resources: the frontmatter its `SKILL.md` opens with, what the
+/// instructions say of it after its URI, and each file with the digest and size its listing carries.
+#[derive(Serialize)]
+struct ManifestSkill<'a> {
+    frontmatter: ManifestFrontmatter,
+    pointer: &'static str,
+    files: Vec<ManifestSkillFile<'a>>,
+}
+
+#[derive(Serialize)]
+struct ManifestFrontmatter {
+    name: &'static str,
+    description: String,
+}
+
+#[derive(Serialize)]
+struct ManifestSkillFile<'a> {
+    path: &'a str,
+    /// `sha256:<hex>` of the text's UTF-8 bytes.
+    digest: String,
+    size: usize,
+    text: &'a str,
 }
 
 #[derive(Serialize)]
@@ -73,9 +102,10 @@ pub fn generate_tool_manifest(
     endpoints: &[&Endpoint],
     schemas: &TypeSchemas,
     instructions: &str,
+    skill: &skill::McpFiles,
     path: &Path,
 ) -> io::Result<()> {
-    let content = render_tool_manifest(endpoints, schemas, instructions)?;
+    let content = render_tool_manifest(endpoints, schemas, instructions, skill)?;
     write_if_changed(path, &content)
 }
 
@@ -83,6 +113,7 @@ fn render_tool_manifest(
     endpoints: &[&Endpoint],
     schemas: &TypeSchemas,
     instructions: &str,
+    skill: &skill::McpFiles,
 ) -> io::Result<String> {
     let routes = endpoints
         .iter()
@@ -99,12 +130,41 @@ fn render_tool_manifest(
     let manifest = Manifest {
         schema_version: MANIFEST_SCHEMA_VERSION,
         instructions,
+        skill: manifest_skill(skill)?,
         operations,
     };
     let mut content = to_string_pretty(&manifest)
         .map_err(|error| io::Error::new(io::ErrorKind::InvalidData, error))?;
     content.push('\n');
     Ok(content)
+}
+
+/// The skill's entry: its frontmatter as `SKILL.md` writes it, a plain quoted YAML string that
+/// reads back as the same text, and each file's digest and size.
+fn manifest_skill(files: &skill::McpFiles) -> io::Result<ManifestSkill<'_>> {
+    let description = skill::description();
+    if description.contains(['"', '\\']) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "the skill's description would need YAML escapes, which its frontmatter entry doesn't carry",
+        ));
+    }
+    Ok(ManifestSkill {
+        frontmatter: ManifestFrontmatter {
+            name: SKILL,
+            description,
+        },
+        pointer: SKILL_POINTER,
+        files: files
+            .iter()
+            .map(|(path, text)| ManifestSkillFile {
+                path,
+                digest: format!("sha256:{}", sha256_hex(text.as_bytes())),
+                size: text.len(),
+                text,
+            })
+            .collect(),
+    })
 }
 
 fn operation_from_endpoint<'a>(

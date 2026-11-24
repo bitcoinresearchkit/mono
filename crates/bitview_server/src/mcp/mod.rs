@@ -29,6 +29,7 @@ mod protocol;
 mod tools;
 mod transport;
 
+pub use discovery::DESCRIPTION;
 pub use protocol::SUPPORTED_PROTOCOL_VERSIONS;
 
 /// Where the server is mounted. `/mcp/` is not a second spelling: it redirects here.
@@ -68,7 +69,7 @@ pub fn router(api: Router, site_url: &str) -> Router {
         "websiteUrl": public_url,
     });
     let server_meta = server_meta(&server_name);
-    let results = Results::new(server_info, &server_meta, catalog.instructions(), catalog.tools_json());
+    let results = Results::new(server_info, &server_meta, catalog.instructions(), catalog.tools_json(), catalog.skill());
     let home = page::route(
         page::render(DISPLAY_NAME, &public_url, &logo_url, site_url, catalog.tool_count()),
         site_url,
