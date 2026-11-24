@@ -10,8 +10,9 @@ use super::{PATH, SUPPORTED_PROTOCOL_VERSIONS, page};
 const SERVER_CARD_MEDIA_TYPE: &str = "application/mcp-server-card+json";
 const AI_CATALOG_MEDIA_TYPE: &str = "application/ai-catalog+json";
 const CACHE_CONTROL: &str = "public, max-age=3600";
-const DESCRIPTION: &str =
-    "Read-only Bitcoin blockchain, mempool, mining, market, and on-chain analytics; no API key.";
+/// The server's one line, in its card and in the MCP Registry's server.json, which bindgen writes from it.
+pub const DESCRIPTION: &str =
+    "Read-only Bitcoin chain, mempool, mining, market and on-chain analytics, with a skill; no API key.";
 
 /// The card at `/mcp/server-card` and the catalog naming it at `/mcp/.well-known/ai-catalog.json`.
 pub fn router(display_name: &str, site_url: &str, public_url: &str, logo_url: &str) -> Router {

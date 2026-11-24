@@ -29,6 +29,7 @@ mod protocol;
 mod tools;
 mod transport;
 
+pub use discovery::DESCRIPTION;
 pub use protocol::SUPPORTED_PROTOCOL_VERSIONS;
 
 /// Where the server is mounted. `/mcp/` is not a second spelling: it redirects here.

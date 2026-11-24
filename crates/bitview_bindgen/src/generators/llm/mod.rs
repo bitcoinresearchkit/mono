@@ -50,6 +50,9 @@ const AGENT_RULES: [&str; 4] = [
     "Compute derived numbers at full precision; round only the final answer, if at all.",
 ];
 const SKILL: &str = "bitview";
+/// What the MCP instructions say of the skill, after its URI.
+const SKILL_POINTER: &str =
+    "holds the whole workflow, every index and the tools by topic: load it before a series question.";
 /// Where a site serves its skills: the agent-skills discovery RFC's convention (v0.2.0).
 const SKILLS_PATH: &str = ".well-known/agent-skills";
 const REPOSITORY: &str = "https://github.com/bitcoinresearchkit/mono";

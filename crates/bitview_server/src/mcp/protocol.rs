@@ -105,10 +105,7 @@ impl Results {
             "supportedVersions": SUPPORTED_PROTOCOL_VERSIONS,
             "capabilities": { "tools": {}, "resources": {}, "extensions": { SKILLS_EXTENSION: {} } },
             // Only this revision's instructions point at the skill: older ones can't read it.
-            "instructions": format!(
-                "{instructions}\n\nThe skill {skill_uri} holds the whole workflow, every index and the tools by \
-                 topic: load it before a series question."
-            ),
+            "instructions": format!("{instructions}\n\nThe skill {skill_uri} {}", skill.pointer),
             "ttlMs": CATALOG_TTL_MS,
             "cacheScope": "public",
             "_meta": { SERVER_INFO_META: server_info },

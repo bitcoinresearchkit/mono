@@ -10,7 +10,7 @@ use aide::axum::ApiRouter;
 use bitview_bindgen::{ClientOutputPaths, fill_site_pages, generate_clients};
 use bitview_devtools::import;
 use bitview_query::SeriesRegistry;
-use bitview_server::{ApiRoutes, finish_openapi};
+use bitview_server::{ApiRoutes, MCP_DESCRIPTION, finish_openapi};
 use serde_json::{json, to_string, to_string_pretty};
 
 #[cfg(unix)]
@@ -181,7 +181,7 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
         "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
         "name": "io.github.bitcoinresearchkit/bitview",
         "title": "Bitview",
-        "description": "Read-only Bitcoin chain, mempool, mining, market and on-chain analytics, with a skill; no API key.",
+        "description": MCP_DESCRIPTION,
         "version": env!("CARGO_PKG_VERSION"),
         "websiteUrl": "https://bitview.space/mcp",
         "icons": [{
