@@ -886,21 +886,27 @@ const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "p
 const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${cssColor(table[placeIndex(k / 16, table.length)])} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
 /** Each gradient's colors, by the theme and its stops: see gradientTable. @type {Map<string, string[]>} */
 const gradientTables = new Map();
-/** The page's ink as the dark shows it (`--ink`'s dark side): a stop of Bitview's mixed as its colors are kept, see addStop. */
+/** The page's ink as the dark shows it (`--ink`'s dark side, which the light can't read): Bitview's form of it, see mixedOf. */
 const INK_DARK = "#f7f8f8";
 /** How many colors a gradient is drawn in (each a value's place, rounded to the nearest of so many). */
 const GRADIENT_STEPS = 64;
-/** A gradient's stops mixed by the library (see its gradientTable, in OKLCH), each stop as `lchOf` gives it. @param {[number, string][]} stops @param {(color: string) => number[]} lchOf */
-const mixedOf = (stops, lchOf) => mixedTable(stops.map(([at, color]) => [at, `oklch(${lchOf(color).join(" ")})`]), GRADIENT_STEPS);
 /**
- * A gradient's colors as the theme draws them, `GRADIENT_STEPS` of them from 0% to 100%, in hex: its stops each as
- * shown (Bitview's toned on the light, a person's own as written, the page's ink its own: see shownOklch), then mixed.
+ * A gradient's colors as kept, `GRADIENT_STEPS` of them from 0% to 100%, mixed by the library (see its gradientTable, in
+ * OKLCH). Bitview's alone are mixed as they're written, the dark's, each mix an `oklch(…)` of Bitview's (toned in the
+ * theme as drawn: the curve bends, so toning the stops first would draw another gradient); with a person's own among
+ * them, as the theme shows each (see shownOklch), each mix a hex, as theirs are.
  * @param {[number, string][]} stops @returns {string[]}
  */
+function mixedOf(stops) {
+  const theirs = stops.some(([, color]) => color.startsWith("#")), lch = (/** @type {number[]} */ values) => `oklch(${values.join(" ")})`;
+  return theirs ? mixedTable(stops.map(([at, color]) => [at, lch(shownOklch(color))]), GRADIENT_STEPS).map((mixed) => oklchToHex(...oklchOf(mixed)))
+    : mixedTable(stops.map(([at, color]) => [at, lch(color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color))]), GRADIENT_STEPS);
+}
+/** A gradient's colors as the theme draws them (see mixedOf), in hex. @param {[number, string][]} stops @returns {string[]} */
 function gradientTable(stops) {
   const key = `${light}:${JSON.stringify(stops)}`, had = gradientTables.get(key);
   if (had) return had;
-  const table = mixedOf(stops, shownOklch).map((mixed) => oklchToHex(...oklchOf(mixed)));
+  const table = mixedOf(stops).map(ink);
   if (gradientTables.size > 200) gradientTables.clear();
   gradientTables.set(key, table);
   return table;
@@ -1267,9 +1273,8 @@ function addStop(layer, at) {
   // (Never on one already there: each color its own place, see moveStop.)
   if (stops.some(([where]) => where === place)) return -1;
   const k = stops.findIndex(([where]) => where > place), index = k < 0 ? stops.length : k;
-  // (Its color the mix there: between two of Bitview's, still Bitview's (mixed as kept, an `oklch(…)`, toned in the
-  // theme as they are); beside a person's own, the color drawn there now, theirs too.)
-  const near = stops.slice(Math.max(0, index - 1), index + 1), table = near.some(([, color]) => color.startsWith("#")) ? gradientTable(stops) : mixedOf(stops, (color) => (color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color)));
+  // (Its color the mix there, as kept: see mixedOf.)
+  const table = mixedOf(stops);
   stops.splice(index, 0, [place, table[placeIndex(place / 100, table.length)]]);
   return index;
 }
