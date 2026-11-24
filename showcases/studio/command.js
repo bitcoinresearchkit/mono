@@ -8,7 +8,7 @@ import {
   chooseDrawings, chosen, clearLook, client, closePreview, cohortColor, colorName, commit, comparePeriods, css,
   dateGoes, deleteChart, dismissPalette, drawingsHidden, drawTrail, editChart, engine, EXAMPLE, folderMark, folderNow,
   formatName, formulaLine, fromSpan, goneLayer, goTo, goToDate, goToTime, HEAT_COHORTS, hideBelt, hideDrawings,
-  historyFor, home, homeAt, importCharts, indexAt, isOhlc, isPreview, isYours, keepChart, kept, letterChip, library,
+  historyFor, home, homeAt, importCharts, indexAt, isOhlc, isPreview, isYours, keepChart, letterChip, library,
   libraryEdits, linkView, listedPreviews, magnifying, markFor, marksOf, measure, mostBars, MOTION, noteUse, notice,
   openPalette, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, phone, prefs, presets, previews,
   previousChart, quick, quickHide, quickShow, quickWorks, recentCharts, redoLast, reduced, renderPalette, reshape,
@@ -35,11 +35,11 @@ import {
   BACKS, ENDS, KINDS, labelText, LENS_SAYS, LINES, SIZE_NAMES, SIZES, TEXT_SIZE, THROUGH, TOOLS,
 } from "/studio/tools.js";
 import { CADENCE, FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, RANGES } from "/studio/intervals.js";
-import { isColor, SWATCHES } from "/studio/color.js";
+import { isColor, oklchToHex, SWATCHES } from "/studio/color.js";
 import { lowerBound } from "/studio/math.js";
 import {
   baseOf, BY_BLOCK, byColor, colorsAt, cssColor, dailyOf, defaultSize, drawnWaiters, failure, fineDrawn, foldedPanes,
-  info, ink, known, lastUsed, loads, overviewSource, paintOf, periodOf, pointLabel, presetFits,
+  info, ink, known, lastUsed, loads, oklchOf, overviewSource, paintOf, periodOf, pointLabel, presetFits,
   presetShown, rangeAt, resolve, retryInfo, shownIndex, shownRange, shownSpan, unitFor, units, viewName, zoom,
 } from "/studio/chart.js";
 import { backGlyph, backOf, beltUp, dockChoices, drawingById, drawingNames, endName, endsGlyph, showBelt } from "/studio/drawing.js";
@@ -1969,13 +1969,13 @@ const swatchOf = (color) => `<i class="swatch" style="--c:${escapeHtml(cssColor(
 /** A color typed: a hex (#, or not; three digits or six), an OKLCH, or any color CSS reads, as a hex (opaque only). */
 function readColor(/** @type {string} */ text) {
   const typed = text.trim().toLowerCase(), hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(typed);
-  // (Typed as it's to show: kept as the dark shows it, see kept.)
-  if (hex) return kept(`#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`);
-  if (isColor(typed)) return kept(typed);
+  // (A person's own, kept in hex: shown as typed in either theme, see shownOklch.)
+  if (hex) return `#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`;
+  if (isColor(typed)) return typed.startsWith("oklch(") ? oklchToHex(...oklchOf(typed)) : typed;
   if (!typed || !CSS.supports("color", typed)) return null;
   measure.fillStyle = "#000000";
   measure.fillStyle = typed;
-  return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? kept(measure.fillStyle) : null;
+  return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? measure.fillStyle : null;
 }
 /**
  * ⌘K's colors: Bitview's, each a row (`look`: shown on the chart while highlighted), and any other, typed (as the

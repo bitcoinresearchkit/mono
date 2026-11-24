@@ -768,7 +768,7 @@ const hexCache = new Map();
 /** A color as the chart draws it, in sRGB hex: converted on demand, and kept (a picker's drag makes many: a few hundred). */
 const ink = (color) => {
   if (color === "ink") return css("--ink");
-  if (!light && color.startsWith("#")) return color;
+  if (color.startsWith("#")) return color;
   if (hexCache.size > 500) hexCache.clear();
   if (!hexCache.has(color)) hexCache.set(color, oklchToHex(...shownOklch(color)));
   return hexCache.get(color);

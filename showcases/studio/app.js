@@ -6,7 +6,7 @@ import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { hexToOklch, isNamed, nameDistance, onCurve, SWATCHES, TONE, UNTONE, warmLift } from "/studio/color.js";
+import { hexToOklch, nameDistance, onCurve, SWATCHES, TONE, warmLift } from "/studio/color.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
@@ -300,22 +300,17 @@ function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @
 }
 const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
 /**
- * Every color as the theme shows it, Bitview's and any picked alike (they're kept as the dark shows them): on the
- * dark, as it is; on the light, its lightness turned over along one curve: white as black and black as white,
- * Bitview's band (0.5 to 0.75) narrowed and raised (0.64 to 0.58), so yellow, amber and lime deepen enough to read
- * on white and indigo, violet lighten a little, each still itself; the warm hues a little less deep than the curve
- * (see warmLift), else they'd go brown. A color picked on the light is kept by the curve's inverse: the dark shows its
- * counterpart. (The page's ink is its own: white or black.)
+ * A color's lightness, chroma and hue as the theme shows it. Bitview's (its names, and what palette.js mixes from
+ * them, an `oklch(…)`) on the dark as they are; on the light, their lightness turned over along one curve: white as
+ * black and black as white, Bitview's band (0.5 to 0.75) narrowed and raised (0.64 to 0.58), so yellow, amber and lime
+ * deepen enough to read on white and indigo, violet lighten a little, each still itself; the warm hues a little less
+ * deep than the curve (see warmLift), else they'd go brown. A person's own (a hex, as every way of giving one keeps
+ * it) exactly as picked, in either theme. (The page's ink is its own: white or black.)
  */
 let light = false;
-const toned = (/** @type {number[]} */ [l, c, h]) => /** @type {[number, number, number]} */ (light ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
-/** A color's lightness, chroma and hue as shown (the page's ink, as it is). */
-const shownOklch = (/** @type {string} */ color) => (color === "ink" ? oklchOf(color) : toned(oklchOf(color)));
-/** A color given as shown (picked, typed), as it's kept: on the light, its lightness turned back (Bitview's, as named). */
-function kept(/** @type {string} */ color) {
-  if (!light || isNamed(color)) return color;
-  const [l, c, h] = oklchOf(color), back = +onCurve(UNTONE, l - warmLift(c, h)).toFixed(3);
-  return c < 0.0005 ? `oklch(${back} 0 0)` : `oklch(${back} ${+c.toFixed(4)} ${+h.toFixed(1)})`;
+function shownOklch(/** @type {string} */ color) {
+  const [l, c, h] = oklchOf(color);
+  return /** @type {[number, number, number]} */ (light && color !== "ink" && !color.startsWith("#") ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
 }
 /**
  * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
@@ -1437,11 +1432,11 @@ function savePrefs() {
 /**
  * The theme, as chosen, System the device's (the default). The page takes it
  * from its tokens; the chart, the charts' marks and their drawings draw again with them (and the palette's tone: see
- * toned), crossfaded where the browser can. Set before the first paint (see the page's first script), and here.
+ * shownOklch), crossfaded where the browser can. Set before the first paint (see the page's first script), and here.
  */
 const THEMES = /** @type {const} */ ([
   ["system", "System", "computer", "As the device is set, and as it changes."],
-  ["light", "Light", "sun", "Light surfaces; the data's colors deepened to read on white."],
+  ["light", "Light", "sun", "Light surfaces; Bitview's colors deepened to read on white, yours as picked."],
   ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are."],
 ]);
 const deviceLight = matchMedia("(prefers-color-scheme: light)");
@@ -7367,10 +7362,9 @@ document.addEventListener("focusout", (event) => /** @type {HTMLElement} */ (eve
 document.addEventListener("input", (event) => {
   const field = /** @type {HTMLInputElement} */ (event.target), name = field.dataset?.hex;
   if (!name || !field.matches(".hex")) return;
-  const hex = `#${field.value.trim().replace(/^#/, "").toLowerCase()}`;
-  if (!/^#[0-9a-f]{6}$/.test(hex)) return;
-  // (Typed as it shows: on the light, kept as a color picked on the surface is.)
-  const color = kept(hex), plane = planeOf(name), { u, t } = placeOf(color), named = field.closest(".field, .color-editor")?.querySelector(".color-now");
+  const color = `#${field.value.trim().replace(/^#/, "").toLowerCase()}`;
+  if (!/^#[0-9a-f]{6}$/.test(color)) return;
+  const plane = planeOf(name), { u, t } = placeOf(color), named = field.closest(".field, .color-editor")?.querySelector(".color-now");
   /** @type {HTMLElement | null | undefined} */ (field.closest(".color-editor")?.querySelector('.slot-chip[aria-pressed="true"]'))?.style.setProperty("--c", cssColor(color));
   plane?.style.setProperty("--x", String(u));
   plane?.style.setProperty("--y", String(t));
@@ -11139,7 +11133,7 @@ export {
   HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright, hideBelt,
   hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
   importCharts, indexAt, indexCatalog, inLibrary, isDeleted, isOhlc, isPreview, isView, isYours, keepChart, keepDrawing,
-  keepSidePresets, keepsLeaving, keepStretch, kept, keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping,
+  keepSidePresets, keepsLeaving, keepStretch, keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping,
   layerPicks, layersBatch, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, lensAt, letterChip, letterOf,
   library, libraryEdits, libraryStep, light, linkView, listedPreviews, listOwed, LIVE, liveHeight, livePrice,
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,
