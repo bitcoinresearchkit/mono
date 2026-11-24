@@ -2687,7 +2687,7 @@
           counts.forEach((count, t) => give(count, trended.includes(t) ? grouped(histogram[t].days[b]) : ""));
           // (No bar to read: its line kept empty, its room held.)
           give($("distribution-at"), !valid ? "" : `At ${interval}: ${held ? `${grouped(held)} day${held === 1 ? "" : "s"}${trended.length === 1 ? `, all ${TRENDS[trended[0]].name.toLowerCase()}` : ""}` : "no days"}`);
-          const said = [headline, ...(valid ? [$("distribution-at").textContent] : []), ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
+          const said = [headline.replace(/\.$/, ""), ...(valid ? [$("distribution-at").textContent] : []), ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
           input.disabled = !valid;
           if (valid) input.value = String(b);
           input.setAttribute("aria-valuetext", said.join(". "));
