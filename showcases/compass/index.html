@@ -2397,11 +2397,14 @@
       // value tagged on its axis and its date and price along its foot, both for the day it reads (indexDay) ──
 
       const indexChart = $("index-chart");
-      /** Its room over 100 (CSS pixels: its number's words, more than a mark's room, MARK), its tags' axis' least width, its dates' row. */
-      const INDEX_LAYOUT = { top: 16, right: 46, dates: 26 };
+      /** Its room over 100 (CSS pixels: its number's words, more than a mark's room, MARK), its tags' axis' least width, its dates' row,
+       * and the room past the blank after its last day kept for its quarters' numbers (with the phone's 18px blank, a
+       * "100" clear of today's ring). */
+      const INDEX_LAYOUT = { top: 16, right: 46, dates: 26, numbers: 14 };
       const indexThemeOf = (/** @type {Paint} */ p) => ({ ...themeOf(p), crosshair: withAlpha(p.ink, 0.28), badge: p.ink });
       const indexEngine = createChart(indexChart, { axis: INDEX_LAYOUT.right, leftAxis: 0, timeHeight: INDEX_LAYOUT.dates, embedded: true, dateFormat: () => { const day = indexDay(); return `${dated(day)} · ${usd(/** @type {Days} */ (days).close[day])}`; } });
       indexEngine.theme = indexThemeOf(paletteOf(matchMedia("(prefers-color-scheme: dark)").matches));
+      indexEngine.time.reserve = INDEX_LAYOUT.numbers;
       const indexPane = indexEngine.addPane({ scale: { mode: "linear", top: 0, bottom: 0 }, format: () => "" });
       /** The day its tags and its date read: the crosshair's (on the indexed days: past today, today's, as the header
        * reads the hero's), else the day told. */
@@ -2409,15 +2412,14 @@
         const d = /** @type {Days} */ (days), at = indexEngine.crosshair.index;
         return at === at ? Math.max(indexEngine.time.first, Math.min(d.last, at)) : toldDay;
       }
-      /** Its quarters' numbers at its left, over the line (haloed, so the line through one stays out of its way); the
+      /** Its quarters' numbers by its axis, in the room past its last day, clear of the line; the
        * day told ringed; its value on the day read tagged on its axis, in that day's trend's colour. */
       const indexMarks = indexPane.add(new Custom({
         draw(g, { time, scale }) {
           if (!days) return;
           const d = days;
-          (g.font = FONTS.small), (g.textBaseline = "alphabetic"), (g.textAlign = "left"), (g.lineJoin = "round");
-          (g.lineWidth = 3), (g.strokeStyle = paint.app), (g.fillStyle = paint.faint);
-          for (const at of INDEX_TICKS) g.strokeText(String(at), 4, scale.y(at) - 4), g.fillText(String(at), 4, scale.y(at) - 4);
+          (g.font = FONTS.small), (g.textBaseline = "alphabetic"), (g.textAlign = "right"), (g.fillStyle = paint.faint);
+          for (const at of INDEX_TICKS) g.fillText(String(at), time.width - 2, scale.y(at) - 4);
           const day = toldDay, value = d.index[day];
           if (!(day >= time.from && day <= time.to && value === value)) return;
           g.beginPath();
