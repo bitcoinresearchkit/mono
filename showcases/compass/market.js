@@ -158,29 +158,37 @@ export const indexedFrom = (/** @type {Days} */ d) => d.first + INDEXED_AFTER;
 const EXTREME_PERCENT = 1;
 /**
  * Whether each day from `first` to `last` is extreme (1): either side's place in its own 1% tail, low or high, ranked
- * against that side's earlier days only (the day itself not among them), and said, as the index is, only with a year of
- * them behind it. Each side's days so far kept sorted as they come (a binary search and a shift each: a Fenwick tree
- * over ranks known up front saves little for its code), its tails read between their two nearest ranks.
+ * against that side's earlier days only (the day itself not among them), each by its weight, and said, as the index
+ * is, only with a year of them behind it. In a tail: the weight of the days before strictly past it, low or high,
+ * under 1% of theirs. (Each side's places ranked once, sorted; the days so far, weighted, in a Fenwick tree by rank.)
  */
 export function extremeOf(/** @type {Float32Array[]} */ sides, /** @type {number} */ first, /** @type {number} */ last) {
-  const extreme = new Uint8Array(sides[0].length), sorted = new Float64Array(last - first + 1);
-  /** The percentile `p` of the `n` days sorted so far, between its two nearest ranks. */
-  const tail = (/** @type {number} */ n, /** @type {number} */ p) => {
-    const t = ((n - 1) * p) / 100, a = Math.floor(t);
-    return sorted[a] + (sorted[Math.min(a + 1, n - 1)] - sorted[a]) * (t - a);
+  const extreme = new Uint8Array(sides[0].length), sorted = new Float64Array(last - first + 1), tree = new Float64Array(sorted.length + 1);
+  /** How many of the sorted places are under `v` (or, `atMost`, not over it). */
+  const rankOf = (/** @type {number} */ v, atMost = false) => {
+    let lo = 0, hi = sorted.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (sorted[mid] < v || (atMost && sorted[mid] === v)) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
+  };
+  /** The weight of the days so far of the `rank` lowest places. */
+  const below = (/** @type {number} */ rank) => {
+    let sum = 0;
+    for (let j = rank; j > 0; j -= j & -j) sum += tree[j];
+    return sum;
   };
   for (const place of sides) {
-    for (let i = first, n = 0; i <= last; i++, n++) {
-      const v = place[i];
-      if (i >= first + INDEXED_AFTER && (v <= tail(n, EXTREME_PERCENT) || v >= tail(n, 100 - EXTREME_PERCENT))) extreme[i] = 1;
-      let lo = 0, hi = n;
-      while (lo < hi) {
-        const mid = (lo + hi) >> 1;
-        if (sorted[mid] < v) lo = mid + 1;
-        else hi = mid;
-      }
-      sorted.copyWithin(lo + 1, lo, n);
-      sorted[lo] = v;
+    sorted.set(place.subarray(first, last + 1));
+    sorted.sort();
+    tree.fill(0);
+    for (let i = first, mass = 0; i <= last; i++) {
+      const v = place[i], rank = rankOf(v), w = weight(i);
+      if (i >= first + INDEXED_AFTER && (below(rank) / mass < EXTREME_PERCENT / 100 || (mass - below(rankOf(v, true))) / mass < EXTREME_PERCENT / 100)) extreme[i] = 1;
+      for (let j = rank + 1; j <= sorted.length; j += j & -j) tree[j] += w;
+      mass += w;
     }
   }
   return extreme;
