@@ -37,14 +37,16 @@ export function paletteOf(/** @type {boolean} */ dark) {
   probe.remove();
   return paint;
 }
-/** A colour at an opacity, as a canvas reads it (whatever form the browser resolved it to). */
-export const withAlpha = (/** @type {string} */ color, /** @type {number} */ alpha) => `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
+/** A colour at an opacity, as a canvas reads it (whatever form the browser resolved it to): held to whole, since a
+ * canvas silently ignores a colour-mix past 100%. */
+export const withAlpha = (/** @type {string} */ color, /** @type {number} */ alpha) => `color-mix(in srgb, ${color} ${Math.min(1, alpha) * 100}%, transparent)`;
 
 // ── What's lit: moods, as many as wanted; a day's lit if it's in any mood lit (or none is) ──
 
 /** The moods lit, by index (empty: none). @typedef {{ state: Set<number> }} Lit */
-/** How strongly a day not lit is drawn, against its own colour's usual strength. */
-export const FADED = 0.15;
+/** How strongly a day not lit is drawn, against its own colour's usual strength; and an extreme day lit (see
+ * market.js extremeOf). */
+export const FADED = 0.15, EXTREME = 2;
 /** Nothing lit: a new, empty Lit (a page's own to light things in, or a picture with every day drawn whole). */
 export const noneLit = () => /** @type {Lit} */ ({ state: new Set() });
 export const lighting = (/** @type {Lit} */ lit) => lit.state.size > 0;
@@ -60,13 +62,14 @@ export const litKey = (/** @type {Lit} */ lit) => [...lit.state].sort().join();
 const colorsMade = new WeakMap();
 /** A day's colour's place among huesOf's: its mood's or its trend's. */
 const hueAt = (/** @type {Days} */ d, /** @type {number} */ day, /** @type {ColorBy} */ by) => (by === "trend" ? STATES[d.state[day]].trend : d.state[day]);
-/** Each day's colour (its mood's or its trend's) and whether it's lit, as an index into the drawings' palettes (a
- * colour's twice: lit, then not; see huesOf), made again as the days or what's lit change. */
+/** Each day's colour (its mood's or its trend's) and how strongly it's drawn, as an index into the drawings' palettes
+ * (a colour's three times: lit, not lit, lit and extreme; see fadedPalette), made again as the days or what's lit
+ * change. */
 export function colorsOf(/** @type {Days} */ d, /** @type {Lit} */ lit, /** @type {ColorBy} */ by) {
   const key = litKey(lit), made = colorsMade.get(d) ?? {}, held = made[by];
   if (held?.key === key) return held.colors;
   const colors = new Uint8Array(d.close.length);
-  for (let i = d.first; i <= d.last; i++) colors[i] = hueAt(d, i, by) * 2 + (litDay(d, lit, i) ? 0 : 1);
+  for (let i = d.first; i <= d.last; i++) colors[i] = hueAt(d, i, by) * 3 + (!litDay(d, lit, i) ? 1 : d.extreme[i] ? 2 : 0);
   colorsMade.set(d, { ...made, [by]: { key, colors } });
   return colors;
 }
@@ -74,8 +77,8 @@ export function colorsOf(/** @type {Days} */ d, /** @type {Lit} */ lit, /** @typ
 export const huesOf = (/** @type {Paint} */ paint, /** @type {ColorBy} */ by) => (by === "trend" ? paint.trends : paint.states);
 /** A day's colour: its mood's or its trend's. */
 export const colorAt = (/** @type {Paint} */ paint, /** @type {Days} */ d, /** @type {number} */ day, /** @type {ColorBy} */ by) => huesOf(paint, by)[hueAt(d, day, by)];
-/** Those colours as colorsOf indexes them, each twice: lit, then faded (`f` given a colour and a strength). */
-export const fadedPalette = (/** @type {Paint} */ paint, /** @type {ColorBy} */ by, /** @type {(color: string, strength: number) => any} */ f) => huesOf(paint, by).flatMap((color) => [f(color, 1), f(color, FADED)]);
+/** Those colours as colorsOf indexes them, each three times: lit, faded, extreme (`f` given a colour and a strength). */
+export const fadedPalette = (/** @type {Paint} */ paint, /** @type {ColorBy} */ by, /** @type {(color: string, strength: number) => any} */ f) => huesOf(paint, by).flatMap((color) => [f(color, 1), f(color, FADED), f(color, EXTREME)]);
 
 // ── The price chart ──
 
@@ -85,8 +88,8 @@ const FILL = { dark: [0.42, 0.04], light: [0.34, 0.03] };
 const heroesMade = new WeakMap();
 /**
  * The price chart's series for the days, the colours, what they follow and what's lit (made again when any changes),
- * drawn in this order on a log scale fitted to them: the two clouds (see Cloud); the days' colours under the price;
- * the price over all of it, in its days' colours (a day not lit, in ink).
+ * drawn in this order on a log scale fitted to them: the two clouds (see Cloud); the days' colours under the price (an
+ * extreme day's stronger); the price over all of it, in its days' colours (a day not lit, in ink).
  */
 export function heroOf(/** @type {Days} */ d, /** @type {Paint} */ paint, /** @type {Lit} */ lit, /** @type {ColorBy} */ by) {
   const key = `${by}|${litKey(lit)}`, made = heroesMade.get(d);
@@ -96,7 +99,7 @@ export function heroOf(/** @type {Days} */ d, /** @type {Paint} */ paint, /** @t
     upper: d.close, to: "foot", colors, curve: true,
     palette: fadedPalette(paint, by, (color, k) => ({ color: withAlpha(color, near * k), fade: withAlpha(color, far * k) })),
   });
-  const price = new Line({ values: d.close, colors, palette: huesOf(paint, by).flatMap((color) => [color, paint.ink]), width: 2, curve: true, marker: 4.5 });
+  const price = new Line({ values: d.close, colors, palette: fadedPalette(paint, by, (color, k) => (k < 1 ? paint.ink : color)), width: 2, curve: true, marker: 4.5 });
   // (The clouds under the moods' wash: drawn over it, their grey took its colour just under the line, where it reads.)
   const hero = [new Cloud(d.cloud.long, paint.long), new Cloud(d.cloud.short, paint.short), fill, price];
   heroesMade.set(d, { paint, key, hero });
@@ -137,7 +140,7 @@ export function indexOf(/** @type {Days} */ d, /** @type {Paint} */ paint, /** @
   if (made?.paint === paint && made.key === key) return made.all;
   const all = [
     new Levels({ lines: INDEX_TICKS.map((value) => ({ value, color: withAlpha(paint.ink, value === 50 ? 0.16 : 0.08) })) }),
-    new Line({ values: d.index, colors: colorsOf(d, lit, "trend"), palette: huesOf(paint, "trend").flatMap((color) => [color, withAlpha(paint.ink, 0.22)]), width: 1.75, marker: 4.5 }),
+    new Line({ values: d.index, colors: colorsOf(d, lit, "trend"), palette: fadedPalette(paint, "trend", (color, k) => (k < 1 ? withAlpha(paint.ink, 0.22) : color)), width: 1.75, marker: 4.5 }),
   ];
   indexMade.set(d, { paint, key, all });
   return all;

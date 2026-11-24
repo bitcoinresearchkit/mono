@@ -105,8 +105,8 @@ function byDay(/** @type {Answer} */ answer, /** @type {number} */ n) {
 
 /**
  * Every day's: close, each cloud's bottom and top, the state, and where on
- * the compass (x the moment's, y the cycle's, each -1 to 1).
- * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, state: Int8Array, x: Float32Array, y: Float32Array, index: Float64Array }} Days
+ * the compass (x the moment's, y the cycle's, each -1 to 1), and whether it's extreme (see extremeOf).
+ * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, state: Int8Array, x: Float32Array, y: Float32Array, index: Float64Array, extreme: Uint8Array }} Days
  */
 
 /** A halving cycle in days, four years: the half-life of every comparison with history on the page (a market is read
@@ -154,6 +154,38 @@ export function placeOf(/** @type {Float64Array} */ close, /** @type {[Float64Ar
 const INDEXED_AFTER = 365;
 export const indexedFrom = (/** @type {Days} */ d) => d.first + INDEXED_AFTER;
 
+/** How far into a side's tails a day's place is extreme: its lowest or highest 1% of the side's days before it. */
+const EXTREME_PERCENT = 1;
+/**
+ * Whether each day from `first` to `last` is extreme (1): either side's place in its own 1% tail, low or high, ranked
+ * against that side's earlier days only (the day itself not among them), and said, as the index is, only with a year of
+ * them behind it. Each side's days so far kept sorted as they come (a binary search and a shift each: a Fenwick tree
+ * over ranks known up front saves little for its code), its tails read between their two nearest ranks.
+ */
+export function extremeOf(/** @type {Float32Array[]} */ sides, /** @type {number} */ first, /** @type {number} */ last) {
+  const extreme = new Uint8Array(sides[0].length), sorted = new Float64Array(last - first + 1);
+  /** The percentile `p` of the `n` days sorted so far, between its two nearest ranks. */
+  const tail = (/** @type {number} */ n, /** @type {number} */ p) => {
+    const t = ((n - 1) * p) / 100, a = Math.floor(t);
+    return sorted[a] + (sorted[Math.min(a + 1, n - 1)] - sorted[a]) * (t - a);
+  };
+  for (const place of sides) {
+    for (let i = first, n = 0; i <= last; i++, n++) {
+      const v = place[i];
+      if (i >= first + INDEXED_AFTER && (v <= tail(n, EXTREME_PERCENT) || v >= tail(n, 100 - EXTREME_PERCENT))) extreme[i] = 1;
+      let lo = 0, hi = n;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (sorted[mid] < v) lo = mid + 1;
+        else hi = mid;
+      }
+      sorted.copyWithin(lo + 1, lo, n);
+      sorted[lo] = v;
+    }
+  }
+  return extreme;
+}
+
 export function compute(/** @type {Record<string, Answer>} */ answered, /** @type {Coins} */ which, /** @type {Basis} */ by) {
   const n = Math.max(...Object.values(answered).map((a) => a.start + a.data.length));
   const get = (/** @type {string} */ id) => byDay(answered[id], n);
@@ -197,7 +229,7 @@ export function compute(/** @type {Record<string, Answer>} */ answered, /** @typ
   // 100 Optimism's, its levels the trends' diagonals. Not ranked again: x and y already rank how far out the price is.)
   const index = new Float64Array(n).fill(NaN);
   for (let i = first + INDEXED_AFTER; i <= last; i++) index[i] = 25 * (x[i] + y[i] + 2);
-  return { first, last, close, cloud: { long, short }, state, x, y, index };
+  return { first, last, close, cloud: { long, short }, state, x, y, index, extreme: extremeOf([x, y], first, last) };
 }
 
 // ── Runs: a mood's days in a row, each told only from the days up to it ──
