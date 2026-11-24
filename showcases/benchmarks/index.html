@@ -483,11 +483,19 @@
         font-weight: 600;
       }
 
-      #best-note {
+      #best-note,
+      #capacity-note,
+      #capacity-fine {
         max-width: var(--measure);
         margin: 8px 0 0;
         color: var(--soft);
         text-wrap: pretty;
+      }
+
+      #capacity-fine {
+        margin-top: 4px;
+        color: var(--faint);
+        font-size: 12.5px;
       }
 
       .detail-head {
@@ -627,6 +635,83 @@
         }
       }
 
+      /* (A capacity table: as wide as its commits need, scrolling past the screen; a cell is one button, its details in the readout below.) */
+      #capacity-tables {
+        .table {
+          width: fit-content;
+          max-width: 100%;
+        }
+
+        caption {
+          padding-bottom: 4px;
+          color: var(--ink);
+          font: 650 13px var(--sans);
+          text-align: left;
+        }
+
+        tbody th {
+          color: var(--ink);
+          font: 13px var(--sans);
+          text-align: left;
+          white-space: normal;
+        }
+
+        /* (A phone: tighter text, so four commits fit 382 px; more scroll the table as a whole, the class names wrapping at their underscores.) */
+        @media (max-width: 559px) {
+          th,
+          td {
+            padding-inline: 3px;
+          }
+
+          thead th {
+            font-size: 10px;
+
+            &:first-child {
+              white-space: normal;
+            }
+          }
+
+          td button {
+            font-size: 12px;
+          }
+
+          td small,
+          .none {
+            font-size: 9.5px;
+          }
+        }
+
+        td button {
+          display: block;
+          width: 100%;
+          text-align: right;
+          text-decoration: underline dotted var(--faint);
+          text-underline-offset: 3px;
+
+          &[aria-pressed="true"] {
+            text-decoration-color: var(--accent);
+          }
+
+          small {
+            text-decoration: none;
+          }
+        }
+
+        .none {
+          color: var(--faint);
+          font: 11px var(--sans);
+          white-space: normal;
+        }
+
+        .readout {
+          min-height: 2lh;
+          margin: 8px 0 20px;
+          max-width: var(--measure);
+          color: var(--soft);
+          font-size: 12.5px;
+        }
+      }
+
       table {
         width: 100%;
         border-collapse: collapse;
@@ -735,11 +820,14 @@
           }
         }
 
-        /* (A best's run under its value, small, so the table fits a phone; underlined when it can be picked.) */
-        td small {
+        /* (A best's run under its value, small, so the table fits a phone; underlined when it can be picked; a capacity column's
+           run count under its commit.) */
+        td small,
+        th small {
           display: block;
           color: var(--faint);
           font-size: 11px;
+          font-weight: 400;
 
           .pick {
             text-decoration: underline;
@@ -872,6 +960,13 @@
           <div class="table narrow"><table id="best" class="fit"></table></div>
         </section>
 
+        <section aria-labelledby="capacity-title" id="capacity" hidden>
+          <h2 id="capacity-title">Capacity <small id="capacity-count"></small></h2>
+          <p id="capacity-note"></p>
+          <div id="capacity-tables"></div>
+          <p id="capacity-fine"></p>
+        </section>
+
         <section aria-labelledby="run-title">
           <div class="detail-head">
             <h2 id="run-title"></h2>
@@ -894,7 +989,7 @@
         </section>
       </div>
 
-      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them. Curves keep 400 points a run.<span id="skipped"></span></footer>
+      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them (the Capacity table's, a load driver's). Curves keep 400 points a run.<span id="skipped"></span></footer>
     </main>
 
     <script>
@@ -910,7 +1005,7 @@
       const TREE = `https://api.github.com/repos/bitcoinresearchkit/mono/git/trees/${BRANCH}:benches?recursive=1`;
       const RAW = `https://raw.githubusercontent.com/bitcoinresearchkit/mono/${BRANCH}/benches/`;
       /** A run's recordings; all but memory.csv optional (older runs lack them). */
-      const FILES = ["metadata.txt", "run.csv", "memory.csv", "io.csv", "cpu.csv", "disk.csv", "progress.csv", "timings.csv", "disk_breakdown.csv", "serial_compute.csv"];
+      const FILES = ["metadata.txt", "run.csv", "memory.csv", "io.csv", "cpu.csv", "disk.csv", "progress.csv", "timings.csv", "disk_breakdown.csv", "serial_compute.csv", "capacity.csv"];
       /** The plugin whose cost is new: runs without it aren't like for like in what adds the plugins' work up. */
       const SILENT_PAYMENTS = "silent_payments";
       /** Points kept per curve: enough for a screen's width. */
@@ -945,7 +1040,8 @@
       /** Strings in Rust's order (by bytes, as the visualizer sorted them). */
       const order = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-      /** Each machine (a folder of benches/) and its runs' folders: each below it holding a memory.csv, its files' sizes. */
+      /** Each machine (a folder of benches/), its runs' folders (each below it holding a memory.csv, its files' sizes) and its
+       * `capacity` folders (each holding a capacity.csv, a full run's among them). */
       async function list() {
         const response = await get(TREE);
         if (response.status === 404) return [];
@@ -961,11 +1057,23 @@
         for (const [folder, files] of folders) {
           if (!files.has("memory.csv")) continue;
           const name = folder.split("/")[0];
-          if (!machines.has(name)) machines.set(name, []);
-          machines.get(name).push({ folder, files });
+          if (!machines.has(name)) machines.set(name, { name, folders: [], capacity: [], runs: null, skipped: [] });
+          machines.get(name).folders.push({ folder, files });
         }
-        return [...machines].sort(([a], [b]) => order(a, b)).map(([name, folders]) => ({ name, folders, runs: null, skipped: [] }));
+        // (A capacity.csv sits beside a full run's files or in a folder of its own; a machine with none of the first has no page to show them on.)
+        const alone = new Set();
+        for (const [folder, files] of folders) {
+          if (!files.has("capacity.csv")) continue;
+          const name = folder.split("/")[0];
+          if (machines.has(name)) machines.get(name).capacity.push({ folder, files });
+          else alone.add(name);
+        }
+        capacityOnly = [...alone].sort(order);
+        return [...machines.values()].sort((a, b) => order(a.name, b.name));
       }
+
+      /** Machines whose recordings hold capacity runs and no full sync: no page to show them on. */
+      let capacityOnly = [];
 
       /** A file's lines, as Rust's `lines()` reads them. */
       const lines = (s) => (s === "" ? [] : s.replace(/\n$/, "").split("\n").map((line) => line.replace(/\r$/, "")));
@@ -1180,10 +1288,11 @@
       }
       /** A machine's runs, oldest first, each read whole; one that can't be is said and skipped, never hiding the others. */
       async function load(m, told) {
-        const wanted = m.folders.flatMap(({ folder, files }) => FILES.filter((name) => files.has(name)).map((name) => [`${folder}/${name}`, files.get(name)]));
-        const total = wanted.reduce((sum, [, size]) => sum + size, 0);
+        const wanted = new Map(); // (a folder in both lists is asked for, and counted, once)
+        for (const { folder, files } of [...m.folders, ...m.capacity]) for (const name of FILES) if (files.has(name)) wanted.set(`${folder}/${name}`, files.get(name));
+        const total = [...wanted.values()].reduce((sum, size) => sum + size, 0);
         let got = 0;
-        await Promise.all(wanted.map(([path, size]) => text(path).then(() => told((got += size), total))));
+        await Promise.all([...wanted].map(([path, size]) => text(path).then(() => told((got += size), total))));
         const runs = [];
         for (const run of m.folders) {
           try {
@@ -1195,6 +1304,29 @@
           }
         }
         m.runs = runs.sort(byTime);
+        const measured = [];
+        for (const folder of m.capacity) {
+          try {
+            measured.push(await readCapacity(folder));
+          } catch (error) {
+            if (error instanceof Failure) throw error;
+            console.warn(`Skipping ${folder.folder}: ${error.message}`);
+            m.skipped.push(folder.folder.slice(m.name.length + 1));
+          }
+        }
+        m.measured = measured.sort(byTime);
+      }
+      /** A capacity run: one row per route class and mode, its commit, time and rule from its metadata.txt. */
+      async function readCapacity({ folder, files }) {
+        const [meta, content] = await Promise.all(["metadata.txt", "capacity.csv"].map((name) => (files.has(name) ? text(`${folder}/${name}`) : null)));
+        const sheet = csv(content, `${folder}/capacity.csv`), info = metadata(meta), run = facts(info, folder);
+        if (!sheet) throw new Error("no capacity rows");
+        if (!run.revision) throw new Error("metadata.txt names no revision");
+        const rule = info.get("capacity_rule");
+        if (!rule) throw new Error("metadata.txt names no capacity_rule");
+        const [modes, classes, moved] = ["mode", "class", "tip_moved"].map((name) => sheet.strings(name));
+        const [rate, p50, p99, perCpu, driver, idle, n] = ["rate", "p50_ms", "p99_ms", "req_per_cpu_s", "driver_cpu_ms_per_req", "min_idle_pct", "n_at_best"].map((name) => sheet.numbers(name));
+        return { ...run, rule, cells: modes.map((mode, k) => ({ mode, name: classes[k], rate: rate[k], p50: p50[k], p99: p99[k], perCpu: perCpu[k], driver: driver[k], idle: idle[k], n: n[k], moved: moved[k] === "true" })) };
       }
 
       // ── Words ──
@@ -1556,7 +1688,7 @@
 
       // ── Against the best: each category of the picked run beside the best any full sync of its condition has measured ──
       /** What a category is written in, and how it is judged: `worse`, the fraction over the best that is noticeably worse
-       * (exactly: the percent shown is rounded); `floor`, the least a row must be to be judged at all, and the least a best
+       * (the percent shown is rounded to a tenth); `floor`, the least a row must be to be judged at all, and the least a best
        * reads as; `gap`, the least it must also be over the best in its own unit; `wall`, a wall time, held only to runs
        * that held the mini's lock (a run's `locked`). Times: under 10 s two runs of one commit differ by up to 2,400% (4 s
        * against 96 s), noise and not cost; the recordings hold two pairs of runs of one commit (4a0464f5a, on the M6 and on
@@ -1568,6 +1700,19 @@
       const TIME = { fmt: (s) => duration(s, true), floor: 10, worse: 0.1, gap: 10, wall: true };
       const MEMORY = { fmt: bytes, floor: 0, worse: 0.1, gap: 0, wall: false };
       const INSTRUCTIONS = { fmt: (n) => (n >= 1e12 ? `${(n / 1e12).toFixed(2)} T` : `${(n / 1e9).toFixed(1)} G`), floor: 1e10, worse: 0.05, gap: 0, wall: false };
+      /** The Capacity section: a cell is a route class's requests per second of the server's own CPU, at the highest rate it
+       * held (p99 handler time 50 ms, the machine 20% idle); `higher`, more is better; `worse`, the fraction under the best any
+       * commit measured on the machine and mode that is noticeably worse; `runs`, the least a cell's runs must be to be held
+       * to the best or to set it. Of the 56 class and mode cells that two runs of one commit measured (four commits, two runs
+       * each, on the M4 under its lock), 47 differ by under 5%, 53 by under 10%, the most by 20%: one run is no judge. */
+      const CAPACITY = { fmt: grouped, worse: 0.1, gap: 0, higher: true, runs: 2 };
+      /** Whether `value` is noticeably worse than `best`, in the direction the unit says: beyond its `worse` fraction and by at least its `gap`. */
+      const worse = (value, best, unit) => (unit.higher ? value < best * (1 - unit.worse) : value > best * (1 + unit.worse)) && Math.abs(value - best) >= unit.gap;
+      /** How far a value is over (under, negative) the best, in percent to a tenth: the writer of every percent beside a flag, so the figure
+       * agrees with the flag (at whole percents a −10.4% was flagged and read −10%). */
+      const percentOver = (value, best) => Math.round((value / best - 1) * 1000) / 10;
+      /** A percent's magnitude: a tenth under 100%, whole above (a time 24 times the best is not read to a tenth). */
+      const percentText = (percent) => (Math.abs(percent) < 100 ? Math.abs(percent).toFixed(1) : grouped(Math.abs(percent)));
       /** A run's categories by name, at `height` where its indexing time is cut (as the curves are); a plugin's own rows
        * (`own`, its instructions computing the chain from zero alone: its cost, where its interval in the run is the schedule's) are
        * comparable with every run, the rest add several plugins' work up, or are the memory they share.
@@ -1607,8 +1752,8 @@
             const other = Math.max(found, unit.floor);
             if (other < best.value) best = { run: r, value: other, floored: found < unit.floor };
           }
-          const percent = Math.round((value / best.value - 1) * 100);
-          return { name, unit, own, value, cycles, best, seen, small, percent, worse: seen && value > best.value * (1 + unit.worse) && value - best.value >= unit.gap };
+          const percent = percentOver(value, best.value);
+          return { name, unit, own, value, cycles, best, seen, small, percent, worse: seen && worse(value, best.value, unit) };
         });
         return { height, apart, rows: rows.sort((a, b) => Number(a.small) - Number(b.small) || Number(a.own) - Number(b.own) || b.percent - a.percent) };
       }
@@ -1623,7 +1768,7 @@
         note.textContent = `Best of up to ${pool.length} full syncs on this machine and profile. Worse: a time over ${TIME.worse * 100}% and ${TIME.gap} s above the best, held only to runs that held the mini's lock; memory over ${MEMORY.worse * 100}%, instructions over ${INSTRUCTIONS.worse * 100}%. Stages and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments; a plugin, its instructions computing the chain from zero alone, to every run that recorded it${selected.from_zero.total == null ? ` (this run has no plugin rows: ${noCounts(selected)})` : ""}. Compute instructions from zero is that whole recompute's, its imports and what no plugin accounts for included; the cycles under a row are shown and never judged. Indexing is cut at a shared height, the rest are whole runs${apart ? `, their tips up to ${grouped(apart)} blocks apart` : ""}. A row under its floor (${TIME.floor} s, ${INSTRUCTIONS.fmt(INSTRUCTIONS.floor)}) is listed and not judged, and a best under it reads as the floor.`;
         const best = (row) => (row.seen ? `${row.best.floored ? "≤ " : ""}${row.unit.fmt(row.best.value)}` : "–");
         const holder = (row) => (row.small ? `under ${row.unit.fmt(row.unit.floor)}` : !row.seen ? "no other run" : row.best.run === selected ? "this run" : `<button type="button" class="pick" data-label="${escape(row.best.run.label)}">${escape(rev(row.best.run))}</button>`);
-        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}" tabindex="-1"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}${row.cycles == null ? "" : `<small>${row.unit.fmt(row.cycles)} cycles</small>`}</td><td>${best(row)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `${row.best.floored ? "≥ " : "+"}${grouped(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
+        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}" tabindex="-1"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}${row.cycles == null ? "" : `<small>${row.unit.fmt(row.cycles)} cycles</small>`}</td><td>${best(row)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `${row.best.floored ? "≥ " : "+"}${percentText(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
       }
       $("best").addEventListener("click", (e) => {
         const button = e.target.closest("button[data-label]");
@@ -1633,6 +1778,64 @@
         // (The table's redrawn, its row's best now the picked run, so with no button: the row keeps the place, or the title when
         // the picked run's own value left the row out.)
         ($("best").querySelector(`tr[data-name="${CSS.escape(name)}"]`) ?? $("best-title")).focus();
+      });
+
+      // ── Capacity: each route class and mode, a commit's requests per server CPU-second beside the best of any commit ──
+      const mean = (values) => values.reduce((sum, v) => sum + v, 0) / values.length;
+      const signed = (percent) => `${percent < 0 ? "−" : percent > 0 ? "+" : ""}${percentText(percent)}%`;
+      /** Each cell a button: its details (p50 and the rest, no hover needed) go to the table's readout. */
+      const cellDetails = new Map();
+      function capacity() {
+        const all = machines[machine].measured, section = $("capacity");
+        section.hidden = !all.length;
+        if (!all.length) return;
+        // Only runs of the last run's rule and profile, from a clean tree, are held to each other.
+        const last = all.at(-1), shown = all.filter((r) => r.rule === last.rule && r.profile === last.profile && !r.dirty);
+        const commits = [];
+        for (const run of shown) {
+          const column = commits.find((c) => c.revision === run.revision);
+          if (column) column.runs.push(run);
+          else commits.push({ revision: run.revision, runs: [run] });
+        }
+        const modes = [...new Set(shown.flatMap((r) => r.cells.map((c) => c.mode)))];
+        let flagged = 0, judged = 0;
+        cellDetails.clear();
+        $("capacity-tables").innerHTML = modes.map((mode) => {
+          const names = [...new Set(shown.flatMap((r) => r.cells.filter((c) => c.mode === mode).map((c) => c.name)))];
+          const rows = names.map((name) => {
+            // A cell: the runs of the column that measured the class, held to the best only when enough did and the tip stood still.
+            const cells = commits.map(({ runs }) => {
+              const found = runs.flatMap((r) => r.cells.filter((c) => c.mode === mode && c.name === name));
+              return found.length ? { found, value: mean(found.map((c) => c.perCpu)), judged: found.length >= CAPACITY.runs && !found.some((c) => c.moved) } : null;
+            });
+            const best = Math.max(...cells.filter((c) => c?.judged).map((c) => c.value));
+            return `<tr><th scope="row">${escape(name).replace(/_/g, "_<wbr>")}</th>${cells.map((cell, k) => {
+              if (!cell) return '<td class="none">not measured</td>';
+              const { found, value } = cell, field = (key) => mean(found.map((c) => c[key]));
+              const bad = cell.judged && worse(value, best, CAPACITY);
+              if (k === commits.length - 1 && cell.judged) (judged++, bad && flagged++);
+              const why = found.some((c) => c.moved) ? "tip moved" : `n=${found.length}`;
+              const key = `${mode}/${name}/${k}`;
+              cellDetails.set(key, `${rev(commits[k].runs[0])}, ${mode} ${name}: ${found.length} run${found.length > 1 ? "s" : ""}: p50 ${field("p50").toFixed(2)} ms, p99 ${field("p99").toFixed(1)} ms at ${grouped(field("rate"))} req/s; server CPU ${(1000 / value).toFixed(3)} ms and driver CPU ${field("driver").toFixed(3)} ms per request; machine at least ${Math.min(...found.map((c) => c.idle))}% idle${found.some((c) => c.moved) ? "; the chain's tip moved during the measure, so it is not held to the best" : found.length < CAPACITY.runs ? `; under ${CAPACITY.runs} runs, so it is not held to the best` : ""}.`);
+              return `<td><button type="button" class="pick" aria-pressed="false" data-key="${escape(key)}">${CAPACITY.fmt(value)}<small>p99 ${field("p99").toFixed(1)}</small><small class="over${bad ? " worse" : ""}">${cell.judged ? (value === best ? "best" : signed(percentOver(value, best))) : why}</small></button></td>`;
+            }).join("")}</tr>`;
+          });
+          const head = commits.map(({ revision, runs }) => `<th scope="col"><a href="${REPO}${escape(revision)}">${escape(rev(runs[0]))}</a><small>${runs.length} run${runs.length > 1 ? "s" : ""}</small></th>`).join("");
+          return `<div class="cap"><div class="table"><table class="fit"><caption>${escape(mode[0].toUpperCase() + mode.slice(1))}</caption><thead><tr><th scope="col">Route class</th>${head}</tr></thead><tbody>${rows.join("")}</tbody></table></div><p class="readout" aria-live="polite">Tap a value for its p50, rate and CPU per request.</p></div>`;
+        }).join("");
+        const heights = shown.map((r) => r.chain_height).filter(Number.isFinite), apart = heights.length ? Math.max(...heights) - Math.min(...heights) : 0;
+        const [, p99, idle] = last.rule.match(/p99_ms=(\S+) keep=\S+ idle_min=(\S+)/) ?? [];
+        $("capacity-count").textContent = judged ? `last commit: ${flagged} of ${judged} noticeably worse` : "";
+        $("capacity-note").textContent = `A cell is requests per second of the server's CPU time, at p99 ≤ ${p99} ms. It is flagged when more than ${CAPACITY.worse * 100}% under the best any commit measured on this machine.`;
+        $("capacity-fine").textContent = `Cold reads keys not read before, warm the latest ones; a commit's cell is the mean of its runs, p99 in ms under each value, the machine at least ${idle}% idle. A cell is held to the best only when at least ${CAPACITY.runs} runs measured it and the chain's tip stood still (n=, tip moved); "not measured" means no run measured that class. The tables scroll sideways when the commits do not fit. Runs of rule ${last.rule}, profile ${last.profile}, clean tree${shown.length < all.length ? `; ${all.length - shown.length} others of another rule, profile or a dirty tree are left out` : ""}${apart ? `; tips up to ${grouped(apart)} blocks apart` : ""}.`;
+      }
+      $("capacity-tables").addEventListener("click", (e) => {
+        const button = e.target.closest("button[data-key]");
+        if (!button) return;
+        const cap = button.closest(".cap");
+        for (const other of cap.querySelectorAll("button[aria-pressed=true]")) other.setAttribute("aria-pressed", "false");
+        button.setAttribute("aria-pressed", "true");
+        cap.querySelector(".readout").textContent = cellDetails.get(button.dataset.key);
       });
 
       function pick(r) {
@@ -1650,10 +1853,11 @@
       }
       function render() {
         const { skipped } = machines[machine];
-        $("skipped").textContent = skipped.length ? ` Not readable, so left out: ${skipped.join(", ")}.` : "";
+        $("skipped").textContent = (skipped.length ? ` Not readable, so left out: ${skipped.join(", ")}.` : "") + (capacityOnly.length ? ` Capacity runs of ${capacityOnly.join(", ")} have no full sync beside them, so are not shown.` : "");
         if (!runs().length) return notice("None of this machine's runs could be read.");
         $("more").hidden = false;
         hero();
+        capacity();
         selected ??= fullSyncs().at(-1) ?? complete().at(-1) ?? runs().at(-1);
         // (Compared, at first, with the complete run before it: what changed.)
         if (compared === null) {

@@ -1,0 +1,16 @@
+version=0.13.0
+revision=bf6ac775e2fb84f08a89cb891343bfb8b22dcbc5
+dirty=false
+profile=release
+rustc=rustc 1.100.0 (0ef1bc386 2026-11-09)
+rustflags=-C target-cpu=apple-m4
+target=aarch64-apple-darwin
+hostname=mini.local
+cpu=Apple M4
+ram_bytes=17179869184
+storage=external-tb WD_BLACK SN850X 2000GB
+parallelism=10
+started_at_unix=1795493616
+chain_height=977319
+locked=true
+capacity_rule=p99_ms=50 keep=0.97 idle_min=20 tool=1f9dee904c24
