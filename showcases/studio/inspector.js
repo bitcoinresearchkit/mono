@@ -829,7 +829,7 @@ function colorSlots(layer) {
 /** A color fainter, as the card shows it (MACD's bars falling back): halfway to the card, its chroma halved. */
 function faintOf(/** @type {string} */ color) {
   const [l, c, h] = shownOklch(color), [card] = oklchOf(css("--card"));
-  return kept(oklchToHex(l + (card - l) * 0.5, c * 0.5, h));
+  return oklchToHex(l + (card - l) * 0.5, c * 0.5, h);
 }
 /** Bars' color where they fall back toward their base, above it or below (four colors): theirs, else their side's fainter. @param {Layer} layer */
 const fadingOf = (layer, /** @type {boolean} */ below) => (below ? layer.colorBelowFading : layer.colorFading) ?? faintOf(below ? belowOf(layer) : layer.color);
@@ -1580,7 +1580,7 @@ function pickPoint(/** @type {string} */ name, u, t) {
 /**
  * Where a color is on the surface: where it was picked; else by its hue, or in the fade to the grays by the share of
  * chroma it keeps; a gray (or nearly) amid the grays. A color from elsewhere goes where its hue and lightness are;
- * one of Bitview's, where it shows (in the light, its tone).
+ * one of Bitview's, where it shows (on the light, its tone).
  */
 function placeOf(color) {
   const spot = pickedAt.get(color);

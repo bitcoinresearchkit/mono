@@ -1969,13 +1969,13 @@ const swatchOf = (color) => `<i class="swatch" style="--c:${escapeHtml(cssColor(
 /** A color typed: a hex (#, or not; three digits or six), an OKLCH, or any color CSS reads, as a hex (opaque only). */
 function readColor(/** @type {string} */ text) {
   const typed = text.trim().toLowerCase(), hex = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/.exec(typed);
-  // (Typed as it's to show: kept as the dark shows it, see kept.)
-  if (hex) return kept(`#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`);
+  // (A person's own, kept in hex: shown as typed in either theme, see kept.)
+  if (hex) return `#${hex[1].length === 3 ? [...hex[1]].map((digit) => digit + digit).join("") : hex[1]}`;
   if (isColor(typed)) return kept(typed);
   if (!typed || !CSS.supports("color", typed)) return null;
   measure.fillStyle = "#000000";
   measure.fillStyle = typed;
-  return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? kept(measure.fillStyle) : null;
+  return /^#[0-9a-f]{6}$/.test(measure.fillStyle) ? measure.fillStyle : null;
 }
 /**
  * ⌘K's colors: Bitview's, each a row (`look`: shown on the chart while highlighted), and any other, typed (as the

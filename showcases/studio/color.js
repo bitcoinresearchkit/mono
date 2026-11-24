@@ -10,7 +10,6 @@ function onCurve(/** @type {[number, number][]} */ knots, /** @type {number} */ 
   const i = clamp(knots.findIndex(([at]) => at >= x), 1, knots.length - 1), [x0, y0] = knots[i - 1], [x1, y1] = knots[i];
   return clamp(y0 + ((x - x0) * (y1 - y0)) / (x1 - x0), Math.min(y0, y1), Math.max(y0, y1));
 }
-const UNTONE = /** @type {[number, number][]} */ (TONE.map(([x, y]) => [y, x]).reverse());
 /** On the light, how much lighter than the curve a warm hue is (yellow the most), by how vivid it is (a gray, none). */
 const warmLift = (/** @type {number} */ c, /** @type {number} */ h) => (h > 55 && h < 120 ? 0.1 * Math.sin(((h - 55) / 65) * Math.PI) * Math.min(1, c / 0.1) : 0);
 /** Bitview's colors as the color menu lists them: the two neutrals, then the hues around the wheel from red. */
@@ -77,5 +76,5 @@ function hexToOklch(hex) {
 
 export {
   gamma, hexToOklch, inside, isColor, isNamed, limit, maxChroma, nameDistance, oklchToHex, oklchToLinear, onCurve,
-  PALETTE, SWATCHES, TONE, UNTONE, warmLift,
+  PALETTE, SWATCHES, TONE, warmLift,
 };
