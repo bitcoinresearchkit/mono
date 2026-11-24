@@ -2640,13 +2640,19 @@
             if (combined.total) {
               // (Nothing below it: the headline says so, the dot on the axis needs no number.)
               const b = bucketOf(dayValue), cx = left + b * step, cy = y(belowOf(combined, b) / combined.total), said = share(belowOf(combined, b), combined.total);
-              const wide = g.measureText(said).width, room = cx - 8 - wide >= left;
               g.beginPath(), g.arc(cx, cy, 3.5, 0, Math.PI * 2), (g.fillStyle = paint.ink), g.fill(), (g.lineWidth = 2), g.stroke();
               if (belowOf(combined, b)) {
-                // (Beside the ring, or over the tallest bar under the words if that is higher: never over a bar.)
-                const lx = cx + (room ? -8 : 8), x0 = room ? lx - wide : lx, tall = Math.max(...Array.from(combined.counts.slice(Math.max(0, Math.floor((x0 - left) / step)), Math.min(DISTRIBUTION_BINS - 1, Math.floor((x0 + wide - left) / step)) + 1)));
-                const ly = Math.min(cy - 6, y(tall * percentOf / ceiling) - 5);
-                (g.textBaseline = "alphabetic"), (g.lineWidth = 3), (g.textAlign = room ? "right" : "left"), g.strokeText(said, lx, ly), (g.fillStyle = paint.ink), g.fillText(said, lx, ly);
+                // (At the ring, on the line: over it to its left, else to its right, else under it either side, the first
+                // spot in the plot clear of the bars; none clear, over it to its left all the same, haloed over them.)
+                const wide = g.measureText(said).width;
+                const clear = (/** @type {number} */ x0, /** @type {number} */ base) => {
+                  if (x0 < left || x0 + wide > right || base > bottom) return false;
+                  const under = combined.counts.subarray(Math.floor((x0 - left) / step), Math.min(DISTRIBUTION_BINS - 1, Math.floor((x0 + wide - left) / step)) + 1);
+                  return y(Math.max(...under) * percentOf / ceiling) >= base + 2;
+                };
+                const spots = [[cx - 8 - wide, cy - 6], [cx + 8, cy - 6], [cx - 8 - wide, cy + 15], [cx + 8, cy + 15]];
+                const [lx, ly] = spots.find(([x0, base]) => clear(x0, base)) ?? spots[cx - 8 - wide >= left ? 0 : 1];
+                (g.textBaseline = "alphabetic"), (g.lineWidth = 3), (g.textAlign = "left"), g.strokeText(said, lx, ly), (g.fillStyle = paint.ink), g.fillText(said, lx, ly);
               }
             }
           }
