@@ -129,8 +129,8 @@
       /* A mood's name with its tag beside it, on its baseline (named() in the script): over the chart and in the mood
          panel, one piece sized by --named, in the colour of --state. The tag is a quiet label about the mood, not part
          of its name: tracked caps, its colour softened toward the text's, 4.5:1 or more on every mood's wash in both
-         themes; tabular, so a longer run moves nothing. On an extreme day "Extreme" stacks over its move in the
-         name's italic, 0.4 its size, in --words (see wordsOver), on a line the tag's height (a length, inherited);
+         themes; tabular, so a longer run moves nothing. On an extreme day "extreme" stacks over its move in the
+         name's italic, lower case, 0.34 its size, in --words (see wordsOver), on a line the tag's height (a length, inherited);
          the tag's last line stays on the name's baseline, so nothing moves as it comes and goes.
          Every mood's one line from 320 wide with any run yet (the longest is 220 days); a run of four digits would
          take Optimism's 2px past it at 320. */
@@ -165,7 +165,7 @@
           display: block;
           color: var(--words);
           font-family: var(--serif);
-          font-size: calc(var(--named) * 0.4);
+          font-size: calc(var(--named) * 0.34);
           font-style: italic;
 
           &[hidden] {
@@ -1618,7 +1618,7 @@
             <h3>Each day</h3>
             <div>
               <p>Price is each day’s close. Every reading is made from that day’s numbers alone, never from what came after: today’s can change by tonight’s close.</p>
-              <p>A day is extreme when the price is further above or below either cloud than on 99 in 100 days before it, each cloud ranked against its own earlier days alone, from a year after the first day: about 1.6% of days with the clouds the page opens on, 1.1 to 1.9% with the others. It follows the coins and the clouds chosen at the page’s foot. Its mood is called extreme over the chart and in the panel by the compass, and its colour is drawn stronger in the chart’s fill, the pan bar and the strip under the compass; the lines keep theirs.</p>
+              <p>A day is extreme when the price is further above or below either cloud than on 99 in 100 days before it, each cloud ranked against its own earlier days alone, recent years counting more (each day half as much every four years back), from a year after the first day: about 2.2% of days with the clouds the page opens on, 1.9 to 2.5% with the others. It follows the coins and the clouds chosen at the page’s foot. Its mood is called extreme over the chart and in the panel by the compass, and its colour is drawn stronger in the chart’s fill, the pan bar and the strip under the compass; the lines keep theirs.</p>
               <p>A run is a mood’s days in a row. A mood’s median run, in the panel by the compass, is the middle length of its runs ended by the day shown, recent ones counting more: half are shorter, half longer.</p>
             </div>
           </li>
@@ -1650,7 +1650,7 @@
       /** A mood's name with its tag beside it, written into a .named `at`: its parts' ids `${id}-name`, `-extreme`
        * (hidden but on an extreme day) and `-tag`. The header's and the mood panel's; gives the name. */
       function named(/** @type {HTMLElement} */ at, /** @type {string} */ id) {
-        at.insertAdjacentHTML("beforeend", `<span id="${id}-name"></span><span class="sr">, </span><span class="tag"><span class="extreme" id="${id}-extreme" hidden>Extreme<span class="sr">,</span></span><span class="move" id="${id}-tag"></span></span>`);
+        at.insertAdjacentHTML("beforeend", `<span id="${id}-name"></span><span class="sr">, </span><span class="tag"><span class="extreme" id="${id}-extreme" hidden>extreme<span class="sr">,</span></span><span class="move" id="${id}-tag"></span></span>`);
         return /** @type {HTMLElement} */ (at.querySelector(`#${id}-name`));
       }
       // (The header's name presses: it lights its mood's days.)
@@ -2816,7 +2816,7 @@
         give($("mood"), `var(--s-${s.id})`, "--c");
         give($("mood"), `var(--words-${s.id})`, "--words");
         give($("mood-name"), s.name);
-        // (As the header tells the day's: its move beside its name ("Extreme" over it on the day's own mood, if extreme), and
+        // (As the header tells the day's: its move beside its name ("extreme" over it on the day's own mood, if extreme), and
         // where its price is under it; its run told in the lead.)
         const where = coinsWords(s);
         give($("mood-tag"), s.move);
