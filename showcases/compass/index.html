@@ -2638,7 +2638,7 @@
             const x = left + dayValue / 100 * (right - left);
             g.fillStyle = paint.ink; g.beginPath(); g.moveTo(x, bottom + 5); g.lineTo(x - 4, bottom + 11); g.lineTo(x + 4, bottom + 11); g.closePath(); g.fill();
             (g.font = FONTS.strong), (g.textBaseline = "middle"), (g.lineWidth = 3), (g.lineJoin = "round"), (g.strokeStyle = paint.app);
-            const named = dayName(d, counted), after = x + 9 + g.measureText(named).width <= w;
+            const named = dayName(d, counted), after = x + 9 + g.measureText(named).width <= right;
             (g.textAlign = after ? "left" : "right"), g.fillText(named, after ? x + 9 : x - 9, bottom + 9);
             if (combined.total) {
               // (Nothing below it: the headline says so, the dot on the axis needs no number.)
