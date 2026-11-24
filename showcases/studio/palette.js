@@ -3,9 +3,9 @@
 // the ramps families and things in time take.
 
 /**
- * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. A layer's color is one of these
- * names, "ink" (the page's own), an exact "oklch(l c h)", or a hex; each is drawn in sRGB (the chart reads only
- * that), converted on demand.
+ * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. Bitview's colors are these names,
+ * "ink" (the page's own) and an exact "oklch(l c h)" mixed from them (see wheelColor); a person's own is a hex. Each
+ * is drawn in sRGB (the chart reads only that), converted on demand.
  * @type {Record<string, [number, number, number]>}
  */
 export const OKLCH = {

@@ -5,7 +5,7 @@ import { capitalized } from "/studio/words.js";
 import {
   acrossUnfit, afterHands, byBlock, byTouch, chart, chartById, chooseDrawings, chosen, clearLayerPicks, client,
   cohortName, colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit,
-  fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, kept, layerPicks, layersBatch,
+  fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, layerPicks, light, layersBatch,
   letterChip, markFor, markPicks, marksOf, memberable, minedHalvings, MOTION, notice, openPalette, ownerOf, panelShown,
   paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt, renderLayers,
   reshape, resolved, say, secondColor, select, selected, seriesCount, showList, shownOklch, signedSignal, SLIDERS,
@@ -884,22 +884,23 @@ const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "p
  * @param {[number, string][]} stops
  */
 const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${cssColor(table[placeIndex(k / 16, table.length)])} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
-/** Each gradient's colors, by its stops: see gradientTable. @type {Map<string, string[]>} */
+/** Each gradient's colors, by the theme and its stops: see gradientTable. @type {Map<string, string[]>} */
 const gradientTables = new Map();
-/** The page's ink as the dark shows it (`--ink`'s dark side): as colors are kept, see gradientTable. */
-const INK_KEPT = "#f7f8f8";
+/** The page's ink as the dark shows it (`--ink`'s dark side): a stop of Bitview's mixed as its colors are kept, see addStop. */
+const INK_DARK = "#f7f8f8";
 /** How many colors a gradient is drawn in (each a value's place, rounded to the nearest of so many). */
 const GRADIENT_STEPS = 64;
+/** A gradient's stops mixed by the library (see its gradientTable, in OKLCH), each stop as `lchOf` gives it. @param {[number, string][]} stops @param {(color: string) => number[]} lchOf */
+const mixedOf = (stops, lchOf) => mixedTable(stops.map(([at, color]) => [at, `oklch(${lchOf(color).join(" ")})`]), GRADIENT_STEPS);
 /**
- * A gradient's colors as kept, `GRADIENT_STEPS` of them from 0% to 100%: the library's (see its gradientTable, mixed in
- * OKLCH), each `oklch(…)` as a color picked is (ink shows it in the theme), its stops read as Studio names them.
+ * A gradient's colors as the theme draws them, `GRADIENT_STEPS` of them from 0% to 100%, in hex: its stops each as
+ * shown (Bitview's toned on the light, a person's own as written, the page's ink its own: see shownOklch), then mixed.
  * @param {[number, string][]} stops @returns {string[]}
  */
 function gradientTable(stops) {
-  const key = JSON.stringify(stops), had = gradientTables.get(key);
+  const key = `${light}:${JSON.stringify(stops)}`, had = gradientTables.get(key);
   if (had) return had;
-  // (Ink mixed as it's kept, the dark's: the light shows it dark as any other color, see ink.)
-  const table = mixedTable(stops.map(([at, color]) => [at, ((/** @type {number[]} */ [l, c, h]) => `oklch(${l} ${c} ${h})`)(color === "ink" ? hexToOklch(INK_KEPT) : oklchOf(color))]), GRADIENT_STEPS);
+  const table = mixedOf(stops, shownOklch).map((mixed) => oklchToHex(...oklchOf(mixed)));
   if (gradientTables.size > 200) gradientTables.clear();
   gradientTables.set(key, table);
   return table;
@@ -1262,10 +1263,13 @@ function addStop(layer, at) {
   if (!stops || stops.length >= GRADIENT_MOST) return -1;
   const gaps = [[0, stops[0][0]], ...stops.slice(1).map((stop, k) => [stops[k][0], stop[0]]), [stops[stops.length - 1][0], 100]];
   const widest = gaps.reduce((best, gap) => (gap[1] - gap[0] > best[1] - best[0] ? gap : best));
-  const place = Math.round(at ?? (widest[0] + widest[1]) / 2), table = gradientTable(stops);
+  const place = Math.round(at ?? (widest[0] + widest[1]) / 2);
   // (Never on one already there: each color its own place, see moveStop.)
   if (stops.some(([where]) => where === place)) return -1;
   const k = stops.findIndex(([where]) => where > place), index = k < 0 ? stops.length : k;
+  // (Its color the mix there: between two of Bitview's, still Bitview's (mixed as kept, an `oklch(…)`, toned in the
+  // theme as they are); beside a person's own, the color drawn there now, theirs too.)
+  const near = stops.slice(Math.max(0, index - 1), index + 1), table = near.some(([, color]) => color.startsWith("#")) ? gradientTable(stops) : mixedOf(stops, (color) => (color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color)));
   stops.splice(index, 0, [place, table[placeIndex(place / 100, table.length)]]);
   return index;
 }
@@ -1552,7 +1556,7 @@ function colorAt(u, t) {
   const l = lightAt(clamp(t, 0, 1)), h = hueAt(clamp(u, 0, 1));
   // At the very ends, white and black: no chroma to speak of.
   const c = l <= 0.001 || l >= 0.999 ? 0 : Math.min(vivid(l, h), maxChroma(l, h)) * keepAt(clamp(u, 0, 1));
-  return kept(c < 0.0005 ? `oklch(${+l.toFixed(3)} 0 0)` : `oklch(${+l.toFixed(3)} ${+c.toFixed(4)} ${+h.toFixed(1)})`);
+  return oklchToHex(l, c < 0.0005 ? 0 : c, h);
 }
 /** Where each color was picked this session: a gray (white, black) is the same anywhere along its row. */
 const pickedAt = new Map();

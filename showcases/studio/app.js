@@ -6,7 +6,7 @@ import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { hexToOklch, nameDistance, oklchToHex, onCurve, SWATCHES, TONE, warmLift } from "/studio/color.js";
+import { hexToOklch, nameDistance, onCurve, SWATCHES, TONE, warmLift } from "/studio/color.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
@@ -304,16 +304,14 @@ const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => cli
  * them, an `oklch(…)`) on the dark as they are; on the light, their lightness turned over along one curve: white as
  * black and black as white, Bitview's band (0.5 to 0.75) narrowed and raised (0.64 to 0.58), so yellow, amber and lime
  * deepen enough to read on white and indigo, violet lighten a little, each still itself; the warm hues a little less
- * deep than the curve (see warmLift), else they'd go brown. A person's own (a hex: see kept) exactly as picked, in
- * either theme. (The page's ink is its own: white or black.)
+ * deep than the curve (see warmLift), else they'd go brown. A person's own (a hex, as every way of giving one keeps
+ * it) exactly as picked, in either theme. (The page's ink is its own: white or black.)
  */
 let light = false;
 function shownOklch(/** @type {string} */ color) {
   const [l, c, h] = oklchOf(color);
   return /** @type {[number, number, number]} */ (light && color !== "ink" && !color.startsWith("#") ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
 }
-/** A color given (picked, typed), as it's kept: Bitview's by its name, a person's own in hex (shown as it is, see shownOklch). */
-const kept = (/** @type {string} */ color) => (color.startsWith("oklch(") ? oklchToHex(...oklchOf(color)) : color);
 /**
  * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
  * takes the nearest one's name.
@@ -11135,7 +11133,7 @@ export {
   HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS, heatAt, heatCohort, heatKnown, heldUpright, hideBelt,
   hideDrawings, hideTip, histories, historyFor, holding, home, homeAt, homeScroll, homeScroller, hoverTime,
   importCharts, indexAt, indexCatalog, inLibrary, isDeleted, isOhlc, isPreview, isView, isYours, keepChart, keepDrawing,
-  keepSidePresets, keepsLeaving, keepStretch, kept, keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping,
+  keepSidePresets, keepsLeaving, keepStretch, keptAsEdited, keyAway, keysNow, keyTime, keyValue, labelTyping,
   layerPicks, layersBatch, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, lensAt, letterChip, letterOf,
   library, libraryEdits, libraryStep, light, linkView, listedPreviews, listOwed, LIVE, liveHeight, livePrice,
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,
