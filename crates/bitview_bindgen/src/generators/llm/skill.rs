@@ -1,16 +1,22 @@
 //! The Agent Skill: `SKILL.md`, the workflow and its traps in a few hundred words, and the
-//! references it points to, read only when needed.
+//! references it points to, read only when needed. The site serves it over HTTPS, naming routes;
+//! the MCP server serves it as resources, naming its tools.
 
 use std::{collections::BTreeSet, fmt::Write, io};
 
 use bitview_catalog::TreeNode;
 use bitview_primitives::{Calendar, Index};
 
-use super::{ACCESS, BASE_URL, SCOPE, SERIES_FLOW, SERIES_RULE, SKILL, SKILLS_PATH, find, render_traps};
+use super::{
+    ACCESS, BASE_URL, SCOPE, SERIES_FLOW, SERIES_RULE, SKILL, SKILLS_PATH, Surface, find,
+    render_series_flow, render_traps,
+};
 use crate::{Endpoint, model::Model};
 
-/// The skill's files, by path inside its folder: `SKILL.md` first.
+/// The site's skill files, by path inside its folder: `SKILL.md` first.
 pub(super) type Files = [(&'static str, String); 3];
+/// The MCP server's: `SKILL.md` and the endpoints, without the series map.
+pub(super) type McpFiles = [(&'static str, String); 2];
 
 const ENDPOINTS: &str = "references/endpoints.md";
 const SERIES: &str = "references/series.md";
@@ -24,37 +30,44 @@ pub(super) fn description() -> String {
     )
 }
 
+/// The site's skill, over the operations it offers.
 pub(super) fn render(
     catalog: &TreeNode,
     model: &Model,
-    endpoints: &[Endpoint],
+    offered: &[&Endpoint],
     series_count: usize,
-    flow: &str,
     terms_and_help: &str,
 ) -> io::Result<Files> {
-    let offered = endpoints
-        .iter()
-        .filter(|endpoint| endpoint.should_generate())
-        .collect::<Vec<_>>();
+    let surface = Surface::Https;
     Ok([
-        (
-            "SKILL.md",
-            render_skill(&offered, series_count, flow, terms_and_help)?,
-        ),
-        (ENDPOINTS, render_endpoints(&offered)),
+        ("SKILL.md", render_skill(offered, series_count, terms_and_help, surface)?),
+        (ENDPOINTS, render_endpoints(offered, surface)),
         (SERIES, render_series(catalog, model, series_count)),
+    ])
+}
+
+/// The MCP server's skill, over its tools.
+pub(super) fn render_mcp(
+    tools: &[&Endpoint],
+    series_count: usize,
+    terms_and_help: &str,
+) -> io::Result<McpFiles> {
+    let surface = Surface::Mcp;
+    Ok([
+        ("SKILL.md", render_skill(tools, series_count, terms_and_help, surface)?),
+        (ENDPOINTS, render_endpoints(tools, surface)),
     ])
 }
 
 fn render_skill(
     endpoints: &[&Endpoint],
     series_count: usize,
-    flow: &str,
     terms_and_help: &str,
+    surface: Surface,
 ) -> io::Result<String> {
     let traps = render_traps();
+    let flow = render_series_flow(endpoints, surface)?;
     let data = find(endpoints, "get_series")?;
-    let bulk = find(endpoints, "get_series_bulk")?;
     let range = data
         .query_params
         .iter()
@@ -79,35 +92,58 @@ fn render_skill(
             endpoint.method == "GET" && !flow_ids.contains(endpoint.operation_id.as_str())
         })
         .collect::<Vec<_>>();
-    let tree_paths = render_path_tree(&others);
+    let others = render_others(&others, surface);
     let indexes = render_indexes();
     let description = description();
+    // Python runs requests over HTTPS; the MCP server's tools make them.
+    let (intro, browse, script, script_trap, others_title, references) = match surface {
+        Surface::Https => (
+            format!("Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON."),
+            format!(" `{SERIES}` maps the series by topic, for browsing."),
+            format!(
+                "Fetch and compute in one command, Python reading the JSON:\n\n\
+```sh\n\
+python3 -c 'import json, urllib.request as r; q = r.Request(\"{BASE_URL}{bulk}?series=<a>,<b>&index=day1&start=2025-01-01&end=2025-01-03\", headers={{\"User-Agent\": \"bitview-skill\"}}); a, b = (s[\"data\"] for s in json.load(r.urlopen(q))); print(a, b, b[-1] / a[-1])'\n\
+```\n\n",
+                bulk = find(endpoints, "get_series_bulk")?.path,
+            ),
+            "- Answer in as few commands as you can: fetch and compute in one `python3 -c` as above, with `time.sleep(1)` between requests.\n",
+            "endpoints",
+            format!(
+                "What each returns and takes: `{ENDPOINTS}`. Files under `references/` are also at {BASE_URL}/{SKILLS_PATH}/{SKILL}/references/. The full reference with response schemas: {BASE_URL}/llms-full.txt."
+            ),
+        ),
+        Surface::Mcp => (
+            format!("Bitcoin data from Bitview ({BASE_URL}), read from a full node, through this MCP server's tools. {ACCESS}"),
+            String::new(),
+            String::new(),
+            "",
+            "tools",
+            format!("What each does and takes: `{ENDPOINTS}`."),
+        ),
+    };
     Ok(format!(
         "---\n\
 name: {SKILL}\n\
 description: \"{description}\"\n\
 ---\n\n\
 # Bitview\n\n\
-Bitcoin data API at {BASE_URL}, read from a full node. {ACCESS} Plain HTTPS GETs returning JSON. {terms_and_help}\n\n\
+{intro} {terms_and_help}\n\n\
 ## Series\n\n\
-{series_count} time series, each read at an index: `GET {path}` returns the values in `data` and their unit in `type`. {range}\n\n\
+{series_count} time series, each read at an index: `{data_name}` returns the values in `data` and their unit in `type`. {range}\n\n\
 Ids are snake_case metric names: request a likely one directly, as an unknown id returns 404 with the nearest ids and a wrong index 400 with the valid ones. Otherwise:\n\n\
 {flow}\n\
-{SERIES_RULE} `{SERIES}` maps the series by topic, for browsing.\n\n\
-Fetch and compute in one command, Python reading the JSON:\n\n\
-```sh\n\
-python3 -c 'import json, urllib.request as r; q = r.Request(\"{BASE_URL}{bulk}?series=<a>,<b>&index=day1&start=2025-01-01&end=2025-01-03\", headers={{\"User-Agent\": \"bitview-skill\"}}); a, b = (s[\"data\"] for s in json.load(r.urlopen(q))); print(a, b, b[-1] / a[-1])'\n\
-```\n\n\
+{SERIES_RULE}{browse}\n\n\
+{script}\
 Indexes:\n\n\
 {indexes}\n\
 Traps:\n\n\
 {traps}\
-- Answer in as few commands as you can: fetch and compute in one `python3 -c` as above, with `time.sleep(1)` between requests.\n\n\
-## Other endpoints\n\n\
-{tree_paths}\n\
-What each returns and takes: `{ENDPOINTS}`. Files under `references/` are also at {BASE_URL}/{SKILLS_PATH}/{SKILL}/references/. The full reference with response schemas: {BASE_URL}/llms-full.txt.\n",
-        path = data.path,
-        bulk = bulk.path,
+{script_trap}\n\
+## Other {others_title}\n\n\
+{others}\n\
+{references}\n",
+        data_name = surface.name(data),
     ))
 }
 
@@ -141,29 +177,43 @@ fn size(calendar: Calendar) -> String {
     format!("{count} {unit}{}", if count == 1 { "" } else { "s" })
 }
 
-/// Each path once, under the shortest listed path it extends: `/api/tx/{txid}[/hex|/status]`,
-/// one line per first segment, in the document's order.
-fn render_path_tree(endpoints: &[&Endpoint]) -> String {
-    let mut groups = Vec::<(&str, Vec<(&str, Vec<&str>)>)>::new();
-    for endpoint in endpoints {
-        let group = super::endpoint_segment(&endpoint.path);
-        if !groups.iter().any(|(name, _)| *name == group) {
-            groups.push((group, Vec::new()));
+/// The operations outside the series flow, one line per first path segment in the document's
+/// order: tool names, or each path once under the shortest listed path it extends
+/// (`/api/tx/{txid}[/hex|/status]`).
+fn render_others(endpoints: &[&Endpoint], surface: Surface) -> String {
+    let mut groups = Vec::<(&str, Vec<&Endpoint>)>::new();
+    for &endpoint in endpoints {
+        let segment = super::endpoint_segment(&endpoint.path);
+        match groups.iter_mut().find(|(name, _)| *name == segment) {
+            Some((_, members)) => members.push(endpoint),
+            None => groups.push((segment, vec![endpoint])),
         }
     }
+    let mut output = String::new();
+    for (_, members) in groups {
+        let line = match surface {
+            Surface::Https => path_tree(&members),
+            Surface::Mcp => members
+                .iter()
+                .map(|endpoint| format!("`{}`", endpoint.operation_id))
+                .collect::<Vec<_>>()
+                .join(", "),
+        };
+        writeln!(output, "- {line}").unwrap();
+    }
+    output
+}
+
+/// One group's paths, each once, under the shortest listed path it extends.
+fn path_tree(endpoints: &[&Endpoint]) -> String {
     let mut paths = endpoints
         .iter()
         .map(|endpoint| endpoint.path.as_str())
         .collect::<Vec<_>>();
     paths.sort_by_key(|path| (path.len(), *path));
     paths.dedup();
+    let mut roots = Vec::<(&str, Vec<&str>)>::new();
     for path in paths {
-        let group = super::endpoint_segment(path);
-        let roots = &mut groups
-            .iter_mut()
-            .find(|(name, _)| *name == group)
-            .expect("every path's group is listed")
-            .1;
         match roots.iter_mut().find(|(root, _)| {
             path.strip_prefix(root)
                 .is_some_and(|rest| rest.starts_with('/'))
@@ -172,47 +222,55 @@ fn render_path_tree(endpoints: &[&Endpoint]) -> String {
             None => roots.push((path, Vec::new())),
         }
     }
-    let mut output = String::new();
-    for (_, roots) in groups {
-        let line = roots
-            .iter()
-            .map(|(root, rest)| {
-                if rest.is_empty() {
-                    format!("`{root}`")
-                } else {
-                    format!("`{root}[{}]`", rest.join("|"))
-                }
-            })
-            .collect::<Vec<_>>()
-            .join(", ");
-        writeln!(output, "- {line}").unwrap();
-    }
-    output
+    roots
+        .iter()
+        .map(|(root, rest)| {
+            if rest.is_empty() {
+                format!("`{root}`")
+            } else {
+                format!("`{root}[{}]`", rest.join("|"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
-/// Every operation in a line: route, summary and query parameters.
-fn render_endpoints(endpoints: &[&Endpoint]) -> String {
-    let mut output = format!(
-        "# Bitview endpoints\n\nBase URL: {BASE_URL}. Every operation, with its query parameters (`*` required). Response schemas: {BASE_URL}/llms-full.txt.\n\n"
-    );
+/// Every operation in a line: its route or tool, its summary, and its query parameters or tool
+/// arguments.
+fn render_endpoints(endpoints: &[&Endpoint], surface: Surface) -> String {
+    let mut output = match surface {
+        Surface::Https => format!(
+            "# Bitview endpoints\n\nBase URL: {BASE_URL}. Every operation, with its query parameters (`*` required). Response schemas: {BASE_URL}/llms-full.txt.\n\n"
+        ),
+        Surface::Mcp => "# Bitview tools\n\nEvery tool, with its arguments (`*` required). Each tool's description says what it returns.\n\n".to_owned(),
+    };
     for endpoint in endpoints {
-        write!(output, "- `{} {}`", endpoint.method, endpoint.path).unwrap();
+        let (label, parameters) = match surface {
+            Surface::Https => ("Query", endpoint.query_params.iter().map(|parameter| (parameter, &parameter.name)).collect::<Vec<_>>()),
+            Surface::Mcp => (
+                "Arguments",
+                endpoint
+                    .path_params
+                    .iter()
+                    .chain(&endpoint.query_params)
+                    .map(|parameter| (parameter, &parameter.arg))
+                    .collect(),
+            ),
+        };
+        match surface {
+            Surface::Https => write!(output, "- `{} {}`", endpoint.method, endpoint.path),
+            Surface::Mcp => write!(output, "- `{}`", endpoint.operation_id),
+        }
+        .unwrap();
         if let Some(summary) = endpoint.summary.as_deref().filter(|s| !s.trim().is_empty()) {
             write!(output, " {}", summary.trim()).unwrap();
         }
-        let query = endpoint
-            .query_params
+        let parameters = parameters
             .iter()
-            .map(|parameter| {
-                format!(
-                    "`{}`{}",
-                    parameter.name,
-                    if parameter.required { "*" } else { "" }
-                )
-            })
+            .map(|(parameter, name)| format!("`{name}`{}", if parameter.required { "*" } else { "" }))
             .collect::<Vec<_>>();
-        if !query.is_empty() {
-            write!(output, ". Query: {}", query.join(", ")).unwrap();
+        if !parameters.is_empty() {
+            write!(output, ". {label}: {}", parameters.join(", ")).unwrap();
         }
         output.push('\n');
     }

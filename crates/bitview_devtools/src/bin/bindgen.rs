@@ -181,7 +181,7 @@ fn generate_registry_manifest(root: &Path) -> Result<()> {
         "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
         "name": "io.github.bitcoinresearchkit/bitview",
         "title": "Bitview",
-        "description": "Read-only Bitcoin blockchain, mempool, mining, market, and on-chain analytics; no API key.",
+        "description": "Read-only Bitcoin chain, mempool, mining, market and on-chain analytics, with a skill; no API key.",
         "version": env!("CARGO_PKG_VERSION"),
         "websiteUrl": "https://bitview.space/mcp",
         "icons": [{

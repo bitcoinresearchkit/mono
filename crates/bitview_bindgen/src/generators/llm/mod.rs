@@ -25,8 +25,8 @@ const SCOPE: &str = "on-chain metrics (MVRV, realized price, SOPR, holder cohort
 const ACCESS: &str = "Free and read-only, with no API key.";
 /// What anyone may do with the data and the code, in one line; the terms page says it in full.
 const LICENSES: &str = "Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to \"Bitview (bitview.space)\", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.";
-/// The series flow, written once: each step and the operations it calls, named as routes in
-/// llms.txt and the skill, as tools in the MCP instructions.
+/// The series flow, written once: each step and the operations it calls, named for each
+/// [`Surface`].
 const SERIES_FLOW: [(&str, &[&str]); 3] = [
     (
         "search by meaning with plain words; it returns series ids",
@@ -73,14 +73,13 @@ pub(crate) fn generate_llm_clients(
             .iter()
             .filter(|endpoint| endpoint.should_generate())
             .collect::<Vec<_>>();
-        let flow = render_series_flow(&generated, route)?;
+        let flow = render_series_flow(&generated, Surface::Https)?;
         let metric_count = count_metrics(catalog);
         let skill = skill::render(
             catalog,
             model,
-            endpoints,
+            &generated,
             metric_count,
-            &flow,
             &terms_and_help,
         )?;
         let plugin = render_plugin(&spec.info)?;
@@ -114,10 +113,12 @@ pub(crate) fn generate_llm_clients(
             .iter()
             .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
             .collect::<Vec<_>>();
+        let skill = skill::render_mcp(&tools, count_metrics(catalog), &terms_and_help)?;
         manifest::generate_tool_manifest(
             &tools,
             schemas,
             &render_mcp_instructions(&tools, &terms_and_help)?,
+            &skill,
             path,
         )?;
     }
@@ -161,16 +162,31 @@ fn find<'a>(endpoints: &[&'a Endpoint], id: &str) -> io::Result<&'a Endpoint> {
         })
 }
 
-/// The series flow as a numbered list, each step naming its operations through `name`.
-fn render_series_flow(
-    endpoints: &[&Endpoint],
-    name: fn(&Endpoint) -> String,
-) -> io::Result<String> {
+/// Where an agent reads Bitview: over HTTPS (llms.txt and the site's skill), or through the MCP
+/// server's tools (its instructions and the skill it serves).
+#[derive(Clone, Copy)]
+pub(super) enum Surface {
+    Https,
+    Mcp,
+}
+
+impl Surface {
+    /// An operation as this surface names it: its route, or its tool.
+    fn name(self, endpoint: &Endpoint) -> String {
+        match self {
+            Self::Https => route(endpoint),
+            Self::Mcp => endpoint.operation_id.clone(),
+        }
+    }
+}
+
+/// The series flow as a numbered list, each step naming its operations as `surface` does.
+fn render_series_flow(endpoints: &[&Endpoint], surface: Surface) -> io::Result<String> {
     let mut output = String::new();
     for (step, (text, operations)) in SERIES_FLOW.iter().enumerate() {
         let names = operations
             .iter()
-            .map(|id| Ok(format!("`{}`", name(find(endpoints, id)?))))
+            .map(|id| Ok(format!("`{}`", surface.name(find(endpoints, id)?))))
             .collect::<io::Result<Vec<_>>>()?;
         writeln!(output, "{}. {}: {text}.", step + 1, names.join(", ")).unwrap();
     }
@@ -238,7 +254,7 @@ fn pretty(value: &Value) -> io::Result<String> {
 /// The MCP server's instructions: the skill's pointer, with tools in place of routes.
 fn render_mcp_instructions(tools: &[&Endpoint], terms_and_help: &str) -> io::Result<String> {
     let traps = render_traps();
-    let flow = render_series_flow(tools, |endpoint| endpoint.operation_id.clone())?;
+    let flow = render_series_flow(tools, Surface::Mcp)?;
     Ok(format!(
         "Live and historical Bitcoin data from Bitview, read from a full node: {SCOPE}. {ACCESS} {terms_and_help}\n\n\
 For a series:\n\n\
