@@ -129,21 +129,30 @@ class Cloud extends Band {
 
 /** Where its scale's numbers sit: a faint line at each, the middle a little stronger. */
 export const INDEX_TICKS = [0, 25, 50, 75, 100];
-/** The index chart's series as last made, by its days: made again only as the colours or what's lit change. @type {WeakMap<Days, { paint: Paint, key: string, all: (Levels | Line)[] }>} */
+/** The index chart's series as last made, by its days: made again only as the colours or what's lit change; its line's
+ * colours set again as the day changes. @type {WeakMap<Days, { paint: Paint, key: string, day: number, line: Line, all: (Levels | Line)[] }>} */
 const indexMade = new WeakMap();
 /**
- * The index chart's series, 0 to 100 on its scale: a faint line at each quarter; the index in its days' trends'
- * colours, each day not lit one faint ink, so the lit days alone have colour.
+ * The index chart's series as of `day`, 0 to 100 on its scale: a faint line at each quarter; the index in its days'
+ * trends' colours, each day not lit one faint ink, so the lit days alone have colour, and each day after `day` faded
+ * as a day not lit is: what wasn't known yet then.
  */
-export function indexOf(/** @type {Days} */ d, /** @type {Paint} */ paint, /** @type {Lit} */ lit) {
-  const key = litKey(lit), made = indexMade.get(d);
-  if (made?.paint === paint && made.key === key) return made.all;
-  const all = [
-    new Levels({ lines: INDEX_TICKS.map((value) => ({ value, color: withAlpha(paint.ink, value === 50 ? 0.16 : 0.08) })) }),
-    new Line({ values: d.index, colors: colorsOf(d, lit, "trend"), palette: fadedPalette(paint, "trend", (color, k) => (k < 1 ? withAlpha(paint.ink, 0.22) : color)), width: 1.75, marker: 4.5 }),
-  ];
-  indexMade.set(d, { paint, key, all });
-  return all;
+export function indexOf(/** @type {Days} */ d, /** @type {Paint} */ paint, /** @type {Lit} */ lit, /** @type {number} */ day) {
+  const key = litKey(lit);
+  let made = indexMade.get(d);
+  if (made?.paint !== paint || made.key !== key) {
+    const line = new Line({ values: d.index, colors: new Uint8Array(d.close.length), palette: fadedPalette(paint, "trend", (color, k) => (k < 1 ? withAlpha(paint.ink, 0.22) : color)), width: 1.75, marker: 4.5 });
+    const levels = new Levels({ lines: INDEX_TICKS.map((value) => ({ value, color: withAlpha(paint.ink, value === 50 ? 0.16 : 0.08) })) });
+    indexMade.set(d, (made = { paint, key, day: NaN, line, all: [levels, line] }));
+  }
+  if (made.day !== day) {
+    // (A later day's colour its hue's faded one, as colorsOf indexes them: three a hue.)
+    const colors = colorsOf(d, lit, "trend"), own = /** @type {Uint8Array} */ (made.line.colors);
+    for (let i = d.first; i <= d.last; i++) own[i] = i > day ? colors[i] - (colors[i] % 3) + 1 : colors[i];
+    made.line.setStyle({ colors: own });
+    made.day = day;
+  }
+  return made.all;
 }
 
 // ── The compass: nine cells, north the cycle's best, east the moment's, each mood's trend after its name; the day a
