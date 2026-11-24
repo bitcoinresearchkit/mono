@@ -1075,6 +1075,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Bug Fixes
 
+- Oracle's bar lists drew every bar shorter than its share, because each value took room from the bar under it: the
+  tallest of the accuracy by year was 167 of its 190 px, and the tallest of the twelve blocks' weights 127 of 150.
+  Since 24 October. Each bar shows its exact share of the list's height now, the value above it.
 - MCP: a wrong argument is answered by the API itself, as a tool result marked `isError` that names the fix (the
   closest index and every index, the closest series ids), where the bridge answered `-32602 invalid arguments` with no
   argument and no value. The bridge's own errors (an argument the tool doesn't have, a missing path value) are tool
