@@ -766,6 +766,7 @@
 
         /* (The bar read in figures, one line: its days and, all in one trend, which.) */
         .distribution-at {
+          min-height: 1.5em;
           margin: 0 0 10px;
           color: var(--soft);
           font: 600 13px/1.5 var(--sans);
@@ -2673,15 +2674,20 @@
           // height at the bar; none, "in a lower bar" (a bar's own days are as low as the bar), and the rest by the share's own words.)
           const lower = valid && combined.total ? belowOf(combined, b) : NaN;
           const time = !lower ? "" : share(lower, combined.total).replace("<", "under ").replace(">", "over ");
-          const headline = !visible.some(Boolean) || !valid || !combined.total ? "Choose a trend above"
+          // (Nothing to read: no trend shown, no day counted yet (the warm-up year) or none in the trends shown; as the
+          // plot says.)
+          const headline = !visible.some(Boolean) ? "Choose a trend above"
+            : !histogram.some((t) => t.total) ? "No days yet"
+            : !combined.total ? "No days in these trends"
             : selected === null ? `${named === "Today" ? "Today’s index is" : `On ${named} the index was`} ${Math.round(dayValue)}: ${lower ? `it ${has} been lower for ${time} of the time.` : `no day ${has} sat in a lower bar.`}`
             : lower ? `The index ${has} been lower than this bar for ${time} of the time.` : `The index ${has} never been lower than this bar.`;
           give(bucketLabel, headline);
           // (Its days, and when they're all one trend's, which: each trend's own count in its pill, only when it has some.)
           const held = valid ? combined.days[b] : 0, trended = TRENDS.flatMap((_, t) => (valid && visible[t] && histogram[t].days[b] ? [t] : []));
           counts.forEach((count, t) => give(count, trended.includes(t) ? grouped(histogram[t].days[b]) : ""));
-          give($("distribution-at"), !valid ? "At —" : `At ${interval}: ${held ? `${grouped(held)} day${held === 1 ? "" : "s"}${trended.length === 1 ? `, all ${TRENDS[trended[0]].name.toLowerCase()}` : ""}` : "no days"}`);
-          const said = [headline, $("distribution-at").textContent, ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
+          // (No bar to read: its line kept empty, its room held.)
+          give($("distribution-at"), !valid ? "" : `At ${interval}: ${held ? `${grouped(held)} day${held === 1 ? "" : "s"}${trended.length === 1 ? `, all ${TRENDS[trended[0]].name.toLowerCase()}` : ""}` : "no days"}`);
+          const said = [headline, ...(valid ? [$("distribution-at").textContent] : []), ...trended.map((t) => `${TRENDS[t].name}: ${grouped(histogram[t].days[b])}`)];
           input.disabled = !valid;
           if (valid) input.value = String(b);
           input.setAttribute("aria-valuetext", said.join(". "));
