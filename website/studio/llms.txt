@@ -80,7 +80,7 @@ For a script run in the page (a browser's console, an assistant driving a browse
 - await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.
 - await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the browser searches its catalog, including consecutive word initials. A cold page first loads its search index, whether shown or hidden; a failed catalog read rejects with why.
 
-What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.
+What a chart can't hold is left out, or at its default, without a word: an interval or a range it doesn't know, day1 or 8y.
 
 ```js
 await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});

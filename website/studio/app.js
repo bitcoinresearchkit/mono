@@ -1210,6 +1210,13 @@ let quick = null;
 const listedPreviews = () => previewCharts.filter((doc) => !drafts.has(doc));
 /** The preview already there that's the same chart (its range aside: a look, not what it is), if one is. @param {Chart} doc */
 const previewLike = (doc) => (doc.layers.length ? previewCharts.find((item) => item !== doc && sameChart(item, doc)) : undefined);
+/** The preview alike (previewLike) shown as `doc` came: its interval, range and view, its chunks at hand (for its views before) fetched anew. @param {Chart} like @param {Chart} doc */
+function lookAs(like, doc) {
+  like.index = doc.index;
+  like.range = doc.range;
+  takeView(doc.id, like.id);
+  forgetSpans(like.id);
+}
 /** A chart's view (where it's zoomed or panned to) given to another id. @param {string} from @param {string} to */
 const moveView = (from, to) => {
   const all = viewsNow();
@@ -1292,6 +1299,10 @@ const relist = (doc, at) => {
 const stampEdit = (doc) => (doc.updated = Math.max(Date.now(), doc.updated + 1, (library.deleted[doc.id] ?? 0) + 1));
 /** Whether a chart was deleted after its last edit (here or in another tab). @param {{ id: string, updated: number }} doc */
 const isDeleted = (doc) => library.deleted[doc.id] >= doc.updated;
+/** Whether a chart stays in the library: not deleted since its last edit, or open (it goes once another is). @param {{ id: string, updated: number }} doc */
+const alive = (doc) => doc.id === chart?.id || !isDeleted(doc);
+/** The later copy of a chart; at the same millisecond the one whose text sorts later, the same in every tab. @template {{ updated: number }} T @param {T} a @param {T} b @returns {T} */
+const laterCopy = (a, b) => (a.updated !== b.updated ? (a.updated > b.updated ? a : b) : JSON.stringify(a) >= JSON.stringify(b) ? a : b);
 /** @returns {Chart | undefined} */
 const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? library.presets.find((doc) => doc.id === id) ?? previewCharts.find((doc) => doc.id === id);
 /** Whether a chart is one of yours (the Library's). @param {Chart} doc */
@@ -1660,7 +1671,7 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   /** A chart's later copy, in its folder as the arrangement has it. @param {Chart | undefined} own @param {Chart | undefined} other */
   const later = (own, other) => {
     if (!own || !other) return /** @type {Chart} */ (own ?? other);
-    const doc = own.updated >= other.updated ? own : other, by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
+    const doc = laterCopy(own, other), by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
     if (by.folder) doc.folder = by.folder;
     else delete doc.folder;
     return doc;
@@ -1670,7 +1681,7 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   const merged = [...others.filter((doc) => !leading.has(doc.id)), ...lead.map((doc) => later(ours.get(doc.id), theirs.get(doc.id)))];
   for (const doc of merged) if (ours.get(doc.id) !== doc) histories.delete(doc.id);
   // (The open chart, whichever copy, stays.)
-  library.charts = merged.filter((doc) => doc.id === chart?.id || !isDeleted(doc));
+  library.charts = merged.filter(alive);
   // (Saving here: this tab's folders, but each one's name, icon, place and closing theirs unless changed here since
   // this tab last wrote or took one in: a folder renamed or moved there isn't saved back as it was.)
   const base = arranged ? new Map(arranged[1].map((folder) => [folder.id, folder])) : null, other = new Map(folders.map((folder) => [folder.id, folder]));
@@ -1689,9 +1700,9 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   const theirPresets = presetsOf(stored.presets), ourPresets = new Set(library.presets), byPreset = /** @type {Map<string, Chart>} */ (new Map());
   for (const doc of [...library.presets, ...theirPresets]) {
     const have = byPreset.get(/** @type {string} */ (doc.preset));
-    if (!have || doc.updated > have.updated) byPreset.set(/** @type {string} */ (doc.preset), doc);
+    byPreset.set(/** @type {string} */ (doc.preset), have ? laterCopy(have, doc) : doc);
   }
-  library.presets = [...byPreset.values()].filter((doc) => doc.id === chart?.id || !isDeleted(doc));
+  library.presets = [...byPreset.values()].filter(alive);
   for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
   // (Its charts this tab can't read, set aside: not counted, or each tab would save over the other's.)
   if (!saving && !writing && holdings(library.charts, library.folders, library.deleted, library.presets) !== holdings(incoming, folders, deleted, theirPresets)) save();
@@ -2349,6 +2360,9 @@ function openChart(doc) {
   brokenLink = "";
   const previous = chart;
   chart = doc;
+  // (One deleted in another tab while it was open: gone now it isn't.)
+  library.charts = library.charts.filter(alive);
+  library.presets = library.presets.filter(alive);
   linkedAt = null;
   // (A preset left as it was: nothing of it kept but for Recent; a chart New chart made, left as it came, let go of.)
   if (previous?.preset !== undefined && previous !== doc) prunePresets(doc);
@@ -2416,11 +2430,9 @@ function showPreview(doc, push = true) {
   flushEdits();
   const like = previewLike(doc), shown = like ?? doc;
   if (like) {
-    // (Its own window kept first, then this one's over it, or none: the range this one came with shows.)
+    // (Its own window kept first, then this one's over it, or none: the interval and range this one came with show.)
     if (like === chart) saveView();
-    like.range = doc.range;
-    takeView(doc.id, like.id);
-    forgetSpans(like.id);
+    lookAs(like, doc);
   }
   if (closedToast === shown) hideToast();
   leaveHome(() => {
@@ -6784,7 +6796,7 @@ function presetByAddress(i, window = undefined) {
     const made = freshPreset(i);
     takeLinkLook(made, look, presetLook(i));
     const like = previewLike(made), doc = like ?? made;
-    if (like) (like.range = made.range), (like.index = made.index), takeView(made.id, like.id);
+    if (like) lookAs(like, made);
     doc.made = presetKey(i);
     addPreview(doc);
     keepAsideOpened(doc);
@@ -11085,7 +11097,7 @@ async function start() {
   for (const doc of setAside) previewCharts.push(doc);
   if (shared) {
     const like = !library.charts.includes(shared) && previewLike(shared);
-    if (like) (like.range = shared.range), takeView(shared.id, like.id);
+    if (like) lookAs(like, shared);
     chart = like || shared;
     linkWindow = chart.id;
     if (!library.charts.includes(chart)) addPreview(chart), keepAsideOpened(chart);

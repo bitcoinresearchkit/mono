@@ -39,6 +39,26 @@ const UNSHARED = new Set(["halving", "shift", "rebase"]);
 /** @typedef {{ mean: Vector, variance: Vector, count: Vector, total: Vector }} WindowStats */
 /** Each vector's window stats, by window: made once, whoever asks (sma, sum, zscore and stdev of the same input). @type {WeakMap<Vector, Map<string, WindowStats>>} */
 const statsOf = new WeakMap();
+/** Each vector's start, where its first value that isn't 0 is, with what follows it (none: it starts there, or holds no such value). @type {WeakMap<Vector, { start: number, tail: Vector } | null>} */
+const starts = new WeakMap();
+/**
+ * `run` over a series from where it exists: the API gives 0 before one does, no data, so a window holds none of it (a
+ * mean, a lowest, an EMA's seed), and its output is none there. The tail is made once a vector, so what `run` keeps by
+ * its input (rolling's stats) is shared by every call. The trade: a count truly 0 until its event begins (P2SH inputs
+ * before 2012) reads as starting there too, so its first window-1 points average a filling window, not the true 0s.
+ * @param {Vector} x @param {(x: Vector) => Vector} run @returns {Vector}
+ */
+function fromStart(x, run) {
+  if (!starts.has(x)) {
+    const start = x.findIndex((value) => value !== 0 && Number.isFinite(value));
+    starts.set(x, start > 0 ? { start, tail: x.subarray(start) } : null);
+  }
+  const from = starts.get(x);
+  if (!from) return run(x);
+  const out = new Float64Array(x.length).fill(NaN);
+  out.set(run(from.tail), from.start);
+  return out;
+}
 /**
  * Each window of the last `n` points (a span of time: the values in it, points without one left out): its mean,
  * variance and count, at the points with a value; from the first value on where the data is all of history
@@ -861,7 +881,7 @@ function evaluateAnew(node, length, ref, index, inWindow) {
           if (arity === 3 && (typeof p !== "number" || !(p >= 0 && p <= 100))) throw new Error(`${signature}: p is a percent, from 0 to 100`);
           const x = vec(args[0]), points = days === Infinity ? Infinity : !spanned && usual ? usual : windowPoints(/** @type {number} */ (days), index);
           if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
-          const out = run(x, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]);
+          const out = fromStart(x, (from) => run(from, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]));
           // (A growth over all of history, or a span, with nothing to grow from: said so.)
           if (node.f === "cagr" && !out.some(Number.isFinite) && !outreaches(x, points === Infinity ? 1 : points)) throw new Error("cagr: growth needs positive values, two at least");
           // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
@@ -981,6 +1001,6 @@ function nearestFinite(values, i) {
 }
 export {
   argNames, bandSum, breaksAt, COMPARES, evaluate, FUNCTIONS, GENESIS, hasFunction, highlightFormula,
-  isBandSum, nearestFinite, paneAt, parse, PERIODS_TAKEN, plainOperators, refsOf, renamed, restarts, rolling,
+  fromStart, isBandSum, nearestFinite, paneAt, parse, PERIODS_TAKEN, plainOperators, refsOf, renamed, restarts, rolling,
   seriesNamed, seriesUnnamed, shiftSpan, shiftSpanError, turnsInto, unfitHere, unitOfNode, unstarted, VALUES, windowsOf,
 };
