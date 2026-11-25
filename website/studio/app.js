@@ -1210,6 +1210,13 @@ let quick = null;
 const listedPreviews = () => previewCharts.filter((doc) => !drafts.has(doc));
 /** The preview already there that's the same chart (its range aside: a look, not what it is), if one is. @param {Chart} doc */
 const previewLike = (doc) => (doc.layers.length ? previewCharts.find((item) => item !== doc && sameChart(item, doc)) : undefined);
+/** The preview alike (previewLike) shown as `doc` came: its interval, range and view, its chunks at hand (for its views before) fetched anew. @param {Chart} like @param {Chart} doc */
+function lookAs(like, doc) {
+  like.index = doc.index;
+  like.range = doc.range;
+  takeView(doc.id, like.id);
+  forgetSpans(like.id);
+}
 /** A chart's view (where it's zoomed or panned to) given to another id. @param {string} from @param {string} to */
 const moveView = (from, to) => {
   const all = viewsNow();
@@ -2416,11 +2423,9 @@ function showPreview(doc, push = true) {
   flushEdits();
   const like = previewLike(doc), shown = like ?? doc;
   if (like) {
-    // (Its own window kept first, then this one's over it, or none: the range this one came with shows.)
+    // (Its own window kept first, then this one's over it, or none: the interval and range this one came with show.)
     if (like === chart) saveView();
-    like.range = doc.range;
-    takeView(doc.id, like.id);
-    forgetSpans(like.id);
+    lookAs(like, doc);
   }
   if (closedToast === shown) hideToast();
   leaveHome(() => {
@@ -6784,7 +6789,7 @@ function presetByAddress(i, window = undefined) {
     const made = freshPreset(i);
     takeLinkLook(made, look, presetLook(i));
     const like = previewLike(made), doc = like ?? made;
-    if (like) (like.range = made.range), (like.index = made.index), takeView(made.id, like.id);
+    if (like) lookAs(like, made);
     doc.made = presetKey(i);
     addPreview(doc);
     keepAsideOpened(doc);
@@ -11085,7 +11090,7 @@ async function start() {
   for (const doc of setAside) previewCharts.push(doc);
   if (shared) {
     const like = !library.charts.includes(shared) && previewLike(shared);
-    if (like) (like.range = shared.range), takeView(shared.id, like.id);
+    if (like) lookAs(like, shared);
     chart = like || shared;
     linkWindow = chart.id;
     if (!library.charts.includes(chart)) addPreview(chart), keepAsideOpened(chart);
