@@ -325,10 +325,14 @@ function updateMark(doc) {
 }
 /** A chart whose mark failed (a fetch), and when: asked for again after a while, or once it's edited. @type {Map<string, { key: string, at: number }>} */
 const thumbsFailed = new Map();
-/** A chart's mini chart drawn again where it's out of date, its marks with it (its row's, its legends'): whether it was. @param {Chart} doc */
-async function freshThumb(doc) {
+/**
+ * A chart's mini chart drawn again where it's out of date, its marks with it (its row's, its legends'): whether it was.
+ * `picture`: for a picture of it being made, whose legends need their marks now, its hidden layers' data loaded for it.
+ * @param {Chart} doc @param {boolean} [picture]
+ */
+async function freshThumb(doc, picture = false) {
   // A background card must not load hidden data while its chart is open. The library draws it on return.
-  if (doc.id === chart?.id && !home && seriesIn(doc).some(name => !asked(name, doc))) return false;
+  if (!picture && doc.id === chart?.id && !home && seriesIn(doc).some(name => !asked(name, doc))) return false;
   const key = thumbKey(doc), failed = thumbsFailed.get(doc.id);
   if (thumbs.get(doc.id)?.key === key || (failed?.key === key && Date.now() - failed.at < 30_000)) return false;
   const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [], washes: [], dots: [], marks: {} };

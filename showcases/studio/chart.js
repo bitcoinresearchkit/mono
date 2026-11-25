@@ -5,7 +5,7 @@ import {
   placeIndex, Profile, rightBlank, Scale, Shade,
 } from "/modules/bitview-charts/index.js";
 import { OKLCH } from "/studio/palette.js";
-import { hexToOklch, oklchToHex } from "/studio/color.js";
+import { hexToOklch, oklchToHex, pageInk } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
   averageFor, bandLit, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex, catalogIntervals,
@@ -767,16 +767,17 @@ function averageResult(result, average, index, layer) {
 const hexCache = new Map();
 /** A color as the chart draws it, in sRGB hex: converted on demand, and kept (a picker's drag makes many: a few hundred). */
 const ink = (color) => {
-  if (color === "ink") return css("--ink");
+  const page = pageInk(color);
+  if (page) return css(page);
   if (color.startsWith("#")) return color;
   if (hexCache.size > 500) hexCache.clear();
   if (!hexCache.has(color)) hexCache.set(color, oklchToHex(...shownOklch(color)));
   return hexCache.get(color);
 };
 /** A color's lightness, chroma and hue. @returns {[number, number, number]} */
-const oklchOf = (color) => OKLCH[color] ?? (color.startsWith("oklch(") ? /** @type {[number, number, number]} */ (color.slice(6, -1).split(" ").map(Number)) : hexToOklch(color === "ink" ? css("--ink") : color));
+const oklchOf = (color) => OKLCH[color] ?? (color.startsWith("oklch(") ? /** @type {[number, number, number]} */ (color.slice(6, -1).split(" ").map(Number)) : hexToOklch(pageInk(color) ? ink(color) : color));
 /** A color as CSS writes it: as the chart draws it (sRGB, mapped the same way), so a swatch is its line's color. */
-const cssColor = (color) => (color === "ink" ? "var(--ink)" : ink(color));
+const cssColor = (color) => ((page) => (page ? `var(${page})` : ink(color)))(pageInk(color));
 const alpha = (color, a) => `${color}${Math.round(a * 255).toString(16).padStart(2, "0")}`;
 /** The unit a layer displays in: its chosen format, else its data's. */
 const unitFor = (layer, result) => (layer.type === "signal" ? "signal" : layer.format ? layer.format : result?.unit ?? (layer.series ? units.get(layer.series) : "number") ?? "number");

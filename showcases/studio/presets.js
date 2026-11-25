@@ -515,11 +515,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
     /**
      * Its share of supply or capital in profit and loss: the two stacked, the share in profit under, in loss over, where
      * they meet the share; beside its whole's, the share in loss alone, two lines unfilled (a fill tints the plot under
-     * them): its own in the measure's color, its whole's in ink, dashed, as context (in profit, the rest).
+     * them): its own in the measure's color, over its whole's, thin in the axes' ink, as context (in profit, the rest).
      * @param {string} what @param {any} own @param {any} theirs
      */
     const shares = (what, own, theirs) => (beside && theirs?.inLoss?.share
-      ? measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "line" }), series(theirs.inLoss.share, beside[1], { color: "ink", type: "line", dash: 3 })])
+      ? measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "line" }), series(theirs.inLoss.share, beside[1], { color: "soft", type: "line", width: 1 })])
       : measure(shownAs("Share in profit", `Share of ${what} in profit and in loss`), who, [series(own.inProfit.share, "In profit", { color: "green", type: "area" }), series(own.inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }));
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
