@@ -51,7 +51,7 @@ import {
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
   fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
-  intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
+  intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, lookKey,
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
   overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries, paintSig, paletteOf,
@@ -122,7 +122,7 @@ import {
   editingMany, editLayer, editPicked, fillOf, flushPick, focusKey, formatMenu, formulaDrafts, formulaFieldLeft,
   fromChoices, gradientEdit, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, keepFocus, labelOf,
   layerActions, layerById, layerMenu, layersMenu, leaveFormula, levelRows, levelSteps, lineAt, lineLook, lineMenu,
-  markTyping, modeOf, moveLayer, moveStop, multiEdit, named, overShort, ownColor, paneLayers, paneMenu, paneMode,
+  markTyping, modeOf, moveLayer, moveStop, multiEdit, named, overShort, ownColor, paneMenu, paneMode,
   penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress, placeAssist, placeOf,
   planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf, readNumber, readsOf, readyPage, refMenu, removeLayer,
   removeLayers, removeStop, renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient,
@@ -3249,12 +3249,9 @@ function spotlight(id) {
   if (levelsFaded) for (const { levels } of levelsKept.values()) levels.changed();
   engine.invalidate(true);
 }
-/** Whether the pointer's on a legend over the plot (the band pointed at kept). */
-let onLegend = false;
 /** The layer whose row or legend item the pointer's on (a finger's, none), and whether it's on the chart itself. */
 let pointedLayer = /** @type {string | null} */ (null), pointerOnChart = false;
 document.addEventListener("pointerover", (event) => {
-  overLegend(event);
   // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
   // touched, a row it scrolled the list by, would stay lit once it's lifted.)
   if (document.body.classList.contains("carrying")) return;
@@ -3263,19 +3260,6 @@ document.addEventListener("pointerover", (event) => {
   pointerOnChart = event.pointerType !== "touch" && !pointedLayer && Boolean(closest(event, "#chart"));
   respot();
 });
-/**
- * Whether the pointer's on a legend, from whichever comes first, its pointerover or its move (a browser may tell the
- * move first), the move's known before the chart hears it (captured): moving onto it, the chart's crosshair goes as
- * the move reaches it, and the band it named is kept by this. Off it, not onto the plot (off the chart, onto an
- * axis): the layer it kept let go, as the crosshair, gone already, says nothing.
- * @param {Event} event
- */
-function overLegend(event) {
-  const was = onLegend;
-  onLegend = Boolean(closest(event, "#chart .legend"));
-  if (was && !onLegend && !crossIn && bandLit) (bandLit = null), namePointed(), lightLegend(null, false, true);
-}
-document.addEventListener("pointermove", overLegend, { capture: true });
 // (Out of the window: on nothing.)
 document.addEventListener("pointerout", (event) => event.relatedTarget || ((pointedLayer = null), (pointerOnChart = false), respot()));
 /** The data on screen, written by the build that lands (see buildChart) and grown by the live price. @type {Resolved | null} */
@@ -3884,6 +3868,8 @@ $("chart").addEventListener("pointerdown", () => engine.controller.stop(), { cap
 
 // Legends at the top of each pane, and the values beside each layer, follow the crosshair.
 let hoverTime = null;
+/** A legend's scroll state (whether it scrolls, which edges fade) follows its width, as the chart's lays out. */
+const legendWidth = new ResizeObserver((entries) => entries.forEach(({ target }) => fitSoon(/** @type {HTMLElement} */ (target))));
 /**
  * Each pane's legend in its plot's frame: the one there kept (what it shows, its focus, written again only where it
  * changes: see updateLegends), one made for a pane new there, the others gone.
@@ -3895,11 +3881,11 @@ function placeLegends() {
     // (Turned off, none; but a folded pane's, its names all it shows.)
     const folded = chart.legend === "off" ? foldedPanes(chart) : null;
     chart.panes.forEach((pane, i) => {
-      // The library's, over its plot: its chip pressed, the pane's layers.
-      const legend = engine.panes[i]?.setLegend({ onPress: () => paneLayers(pane.id) });
+      // The library's, over its plot: a row that scrolls where its items don't fit.
+      const legend = engine.panes[i]?.setLegend();
       if (!legend) return;
       const element = legend.element;
-      element.classList.add("legend");
+      if (!element.classList.contains("legend")) (element.classList.add("legend", "strip"), strip(element), legendWidth.observe(element));
       if (element.dataset.pane !== pane.id) (element.dataset.pane = pane.id), legendShown.delete(element);
       // (Turned off, none; but a folded pane's, its names all it shows.)
       element.hidden = Boolean(folded && !folded.has(pane.id));
@@ -4023,9 +4009,9 @@ function crossMoved(param) {
   // (The bar under it lit, the frontmost profile's.)
   const point = param.point;
   if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof profileHit>} */ hit, layer) => hit ?? profileHit(layer, point), null) : null);
-  // (Kept, nothing else pointed at: in its own pane's empty space, or on its legend (the chip never changes under the
-  // pointer, nor flickers as it crosses gaps); off its pane or the chart, none.)
-  bandLit = bandAt(param) ?? (onLegend || (param.point && !profileLit && bandLit && seriesPane(drawn.get(bandLit)) === param.pane) ? bandLit : null);
+  // (Kept, nothing else pointed at: in its own pane's empty space (its legend's lit item never flickers as the pointer
+  // crosses gaps); off its pane or the chart, none.)
+  bandLit = bandAt(param) ?? ((param.point && !profileLit && bandLit && seriesPane(drawn.get(bandLit)) === param.pane) ? bandLit : null);
   // (In the plot, a tag pointed at before is left.)
   if (param.point) tagLit = null;
   namePointed();
@@ -4040,7 +4026,7 @@ engine.onCrosshair((index, pane, y, input, x, series) => crossMoved(chartPoint(i
 const bubbleRing = Object.assign(document.createElement("span"), { className: "bubble-lit" });
 /** Whether the pointer's in the plot (the crosshair's): off it, on an axis, its tags are read (see tagAt). */
 let crossIn = false;
-/** A tag pointed at (or none): its layer's legend item lit, its chip naming it. */
+/** A tag pointed at (or none): its layer's legend item lit, its line's dot ringed. */
 const lightTag = (/** @type {string | null} */ tag) => ((tagLit = tag), namePointed(), lightLegend(tag, false, true));
 /** The layer whose value's tag the pointer's on, off the plot (none: null). */
 let tagLit = /** @type {string | null} */ (null);
@@ -9113,15 +9099,12 @@ function presentLegends() {
   const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
   const keys = all$("#chart .legend .legend-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
   const folded = foldedPanes(chart, true), lit = profileLit;
-  // (Each layer named, as the library lays a picture's: its chip let go, put back after.)
-  const laid = engine.panes.flatMap((pane) => (pane.legend ? [pane.legend] : []));
-  for (const legend of laid) (legend.setWhole(true), legendAccess(legend.element));
   // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
   if (lit) (profileLit = null), paintProfileItems();
   // (Every layer as it is, none faded by the spotlight: lit again after.)
   const spot = spotlit;
   spotlight(null);
-  for (const [legend] of strips) Object.assign(legend.style, { display: folded.has(legend.dataset.pane ?? "") ? "none" : "flex", flexWrap: "wrap", overflow: "visible", rowGap: "2px", height: "auto" });
+  for (const [legend] of strips) Object.assign(legend.style, { display: folded.has(legend.dataset.pane ?? "") ? "none" : "flex", flexWrap: "wrap", overflow: "visible", maskImage: "none", rowGap: "2px", height: "auto" });
   // (A profile's key onto more lines where it's longer than its pane is wide.)
   for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
   for (const [button] of buttons) {
@@ -9132,7 +9115,6 @@ function presentLegends() {
     for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
     for (const [legend, cssText] of strips) legend.style.cssText = cssText;
     for (const [key, cssText] of keys) key.style.cssText = cssText;
-    for (const legend of laid) (legend.setWhole(false), legendAccess(legend.element));
     if (lit && !profileLit) (profileLit = lit), paintProfileItems();
     spotlight(spot);
   };

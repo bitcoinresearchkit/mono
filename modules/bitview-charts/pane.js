@@ -348,13 +348,10 @@ export class Pane {
   }
 
   /**
-   * Its legend, over its plot's top left (see Legend): made once, its items then set by the page; a press on its chip
-   * told `onPress`. @param {{ onPress?: (() => void) | null }} [options] @returns {Legend}
+   * Its legend, over its plot's top left (see Legend): made once, its items then set by the page. @returns {Legend}
    */
-  setLegend(options) {
-    this.legend ??= new Legend(this.frame, options);
-    if (options && "onPress" in options) this.legend.onPress = options.onPress ?? null;
-    return this.legend;
+  setLegend() {
+    return (this.legend ??= new Legend(this.frame));
   }
 
   /**

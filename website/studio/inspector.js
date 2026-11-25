@@ -192,13 +192,6 @@ function keepFocus(away, ...next) {
   const lost = () => !had.isConnected || document.activeElement === document.body || !had.checkVisibility();
   requestAnimationFrame(() => lost() && !go() && setTimeout(() => lost() && go(), MOTION.page + 40));
 }
-/** A pane's layers in the panel's list (its legend's chip pressed): the list shown, that pane's at its top. */
-function paneLayers(/** @type {string} */ id) {
-  showList();
-  // (A focus on its legend, hidden under the list now: to that pane's first row.)
-  keepFocus($("chart"), () => $("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"] [data-select]`));
-  requestAnimationFrame(() => /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"]`))?.scrollIntoView({ block: "start", behavior: reduced() ? "auto" : "smooth" }));
-}
 /** The picks shown: the rows, the legends, the bar (drawings let go: one selection at a time). */
 function showPicks() {
   if (layerPicks.size) {
@@ -2823,7 +2816,7 @@ export {
   keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, leaveFormula, levelRows,
   levelSteps, levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName,
   markTyping, modeName, modeOf, modesFor, modeSwatch, moveLayer, movers, moveStop, multiEdit, named, overShort,
-  ownColor, paneChoices, paneLayers, paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers,
+  ownColor, paneChoices, paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers,
   pickedOf, pickPoint, pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf,
   readNumber, readsOf, readyName, readyPage, recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop,
   renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit,
