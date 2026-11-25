@@ -3506,7 +3506,7 @@ function buildChart(doc, data, refit) {
     const lineOf = (look) => look.line ?? look.color;
     // (Its gradient's colors each in its look, once; a part of that (a line's, a fill's, a fade's) a Gradient over all
     // its history, as colorsAt reads it.)
-    const lookTable = graded ? gradientTable(graded).map((c) => looks(ink(c))) : null;
+    const lookTable = graded ? gradientTable(graded).map(looks) : null;
     const [lo, hi] = lookTable && result?.values ? rangeOf(result.values) : [0, 0];
     // Its colors, as the library takes them (a line's; a band's fill and fade, a baseline's under its base too; candles'
     // parts; a cloud's, its bands').

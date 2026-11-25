@@ -883,7 +883,7 @@ const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "p
  * mixing, between its stops, would be another: through gray where they're mixed in sRGB).
  * @param {[number, string][]} stops
  */
-const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${cssColor(table[placeIndex(k / 16, table.length)])} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
+const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${table[placeIndex(k / 16, table.length)]} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
 /** Each gradient's colors, by the theme and its stops: see gradientTable. @type {Map<string, string[]>} */
 const gradientTables = new Map();
 /** The page's ink as the dark shows it (`--ink`'s dark side, which the light can't read): Bitview's form of it, see mixedOf. */
