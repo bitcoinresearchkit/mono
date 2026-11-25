@@ -3,6 +3,8 @@
 // stroke, pixel grid, corner radii, angles, padding, gaps between parts, ink weight.
 // Parts that touch count as one: a part that meets another is not measured against it again, so a near miss further along it
 // passes. (A part leaving another sideways is the house pattern; telling that from a parallel run is the sheet's job, by eye.)
+// Strokes that meet at a join are necessarily nearer each other than the gap there (a tip, a corner, two lines leaving one ring):
+// near a join they are not measured against each other, provided they leave it at least MIN_JOIN apart. Away from it, they are.
 // Run: bun website/studio/icons-check.mjs [name…]   Exits 1 when any icon fails.
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -15,6 +17,8 @@ import { ICONS, ICON_EXEMPT, KEY_GLYPHS, STYLE } from "./icons.js";
 const EPS = 0.01;
 const { stroke: STROKE, pad: PAD, snap: SNAP, radii: RADII, angles: ANGLES, minGap: GAP } = STYLE;
 const rad = (/** @type {number} */ deg) => (deg * Math.PI) / 180;
+/** The least angle at which two strokes may meet (a tip, or two lines leaving one part): narrower is a hairpin or a notch, not a join. */
+const MIN_JOIN = rad(15);
 const near = (/** @type {number} */ a, /** @type {number} */ b, eps = EPS) => Math.abs(a - b) < eps;
 /** Whether v is a whole number of steps from offset. */
 const onGrid = (/** @type {number} */ v, /** @type {number} */ step, offset = 0) => { const r = Math.abs(((v - offset) / step) % 1); return r < EPS / step || 1 - r < EPS / step; };
@@ -142,6 +146,17 @@ const segDist = (/** @type {Pt} */ p, /** @type {Pt} */ a, /** @type {Pt} */ b) 
   return Math.hypot(p[0] - a[0] - t * dx, p[1] - a[1] - t * dy);
 };
 const toLine = (/** @type {Pt} */ p, /** @type {Pt[]} */ line) => Math.min(...line.slice(1).map((q, k) => segDist(p, line[k], q)));
+/** The point of a line nearest p. @returns {Pt} */
+const foot = (/** @type {Pt} */ p, /** @type {Pt[]} */ line) => {
+  let best = line[0], d = Infinity;
+  line.slice(1).forEach((b, k) => {
+    const a = line[k], [dx, dy] = [b[0] - a[0], b[1] - a[1]], l2 = dx * dx + dy * dy;
+    const t = l2 ? Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2)) : 0;
+    const f = /** @type {Pt} */ ([a[0] + t * dx, a[1] + t * dy]), e = Math.hypot(p[0] - f[0], p[1] - f[1]);
+    if (e < d) { d = e; best = f; }
+  });
+  return best;
+};
 /** Nearest the centrelines of two parts come to each other, and where. */
 const between = (/** @type {Pt[]} */ A, /** @type {Pt[]} */ B) => {
   let d = Infinity, at = A[0];
@@ -212,11 +227,40 @@ export const check = (body, exempt = /** @type {string[]} */ ([])) => {
   });
   // Gaps: two separate parts either meet or leave ≥ minGap of clear space between their ink.
   const touch = STROKE / 2;
+  const apart = list.map((a, i) => list.map((b, j) => (i === j ? 0 : i < j ? between(a.pts, b.pts).d : 0)));
+  const dist = (/** @type {number} */ i, /** @type {number} */ j) => apart[Math.min(i, j)][Math.max(i, j)];
+  /** Where part i meets part k, and the far end of i from there (its direction away from the join). */
+  const joinOf = (/** @type {number} */ i, /** @type {number} */ k) => {
+    const hits = list[i].pts.filter((q) => toLine(q, list[k].pts) <= touch);
+    const c = /** @type {Pt} */ ([hits.reduce((s, q) => s + q[0], 0) / hits.length, hits.reduce((s, q) => s + q[1], 0) / hits.length]);
+    const far = list[i].pts.reduce((m, q) => (Math.hypot(q[0] - c[0], q[1] - c[1]) > Math.hypot(m[0] - c[0], m[1] - c[1]) ? q : m));
+    return { hits, away: Math.atan2(far[1] - c[1], far[0] - c[0]) };
+  };
   for (let i = 0; i < list.length; i++) {
     for (let j = i + 1; j < list.length; j++) {
       const need = (list[i].w + list[j].w) / 2 + GAP;
       const { d, at: where } = between(list[i].pts, list[j].pts);
-      if (d > touch && d < need - EPS) add("gap", `parts ${i + 1} and ${j + 1} are ${d.toFixed(2)} apart near ${at(where)}: ${(d - (list[i].w + list[j].w) / 2).toFixed(2)} of clear space, the table wants ${GAP}`);
+      if (!(d > touch && d < need - EPS)) continue;
+      // Both meet one part k, leaving it at least MIN_JOIN apart: the points of each within `need` of that join are the join's, not a gap.
+      const joins = list.flatMap((_, k) => {
+        if (k === i || k === j || dist(i, k) > touch || dist(j, k) > touch) return [];
+        const [a, b] = [joinOf(i, k), joinOf(j, k)];
+        const turn = Math.abs(Math.atan2(Math.sin(a.away - b.away), Math.cos(a.away - b.away)));
+        return turn >= MIN_JOIN ? [{ a: a.hits, b: b.hits }] : [];
+      });
+      let worst = d, at2 = where;
+      if (joins.length) {
+        worst = Infinity;
+        const joined = (/** @type {Pt} */ q, /** @type {Pt[]} */ hits) => hits.some((h) => Math.hypot(q[0] - h[0], q[1] - h[1]) < need);
+        // (Each point of one part against the nearest point of the other, both ways round.)
+        for (const [P, Q, side] of /** @type {[Pt[], Pt[], "a" | "b"][]} */ ([[list[i].pts, list[j].pts, "a"], [list[j].pts, list[i].pts, "b"]])) for (const q of P) {
+          const r = foot(q, Q), e = Math.hypot(q[0] - r[0], q[1] - r[1]);
+          if (e <= touch || e >= worst) continue;
+          if (joins.some((jn) => (side === "a" ? joined(q, jn.a) && joined(r, jn.b) : joined(q, jn.b) && joined(r, jn.a)))) continue;
+          worst = e; at2 = q;
+        }
+      }
+      if (worst < need - EPS) add("gap", `parts ${i + 1} and ${j + 1} are ${worst.toFixed(2)} apart near ${at(at2)}: ${(worst - (list[i].w + list[j].w) / 2).toFixed(2)} of clear space, the table wants ${GAP}`);
     }
     // A part coming back near itself (a hairpin, a notch) must also leave the gap.
     const p = list[i], pts = p.pts;
@@ -231,10 +275,22 @@ export const check = (body, exempt = /** @type {string[]} */ ([])) => {
       if (x) crossings.push(x);
     }
     const nearCrossing = (/** @type {Pt} */ q) => crossings.some((x) => Math.hypot(q[0] - x[0], q[1] - x[1]) < 2 * need);
+    // Corners (the points where the stroke turns by 30° or more, not the steps of a curve), and the angle each leaves between its arms.
+    const n = p.closed ? pts.length - 1 : pts.length;
+    const corners = /** @type {number[]} */ ([]), arms = /** @type {number[]} */ ([]);
+    for (let k = p.closed ? 0 : 1; k < (p.closed ? n : n - 1); k++) {
+      const [u, v] = [pts[(k + n - 1) % n], pts[(k + 1) % n]], c = pts[k];
+      const inner = Math.abs(Math.atan2((u[0] - c[0]) * (v[1] - c[1]) - (u[1] - c[1]) * (v[0] - c[0]), (u[0] - c[0]) * (v[0] - c[0]) + (u[1] - c[1]) * (v[1] - c[1])));
+      if (Math.PI - inner >= rad(30)) { corners.push(k); arms.push(inner); }
+    }
     let worst = Infinity, where = pts[0];
     for (let a = 0; a < pts.length; a++) for (let b = a + 1; b < pts.length; b++) {
       if (nearCrossing(pts[a]) && nearCrossing(pts[b])) continue;
       const along = Math.min(arcAt[b] - arcAt[a], p.closed ? total - (arcAt[b] - arcAt[a]) : Infinity);
+      // Two points either side of one corner are that far apart by its shape, whatever its angle, down to MIN_JOIN: a tip is a join.
+      const wrapped = p.closed && total - (arcAt[b] - arcAt[a]) < arcAt[b] - arcAt[a];
+      const between2 = corners.filter((k) => (wrapped ? k < a || k > b : k > a && k < b));
+      if (between2.length === 1 && arms[corners.indexOf(between2[0])] >= MIN_JOIN) continue;
       const d = Math.hypot(pts[a][0] - pts[b][0], pts[a][1] - pts[b][1]);
       // Two points of a corner opening 45° or more are that far apart by its shape; nearer than that is a hairpin or a notch.
       if (d >= opening * along) continue;
