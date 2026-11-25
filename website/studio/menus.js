@@ -31,7 +31,7 @@ import {
 import { headMenu, pageTitle } from "/studio/command.js";
 import { chartPathRows, folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
 import { focusKey, keyOf, labelOf, restoreFocus } from "/studio/inspector.js";
-import { isMade, presetEdited, presetLink, tick } from "/studio/presets-edit.js";
+import { presetEdited, presetLink, tick } from "/studio/presets-edit.js";
 /** @import { Chart, Layer, Level } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
@@ -1114,7 +1114,7 @@ function fromBase32(text) {
 function linksOf(doc = chart) {
   // (A preset as it's made but for how it's looked at, once the presets are read (one reloaded on shows before them):
   // its address, and that. Edited, gone from them, or none: the chart.)
-  const address = doc.preset !== undefined || isMade(doc) ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
+  const address = doc.preset !== undefined ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
   const links = address.then((at) => {
     if (at) return { copy: `${ORIGIN}${at}`, short: `${ORIGIN}${at}` };
     // (Its content and how it's looked at, both now: the link of one moment.)
