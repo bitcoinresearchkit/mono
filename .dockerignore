@@ -5,13 +5,13 @@
 !rust-toolchain.toml
 !crates
 !examples
-!showcases
+!website
 !modules
 !docs/CHANGELOG.md
 **/target
 **/node_modules
 **/.DS_Store
 # Re-excluded below the whitelist: local assistant settings (reachable through the
-# showcases -> modules symlink) and logs.
+# website -> modules symlink) and logs.
 **/.claude
 **/*.log

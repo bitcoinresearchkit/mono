@@ -13,7 +13,7 @@ let paths = ClientOutputPaths::new()
     .cli("crates/bitview_cli/src/generated.rs")
     .javascript("modules/bitview-client/index.js")
     .python("packages/bitview_client/bitview_client/__init__.py")
-    .llm("showcases")
+    .llm("website")
     .plugin("plugins/bitview")
     .llm_manifest("crates/bitview_server/mcp/manifest.json");
 

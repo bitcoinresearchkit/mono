@@ -20,7 +20,7 @@ use std::process::exit;
 
 /// The JavaScript package manifest: hand-written, only its version is generated.
 const PACKAGE_JSON: &str = "modules/bitview-client/package.json";
-const SUPPORT_PAGE: &str = "showcases/support/index.html";
+const SUPPORT_PAGE: &str = "website/support/index.html";
 /// Hand-written site pages with blocks bindgen fills.
 const SITE_PAGES: &[&str] = &[SUPPORT_PAGE];
 
@@ -38,12 +38,12 @@ const GENERATED_OUTPUTS: &[&str] = &[
     PACKAGE_JSON,
     SUPPORT_PAGE,
     "packages/bitview_client/bitview_client/__init__.py",
-    "showcases/llms.txt",
-    "showcases/llms-full.txt",
-    "showcases/.well-known/agent-skills/index.json",
-    "showcases/.well-known/agent-skills/bitview/SKILL.md",
-    "showcases/.well-known/agent-skills/bitview/references/endpoints.md",
-    "showcases/.well-known/agent-skills/bitview/references/series.md",
+    "website/llms.txt",
+    "website/llms-full.txt",
+    "website/.well-known/agent-skills/index.json",
+    "website/.well-known/agent-skills/bitview/SKILL.md",
+    "website/.well-known/agent-skills/bitview/references/endpoints.md",
+    "website/.well-known/agent-skills/bitview/references/series.md",
     "plugins/bitview/.claude-plugin/plugin.json",
     PLUGIN_ICON,
     "plugins/bitview/skills/bitview/SKILL.md",
@@ -169,7 +169,7 @@ fn output_paths(root: &Path, scope: OutputScope) -> ClientOutputPaths {
     paths
         .javascript(root.join("modules/bitview-client/index.js"))
         .python(root.join("packages/bitview_client/bitview_client/__init__.py"))
-        .llm(root.join("showcases"))
+        .llm(root.join("website"))
         .plugin(root.join("plugins/bitview"))
         .llm_manifest(root.join("crates/bitview_server/mcp/manifest.json"))
 }

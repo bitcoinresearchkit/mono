@@ -2,7 +2,7 @@
 
 HTTP API server for Bitcoin on-chain analytics.
 
-Responses are sent uncompressed, for a CDN in front to compress. The server also serves the site (the showcases), always: embedded, or in debug builds read live from the repository.
+Responses are sent uncompressed, for a CDN in front to compress. The server also serves the website, always: embedded, or in debug builds read live from the repository.
 
 `series` serves the generic series routes and `full-api`, the default, adds every other route.
 Custom compositions can disable default features and enable `series` alone, which needs only the

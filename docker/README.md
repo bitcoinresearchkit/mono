@@ -23,7 +23,7 @@ Set `BITCOIN_DATA_DIR` and a `BTC_RPC_HOST` reachable from the container in
 `docker/.env` before starting. The Compose file maps host port 7070, on this
 machine only, to Bitview's port 3110 inside the container:
 
-- Showcases: <http://localhost:7070>
+- Website: <http://localhost:7070>
 - Interactive API: <http://localhost:7070/api>
 - Health: <http://localhost:7070/health>
 

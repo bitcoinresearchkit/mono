@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <title>Privacy · Bitview</title>
+    <meta
+      name="description"
+      content="What Bitview receives and keeps: no accounts, cookies or tracking; request logs without IP addresses or user agents; support emails kept to answer them and for nothing else. Covers bitview.space and its MCP server."
+    />
+    <link rel="canonical" href="https://bitview.space/privacy/" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
+      /* One policy for every Bitview service: plain text on the page's colours, system fonts, nothing loaded. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#ffffff, #08090a);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#3c3f45, #c4c7cc);
+        --soft: light-dark(#5f636b, #8f949c);
+        --rule: light-dark(rgb(15 16 18 / 0.12), rgb(247 248 248 / 0.12));
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 16px/1.65 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      main {
+        /* (About 70 characters a line.) */
+        max-width: 30em;
+        margin: 0 auto;
+        padding: 32px 16px 80px;
+      }
+
+      a {
+        color: var(--ink);
+        text-underline-offset: 0.2em;
+        text-decoration-color: var(--rule);
+
+        &:hover {
+          text-decoration-color: currentColor;
+        }
+      }
+
+      code {
+        font: 0.9em var(--mono);
+        overflow-wrap: anywhere;
+      }
+
+      .home {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        text-decoration: none;
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+
+        /* (For fingers, a reach 44px tall, unseen.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc(50% - 22px)) 0;
+          }
+        }
+      }
+
+      h1 {
+        margin: 48px 0 4px;
+        color: var(--ink);
+        font-size: 32px;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
+      }
+
+      h2 {
+        margin: 36px 0 8px;
+        padding-top: 24px;
+        border-top: 1px solid var(--rule);
+        color: var(--ink);
+        font-size: 18px;
+      }
+
+      .updated {
+        margin: 0;
+        color: var(--soft);
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="home" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+
+      <h1>Privacy</h1>
+      <p class="updated">Last updated November 23, 2026</p>
+
+      <h2 id="scope">What this covers</h2>
+      <p>
+        Every Bitview service run at these two addresses:
+      </p>
+      <ul>
+        <li>
+          <a href="https://bitview.space/">bitview.space</a>: the website and its apps, the REST API and its
+          <a href="/openapi.json">OpenAPI description</a>, <a href="/llms.txt">llms.txt</a> and
+          <a href="/llms-full.txt">llms-full.txt</a>, the Agent Skill, which calls the API, and the
+          <a href="https://bitview.space/mcp">MCP server</a>, which the Claude Code plugin uses together with the skill.
+        </li>
+        <li>mcp.bitview.space: the MCP server's older address, the same server.</li>
+      </ul>
+      <p>Bitview is open source, and anyone can run it. A server someone else runs is theirs, under their own policy.</p>
+
+      <h2 id="nothing-asked">Using Bitview asks nothing about you</h2>
+      <p>
+        There are no accounts, API keys, cookies, ads, trackers or analytics scripts. A request carries only what it asks
+        for, in its path and query: series ids, ranges, block hashes, transaction ids or addresses.
+      </p>
+
+      <h2 id="logs">Request logs</h2>
+      <p>
+        The bitview.space server logs one line per request: the time, the method, the status, the path with its
+        query, and how long the answer took. It logs no IP address, no user agent and no other detail about who sent
+        the request.
+      </p>
+      <p>
+        The lines are kept in daily files on the server, which deletes files older than seven days every day.
+        The last 1,000 lines are also public, on the <a href="/logs/">Logs</a> page and at
+        <code>/api/server/logs</code>, so anything in a path or query, an address for example, can be seen there.
+      </p>
+
+      <h2 id="mcp">The MCP server</h2>
+      <p>
+        The MCP server is part of the bitview.space server. Each tool call is answered by the API request it names,
+        which is logged as one line like any other request, as above: its path and query show on the
+        <a href="/logs/">Logs</a> page too. Nothing else about the call is logged, and the server keeps no sessions and
+        no record of what was asked or answered.
+      </p>
+
+      <h2 id="network">Network providers</h2>
+      <p>
+        Both addresses are served through Cloudflare, which handles every connection, under
+        <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare's privacy policy</a>. Cloudflare keeps a record
+        of each request for about a month, including its IP address, full user agent, path and query. Bitview's
+        operators could query those records. Nothing of Bitview's does, except
+        <a href="https://github.com/bitcoinresearchkit/stats/blob/main/pull.py">one script</a> that turns them into the
+        counts published at <a href="https://stats.bitview.space/">stats.bitview.space</a>.
+      </p>
+      <p>
+        Cloudflare passes each visitor's IP address on to Bitview's servers, in the <code>X-Forwarded-For</code>
+        header, and they neither read nor log it. Cloudflare adds no cookie or script to Bitview's pages, except on a
+        check it shows a connection it judges a threat: that page runs Cloudflare's script, and passing it leaves its
+        <code>cf_clearance</code> cookie.
+      </p>
+      <p>
+        Until November 17, 2026, Cloudflare also added its Web Analytics script to these pages for visitors outside the
+        EU. It recorded each page view with its address and the page it came from, for Cloudflare to keep six months.
+        It was turned off and deleted on November 17, 2026. Its records could still be read right after, and
+        Cloudflare doesn't say whether deleting it drops them.
+      </p>
+
+      <h2 id="counts">Published traffic counts</h2>
+      <p>
+        Counts of requests per day and per hour, by country, browser family, status code, route and more, are public,
+        with their full history in a <a href="https://github.com/bitcoinresearchkit/stats">public repository</a>.
+      </p>
+      <ul>
+        <li>A path is counted by its route, such as <code>/api/address/:address/txs</code>, never by what it holds.</li>
+        <li>Never published: IP addresses, full user agents, networks (ASNs), query strings or what anyone looked up.</li>
+      </ul>
+
+      <h2 id="browser">In your browser</h2>
+      <p>
+        Some apps keep settings and recent choices in your browser's storage, such as Studio's charts or when you
+        last opened each app. They stay on your device and are never sent.
+      </p>
+      <p>
+        One page loads files from elsewhere: the Benchmarks page reads its results from GitHub, which receives the
+        request as for any page it serves.
+      </p>
+
+      <h2 id="email">Email</h2>
+      <p>
+        An email to <a href="mailto:support@bitview.space">support@bitview.space</a> is kept, with the address it came
+        from, to answer it and for nothing else. It stays in the mailbox until you ask support@bitview.space to delete
+        it. The mailbox is hosted by Apple's iCloud Mail, under
+        <a href="https://www.apple.com/legal/privacy/">Apple's privacy policy</a>. Issues on GitHub are public, under
+        GitHub's own terms.
+      </p>
+
+      <h2 id="sharing">Sharing</h2>
+      <p>
+        Nothing is sold. Apart from the providers and counts named above, nothing is shared, and beyond the logs and emails above,
+        nothing is kept to share.
+      </p>
+
+      <h2 id="contact">Changes and contact</h2>
+      <p>
+        This page changes when the services do, and its date says when it last did. Its history is in the
+        <a href="https://github.com/bitcoinresearchkit/mono/commits/prod/website/privacy/index.html">source</a>.
+        Questions: <a href="mailto:support@bitview.space">support@bitview.space</a>, and other ways to get help are on
+        the <a href="/support/">support page</a>. The terms for using Bitview are on the
+        <a href="/terms/">terms page</a>.
+      </p>
+    </main>
+  </body>
+</html>

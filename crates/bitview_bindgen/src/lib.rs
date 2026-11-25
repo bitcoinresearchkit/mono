@@ -185,7 +185,7 @@ const RUNTIME_TYPE_NAMES: &[&str] = &[
 /// ```ignore
 /// let paths = ClientOutputPaths::new()
 ///     .rust("crates/bitview_client/src/generated.rs")
-///     .llm("showcases");
+///     .llm("website");
 /// generate_clients(&catalog, &openapi_json, &paths)?;
 /// ```
 pub fn generate_clients(

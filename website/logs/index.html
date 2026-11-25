@@ -1,0 +1,1662 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Logs" data-color="#4f5664"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0b0d" />
+    <title>Logs · Bitview</title>
+    <meta name="description" content="This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by website/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/logs/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/logs/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Logs · Bitview" />
+    <meta property="og:description" content="This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/logs.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Logs: this server's requests a minute, response times, refusals and failures, the last block, and its lines" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
+      /* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */
+
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.rest.woff2") format("woff2");
+        unicode-range: U+0180-0191, U+0193-02BA, U+02BD-02C5, U+02C7-02D9, U+02DB, U+02DD-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03DD, U+03F0-04FF, U+052F, U+0E3F, U+1D00-1D1B, U+1D43-1D65, U+1D9C-1DA0, U+1DBB-1FFE, U+2070-20AB, U+20AD-20BE, U+20C0, U+20DB-2121, U+2126-213B, U+214D-2189, U+2423, U+2460-2468, U+24B6-24CF, U+24EA, U+2600-2606, U+263C, U+2661-266B, U+26A0, U+2717, U+2756-2764, U+2780-2788, U+27EF-27FA, U+2913, U+2A38, U+2B06-2B24, U+2C7C-2C7F, U+2DFF, U+2E18, U+A69F, U+A7FF, U+A92E, U+E000-E0F5, U+E106-E163, U+E1C3-E2DC, U+EE01-EEE1, U+F6C3, U+1F12F-1F149, U+1F16A-1F16B, U+1F850-1F852;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.rest.woff2") format("woff2");
+        unicode-range: U+018F, U+01A0-01B0, U+01CD-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02D8-02D9, U+02DB, U+02DD, U+0300-0328, U+037E-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03CE, U+0400-0475, U+0490-04F9, U+0524-0525, U+0E3F, U+1E28-1E29, U+1E80-1E85, U+1E9E-1EF9, U+2070-2089, U+20A1-20AB, U+20AD-20BD, U+2113-2116, U+2126-212E, U+2150-215E, U+2B0E-2B11, U+2B58, U+3000, U+E0A0-E0B3;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      /* A console with its vital signs on top: the numbers a glance needs, then the lines to dig through, filters on
+         the left, a line's details on the right. Cool paper by day, near-black by night; color only for status and
+         for what needs a look. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f6f7f9, #0a0b0d);
+        --panel: light-dark(#ffffff, #101215);
+        --raise: light-dark(#eceef2, #181b20);
+        --ink: light-dark(#0f1217, #eceef2);
+        --text: light-dark(#2e3440, #bcc1cb);
+        --soft: light-dark(#4f5664, #959cab);
+        --faint: light-dark(#5d6573, #7d8594);
+        --line: light-dark(rgb(15 18 23 / 0.1), rgb(255 255 255 / 0.08));
+        --line2: light-dark(rgb(15 18 23 / 0.18), rgb(255 255 255 / 0.15));
+        --spark: light-dark(rgb(15 18 23 / 0.3), rgb(255 255 255 / 0.3));
+        --ok: light-dark(#13804a, #4ade80);
+        --warn: light-dark(#9a5b00, #f5b74a);
+        --warn-bg: light-dark(rgb(240 165 30 / 0.1), rgb(245 183 74 / 0.08));
+        --error: light-dark(#c0262d, #ff6b6b);
+        --error-bg: light-dark(rgb(220 40 50 / 0.07), rgb(255 107 107 / 0.08));
+        --work: light-dark(#3557c4, #8aa8ff);
+        /* (A block line's words: 4.5:1 and more on the light ground too.) */
+        --block: light-dark(#a8460c, #ff8a3d);
+        --bar: light-dark(rgb(53 87 196 / 0.12), rgb(138 168 255 / 0.12));
+        --sans: Inter, "Inter Fallback", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
+        --gutter: max(16px, env(safe-area-inset-left));
+      }
+
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#1e222b, #d4d7de);
+          --soft: light-dark(#343943, #b7bcc7);
+          --faint: light-dark(#444a55, #9da3af);
+          --line: light-dark(rgb(15 18 23 / 0.22), rgb(255 255 255 / 0.18));
+          --line2: light-dark(rgb(15 18 23 / 0.4), rgb(255 255 255 / 0.33));
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      html {
+        background: var(--app);
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 400 13px/1.45 var(--sans);
+        -webkit-font-smoothing: antialiased;
+        overflow-anchor: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      button {
+        cursor: pointer;
+        touch-action: manipulation;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+
+      :root[data-pointer] :focus-visible {
+        outline: none;
+      }
+
+      /* (A row's ring inside it: the feed clips what's past its edges.) */
+      .line:focus-visible {
+        outline-offset: -2px;
+      }
+
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .mono {
+        font-family: var(--mono);
+      }
+
+      .s2 {
+        color: var(--ok);
+      }
+
+      /* (A status on a raised row: the green, a shade deeper for the light ground, 4.5:1 on it too.) */
+      :root {
+        --ok-row: light-dark(#117b46, #4ade80);
+      }
+
+      .line:hover .s2,
+      .line[aria-current="true"] .s2 {
+        color: var(--ok-row);
+      }
+
+      .s3 {
+        color: var(--soft);
+      }
+
+      .s4 {
+        color: var(--warn);
+      }
+
+      .s5 {
+        color: var(--error);
+      }
+
+      /* ── The bar: home, and the stream's state, which pauses it ── */
+      .bar {
+        display: flex;
+        flex: none;
+        align-items: center;
+        gap: 12px;
+        height: calc(52px + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) var(--gutter) 0;
+        border-bottom: 1px solid var(--line);
+
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          color: var(--ink);
+          font-weight: 600;
+          text-decoration: none;
+
+          img {
+            width: 18px;
+            height: 18px;
+          }
+        }
+      }
+
+      .window {
+        margin-left: auto;
+        color: var(--faint);
+        font: 12px var(--mono);
+      }
+
+      .state {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid var(--line2);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 500;
+        white-space: nowrap;
+
+        &::before {
+          content: "";
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--faint);
+        }
+
+        &[data-state="live"]::before {
+          background: var(--ok);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+        }
+
+        &[data-state="paused"] {
+          border-color: var(--warn);
+
+          &::before {
+            background: var(--warn);
+          }
+        }
+
+        &[data-state="offline"]::before {
+          background: var(--error);
+        }
+      }
+
+      /* ── The vital signs: five numbers, each with its last ten minutes ── */
+      .tiles {
+        display: grid;
+        flex: none;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        margin: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tile {
+        min-width: 0;
+        padding: 12px var(--gutter) 10px;
+        border-right: 1px solid var(--line);
+
+        &:last-child {
+          border-right: 0;
+        }
+
+        dt {
+          color: var(--soft);
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 2px 0 6px;
+          color: var(--ink);
+          font: 600 22px/1.2 var(--sans);
+          letter-spacing: -0.02em;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+
+          small {
+            margin-left: 4px;
+            color: var(--soft);
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0;
+          }
+        }
+
+        /* (In the tile's own sans, as its unit is: a narrow tile's width holds it whole.) */
+        .note {
+          color: var(--faint);
+          font: 12px var(--sans);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
+
+      .spark {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 20px;
+
+        i {
+          flex: 1;
+          min-height: 1px;
+          background: var(--spark);
+          border-radius: 1px;
+        }
+      }
+
+      /* ── The console: filters, the lines, a line's details ── */
+      .console {
+        display: grid;
+        flex: 1;
+        grid-template-columns: 280px minmax(0, 1fr) 340px;
+        min-height: 0;
+      }
+
+      .filters {
+        overflow-y: auto;
+        padding: 12px 12px 24px;
+        border-right: 1px solid var(--line);
+
+        summary {
+          display: none;
+        }
+
+        h2 {
+          display: flex;
+          justify-content: space-between;
+          margin: 16px 8px 6px;
+          color: var(--soft);
+          font: 600 11px var(--sans);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+
+          span {
+            color: var(--faint);
+            font-weight: 500;
+            letter-spacing: 0;
+            text-transform: none;
+          }
+        }
+
+        .group:first-of-type h2 {
+          margin-top: 2px;
+        }
+      }
+
+      .facet {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        height: 28px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        text-align: left;
+
+        &:hover {
+          background: var(--raise);
+        }
+
+        > i {
+          width: 12px;
+          height: 12px;
+          border: 1px solid var(--line2);
+          border-radius: 3px;
+        }
+
+        &[aria-pressed="true"] {
+          background: var(--raise);
+          color: var(--ink);
+
+          > i {
+            border-color: var(--ink);
+            background: var(--ink);
+            box-shadow: inset 0 0 0 2px var(--raise);
+          }
+        }
+
+        b {
+          color: var(--faint);
+          font: 500 12px var(--mono);
+        }
+
+        /* (A level's color, beside its name.) */
+        .dot {
+          display: inline-block;
+          width: 7px;
+          height: 7px;
+          margin-right: 7px;
+          border-radius: 50%;
+          vertical-align: 1px;
+        }
+      }
+
+      /* (A route: its share of the requests as a faint bar behind its name, its count, its median.) */
+      .facet.route {
+        grid-template-columns: minmax(0, 1fr) 40px 58px;
+        font: 12px var(--mono);
+
+        .name {
+          position: relative;
+          overflow: hidden;
+          color: var(--text);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: 2px auto 2px 0;
+            width: var(--share);
+            z-index: -1;
+            border-radius: 3px;
+            background: var(--bar);
+          }
+        }
+
+        &[aria-pressed="true"] .name {
+          color: var(--ink);
+          font-weight: 600;
+        }
+
+        b,
+        em {
+          color: var(--faint);
+          font-style: normal;
+          text-align: right;
+        }
+      }
+
+      /* (A percentile: its cut, how many requests took longer, the duration it cuts at.) */
+      .facet.slow {
+        grid-template-columns: 14px minmax(0, 1fr) 40px 58px;
+
+        > i {
+          border-radius: 50%;
+        }
+
+        span {
+          font-variant-numeric: tabular-nums;
+        }
+
+        b,
+        em {
+          font: 500 12px var(--mono);
+          color: var(--faint);
+          font-style: normal;
+          text-align: right;
+        }
+
+        &[aria-pressed="true"] em {
+          color: var(--ink);
+        }
+      }
+
+      .clear {
+        margin: 18px 8px 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--soft);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .lines {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .search {
+        display: flex;
+        flex: none;
+        gap: 8px;
+        padding: 10px 16px 8px;
+
+        .reach {
+          display: none;
+        }
+
+        input {
+          flex: 1;
+          min-width: 0;
+          height: 34px;
+          padding: 0 12px;
+          border: 1px solid var(--line2);
+          border-radius: 8px;
+          background: var(--panel);
+          font: 13px var(--mono);
+
+          /* (For fingers, 16px: iOS zooms the page into a field under that as it's focused.) */
+          @media (pointer: coarse) {
+            font-size: 16px;
+          }
+
+          &::placeholder {
+            color: var(--faint);
+          }
+        }
+      }
+
+      .head,
+      .line {
+        display: grid;
+        grid-template-columns: 104px 46px minmax(0, 1fr) 76px;
+        gap: 14px;
+        align-items: center;
+        padding: 0 16px;
+      }
+
+      .head {
+        flex: none;
+        height: 28px;
+        border-bottom: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 11.5px;
+
+        span:last-child {
+          text-align: right;
+        }
+      }
+
+      .feed {
+        flex: 1;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+        overflow-anchor: none;
+      }
+
+      .line {
+        width: 100%;
+        min-height: 27px;
+        border: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+        background: none;
+        font: 12.5px var(--mono);
+        text-align: left;
+
+        &:hover {
+          background: var(--raise);
+        }
+
+        &[aria-current="true"] {
+          background: var(--raise);
+          box-shadow: inset 2px 0 var(--ink);
+        }
+
+        .t {
+          color: var(--faint);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .p {
+          overflow: hidden;
+          color: var(--ink);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .d {
+          color: var(--soft);
+          text-align: right;
+        }
+
+        &.work .k {
+          color: var(--work);
+        }
+
+        &.work .p {
+          color: var(--text);
+        }
+
+        &.warn {
+          background: var(--warn-bg);
+
+          .k,
+          .p {
+            color: var(--warn);
+          }
+        }
+
+        &.error {
+          background: var(--error-bg);
+
+          .k,
+          .p {
+            color: var(--error);
+          }
+        }
+
+        &.debug .p,
+        &.debug .k {
+          color: var(--faint);
+        }
+
+        &.block {
+          min-height: 34px;
+
+          .k,
+          .p {
+            color: var(--block);
+            font-weight: 600;
+          }
+        }
+      }
+
+      .note-row {
+        padding: 8px 16px;
+        color: var(--faint);
+        font-style: italic;
+        text-align: center;
+      }
+
+      /* (Nothing shown: the list takes no room, so what's said sits under the headings, not past an empty column.) */
+      .feed:has(+ .empty:not([hidden])) {
+        flex: none;
+      }
+
+      .empty {
+        padding: 48px 16px;
+        color: var(--faint);
+        font: 13px var(--mono);
+        text-align: center;
+      }
+
+      .detail {
+        overflow-y: auto;
+        padding: 16px 18px 24px;
+        border-left: 1px solid var(--line);
+        background: var(--panel);
+
+        .top {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .grip {
+          display: none;
+        }
+
+        .close {
+          display: none;
+          flex: none;
+          place-items: center;
+          width: 32px;
+          height: 32px;
+          margin: -4px -6px 0 auto;
+          padding: 0;
+          border: 0;
+          border-radius: 50%;
+          background: var(--raise);
+          color: var(--soft);
+
+          /* (Only where something hovers: a touch screen keeps its last tap "hovering", and the close's reach would catch it.) */
+          @media (hover: hover) {
+            &:hover {
+              color: var(--ink);
+            }
+          }
+
+          svg {
+            width: 14px;
+            height: 14px;
+          }
+        }
+
+        h2 {
+          flex: 1;
+          min-width: 0;
+          margin: 0 0 4px;
+          color: var(--ink);
+          font: 600 14px/1.4 var(--mono);
+          word-break: break-all;
+        }
+
+        .when {
+          margin: 0 0 16px;
+          color: var(--soft);
+          font-size: 12px;
+        }
+
+        h3 {
+          margin: 22px 0 8px;
+          color: var(--soft);
+          font: 600 11px var(--sans);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+
+        dl {
+          display: grid;
+          grid-template-columns: 96px minmax(0, 1fr);
+          gap: 8px 12px;
+          margin: 0;
+          font-size: 12.5px;
+        }
+
+        dt {
+          color: var(--faint);
+        }
+
+        dd {
+          margin: 0;
+          color: var(--ink);
+          font-family: var(--mono);
+          word-break: break-all;
+        }
+
+        .raw {
+          margin: 0;
+          padding: 10px 12px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--app);
+          color: var(--text);
+          font: 12px/1.5 var(--mono);
+          white-space: pre-wrap;
+          word-break: break-all;
+        }
+
+        .act {
+          margin-top: 14px;
+          padding: 6px 12px;
+          border: 1px solid var(--line2);
+          border-radius: 8px;
+          background: none;
+          font-size: 12.5px;
+        }
+
+        .hint {
+          color: var(--faint);
+        }
+      }
+
+      footer {
+        flex: none;
+        padding: 8px var(--gutter) calc(8px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 12px;
+
+        a {
+          color: var(--soft);
+        }
+      }
+
+      /* Narrower desks: the details slide over the lines. */
+      @media (max-width: 1279px) {
+        .console {
+          grid-template-columns: 260px minmax(0, 1fr);
+        }
+
+        .detail {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 5;
+          width: min(380px, 100%);
+          box-shadow: -18px 0 40px -20px rgb(0 0 0 / 0.45);
+          animation: slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+          .close {
+            display: grid;
+          }
+
+          /* (A finger's reach, unseen: 44px square around the 32px circle, into the room beside it.) */
+          @media (pointer: coarse) {
+            .close {
+              position: relative;
+
+              &::before {
+                content: "";
+                position: absolute;
+                inset: -6px;
+              }
+            }
+          }
+        }
+
+        .scrim {
+          position: fixed;
+          inset: 0;
+          z-index: 4;
+          background: rgb(0 0 0 / 0.3);
+          animation: fade 0.22s ease-out;
+        }
+      }
+
+      @keyframes slide {
+        from {
+          translate: 100% 0;
+        }
+      }
+
+      @keyframes rise {
+        from {
+          translate: 0 100%;
+        }
+      }
+
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .detail,
+        .scrim {
+          animation: none !important;
+        }
+      }
+
+      /* Phones: the page scrolls; the numbers scroll sideways, the filters fold, the details rise as a sheet. */
+      @media (max-width: 760px) {
+        html,
+        body {
+          height: auto;
+        }
+
+        /* (The bar and the search stay while the lines scroll.) */
+        .bar {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: var(--app);
+        }
+
+        .tiles {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .tile {
+          padding: 10px var(--gutter) 8px;
+          border-bottom: 1px solid var(--line);
+
+          &:nth-child(2n) {
+            border-right: 0;
+          }
+
+          dd {
+            font-size: 19px;
+          }
+
+          /* (The last block, across both columns, on one line.) */
+          &:last-child {
+            display: flex;
+            grid-column: 1 / -1;
+            align-items: baseline;
+            gap: 10px;
+            border-bottom: 0;
+
+            dd {
+              margin: 0;
+            }
+
+            .note {
+              margin-left: auto;
+            }
+          }
+        }
+
+        .spark {
+          height: 14px;
+        }
+
+        .console {
+          display: block;
+        }
+
+        .filters {
+          overflow: visible;
+          padding: 0;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+
+          summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px var(--gutter);
+            color: var(--ink);
+            font-weight: 500;
+            cursor: pointer;
+            list-style: none;
+
+            &::-webkit-details-marker {
+              display: none;
+            }
+
+            &::after {
+              content: "";
+              width: 7px;
+              height: 7px;
+              border-right: 1.5px solid var(--soft);
+              border-bottom: 1.5px solid var(--soft);
+              rotate: 45deg;
+              translate: 0 -2px;
+              transition: rotate 0.15s;
+            }
+          }
+
+          &[open] summary::after {
+            rotate: 225deg;
+            translate: 0 2px;
+          }
+
+          .body {
+            padding: 0 calc(var(--gutter) - 8px) 14px;
+          }
+        }
+
+        .search {
+          position: sticky;
+          top: calc(52px + env(safe-area-inset-top));
+          z-index: 2;
+          padding: 8px var(--gutter);
+          border-bottom: 1px solid var(--line);
+          background: var(--app);
+        }
+
+        .head {
+          display: none;
+        }
+
+        .line {
+          grid-template-columns: 62px 34px minmax(0, 1fr) auto;
+          gap: 8px;
+          padding: 3px var(--gutter);
+          font-size: 12px;
+
+          .p {
+            display: -webkit-box;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+          }
+        }
+
+        /* (Clipped at its edge: new rows slide in from under it, not over the search.) */
+        .feed {
+          overflow: clip;
+        }
+
+        .line .ms {
+          display: none;
+        }
+
+        /* The details as a sheet: a grip to pull it down, its title and a close beside it, held while it scrolls. */
+        .detail {
+          top: auto;
+          left: 0;
+          width: 100%;
+          max-height: 82vh;
+          padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+          border-left: 0;
+          border-top: 1px solid var(--line2);
+          border-radius: 18px 18px 0 0;
+          box-shadow: 0 -18px 40px -20px rgb(0 0 0 / 0.45);
+          animation-name: rise;
+          overscroll-behavior: contain;
+
+          .top {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            flex-wrap: wrap;
+            margin: 0 -20px 4px;
+            padding: 0 20px 6px;
+            background: var(--panel);
+            touch-action: none;
+          }
+
+          .grip {
+            display: block;
+            flex-basis: 100%;
+            height: 22px;
+
+            &::before {
+              content: "";
+              display: block;
+              width: 38px;
+              height: 5px;
+              margin: 9px auto 0;
+              border-radius: 3px;
+              background: var(--line2);
+            }
+          }
+
+          .close {
+            position: relative;
+            margin-top: -2px;
+
+            /* (A finger's reach, unseen: 44px square around the 32px circle, into the gap beside the title.) */
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -6px;
+            }
+          }
+        }
+      }
+      /* (A finger's reach, unseen: the brand, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(a.brand) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+      /* (On a touch screen, the rows a finger tall: lines and filters are stacked with no room between to grow into.) */
+      @media (pointer: coarse) {
+        .line,
+        .line.block,
+        .facet {
+          min-height: 44px;
+        }
+      }
+
+      /* (The search a finger tall without growing: a label behind the field, unseen, so a tap on the bar around it lands in it.) */
+      @media (pointer: coarse) {
+        .search .reach {
+          display: block;
+          position: absolute;
+          z-index: -1;
+          inset-inline: 0;
+          top: 50%;
+          height: 44px;
+          translate: 0 -50%;
+        }
+      }
+
+      /* (Wider than a phone the bar isn't sticky: it holds the label's reach itself.) */
+      @media (pointer: coarse) and (min-width: 761px) {
+        .search {
+          position: relative;
+          z-index: 0;
+        }
+      }
+
+      #state {
+        position: relative;
+      }
+
+      @media (pointer: coarse) {
+        #state::after {
+          content: "";
+          position: absolute;
+          inset: min(0px, calc((100% - 44px) / 2)) 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+      <h1 class="sr">Logs</h1>
+      <span class="window" id="window"></span>
+      <button class="state" id="state" type="button" data-state="connecting" aria-label="Connecting; press to pause">Connecting</button>
+      <p class="sr" id="said" aria-live="polite"></p>
+    </header>
+
+    <dl class="tiles" id="tiles" aria-label="The last ten minutes"></dl>
+
+    <div class="console">
+      <details class="filters" id="filters" open>
+        <summary>Filters</summary>
+        <div class="body" id="facets"></div>
+      </details>
+
+      <section class="lines" aria-label="Log lines, newest first">
+        <div class="search"><label class="reach" for="search"></label><input id="search" type="search" placeholder="Search lines" aria-label="Search lines" autocomplete="off" spellcheck="false" /></div>
+        <div class="head" aria-hidden="true"><span>Time</span><span>Status</span><span>Path or message</span><span>Duration</span></div>
+        <ol class="feed" id="feed"></ol>
+        <p class="empty" id="empty">Waiting for the first line…</p>
+      </section>
+
+      <div class="scrim" id="scrim" hidden></div>
+      <aside class="detail" id="detail" aria-label="The line's details"></aside>
+    </div>
+
+    <footer>Everything this server logs, every request with its status, method, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a></footer>
+
+    <script>
+      // ── The shapes of the log's own lines ──
+      const REQUEST = /^(\d{3}) ([A-Z]+) (\S+)(?: (\S+))?$/;
+      const BLOCK = /^Updated to block (\d+) \S+ in ([\d.]+(?:ns|µs|ms|s))$/;
+      const DURATION = /^([\d.]+)(ns|µs|ms|s)$/;
+      const MS = { ns: 1e-6, "µs": 1e-3, ms: 1, s: 1000 };
+
+      const KEEP = 2000; // rows in the page
+      const HELD = 20_000; // lines the numbers are read from, at most
+      const WINDOW = 10 * 60_000; // what the numbers cover
+      const EVERY = 1000; // ms between looks
+      const BARS = 30; // a sparkline's bars: 20 seconds each
+
+      const $ = (id) => document.getElementById(id);
+      const numberFormat = new Intl.NumberFormat();
+      const num = (n) => numberFormat.format(Math.round(n));
+      const pad = (n, k = 2) => String(n).padStart(k, "0");
+      const clock = (ms) => {
+        const d = new Date(ms);
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      };
+      /** A line's moment whole, as the list's clock and the suite's dates write it: "27 Oct 2026, 11:44:34.566". */
+      const moment = (ms) => {
+        const d = new Date(ms);
+        return `${d.getDate()} ${d.toLocaleString("en", { month: "short" })} ${d.getFullYear()}, ${clock(ms)}.${pad(d.getMilliseconds(), 3)}`;
+      };
+      const toMs = (d) => {
+        const m = DURATION.exec(d ?? "");
+        return m ? Number(m[1]) * MS[m[2]] : null;
+      };
+      /** A duration as Rust prints it, to three significant digits. */
+      const short = (d) => {
+        const m = DURATION.exec(d ?? "");
+        return m ? `${Number(Number(m[1]).toPrecision(3))}${m[2]}` : (d ?? "");
+      };
+      const span = (ms) => (ms >= 1000 ? `${Number((ms / 1000).toPrecision(3))}s` : ms >= 1 ? `${Number(ms.toPrecision(3))}ms` : `${Number((ms * 1000).toPrecision(3))}µs`);
+      /** A quantile, between the two nearest values (the median of 10 and 100 is 55). */
+      const quantile = (xs, q) => {
+        if (!xs.length) return null;
+        const sorted = [...xs].sort((a, b) => a - b), at = (sorted.length - 1) * q, lo = Math.floor(at);
+        return sorted[lo] + (sorted[Math.ceil(at)] - sorted[lo]) * (at - lo);
+      };
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      /** A path's route: its query dropped, and each identifier (a long or numeric segment) as `:id`. */
+      const routeOf = (path) => path.split("?")[0].split("/").map((s) => (s.length > 20 || /^\d{4,}$/.test(s) ? ":id" : s)).join("/") || "/";
+
+      /** A line, read: its kind (a request by its status: only a 5xx is the server's problem), and its parts. */
+      function parse(line) {
+        const r = REQUEST.exec(line.text), b = BLOCK.exec(line.text);
+        const kind = r ? (r[1][0] === "5" ? "error" : "request") : line.level === "error" ? "error" : line.level === "warn" ? "warn" : "work";
+        return {
+          ...line,
+          kind,
+          status: r ? Number(r[1]) : null,
+          method: r ? r[2] : null,
+          path: r ? r[3] : null,
+          took: r ? (r[4] ?? null) : null,
+          ms: r ? toMs(r[4]) : null,
+          route: r ? routeOf(r[3]) : null,
+          block: b ? Number(b[1]) : null,
+          blockTook: b ? b[2] : null,
+        };
+      }
+
+      // ── State ──
+
+      /** Every line read, oldest first, the last ten minutes' worth at least. */
+      let lines = [];
+      /** The last answer's `next`: where the next asks on from. */
+      let started = null, lastSeq = null, cursor = null, online = null;
+      const view = { levels: new Set(), kinds: new Set(), statuses: new Set(), routes: new Set(), slow: null, text: "", paused: false };
+      let pending = [], frame = 0, selected = null;
+
+      // ── The numbers ──
+
+      // (By this device's clock, which an operating system keeps to within a second or so of the server's.)
+      function tiles() {
+        const now = Date.now(), from = now - WINDOW;
+        const recent = lines.filter((l) => l.unix_ms > from), reqs = recent.filter((l) => l.status);
+        // (The time the held lines cover; a rate over less than a minute would multiply a handful into hundreds.)
+        const covered = Math.min(WINDOW, Math.max(0, now - (lines[0]?.unix_ms ?? now)));
+        const bars = Array.from({ length: BARS }, () => []);
+        for (const l of reqs) bars[Math.max(0, Math.min(BARS - 1, Math.floor(((l.unix_ms - from) / WINDOW) * BARS)))].push(l);
+        const spark = (xs) => {
+          const top = Math.max(...xs.map((x) => x ?? 0), 0);
+          return `<div class="spark" aria-hidden="true">${xs.map((x) => `<i style="height:${top ? ((x ?? 0) / top) * 100 : 0}%"></i>`).join("")}</div>`;
+        };
+        const ms = (q) => bars.map((ls) => quantile(ls.map((l) => l.ms).filter((m) => m !== null), q));
+        const all = reqs.map((l) => l.ms).filter((m) => m !== null);
+        const refused = reqs.filter((l) => l.status >= 400 && l.status < 500).length, failed = reqs.filter((l) => l.status >= 500).length;
+        const block = lines.findLast((l) => l.block);
+        const tile = (name, value, unit, below) => `<div class="tile"><dt>${name}</dt><dd>${esc(value)}${unit ? `<small>${esc(unit)}</small>` : ""}</dd>${below}</div>`;
+        const p50 = quantile(all, 0.5), p95 = quantile(all, 0.95);
+        $("tiles").innerHTML =
+          tile("Requests", reqs.length ? num((reqs.length / Math.max(covered, 60_000)) * 60_000) : "–", "/min", spark(bars.map((ls) => ls.length))) +
+          tile("Median response", p50 === null ? "–" : span(p50), "", spark(ms(0.5))) +
+          tile("95th percentile", p95 === null ? "–" : span(p95), "", spark(ms(0.95))) +
+          tile("Refused · failed", `${num(refused)} · ${num(failed)}`, "", spark(bars.map((ls) => ls.filter((l) => l.status >= 400).length))) +
+          // (Its number alone at its size, whole in a narrow tile; when and how long it took under it.)
+          tile("Last block", block ? num(block.block) : "–", "", `<div class="note">${block ? `${clock(block.unix_ms)} · in ${short(block.blockTook)}` : "none in memory yet"}</div>`);
+        const minutes = Math.max(1, Math.round(covered / 60_000));
+        $("window").textContent = `last ${minutes} min`;
+        $("tiles").setAttribute("aria-label", `The last ${minutes} minutes`);
+      }
+
+      // ── The filters ──
+
+      const GROUPS = {
+        levels: [["error", "Error", "var(--error)"], ["warn", "Warn", "var(--warn)"], ["info", "Info"], ["debug", "Debug"]],
+        kinds: [["request", "Requests"], ["work", "Work"]],
+        statuses: [["2", "2xx"], ["3", "3xx"], ["4", "4xx"], ["5", "5xx"]],
+      };
+      const TITLES = { levels: "Level", kinds: "Kind", statuses: "Status" };
+      /** The slowest requests, by percentile: one at a time, each holding the next. */
+      const SLOW = [95, 98, 99, 99.5, 99.9];
+      /** Each percentile's duration, over the requests the page holds; a request slower than the chosen one shows. */
+      let cuts = new Map();
+
+      function facets() {
+        const had = document.activeElement?.dataset?.key;
+        // (Counted over the lines the page holds, so a filter's count is what it shows.)
+        const held = lines.slice(-KEEP);
+        const durations = held.map((l) => l.ms).filter((m) => m !== null);
+        cuts = new Map(SLOW.map((p) => [p, quantile(durations, p / 100)]));
+        const count = (group, key) =>
+          held.filter((l) => (group === "levels" ? l.level === key : group === "kinds" ? (key === "request" ? l.status : !l.status) : String(l.status)[0] === key)).length;
+        let html = "";
+        for (const [group, keys] of Object.entries(GROUPS)) {
+          html += `<div class="group"><h2>${TITLES[group]}</h2>${keys
+            .filter(([key]) => group !== "levels" || key === "error" || key === "warn" || count(group, key) || view.levels.has(key))
+            .map(([key, label, dot]) => `<button type="button" class="facet" data-group="${group}" data-key="${group}:${key}" aria-pressed="${view[group].has(key)}"><i></i><span>${dot ? `<i class="dot" style="background:${dot}"></i>` : ""}${label}</span><b>${num(count(group, key))}</b></button>`)
+            .join("")}</div>`;
+        }
+        html += `<div class="group"><h2>Slowest <span>count · over</span></h2>${SLOW.map((p) => {
+          const cut = cuts.get(p);
+          return `<button type="button" class="facet slow" data-group="slow" data-key="slow:${p}" aria-pressed="${view.slow === p}"><i></i><span>&gt; p${p}</span><b>${num(cut === null ? 0 : durations.filter((m) => m > cut).length)}</b><em>${cut === null ? "" : span(cut)}</em></button>`;
+        }).join("")}</div>`;
+        const routes = new Map();
+        for (const l of held) if (l.route) (routes.get(l.route) ?? routes.set(l.route, []).get(l.route)).push(l.ms);
+        const leading = [...routes].sort((a, b) => b[1].length - a[1].length).slice(0, 14);
+        for (const route of view.routes) if (!leading.some(([r]) => r === route)) leading.push([route, routes.get(route) ?? []]);
+        const most = leading[0]?.[1].length || 1;
+        html += `<div class="group"><h2>Routes <span>count · median</span></h2>${leading
+          .map(([route, ms]) => {
+            const p50 = quantile(ms.filter((m) => m !== null), 0.5);
+            return `<button type="button" class="facet route" data-group="routes" data-key="routes:${encodeURIComponent(route)}" data-route="${encodeURIComponent(route)}" aria-pressed="${view.routes.has(route)}" style="--share:${((ms.length / most) * 100).toFixed(1)}%"><span class="name"></span><b>${num(ms.length)}</b><em>${p50 === null ? "" : span(p50)}</em></button>`;
+          })
+          .join("")}</div>`;
+        const any = view.levels.size + view.kinds.size + view.statuses.size + view.routes.size + (view.slow === null ? 0 : 1);
+        if (any) html += `<button type="button" class="clear" id="clear">Clear filters</button>`;
+        $("facets").innerHTML = html;
+        // (Route names set as text: they come from requests.)
+        for (const button of $("facets").querySelectorAll(".route")) button.title = button.querySelector(".name").textContent = decodeURIComponent(button.dataset.route);
+        if (had) $("facets").querySelector(`[data-key="${CSS.escape(had)}"]`)?.focus();
+        $("filters").querySelector("summary").textContent = any ? `Filters · ${any} on` : "Filters";
+      }
+
+      $("facets").addEventListener("click", (e) => {
+        const button = e.target.closest("button");
+        if (!button) return;
+        if (button.id === "clear") {
+          for (const group of ["levels", "kinds", "statuses", "routes"]) view[group].clear();
+          view.slow = null;
+        } else if (button.dataset.group === "slow") {
+          const p = Number(button.dataset.key.split(":")[1]);
+          view.slow = view.slow === p ? null : p;
+        } else {
+          const group = button.dataset.group, key = group === "routes" ? decodeURIComponent(button.dataset.route) : button.dataset.key.split(":")[1];
+          view[group].has(key) ? view[group].delete(key) : view[group].add(key);
+        }
+        facets();
+        refilter();
+      });
+
+      /** Within a group any, across groups all; then the search. */
+      function shown(l) {
+        if (view.levels.size && !view.levels.has(l.level)) return false;
+        if (view.kinds.size && !view.kinds.has(l.status ? "request" : "work")) return false;
+        if (view.statuses.size && !(l.status && view.statuses.has(String(l.status)[0]))) return false;
+        if (view.routes.size && !(l.route && view.routes.has(l.route))) return false;
+        if (view.slow !== null && !(l.ms !== null && cuts.get(view.slow) !== null && l.ms > cuts.get(view.slow))) return false;
+        return !view.text || l.text.toLowerCase().includes(view.text);
+      }
+      const rows = new WeakMap();
+      function refilter() {
+        for (const li of $("feed").children) {
+          const l = rows.get(li);
+          if (l) li.hidden = !shown(l);
+        }
+        empty();
+      }
+      function empty() {
+        const any = [...$("feed").children].some((li) => !li.hidden);
+        $("empty").hidden = any;
+        $("empty").textContent = lines.length ? "No line matches." : online === false ? "This server couldn't be reached. Trying again…" : "Waiting for the first line…";
+      }
+
+      $("search").addEventListener("input", () => {
+        view.text = $("search").value.trim().toLowerCase();
+        refilter();
+      });
+
+      // ── The lines ──
+
+      function rowFor(l) {
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `line ${l.block ? "block" : l.status ? (l.kind === "error" ? "request error" : "request") : l.kind}${l.level === "debug" ? " debug" : ""}`;
+        const cells = l.block
+          ? ["■", `Block ${num(l.block)} · read and computed in ${short(l.blockTook)}`, ""]
+          : l.status
+            ? [String(l.status), l.path, short(l.took)]
+            : [l.level, l.text, ""];
+        const classes = [`k${l.status ? ` s${String(l.status)[0]}` : ""}`, "p", "d"];
+        // (The time to the millisecond, its milliseconds dropped on a phone.)
+        const time = Object.assign(document.createElement("span"), { className: "t", textContent: clock(l.unix_ms) });
+        time.append(Object.assign(document.createElement("span"), { className: "ms", textContent: `.${pad(new Date(l.unix_ms).getMilliseconds(), 3)}` }));
+        button.append(time);
+        cells.forEach((text, i) => button.append(Object.assign(document.createElement("span"), { className: classes[i], textContent: text })));
+        if (l.kind === "warn" || l.kind === "error") button.prepend(Object.assign(document.createElement("span"), { className: "sr", textContent: l.kind === "warn" ? "Warning: " : "Error: " }));
+        button.addEventListener("click", () => select(l, button));
+        li.append(button);
+        rows.set(li, l);
+        return li;
+      }
+
+      function noteRow(message) {
+        const li = document.createElement("li");
+        li.className = "note-row";
+        li.textContent = message;
+        return li;
+      }
+
+      function queue(element) {
+        pending.push(element);
+        // (Paused long, the oldest waiting rows go: the page holds no more than it shows.)
+        if (pending.length > KEEP) pending.splice(0, pending.length - KEEP);
+        if (!frame) frame = requestAnimationFrame(flush);
+      }
+
+      // The rows, newest on top; the line being read kept in place when new ones arrive above it.
+      function flush() {
+        frame = 0;
+        if (view.paused) return showState();
+        if (!pending.length) return;
+        const feed = $("feed"), fragment = document.createDocumentFragment();
+        for (let i = pending.length - 1; i >= 0; i--) {
+          const li = pending[i], l = rows.get(li);
+          if (l) li.hidden = !shown(l);
+          fragment.append(li);
+        }
+        pending = [];
+        const scroller = getComputedStyle(feed).overflowY === "auto" ? feed : document.scrollingElement;
+        // (Below whatever covers the feed's top: the search, pinned on a phone.)
+        const covered = Math.max(document.querySelector(".search").getBoundingClientRect().bottom, 0);
+        const top = Math.max(feed.getBoundingClientRect().top, covered);
+        // (Reading once the newest row has gone under that: the page scrolled only past the numbers, new rows still come in.)
+        const reading = scroller === feed ? feed.scrollTop > 0 : feed.getBoundingClientRect().top < covered - 1;
+        const anchor = reading ? document.elementFromPoint(feed.getBoundingClientRect().left + 40, top + 12)?.closest("#feed > li") : null;
+        const before = anchor?.getBoundingClientRect().top;
+        // (Measured by the first row shown: a filtered one has no place.)
+        const added = fragment.children.length, first = [...feed.children].find((li) => !li.hidden), was = first?.offsetTop;
+        feed.prepend(fragment);
+        while (feed.children.length > KEEP) feed.lastElementChild.remove();
+        if (anchor?.isConnected) scroller.scrollTop += anchor.getBoundingClientRect().top - before;
+        else if (!reading && first?.isConnected) settle(feed, added, first.offsetTop - was);
+        empty();
+      }
+
+      const still = matchMedia("(prefers-reduced-motion: reduce)");
+      /** The new rows in, at the top: they slide down from under the feed's edge, the rows on screen easing down by as
+       * much, the new ones fading up as they come; none of it once the rows below the screen are reached. More than a
+       * screen of them at once (the page coming back from a pause) just appears. */
+      function settle(feed, added, shift) {
+        if (still.matches || shift <= 0 || shift > innerHeight) return;
+        const from = { transform: `translateY(${-shift}px)` };
+        for (const [i, li] of [...feed.children].entries()) {
+          if (li.hidden) continue;
+          for (const animation of li.getAnimations()) animation.cancel();
+          if (li.getBoundingClientRect().top - shift > innerHeight) break;
+          li.animate(i < added ? [{ ...from, opacity: 0 }, { transform: "none", opacity: 1 }] : [from, { transform: "none" }], { duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)" });
+        }
+      }
+
+      function take(line) {
+        if (lastSeq !== null && line.seq > lastSeq + 1) {
+          const missed = line.seq - lastSeq - 1;
+          queue(noteRow(`${num(missed)} ${missed === 1 ? "line" : "lines"} not shown: the server logged faster than this page asks`));
+        }
+        lastSeq = line.seq;
+        const l = parse(line);
+        lines.push(l);
+        queue(rowFor(l));
+      }
+
+      // ── A line's details ──
+
+      const narrow = () => matchMedia("(max-width: 1279px)").matches;
+
+      function select(l, button) {
+        selected = l;
+        for (const current of $("feed").querySelectorAll('[aria-current="true"]')) current.removeAttribute("aria-current");
+        button?.setAttribute("aria-current", "true");
+        detail();
+        if (narrow()) $("detail").querySelector("h2")?.focus();
+      }
+
+      function unselect() {
+        const back = $("feed").querySelector('[aria-current="true"]');
+        selected = null;
+        detail();
+        if (narrow()) back?.focus();
+      }
+
+      /** A route's last ten minutes, as facts. */
+      function routeFacts(route) {
+        const same = lines.filter((x) => x.route === route && x.unix_ms > (lines.at(-1)?.unix_ms ?? 0) - WINDOW), ms = same.map((x) => x.ms).filter((m) => m !== null);
+        return [["Requests", num(same.length)], ["Median", span(quantile(ms, 0.5) ?? 0)], ["95th pct", span(quantile(ms, 0.95) ?? 0)], ["Refused", num(same.filter((x) => x.status >= 400 && x.status < 500).length)], ["Failed", num(same.filter((x) => x.status >= 500).length)]];
+      }
+      const fill = (dl, pairs) =>
+        dl.replaceChildren(...pairs.flatMap(([k, v, cls]) => [Object.assign(document.createElement("dt"), { textContent: k }), Object.assign(document.createElement("dd"), { textContent: v, className: cls ?? "" })]));
+
+      function detail() {
+        const box = $("detail"), l = selected;
+        box.hidden = !l && narrow();
+        $("scrim").hidden = !l || !narrow();
+        // (Over the page, the details are a dialog: focus stays in them until they close.)
+        if (l && narrow()) {
+          box.setAttribute("role", "dialog");
+          box.setAttribute("aria-modal", "true");
+        } else {
+          box.removeAttribute("role");
+          box.removeAttribute("aria-modal");
+        }
+        box.style.translate = "";
+        if (!l) {
+          box.innerHTML = `<p class="hint">Pick a line to see it whole, and its route's last ten minutes.</p>`;
+          return;
+        }
+        box.replaceChildren();
+        const add = (tag, props, parent = box) => parent.appendChild(Object.assign(document.createElement(tag), props));
+        const top = add("div", { className: "top" });
+        add("span", { className: "grip" }, top).setAttribute("aria-hidden", "true");
+        add("h2", { textContent: l.path ?? (l.block ? `Block ${num(l.block)}` : l.text), tabIndex: -1 }, top);
+        const close = add("button", { type: "button", className: "close" }, top);
+        close.setAttribute("aria-label", "Close");
+        close.innerHTML = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+        close.addEventListener("click", unselect);
+        add("p", { className: "when", textContent: moment(l.unix_ms) });
+        if (l.status) {
+          fill(add("dl", {}), [["Status", String(l.status), `s${String(l.status)[0]}`], ["Method", l.method], ["Duration", short(l.took)], ["Route", l.route], ["Line", `#${num(l.seq)}`]]);
+          add("h3", { textContent: "This route, last ten minutes" });
+          fill(add("dl", { id: "route-facts" }), routeFacts(l.route));
+          const only = add("button", { type: "button", className: "act", textContent: view.routes.has(l.route) ? "Show every route" : "Show only this route" });
+          only.addEventListener("click", () => {
+            view.routes.has(l.route) ? view.routes.delete(l.route) : (view.routes.clear(), view.routes.add(l.route));
+            only.textContent = view.routes.has(l.route) ? "Show every route" : "Show only this route";
+            facets();
+            refilter();
+          });
+        } else {
+          fill(add("dl", {}), [["Level", l.level], ["Line", `#${num(l.seq)}`], ...(l.block ? [["Took", short(l.blockTook)]] : [])]);
+        }
+        add("h3", { textContent: "As logged" });
+        add("pre", { className: "raw", textContent: l.text });
+        grip(top);
+      }
+
+      /** On a phone, the sheet follows a finger pulling its top down, and closes past a third of its height. */
+      function grip(top) {
+        let from = null;
+        top.addEventListener("pointerdown", (e) => {
+          if (e.pointerType !== "touch" || e.target.closest("button")) return;
+          from = e.clientY;
+          top.setPointerCapture(e.pointerId);
+        });
+        top.addEventListener("pointermove", (e) => {
+          if (from !== null) $("detail").style.translate = `0 ${Math.max(0, e.clientY - from)}px`;
+        });
+        const end = (e) => {
+          if (from === null) return;
+          const pulled = e.clientY - from;
+          from = null;
+          if (pulled > $("detail").offsetHeight / 3) unselect();
+          else $("detail").style.translate = "";
+        };
+        top.addEventListener("pointerup", end);
+        top.addEventListener("pointercancel", end);
+      }
+      $("scrim").addEventListener("click", unselect);
+      $("detail").addEventListener("keydown", (e) => {
+        if (e.key !== "Tab" || $("detail").getAttribute("aria-modal") !== "true") return;
+        const stops = [...$("detail").querySelectorAll("button, [tabindex]")], first = stops[0], last = stops.at(-1);
+        if (e.shiftKey && document.activeElement === first) (e.preventDefault(), last.focus());
+        else if (!e.shiftKey && document.activeElement === last) (e.preventDefault(), first.focus());
+      });
+
+      addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && selected) unselect();
+        if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && $("detail").getAttribute("aria-modal") !== "true") {
+          e.preventDefault();
+          $("search").focus();
+        }
+      });
+      // Up and down move along the lines.
+      $("feed").addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        const all = [...$("feed").querySelectorAll("li:not([hidden]) > .line")], at = all.indexOf(document.activeElement);
+        const next = all[at + (e.key === "ArrowDown" ? 1 : -1)];
+        if (!next) return;
+        e.preventDefault();
+        next.focus();
+        // (Beside the lines, the details follow; over them, they'd take the keys away, so they wait for a press.)
+        if (!narrow()) next.click();
+      });
+
+      // ── The stream's state, and pausing ──
+
+      function showState() {
+        const waiting = pending.filter((li) => rows.has(li)).length;
+        const [state, label] = view.paused ? ["paused", waiting ? `Paused · ${num(waiting)} new` : "Paused"] : online ? ["live", "Live"] : online === false ? ["offline", "Offline"] : ["connecting", "Connecting"];
+        if ($("state").dataset.state !== state) $("said").textContent = { live: "Live", paused: "Paused", offline: "Offline: can't reach the server", connecting: "Connecting" }[state];
+        $("state").dataset.state = state;
+        $("state").textContent = label;
+        // (Nothing read yet: the empty list says whether it's waiting or can't reach the server.)
+        if (!lines.length) empty();
+        $("state").setAttribute("aria-label", `${label}; press to ${view.paused ? "resume" : "pause"}`);
+      }
+      $("state").addEventListener("click", () => {
+        view.paused = !view.paused;
+        showState();
+        if (!view.paused) flush();
+      });
+
+      // ── Reading: every second, the lines since the last; none while the page isn't seen ──
+
+      async function poll() {
+        try {
+          const response = await fetch(`/api/server/logs${cursor === null ? "" : `?after=${encodeURIComponent(cursor)}`}`, { cache: "no-store" });
+          if (!response.ok) throw new Error(`${response.status}`);
+          const logs = await response.json();
+          if (started !== null && logs.started_unix_ms !== started) {
+            queue(noteRow("The server restarted"));
+            lastSeq = null;
+          }
+          started = logs.started_unix_ms;
+          cursor = logs.next;
+          for (const line of logs.lines) take(line);
+          // (Ten minutes kept for the numbers: never fewer lines than the page shows, never more than HELD.)
+          let drop = lines.findIndex((l) => l.unix_ms > Date.now() - WINDOW);
+          if (drop < 0) drop = lines.length;
+          drop = Math.max(Math.min(drop, lines.length - KEEP), lines.length - HELD);
+          if (drop > 0) lines = lines.slice(drop);
+          online = true;
+          // (The numbers each look, so the old age out even when nothing new comes.)
+          tiles();
+          if (logs.lines.length || !$("facets").children.length) {
+            facets();
+            // (The cut moves with the lines held: the rows already shown are judged again by it.)
+            if (view.slow !== null) refilter();
+            if (selected?.route && $("route-facts")) fill($("route-facts"), routeFacts(selected.route));
+          }
+        } catch {
+          online = false;
+        }
+        showState();
+      }
+
+      let polling = false, next = 0;
+      async function loop() {
+        clearTimeout(next);
+        if (polling || document.hidden) return;
+        polling = true;
+        await poll();
+        polling = false;
+        if (!document.hidden) next = setTimeout(loop, EVERY);
+      }
+      document.addEventListener("visibilitychange", () => (document.hidden ? clearTimeout(next) : loop()));
+      // (Phones start with the filters folded.)
+      const phone = matchMedia("(max-width: 760px)");
+      if (phone.matches) $("filters").open = false;
+      // (Widened past a phone, the filters can't fold: they open.)
+      phone.addEventListener("change", (e) => e.matches || ($("filters").open = true));
+      detail();
+      // (The tiles drawn at once, empty, so the first lines fill them in place rather than pushing the list down.)
+      tiles();
+      loop();
+
+      // Focus rings for keyboards only.
+      addEventListener("pointerdown", () => document.documentElement.setAttribute("data-pointer", ""), true);
+      addEventListener("keydown", () => document.documentElement.removeAttribute("data-pointer"), true);
+    </script>
+  </body>
+</html>

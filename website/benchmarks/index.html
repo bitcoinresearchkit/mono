@@ -1,0 +1,1880 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Benchmarks" data-color="#d95f12"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f7f7f5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c0d0e" />
+    <title>Benchmarks · Bitview</title>
+    <meta name="description" content="bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by website/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/benchmarks/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/benchmarks/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Bitview benchmarks" />
+    <meta property="og:description" content="bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/benchmarks.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Benchmarks: bitviewd's full syncs from block 0, each run's time, memory, disk and CPU" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
+    <!-- (The runs are read from GitHub: its two hosts reached while the page loads.) -->
+    <link rel="preconnect" href="https://api.github.com" crossorigin />
+    <link rel="preconnect" href="https://raw.githubusercontent.com" crossorigin />
+    <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
+      /* A lab report: a quiet ground, numbers in a monospace, one accent; every value measured, none claimed. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f7f7f5, #0c0d0e);
+        --card: light-dark(#ffffff, #131416);
+        --raised: light-dark(#efefec, #1b1c1f);
+        --ink: light-dark(#141518, #eceef1);
+        --text: light-dark(#3a3d44, #c4c8cf);
+        --soft: light-dark(#666a73, #9a9fa8);
+        --faint: light-dark(#686c75, #93989f);
+        --line: light-dark(rgb(20 21 24 / 0.09), rgb(236 238 241 / 0.08));
+        --grid: light-dark(rgb(20 21 24 / 0.06), rgb(236 238 241 / 0.05));
+        --accent: light-dark(#d95f12, #ff8a3d);
+        --accent-text: light-dark(#c2530e, #ff8a3d);
+        --cycle-indexing: light-dark(rgb(217 95 18 / 0.06), rgb(255 138 61 / 0.07));
+        --cycle-compute: light-dark(rgb(43 108 230 / 0.06), rgb(110 160 255 / 0.07));
+        --cycle-catch-up: light-dark(rgb(20 21 24 / 0.04), rgb(236 238 241 / 0.04));
+        --compare: light-dark(#6b6f78, #9aa0aa);
+        /* (The width of the note under the best's title and of its table.) */
+        --measure: 54ch;
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, Inter, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 15px/1.55 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .num {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 28px 16px 72px;
+
+        @media (min-width: 720px) {
+          padding: 40px 32px 96px;
+        }
+      }
+
+      /* ── The bar: the way home, every page's ── */
+
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      /* (Where the bar has no room for them beside its other links: the words for screen readers alone, the star and the count
+         shown; narrower than any phone's own width (a zoomed one's), no room for the link at all.) */
+      @media (width < 460px) {
+        .stars-words {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
+      }
+
+      @media (width < 375px) {
+        .bar .stars {
+          display: none;
+        }
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
+      .bar {
+        border-bottom: 1px solid var(--line);
+
+        nav {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          height: 52px;
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+
+        a {
+          color: var(--soft);
+          font-size: 13.5px;
+          white-space: nowrap;
+          text-decoration: none;
+
+          &:hover {
+            color: var(--ink);
+          }
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 9px;
+          margin-right: auto;
+          color: var(--ink);
+          font-size: 14px;
+          font-weight: 650;
+          letter-spacing: -0.01em;
+
+          img {
+            width: 18px;
+            height: 21px;
+          }
+        }
+      }
+
+      /* (For fingers: the bar's links, the machines and each run's commit a 44px reach each, unseen, and the machines'
+         rows apart for it; a pointer sees none.) */
+      @media (pointer: coarse) {
+        .bar a,
+        .tabs button,
+        .detail-head label,
+        .pick {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+
+        /* (The comparison's select above its label's reach, so a press on it is the select's own.) */
+        .detail-head select {
+          position: relative;
+        }
+      }
+
+      header h1 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+
+        span {
+          color: var(--faint);
+          font-weight: 500;
+        }
+      }
+
+      header p {
+        max-width: 64ch;
+        margin: 6px 0 0;
+        color: var(--soft);
+      }
+
+      /* (One row that never wraps, scrolling sideways when the machines outgrow it, so its height is one at every width and
+         pointer and the page below doesn't move as they arrive. Padded for the buttons' 44px reach for fingers and for their
+         focus ring, which an overflow would clip, and pulled back by the same, so the padding takes no room.) */
+      .tabs {
+        --tab: 28px;
+        display: flex;
+        gap: 6px;
+        height: calc(var(--tab) + 16px);
+        margin: 12px -8px -8px;
+        padding: 8px;
+        overflow-x: auto;
+        scroll-padding-inline: 8px;
+        scrollbar-width: none;
+
+        button {
+          flex: none;
+          height: var(--tab);
+          border: 0;
+          border-radius: 999px;
+          padding: 0 14px;
+          background: var(--raised);
+          box-shadow: inset 0 0 0 1px var(--line);
+          color: var(--text);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          white-space: nowrap;
+          cursor: pointer;
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-pressed="true"] {
+            color: var(--app);
+            background: var(--ink);
+          }
+        }
+      }
+
+      section {
+        margin-top: 20px;
+        border-radius: 14px;
+        padding: 20px;
+        background: var(--card);
+        box-shadow: 0 0 0 1px var(--line);
+
+        @media (min-width: 720px) {
+          padding: 24px 28px;
+        }
+      }
+
+      h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 650;
+
+        small {
+          margin-left: 8px;
+          color: var(--faint);
+          font-weight: 400;
+        }
+      }
+
+      /* ── The latest complete run ── */
+
+      .hero {
+        position: relative;
+        container-type: inline-size;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px 40px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: auto minmax(0, 1fr);
+          align-items: end;
+        }
+
+        .kicker {
+          color: var(--soft);
+          font-size: 13px;
+        }
+
+        .big {
+          margin: 4px 0 0;
+          color: var(--ink);
+          font: 600 clamp(44px, 9vw, 76px) / 1 var(--mono);
+          letter-spacing: -0.04em;
+        }
+
+        .what {
+          margin-top: 8px;
+          color: var(--soft);
+        }
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 24px;
+        margin: 0;
+
+        @media (min-width: 640px) {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        dt {
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        /* (The CPU time's line, "6h 47m user, 2h 39m system", wraps in a cell narrower than it is: two lines kept for it there,
+           so the dashes held in its place and the digits that land take the same room.) */
+        > div {
+          container-type: inline-size;
+        }
+
+        .cpu small {
+          @container (width < 11rem) {
+            min-height: 2lh;
+          }
+        }
+
+        dd {
+          margin: 2px 0 0;
+          color: var(--ink);
+          font: 500 19px var(--mono);
+          letter-spacing: -0.02em;
+
+          small {
+            display: block;
+            color: var(--soft);
+            font: 12px var(--sans);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0;
+          }
+        }
+      }
+
+      /* (A usual host line, "Apple M6 · 16.0 GiB memory · external-tb WD_BLACK SN850X 2000GB · 12 cores · 1.00 GiB cache · commit
+         adc1881c8", wraps to three lines in a hero narrower than 390px, two below 740px, one above: its height kept for it from
+         the first layout, when only dashes are in it, so what lands doesn't move the card's lower edge. A shorter host leaves
+         a blank line or two; a longer one grows by its extra lines.) */
+      .host {
+        box-sizing: content-box;
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--soft);
+        font-size: 13px;
+
+        @container (width < 740px) {
+          min-height: 2lh;
+        }
+
+        @container (width < 390px) {
+          min-height: 3lh;
+        }
+
+        a {
+          color: var(--accent-text);
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+
+      /* ── Charts ── */
+
+      .chart {
+        position: relative;
+        margin-top: 12px;
+
+        svg {
+          display: block;
+          width: 100%;
+          overflow: visible;
+        }
+
+        text {
+          fill: var(--text);
+          fill-opacity: 0.8;
+          font: 12px var(--mono);
+        }
+
+        /* (A run's day, under its commit.) */
+        .when {
+          fill: var(--faint);
+          fill-opacity: 1;
+          font-size: 11px;
+        }
+
+        .gridline {
+          stroke: var(--grid);
+        }
+
+        .series {
+          fill: none;
+          stroke-width: 1.75px;
+          stroke-linejoin: round;
+        }
+
+        .cross {
+          stroke: var(--soft);
+          stroke-dasharray: 2 3;
+        }
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        min-height: 1.5em;
+        margin-top: 6px;
+        color: var(--soft);
+        font-size: 12.5px;
+
+        i {
+          display: inline-block;
+          width: 12px;
+          height: 0;
+          margin-right: 6px;
+          vertical-align: 0.3em;
+          border-top: 2px solid var(--c);
+
+          &.dashed {
+            border-top-style: dashed;
+          }
+        }
+
+        b {
+          color: var(--ink);
+          font: 500 12.5px var(--mono);
+        }
+      }
+
+      .charts {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px 32px;
+        margin-top: 8px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        h3 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 600;
+        }
+      }
+
+      /* (The note under the best's title.) */
+      #best-count {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      #best-note,
+      #capacity-note,
+      #capacity-fine {
+        max-width: var(--measure);
+        margin: 8px 0 0;
+        color: var(--soft);
+        text-wrap: pretty;
+      }
+
+      #capacity-fine {
+        margin-top: 4px;
+        color: var(--faint);
+        font-size: 12.5px;
+      }
+
+      .detail-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 16px;
+
+        label {
+          max-width: 100%;
+          color: var(--soft);
+          font-size: 13px;
+        }
+
+        select {
+          max-width: calc(100% - 6px);
+          margin-left: 6px;
+          border: 0;
+          border-radius: 8px;
+          padding: 5px 8px;
+          background: var(--raised);
+          color: var(--ink);
+          font: 13px var(--mono);
+        }
+      }
+
+      .phases {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin-top: 10px;
+        color: var(--soft);
+        font-size: 12.5px;
+
+        i {
+          display: inline-block;
+          width: 12px;
+          height: 10px;
+          margin-right: 6px;
+          border-radius: 2px;
+          vertical-align: -0.05em;
+          background: var(--c);
+          box-shadow: inset 0 0 0 1px var(--line);
+        }
+      }
+
+      /* Bars: a name, a bar as long as its share, its value; the compared run's value beside. */
+      .bars {
+        display: grid;
+        grid-template-columns: minmax(0, 11em) minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 12px;
+        margin-top: 12px;
+        font-size: 13px;
+
+        .row {
+          display: contents;
+        }
+
+        /* (A phone: a row's name and values on one line, its bar under them, the whole width.) */
+        @media (max-width: 559px) {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+
+          .row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas: "name value" "track track";
+            gap: 3px 10px;
+          }
+
+          .name {
+            grid-area: name;
+          }
+
+          .value {
+            grid-area: value;
+          }
+
+          .track {
+            grid-area: track;
+          }
+        }
+
+        .name {
+          overflow: hidden;
+          color: var(--text);
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .track {
+          position: relative;
+          height: 10px;
+        }
+
+        .bar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          border-radius: 2px;
+          background: var(--accent);
+        }
+
+        .bar.other {
+          top: 7px;
+          height: 3px;
+          background: var(--compare);
+        }
+
+        .value {
+          color: var(--ink);
+          font: 12.5px var(--mono);
+          text-align: right;
+          white-space: nowrap;
+
+          /* (A label's floor, 11px: not running text.) */
+          small {
+            margin-left: 6px;
+            color: var(--faint);
+            font-size: 11px;
+          }
+        }
+      }
+
+      /* ── Runs ── */
+
+      .table {
+        margin-top: 12px;
+        overflow-x: auto;
+
+        /* (As wide as the note above it.) */
+        &.narrow {
+          max-width: var(--measure);
+        }
+      }
+
+      /* (A capacity table: as wide as its commits need, scrolling past the screen; a cell is one button, its details in the readout below.) */
+      #capacity-tables {
+        .table {
+          width: fit-content;
+          max-width: 100%;
+        }
+
+        caption {
+          padding-bottom: 4px;
+          color: var(--ink);
+          font: 650 13px var(--sans);
+          text-align: left;
+        }
+
+        tbody th {
+          color: var(--ink);
+          font: 13px var(--sans);
+          text-align: left;
+          white-space: normal;
+        }
+
+        /* (A phone: tighter text, so four commits fit 382 px; more scroll the table as a whole, the class names wrapping at their underscores.) */
+        @media (max-width: 559px) {
+          th,
+          td {
+            padding-inline: 3px;
+          }
+
+          thead th {
+            font-size: 10px;
+
+            &:first-child {
+              white-space: normal;
+            }
+          }
+
+          td button {
+            font-size: 12px;
+          }
+
+          td small,
+          .none {
+            font-size: 9.5px;
+          }
+        }
+
+        td button {
+          display: block;
+          width: 100%;
+          text-align: right;
+          text-decoration: underline dotted var(--faint);
+          text-underline-offset: 3px;
+
+          &[aria-pressed="true"] {
+            text-decoration-color: var(--accent);
+          }
+
+          small {
+            text-decoration: none;
+          }
+        }
+
+        .none {
+          color: var(--faint);
+          font: 11px var(--sans);
+          white-space: normal;
+        }
+
+        .readout {
+          min-height: 2lh;
+          margin: 8px 0 20px;
+          max-width: var(--measure);
+          color: var(--soft);
+          font-size: 12.5px;
+        }
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        white-space: nowrap;
+
+        th,
+        td {
+          border-top: 1px solid var(--line);
+          padding: 8px 10px;
+          text-align: right;
+        }
+
+        th:first-child,
+        td:first-child {
+          padding-left: 0;
+          text-align: left;
+        }
+
+        thead th {
+          border-top: 0;
+          color: var(--faint);
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        td {
+          font-family: var(--mono);
+          font-size: 12.5px;
+          color: var(--ink);
+        }
+
+        /* (A run's commit is a button: picked by click, tap or keys.) */
+        .pick {
+          border: 0;
+          padding: 0;
+          background: none;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
+
+          /* (A pointer's reach: 24px tall, unseen; fingers have their 44px above.) */
+          @media (pointer: fine) {
+            position: relative;
+
+            &::before {
+              content: "";
+              position: absolute;
+              inset: min(0px, calc((100% - 24px) / 2)) 0;
+            }
+          }
+
+          &:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+          }
+        }
+
+        /* (For fingers: a row 44px tall, so its commit's reach fits in it; the rest of the row still picks it on a click,
+           its numbers left to select.) */
+        @media (pointer: coarse) {
+          td {
+            padding-block: calc((44px - 1lh) / 2);
+          }
+        }
+
+        #runs tbody tr {
+          cursor: pointer;
+
+          &:hover td {
+            background: var(--raised);
+          }
+
+          &[aria-selected="true"] td {
+            background: color-mix(in oklab, var(--accent), transparent 88%);
+          }
+        }
+
+        .incomplete td {
+          color: var(--faint);
+        }
+
+        /* (Against the best: its categories in the bars' own face and free to wrap, and a phone's columns closer, so none is
+           off the screen.) */
+        &.fit {
+          td:first-child {
+            font: 13px var(--sans);
+            white-space: normal;
+            overflow-wrap: break-word;
+          }
+
+          @media (max-width: 559px) {
+            th,
+            td {
+              padding-inline: 4px;
+            }
+
+            td:not(:first-child) {
+              font-size: 12px;
+            }
+
+            th:first-child,
+            td:first-child {
+              padding-left: 0;
+            }
+          }
+        }
+
+        /* (A best's run under its value, small, so the table fits a phone; underlined when it can be picked; a capacity column's
+           run count under its commit.) */
+        td small,
+        th small {
+          display: block;
+          color: var(--faint);
+          font-size: 11px;
+          font-weight: 400;
+
+          .pick {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+
+            &:hover {
+              color: var(--ink);
+            }
+          }
+        }
+
+        /* (A row kept in focus as its table is redrawn.) */
+        tr:focus-visible {
+          outline: 2px solid var(--accent);
+          outline-offset: -2px;
+        }
+
+        /* (A category noticeably worse is the accent's, heavier; the best itself and the rest quiet.) */
+        .over {
+          color: var(--faint);
+
+          &.worse {
+            color: var(--accent-text);
+            font-weight: 650;
+          }
+        }
+      }
+
+      footer {
+        margin-top: 28px;
+        color: var(--faint);
+        font-size: 12.5px;
+
+        a {
+          color: inherit;
+        }
+      }
+
+      /* ── While the runs are read from GitHub, or when they can't be ── */
+
+      /* (While they are read, the room they will fill is held, so the footer waits below the fold and doesn't jump down when they appear;
+         once they are in, or can't be, or there are none, it is not.) */
+      main:has(#hero[aria-busy="true"]) #more[hidden] {
+        display: block;
+        height: 100vh;
+        overflow: hidden;
+        visibility: hidden;
+      }
+
+      /* (The reading's progress: a thin bar under the hero, in the card's padding, so it takes no room.) */
+      .hero .meter {
+        position: absolute;
+        inset: auto 0 -12px;
+        height: 3px;
+        border-radius: 2px;
+        background: var(--raised);
+
+        span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: var(--accent);
+          transition: width 0.2s;
+        }
+      }
+
+      .status {
+        grid-column: 1 / -1;
+        color: var(--soft);
+
+        p {
+          max-width: 64ch;
+          margin: 0;
+        }
+
+        button {
+          margin-top: 12px;
+          border: 0;
+          border-radius: 999px;
+          padding: 6px 14px;
+          background: var(--ink);
+          color: var(--app);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        &.failed p {
+          color: var(--ink);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <nav class="page" aria-label="Bitview">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <a href="/dev/">Run your own</a>
+        <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches">Recordings</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
+      </nav>
+    </header>
+    <main class="page">
+      <header>
+        <h1>bitviewd <span>benchmarks</span></h1>
+        <p>Full syncs from block 0, each at one commit, sampled every few seconds: how long they take and the memory, disk and CPU they use. Comparisons use a common indexed height; machine differences still matter.</p>
+        <div class="tabs" id="tabs" role="group" aria-label="Machine"></div>
+      </header>
+
+      <section aria-label="Latest complete run" aria-live="polite">
+        <div class="hero" id="hero" aria-busy="true"></div>
+      </section>
+
+      <div id="more" hidden>
+        <section aria-labelledby="history-title">
+          <h2 id="history-title">Run by run <small>complete runs: time to sync, and peak memory</small></h2>
+          <div class="chart" id="history"></div>
+          <div class="legend"><span><i style="--c: var(--accent)"></i>time to sync</span><span><i class="dashed" style="--c: var(--compare)"></i>peak memory</span></div>
+        </section>
+
+        <section aria-labelledby="runs-title">
+          <h2 id="runs-title">Every run <small>pick one to see it below</small></h2>
+          <div class="table"><table id="runs"></table></div>
+        </section>
+
+        <section aria-labelledby="best-title">
+          <h2 id="best-title" tabindex="-1">Against the best <small id="best-count"></small></h2>
+          <p id="best-note"></p>
+          <div class="table narrow"><table id="best" class="fit"></table></div>
+        </section>
+
+        <section aria-labelledby="capacity-title" id="capacity" hidden>
+          <h2 id="capacity-title">Capacity <small id="capacity-count"></small></h2>
+          <p id="capacity-note"></p>
+          <div id="capacity-tables"></div>
+          <p id="capacity-fine"></p>
+        </section>
+
+        <section aria-labelledby="run-title">
+          <div class="detail-head">
+            <h2 id="run-title"></h2>
+            <label>Compare with<select id="compare"></select></label>
+          </div>
+          <p id="comparison-note" hidden></p>
+          <div class="phases" id="phases"></div>
+          <div class="charts" id="charts"></div>
+        </section>
+
+        <section aria-labelledby="plugins-title">
+          <h2 id="plugins-title">Instructions per plugin <small>from zero, each alone</small></h2>
+          <p id="totals-note" hidden></p>
+          <div class="bars" id="compute"></div>
+        </section>
+
+        <section aria-labelledby="disk-title">
+          <h2 id="disk-title">Data directory by component <small>at the end</small></h2>
+          <div class="bars" id="breakdown"></div>
+        </section>
+      </div>
+
+      <footer>Read in your browser from each run's recordings in <a href="https://github.com/bitcoinresearchkit/mono/tree/next/benches"><code>benches/</code></a>, as <code>bitviewd_bench</code> wrote them (the Capacity table's, a load driver's). Curves keep 400 points a run.<span id="skipped"></span></footer>
+    </main>
+
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id);
+      const REPO = "https://github.com/bitcoinresearchkit/mono/commit/";
+
+      // ── The runs: benches/ on GitHub ──
+      // (One call to GitHub's API lists them, 60 an hour from an address (a reload within a minute revalidates, uncounted);
+      // the recordings are raw files, not counted. A machine's runs are read when it's shown: all of them are megabytes,
+      // more with each run.)
+      const BRANCH = "next";
+      const TREE = `https://api.github.com/repos/bitcoinresearchkit/mono/git/trees/${BRANCH}:benches?recursive=1`;
+      const RAW = `https://raw.githubusercontent.com/bitcoinresearchkit/mono/${BRANCH}/benches/`;
+      /** A run's recordings; all but memory.csv optional (older runs lack them). */
+      const FILES = ["metadata.txt", "run.csv", "memory.csv", "io.csv", "cpu.csv", "disk.csv", "progress.csv", "timings.csv", "disk_breakdown.csv", "serial_compute.csv", "capacity.csv"];
+      /** The plugin whose cost is new: runs without it aren't like for like in what adds the plugins' work up. */
+      const SILENT_PAYMENTS = "silent_payments";
+      /** Points kept per curve: enough for a screen's width. */
+      const POINTS = 400;
+
+      /** What went wrong reaching GitHub, in words for the page. */
+      class Failure extends Error {}
+      async function get(url) {
+        let response;
+        try {
+          response = await fetch(url);
+        } catch {
+          throw new Failure("GitHub can't be reached from here just now: offline, or blocked?");
+        }
+        if (response.ok || response.status === 404) return response;
+        if (response.headers.get("x-ratelimit-remaining") === "0") {
+          const reset = Number(response.headers.get("x-ratelimit-reset"));
+          const at = reset ? `, again from ${new Date(reset * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : "";
+          throw new Failure(`GitHub lists the runs for an address 60 times an hour, and this one has had its 60${at}.`);
+        }
+        throw new Failure(`GitHub answered ${response.status}${response.status >= 500 ? ", its own trouble" : ""}.`);
+      }
+      const texts = new Map();
+      /** A recording's text (`path` below benches/), `null` when GitHub has no such file; asked for once. */
+      function text(path) {
+        if (!texts.has(path)) {
+          const url = RAW + path.split("/").map(encodeURIComponent).join("/");
+          texts.set(path, get(url).then((r) => (r.ok ? r.text() : null)).catch((error) => (texts.delete(path), Promise.reject(error))));
+        }
+        return texts.get(path);
+      }
+      /** Strings in Rust's order (by bytes, as the visualizer sorted them). */
+      const order = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
+      /** Each machine (a folder of benches/), its runs' folders (each below it holding a memory.csv, its files' sizes) and its
+       * `capacity` folders (each holding a capacity.csv, a full run's among them). */
+      async function list() {
+        const response = await get(TREE);
+        if (response.status === 404) return [];
+        const folders = new Map();
+        for (const { path, type, size } of (await response.json()).tree) {
+          const cut = path.lastIndexOf("/");
+          if (type !== "blob" || cut < 0) continue;
+          const folder = path.slice(0, cut);
+          if (!folders.has(folder)) folders.set(folder, new Map());
+          folders.get(folder).set(path.slice(cut + 1), size);
+        }
+        const machines = new Map();
+        for (const [folder, files] of folders) {
+          if (!files.has("memory.csv")) continue;
+          const name = folder.split("/")[0];
+          if (!machines.has(name)) machines.set(name, { name, folders: [], capacity: [], runs: null, skipped: [] });
+          machines.get(name).folders.push({ folder, files });
+        }
+        // (A capacity.csv sits beside a full run's files or in a folder of its own; a machine with none of the first has no page to show them on.)
+        const alone = new Set();
+        for (const [folder, files] of folders) {
+          if (!files.has("capacity.csv")) continue;
+          const name = folder.split("/")[0];
+          if (machines.has(name)) machines.get(name).capacity.push({ folder, files });
+          else alone.add(name);
+        }
+        capacityOnly = [...alone].sort(order);
+        return [...machines.values()].sort((a, b) => order(a.name, b.name));
+      }
+
+      /** Machines whose recordings hold capacity runs and no full sync: no page to show them on. */
+      let capacityOnly = [];
+
+      /** A file's lines, as Rust's `lines()` reads them. */
+      const lines = (s) => (s === "" ? [] : s.replace(/\n$/, "").split("\n").map((line) => line.replace(/\r$/, "")));
+      /** A number as Rust's `f64::from_str` reads one (nothing empty, no spaces). */
+      const NUMBER = /^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i;
+      /** A CSV read by header name; a malformed trailing row (a killed recorder) is dropped. `null` for a missing or empty
+       * file: older recorders lacked some, a killed one may not have written its header. */
+      function csv(content, file) {
+        if (content == null) return null;
+        const [head, ...rest] = lines(content);
+        if (head === undefined) return null;
+        const header = head.split(",");
+        const rows = rest.filter((line) => line !== "").map((line) => line.split(","));
+        const last = rows.at(-1);
+        if (last && (last.length !== header.length || last.some((field) => field === ""))) rows.pop();
+        return {
+          header,
+          numbers(name) {
+            const k = header.indexOf(name);
+            if (k < 0) return [];
+            return rows.map((row) => {
+              const field = row[k] ?? "";
+              if (!NUMBER.test(field)) throw new Error(`${file}: ${name} ${JSON.stringify(field)}: not a number`);
+              return Number(field);
+            });
+          },
+          strings(name) {
+            const k = header.indexOf(name);
+            return k < 0 ? [] : rows.map((row) => row[k] ?? "");
+          },
+        };
+      }
+      /** A time series file: `timestamp_ms` plus value columns, read by header name. */
+      function timeSeries(content, file) {
+        const sheet = csv(content, file);
+        const times = sheet ? sheet.numbers("timestamp_ms").map((ms) => ms / 1000) : [];
+        const columns = new Map(sheet ? sheet.header.filter((name) => name !== "timestamp_ms").map((name) => [name, sheet.numbers(name)]) : []);
+        return {
+          times,
+          /** A column shares its timestamps; curves pick only the points they display. */
+          column: (name) => ({ times, values: columns.get(name) ?? [] }),
+          last: (name) => columns.get(name)?.at(-1) ?? null,
+          /** Growth of a cumulative counter over the run: the counters start before bootstrap. */
+          growth: (name) => (columns.get(name)?.length ? columns.get(name).at(-1) - columns.get(name)[0] : null),
+          max: (name) => (columns.get(name)?.length ? columns.get(name).reduce((a, b) => Math.max(a, b)) : null),
+        };
+      }
+      const metadata = (content) => new Map(lines(content ?? "").flatMap((line) => (line.includes("=") ? [[line.slice(0, line.indexOf("=")), line.slice(line.indexOf("=") + 1)]] : [])));
+      const startedAt = (meta) => (/^\+?\d+$/.test(meta.get("started_at_unix") ?? "") ? Number(meta.get("started_at_unix")) : 0);
+      /** A phase's row of run.csv: `bootstrap`, then the serial recompute's `serial_compute` in a run from after it. */
+      function runPhase(sheet, phase) {
+        const k = sheet?.strings("phase").indexOf(phase) ?? -1;
+        return k < 0 ? null : { ms: sheet.numbers("duration_ms")[k], status: sheet.strings("status")[k] };
+      }
+      const statusOf = (sheet) => runPhase(sheet, "bootstrap")?.status ?? null;
+
+      /** Indexer heights: the `source` column when recorded, else the rows before the first drop (older files mixed
+       * compute-phase logs in after indexing). */
+      function progress(content, file) {
+        const sheet = csv(content, file);
+        if (!sheet) return { times: [], values: [] };
+        const times = sheet.numbers("timestamp_ms"), heights = sheet.numbers("height"), sources = sheet.strings("source");
+        const points = { times: [], values: [] };
+        for (let i = 0; i < Math.min(times.length, heights.length); i++) {
+          if (!sources.length) {
+            if (points.values.length && heights[i] < points.values.at(-1)) break;
+          } else if (sources[i] !== "indexer") continue;
+          points.times.push(times[i] / 1000);
+          points.values.push(heights[i]);
+        }
+        return points;
+      }
+      function timings(content, file) {
+        const sheet = csv(content, file);
+        if (!sheet) return [];
+        const starts = sheet.numbers("start_ms"), durations = sheet.numbers("duration_ms"), phases = sheet.strings("phase"), plugins = sheet.strings("plugin");
+        return Array.from({ length: Math.min(phases.length, plugins.length, starts.length, durations.length) }, (_, i) => ({ phase: phases[i], plugin: plugins[i], start: starts[i] / 1000, duration: durations[i] / 1000 }));
+      }
+      function breakdown(content, file) {
+        const sheet = csv(content, file);
+        if (!sheet) return [];
+        const bytes = sheet.numbers("physical_bytes");
+        return sheet.strings("component").slice(0, bytes.length).map((component, i) => [component, bytes[i]]).sort((a, b) => b[1] - a[1]);
+      }
+      /** A bootstrap cycle starts with each indexer import: indexing when the indexer takes most of it; the first other
+       * cycle computes, later ones catch up. */
+      function cycles(timed, end) {
+        const starts = timed.filter((t) => t.phase === "import" && t.plugin === "indexer").map((t) => t.start);
+        let computed = false;
+        return starts.map((start, k) => {
+          const until = Math.max(starts[k + 1] ?? end, start);
+          const indexing = timed.filter((t) => t.phase === "compute" && t.plugin === "indexer" && t.start >= start && t.start < until).reduce((total, t) => total + t.duration, 0);
+          const name = indexing * 2 >= until - start ? "indexing" : computed ? "catch-up" : ((computed = true), "compute");
+          return { name, start, end: until, indexing };
+        });
+      }
+      /** Each plugin's retired instructions computing the whole chain from zero alone (the bench's serial recompute), most
+       * first, with its cycles (shown, never judged: they move with load), and all of the recompute's; none for a run from
+       * before the instruction counters. The indexer is left out (it only indexes the blocks that arrived meanwhile), and
+       * the history walk the UTXO set leads, which no plugin owns, says it is shared.
+       * @returns {{plugins: [string, number, number | null][], total: [number, number | null] | null, legacy?: boolean}} the file lacks the counter columns */
+      function serialCompute(content, file) {
+        const sheet = csv(content, file);
+        const counts = sheet?.numbers("instructions");
+        if (!counts?.length) return { plugins: [], total: null, legacy: sheet != null && !sheet.header.includes("instructions") };
+        const cycles = sheet.numbers("cycles");
+        const rows = sheet.strings("plugin").slice(0, counts.length).map((plugin, i) => [plugin, counts[i], cycles[i] ?? null]);
+        const total = rows.find(([plugin]) => plugin === "total");
+        return {
+          plugins: rows.filter(([plugin]) => !["total", "unattributed", "indexer"].includes(plugin)).map(([plugin, ...rest]) => [plugin === "walk" ? "walk (shared)" : plugin, ...rest]).sort(([a], [b]) => order(a, b)).sort((a, b) => b[1] - a[1]),
+          total: total ? [total[1], total[2]] : null,
+        };
+      }
+      /** As Rust rounds: half away from zero. */
+      const round = (v, digits) => (Math.sign(v) * Math.round(Math.abs(v) * 10 ** digits)) / 10 ** digits;
+      /** Index of the first value at least the boundary, or `end`. */
+      function lowerBound(values, value, end = values.length) {
+        let lo = 0, hi = end;
+        while (lo < hi) {
+          const mid = (lo + hi) >>> 1;
+          if (values[mid] < value) lo = mid + 1;
+          else hi = mid;
+        }
+        return lo;
+      }
+      /** At most `POINTS`, chosen directly from columns; a cut ends with an interpolated sample. */
+      function thin(series, end = null) {
+        const { times, values } = series;
+        let length = Math.min(times.length, values.length), last;
+        if (end != null) {
+          last = boundary(times, values, end, length);
+          if (last == null) return [];
+          length = lowerBound(times, end, length) + 1;
+        }
+        const count = Math.min(length, POINTS);
+        return Array.from({ length: count }, (_, k) => {
+          const i = length <= POINTS ? k : Math.floor((k * (length - 1) + (POINTS - 1) / 2) / (POINTS - 1));
+          return i === length - 1 && end != null ? [round(end, 1), last] : [round(times[i], 1), values[i]];
+        });
+      }
+
+      /** One run, its summaries and curves (the counters', CPU and I/O, cumulative: read as rates when drawn). Its label is
+       * its path below its machine: `<revision>/<run-id>`, `<revision>` for older runs. */
+      async function read(machine, { folder, files }) {
+        const [meta, done, ...rest] = await Promise.all(FILES.map((name) => (files.has(name) ? text(`${folder}/${name}`) : null)));
+        const at = (name) => `${folder}/${name}`;
+        const [memory, io, cpu, disk] = rest.slice(0, 4).map((content, k) => timeSeries(content, at(FILES[k + 2])));
+        if (!memory.times.length) throw new Error("no memory samples");
+        const info = metadata(meta), run = csv(done, at("run.csv"));
+        const timed = timings(rest[5], at("timings.csv")), heights = progress(rest[4], at("progress.csv")), parts = breakdown(rest[6], at("disk_breakdown.csv"));
+        const from_zero = serialCompute(rest[7], at("serial_compute.csv"));
+        const ms = runPhase(run, "bootstrap")?.ms;
+        const end = ms != null ? ms / 1000 : memory.times.at(-1);
+        const peak = [["peak_physical_bytes", "peak footprint"], ["peak_resident_bytes", "peak resident"]].map(([column, name]) => [name, memory.max(column)]).find(([, bytes]) => bytes != null);
+        const growth = (counters, column, scale = 1) => (counters.growth(column) == null ? null : round(counters.growth(column) / scale, 1));
+        const samples = {
+          height: heights, memory: memory.column("physical_bytes"),
+          cpu_user_ms: cpu.column("user_ms"), cpu_system_ms: cpu.column("system_ms"),
+          read_bytes: io.column("read_bytes"), written_bytes: io.column("written_bytes"),
+          disk_bytes: disk.column("physical_bytes"),
+        };
+        const bootstrap = cycles(timed, end);
+        const bands = bootstrap.map((c) => ({ name: c.name, start: round(c.start, 1), end: round(c.end, 1), indexing: round(c.indexing, 1) }));
+        const firstCompute = bootstrap.find((c) => c.name !== "indexing")?.start ?? end;
+        const indexingEnd_s = bootstrap[0]?.name === "indexing" ? firstCompute : 0;
+        return {
+          machine,
+          samples,
+          indexingEnd_s,
+          ...facts(info, folder),
+          status: statusOf(run),
+          duration_s: round(end, 1),
+          peak_memory: peak ? { name: peak[0], bytes: peak[1] } : null,
+          read_bytes: io.growth("read_bytes"),
+          written_bytes: io.growth("written_bytes"),
+          cpu_user_s: growth(cpu, "user_ms", 1000),
+          cpu_system_s: growth(cpu, "system_ms", 1000),
+          disk_bytes: disk.last("physical_bytes"),
+          cycles: bands,
+          curves: Object.fromEntries(Object.entries(samples).map(([key, points]) => [key, thin(points)])),
+          from_zero,
+          recompute: runPhase(run, "serial_compute"),
+          silent_payments: timed.some((t) => t.plugin === SILENT_PAYMENTS),
+          breakdown: parts,
+        };
+      }
+      /** What a run's metadata says of it: when, at which commit, on what, how far, and whether it counts. */
+      function facts(info, folder) {
+        const said = (key) => info.get(key) || null;
+        const number = (key) => (NUMBER.test(info.get(key) ?? "") ? Number(info.get(key)) : null);
+        return {
+          label: folder.includes("/") ? folder.slice(folder.indexOf("/") + 1) : "run",
+          started_at: startedAt(info),
+          revision: said("revision"),
+          profile: said("profile"),
+          dirty: info.get("dirty") === "true",
+          host: { cpu: said("cpu"), ram_bytes: number("ram_bytes"), storage: said("storage"), cores: number("parallelism"), os: said("target_os"), cache_bytes: number("cache_budget") },
+          chain_height: number("chain_height"),
+          // Resumed when the data directory already held plugin data: its time isn't a full sync's.
+          resumed: info.get("start") === "resumed",
+          // Left out of the bests: marked `comparable=false` (an earlier bench, or by hand), or run on a rayon pool narrower than
+          // the machine. An absent key leaves a run in.
+          // Held the mini's lock (`locked=true`, appended by the driver that copied the recording): the only runs a wall time is held to.
+          locked: info.get("locked") === "true",
+          excluded: info.get("comparable") === "false" || (number("rayon_threads") ?? Infinity) < number("parallelism"),
+        };
+      }
+      /** A run from its two small files alone: enough to choose the machine shown first, and to lay out its hero while the rest is read. */
+      async function head(run) {
+        const [meta, done] = await Promise.all(["metadata.txt", "run.csv"].map((name) => (run.files.has(name) ? text(`${run.folder}/${name}`) : null)));
+        Object.assign(run, facts(metadata(meta), run.folder), { status: statusOf(csv(done, "run.csv")) });
+      }
+      /** A machine's runs, oldest first, each read whole; one that can't be is said and skipped, never hiding the others. */
+      async function load(m, told) {
+        const wanted = new Map(); // (a folder in both lists is asked for, and counted, once)
+        for (const { folder, files } of [...m.folders, ...m.capacity]) for (const name of FILES) if (files.has(name)) wanted.set(`${folder}/${name}`, files.get(name));
+        const total = [...wanted.values()].reduce((sum, size) => sum + size, 0);
+        let got = 0;
+        await Promise.all([...wanted].map(([path, size]) => text(path).then(() => told((got += size), total))));
+        const runs = [];
+        for (const run of m.folders) {
+          try {
+            runs.push(await read(m.name, run));
+          } catch (error) {
+            if (error instanceof Failure) throw error;
+            console.warn(`Skipping ${run.folder}: ${error.message}`);
+            m.skipped.push(run.folder.slice(m.name.length + 1) || "run");
+          }
+        }
+        m.runs = runs.sort(byTime);
+        const measured = [];
+        for (const folder of m.capacity) {
+          try {
+            measured.push(await readCapacity(folder));
+          } catch (error) {
+            if (error instanceof Failure) throw error;
+            console.warn(`Skipping ${folder.folder}: ${error.message}`);
+            m.skipped.push(folder.folder.slice(m.name.length + 1));
+          }
+        }
+        m.measured = measured.sort(byTime);
+      }
+      /** A capacity run: one row per route class and mode, its commit, time and rule from its metadata.txt, and the rule's
+       * p99 bound and idle floor (its own terms, as the load driver writes them: `p99_ms=50 keep=0.97 idle_min=20 tool=…`). */
+      async function readCapacity({ folder, files }) {
+        const [meta, content] = await Promise.all(["metadata.txt", "capacity.csv"].map((name) => (files.has(name) ? text(`${folder}/${name}`) : null)));
+        const sheet = csv(content, `${folder}/capacity.csv`), info = metadata(meta), run = facts(info, folder);
+        if (!sheet) throw new Error("no capacity rows");
+        if (!run.revision) throw new Error("metadata.txt names no revision");
+        const rule = info.get("capacity_rule");
+        if (!rule) throw new Error("metadata.txt names no capacity_rule");
+        // (A term missing or empty is no number: NaN, so the run is left out by name.)
+        const terms = metadata(rule.replaceAll(" ", "\n")), term = (/** @type {string} */ key) => Number(terms.get(key) || NaN), p99Bound = term("p99_ms"), idleMin = term("idle_min");
+        if (!(p99Bound > 0 && idleMin >= 0)) throw new Error(`capacity_rule names no p99_ms or idle_min: ${rule}`);
+        const [modes, classes, moved] = ["mode", "class", "tip_moved"].map((name) => sheet.strings(name));
+        const [rate, p50, p99, perCpu, driver, idle, n] = ["rate", "p50_ms", "p99_ms", "req_per_cpu_s", "driver_cpu_ms_per_req", "min_idle_pct", "n_at_best"].map((name) => sheet.numbers(name));
+        return { ...run, rule, p99Bound, idleMin, cells: modes.map((mode, k) => ({ mode, name: classes[k], rate: rate[k], p50: p50[k], p99: p99[k], perCpu: perCpu[k], driver: driver[k], idle: idle[k], n: n[k], moved: moved[k] === "true" })) };
+      }
+
+      // ── Words ──
+      const bytes = (v) => {
+        if (v == null) return "–";
+        const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+        let k = 0;
+        while (v >= 1024 && k < units.length - 1) (v /= 1024), k++;
+        return `${v >= 100 || k === 0 ? v.toFixed(0) : v.toFixed(v >= 10 ? 1 : 2)} ${units[k]}`;
+      };
+      /** Minutes, hours and minutes; `exact` to the second, where close values must read apart. */
+      const duration = (s, exact = false) => {
+        if (s == null) return "–";
+        if (s < 59.5) return `${s.toFixed(s < 10 ? 1 : 0)}s`;
+        if (exact) {
+          const t = Math.round(s), h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), two = (n) => String(n).padStart(2, "0");
+          return `${h ? `${h}h ${two(m)}m` : `${m}m`} ${two(t % 60)}s`;
+        }
+        const m = Math.round(s / 60);
+        return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+      };
+      const grouped = (n) => (n == null ? "–" : Math.round(n).toLocaleString("en-US"));
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dated = (unix) => {
+        if (!unix) return "–";
+        const d = new Date(unix * 1000);
+        return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+      };
+      const rev = (run) => (run.revision ? run.revision.slice(0, 9) + (run.dirty ? "*" : "") : run.label.split("/")[0]);
+      const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      /** A machine's folder name in words: "apple-m6-16gb-external-tb" as "Apple M6 · 16 GB · external (Thunderbolt)". */
+      const machineWords = (name) => name.replace(/^apple-/, "Apple ").replace(/ m(\d)/, " M$1").replace(/-(\d+)gb-/, " · $1 GB · ").replace(/-tb$/, " (Thunderbolt)").replace(/-/g, " ");
+
+      // ── State: the machine named in the address, else the one whose latest complete run is newest ──
+      let machines = [], machine = 0;
+      let selected = null, compared = null;
+      const runs = () => machines[machine].runs;
+      const byTime = (a, b) => a.started_at - b.started_at || order(a.label, b.label);
+      const complete = () => runs().filter((r) => r.status === "complete");
+      /** A full sync: complete, from an empty data directory, and not left out of the bests. */
+      const isFull = (r) => r.status === "complete" && !r.resumed && !r.excluded;
+      /** The complete runs from an empty data directory: full syncs. */
+      const fullSyncs = () => runs().filter(isFull);
+
+      // ── Machines ──
+      function tabs() {
+        $("tabs").innerHTML = machines.map((m, k) => `<button type="button" aria-pressed="${k === machine}" data-k="${k}">${escape(machineWords(m.name))} <span class="num">· ${(m.runs ?? m.folders).length}</span></button>`).join("");
+        // The chosen machine centred in the row, when the row scrolls.
+        const row = $("tabs"), on = row.querySelector("[aria-pressed=true]");
+        if (on) row.scrollLeft = on.offsetLeft - row.offsetLeft - (row.clientWidth - on.offsetWidth) / 2;
+      }
+      function choose(k) {
+        machine = k;
+        selected = compared = null;
+        show();
+      }
+      /** The machine the address names (`#apple-m6-16gb-external-tb`), -1 for none. */
+      const named = () => machines.findIndex((m) => `#${m.name}` === decodeURIComponent(location.hash));
+      // A mouse wheel turns the row sideways when it overflows, until it is at an end, where the page takes the wheel back.
+      $("tabs").addEventListener("wheel", (e) => {
+        const row = e.currentTarget, to = row.scrollLeft + e.deltaY;
+        if (e.deltaX || e.ctrlKey || to < 0 || to > row.scrollWidth - row.clientWidth) return;
+        e.preventDefault();
+        row.scrollLeft = to;
+      }, { passive: false });
+      $("tabs").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        history.replaceState(null, "", `#${machines[Number(b.dataset.k)].name}`);
+        choose(Number(b.dataset.k));
+      });
+      addEventListener("hashchange", () => named() >= 0 && named() !== machine && choose(named()));
+
+      // ── While the runs are read, or when they can't be ──
+      /** Words in the hero's place, the rest held back, and a way to try again if there is one. */
+      function notice(words, again = null) {
+        $("more").hidden = true;
+        $("hero").ariaBusy = "false";
+        $("hero").innerHTML = `<div class="status${again ? " failed" : ""}"><p>${escape(words)}</p>${again ? `<button type="button">Try again</button>` : ""}</div>`;
+        if (again) $("hero").querySelector("button").addEventListener("click", again);
+      }
+      /** The hero's own card while a machine's runs are read, from what its latest run's small files said (none yet: dashes), and the share read so far. */
+      function loading(words, share, m = null) {
+        $("more").hidden = true;
+        $("hero").ariaBusy = "true";
+        $("hero").innerHTML = `${card(m?.folders.filter(isFull).sort(byTime).at(-1))}<div class="meter" role="progressbar" aria-label="${escape(words)}" aria-valuenow="${Math.round(share * 100)}"><span style="width:${share * 100}%"></span></div>`;
+      }
+      const failed = (error, again) => notice(error instanceof Failure ? error.message : `The runs couldn't be read: ${error.message}`, again);
+
+      async function start() {
+        loading("Listing the runs on GitHub", 0);
+        try {
+          machines = await list();
+          await Promise.all(machines.flatMap((m) => m.folders.map(head)));
+        } catch (error) {
+          return failed(error, start);
+        }
+        if (!machines.length) return notice("No runs recorded yet.");
+        const newest = (m) => Math.max(0, ...m.folders.filter((r) => r.status === "complete").map((r) => r.started_at));
+        choose(named() >= 0 ? named() : machines.reduce((best, m, k) => (newest(m) > newest(machines[best]) ? k : best), 0));
+      }
+      /** The machine chosen, its runs read first if they haven't been. */
+      async function show() {
+        const m = machines[machine];
+        tabs();
+        if (!m.runs) {
+          const said = `Reading ${m.folders.length} runs from GitHub`;
+          loading(said, 0, m);
+          try {
+            await (m.loading ??= load(m, (got, total) => m === machines[machine] && loading(`${said}: ${bytes(got)} of ${bytes(total)}`, got / total, m)));
+          } catch (error) {
+            m.loading = null;
+            if (m === machines[machine]) failed(error, show);
+            return;
+          }
+          if (m !== machines[machine]) return;
+        }
+        render();
+      }
+
+      // ── The latest complete run ──
+      /** The latest full sync's card: one markup for the run read whole and for the one read from its small files alone (or none yet),
+       * which shows "–" for what only the rest holds, so the card is laid out the same while it is read as when it is in. */
+      function card(r) {
+        const h = r?.host ?? {}, s = r?.cycles ? split(r) : {};
+        const cpu = (r?.cpu_user_s ?? r?.cpu_system_s) == null ? null : (r.cpu_user_s ?? 0) + (r.cpu_system_s ?? 0);
+        const commit = !r ? "–" : r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r);
+        // Before any run is known, the line has its fields as dashes, so the card's first layout already holds it.
+        const host = r ? [h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`].filter(Boolean).map(escape) : ["–", "– memory", "–", "– cores", "– cache"];
+        return `
+          <div><div class="kicker">Latest full sync, ${dated(r?.started_at)}</div><div class="big">${duration(r?.duration_s)}</div>
+            <div class="what">to read and compute <span class="num">${grouped(r?.chain_height)}</span> blocks</div></div>
+          <dl class="stats">
+            <div><dt>Peak memory</dt><dd>${bytes(r?.peak_memory?.bytes)}<small>${escape(r?.peak_memory?.name ?? "")}</small></dd></div>
+            <div><dt>Data directory</dt><dd>${bytes(r?.disk_bytes)}<small>at the end</small></dd></div>
+            <div><dt>Read, written</dt><dd>${bytes(r?.read_bytes)}<small>${bytes(r?.written_bytes)} written</small></dd></div>
+            <div class="cpu"><dt>CPU time</dt><dd>${duration(cpu)}<small>${duration(r?.cpu_user_s)} user, ${duration(r?.cpu_system_s)} system</small></dd></div>
+            <div><dt>Indexing</dt><dd>${duration(s.indexing)}<small>reading the blocks</small></dd></div>
+            <div><dt>Compute</dt><dd>${duration(s.compute)}<small>every series</small></dd></div>
+          </dl>
+          <div class="host">${[...host, `commit ${commit}`].join(" · ")}</div>`;
+      }
+      function hero() {
+        const r = fullSyncs().at(-1);
+        $("hero").ariaBusy = "false";
+        $("hero").innerHTML = r ? card(r) : `<p>No full sync on this machine yet.</p>`;
+      }
+      /** The seconds under a band's name (a cycle is named after what most of it did). */
+      const phase = (r, name) => r.cycles.filter((c) => c.name === name).reduce((t, c) => t + c.end - c.start, 0);
+      /** Seconds indexing and computing, each cycle split by the indexer's own time in it. */
+      const split = (r) => r.cycles.reduce((s, c) => {
+        const indexed = Math.min(c.indexing, c.end - c.start);
+        return { indexing: s.indexing + indexed, compute: s.compute + c.end - c.start - indexed };
+      }, { indexing: 0, compute: 0 });
+
+      // ── History: complete runs in time order, time to sync as bars, peak memory as a line ──
+      function runByRun() {
+        const all = fullSyncs(), el = $("history");
+        if (all.length < 1) return (el.innerHTML = "");
+        const w = el.clientWidth || 800, h = 218, pad = { l: 44, r: 52, t: 10, b: 42 };
+        const tmax = Math.max(...all.map((r) => r.duration_s)) * 1.1, mmax = Math.max(...all.map((r) => r.peak_memory?.bytes ?? 0)) * 1.15;
+        const slot = (w - pad.l - pad.r) / all.length, bw = Math.min(40, slot * 0.6);
+        const x = (k) => pad.l + slot * (k + 0.5), yT = (s) => h - pad.b - (s / tmax) * (h - pad.t - pad.b), yM = (b) => h - pad.b - (b / mmax) * (h - pad.t - pad.b);
+        let svg = "";
+        for (let k = 0; k <= 4; k++) {
+          const s = (tmax / 4) * k, y = yT(s);
+          svg += `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y}" y2="${y}"/><text x="${pad.l - 6}" y="${y + 4}" text-anchor="end">${duration(s)}</text><text x="${w - pad.r + 6}" y="${y + 4}">${bytes((mmax / 4) * k)}</text>`;
+        }
+        all.forEach((r, k) => {
+          const y = yT(r.duration_s), sel = r === selected;
+          svg += `<rect data-label="${escape(r.label)}" x="${x(k) - bw / 2}" y="${y}" width="${bw}" height="${h - pad.b - y}" rx="3" fill="var(--accent)" opacity="${sel ? 1 : 0.55}" style="cursor:pointer"><title>${escape(rev(r))}, ${dated(r.started_at)}: ${duration(r.duration_s)}, peak ${bytes(r.peak_memory?.bytes)}</title></rect>`;
+          // (A commit's name under its bar, where it has 56px of room; else every few, the newest kept.)
+          const every = Math.ceil(56 / slot);
+          if ((all.length - 1 - k) % every === 0) svg += `<text x="${x(k)}" y="${h - 23}" text-anchor="middle">${escape(rev(r).slice(0, 7))}</text><text class="when" x="${x(k)}" y="${h - 6}" text-anchor="middle">${dated(r.started_at).replace(/ \d{4}$/, "")}</text>`;
+        });
+        const line = all.map((r, k) => `${k ? "L" : "M"}${x(k)},${yM(r.peak_memory?.bytes ?? 0)}`).join("");
+        svg += `<path d="${line}" fill="none" stroke="var(--compare)" stroke-width="2" stroke-dasharray="4 3"/>` + all.map((r, k) => `<circle cx="${x(k)}" cy="${yM(r.peak_memory?.bytes ?? 0)}" r="3.5" fill="var(--compare)"/>`).join("");
+        el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}" aria-labelledby="history-title">${svg}</svg>`;
+      }
+      $("history").addEventListener("click", (e) => {
+        const label = e.target.closest("[data-label]")?.dataset.label;
+        if (label) pick(runs().find((r) => r.label === label));
+      });
+
+      // ── Every run ──
+      function table() {
+        const list = [...runs()].reverse();
+        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status / tip</th><th>Full run time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}${r.resumed ? ", resumed" : ""} · ${grouped(r.chain_height)}</td><td>${duration(r.duration_s)}</td><td>${duration(split(r).indexing)}</td><td>${duration(split(r).compute)}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
+      }
+      $("runs").addEventListener("click", (e) => {
+        const label = e.target.closest("tr[data-label]")?.dataset.label;
+        if (label) pick(runs().find((r) => r.label === label));
+      });
+
+      // ── A run's curves on one time axis, its phases shaded; a compared run dashed ──
+      /** A counter's rate: its growth over each trailing minute (or as close as the kept points allow), per second. */
+      function rate(points, scale = 1) {
+        const out = [];
+        let j = 0;
+        for (let i = 1; i < points.length; i++) {
+          while (j < i - 1 && points[i][0] - points[j + 1][0] >= 60) j++;
+          const dt = points[i][0] - points[j][0];
+          if (dt > 0) out.push([points[i][0], ((points[i][1] - points[j][1]) / dt) * scale]);
+        }
+        return out;
+      }
+      const CHARTS = [
+        { title: "Indexed height", get: (r) => [["height", r.curves.height]], fmt: grouped, axis: (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : `${Math.round(v / 1e3)}k`) },
+        { title: "Memory footprint", get: (r) => [["memory", r.curves.memory]], fmt: bytes, axis: bytes },
+        { title: "CPU, cores busy", get: (r) => [["user", rate(r.curves.cpu_user_ms, 1 / 1000)], ["system", rate(r.curves.cpu_system_ms, 1 / 1000)]], fmt: (v) => v.toFixed(1), axis: (v) => v.toFixed(0) },
+        { title: "Disk, per second", get: (r) => [["read", rate(r.curves.read_bytes)], ["written", rate(r.curves.written_bytes)]], fmt: (v) => `${bytes(v)}/s`, axis: bytes },
+        { title: "Data directory", get: (r) => [["size", r.curves.disk_bytes]], fmt: bytes, axis: bytes },
+      ];
+      const COLORS = ["var(--accent)", "light-dark(#2b6ce6, #6ea0ff)"];
+      let cross = null;
+      /** Linear estimates between recorded samples; never extrapolate. */
+      function boundary(keys, values, value, end = keys.length) {
+        const i = lowerBound(keys, value, end);
+        if (i === end || (i === 0 && keys[i] !== value)) return null;
+        if (keys[i] === value) return values[i];
+        return values[i - 1] + (values[i] - values[i - 1]) * (value - keys[i - 1]) / (keys[i] - keys[i - 1]);
+      }
+      /** Only initial indexing can set a matched height; later catch-up includes compute work. */
+      const indexingCount = (run) => lowerBound(run.samples.height.times, run.indexingEnd_s);
+      const comparisons = new WeakMap();
+      function comparisonRun(run, height) {
+        if (height == null) return run;
+        let cache = comparisons.get(run);
+        if (!cache) comparisons.set(run, cache = new Map());
+        if (cache.has(height)) return cache.get(height);
+        const { times, values } = run.samples.height;
+        const end = boundary(values, times, height, indexingCount(run));
+        if (end == null) return null;
+        const curves = Object.fromEntries(Object.entries(run.samples).map(([key, series]) => [key, thin(series, end)]));
+        const view = { ...run, duration_s: end, curves,
+          cycles: run.cycles.filter((c) => c.start < end).map((c) => ({ ...c, end: Math.min(c.end, end), indexing: Math.min(c.indexing, end - c.start) })) };
+        cache.set(height, view);
+        return view;
+      }
+      /** The height a run's initial indexing reached: its chain tip, or the last indexed height when that is lower. */
+      const tip = (run) => Math.min(run.chain_height ?? Infinity, run.samples.height.values[indexingCount(run) - 1] ?? NaN);
+      const runName = (run) => `${selected.machine === compared?.machine ? "" : `${machineWords(run.machine)} / `}${rev(run)}`;
+      function detail() {
+        const tips = [selected, compared].map((run) => run ? tip(run) : NaN);
+        const height = compared && tips.every(Number.isFinite) && !selected.resumed && !compared.resumed
+          ? Math.min(...tips) : null;
+        const mine = comparisonRun(selected, height), theirs = compared ? comparisonRun(compared, height) : null;
+        const valid = height != null && mine && theirs;
+        const r = valid ? mine : selected, o = valid ? theirs : compared;
+        const reached = [selected, compared].map((run, k) => run?.chain_height ?? tips[k]);
+        $("run-title").innerHTML = `${escape(rev(selected))} <small>${dated(selected.started_at)} · ${escape(selected.status ?? "unknown")} in ${duration(selected.duration_s)}</small>`;
+        $("compare").innerHTML = `<option value="">nothing</option>` + machines.flatMap((m, k) => [...(m.runs ?? m.folders)].sort((a, b) => b.started_at - a.started_at || order(a.label ?? a.folder, b.label ?? b.folder)).filter((x) => x !== selected).map((x) => {
+          const label = x.label ?? (x.folder.slice(m.name.length + 1) || "run");
+          return `<option value="${escape(JSON.stringify([k, label]))}"${compared?.machine === m.name && compared?.label === label ? " selected" : ""}>${escape(machineWords(m.name))} · ${escape(x.revision ? rev(x) : label.split("/")[0])}${x.duration_s == null ? "" : ` · ${duration(x.duration_s)}`}</option>`;
+        })).join("");
+        $("comparison-note").hidden = !compared;
+        $("comparison-note").textContent = valid
+          ? `Charts cut through initial indexed height ${grouped(height)} (linear estimates between samples): ${runName(selected)} ${duration(r.duration_s)}, ${runName(compared)} ${duration(o.duration_s)} to index. ${runName(reached[0] >= reached[1] ? selected : compared)} went ${grouped(Math.abs(reached[0] - reached[1]))} more blocks (${grouped(reached[0])} vs ${grouped(reached[1])}). Memory and disk are sampled at that time; later compute work is excluded. These are indexing times; whole-run values are above. Select nothing for full curves.`
+          : "No common recorded indexing range, or a resumed run: showing whole runs; time and resources are not height matched.";
+        const shades = { indexing: "var(--cycle-indexing)", compute: "var(--cycle-compute)", "catch-up": "var(--cycle-catch-up)" };
+        $("phases").innerHTML = [...new Set(r.cycles.map((c) => c.name))].map((n) => `<span><i style="--c: ${shades[n]}"></i>${n} ${duration(phase(r, n))}</span>`).join("");
+        const tmax = Math.max(r.duration_s, o?.duration_s ?? 0);
+        $("charts").innerHTML = CHARTS.map((c, k) => `<div><h3 id="chart-title-${k}">${c.title}</h3><div class="chart" data-k="${k}"></div><div class="legend" data-k="${k}"></div></div>`).join("");
+        for (const el of $("charts").querySelectorAll(".chart")) {
+          const c = CHARTS[Number(el.dataset.k)], w = el.clientWidth || 500, h = 170, pad = { l: 52, r: 8, t: 8, b: 22 };
+          const mine = c.get(r), theirs = o ? c.get(o) : [];
+          const vmax = Math.max(1e-9, ...[...mine, ...theirs].flatMap(([, p]) => p.map(([, v]) => v))) * 1.08;
+          const x = (t) => pad.l + (t / tmax) * (w - pad.l - pad.r), y = (v) => h - pad.b - (v / vmax) * (h - pad.t - pad.b);
+          let svg = r.cycles.map((cy) => `<rect x="${x(cy.start)}" y="${pad.t}" width="${Math.max(0, x(cy.end) - x(cy.start))}" height="${h - pad.t - pad.b}" fill="${shades[cy.name]}"/>`).join("");
+          for (let k = 0; k <= 3; k++) {
+            const v = (vmax / 3) * k;
+            svg += `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${c.axis(v)}</text>`;
+          }
+          const step = tmax > 3 * 3600 ? 3600 : tmax > 3600 ? 1800 : 600;
+          for (let t = step; t < tmax; t += step) svg += `<text x="${x(t)}" y="${h - 6}" text-anchor="middle">${duration(t)}</text>`;
+          const path = (p) => p.map(([t, v], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join("");
+          theirs.forEach(([, p], i) => (svg += `<path class="series" d="${path(p)}" stroke="var(--compare)" stroke-dasharray="4 3" opacity="${i ? 0.6 : 1}"/>`));
+          mine.forEach(([, p], i) => (svg += `<path class="series" d="${path(p)}" stroke="${COLORS[i]}"/>`));
+          svg += `<line class="cross" y1="${pad.t}" y2="${h - pad.b}" visibility="hidden"/>`;
+          el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}" aria-labelledby="chart-title-${el.dataset.k}">${svg}</svg>`;
+          el._frame = { x, pad, w, tmax, mine, theirs, c, ends: [r.duration_s, o?.duration_s] };
+        }
+        readAt(null);
+      }
+      /** The value of a curve at a time: the last point at or before it. */
+      const at = (p, t) => {
+        let v = null;
+        for (const [pt, pv] of p) {
+          if (pt > t) break;
+          v = pv;
+        }
+        return v;
+      };
+      function readAt(t) {
+        for (const el of $("charts").querySelectorAll(".chart")) {
+          const f = el._frame, legend = $("charts").querySelector(`.legend[data-k="${el.dataset.k}"]`), line = el.querySelector(".cross");
+          if (!f) continue;
+          line.setAttribute("visibility", t === null ? "hidden" : "visible");
+          if (t !== null) line.setAttribute("x1", f.x(t)), line.setAttribute("x2", f.x(t));
+          // (Pointed past a run's end: none, it had stopped.)
+          const value = (p, end) => (!p.length ? null : t === null ? (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,") ? p.reduce((m, [, v]) => Math.max(m, v), 0) : p.at(-1)?.[1]) : t > end ? null : at(p, t));
+          const word = t === null && (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,")) ? "max " : "";
+          legend.innerHTML = [
+            ...f.mine.map(([name, p], i) => `<span><i style="--c: ${COLORS[i]}"></i>${name} <b>${word}${value(p, f.ends[0]) == null ? "–" : f.c.fmt(value(p, f.ends[0]))}</b></span>`),
+            ...f.theirs.map(([name, p]) => `<span><i class="dashed" style="--c: var(--compare)"></i>${escape(runName(compared))} ${name} <b>${word}${value(p, f.ends[1]) == null ? "–" : f.c.fmt(value(p, f.ends[1]))}</b></span>`),
+          ].join("") + (t === null ? "" : `<span>at <b>${duration(t)}</b></span>`);
+        }
+      }
+      $("charts").addEventListener("pointermove", (e) => {
+        const el = e.target.closest(".chart");
+        if (!el?._frame) return;
+        const f = el._frame, box = el.getBoundingClientRect(), px = ((e.clientX - box.left) / box.width) * f.w;
+        readAt(Math.max(0, Math.min(f.tmax, ((px - f.pad.l) / (f.w - f.pad.l - f.pad.r)) * f.tmax)));
+      });
+      $("charts").addEventListener("pointerleave", () => readAt(null));
+      $("compare").addEventListener("change", async () => {
+        const value = $("compare").value;
+        if (!value) compared = null;
+        else {
+          const [k, label] = JSON.parse(value), m = machines[k], original = selected;
+          $("compare").disabled = true;
+          try {
+            if (!m.runs) await (m.loading ??= load(m, () => {}));
+            if (selected !== original || $("compare").value !== value) return;
+            const found = m.runs.find((x) => x.label === label);
+            if (!found) throw new Error("That run could not be read.");
+            compared = found;
+          } catch (error) {
+            m.loading = null;
+            detail();
+            $("comparison-note").hidden = false;
+            $("comparison-note").textContent = `Comparison could not be loaded: ${error.message}`;
+            return;
+          } finally { $("compare").disabled = false; }
+        }
+        detail();
+        bars();
+      });
+
+      /** Why a run has no plugin instructions from zero. */
+      const noCounts = (run) => (run.from_zero.legacy ? "it is from before the instruction counters" : run.resumed ? "a resumed run has no recompute" : run.recompute ? `its recompute ${run.recompute.status}` : "it is from before the recompute");
+      // ── Bars: compute per plugin, the data directory by component ──
+      /** Each name in either run (the compared one's own after, with none of its own), a bar as long as its share. */
+      function barList(el, rows, other, fmt, empty = "Not recorded for this run.") {
+        const names = [...rows.map(([n]) => n), ...(other ?? []).map(([n]) => n).filter((n) => !rows.some(([m]) => m === n))];
+        const max = Math.max(1e-9, ...rows.map(([, v]) => v), ...(other ?? []).map(([, v]) => v));
+        el.innerHTML = names.map((name) => {
+          const v = rows.find(([n]) => n === name)?.[1], o = other?.find(([n]) => n === name)?.[1];
+          const bar = (value, cls) => (value == null ? "" : `<span class="bar${cls}" style="width:${(value / max) * 100}%"></span>`);
+          return `<div class="row"><span class="name" title="${escape(name)}">${escape(name)}</span><span class="track">${bar(v, "")}${other ? bar(o, " other") : ""}</span><span class="value">${v == null ? "–" : fmt(v)}${other ? `<small>${o == null ? "–" : fmt(o)}</small>` : ""}</span></div>`;
+        }).join("") || `<span class="name">${escape(empty)}</span>`;
+      }
+      function bars() {
+        $("totals-note").hidden = !compared;
+        $("totals-note").textContent = compared ? `Whole-run totals, not height matched: solid ${runName(selected)} (${grouped(selected.chain_height)} blocks); dashed ${runName(compared)} (${grouped(compared.chain_height)} blocks). Plugin instructions and the final component disk breakdown have no height samples; neither is scaled or cut.` : "";
+        barList($("compute"), selected.from_zero.plugins, compared?.from_zero.plugins, INSTRUCTIONS.fmt, `Not recorded: ${noCounts(selected)}.`);
+        barList($("breakdown"), selected.breakdown, compared?.breakdown, bytes);
+      }
+
+      // ── Against the best: each category of the picked run beside the best any full sync of its condition has measured ──
+      /** What a category is written in, and how it is judged: `worse`, the fraction over the best that is noticeably worse
+       * (the percent shown is rounded to a tenth); `floor`, the least a row must be to be judged at all, and the least a best
+       * reads as; `gap`, the least it must also be over the best in its own unit; `wall`, a wall time, held only to runs
+       * that held the mini's lock (a run's `locked`). Times: under 10 s two runs of one commit differ by up to 2,400% (4 s
+       * against 96 s), noise and not cost; the recordings hold two pairs of runs of one commit (4a0464f5a, on the M6 and on
+       * the M4: the only repeats), and of the 45 categories of 10 s or more (and the memory) that both runs of a pair
+       * recorded, 34 differ by under 10%, 28 by under 5%; whole run, peak and synced memory by under 5%. Instructions, one
+       * bar for every plugin: a loaded run and a quiet one of one commit stayed within 4.64% (bench-metric/work/compare.mjs;
+       * finer gains need wall time from a locked, freshly booted, clean run), and under 1e10 a row is too small to tell from
+       * rayon's idle spinning. */
+      const TIME = { fmt: (s) => duration(s, true), floor: 10, worse: 0.1, gap: 10, wall: true };
+      const MEMORY = { fmt: bytes, floor: 0, worse: 0.1, gap: 0, wall: false };
+      const INSTRUCTIONS = { fmt: (n) => (n >= 1e12 ? `${(n / 1e12).toFixed(2)} T` : `${(n / 1e9).toFixed(1)} G`), floor: 1e10, worse: 0.05, gap: 0, wall: false };
+      /** The Capacity section: a cell is a route class's requests per second of the server's own CPU, at the highest rate it
+       * held (p99 handler time 50 ms, the machine 20% idle); `higher`, more is better; `worse`, the fraction under the best any
+       * commit measured on the machine and mode that is noticeably worse; `runs`, the least a cell's runs must be to be held
+       * to the best or to set it. Of the 56 class and mode cells that two runs of one commit measured (four commits, two runs
+       * each, on the M4 under its lock), 47 differ by under 5%, 53 by under 10%, the most by 20%: one run is no judge. */
+      const CAPACITY = { fmt: grouped, worse: 0.1, gap: 0, higher: true, runs: 2 };
+      /** Whether `value` is noticeably worse than `best`, in the direction the unit says: beyond its `worse` fraction and by at least its `gap`. */
+      const worse = (value, best, unit) => (unit.higher ? value < best * (1 - unit.worse) : value > best * (1 + unit.worse)) && Math.abs(value - best) >= unit.gap;
+      /** How far a value is over (under, negative) the best, in percent to a tenth: the writer of every percent beside a flag, so the figure
+       * agrees with the flag (at whole percents a −10.4% was flagged and read −10%). */
+      const percentOver = (value, best) => Math.round((value / best - 1) * 1000) / 10;
+      /** A percent's magnitude: a tenth under 100%, whole above (a time 24 times the best is not read to a tenth). */
+      const percentText = (percent) => (Math.abs(percent) < 100 ? Math.abs(percent).toFixed(1) : grouped(Math.abs(percent)));
+      /** A run's categories by name, at `height` where its indexing time is cut (as the curves are); a plugin's own rows
+       * (`own`, its instructions computing the chain from zero alone: its cost, where its interval in the run is the schedule's) are
+       * comparable with every run, the rest add several plugins' work up, or are the memory they share.
+       * @param {object} run
+       * @param {number | null} height
+       * @returns {Map<string, {unit: object, value: number, own: boolean}>} */
+      function categories(run, height) {
+        const rows = new Map();
+        const add = (name, unit, value, own, cycles = null) => value != null && rows.set(name, { unit, value, own, cycles });
+        add("Whole run", TIME, run.duration_s, false);
+        add(`Indexing to block ${grouped(height)}`, TIME, height == null ? null : comparisonRun(run, height)?.duration_s, false);
+        add("Compute stage", TIME, split(run).compute, false);
+        add("Compute instructions from zero", INSTRUCTIONS, run.from_zero.total?.[0], false, run.from_zero.total?.[1]);
+        for (const [plugin, count, cycles] of run.from_zero.plugins) add(plugin, INSTRUCTIONS, count, true, cycles);
+        add("Peak memory", MEMORY, run.peak_memory?.bytes, false);
+        add("Memory when synced", MEMORY, run.samples.memory.values.at(-1), false);
+        return rows;
+      }
+      /** Each category of the run, its best among the pool's other runs (a value under the floor read as the floor), the run
+       * that holds it, and whether it is noticeably worse: stages and memory first, then the plugins, each by its gap. A
+       * category no other run has to be held to is `seen: false`; a row under its floor is listed last, `small`, and not judged.
+       * @param {object} run
+       * @param {object[]} pool the runs of one condition, `run` among them
+       * @returns {{height: number | null, apart: number | null, rows: object[]}} */
+      function judge(run, pool) {
+        // (The height every run reached, so a run that went further isn't held to more blocks; the whole runs' tips lie `apart`.)
+        const tips = pool.map(tip).filter(Number.isFinite), height = tips.length ? Math.min(...tips) : null;
+        const chain = pool.map((r) => r.chain_height).filter(Number.isFinite), apart = chain.length ? Math.max(...chain) - Math.min(...chain) : null;
+        const all = new Map(pool.map((r) => [r, categories(r, height)]));
+        const rows = [...all.get(run)].map(([name, { unit, value, own, cycles }]) => {
+          const small = value < unit.floor;
+          let best = { run, value }, seen = false;
+          for (const r of small ? [] : pool) {
+            const found = all.get(r).get(name)?.value;
+            if (r === run || found == null || (!own && r.silent_payments !== run.silent_payments) || (unit.wall && !r.locked)) continue;
+            seen = true;
+            const other = Math.max(found, unit.floor);
+            if (other < best.value) best = { run: r, value: other, floored: found < unit.floor };
+          }
+          const percent = percentOver(value, best.value);
+          return { name, unit, own, value, cycles, best, seen, small, percent, worse: seen && worse(value, best.value, unit) };
+        });
+        return { height, apart, rows: rows.sort((a, b) => Number(a.small) - Number(b.small) || Number(a.own) - Number(b.own) || b.percent - a.percent) };
+      }
+      function against() {
+        const pool = fullSyncs().filter((r) => r.profile === selected.profile), note = $("best-note");
+        $("best-count").textContent = "";
+        $("best").innerHTML = "";
+        if (!pool.includes(selected)) return (note.textContent = "Pick a complete full sync from an empty data directory to hold it to the best.");
+        if (pool.length < 2) return (note.textContent = "No other full sync of this machine and profile to hold it to yet.");
+        const { apart, rows } = judge(selected, pool), held = rows.filter((row) => row.seen);
+        $("best-count").textContent = held.length ? `${held.filter((row) => row.worse).length} of ${held.length} noticeably worse` : "";
+        note.textContent = `Best of up to ${pool.length} full syncs on this machine and profile. Worse: a time over ${TIME.worse * 100}% and ${TIME.gap} s above the best, held only to runs that held the mini's lock; memory over ${MEMORY.worse * 100}%, instructions over ${INSTRUCTIONS.worse * 100}%. Stages and memory are held to runs ${selected.silent_payments ? "with" : "without"} silent payments; a plugin, its instructions computing the chain from zero alone, to every run that recorded it${selected.from_zero.total == null ? ` (this run has no plugin rows: ${noCounts(selected)})` : ""}. Compute instructions from zero is that whole recompute's, its imports and what no plugin accounts for included; the cycles under a row are shown and never judged. Indexing is cut at a shared height, the rest are whole runs${apart ? `, their tips up to ${grouped(apart)} blocks apart` : ""}. A row under its floor (${TIME.floor} s, ${INSTRUCTIONS.fmt(INSTRUCTIONS.floor)}) is listed and not judged, and a best under it reads as the floor.`;
+        const best = (row) => (row.seen ? `${row.best.floored ? "≤ " : ""}${row.unit.fmt(row.best.value)}` : "–");
+        const holder = (row) => (row.small ? `under ${row.unit.fmt(row.unit.floor)}` : !row.seen ? "no other run" : row.best.run === selected ? "this run" : `<button type="button" class="pick" data-label="${escape(row.best.run.label)}">${escape(rev(row.best.run))}</button>`);
+        $("best").innerHTML = `<thead><tr><th>Category</th><th>This run</th><th>Best</th><th>Over</th></tr></thead><tbody>${rows.map((row) => `<tr data-name="${escape(row.name)}" tabindex="-1"><td>${escape(row.name).replace(/_/g, "_<wbr>")}</td><td>${row.unit.fmt(row.value)}${row.cycles == null ? "" : `<small>${row.unit.fmt(row.cycles)} cycles</small>`}</td><td>${best(row)}<small>${holder(row)}</small></td><td class="over${row.worse ? " worse" : ""}">${!row.seen ? "–" : row.best.run === selected ? "best" : `${row.best.floored ? "≥ " : "+"}${percentText(row.percent)}%`}</td></tr>`).join("")}</tbody>`;
+      }
+      $("best").addEventListener("click", (e) => {
+        const button = e.target.closest("button[data-label]");
+        if (!button) return;
+        const name = button.closest("tr").dataset.name;
+        pick(runs().find((r) => r.label === button.dataset.label));
+        // (The table's redrawn, its row's best now the picked run, so with no button: the row keeps the place, or the title when
+        // the picked run's own value left the row out.)
+        ($("best").querySelector(`tr[data-name="${CSS.escape(name)}"]`) ?? $("best-title")).focus();
+      });
+
+      // ── Capacity: each route class and mode, a commit's requests per server CPU-second beside the best of any commit ──
+      const mean = (values) => values.reduce((sum, v) => sum + v, 0) / values.length;
+      const signed = (percent) => `${percent < 0 ? "−" : percent > 0 ? "+" : ""}${percentText(percent)}%`;
+      /** Each cell a button: its details (p50 and the rest, no hover needed) go to the table's readout. */
+      const cellDetails = new Map();
+      function capacity() {
+        const all = machines[machine].measured, section = $("capacity");
+        section.hidden = !all.length;
+        if (!all.length) return;
+        // Only runs of the last run's rule and profile, from a clean tree, are held to each other.
+        const last = all.at(-1), shown = all.filter((r) => r.rule === last.rule && r.profile === last.profile && !r.dirty);
+        const commits = [];
+        for (const run of shown) {
+          const column = commits.find((c) => c.revision === run.revision);
+          if (column) column.runs.push(run);
+          else commits.push({ revision: run.revision, runs: [run] });
+        }
+        const modes = [...new Set(shown.flatMap((r) => r.cells.map((c) => c.mode)))];
+        let flagged = 0, judged = 0;
+        cellDetails.clear();
+        $("capacity-tables").innerHTML = modes.map((mode) => {
+          const names = [...new Set(shown.flatMap((r) => r.cells.filter((c) => c.mode === mode).map((c) => c.name)))];
+          const rows = names.map((name) => {
+            // A cell: the runs of the column that measured the class, held to the best only when enough did and the tip stood still.
+            const cells = commits.map(({ runs }) => {
+              const found = runs.flatMap((r) => r.cells.filter((c) => c.mode === mode && c.name === name));
+              return found.length ? { found, value: mean(found.map((c) => c.perCpu)), judged: found.length >= CAPACITY.runs && !found.some((c) => c.moved) } : null;
+            });
+            const best = Math.max(...cells.filter((c) => c?.judged).map((c) => c.value));
+            return `<tr><th scope="row">${escape(name).replace(/_/g, "_<wbr>")}</th>${cells.map((cell, k) => {
+              if (!cell) return '<td class="none">not measured</td>';
+              const { found, value } = cell, field = (key) => mean(found.map((c) => c[key]));
+              const bad = cell.judged && worse(value, best, CAPACITY);
+              if (k === commits.length - 1 && cell.judged) (judged++, bad && flagged++);
+              const why = found.some((c) => c.moved) ? "tip moved" : `n=${found.length}`;
+              const key = `${mode}/${name}/${k}`;
+              cellDetails.set(key, `${rev(commits[k].runs[0])}, ${mode} ${name}: ${found.length} run${found.length > 1 ? "s" : ""}: p50 ${field("p50").toFixed(2)} ms, p99 ${field("p99").toFixed(1)} ms at ${grouped(field("rate"))} req/s; server CPU ${(1000 / value).toFixed(3)} ms and driver CPU ${field("driver").toFixed(3)} ms per request; machine at least ${Math.min(...found.map((c) => c.idle))}% idle${found.some((c) => c.moved) ? "; the chain's tip moved during the measure, so it is not held to the best" : found.length < CAPACITY.runs ? `; under ${CAPACITY.runs} runs, so it is not held to the best` : ""}.`);
+              return `<td><button type="button" class="pick" aria-pressed="false" data-key="${escape(key)}">${CAPACITY.fmt(value)}<small>p99 ${field("p99").toFixed(1)}</small><small class="over${bad ? " worse" : ""}">${cell.judged ? (value === best ? "best" : signed(percentOver(value, best))) : why}</small></button></td>`;
+            }).join("")}</tr>`;
+          });
+          const head = commits.map(({ revision, runs }) => `<th scope="col"><a href="${REPO}${escape(revision)}">${escape(rev(runs[0]))}</a><small>${runs.length} run${runs.length > 1 ? "s" : ""}</small></th>`).join("");
+          return `<div class="cap"><div class="table"><table class="fit"><caption>${escape(mode[0].toUpperCase() + mode.slice(1))}</caption><thead><tr><th scope="col">Route class</th>${head}</tr></thead><tbody>${rows.join("")}</tbody></table></div><p class="readout" aria-live="polite">Tap a value for its p50, rate and CPU per request.</p></div>`;
+        }).join("");
+        const heights = shown.map((r) => r.chain_height).filter(Number.isFinite), apart = heights.length ? Math.max(...heights) - Math.min(...heights) : 0;
+        $("capacity-count").textContent = judged ? `last commit: ${flagged} of ${judged} noticeably worse` : "";
+        $("capacity-note").textContent = `A cell is requests per second of the server's CPU time, at p99 ≤ ${last.p99Bound} ms. It is flagged when more than ${CAPACITY.worse * 100}% under the best any commit measured on this machine.`;
+        $("capacity-fine").textContent = `Cold reads keys not read before, warm the latest ones; a commit's cell is the mean of its runs, p99 in ms under each value, the machine at least ${last.idleMin}% idle. A cell is held to the best only when at least ${CAPACITY.runs} runs measured it and the chain's tip stood still (n=, tip moved); "not measured" means no run measured that class. The tables scroll sideways when the commits do not fit. Runs of rule ${last.rule}, profile ${last.profile}, clean tree${shown.length < all.length ? `; ${all.length - shown.length} others of another rule, profile or a dirty tree are left out` : ""}${apart ? `; tips up to ${grouped(apart)} blocks apart` : ""}.`;
+      }
+      $("capacity-tables").addEventListener("click", (e) => {
+        const button = e.target.closest("button[data-key]");
+        if (!button) return;
+        const cap = button.closest(".cap");
+        for (const other of cap.querySelectorAll("button[aria-pressed=true]")) other.setAttribute("aria-pressed", "false");
+        button.setAttribute("aria-pressed", "true");
+        cap.querySelector(".readout").textContent = cellDetails.get(button.dataset.key);
+      });
+
+      function pick(r) {
+        if (!r) return;
+        // (The table's redrawn: a run's button that had focus gets it back.)
+        const focused = document.activeElement?.closest?.("#runs tr[data-label]")?.dataset.label;
+        selected = r;
+        if (compared === r) compared = null;
+        runByRun();
+        table();
+        against();
+        detail();
+        bars();
+        if (focused) $("runs").querySelector(`tr[data-label="${CSS.escape(focused)}"] .pick`)?.focus();
+      }
+      function render() {
+        const { skipped } = machines[machine];
+        $("skipped").textContent = (skipped.length ? ` Not readable, so left out: ${skipped.join(", ")}.` : "") + (capacityOnly.length ? ` Capacity runs of ${capacityOnly.join(", ")} have no full sync beside them, so are not shown.` : "");
+        if (!runs().length) return notice("None of this machine's runs could be read.");
+        $("more").hidden = false;
+        hero();
+        capacity();
+        selected ??= fullSyncs().at(-1) ?? complete().at(-1) ?? runs().at(-1);
+        // (Compared, at first, with the complete run before it: what changed.)
+        if (compared === null) {
+          const all = complete(), k = all.indexOf(selected);
+          compared = k > 0 ? all[k - 1] : null;
+        }
+        pick(selected);
+      }
+      let resizing = 0;
+      addEventListener("resize", () => {
+        cancelAnimationFrame(resizing);
+        resizing = requestAnimationFrame(() => selected && (runByRun(), detail()));
+      });
+      start();
+    </script>
+  </body>
+</html>
