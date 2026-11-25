@@ -343,6 +343,20 @@ const HEAT_FADE = 0.3;
 const heatFelt = (value, most) => (value && most ? clamp(1 + Math.log10(Math.abs(value) / most) / HEAT_DECADES, 0, 1) ** HEAT_CURVE : 0);
 /** The amount a cell reads as strong as `felt` (0 to 1) against the reference `most` (heatFelt's inverse). @param {number} felt @param {number} most */
 const heatAmount = (felt, most) => most * 10 ** (HEAT_DECADES * (felt ** (1 / HEAT_CURVE) - 1));
+/** A gradient's colors as drawn in the theme now, each its channels (see gradientTable): a heatmap's, a heatmap pane's rows'. @param {[number, string][]} stops */
+const gradientChannels = (stops) => gradientTable(stops).map(channels);
+/**
+ * A cell on a gradient (`table`, see gradientChannels): its color at its `place` in it (0 to 1), opaque but for the
+ * weakest (as strong as `felt`, under HEAT_FADE: fading into the chart's own ground, a dark one's or a light one's), times `opacity`.
+ * @param {number[][]} table @param {number} place @param {number} felt @param {number} opacity @param {Uint8ClampedArray} pixels @param {number} at
+ */
+function gradientCell(table, place, felt, opacity, pixels, at) {
+  const [r, g, b] = table[placeIndex(place, table.length)];
+  pixels[at] = r;
+  pixels[at + 1] = g;
+  pixels[at + 2] = b;
+  pixels[at + 3] = Math.round(255 * opacity * Math.min(1, felt / HEAT_FADE));
+}
 /** A URPD day's amounts, a row each, as a measure reads them: its coins, their capital, their unrealized P&L. @param {any} day @param {string} measure @returns {Float32Array} */
 const amountsOf = (day, measure) => (measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply);
 /** The largest of a day's cells, by measure. @param {any} day @param {string} measure */
@@ -363,12 +377,12 @@ const heatMost = (day, measure) => (day.most ??= {})[measure] ??= amountsOf(day,
 function heatColor(value, most, look, pixels, at) {
   const felt = heatFelt(value, most);
   if (!felt) return;
-  const place = look.measure === "pnl" ? 0.5 + (Math.sign(value) * felt) / 2 : felt;
-  const [r, g, b] = look.gradient ? look.gradient[placeIndex(place, look.gradient.length)] : value < 0 ? look.down : look.up;
+  if (look.gradient) return gradientCell(look.gradient, look.measure === "pnl" ? 0.5 + (Math.sign(value) * felt) / 2 : felt, felt, look.opacity, pixels, at);
+  const [r, g, b] = value < 0 ? look.down : look.up;
   pixels[at] = r;
   pixels[at + 1] = g;
   pixels[at + 2] = b;
-  pixels[at + 3] = Math.round(255 * look.opacity * (look.gradient ? Math.min(1, felt / HEAT_FADE) : felt));
+  pixels[at + 3] = Math.round(255 * look.opacity * felt);
 }
 /**
  * A heatmap's look (see heatLook), and as last drawn: whether it's been (`drawn`; `undrawable`, not two frames after
@@ -417,7 +431,7 @@ const profileShades = (id, color, opacity) => {
   const card = channels(css("--card")), own = channels(color), over = (/** @type {number} */ strength) => `rgb(${own.slice(0, 3).map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
   return { id, gain: over(0.72), loss: over(0.32), dimGain: over(0.72 * PROFILE_DIM), dimLoss: over(0.32 * PROFILE_DIM) };
 };
-const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: channels(ink(layer.color)), down: channels(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map(channels) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: channels(ink(layer.color)), down: channels(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientChannels(layer.gradient) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
 /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
 const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
 /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -1053,7 +1067,7 @@ function placeField() {
 }
 export {
   addDrawn, amountsOf, boxTo, bubbleColumns, cellText, clearDrawings, closeCell, crossAt, drawingMenu, drawingRows,
-  drawnSteps, dressField, duplicateDrawings, finishPath, flipDrawings, flipsOf, fromClose, gesturing, HEAT_ABOUT,
+  drawnSteps, dressField, duplicateDrawings, finishPath, flipDrawings, flipsOf, fromClose, gesturing, gradientCell, gradientChannels, HEAT_ABOUT,
   HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatAmount, heatCalendar, heatCode, heatColor, heatCome, heatDayHeld, heatDayKey,
   heatDays, heatExtras, heatFelt, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatName, heatPath,
   heatPump, heatReading, heatRows, heatSection, heatSeries, heatShown, heatWaiters, heatWants, hold, inBox, litCohort,

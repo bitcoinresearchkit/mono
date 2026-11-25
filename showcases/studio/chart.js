@@ -26,7 +26,7 @@ import {
 } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
 import {
-  belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
+  belowOf, cloudLayers, edgesOf, failing, HEAT_GRADIENT, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
   asRows, drawnInto, placedOn, resultText, rowLayers, rowsLevel, signedMeasure, summed, stretchResult, TWO_KEPT,
 } from "/studio/vocabulary.js";
 import {
@@ -40,7 +40,7 @@ import {
 } from "/studio/formulas.js";
 import { profileMark, seriesMark, titleOf } from "/studio/grid.js";
 import {
-  amountsOf, crossAt, fromClose, HEAT_COLUMN, heatCalendar, heatColor, heatLooks, heatReading, heatShown, litCohort,
+  amountsOf, crossAt, fromClose, gradientCell, gradientChannels, HEAT_COLUMN, HEAT_FADE, heatCalendar, heatColor, heatLooks, heatReading, heatShown, litCohort,
   placeSaid, priceSpan, profileName, readingLine, viewHeat, viewProfile,
 } from "/studio/heatmaps.js";
 import {
@@ -2593,8 +2593,6 @@ const ROWS_FAINT = 0.08;
 const ROWS_CURVE = 0.6;
 /** A cell's opacity by its strength (0 to 1), on a `curve` (see ROWS_FAINT, ROWS_CURVE). @param {number} strength @param {number} curve */
 const rowsOpacity = (strength, curve) => ROWS_FAINT + (1 - ROWS_FAINT) * strength ** curve;
-/** A heatmap's one color without a level: its cells stronger the higher, the same hue in every row (rows compare). */
-const ROWS_HUE = "blue";
 /** Each heatmap pane's drawing, by its pane's id: its rows on its pane (on its layers' side), what they were painted from, and its key (its legend's). @type {Map<string, { on: import("/modules/bitview-charts/pane.js").Pane, side: string, rows: Rows, key: string, scale: HTMLElement }>} */
 const rowPanes = new Map();
 /** The value at a share of the way up sorted values (none: NaN). @param {Float64Array} sorted @param {number} share */
@@ -2603,9 +2601,9 @@ const quantile = (sorted, share) => (sorted.length ? sorted[Math.min(sorted.leng
  * Each pane drawn as a heatmap (see rowLayers): its layers' own series drawn none (their values still the legend's and
  * the crosshair's), a row each in their order on the library's Rows, named on their scale's axis (each its short name,
  * else its label), colored by value. About their level (see rowsLevel), green over it, red under, stronger the further
- * (on a log scale, by the ratio), the region under it outlined where the pane says (`outline`); with none, one hue,
- * stronger the higher (log or linear, as the pane is), alike in every row. The strongest whole at ROWS_WHOLE of the
- * pane's cells.
+ * (on a log scale, by the ratio), the region under it outlined where the pane says (`outline`); with none, on its
+ * gradient as a heatmap's (each row its layer's own, if it's colored by one; else HEAT_GRADIENT), the higher (log or
+ * linear, as the pane is) the further along, alike in every row. The strongest whole at ROWS_WHOLE of the pane's cells.
  * @param {Chart} doc @param {Resolved} data
  */
 function drawRows(doc, data) {
@@ -2624,7 +2622,7 @@ function drawRows(doc, data) {
       rowPanes.set(pane.id, kept);
     }
     const log = paneMode(pane) === 1, level = rowsLevel(doc, pane), outlined = level !== undefined && pane.outline === true;
-    const key = JSON.stringify([tokensNow(), log, level, outlined, layers.map((layer) => [layer.id, idOf(/** @type {Vector} */ (data.results.get(layer.id)?.values)), layer.color, layer.short ?? labelOf(layer)])]);
+    const key = JSON.stringify([tokensNow(), log, level, outlined, layers.map((layer) => [layer.id, idOf(/** @type {Vector} */ (data.results.get(layer.id)?.values)), layer.color, layer.byGradient ? layer.gradient : null, layer.short ?? labelOf(layer)])]);
     if (key === kept.key) return;
     kept.key = key;
     const rows = layers.map((layer) => ({ values: /** @type {Vector} */ (data.results.get(layer.id)?.values), name: layer.short ?? labelOf(layer), color: ink(layer.color), id: layer.id }));
@@ -2645,14 +2643,15 @@ function drawRows(doc, data) {
     // its 4 is green); about an amount's, one for both, the log already evening them.)
     const whole = signed ? quantile(placed((value) => Math.abs(place(value)) || NaN), ROWS_WHOLE) : NaN, sorted = signed ? null : placed(place);
     const lo = sorted ? quantile(sorted, 1 - ROWS_WHOLE) : -whole, hi = sorted ? quantile(sorted, ROWS_WHOLE) : whole;
-    const up = channels(ink("green")), down = channels(ink("red")), one = channels(ink(ROWS_HUE));
-    // (About a ratio, the middle lifted (see ROWS_CURVE); a signed log or one hue, as it is: lifted again, most cells read alike.)
+    const up = channels(ink("green")), down = channels(ink("red")), tables = level === undefined ? layers.map((layer) => gradientChannels(layer.byGradient && layer.gradient ? layer.gradient : HEAT_GRADIENT)) : [];
+    // (About a ratio, the middle lifted (see ROWS_CURVE); a signed log, as it is: lifted again, most cells read alike.)
     const curve = ratio ? ROWS_CURVE : 1;
     // (A cell at the level, or of nothing (no level: 0, a member not yet there), drawn none: the pane's ground.)
-    kept.rows.paint = (value, _, pixels, at) => {
+    kept.rows.paint = (value, row, pixels, at) => {
       const p = place(value);
       if (!Number.isFinite(p) || (level === undefined ? value === 0 : p === 0)) return;
-      const strength = clamp(level === undefined ? (p - lo) / (hi - lo || 1) : p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1), [r, g, b] = level === undefined ? one : p < 0 ? down : up;
+      if (level === undefined) return void ((strength) => gradientCell(tables[row], strength, strength, 1, pixels, at))(clamp((p - lo) / (hi - lo || 1), 0, 1));
+      const strength = clamp(p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1), [r, g, b] = p < 0 ? down : up;
       (pixels[at] = r), (pixels[at + 1] = g), (pixels[at + 2] = b), (pixels[at + 3] = 255 * rowsOpacity(strength, curve));
     };
     kept.rows.below = outlined ? (value) => place(value) < 0 : null;
@@ -2660,10 +2659,13 @@ function drawRows(doc, data) {
     // (Its key, in its legend: the colors from one end to the other, at the values they stand for (about a level, the
     // level between its two sides).)
     const words = valueFormatOf(layers.slice(0, 1).map((layer) => unitFor(layer, data.results.get(layer.id)))).value, at = (/** @type {number} */ p) => (ratio ? /** @type {number} */ (level) * Math.exp(p) : level === undefined ? (log ? 10 ** p : p) : level + Math.sign(p) * typical * Math.expm1(Math.abs(p)));
-    const strip = (/** @type {number[]} */ c, /** @type {boolean} */ rising) => `<span class="key-strip">${[0, 1, 2, 3, 4].map((k) => `<i style="--c:rgb(${c.slice(0, 3).join(" ")} / ${rowsOpacity((rising ? k : 4 - k) / 4, curve)})"></i>`).join("")}</span>`;
+    // (Each swatch the color halfway along its fifth of the way: the gradient's, as its cells fade; a side's, as strong.)
+    const strip = (/** @type {(strength: number) => string} */ shade, /** @type {boolean} */ rising) => `<span class="key-strip">${[0, 1, 2, 3, 4].map((k) => `<i style="--c:${shade(((rising ? k : 4 - k) + 0.5) / 5)}"></i>`).join("")}</span>`;
+    const toward = (/** @type {number[]} */ c) => (/** @type {number} */ strength) => `rgb(${c.slice(0, 3).join(" ")} / ${rowsOpacity(strength, curve)})`;
+    const along = (/** @type {number[][]} */ table) => (/** @type {number} */ strength) => `rgb(${table[placeIndex(strength, table.length)].slice(0, 3).join(" ")} / ${Math.min(1, strength / HEAT_FADE)})`;
     const ends = (/** @type {number} */ p) => `<span>${escapeHtml(Number.isFinite(p) ? words(at(p)) : "")}</span>`;
     kept.scale.className = "legend-key rows-key";
-    kept.scale.innerHTML = level === undefined ? `${ends(lo)}${strip(one, true)}${ends(hi)}` : `${ends(Math.min(lo, 0))}${strip(down, false)}<span>${escapeHtml(words(level))}</span>${strip(up, true)}${ends(Math.max(hi, 0))}`;
+    kept.scale.innerHTML = level === undefined ? `${ends(lo)}${strip(along(tables[0]), true)}${ends(hi)}` : `${ends(Math.min(lo, 0))}${strip(toward(down), false)}<span>${escapeHtml(words(level))}</span>${strip(toward(up), true)}${ends(Math.max(hi, 0))}`;
     kept.rows.set(rows);
   });
   for (const id of gone) ((kept) => kept && (kept.on.remove(kept.rows), rowPanes.delete(id)))(rowPanes.get(id));
