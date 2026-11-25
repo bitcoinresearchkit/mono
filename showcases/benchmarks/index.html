@@ -1316,7 +1316,8 @@
         }
         m.measured = measured.sort(byTime);
       }
-      /** A capacity run: one row per route class and mode, its commit, time and rule from its metadata.txt. */
+      /** A capacity run: one row per route class and mode, its commit, time and rule from its metadata.txt, and the rule's
+       * p99 bound and idle floor (its own terms, as the load driver writes them: `p99_ms=50 keep=0.97 idle_min=20 tool=…`). */
       async function readCapacity({ folder, files }) {
         const [meta, content] = await Promise.all(["metadata.txt", "capacity.csv"].map((name) => (files.has(name) ? text(`${folder}/${name}`) : null)));
         const sheet = csv(content, `${folder}/capacity.csv`), info = metadata(meta), run = facts(info, folder);
@@ -1324,9 +1325,12 @@
         if (!run.revision) throw new Error("metadata.txt names no revision");
         const rule = info.get("capacity_rule");
         if (!rule) throw new Error("metadata.txt names no capacity_rule");
+        // (A term missing or empty is no number: NaN, so the run is left out by name.)
+        const terms = metadata(rule.replaceAll(" ", "\n")), term = (/** @type {string} */ key) => Number(terms.get(key) || NaN), p99Bound = term("p99_ms"), idleMin = term("idle_min");
+        if (!(p99Bound > 0 && idleMin >= 0)) throw new Error(`capacity_rule names no p99_ms or idle_min: ${rule}`);
         const [modes, classes, moved] = ["mode", "class", "tip_moved"].map((name) => sheet.strings(name));
         const [rate, p50, p99, perCpu, driver, idle, n] = ["rate", "p50_ms", "p99_ms", "req_per_cpu_s", "driver_cpu_ms_per_req", "min_idle_pct", "n_at_best"].map((name) => sheet.numbers(name));
-        return { ...run, rule, cells: modes.map((mode, k) => ({ mode, name: classes[k], rate: rate[k], p50: p50[k], p99: p99[k], perCpu: perCpu[k], driver: driver[k], idle: idle[k], n: n[k], moved: moved[k] === "true" })) };
+        return { ...run, rule, p99Bound, idleMin, cells: modes.map((mode, k) => ({ mode, name: classes[k], rate: rate[k], p50: p50[k], p99: p99[k], perCpu: perCpu[k], driver: driver[k], idle: idle[k], n: n[k], moved: moved[k] === "true" })) };
       }
 
       // ── Words ──
@@ -1824,10 +1828,9 @@
           return `<div class="cap"><div class="table"><table class="fit"><caption>${escape(mode[0].toUpperCase() + mode.slice(1))}</caption><thead><tr><th scope="col">Route class</th>${head}</tr></thead><tbody>${rows.join("")}</tbody></table></div><p class="readout" aria-live="polite">Tap a value for its p50, rate and CPU per request.</p></div>`;
         }).join("");
         const heights = shown.map((r) => r.chain_height).filter(Number.isFinite), apart = heights.length ? Math.max(...heights) - Math.min(...heights) : 0;
-        const [, p99, idle] = last.rule.match(/p99_ms=(\S+) keep=\S+ idle_min=(\S+)/) ?? [];
         $("capacity-count").textContent = judged ? `last commit: ${flagged} of ${judged} noticeably worse` : "";
-        $("capacity-note").textContent = `A cell is requests per second of the server's CPU time, at p99 ≤ ${p99} ms. It is flagged when more than ${CAPACITY.worse * 100}% under the best any commit measured on this machine.`;
-        $("capacity-fine").textContent = `Cold reads keys not read before, warm the latest ones; a commit's cell is the mean of its runs, p99 in ms under each value, the machine at least ${idle}% idle. A cell is held to the best only when at least ${CAPACITY.runs} runs measured it and the chain's tip stood still (n=, tip moved); "not measured" means no run measured that class. The tables scroll sideways when the commits do not fit. Runs of rule ${last.rule}, profile ${last.profile}, clean tree${shown.length < all.length ? `; ${all.length - shown.length} others of another rule, profile or a dirty tree are left out` : ""}${apart ? `; tips up to ${grouped(apart)} blocks apart` : ""}.`;
+        $("capacity-note").textContent = `A cell is requests per second of the server's CPU time, at p99 ≤ ${last.p99Bound} ms. It is flagged when more than ${CAPACITY.worse * 100}% under the best any commit measured on this machine.`;
+        $("capacity-fine").textContent = `Cold reads keys not read before, warm the latest ones; a commit's cell is the mean of its runs, p99 in ms under each value, the machine at least ${last.idleMin}% idle. A cell is held to the best only when at least ${CAPACITY.runs} runs measured it and the chain's tip stood still (n=, tip moved); "not measured" means no run measured that class. The tables scroll sideways when the commits do not fit. Runs of rule ${last.rule}, profile ${last.profile}, clean tree${shown.length < all.length ? `; ${all.length - shown.length} others of another rule, profile or a dirty tree are left out` : ""}${apart ? `; tips up to ${grouped(apart)} blocks apart` : ""}.`;
       }
       $("capacity-tables").addEventListener("click", (e) => {
         const button = e.target.closest("button[data-key]");
