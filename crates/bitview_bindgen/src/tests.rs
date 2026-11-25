@@ -68,11 +68,13 @@ fn javascript_methods_forward_their_keep_rules() {
             "x-privacy-policy": "https://example.com/privacy/",
             "contact": {"url": "https://example.com/support/"},
         },
+        "tags": [{"name": "Series"}],
         "paths": {
-            "/openapi.json": {"get": {"operationId": "get_openapi", "responses": ok(json!(true))}},
-            "/api/series/one": {"get": {"operationId": "get_series", "responses": ok(series.clone())}},
+            "/openapi.json": {"get": {"operationId": "get_openapi", "tags": ["Series"], "responses": ok(json!(true))}},
+            "/api/series/one": {"get": {"operationId": "get_series", "tags": ["Series"], "responses": ok(series.clone())}},
             "/api/series/bulk": {"get": {
                 "operationId": "get_series_bulk",
+                "tags": ["Series"],
                 "responses": ok(json!({"type": "array", "items": series})),
             }},
         },

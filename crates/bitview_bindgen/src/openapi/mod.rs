@@ -18,9 +18,11 @@ pub(crate) use response_kind::ResponseKind;
 pub(crate) type TypeSchemas = BTreeMap<String, Value>;
 
 /// What the generators read of the OpenAPI document: its title, version, terms of service, privacy
-/// policy and support page, and its paths, in the document's order.
+/// policy and support page, its tags and its paths, in the document's order.
 pub(crate) struct Spec {
     pub(crate) info: Info,
+    /// The tags' names, the order the document lists them.
+    pub(crate) tags: Vec<String>,
     paths: Map<String, Value>,
 }
 
@@ -64,11 +66,21 @@ pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> 
         privacy: text("/info/x-privacy-policy")?,
         support: text("/info/contact/url")?,
     };
+    let tags = value
+        .get("tags")
+        .and_then(Value::as_array)
+        .ok_or_else(|| invalid("the OpenAPI document has no /tags".to_owned()))?
+        .iter()
+        .map(|tag| {
+            let name = tag.get("name").and_then(Value::as_str);
+            name.map(str::to_owned).ok_or_else(|| invalid("a tag has no name".to_owned()))
+        })
+        .collect::<io::Result<_>>()?;
     let paths = match value.get_mut("paths") {
         Some(Value::Object(paths)) => take(paths),
         _ => Map::new(),
     };
-    Ok((Spec { info, paths }, schemas))
+    Ok((Spec { info, tags, paths }, schemas))
 }
 
 /// Drop keys set to null, which say nothing (as `"default": null`), and turn boolean schemas
@@ -129,6 +141,7 @@ pub(crate) fn extract_endpoints(spec: &Spec, schemas: &TypeSchemas) -> io::Resul
                     path,
                     &method.to_ascii_uppercase(),
                     operation,
+                    &spec.tags,
                     schemas,
                 )?);
             }
@@ -141,6 +154,7 @@ fn extract_endpoint(
     path: &str,
     method: &str,
     operation: &Map<String, Value>,
+    tags: &[String],
     schemas: &TypeSchemas,
 ) -> io::Result<Endpoint> {
     let operation_id = text(operation, "operationId").ok_or_else(|| {
@@ -149,6 +163,17 @@ fn extract_endpoint(
             format!("{method} {path} has no operationId"),
         )
     })?;
+    let tag = operation
+        .get("tags")
+        .and_then(|tags| tags.get(0)?.as_str())
+        .filter(|tag| tags.iter().any(|known| known == tag))
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("{method} {path} has no tag among the document's tags"),
+            )
+        })?
+        .to_owned();
     let path_params = extract_path_parameters(path, operation);
     let query_params = extract_parameters(operation, "query");
 
@@ -169,6 +194,7 @@ fn extract_endpoint(
         method: method.to_string(),
         path: path.to_string(),
         operation_id,
+        tag,
         summary: text(operation, "summary"),
         description: text(operation, "description"),
         path_params,

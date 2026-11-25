@@ -35,12 +35,13 @@ pub(super) fn render(
     catalog: &TreeNode,
     model: &Model,
     offered: &[&Endpoint],
+    tags: &[String],
     series_count: usize,
     terms_and_help: &str,
 ) -> io::Result<Files> {
     let surface = Surface::Https;
     Ok([
-        ("SKILL.md", render_skill(offered, series_count, terms_and_help, surface)?),
+        ("SKILL.md", render_skill(offered, tags, series_count, terms_and_help, surface)?),
         (ENDPOINTS, render_endpoints(offered, surface)),
         (SERIES, render_series(catalog, model, series_count)),
     ])
@@ -49,18 +50,20 @@ pub(super) fn render(
 /// The MCP server's skill, over its tools.
 pub(super) fn render_mcp(
     tools: &[&Endpoint],
+    tags: &[String],
     series_count: usize,
     terms_and_help: &str,
 ) -> io::Result<McpFiles> {
     let surface = Surface::Mcp;
     Ok([
-        ("SKILL.md", render_skill(tools, series_count, terms_and_help, surface)?),
+        ("SKILL.md", render_skill(tools, tags, series_count, terms_and_help, surface)?),
         (ENDPOINTS, render_endpoints(tools, surface)),
     ])
 }
 
 fn render_skill(
     endpoints: &[&Endpoint],
+    tags: &[String],
     series_count: usize,
     terms_and_help: &str,
     surface: Surface,
@@ -92,7 +95,7 @@ fn render_skill(
             endpoint.method == "GET" && !flow_ids.contains(endpoint.operation_id.as_str())
         })
         .collect::<Vec<_>>();
-    let others = render_others(&others, surface);
+    let others = render_others(&others, tags, surface);
     let indexes = render_indexes();
     let description = description();
     // Python runs requests over HTTPS; the MCP server's tools make them.
@@ -177,20 +180,19 @@ fn size(calendar: Calendar) -> String {
     format!("{count} {unit}{}", if count == 1 { "" } else { "s" })
 }
 
-/// The operations outside the series flow, one line per first path segment in the document's
-/// order: tool names, or each path once under the shortest listed path it extends
-/// (`/api/tx/{txid}[/hex|/status]`).
-fn render_others(endpoints: &[&Endpoint], surface: Surface) -> String {
-    let mut groups = Vec::<(&str, Vec<&Endpoint>)>::new();
-    for &endpoint in endpoints {
-        let segment = super::endpoint_segment(&endpoint.path);
-        match groups.iter_mut().find(|(name, _)| *name == segment) {
-            Some((_, members)) => members.push(endpoint),
-            None => groups.push((segment, vec![endpoint])),
-        }
-    }
+/// The operations outside the series flow, one line per tag in the document's order: tool names,
+/// or each path once under the shortest listed path it extends (`/api/tx/{txid}[/hex|/status]`).
+fn render_others(endpoints: &[&Endpoint], tags: &[String], surface: Surface) -> String {
     let mut output = String::new();
-    for (_, members) in groups {
+    for tag in tags {
+        let members = endpoints
+            .iter()
+            .copied()
+            .filter(|endpoint| endpoint.tag == *tag)
+            .collect::<Vec<_>>();
+        if members.is_empty() {
+            continue;
+        }
         let line = match surface {
             Surface::Https => path_tree(&members),
             Surface::Mcp => members
@@ -199,7 +201,7 @@ fn render_others(endpoints: &[&Endpoint], surface: Surface) -> String {
                 .collect::<Vec<_>>()
                 .join(", "),
         };
-        writeln!(output, "- {line}").unwrap();
+        writeln!(output, "- {tag}: {line}").unwrap();
     }
     output
 }

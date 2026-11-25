@@ -1,5 +1,5 @@
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     fmt::Write,
     io,
     path::Path,
@@ -50,9 +50,12 @@ const AGENT_RULES: [&str; 4] = [
     "Compute derived numbers at full precision; round only the final answer, if at all.",
 ];
 const SKILL: &str = "bitview";
-/// What the MCP instructions say of the skill, after its URI.
-const SKILL_POINTER: &str =
-    "holds the whole workflow, every index and the tools by topic: load it before a series question.";
+/// What the MCP instructions say of the skill: one sentence, naming the URI the server serves it at.
+fn skill_pointer() -> String {
+    format!(
+        "The skill skill://{SKILL}/SKILL.md holds the whole workflow, every index and the tools by topic: load it before a series question."
+    )
+}
 /// Where a site serves its skills: the agent-skills discovery RFC's convention (v0.2.0).
 const SKILLS_PATH: &str = ".well-known/agent-skills";
 const REPOSITORY: &str = "https://github.com/bitcoinresearchkit/mono";
@@ -82,6 +85,7 @@ pub(crate) fn generate_llm_clients(
             catalog,
             model,
             &generated,
+            &spec.tags,
             metric_count,
             &terms_and_help,
         )?;
@@ -101,6 +105,7 @@ pub(crate) fn generate_llm_clients(
             &spec.info,
             metric_count,
             &generated,
+            &spec.tags,
             schemas,
         );
         for root in roots {
@@ -116,7 +121,7 @@ pub(crate) fn generate_llm_clients(
             .iter()
             .filter(|endpoint| !endpoint.deprecated && !endpoint.mcp_ignored)
             .collect::<Vec<_>>();
-        let skill = skill::render_mcp(&tools, count_metrics(catalog), &terms_and_help)?;
+        let skill = skill::render_mcp(&tools, &spec.tags, count_metrics(catalog), &terms_and_help)?;
         manifest::generate_tool_manifest(
             &tools,
             schemas,
@@ -330,6 +335,7 @@ fn render_llms_full(
     }: &Info,
     metric_count: usize,
     endpoints: &[&Endpoint],
+    tags: &[String],
     schemas: &TypeSchemas,
 ) -> String {
     let mut output = String::new();
@@ -355,24 +361,22 @@ fn render_llms_full(
     )
     .unwrap();
 
-    let mut groups = BTreeMap::<String, Vec<&Endpoint>>::new();
-    for endpoint in endpoints {
-        groups
-            .entry(endpoint_group(&endpoint.path))
-            .or_default()
-            .push(endpoint);
-    }
-    for group in groups.values_mut() {
-        group.sort_unstable_by(|left, right| {
+    writeln!(output, "## Operations\n").unwrap();
+    for tag in tags {
+        let mut operations = endpoints
+            .iter()
+            .copied()
+            .filter(|endpoint| endpoint.tag == *tag)
+            .collect::<Vec<_>>();
+        if operations.is_empty() {
+            continue;
+        }
+        operations.sort_unstable_by(|left, right| {
             left.path
                 .cmp(&right.path)
                 .then_with(|| left.method.cmp(&right.method))
         });
-    }
-
-    writeln!(output, "## Operations\n").unwrap();
-    for (group, operations) in groups {
-        writeln!(output, "### {group}\n").unwrap();
+        writeln!(output, "### {tag}\n").unwrap();
         for endpoint in operations {
             render_endpoint(&mut output, endpoint);
         }
@@ -386,32 +390,6 @@ fn render_llms_full(
         }
     }
     output
-}
-
-fn endpoint_group(path: &str) -> String {
-    title_case(endpoint_segment(path))
-}
-
-/// The segment naming a path's group: the first past `api` and `v1`.
-fn endpoint_segment(path: &str) -> &str {
-    path.split('/')
-        .find(|part| !part.is_empty() && *part != "api" && *part != "v1")
-        .unwrap_or("server")
-}
-
-fn title_case(value: &str) -> String {
-    let mut result = String::new();
-    for part in value.split(['-', '_']) {
-        let mut chars = part.chars();
-        if let Some(first) = chars.next() {
-            if !result.is_empty() {
-                result.push(' ');
-            }
-            result.extend(first.to_uppercase());
-            result.push_str(chars.as_str());
-        }
-    }
-    result
 }
 
 fn render_endpoint(output: &mut String, endpoint: &Endpoint) {

@@ -27,7 +27,7 @@ struct Manifest {
 #[derive(Debug, Deserialize)]
 pub struct Skill {
     pub frontmatter: Map<String, Value>,
-    /// What the 2026-07-28 instructions say of the skill, after its URI.
+    /// The sentence the 2026-07-28 instructions point at the skill with, naming its URI.
     pub pointer: String,
     pub files: Vec<SkillFile>,
 }

@@ -7,7 +7,7 @@ use std::{
 use serde::Serialize;
 use serde_json::{Map, Value, to_string_pretty};
 
-use super::{SKILL, SKILL_POINTER, skill};
+use super::{SKILL, skill, skill_pointer};
 use crate::{
     Endpoint, Parameter, TypeSchemas,
     generators::{sha256_hex, write_if_changed},
@@ -25,12 +25,12 @@ struct Manifest<'a> {
     operations: Vec<ManifestOperation>,
 }
 
-/// The skill the server serves as resources: the frontmatter its `SKILL.md` opens with, what the
-/// instructions say of it after its URI, and each file with the digest and size its listing carries.
+/// The skill the server serves as resources: the frontmatter its `SKILL.md` opens with, the sentence
+/// the instructions point at it with, and each file with the digest and size its listing carries.
 #[derive(Serialize)]
 struct ManifestSkill<'a> {
     frontmatter: ManifestFrontmatter,
-    pointer: &'static str,
+    pointer: String,
     files: Vec<ManifestSkillFile<'a>>,
 }
 
@@ -154,7 +154,7 @@ fn manifest_skill(files: &skill::McpFiles) -> io::Result<ManifestSkill<'_>> {
             name: SKILL,
             description,
         },
-        pointer: SKILL_POINTER,
+        pointer: skill_pointer(),
         files: files
             .iter()
             .map(|(path, text)| ManifestSkillFile {
