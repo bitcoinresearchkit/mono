@@ -193,6 +193,18 @@
         color: var(--loss);
         fill: var(--loss);
       }
+      /* A look-alike address where it's named in a transaction: in the caution's colour, said in words. */
+      .alike-t {
+        fill: var(--now-text);
+        font-weight: 600;
+      }
+      a.addr.alike-a {
+        color: var(--now-text);
+        &::before {
+          content: "look-alike · ";
+          font-weight: 650;
+        }
+      }
       .unit {
         color: var(--soft);
         font-weight: 450;
@@ -1299,6 +1311,17 @@
       .lead-act.caution {
         --sig: var(--now);
         --sig-text: var(--now-text);
+        .see {
+          padding: 6px 0;
+          margin: -6px 0;
+          border: 0;
+          background: none;
+          color: var(--now-text);
+          font-weight: 600;
+          text-decoration: underline;
+          text-underline-offset: 3px;
+          cursor: pointer;
+        }
       }
       .alike {
         display: grid;
@@ -2993,7 +3016,7 @@
         drawFlow();
       }
       const addrLink = (a, type) =>
-        a ? `<a class="addr" href="${url.address(a)}">${esc(a)}</a>` : `<span class="addr soft">${esc(type === "op_return" ? "OP_RETURN" : type)}</span>`;
+        a ? `<a class="addr${isAlike(a) ? " alike-a" : ""}" href="${url.address(a)}">${esc(a)}</a>` : `<span class="addr soft">${esc(type === "op_return" ? "OP_RETURN" : type)}</span>`;
       const inputRow = (c) =>
         c.coinbase
           ? `<li><span class="addr soft">Block reward, subsidy and fees</span><span class="val">${btc(c.value)}</span></li>`
@@ -3033,6 +3056,8 @@
         $("flow").style.height = `${Math.min(460, Math.max(180, Math.max(ins.length, outs.length) * LABEL + 24))}px`;
         const { width: W, height: H } = svg.getBoundingClientRect();
         const narrow = W < 560;
+        // A look-alike, where an address shows only its ends: in the caution's colour, and said where there's room.
+        const alikeShort = (a) => `<tspan class="alike-t">${narrow ? "" : "look-alike "}${esc(short(a, 5))}</tspan>`;
         const L = narrow ? 92 : 168;
         const R = W - (narrow ? 96 : 176);
         const mid = (L + R) / 2;
@@ -3108,14 +3133,16 @@
             ? "block reward"
             : c.rest
               ? `and ${int(c.rest)} more`
-              : c.pnl !== undefined && !c.unconfirmed
+              : isAlike(c.address)
+                ? alikeShort(c.address)
+                : c.pnl !== undefined && !c.unconfirmed
                 ? `<tspan class="${tone(c.pnl)}">${signed(c.pnl)}</tspan>${narrow ? "" : ` · ${span(c.age)}`}`
                 : esc(short(c.address ?? c.type, 5));
           parts.push(label(L - 12, y, "end", btc(c.value), second, c.from && !c.rest ? url.tx(c.from) : null, `${up},${down}`));
         }
         for (const [i, y, up, down] of labelled(outMid, t.tx.fee ? 2 : 1)) {
           const o = outs[i];
-          const second = o.fee ? (narrow ? "fee" : "fee, to the miner") : o.rest ? `and ${int(o.rest)} more` : esc(short(o.address ?? (o.type === "op_return" ? "OP_RETURN" : o.type), 5));
+          const second = o.fee ? (narrow ? "fee" : "fee, to the miner") : o.rest ? `and ${int(o.rest)} more` : isAlike(o.address) ? alikeShort(o.address) : esc(short(o.address ?? (o.type === "op_return" ? "OP_RETURN" : o.type), 5));
           parts.push(label(R + 14, y, "start", btc(o.value), second, o.address && !o.rest ? url.address(o.address) : null, `${up},${down}`));
         }
         const defs = [...fades].map(
@@ -3199,6 +3226,8 @@
         while (s < n - p && x.at(-1 - s) === y.at(-1 - s)) s++;
         return `<code><b>${esc(a.slice(0, p))}</b>${esc(a.slice(p, a.length - s))}<b>${esc(a.slice(a.length - s))}</b></code>`;
       };
+      // Whether an address on the open transaction's page is a look-alike its address page found.
+      const isAlike = (a) => !!a && !!state.alike.get(state.view?.txid)?.some((h) => h.here === a);
       // A transaction's look-alikes, the first two, as text and never as links: the one place not to copy from.
       const alikeNote = (hits, self) =>
         `<div class="alike" role="note">${hits
@@ -3241,7 +3270,7 @@
         const warn = alike.size
           ? `<p class="lead-act caution"><b>${new Set(hits.map((h) => h.here)).size === 1 ? "A look-alike address" : "Look-alike addresses"} in its history</b>${
               alike.size === 1 ? "One" : int(alike.size)
-            } of its ${txs.length < c.tx_count + a.mempool_stats.tx_count ? "latest " : ""}${int(txs.length)} transactions ${alike.size === 1 ? "names" : "name"} an address that starts and ends like ${like}. It may be address poisoning, a small payment sent so the look-alike is copied by mistake. Never copy an address from a history, and check every character.</p>`
+            } of its ${txs.length < c.tx_count + a.mempool_stats.tx_count ? "latest " : ""}${int(txs.length)} transactions ${alike.size === 1 ? "names" : "name"} an address that starts and ends like ${like}. It may be address poisoning, a small payment sent so the look-alike is copied by mistake. Never copy an address from a history, and check every character. <button class="see" type="button" data-see>Show ${alike.size === 1 ? "it" : "the latest"}</button></p>`
           : "";
         // Its listed transactions oldest first, each with what it held after: back from today's balance, a net at a time.
         const mined = txs.filter((tx) => tx.status.confirmed).reverse();
@@ -3410,6 +3439,12 @@
         }
         const step = e.target.closest("[data-go]");
         if (step && !step.disabled) return go(url.block(step.dataset.go));
+        // An address page's notice, to its newest marked row (the timeline runs oldest first).
+        if (e.target.closest("[data-see]")) {
+          const row = [...document.querySelectorAll(".tt-rows .alike")].at(-1)?.closest("li");
+          row?.scrollIntoView({ block: "center" });
+          return row?.querySelector("a")?.focus({ preventScroll: true });
+        }
         const copy = e.target.closest("[data-copy]");
         if (copy) {
           navigator.clipboard.writeText(copy.dataset.copy);
