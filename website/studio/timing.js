@@ -22,14 +22,9 @@ function inSlices(deadline, step, again) {
   while (!step()) if (performance.now() >= stop) return void whenIdle(again);
 }
 
-/**
- * Resolves once `test` holds (or `ms` have passed), looked at every `step` ms. On timers, not frames: while a change
- * of place is being made the page draws no frames (the chart paints its own on the first one after), and a tab out of
- * sight still looks.
- */
+/** Resolves once `test` holds (or `ms` have passed), looked at every `step` ms: on timers, not frames (a change of place draws none, and a tab out of sight still looks). */
 const until = (/** @type {() => boolean} */ test, /** @type {number} */ ms, step = 16) => new Promise((done) => {
-  const end = performance.now() + ms;
-  const look = () => (test() || performance.now() > end ? done(undefined) : setTimeout(look, step));
+  const end = performance.now() + ms, look = () => (test() || performance.now() > end ? done(undefined) : setTimeout(look, step));
   look();
 });
 

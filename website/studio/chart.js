@@ -1409,10 +1409,8 @@ function periodAmount(layer) {
   }
 }
 /**
- * A cloud's range at index `at` of its two edges, as its legend writes it: its lower to its higher (`lines`: its higher
- * over its lower, as the panel stacks them), from its value up (≥, to the top), or up to it (≤, from the bottom); a dash
- * where there's none (of its pane's two edges, all along, or a value that's none: the pane, whatever its layers (its
- * room, a dash's: see valueSlot)).
+ * A cloud's range at index `at` of its edges, as its legend writes it: its lower to its higher (`lines`: its higher over
+ * its lower), from its value up (≥) or up to it (≤); a dash for none, or for a pane's two edges (see valueSlot).
  */
 function rangeText(/** @type {Layer} */ layer, /** @type {Vector} */ high, /** @type {Vector} */ low, /** @type {number} */ at, /** @type {string} */ unit, lines = false) {
   if (edgesOf(layer).length > 1 || !Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";

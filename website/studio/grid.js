@@ -2766,13 +2766,10 @@ const chartMark = (doc) => {
 };
 /** The points of a run of a line's area: the run, closed down (or up) to `edge` under its ends. @param {string[]} part @param {number} edge */
 const areaPoints = (part, edge) => `${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${edge}`;
-/** A run's area as a small mark draws it: `areaPoints` filled in `color` at `opacity`. @param {string[]} part @param {number} edge @param {string} color */
-const areaOf = (part, edge, color, opacity = ".2") => `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity="${opacity}"/>`;
-/** A small chart's fill: `color` fading to none down a viewBox's height, as the area `id` names (see areaUnder). */
+/** Small charts' writers: a run's area (see areaPoints), a fill fading down a viewBox, the area under a line filled by it, a line. */
+const areaOf = (/** @type {string[]} */ part, /** @type {number} */ edge, /** @type {string} */ color, opacity = ".2") => `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity="${opacity}"/>`;
 const fadeDef = (/** @type {string} */ id, /** @type {string} */ color, /** @type {number | string} */ top) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escapeHtml(color)}" stop-opacity="${top}"/><stop offset="1" stop-color="${escapeHtml(color)}" stop-opacity="0"/></linearGradient>`;
-/** The area under a line (`points`, "x,y" pairs) down to the foot of a viewBox `w` by `h`, painted by the fade `id`. */
 const areaUnder = (/** @type {string} */ id, /** @type {string[]} */ points, /** @type {number} */ w, /** @type {number} */ h) => `<polygon points="0,${h} ${points.join(" ")} ${w},${h}" fill="url(#${id})"/>`;
-/** A small chart's line over `points` ("x,y" pairs), 1.5 px at any scale, round at its joints. */
 const lineOver = (/** @type {string[]} */ points, /** @type {string} */ stroke, opacity = 1) => `<polyline points="${points.join(" ")}" fill="none" stroke="${escapeHtml(stroke)}"${opacity < 1 ? ` stroke-opacity="${opacity}"` : ""} stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
 /** A mark not drawn yet: a faint line. @type {Pick<Thumb, "lines" | "washes" | "dots">} */
 const NO_MARK = { lines: [], washes: [], dots: [] };
@@ -2886,24 +2883,13 @@ function movingSide(/** @type {() => void} */ change) {
 const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
 /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
 const groupShut = (group) => !prefs.groupsOpen.includes(group);
-/** A row's ⋯ cap (its menu, found by `attr`), in the class its place gives it (`chart-more`: the sidebar's, `tile-more`, `shelf-more`). */
+/** A row's ⋯ cap: its menu found by `attr`, in its place's class (`chart-more`, `tile-more`, `shelf-more`). */
 const moreCap = (/** @type {string} */ cls, /** @type {string} */ attr, /** @type {string | number} */ id, /** @type {string} */ name) => `<button type="button" class="cap small ${cls}" ${attr}="${escapeHtml(id)}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>`;
-/** A sidebar row's View cap: its page, `place`. */
 const viewCap = (/** @type {Place} */ place, /** @type {string} */ name) => `<button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="View ${escapeHtml(name)}" data-tip="View">${ICONS.arrowRight}</button>`;
-/**
- * A chart's or a preset's row in the sidebar (`kind`: "chart", "preset"): its mark and `label` opening it (`tip`, its
- * hover, else its `name`), its ⋯; `cls`, and `labelCls`, as it is.
- */
+/** A chart's or a preset's (`kind`) row in the sidebar: its mark and `label` opening it (`tip`: its hover, else `name`), its ⋯. */
 const leafRow = ({ kind, id, depth, cls = "", mark, label, labelCls = "", name, tip = name }) => `<div class="chart-row ${cls} ${depth ? "in-folder" : ""}" data-${kind}-row="${id}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-${kind}="${id}" data-tip="${escapeHtml(tip)}">${mark}<span class="label ${labelCls}">${escapeHtml(label)}</span></button>${moreCap("chart-more", `data-${kind}-menu`, id, name)}</div>`;
-/**
- * A folder's row in the sidebar (`kind`: "folder", "section" of the presets): its mark and name opening or closing it
- * (on the rail, its menu), how many it holds, its page, its ⋯; closed, holding the open chart (`holds`), it says so.
- */
-const folderRow = ({ kind, id, depth, closed, holds, rail, mark, name, count, place }) => `<div class="folder-row ${kind === "section" ? "section-row" : ""} ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-${kind}-row="${escapeHtml(id)}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-${kind}-item="${escapeHtml(id)}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(name)}">${mark}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(count)}</span></button>
-              ${viewCap(place, name)}
-              ${moreCap("chart-more", `data-${kind}-menu`, id, name)}
-            </div>`;
+/** A folder's or a presets' section's (`kind`) row: its name opening or closing it (on the rail, its menu), its count, View, ⋯; closed holding the open chart (`holds`), it says so. */
+const folderRow = ({ kind, id, depth, closed, holds, rail, mark, name, count, place }) => `<div class="folder-row ${kind === "section" ? "section-row" : ""} ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-${kind}-row="${escapeHtml(id)}" style="--depth: ${depth}"><button type="button" class="nav-item folder-item" data-${kind}-item="${escapeHtml(id)}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(name)}">${mark}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(count)}</span></button>${viewCap(place, name)}${moreCap("chart-more", `data-${kind}-menu`, id, name)}</div>`;
 /**
  * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
  * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
@@ -3076,13 +3062,8 @@ const seePaletteMarks = (rows) => {
 };
 /** The presets a menu shows, their marks to draw (apart from the sidebar's rows in sight, which it clears). */
 const presetMarksAsked = /** @type {Set<number>} */ (new Set());
-/**
- * The sections the open preset is in, opened in the sidebar for as long as it's the one open (its `at`), unless one is
- * closed there meanwhile: shown, never kept (`presetsOpen` is what was opened there), so another preset opened folds
- * them again.
- */
+/** The sections the open preset (`at`) is in, opened in the sidebar while it's the one open, less any closed there: shown, never kept (`presetsOpen`). */
 let revealed = { at: -1, keys: /** @type {Set<string>} */ (new Set()) };
-/** Whether a section of the presets is open in the sidebar: kept so, or opened for the open preset. */
 const sectionShown = (/** @type {string} */ key) => prefs.presetsOpen.includes(key) || revealed.keys.has(key);
 /**
  * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
@@ -3095,9 +3076,8 @@ function presetParts() {
   // first frame, not come in after the rest, out of reach till the presets' own replace them (a moment: what they'd
   // run needs the presets); else, or they couldn't be read, its head alone, what it holds counted once it's read.)
   if (!root || !presets) return sidePresets && !presetsFailed && !onRail() && !groupShut("presets") && sidePresets.open === JSON.stringify(prefs.presetsOpen) ? sidePresets.parts.map(([key, html]) => [key, html.replace(/^<div /, "<div inert ")]) : [sideHead("presets", null, false)];
-  // (The sections the open preset is in: opened for the view, kept as they were (see revealed), whichever way it was
-  // opened; one closed holds it, marked as a folder holding the open chart is; the head too, only so (a preset's chart
-  // whose place is gone is in none of them).)
+  // (The sections the open preset is in: opened for the view (see revealed); one closed holds it, marked as a folder
+  // holding the open chart is; the head too, only so (a preset's chart whose place is gone is in none of them).)
   const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
   if (at !== revealed.at) revealed = { at, keys: new Set(holding) };
   // (On the rail, none open: see renderCharts.)
@@ -3110,9 +3090,8 @@ function presetParts() {
       if (typeof item === "number") {
         if (!depth) continue;
         // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
-        const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
-        const title = doc ? titleOf(doc) : preset.t;
-        parts.push([`preset:${item}`, leafRow({ kind: "preset", id: item, depth, cls: `preset-row ${edited ? "edited" : ""}`, mark: presetMark(item), label: doc && titleOf(doc) !== preset.t ? title : presetName(preset), name: title, tip: `${title}${edited ? " (edited)" : ""}` })]);
+        const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc)), title = doc ? titleOf(doc) : preset.t;
+        parts.push([`preset:${item}`, leafRow({ kind: "preset", id: item, depth, cls: `preset-row ${edited ? "edited" : ""}`, mark: presetMark(item), label: title !== preset.t ? title : presetName(preset), name: title, tip: `${title}${edited ? " (edited)" : ""}` })]);
         continue;
       }
       const section = item, shown = open.has(section.key);

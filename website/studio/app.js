@@ -6272,8 +6272,7 @@ function writeSideList(current) {
     // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
     ...sideTree().map(({ item, depth }) => {
       if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
-      const folder = item;
-      return /** @type {[string, string]} */ ([`folder:${folder.id}`, folderRow({ kind: "folder", id: folder.id, depth, closed: folder.closed || rail, holds: Boolean(current?.folder && isIn(current.folder, folder.id)), rail, mark: folderMark(folder), name: folder.name, count: counts.get(folder.id) ?? 0, place: { folder: folder.id } })]);
+      return /** @type {[string, string]} */ ([`folder:${item.id}`, folderRow({ kind: "folder", id: item.id, depth, closed: item.closed || rail, holds: Boolean(current?.folder && isIn(current.folder, item.id)), rail, mark: folderMark(item), name: item.name, count: counts.get(item.id) ?? 0, place: { folder: item.id } })]);
     })]),
     ...presetParts(),
   ];
@@ -6812,10 +6811,7 @@ function pickPreset(/** @type {number} */ i) {
   // (The group opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has
   // no sidebar to show it in.)
   if (!phone.matches) {
-    if (groupShut("presets")) {
-      prefs.groupsOpen = [...prefs.groupsOpen, "presets"];
-      savePrefs();
-    }
+    if (groupShut("presets")) (prefs.groupsOpen = [...prefs.groupsOpen, "presets"]), savePrefs();
     presetToReveal = i;
   }
   openPreset(i);
