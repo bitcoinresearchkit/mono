@@ -562,9 +562,8 @@
         font-weight: 600;
 
         svg {
-          width: 11px;
-          height: 11px;
-          fill: currentColor;
+          width: 16px;
+          height: 16px;
         }
 
         &:disabled {
@@ -1516,7 +1515,7 @@
       <div class="foot shell" id="foot">
         <div class="pan" id="pan" aria-hidden="true"><canvas id="pan-canvas"></canvas><div class="window"></div></div>
         <div class="controls">
-          <button type="button" class="replay" aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg></button>
+          <button type="button" class="replay" aria-label="Play" disabled><svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4.75 4v8l8-4z" fill="currentColor" stroke="currentColor" /></svg></button>
           <div class="choice" role="group" aria-label="Span">
             <button type="button" data-span="91" aria-pressed="false">3M</button>
             <button type="button" data-span="365" aria-pressed="false">1Y</button>
@@ -2741,7 +2740,7 @@
       let pausedOn = /** @type {number | null} */ (null);
       /** Play, disabled while there are no days. */
       const chartPlay = /** @type {HTMLButtonElement} */ (document.querySelector(".replay"));
-      const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>';
+      const PLAY_ICON = '<svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M4.75 4v8l8-4z" fill="currentColor" stroke="currentColor" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 16 16" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><g fill="currentColor" stroke="none"><rect x="4" y="3" width="3" height="10" rx="1" /><rect x="9" y="3" width="3" height="10" rx="1" /></g></svg>';
       /** A play button says whether it plays: Pause while it does. */
       function saidPlaying(/** @type {HTMLButtonElement} */ button, /** @type {boolean} */ on) {
         button.setAttribute("aria-label", on ? "Pause" : "Play");
