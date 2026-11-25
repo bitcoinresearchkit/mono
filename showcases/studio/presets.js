@@ -488,7 +488,15 @@ export function studioPresets(client, facts, report = (problem) => console.error
 
   /** A whole (see Whole) by its owner's name ("all", "short-term holders'"), and as its places keep it, where they say another. @param {string} name @returns {Whole} */
   const wholeOf = (name, place = name) => ({ coins: `${name} coins`, capital: `${name} capital`, place: { coins: `${place} coins`, capital: `${place} capital` } });
-  const ALL = wholeOf("all");
+  /**
+   * A holder group as a whole (see Whole): its coins and its capital, as its words say them, and its own series.
+   * @param {string} key @returns {Whole}
+   */
+  const groupWhole = (key) => {
+    const { whole, who } = holderName(key);
+    return { ...whole, place: whole, cohort: t.holders[key], who };
+  };
+  const ALL = groupWhole("all");
   /** The whole market's value, by which every cohort's unrealized profit and loss compare. */
   const MARKET_CAP = t.holders.all.supply.total.marketCap.name;
   /** The coins in addresses (of the types tracked, not all outputs': never "all addresses'", as their places keep it). */
@@ -518,9 +526,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
      * them): its own in the measure's color, over its whole's, thin in the axes' ink, as context (in profit, the rest).
      * @param {string} what @param {any} own @param {any} theirs
      */
-    const shares = (what, own, theirs) => (beside && theirs?.inLoss?.share
-      ? measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "line" }), series(theirs.inLoss.share, beside[1], { color: "soft", type: "line", width: 1 })])
-      : measure(shownAs("Share in profit", `Share of ${what} in profit and in loss`), who, [series(own.inProfit.share, "In profit", { color: "green", type: "area" }), series(own.inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }));
+    const shares = (what, own, theirs) => {
+      if (!beside) return measure(shownAs("Share in profit", `Share of ${what} in profit and in loss`), who, [series(own.inProfit.share, "In profit", { color: "green", type: "area" }), series(own.inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } });
+      if (!theirs?.inLoss?.share) throw new Error(`${who}: ${of.who} has no share of ${what} in loss to show it beside`);
+      return measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "line" }), series(theirs.inLoss.share, beside[1], { color: "soft", type: "line", width: 1 })]);
+    };
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
     return [
@@ -994,15 +1004,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const holder = (key) => {
     const h = holderName(key);
     return { name: shownAs(h.place, h.shown), who: h.who };
-  };
-  /**
-   * A holder group as a whole (see Whole): its coins and its capital, as said; all coins, ALL.
-   * @param {string} key @returns {Whole}
-   */
-  const groupWhole = (key) => {
-    if (key === "all") return { ...ALL, cohort: t.holders.all, who: holderName("all").who };
-    const h = holderName(key), { coins, capital } = h;
-    return { coins, capital, place: { coins, capital }, cohort: t.holders[key], who: h.who };
   };
   /** A holder group's section. @param {string} key @param {(ChartNode | SectionNode | null | undefined | false)[]} items @param {{ icon?: string }} [options] */
   const holderSection = (key, items, options = {}) => section(holder(key).name, items, options);

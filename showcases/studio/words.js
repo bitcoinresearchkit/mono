@@ -198,8 +198,8 @@ export const HOLDERS = Object.freeze({
  * months old"); `shown` in the tree and legends (its qualifier where it follows its noun: "Under 4 months old"); `brief`
  * in a list that says what they are (holders by their term, "Short-term"; coins as shown, "All coins"); `coins`, its
  * coins ("short-term holders' coins"; all coins narrowed, "coins"); `of(kind)`, its coins of a kind ("short-term
- * holders' awake coins"); `capital`, its coins' capital ("short-term holders' capital", "the capital of coins under 4
- * months old"); `place`, its places' name. A key it doesn't know: by its key, its place the key itself.
+ * holders' awake coins"); `whole`, its coins and their capital as a whole ("all coins" and "all capital", "the capital
+ * of coins under 4 months old"); `place`, its places' name. A key it doesn't know: by its key, its place the key itself.
  * @param {string} key
  */
 export function holderName(key) {
@@ -207,8 +207,10 @@ export function holderName(key) {
   const phrase = [h.before, h.noun, h.after].filter(Boolean).join(" "), who = capitalized(phrase);
   const shown = h.after && !h.before ? capitalized(h.after) : who;
   const of = (/** @type {string} */ kind) => (h.noun === "holders" ? `${phrase}' ${kind}${kind ? " " : ""}coins` : [key === "all" ? "" : h.before, kind, "coins", h.after].filter(Boolean).join(" "));
-  const capital = h.noun === "holders" ? `${phrase}' capital` : `the capital of ${of("")}`;
-  return { who, shown, brief: h.noun === "holders" && h.before ? capitalized(h.before) : shown, coins: of(""), of, capital, place: h.place ?? shown, urpd: h.urpd };
+  const whole = h.noun === "holders"
+    ? { coins: `${phrase}' coins`, capital: `${phrase}' capital` }
+    : { coins: phrase, capital: h.before ? `${h.before} capital` : `the capital of ${phrase}` };
+  return { who, shown, brief: h.noun === "holders" && h.before ? capitalized(h.before) : shown, coins: of(""), of, whole, place: h.place ?? shown, urpd: h.urpd };
 }
 
 /** A place's last step as shown: its label, where it has one (see studioPresets). @param {Record<string, string>} labels @param {string[]} path */
