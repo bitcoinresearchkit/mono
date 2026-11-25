@@ -685,6 +685,13 @@
         + .note {
           margin-top: 12px;
         }
+
+        /* The days after the day told, veiled: what wasn't known yet then, faded (under the crosshair). */
+        .later {
+          position: absolute;
+          inset: 0;
+          background: color-mix(in srgb, var(--app) 72%, transparent);
+        }
       }
 
       .atlas {
@@ -2413,15 +2420,21 @@
         const d = /** @type {Days} */ (days), at = indexEngine.crosshair.index;
         return at === at ? Math.max(indexEngine.time.first, Math.min(d.last, at)) : toldDay;
       }
-      /** Its quarters' numbers by its axis, in the room past its last day, clear of the line; the
-       * day told ringed; its value on the day read tagged on its axis, in that day's trend's colour. */
+      /** The days after the day told veiled by an element over its plot (.later, under the crosshair), so a new day
+       * draws none of the line again; its quarters' lines over that, whole, and their numbers by its axis, in the room
+       * past its last day, clear of the line; the day told ringed; its value on the day read tagged on its axis, in
+       * that day's trend's colour. */
+      const indexLater = indexPane.frame.appendChild(document.createElement("div"));
+      indexLater.className = "later";
       const indexMarks = indexPane.add(new Custom({
-        draw(g, { time, scale }) {
-          if (!days) return;
-          const d = days;
+        draw(g, { time, scale, x0, x1, dpr }) {
+          if (!days || !indexPlaced) return;
+          const d = days, day = toldDay;
+          give(indexLater, `${day < d.last ? Math.min(time.width, Math.max(0, time.x(day + 0.5))) : time.width}px`, "left");
+          indexPlaced.ticks.draw(g, time, scale, x0, x1, dpr);
           (g.font = FONTS.small), (g.textBaseline = "alphabetic"), (g.textAlign = "right"), (g.fillStyle = paint.faint);
           for (const at of INDEX_TICKS) g.fillText(String(at), time.width - 2, scale.y(at) - 4);
-          const day = toldDay, value = d.index[day];
+          const value = d.index[day];
           if (!(day >= time.from && day <= time.to && value === value)) return;
           g.beginPath();
           g.arc(time.x(day), scale.y(value), 4.5, 0, Math.PI * 2);
@@ -2443,24 +2456,27 @@
       indexMarks.fit = (_a, _b, _positive, out) => ((out[0] = Math.min(out[0], 0)), (out[1] = Math.max(out[1], 100)));
       // (Its tags read the crosshair's day: told again as it moves.)
       indexEngine.onCrosshair(() => (indexMarks.changed(), indexEngine.invalidate()));
-      /** Its series, for its days, colours, what's lit and the day told; its timeline on the indexed days, all of
-       * them in view as they begin elsewhere (a new day moves a view ending on it with it). */
-      let indexKey = "", indexPlaced = /** @type {ReturnType<typeof indexOf>} */ ([]);
+      /** Its line and quarters, for its days, colours and what's lit (a new day told only moves its veil and ring); its
+       * timeline on the indexed days, all of them in view as they begin elsewhere (a new day moves a view ending on it
+       * with it). */
+      let indexKey = "", indexTold = -1, indexPlaced = /** @type {ReturnType<typeof indexOf> | null} */ (null);
       function placeIndex() {
-        const d = /** @type {Days} */ (days), key = `${drawings}|${litKey(lit)}|${toldDay}`, from = indexedFrom(d), time = indexEngine.time;
+        const d = /** @type {Days} */ (days), key = `${drawings}|${litKey(lit)}`, from = indexedFrom(d), time = indexEngine.time;
         if (time.first !== from || time.length !== d.last + 1) {
           const all = time.first !== from || !time.length;
           time.first = from;
           indexEngine.setTimes(engine.time.times);
           if (all) indexEngine.show(d.last - from + 1);
         }
+        if (toldDay !== indexTold) (indexTold = toldDay), indexMarks.changed(), indexEngine.invalidate();
         if (key === indexKey) return;
         indexKey = key;
-        const placed = indexOf(d, paint, lit, toldDay);
-        if (placed !== indexPlaced) {
-          for (const series of indexPlaced) indexPane.remove(series);
-          for (const series of (indexPlaced = placed)) indexPane.add(series);
+        const placed = indexOf(d, paint, lit);
+        if (placed.line !== indexPlaced?.line) {
+          if (indexPlaced) indexPane.remove(indexPlaced.line);
+          indexPane.add(placed.line);
         }
+        indexPlaced = placed;
         indexMarks.changed();
         indexEngine.invalidate(true);
       }
