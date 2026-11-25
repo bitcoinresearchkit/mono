@@ -487,6 +487,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /** A whole (see Whole) by its owner's name ("all", "short-term holders'"), and as its places keep it, where they say another. @param {string} name @returns {Whole} */
   const wholeOf = (name, place = name) => ({ coins: `${name} coins`, capital: `${name} capital`, place: { coins: `${place} coins`, capital: `${place} capital` } });
   const ALL = wholeOf("all");
+  /** The whole market's value, by which every cohort's unrealized profit and loss compare. */
+  const MARKET_CAP = t.holders.all.supply.total.marketCap.name;
   /** The coins in addresses (of the types tracked, not all outputs': never "all addresses'", as their places keep it). */
   const ADDRESSED = wholeOf("addresses'", "all addresses'");
   /**
@@ -604,6 +606,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
           series(unrealized.netPnl, "Net", { pane: 2, ...baseline }),
         ], { log: [1] }),
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
+        // (Against the whole market's value, not the cohort's own: one scale, so cohorts compare.)
+        chart("Relative to market cap", titled("Unrealized profit and loss relative to market cap"), /** @type {[any, string, Partial<Layer>][]} */ ([
+          [unrealized.profit, "Profit", { color: "green" }], [unrealized.loss, "Loss", { color: "red" }], [unrealized.netPnl, "Net", { pane: 2, ...baseline }],
+        ]).map(([node, label, look]) => ({ formula: `100 * ${node.name} / ${MARKET_CAP}`, label, format: "percent", ...look }))),
       ]),
       c.costBasis && section("Cost basis", costCharts(c, who, urpd, color, weight)),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));

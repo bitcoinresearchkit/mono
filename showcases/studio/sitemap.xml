@@ -195,12 +195,14 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/compare/</loc></url>
@@ -210,6 +212,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/supply/</loc></url>
@@ -217,6 +220,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/supply/</loc></url>
@@ -224,6 +228,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/supply/</loc></url>
@@ -231,6 +236,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/supply/</loc></url>
@@ -238,6 +244,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/supply/</loc></url>
@@ -245,6 +252,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/supply/</loc></url>
@@ -252,6 +260,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/supply/</loc></url>
@@ -259,6 +268,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/supply/</loc></url>
@@ -266,6 +276,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/supply/</loc></url>
@@ -273,6 +284,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/supply/</loc></url>
@@ -280,6 +292,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/supply/</loc></url>
@@ -287,6 +300,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/supply/</loc></url>
@@ -294,6 +308,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/supply/</loc></url>
@@ -301,6 +316,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/supply/</loc></url>
@@ -308,6 +324,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/supply/</loc></url>
@@ -315,6 +332,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/supply/</loc></url>
@@ -322,6 +340,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/supply/</loc></url>
@@ -329,6 +348,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/supply/</loc></url>
@@ -336,6 +356,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/supply/</loc></url>
@@ -343,6 +364,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/supply/</loc></url>
@@ -350,6 +372,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/supply/</loc></url>
@@ -357,6 +380,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/supply/</loc></url>
@@ -364,6 +388,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/cost-basis/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/compare/</loc></url>
@@ -636,30 +661,35 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/compare/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/</loc></url>
@@ -668,108 +698,126 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/supply/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/capital/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/utxos/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/activity/</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/unrealized/</loc></url>
 <url><loc>https://bitview.space/studio/presets/profitability/</loc></url>
 <url><loc>https://bitview.space/studio/presets/profitability/all-coins/</loc></url>
 <url><loc>https://bitview.space/studio/presets/profitability/all-coins/over-a-profit/</loc></url>
@@ -2600,6 +2648,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/all-coins/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/cost-basis/profile</loc></url>
@@ -2659,6 +2708,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/cost-basis/profile</loc></url>
@@ -2716,6 +2766,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/cost-basis/profile</loc></url>
@@ -2791,6 +2842,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/cost-basis/profile</loc></url>
@@ -2848,6 +2900,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/cost-basis/profile</loc></url>
@@ -2907,6 +2960,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/cost-basis/profile</loc></url>
@@ -2964,6 +3018,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/sell-side-risk-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/cost-basis/profile</loc></url>
@@ -3025,7 +3080,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/supply/in-profit-and-loss</loc></url>
@@ -3055,7 +3111,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/last-moved</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/compare/supply</loc></url>
@@ -3114,7 +3171,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/cost-basis/heatmap-and-profile</loc></url>
@@ -3155,7 +3213,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/cost-basis/heatmap-and-profile</loc></url>
@@ -3196,7 +3255,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/cost-basis/heatmap-and-profile</loc></url>
@@ -3237,7 +3297,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/cost-basis/heatmap-and-profile</loc></url>
@@ -3278,7 +3339,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3319,7 +3381,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3360,7 +3423,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3401,7 +3465,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3442,7 +3507,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3483,7 +3549,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3524,7 +3591,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/cost-basis/heatmap-and-profile</loc></url>
@@ -3565,7 +3633,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/cost-basis/heatmap-and-profile</loc></url>
@@ -3606,7 +3675,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3647,7 +3717,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3688,7 +3759,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3729,7 +3801,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3770,7 +3843,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3811,7 +3885,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3852,7 +3927,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3893,7 +3969,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3934,7 +4011,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/cost-basis/heatmap-and-profile</loc></url>
@@ -3975,7 +4053,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/cost-basis/heatmap-and-profile</loc></url>
@@ -4014,7 +4093,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/cost-basis/profile</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/cost-basis/heatmap-and-profile</loc></url>
@@ -4071,6 +4151,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-day-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/supply/in-profit-and-loss</loc></url>
@@ -4107,6 +4188,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-week-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/supply/in-profit-and-loss</loc></url>
@@ -4143,6 +4225,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-month-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/supply/in-profit-and-loss</loc></url>
@@ -4179,6 +4262,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/supply/in-profit-and-loss</loc></url>
@@ -4215,6 +4299,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/supply/in-profit-and-loss</loc></url>
@@ -4251,6 +4336,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/supply/in-profit-and-loss</loc></url>
@@ -4287,6 +4373,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-9-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/supply/in-profit-and-loss</loc></url>
@@ -4323,6 +4410,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-1-year-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/supply/in-profit-and-loss</loc></url>
@@ -4359,6 +4447,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-18-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/supply/in-profit-and-loss</loc></url>
@@ -4395,6 +4484,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-2-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/supply/in-profit-and-loss</loc></url>
@@ -4431,6 +4521,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-3-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/supply/in-profit-and-loss</loc></url>
@@ -4467,6 +4558,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-4-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/supply/in-profit-and-loss</loc></url>
@@ -4503,6 +4595,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-5-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/supply/in-profit-and-loss</loc></url>
@@ -4539,6 +4632,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-6-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/supply/in-profit-and-loss</loc></url>
@@ -4575,6 +4669,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-7-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/supply/in-profit-and-loss</loc></url>
@@ -4611,6 +4706,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-8-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/supply/in-profit-and-loss</loc></url>
@@ -4647,6 +4743,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-10-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/supply/in-profit-and-loss</loc></url>
@@ -4683,6 +4780,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/over-an-age/over-12-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/supply</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/compare/realized-cap</loc></url>
@@ -4737,6 +4835,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-day-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/supply/in-profit-and-loss</loc></url>
@@ -4775,6 +4874,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-week-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/supply/in-profit-and-loss</loc></url>
@@ -4813,6 +4913,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-month-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/supply/in-profit-and-loss</loc></url>
@@ -4851,6 +4952,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/supply/in-profit-and-loss</loc></url>
@@ -4889,6 +4991,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/supply/in-profit-and-loss</loc></url>
@@ -4927,6 +5030,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/supply/in-profit-and-loss</loc></url>
@@ -4965,6 +5069,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-9-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/supply/in-profit-and-loss</loc></url>
@@ -5003,6 +5108,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-1-year-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/supply/in-profit-and-loss</loc></url>
@@ -5041,6 +5147,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-18-months-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/supply/in-profit-and-loss</loc></url>
@@ -5079,6 +5186,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-2-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/supply/in-profit-and-loss</loc></url>
@@ -5117,6 +5225,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-3-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/supply/in-profit-and-loss</loc></url>
@@ -5155,6 +5264,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-4-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/supply/in-profit-and-loss</loc></url>
@@ -5193,6 +5303,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-5-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/supply/in-profit-and-loss</loc></url>
@@ -5231,6 +5342,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-6-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/supply/in-profit-and-loss</loc></url>
@@ -5269,6 +5381,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-7-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/supply/in-profit-and-loss</loc></url>
@@ -5307,6 +5420,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-8-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/supply/in-profit-and-loss</loc></url>
@@ -5345,6 +5459,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-10-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/supply/in-profit-and-loss</loc></url>
@@ -5383,6 +5498,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-12-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/supply/in-profit-and-loss</loc></url>
@@ -5421,6 +5537,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/realized/sopr</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/under-an-age/under-15-years-old/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/compare/supply</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/compare/supply-share</loc></url>
@@ -5468,7 +5585,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/supply/in-profit-and-loss</loc></url>
@@ -5498,7 +5616,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/supply/in-profit-and-loss</loc></url>
@@ -5528,7 +5647,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/supply/in-profit-and-loss</loc></url>
@@ -5558,7 +5678,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/supply/in-profit-and-loss</loc></url>
@@ -5588,7 +5709,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/compare/supply</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/compare/supply-share</loc></url>
@@ -5636,7 +5758,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/supply/in-profit-and-loss</loc></url>
@@ -5666,7 +5789,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/supply/in-profit-and-loss</loc></url>
@@ -5696,7 +5820,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/supply/in-profit-and-loss</loc></url>
@@ -5726,7 +5851,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/supply/in-profit-and-loss</loc></url>
@@ -5756,7 +5882,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/supply/in-profit-and-loss</loc></url>
@@ -5786,7 +5913,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/supply/in-profit-and-loss</loc></url>
@@ -5816,7 +5944,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/supply/in-profit-and-loss</loc></url>
@@ -5846,7 +5975,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/supply/in-profit-and-loss</loc></url>
@@ -5876,7 +6006,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/supply/in-profit-and-loss</loc></url>
@@ -5906,7 +6037,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/supply/in-profit-and-loss</loc></url>
@@ -5936,7 +6068,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/supply/in-profit-and-loss</loc></url>
@@ -5966,7 +6099,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/supply/in-profit-and-loss</loc></url>
@@ -5996,7 +6130,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/supply/in-profit-and-loss</loc></url>
@@ -6026,7 +6161,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/supply/in-profit-and-loss</loc></url>
@@ -6056,7 +6192,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/supply/in-profit-and-loss</loc></url>
@@ -6086,7 +6223,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/supply/in-profit-and-loss</loc></url>
@@ -6116,7 +6254,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/supply/total</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/supply/in-profit-and-loss</loc></url>
@@ -6146,7 +6285,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/gross-realized-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/value-destroyed-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/unrealized-profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/unrealized/profit-and-loss</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized-price</loc></url>
 <url><loc>https://bitview.space/studio/presets/profitability/all-coins/over-a-profit/compare/supply</loc></url>
 <url><loc>https://bitview.space/studio/presets/profitability/all-coins/over-a-profit/compare/realized-cap</loc></url>
@@ -11295,6 +11435,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/all-coins/cost-basis/profile</loc></url>
@@ -11322,6 +11463,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/short-term-holders/cost-basis/profile</loc></url>
@@ -11349,6 +11491,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/long-term-holders/cost-basis/profile</loc></url>
@@ -11384,6 +11527,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-4-months-old/cost-basis/profile</loc></url>
@@ -11411,6 +11555,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-4-months-old/cost-basis/profile</loc></url>
@@ -11438,6 +11583,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/under-6-months-old/cost-basis/profile</loc></url>
@@ -11465,6 +11611,7 @@
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/cointime/awake-coins/age-cutoffs/over-6-months-old/cost-basis/profile</loc></url>
@@ -11603,6 +11750,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/all-coins/cost-basis/profile</loc></url>
@@ -11630,6 +11778,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/short-term-holders/cost-basis/profile</loc></url>
@@ -11657,6 +11806,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/long-term-holders/cost-basis/profile</loc></url>
@@ -11692,6 +11842,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-4-months-old/cost-basis/profile</loc></url>
@@ -11719,6 +11870,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-4-months-old/cost-basis/profile</loc></url>
@@ -11746,6 +11898,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/under-6-months-old/cost-basis/profile</loc></url>
@@ -11773,6 +11926,7 @@
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/capital/change</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/unrealized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/unrealized/nupl</loc></url>
+<url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/unrealized/relative-to-market-cap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/heatmap-and-percentiles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coinflow/mobile-coins/age-cutoffs/over-6-months-old/cost-basis/profile</loc></url>
