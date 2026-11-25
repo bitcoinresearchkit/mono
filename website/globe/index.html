@@ -1424,14 +1424,19 @@
       }
 
       // ── Motion: a slow turn, a drag, a flight; drawn only while something moves, and on screen ──
+      // (Nothing draws at rest: a frame is asked for by what changed, and by a flight or a ring each display frame after.
+      // The turn alone, a few pixels a second, is drawn on a timer, each step half a pixel at the globe's middle: a pixel
+      // there is 180 / (π R) degrees.)
+      const TURN = 0.004; // degrees a millisecond
       /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
       let flight = null;
       let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
-      let last = 0, frameId = 0, onScreen = true;
+      let last = 0, frameId = 0, timer = 0, onScreen = true;
       const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-      /** Whether anything moves of itself: the turn (unless motion's reduced or a country's picked), a flight, a ring. */
-      const moving = () => Boolean(flight || pulses.length || (!reduced.matches && !selected && !dragging));
+      /** The slow turn: on unless motion's reduced, a country's picked or a finger is turning it. */
+      const turning = () => !reduced.matches && !selected && !dragging;
       function invalidate() {
+        clearTimeout(timer);
         if (!frameId && onScreen) frameId = requestAnimationFrame(frame);
       }
       function flyTo(/** @type {number[]} */ at) {
@@ -1448,11 +1453,12 @@
           rot[0] = flight.from[0] + (flight.to[0] - flight.from[0]) * k;
           rot[1] = flight.from[1] + (flight.to[1] - flight.from[1]) * k;
           if (t >= 1) flight = null;
-        } else if (moving()) {
-          rot[0] += dt * 0.004;
+        } else if (turning()) {
+          rot[0] += dt * TURN;
         }
         draw(now);
-        if (moving()) invalidate();
+        if (flight || pulses.length) invalidate();
+        else if (turning()) timer = setTimeout(invalidate, Math.min(100, 90 / Math.PI / R / TURN));
         else last = 0;
       }
       new IntersectionObserver(([entry]) => {
