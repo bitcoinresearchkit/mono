@@ -19,7 +19,7 @@ import {
   within,
 } from "/studio/app.js";
 import { $, all$, closest, composing, escapeHtml, keyText } from "/studio/dom.js";
-import { motionTime } from "/modules/bitview-charts/clock.js";
+import { motionTime } from "/modules/motion/clock.js";
 import { clamp, lowerBound } from "/studio/math.js";
 import {
   amount, AXIS_CHARS, axisTicks, dateLabel, format, growth, MONTHS, precise, PRECISE, SI_UNITS, unitOf, WIDEST_VALUES,

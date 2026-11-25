@@ -11,7 +11,9 @@
 // chart's own frame (`step`), so each is drawn in the frame that moved it.
 
 import { Timeline } from "./timeline.js";
-import { motionClock, motionTime } from "./clock.js";
+import { motionClock, motionTime } from "../motion/clock.js";
+import { glide, velocityTracker } from "../motion/physics.js";
+import { reduced } from "../motion/reduced.js";
 
 /** A flick's speed kept each millisecond: a chart's glide, two thirds of iOS's lists' (0.998), not years past what it was flicked for; its rate of slowing. */
 const SLOWING = 0.997, RATE = -Math.log(SLOWING);
@@ -23,17 +25,14 @@ const PINCH_LEAST = 8;
 export class Controller {
   #time;
   #move;
-  /** A flick gliding on: its speed (CSS pixels a millisecond; 0: none), its clock and last frame's time on it, its rate of slowing (RATE; more where it'd pass an end: it eases into it, see #fling), and its way left to that end. */
-  #speed = 0;
-  #clock = motionClock();
-  #at = 0;
-  #rate = RATE;
-  #left = Infinity;
-  /** A drag's last moves (its x and when): its speed as it's let go (see FLICK_SPAN). */
-  #trail = new Float64Array(16);
-  #trailAt = new Float64Array(16);
-  #trailEnd = 0;
-  #trailSize = 0;
+  /**
+   * A flick gliding on (null: none): its glide in CSS pixels from where it was let go, read at its time since (its
+   * clock's, from the release's); how far it's moved the view; whether it eases into an end (see #fling).
+   * @type {{ glide: ReturnType<typeof glide>, clock: (now?: number) => number, start: number, moved: number, toEnd: boolean } | null}
+   */
+  #flick = null;
+  /** A drag's speed, from its last moves (see FLICK_SPAN). */
+  #velocity = velocityTracker(FLICK_SPAN);
   /** An eased move: where it goes (null: none), from where, over how long, and its time since it began. @type {{ from: number, to: number } | null} */
   #to = null;
   /** @type {{ from: number, to: number }} */
@@ -76,14 +75,14 @@ export class Controller {
 
   /**
    * The view eased to `to` over `duration` ms (cubic, out), from where it is, another motion ending. At once with no
-   * duration (a motion reduced), or with no view to start from (its data being swapped).
+   * duration, under reduced motion, or with no view to start from (its data being swapped).
    * @param {{ from: number, to: number }} to @param {number} duration
    */
   viewTo(to, duration) {
     const from = this.range;
     this.stop();
     if (!(to.from < to.to)) return;
-    if (!from || !(from.from < from.to) || !duration) return this.#set(to.from, to.to);
+    if (!from || !(from.from < from.to) || !duration || reduced()) return this.#set(to.from, to.to);
     this.#to = to;
     this.#from = from;
     this.#duration = duration;
@@ -98,7 +97,7 @@ export class Controller {
   }
 
   halt() {
-    this.#speed = 0;
+    this.#flick = null;
   }
 
   /** Every motion's end: a flick and an eased move. */
@@ -110,21 +109,18 @@ export class Controller {
   /** A press took the view: its motion ends, and a drag's trail begins anew. */
   grab() {
     this.stop();
-    this.#trailSize = 0;
+    this.#velocity.reset();
   }
 
   /** The drag's speed no longer counts (an axis dragged, a click, a finger let go that doesn't flick). */
   forget() {
-    this.#trailSize = 0;
+    this.#velocity.reset();
   }
 
   /** A drag's move: the view panned `dx` CSS pixels, the pointer now at `x` at time `at` (an event's timeStamp). @param {number} dx @param {number} x @param {number} at */
   drag(dx, x, at) {
     this.#time.pan(dx);
-    this.#trail[this.#trailEnd] = x;
-    this.#trailAt[this.#trailEnd] = at;
-    this.#trailEnd = (this.#trailEnd + 1) % this.#trail.length;
-    this.#trailSize = Math.min(this.#trail.length, this.#trailSize + 1);
+    this.#velocity.add(at, x);
   }
 
   /**
@@ -139,21 +135,14 @@ export class Controller {
 
   /**
    * A drag let go at time `at` (an event's timeStamp): it glides on at its speed over its last moves (a finger slowing to a
-   * stop lets go slow), if it was still moving then (held still a moment, none) and not too slowly.
+   * stop lets go slow), if it was still moving then (held still a moment, none) and not too slowly; under reduced motion,
+   * none.
    * @param {number} at
    */
   flick(at) {
-    if (this.#trailSize < 2) return void (this.#trailSize = 0);
-    const trail = this.#trail, trailAt = this.#trailAt, last = (this.#trailEnd + trail.length - 1) % trail.length;
-    let first = last;
-    for (let k = 1; k < this.#trailSize; k++) {
-      const i = (last - k + trail.length) % trail.length;
-      if (trailAt[last] - trailAt[i] > FLICK_SPAN) break;
-      first = i;
-    }
-    const ms = trailAt[last] - trailAt[first], speed = ms > 0 ? (trail[last] - trail[first]) / ms : 0, stale = at - trailAt[last] >= FLICK_SPAN;
-    this.#trailSize = 0;
-    if (!stale && Math.abs(speed) >= FLICK_LEAST) this.#fling(speed, at);
+    const speed = this.#velocity.velocity(at);
+    this.#velocity.reset();
+    if (Math.abs(speed) >= FLICK_LEAST && !reduced()) this.#fling(speed, at);
   }
 
   /**
@@ -162,12 +151,9 @@ export class Controller {
    * @param {number} speed @param {number} at the release's time
    */
   #fling(speed, at) {
-    const room = this.#time.room(speed), passes = Math.abs(speed) / RATE > room;
-    this.#rate = passes ? Math.abs(speed) / Math.max(room, 1e-9) : RATE;
-    this.#left = passes ? room : Infinity;
-    this.#speed = speed;
-    this.#clock = motionClock();
-    this.#at = this.#clock(at);
+    const room = this.#time.room(speed), toEnd = Math.abs(speed) / RATE > room, clock = motionClock();
+    // (Its travel at that rate is room exactly: its end, where it stops short by least / rate, taken whole.)
+    this.#flick = { glide: glide({ from: 0, velocity: speed, rate: toEnd ? Math.abs(speed) / Math.max(room, 1e-9) : RATE }), clock, start: clock(at), moved: 0, toEnd };
     this.#move();
   }
 
@@ -178,16 +164,13 @@ export class Controller {
       this.#set(from.from + (to.from - from.from) * eased, from.to + (to.to - from.to) * eased);
       if (t === 1) this.#to = null;
     }
-    if (!this.#speed) return;
-    // (Its move over the frame as its speed falls through it (not at its end's speed); come to its least speed, a flick
-    // easing into an end moves the rest of its way there.)
-    const at = this.#clock(now), dt = Math.min(64, at - this.#at), decay = Math.exp(-this.#rate * dt);
-    this.#at = at;
-    let by = (this.#speed * (1 - decay)) / this.#rate;
-    this.#speed *= decay;
-    const ends = Math.abs(this.#speed) < 0.02;
-    if (ends && this.#left < Infinity) by = Math.sign(by || this.#speed) * this.#left;
-    this.#left -= Math.abs(by);
+    const flick = this.#flick;
+    if (!flick) return;
+    // (Where it is at this frame's time, by its closed form (never stepped a frame at a time: any frame rate, a late
+    // frame, all read it alike; a frame timed before the lift, none moved yet); at its end, a flick easing into an end
+    // moved the rest of its way there.)
+    const t = flick.clock(now) - flick.start, ends = flick.glide.done(t), to = ends && flick.toEnd ? flick.glide.to : flick.glide.at(t), by = to - flick.moved;
+    flick.moved = to;
     if (!this.#time.pan(by) || ends) this.halt();
     else this.#move();
     if (ends && by) this.#move();
