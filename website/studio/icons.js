@@ -124,7 +124,7 @@ const ICONS = {
   magnifier: svg(`${LENS}<path d="M5.25 7.25h4M7.25 5.25v4"/>`),
   // (Zoom out: the magnifier's lens, its plus a minus.)
   zoomOut: svg(`${LENS}<path d="M5.25 7.25h4"/>`),
-  draw: svg(`<path d="M7.75 14.25 2.75 9.25v-4l2-4h6l2 4v4Z"/>${dot(7.75, 6.75, 1.25)}<path d="M7.75 7.75v6.5"/>`),
+  draw: svg('<path d="M7.75 14.25 2.75 9.25v-4l2-4h6l2 4v4Z"/><circle cx="7.75" cy="7.75" r="1.5"/><path d="M7.75 9.25v5"/>'),
   ellipse: svg('<ellipse cx="7.75" cy="7.75" rx="6" ry="4.5"/>'),
   arrow: svg('<path d="m3.25 12.75 9.5-9.5M7.25 3.25h5.5v5.5"/>'),
   label: svg('<path d="M1.75 7.75h3M10.75 7.75h3"/><rect x="4.75" y="4.75" width="6" height="6" rx="1"/>'),
