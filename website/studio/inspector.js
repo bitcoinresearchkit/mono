@@ -2827,7 +2827,7 @@ export {
   pickedOf, pickPoint, pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf,
   readNumber, readsOf, readyName, readyPage, recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop,
   renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit,
-  setLineLook, setSlider, sharedBy, showEvery, showPicks, showScale, showSelection, showStop, showSuggestions, slider,
+  setLineLook, setSlider, sharedBy, showEvery, showPicks, showSelection, showStop, showSuggestions, slider,
   sliders, slotName, soloLayer, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestHere,
   TAG_NEEDS_LINE, toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula, upToDatePlaces, usesOf, widthRow,
   withLevel, withoutLevel,

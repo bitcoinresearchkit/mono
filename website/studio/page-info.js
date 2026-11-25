@@ -31,7 +31,7 @@ import { inBands, bandNames } from "./bands.js";
 /** The real source series, including hidden inputs, cutoff expansions and implicit halving dates.
  * @param {Preset} preset @param {any} tree
  */
-export function presetSources(preset, tree) {
+function presetSources(preset, tree) {
   const names = new Set();
   for (const layer of preset.c.layers) {
     if (layer.series) names.add(layer.series);

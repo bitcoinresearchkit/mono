@@ -1057,7 +1057,7 @@ export {
   addDrawn, amountsOf, boxTo, bubbleColumns, cellText, clearDrawings, closeCell, crossAt, drawingMenu, drawingRows,
   drawnSteps, dressField, duplicateDrawings, finishPath, flipDrawings, flipsOf, fromClose, gesturing, gradientCell, gradientChannels, HEAT_ABOUT,
   HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatCalendar, heatCode, heatColor, heatCome, heatDayHeld, heatDayKey,
-  heatDays, heatExtras, heatFelt, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatName, heatPath,
+  heatDays, heatExtras, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatName, heatPath,
   heatPump, heatReading, heatRows, heatSection, heatSeries, heatShown, heatWaiters, heatWants, hold, inBox, litCohort,
   logRows, mostIn, moveTo, noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placeSaid, placingPath,
   pointsApart, pressAt, priceSpan, PROFILE_ABOUT, PROFILE_SHORT, profileHit, profileName, profileShares, profilesUnder,
