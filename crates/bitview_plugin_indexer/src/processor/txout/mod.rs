@@ -120,14 +120,12 @@ pub fn finalize_outputs(
             let type_index = match data {
                 ProcessedOutputData::Address(addr_hash) => {
                     let addr_type = output_type;
-                    let type_index = addresses.index_mut(addr_type, &addr_hash);
-
-                    if let Some(ti) = *type_index {
+                    if let Some(ti) = addresses.index(addr_type, &addr_hash) {
                         ti
                     } else {
                         let ti = lengths.increment_addr_index(addr_type);
 
-                        *type_index = Some(ti);
+                        addresses.assign(addr_type, addr_hash, ti);
                         addr_hash_stores
                             .get_mut_unwrap(addr_type)
                             .insert(addr_hash, ti);

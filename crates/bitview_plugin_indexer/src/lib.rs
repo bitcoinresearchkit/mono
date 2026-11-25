@@ -71,6 +71,9 @@ const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("indexer"), VERS
 const EXPORT_HEIGHT_INTERVAL: usize = 100;
 const MAX_PENDING_RECORDS: usize = 20_000_000;
 pub const ID: PluginId = STORAGE.id();
+/// A pass with more blocks than this to index is catching up: the composition reimports after it to release its
+/// startup memory, and the address cache holds its catch-up size through it.
+pub const CATCH_UP_BLOCKS: u32 = 10_000;
 
 pub struct Indexer<M: StorageMode = Rw> {
     reader: Reader,
@@ -486,7 +489,18 @@ impl Indexer {
         drop(lock);
         self.compute_start = self.floored(starting_lengths);
 
-        self.buffers.continue_from(prev_hash);
+        let end = reader.client().get_last_height()?;
+        let last = HalvingEpoch::last_height();
+        if end > last {
+            return Err(Error::OutOfRange(
+                format!(
+                    "Core's tip {end} is past height {last}, the last whose halving epoch fits \
+                     the u8 halving_epoch index"
+                )
+                .into(),
+            ));
+        }
+        self.buffers.continue_from(prev_hash, (*end).saturating_sub(*starting_lengths.height));
 
         let mut lengths = starting_lengths;
         let mut pending_blocks = 0;
@@ -524,17 +538,6 @@ impl Indexer {
         let stores = &mut self.stores;
         let buffers = &mut self.buffers;
 
-        let end = reader.client().get_last_height()?;
-        let last = HalvingEpoch::last_height();
-        if end > last {
-            return Err(Error::OutOfRange(
-                format!(
-                    "Core's tip {end} is past height {last}, the last whose halving epoch fits \
-                     the u8 halving_epoch index"
-                )
-                .into(),
-            ));
-        }
         for block in reader.after(prev_hash, end)? {
             let block = match block {
                 Ok(block) => block,

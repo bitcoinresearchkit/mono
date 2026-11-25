@@ -2,10 +2,15 @@ use std::mem;
 
 use bitview_primitives::{AddrHash, TypeIndex};
 use brk_types::OutputType;
+use tracing::info;
 
 const ASSOCIATIVITY: usize = 4;
-const SET_COUNT: usize = 1 << 19;
-const SET_MASK: usize = SET_COUNT - 1;
+/// Catching up, 2^25 entries, 512 MiB: about 8k blocks of recent addresses, enough for ~70% of the lookups that went
+/// to disk with 2^21 entries (reuse gaps measured from zero after SegWit, dep-hunt 11-23).
+const CATCH_UP_SETS: usize = 1 << 23;
+/// At the tip, 2^21 entries, 32 MiB: the tip update measured the same with either size, so the big one would only
+/// hold half a GiB for as long as the node serves.
+const TIP_SETS: usize = 1 << 19;
 const TYPE_MIX: u64 = 0x9e37_79b9_7f4a_7c15;
 const REFERENCE_SHIFT: usize = 2;
 
@@ -78,11 +83,17 @@ pub struct Storage {
 }
 
 impl Storage {
-    pub fn new() -> Self {
+    pub fn new(set_count: usize) -> Self {
         Self {
-            sets: vec![Set::EMPTY; SET_COUNT].into_boxed_slice(),
-            states: vec![SetState::default(); SET_COUNT].into_boxed_slice(),
+            sets: vec![Set::EMPTY; set_count].into_boxed_slice(),
+            states: vec![SetState::default(); set_count].into_boxed_slice(),
         }
+    }
+
+    #[inline]
+    fn set_index(&self, output_type: OutputType, hash: AddrHash) -> usize {
+        let hash = *hash ^ (output_type as u64).wrapping_mul(TYPE_MIX);
+        hash as usize & (self.sets.len() - 1)
     }
 }
 
@@ -92,10 +103,20 @@ pub struct AddressCache {
 }
 
 impl AddressCache {
+    /// Sizes the cache for a pass that indexes `backlog` blocks (catching up past [`crate::CATCH_UP_BLOCKS`]):
+    /// kept as it is when its size holds, empty at the new size otherwise.
+    pub fn size_for(&mut self, backlog: u32) {
+        let set_count = if backlog > crate::CATCH_UP_BLOCKS { CATCH_UP_SETS } else { TIP_SETS };
+        if self.storage.as_ref().is_none_or(|storage| storage.sets.len() != set_count) {
+            info!("Address cache: {} entries for {backlog} blocks to index", set_count * ASSOCIATIVITY);
+            self.storage = Some(Storage::new(set_count));
+        }
+    }
+
     #[inline]
     pub fn get(&mut self, output_type: OutputType, hash: AddrHash) -> Option<TypeIndex> {
         let storage = self.storage.as_mut()?;
-        let set_index = Self::set_index(output_type, hash);
+        let set_index = storage.set_index(output_type, hash);
         let entry_index = storage.sets[set_index]
             .0
             .iter()
@@ -106,8 +127,8 @@ impl AddressCache {
 
     #[inline]
     pub fn insert(&mut self, output_type: OutputType, hash: AddrHash, type_index: TypeIndex) {
-        let set_index = Self::set_index(output_type, hash);
-        let storage = self.storage.get_or_insert_with(Storage::new);
+        let storage = self.storage.as_mut().expect("the address cache is sized at the start of each pass");
+        let set_index = storage.set_index(output_type, hash);
         let set = &mut storage.sets[set_index].0;
         let state = &mut storage.states[set_index];
 
@@ -126,11 +147,5 @@ impl AddressCache {
 
     pub fn clear(&mut self) {
         self.storage = None;
-    }
-
-    #[inline]
-    pub fn set_index(output_type: OutputType, hash: AddrHash) -> usize {
-        let hash = *hash ^ (output_type as u64).wrapping_mul(TYPE_MIX);
-        hash as usize & SET_MASK
     }
 }
