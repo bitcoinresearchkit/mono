@@ -5,7 +5,7 @@
 // size changed; else, the view moved by whole pixels, its picture is moved and only the strip come into view drawn
 // (drawn whole again once the motion stops: no seams left).
 
-import { Scale, EVERY, EVERY_POWER } from "./scale.js";
+import { Scale, EVERY_POWER } from "./scale.js";
 import { Line, FAINT } from "./line.js";
 import { Band } from "./band.js";
 import { Bars } from "./bars.js";
@@ -226,11 +226,6 @@ export class Pane {
     this.drawnTheme = null;
     this.ticks = new Float64Array(24);
     this.axisTicks = new Float64Array(24);
-    // (An axis' finer ticks, where a tag hides some of its own (see #axis): at most one each EVERY / 2 pixels; its
-    // labels' heights as drawn, and its own hidden ones'.)
-    this.fineTicks = new Float64Array(48);
-    this.labelYs = new Float64Array(48);
-    this.hiddenYs = new Float64Array(24);
     this.extent = new Float64Array(2);
     /** Membership metadata stays apart from the drawing state above. Rebuilt only for changed bindings.
      * @type {{
@@ -481,10 +476,9 @@ export class Pane {
     this.scale.height = height;
     if (this.left) this.left.height = height;
     // (Its ticks' room: at most one each EVERY_POWER pixels (a log scale's decades, see Scale.ticks), a few more at the
-    // ends; its finer ones', twice that.)
-    const ticks = Math.ceil(height / EVERY_POWER) + 4, fine = 2 * ticks;
+    // ends.)
+    const ticks = Math.ceil(height / EVERY_POWER) + 4;
     if (this.ticks.length < ticks) (this.ticks = new Float64Array(ticks)), (this.axisTicks = new Float64Array(ticks));
-    if (this.fineTicks.length < fine) (this.fineTicks = new Float64Array(fine)), (this.labelYs = new Float64Array(fine)), (this.hiddenYs = new Float64Array(ticks));
     // (Its layer over everything: over its plot.)
     const over = this.overCanvas;
     if (over) {
@@ -898,69 +892,14 @@ export class Pane {
       for (let t = 0; t < tags; t++) if (Math.abs(place[t] - y) < near) return false;
       return true;
     };
-    // (A label a tag covers, moved just clear of the tags over it, on its own side of them (one over a tag, over it): its
-    // gridline where it is, its words at most a tag's room from it (MVRV's 1 under its 1.191).)
-    const clear = (/** @type {number} */ y) => {
-      let to = y, dir = 0;
-      for (let moved = true, pass = 0; moved && pass <= tags + page.count; pass++) {
-        moved = false;
-        for (let t = 0; t < tags + page.count; t++) {
-          const tag = t < tags ? place[t] : page.at[t - tags], room = t < tags ? near : TAG / 2 + 10;
-          if (Math.abs(tag - to) >= room) continue;
-          dir ||= to < tag ? -1 : 1;
-          (to = tag + dir * room), (moved = true);
-        }
-      }
-      return to;
-    };
-    const ys = this.labelYs, hiddenYs = this.hiddenYs;
-    let shown = 0, hidden = 0;
-    const label = (/** @type {number} */ k, /** @type {number} */ y) => {
+    // (Each label on its gridline, or none: one a tag covers is hidden, never moved off the line it names.)
+    for (let k = 0; k < count; k++) {
+      const y = scale.own(this.axisTicks[k]);
+      if (!free(y)) continue;
       const words = texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale);
       g.fillText(words, at, y);
-      ys[shown++] = y;
       // (A label 8 pixels from the plot and from the edge.)
       need = Math.max(need, g.measureText(words).width + 16);
-    };
-    for (let k = 0; k < count; k++) {
-      const y = scale.own(this.axisTicks[k]);
-      if (free(y)) label(k, y);
-    }
-    // (The covered ones after, each where it's moved to if that's a tag's room or less from its gridline (never past a
-    // stack of tags), free, and a label's height from every other; else hidden.)
-    for (let k = 0; k < count; k++) {
-      const y = scale.own(this.axisTicks[k]);
-      if (free(y) || !(y > 6 && y < this.height - 6)) continue;
-      const to = clear(y);
-      let room = Math.abs(to - y) <= near && free(to);
-      for (let s = 0; room && s < shown; s++) room = Math.abs(ys[s] - to) >= EVERY_POWER;
-      if (room) label(k, to);
-      else hiddenYs[hidden++] = y;
-    }
-    // (Where a tag hid some (a log scale's power of ten under the price: 1M, then 100M), its finer ticks in the gap
-    // each left (between the labels around it), each EVERY pixels from every label and clear of the tags as they are:
-    // 1M, 5M, 100M.)
-    if (hidden) {
-      const fine = this.fineTicks, n = scale.ticks(fine, EVERY / 2), own = shown;
-      let fills = 0;
-      for (let k = 0; k < n; k++) {
-        const y = scale.own(fine[k]);
-        let room = free(y), gap = false;
-        for (let s = 0; room && s < shown; s++) room = Math.abs(ys[s] - y) >= EVERY;
-        // (In a hidden tick's gap: no label of its own between them.)
-        for (let h = 0; room && !gap && h < hidden; h++) {
-          gap = true;
-          for (let s = 0; gap && s < own; s++) gap = (ys[s] - y) * (ys[s] - hiddenYs[h]) >= 0;
-        }
-        room &&= gap;
-        if (room) (fine[fills++] = fine[k]), (ys[shown++] = y);
-      }
-      const words = texts && fills ? /** @type {(values: number[]) => string[]} */ (this.tickWriters[slot])(Array.from(fine.subarray(0, fills))) : null;
-      for (let k = 0; k < fills; k++) {
-        const text = words ? (words[k] ?? "") : this.axisLabel(fine[k], scale);
-        g.fillText(text, at, scale.own(fine[k]));
-        need = Math.max(need, g.measureText(text).width + 16);
-      }
     }
     this.axisNeed[side] = need;
     this.#tags(g, scale, time, theme, x, width, side, tags);
