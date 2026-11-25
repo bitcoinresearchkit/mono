@@ -950,7 +950,7 @@ function placeBelt(glide = false, stay = false) {
   const top = up ? (kept && Number.isFinite(was.top) ? clamp(was.top + (beltSize.height - height) / 2, plot.top + 8, plot.top + plot.height - height - 8) : along(plot.top, plot.height, height)) : side === "top" ? plot.top + 10 : plot.top + plot.height - height - 10;
   beltSize = { width, height };
   belt.dataset.dock = side;
-  if (glide && !reduced.matches) belt.animate({ left: [belt.style.left, `${left}px`], top: [belt.style.top, `${top}px`] }, { duration: MOTION.small, easing: MOTION.ease });
+  if (glide && !reduced()) belt.animate({ left: [belt.style.left, `${left}px`], top: [belt.style.top, `${top}px`] }, { duration: MOTION.small, easing: MOTION.ease });
   Object.assign(belt.style, { left: `${left}px`, top: `${top}px` });
 }
 /** The side a belt carried to a point goes to: the left or right within the plot's outer edge, else the top or foot. */
@@ -966,7 +966,7 @@ function turnBelt(/** @type {boolean} */ up) {
   // (A turn still going is let go from where it is: a quick turn back starts there.)
   settleBelt();
   belt.classList.toggle("upright", up);
-  if (reduced.matches) return;
+  if (reduced()) return;
   const to = belt.getBoundingClientRect(), timing = { duration: MOTION.small, easing: MOTION.ease };
   parts.forEach((part, i) => {
     const now = part.getBoundingClientRect(), dx = before[i].left - from.left - (now.left - to.left), dy = before[i].top - from.top - (now.top - to.top);

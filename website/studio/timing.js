@@ -1,5 +1,5 @@
 // @ts-check
-// Time on the page: work put off to idle moments and done in slices.
+// Time on the page: work put off to idle moments and done in slices, and waiting for a thing to hold.
 
 /**
  * Work for a moment the page is idle, given how long it has: at the latest after `timeout` ms. Without idle
@@ -18,8 +18,14 @@ const whenIdle = (work, { timeout = 1000, settle = 40 } = {}) => void ("requestI
  * @param {(deadline: { timeRemaining: () => number }) => void} again
  */
 function inSlices(deadline, step, again) {
-  const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
-  while (!step()) if (performance.now() >= until) return void whenIdle(again);
+  const stop = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
+  while (!step()) if (performance.now() >= stop) return void whenIdle(again);
 }
 
-export { inSlices, whenIdle };
+/** Resolves once `test` holds (or `ms` have passed), looked at every `step` ms: on timers, not frames (a change of place draws none, and a tab out of sight still looks). */
+const until = (/** @type {() => boolean} */ test, /** @type {number} */ ms, step = 16) => new Promise((done) => {
+  const end = performance.now() + ms, look = () => (test() || performance.now() > end ? done(undefined) : setTimeout(look, step));
+  look();
+});
+
+export { inSlices, until, whenIdle };

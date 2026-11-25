@@ -82,7 +82,7 @@ function dragToReorder(list, how) {
     const ghost = kept;
     kept = null;
     if (!ghost) return;
-    if (reduced.matches) return ghost.remove();
+    if (reduced()) return ghost.remove();
     // (Not seen in their place a frame before they come.)
     const hidden = /** @type {HTMLElement[]} */ (ids.map(itemNamed).filter(Boolean));
     for (const item of hidden) item.style.opacity = "0";
@@ -112,7 +112,7 @@ function dragToReorder(list, how) {
     // nowhere), back to where it came from as it goes.)
     const ghost = drag.ghost, from = back && itemNamed(drag.ids[0])?.getBoundingClientRect();
     if (landed && !back) kept = ghost;
-    else if (reduced.matches) ghost.remove();
+    else if (reduced()) ghost.remove();
     else {
       const away = from ? `translate(${from.left + 8}px, ${from.top + (from.height - drag.height) / 2}px)` : `${ghost.style.transform} scale(0.96)`;
       ghost.animate({ transform: [ghost.style.transform, away], opacity: [1, 0] }, { duration: from ? MOTION.small : MOTION.micro, easing: MOTION.ease, fill: "forwards" }).finished.then(() => ghost.remove(), () => ghost.remove());

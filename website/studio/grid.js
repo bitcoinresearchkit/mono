@@ -21,7 +21,7 @@ import {
 import {
   $, all$, closest, composing, escapeHtml, holdPage, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing,
 } from "/studio/dom.js";
-import { inSlices, whenIdle } from "/studio/timing.js";
+import { inSlices, until, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import { format, grouped, plural, precise } from "/studio/format.js";
 import { ICONS, markBody } from "/studio/icons.js";
@@ -1281,7 +1281,7 @@ function tileHtml(doc) {
   const legend = cardLegend(doc);
   return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
-            <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
+            ${moreCap("tile-more", "data-tile-menu", doc.id, titleOf(doc))}
             ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escapeHtml(tickOn("ink"))}" aria-label="Select ${title}" data-tip="${on ? "Deselect" : "Select"}" ${on ? "checked" : ""} />`}
           </div>`;
 }
@@ -1341,7 +1341,7 @@ function renderHomeHead() {
     if (!top && started) fadeOut(own, [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease);
     else cutFade(own);
     own.hidden = !top;
-    if (top && started && !reduced.matches) own.animate({ opacity: [0, 1] }, { duration: MOTION.small, easing: MOTION.ease });
+    if (top && started && !reduced()) own.animate({ opacity: [0, 1] }, { duration: MOTION.small, easing: MOTION.ease });
   }
   const more = $("home-title-more");
   // (A folder's menu on its page; your Library's, its group's, on its own: as their ⋯ in the sidebar.)
@@ -1492,10 +1492,10 @@ function renderHorizon() {
     horizonDrawn = key;
     const W = 1000, H = 300, from = points[0][0], to = points[points.length - 1][0], values = points.map(([, value]) => value), lo = Math.min(...values), hi = Math.max(...values);
     const x = (/** @type {number} */ time) => ((time - from) / (to - from)) * W, y = (/** @type {number} */ value) => H * 0.12 + (1 - (value - lo) / (hi - lo)) * H * 0.88;
-    const line = points.map(([time, value]) => `${x(time).toFixed(1)},${y(value).toFixed(1)}`).join(" "), color = ink("orange");
+    const line = points.map(([time, value]) => `${x(time).toFixed(1)},${y(value).toFixed(1)}`), color = ink("orange");
     // (Each halving a rule from the price that week down to the floor.)
     const halvings = minedHalvings().filter((time) => time > from && time < to).map((time) => ((at) => `<line x1="${x(time).toFixed(1)}" x2="${x(time).toFixed(1)}" y1="${y(at).toFixed(1)}" y2="${H}" class="halving"/>`)((points.find(([when]) => when >= time) ?? points[points.length - 1])[1])).join("");
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="horizon-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".12"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient><linearGradient id="horizon-in" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff"/></linearGradient><mask id="horizon-mask"><rect width="${W}" height="${H}" fill="url(#horizon-in)"/></mask></defs><g mask="url(#horizon-mask)">${halvings}<polygon points="0,${H} ${line} ${W},${H}" fill="url(#horizon-fill)"/><polyline points="${line}" fill="none" stroke="${color}" stroke-opacity=".6" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></g></svg>`;
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs>${fadeDef("horizon-fill", color, ".12")}<linearGradient id="horizon-in" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff"/></linearGradient><mask id="horizon-mask"><rect width="${W}" height="${H}" fill="url(#horizon-in)"/></mask></defs><g mask="url(#horizon-mask)">${halvings}${areaUnder("horizon-fill", line, W, H)}${lineOver(line, color, 0.6)}</g></svg>`;
   }).catch(() => (horizonFailed = true));
 }
 /** Home's doors as last drawn (drawn again only changed: focus and hover stay). */
@@ -1605,7 +1605,7 @@ const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-she
  * of them at any depth), a row; its name leads to its page. None in it, it says so.
  * @param {{ name: string, place: Place, folder?: string, count: number }} shelf @param {string} tiles
  */
-const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section class="shelf"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="${escapeHtml(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escapeHtml(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section class="shelf"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="${escapeHtml(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escapeHtml(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? moreCap("shelf-more", "data-folder-menu", folder, name) : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
 /** A chart's tile: what the chart grows out of and shrinks into. */
 // (A preset's written as a slot yet: written now, for what wants it (the way back from it shrinks into it).)
 const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`) ?? ((slot) => slot && fillSlot(slot))(/** @type {HTMLElement | null} */ ($("home").querySelector(`.tile-slot[data-slot="${presetById(id)}"]`))));
@@ -1635,7 +1635,7 @@ const yoursShown = () => home && ("folder" in homeAt || "previews" in homeAt || 
  * neither. (Left again before its own way in began, held: whole as it's left, its copy no blank.)
  */
 function pageOut() {
-  if (reduced.matches) return;
+  if (reduced()) return;
   for (const animation of /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).getAnimations()) animation.finish();
   fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease, true);
 }
@@ -1645,7 +1645,7 @@ function pageOut() {
  * first frames (laid out, its tiles painted) took a tenth of a second or more, the fade all but over when it showed.
  */
 function pageIn() {
-  if (reduced.matches) return;
+  if (reduced()) return;
   const into = /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).animate({ opacity: [0, 1], translate: ["0 6px", "0 0"] }, { duration: MOTION.small, easing: MOTION.ease });
   beginOnTime(into, ...(fading.get(homeScroll())?.getAnimations() ?? []));
 }
@@ -1693,7 +1693,7 @@ const recommendedPresets = () => recommendedAt().filter((i) => i >= 0);
 function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
   const title = escapeHtml(titleOf(doc));
   const legend = cardLegend(doc);
-  return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
+  return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button>${moreCap("tile-more", "data-preset-menu", i, titleOf(doc))}</div>`;
 }
 /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
 let listsDrawn = 0;
@@ -1867,7 +1867,7 @@ function stepShelf(/** @type {HTMLElement} */ row, /** @type {number} */ dir) {
   if (!tile) return;
   // (Its tiles' width as laid out, a fraction of a pixel too: whole tiles counted, three where three show.)
   const gap = parseFloat(getComputedStyle(row).columnGap) || 0, unit = tile.getBoundingClientRect().width + gap, page = Math.max(1, Math.floor((row.clientWidth - 8 + gap) / unit + 0.01));
-  row.scrollTo({ left: (Math.round(row.scrollLeft / unit) + dir * page) * unit, behavior: reduced.matches ? "auto" : "smooth" });
+  row.scrollTo({ left: (Math.round(row.scrollLeft / unit) + dir * page) * unit, behavior: reduced() ? "auto" : "smooth" });
 }
 /** Every shelf's steps and edges, once the page's writes this frame are in (one layout, not one a write), before it's shown. */
 let shelvesFrame = 0;
@@ -2207,15 +2207,6 @@ function gridActions() {
   ];
 }
 /**
- * Resolves once `test` holds (or `ms` have passed). On timers, not frames: while a change of place is being made
- * the page draws no frames (the chart paints its own on the first one after).
- */
-const until = (/** @type {() => boolean} */ test, /** @type {number} */ ms) => new Promise((done) => {
-  const end = performance.now() + ms;
-  const step = () => (test() || performance.now() > end ? done(undefined) : setTimeout(step, 16));
-  step();
-});
-/**
  * A change of place between the Charts page and a chart, both live (no pictures of them, every browser alike): the
  * chart's card grows out of a tile over the page (`opening`), or shrinks back into it, the page under it all along
  * (data-morph: both shown); with no tile, it fades in or out over the page. `update` changes the place and returns
@@ -2240,7 +2231,7 @@ function unscaled() {
 function morph(opening, update) {
   for (const animation of morphing) animation.cancel();
   // (Out of sight, no motion: a hidden page draws no frames, so it would never end, and a draw waits on it.)
-  if (reduced.matches || document.hidden) return (update(), Promise.resolve());
+  if (reduced() || document.hidden) return (update(), Promise.resolve());
   document.body.dataset.morph = "";
   const tile = update(), card = $("main"), at = card.getBoundingClientRect(), box = tile?.getBoundingClientRect();
   const ends = (/** @type {Keyframe[]} */ frames) => (opening ? frames : [...frames].reverse());
@@ -2336,7 +2327,7 @@ let leavings = 0;
 function leave(element) {
   if (!isOpen(element)) return;
   const shut = () => ((element.inert = false), delete element.dataset.leaving, element.hidePopover());
-  if (keepsLeaving || reduced.matches) return void shut();
+  if (keepsLeaving || reduced()) return void shut();
   if (element.dataset.leaving) return;
   const mine = String(++leavings);
   element.dataset.leaving = mine;
@@ -2505,7 +2496,7 @@ function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, spee
   // (A transition of its own transform, begun as a drag let go gave it back, gives way: run with the slide, iOS
   // showed neither, the sheet still where it was let go till both were over, then at its stop.)
   for (const animation of ownSlides(sheet)) animation.cancel();
-  if (reduced.matches || Math.abs(by) < 1) return;
+  if (reduced() || Math.abs(by) < 1) return;
   // (The layout's curve, as a sheet opens and closes, its start's slope the finger's speed in shares of the way a
   // duration: none still, at most 2.5.)
   const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
@@ -2572,7 +2563,7 @@ function slideAway(sheet, close, from, speed) {
     return { frames: [{ transform: `translateY(${from - top}px)` }, { transform: "translateY(calc(100% + 16px))" }], duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
   };
   // (A menu's sheet: closed at once, its copy sliding on (see fadeOut) from where it was let go, as fast.)
-  if (sheet === $("menu") && !reduced.matches) return void hideMenu(away());
+  if (sheet === $("menu") && !reduced()) return void hideMenu(away());
   if (!later) close();
   // (Typed into, let go of as it goes, the keyboard down with it: iOS draws a field's caret apart, left behind.)
   else if (sheet.contains(document.activeElement) && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
@@ -2580,7 +2571,7 @@ function slideAway(sheet, close, from, speed) {
   // The rest of its way out (its display, its visibility, kept till it's done) held to begin with the slide.)
   const own = sheet.getAnimations().filter((animation) => animation instanceof CSSTransition);
   for (const animation of own) if (/** @type {CSSTransition} */ (animation).transitionProperty === "transform") animation.cancel();
-  if (reduced.matches) return void (later && close());
+  if (reduced()) return void (later && close());
   const { frames, duration, easing } = away(), timing = /** @type {KeyframeAnimationOptions} */ ({ duration, easing, fill: "forwards" });
   const slide = sheet.animate(frames, timing);
   slide.id = "away";
@@ -2775,6 +2766,11 @@ const chartMark = (doc) => {
 };
 /** The points of a run of a line's area: the run, closed down (or up) to `edge` under its ends. @param {string[]} part @param {number} edge */
 const areaPoints = (part, edge) => `${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${edge}`;
+/** Small charts' writers: a run's area (see areaPoints), a fill fading down a viewBox, the area under a line filled by it, a line. */
+const areaOf = (/** @type {string[]} */ part, /** @type {number} */ edge, /** @type {string} */ color, opacity = ".2") => `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity="${opacity}"/>`;
+const fadeDef = (/** @type {string} */ id, /** @type {string} */ color, /** @type {number | string} */ top) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escapeHtml(color)}" stop-opacity="${top}"/><stop offset="1" stop-color="${escapeHtml(color)}" stop-opacity="0"/></linearGradient>`;
+const areaUnder = (/** @type {string} */ id, /** @type {string[]} */ points, /** @type {number} */ w, /** @type {number} */ h) => `<polygon points="0,${h} ${points.join(" ")} ${w},${h}" fill="url(#${id})"/>`;
+const lineOver = (/** @type {string[]} */ points, /** @type {string} */ stroke, opacity = 1) => `<polyline points="${points.join(" ")}" fill="none" stroke="${escapeHtml(stroke)}"${opacity < 1 ? ` stroke-opacity="${opacity}"` : ""} stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
 /** A mark not drawn yet: a faint line. @type {Pick<Thumb, "lines" | "washes" | "dots">} */
 const NO_MARK = { lines: [], washes: [], dots: [] };
 /** A mark drawn from a mini chart: its lines, a heatmap's wash under them, bubbles' dots over them. @param {Pick<Thumb, "lines" | "washes" | "dots">} mark */
@@ -2791,19 +2787,19 @@ const markOf = ({ lines, washes, dots }) => {
     if (kind === "dots") return byColor(ys.map((value, i) => (value === null || i % 2 ? null : { i, value })), ({ i }) => tintAt(i), false).map((piece) => `<path d="${piece.points.map(({ i, value }) => `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`).join("")}" stroke="${piece.color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
     if (dated) return byColor(ys.map((value, i) => (value === null ? null : { i, value })), ({ i }) => tintAt(i)).filter((piece) => piece.points.length > 1).map(({ color: stroke, points }) => {
       const part = points.map(({ i, value }) => `${x(i).toFixed(1)},${y(value).toFixed(1)}`);
-      return (kind === "area" ? `<polygon points="${areaPoints(part, base)}" fill="${stroke}" fill-opacity=".2"/>` : "") + polyline(part, stroke);
+      return (kind === "area" ? areaOf(part, base, stroke) : "") + polyline(part, stroke);
     }).join("");
     return runs(ys, x, y).map((part) => {
       if (kind === "baseline") {
         const { above, below: under } = sides(part, base);
         return [...above.map((piece) => polyline(piece.part, color)), ...under.map((piece) => polyline(piece.part, below))].join("");
       }
-      const fill = kind === "area" ? `<polygon points="${areaPoints(part, base)}" fill="${color}" fill-opacity=".2"/>` : "";
+      const fill = kind === "area" ? areaOf(part, base, color) : "";
       return fill + polyline(part, color);
     }).join("");
   }).join("");
   // (A heatmap's wash about its line, faint: its color over it, its other under it, to its band's top and foot.)
-  const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => `<polygon points="${areaPoints(part, y(top))}" fill="${escapeHtml(ink(over))}" fill-opacity=".2"/><polygon points="${areaPoints(part, y(bottom))}" fill="${escapeHtml(ink(under))}" fill-opacity=".2"/>`).join(""))(lines[k][1])).join("");
+  const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => areaOf(part, y(top), escapeHtml(ink(over))) + areaOf(part, y(bottom), escapeHtml(ink(under)))).join(""))(lines[k][1])).join("");
   // (Bubbles' largest, dots on their line, as a dots line's are.)
   const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escapeHtml(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
   return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${wash}${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}${dotted}</svg>`;
@@ -2853,7 +2849,7 @@ function seriesMark(layer) {
         const { above, below: under } = sides(part, y(level));
         return [...above.map((piece) => line(piece.part, color, piece.from)), ...under.map((piece) => line(piece.part, below, piece.from))].join("");
       }
-      return (layer.type === "area" ? `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity=".22"/>` : "") + line(part, color);
+      return (layer.type === "area" ? areaOf(part, edge, color, ".22") : "") + line(part, color);
     }).join("");
   }
   return `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
@@ -2887,6 +2883,13 @@ function movingSide(/** @type {() => void} */ change) {
 const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
 /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
 const groupShut = (group) => !prefs.groupsOpen.includes(group);
+/** A row's ⋯ cap: its menu found by `attr`, in its place's class (`chart-more`, `tile-more`, `shelf-more`). */
+const moreCap = (/** @type {string} */ cls, /** @type {string} */ attr, /** @type {string | number} */ id, /** @type {string} */ name) => `<button type="button" class="cap small ${cls}" ${attr}="${escapeHtml(id)}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>`;
+const viewCap = (/** @type {Place} */ place, /** @type {string} */ name) => `<button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="View ${escapeHtml(name)}" data-tip="View">${ICONS.arrowRight}</button>`;
+/** A chart's or a preset's (`kind`) row in the sidebar: its mark and `label` opening it (`tip`: its hover, else `name`), its ⋯. */
+const leafRow = ({ kind, id, depth, cls = "", mark, label, labelCls = "", name, tip = name }) => `<div class="chart-row ${cls} ${depth ? "in-folder" : ""}" data-${kind}-row="${id}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-${kind}="${id}" data-tip="${escapeHtml(tip)}">${mark}<span class="label ${labelCls}">${escapeHtml(label)}</span></button>${moreCap("chart-more", `data-${kind}-menu`, id, name)}</div>`;
+/** A folder's or a presets' section's (`kind`) row: its name opening or closing it (on the rail, its menu), its count, View, ⋯; closed holding the open chart (`holds`), it says so. */
+const folderRow = ({ kind, id, depth, closed, holds, rail, mark, name, count, place }) => `<div class="folder-row ${kind === "section" ? "section-row" : ""} ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-${kind}-row="${escapeHtml(id)}" style="--depth: ${depth}"><button type="button" class="nav-item folder-item" data-${kind}-item="${escapeHtml(id)}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(name)}">${mark}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(count)}</span></button>${viewCap(place, name)}${moreCap("chart-more", `data-${kind}-menu`, id, name)}</div>`;
 /**
  * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
  * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
@@ -2896,7 +2899,7 @@ const groupShut = (group) => !prefs.groupsOpen.includes(group);
  */
 const sideHead = (group, count, holds) => {
   const [name, place] = GROUP_OF[group], shut = groupShut(group);
-  return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="View ${name}" data-tip="View">${ICONS.arrowRight}</button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
+  return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button>${viewCap(place, name)}${moreCap("chart-more", "data-group-menu", group, name)}</div>`];
 };
 /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
 const groupRows = (group) => [
@@ -3059,6 +3062,9 @@ const seePaletteMarks = (rows) => {
 };
 /** The presets a menu shows, their marks to draw (apart from the sidebar's rows in sight, which it clears). */
 const presetMarksAsked = /** @type {Set<number>} */ (new Set());
+/** The sections the open preset (`at`) is in, opened in the sidebar while it's the one open, less any closed there: shown, never kept (`presetsOpen`). */
+let revealed = { at: -1, keys: /** @type {Set<string>} */ (new Set()) };
+const sectionShown = (/** @type {string} */ key) => prefs.presetsOpen.includes(key) || revealed.keys.has(key);
 /**
  * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
  * opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
@@ -3070,11 +3076,12 @@ function presetParts() {
   // first frame, not come in after the rest, out of reach till the presets' own replace them (a moment: what they'd
   // run needs the presets); else, or they couldn't be read, its head alone, what it holds counted once it's read.)
   if (!root || !presets) return sidePresets && !presetsFailed && !onRail() && !groupShut("presets") && sidePresets.open === JSON.stringify(prefs.presetsOpen) ? sidePresets.parts.map(([key, html]) => [key, html.replace(/^<div /, "<div inert ")]) : [sideHead("presets", null, false)];
-  // (On the rail, none open: see renderCharts.)
-  const rail = onRail(), open = new Set(rail ? [] : prefs.presetsOpen);
-  // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is; the
-  // head too, only so (a preset's chart whose place is gone is in none of them).)
+  // (The sections the open preset is in: opened for the view (see revealed); one closed holds it, marked as a folder
+  // holding the open chart is; the head too, only so (a preset's chart whose place is gone is in none of them).)
   const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
+  if (at !== revealed.at) revealed = { at, keys: new Set(holding) };
+  // (On the rail, none open: see renderCharts.)
+  const rail = onRail(), open = new Set(rail ? [] : [...prefs.presetsOpen, ...revealed.keys]);
   /** @type {[string, string][]} */
   const parts = [sideHead("presets", presets.length, at >= 0)];
   if (groupShut("presets")) return parts;
@@ -3083,22 +3090,18 @@ function presetParts() {
       if (typeof item === "number") {
         if (!depth) continue;
         // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
-        const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
-        const title = escapeHtml(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escapeHtml(presetName(preset));
-        parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? " (edited)" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
+        const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc)), title = doc ? titleOf(doc) : preset.t;
+        parts.push([`preset:${item}`, leafRow({ kind: "preset", id: item, depth, cls: `preset-row ${edited ? "edited" : ""}`, mark: presetMark(item), label: title !== preset.t ? title : presetName(preset), name: title, tip: `${title}${edited ? " (edited)" : ""}` })]);
         continue;
       }
-      const section = item, shown = open.has(section.key), name = section.name, key = escapeHtml(section.key);
-      parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escapeHtml(name)}">${sectionMark(section, shown)}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.under.length)}</span></button>
-              <button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify({ path: section.path }))}" aria-label="View ${escapeHtml(name)}" data-tip="View">${ICONS.arrowRight}</button>
-              <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>
-            </div>`]);
+      const section = item, shown = open.has(section.key);
+      parts.push([`section:${section.key}`, folderRow({ kind: "section", id: section.key, depth, closed: !shown, holds: holding.has(section.key), rail, mark: sectionMark(section, shown), name: section.name, count: section.under.length, place: { path: section.path } })]);
       if (shown) walk(section, depth + 1);
     }
   };
   walk(root, 0);
-  if (!rail) keepSidePresets(parts);
+  // (Kept as drawn only with what's kept open: a reveal restored in a first frame would be one of another view's.)
+  if (!rail && [...revealed.keys].every((key) => prefs.presetsOpen.includes(key))) keepSidePresets(parts);
   return parts;
 }
 /**
@@ -3244,11 +3247,12 @@ function toggleFolder(/** @type {string} */ id) {
 /** A section of the presets' menu in the sidebar (its ⋯, a right-click): its page; open or close it here. @returns {Action[]} */
 const sectionRows = (/** @type {string} */ key) => [
   { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", run: () => goTo(asPlace({ path: JSON.parse(key) })) },
-  ((open) => ({ key: "toggle", icon: open ? ICONS.folder : ICONS.folderOpen, label: open ? "Collapse" : "Expand", stay: true, run: () => toggleSection(key) }))(prefs.presetsOpen.includes(key)),
+  ((open) => ({ key: "toggle", icon: open ? ICONS.folder : ICONS.folderOpen, label: open ? "Collapse" : "Expand", stay: true, run: () => toggleSection(key) }))(sectionShown(key)),
 ];
 /** A section of the presets opened or closed in the sidebar, as a folder is (kept as left). @param {string} key */
 function toggleSection(key) {
-  const closing = prefs.presetsOpen.includes(key);
+  const closing = sectionShown(key);
+  revealed.keys.delete(key);
   prefs.presetsOpen = closing ? prefs.presetsOpen.filter((other) => other !== key) : [...prefs.presetsOpen, key];
   savePrefs();
   foldRow(() => all$("[data-section-row]", $("chart-list")).find((row) => row.dataset.sectionRow === key) ?? null, closing);
@@ -3261,7 +3265,7 @@ function toggleSection(key) {
 function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolean} */ closing) {
   let head = find();
   // (On the rail, nothing unfolds: kept as it's set, shown once the sidebar's open.)
-  if (reduced.matches || !head || onRail()) return renderCharts();
+  if (reduced() || !head || onRail()) return renderCharts();
   // (A group's head turns its arrow, as its class says.)
   const glyph = head.querySelector(".folder-glyph");
   if (glyph) glyph.innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
@@ -3790,7 +3794,7 @@ const lifts = new WeakMap();
  * @param {{ moved?: string | null, fade?: boolean, pseudo?: string, layout?: boolean }} [options]
  */
 function slide(elements, key, was, { moved = null, fade = false, pseudo, layout = false } = {}) {
-  if (reduced.matches) return;
+  if (reduced()) return;
   const timing = { duration: layout ? MOTION.layout : MOTION.panel, easing: layout ? MOTION.easeLayout : MOTION.ease, ...(pseudo ? { pseudoElement: pseudo } : {}) };
   const come = elements.filter((element) => was.get(key(element)) === undefined), going = elements.filter((element) => was.get(key(element)) !== undefined);
   // (A glide still under way goes first: where it's laid out now is measured, not where it's being carried. All
@@ -3987,13 +3991,13 @@ function retryPlots() {
   void drawGallery();
 }
 export {
-  aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
+  aheadOf, allShelfSteps, areaUnder, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
-  clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
-  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
+  clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, fadeDef,
+  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRow, folderRows,
   forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions,
   groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
-  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph,
+  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, lineOver, markOf, morph,
   morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,
   onChart, onClosed, onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf,
   pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey,
@@ -4006,6 +4010,6 @@ export {
   setTheme, sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead,
   sideId, sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
   stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
-  toggleSection, treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  toggleSection, treeOf, unstretched, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
   walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 };

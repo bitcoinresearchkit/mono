@@ -14,11 +14,11 @@ import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  MAC, MEDIA, NAMED_KEY, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
 import { motionClock } from "/modules/motion/clock.js";
 import { reduced as motionReduced, whenReduced } from "/modules/motion/reduced.js";
-import { whenIdle } from "/studio/timing.js";
+import { until, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import {
   ago, dollarsAndCents, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes, toTheCent,
@@ -56,7 +56,7 @@ import {
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
   overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries, paintSig, paletteOf,
   PANE, paneRect, PERCENT_FORMAT, periodAmount, pinCross, placeBrush, placeFoot, placeFull, placePlotKeys, pointLabel,
-  prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, reachOut, readPoint, refreshFailed, rescan, resolve, respot,
+  prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, rangeText, reachOut, readPoint, refreshFailed, rescan, resolve, respot,
   retryInfo, reveal, rightGap, samePaint, sayValue, SCALE_MODES, seriesPane, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, setReserve, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
@@ -88,10 +88,10 @@ import {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
   depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
-  fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
+  fillSlot, folderActions, folderById, folderPath, folderRow, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
   galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions, groupRows, groupShut, heatSamples,
   heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt,
-  keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
+  keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
   nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint,
   paletteMarksAsked, panelSize, parentOf, pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS,
   presetMark, presetMarkKey, presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts,
@@ -103,7 +103,7 @@ import {
   sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
   sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
   stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
-  toggleSection, treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  toggleSection, treeOf, unstretched, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
   walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 } from "/studio/grid.js";
 import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";
@@ -199,7 +199,7 @@ const tokens = new Map(), probe = document.head.appendChild(document.createEleme
 let tokensFor = "";
 // (Read on lists of their own, which no one listens to: a list's matches read takes a change for itself
 // (Chromium), its listeners never hearing of it.)
-const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE), matchMedia("(prefers-contrast: more)"), matchMedia("(pointer: coarse)")];
+const tokensMedia = [matchMedia(MEDIA.light), matchMedia(MEDIA.phone), matchMedia(MEDIA.moreContrast), matchMedia("(pointer: coarse)")];
 // (The theme's own colors for the chart, not a high-contrast mode's: the page around it takes those.)
 probe.style.forcedColorAdjust = "none";
 /** Tokens read in one go: those named, else every one the page's root lists. @param {Iterable<string>} [names] */
@@ -234,7 +234,7 @@ const css = (name) => {
  */
 let stepShown = false;
 /** Motion reduced: as asked for (the system's setting, motion's one reading), or for a step shown already (see stepShown). */
-const reduced = { get matches() { return motionReduced() || stepShown; } };
+const reduced = () => motionReduced() || stepShown;
 let stillSteps = 0;
 /** A step from the history begun, the system's motion of it played or not (see stepShown). @param {boolean} shown */
 function stillStep(shown) {
@@ -250,7 +250,7 @@ function stillStep(shown) {
 }
 /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
 const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout"), wordsWait: parseFloat(css("--words-wait")), wordsIn: parseFloat(css("--words-in")) };
-const phone = matchMedia(PHONE);
+const phone = matchMedia(MEDIA.phone);
 /** Whether the sidebar's list is owed: not written while the layout's a phone's, where it never shows (see renderCharts; here, as charts are listed at the start). */
 let listOwed = false;
 /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
@@ -272,7 +272,7 @@ const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize 
 // hovered till the next tap, a button lit as if still pressed, a swatch as if picked. As the device is now (a mouse
 // put to a tablet), as the style's own touch rules are.
 {
-  const fingers = matchMedia("(hover: none)"), mark = () => document.documentElement.classList.toggle("can-hover", !fingers.matches);
+  const fingers = matchMedia(MEDIA.noHover), mark = () => document.documentElement.classList.toggle("can-hover", !fingers.matches);
   mark();
   fingers.addEventListener("change", mark);
 }
@@ -1472,7 +1472,7 @@ const THEMES = /** @type {const} */ ([
   ["light", "Light", "sun", "Light surfaces; Bitview's colors deepened to read on white, yours as picked."],
   ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are."],
 ]);
-const deviceLight = matchMedia("(prefers-color-scheme: light)");
+const deviceLight = matchMedia(MEDIA.light);
 /** The bar over the page (a browser's, an installed app's, a phone's status bar) in the page's color under it: the grid's ground, a chart's card on a phone. */
 // (One a scheme in the page, for its first frame; both the theme's, whichever the device's is: the chosen one wins.)
 const themeColors = /** @type {NodeListOf<HTMLMetaElement>} */ (document.querySelectorAll('meta[name="theme-color"]'));
@@ -2761,7 +2761,7 @@ function toggleSidebar() {
   prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
   savePrefs();
   // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
-  if (!reduced.matches) document.body.toggleAttribute("data-sliding", true);
+  if (!reduced()) document.body.toggleAttribute("data-sliding", true);
   // (Collapsed, the rail keeps only its icons (a group's head's too): a focus on what it puts away, a row's ⋯, a
   // folder's, on its toggle.)
   const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .list-head-name, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
@@ -2930,7 +2930,7 @@ function animateMark() {
   /** The frames asked for while it moves (its fill's cycle from `cycleFrom`); none at rest. */
   let looping = false, cycleFrom = performance.now();
   const wake = () => {
-    if (looping || phone.matches || reduced.matches) return;
+    if (looping || phone.matches || reduced()) return;
     looping = true;
     last = 0;
     requestAnimationFrame(frame);
@@ -2956,7 +2956,7 @@ function animateMark() {
   const frame = (now) => {
     now = clock(now);
     // (Out of sight, a phone's, or motion reduced: at rest, full.)
-    if (phone.matches || reduced.matches) {
+    if (phone.matches || reduced()) {
       looping = false;
       paths.forEach((path, i) => {
         const d = i ? "" : (rest.get(240) ?? (rest.set(240, draw(1, REST)), rest.get(240)));
@@ -3377,7 +3377,7 @@ async function draw(refit = false, fresh = false) {
   $("unreached").hidden = !unreached;
   $("navigator").classList.toggle("waiting", unreached);
   dataRevision++;
-  const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
+  const reveal = first && doc.layers.length > 0 && !reduced() && !fromHome;
   build(withLook(structuredClone(chart)), Object.assign(result, { key: asking.key, version, live }), refit);
   for (const wake of [...drawnWaiters]) wake();
   renderLayers();
@@ -3429,7 +3429,7 @@ function buildChart(doc, data, refit) {
   // (A pane added or taken away, the chart's own: the chart as it was fades out over it laid out anew (its panes
   // cut to their new heights), as everything here changes, never a cut.)
   const paneIds = (/** @type {string} */ shape) => shape.split(",").map((pane) => pane.split(":")[0]).join();
-  if (prior?.doc.id === doc.id && paneIds(priorShape) !== paneIds(panesShape) && !reduced.matches && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
+  if (prior?.doc.id === doc.id && paneIds(priorShape) !== paneIds(panesShape) && !reduced() && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
   const glidingTo = engine.controller.target;
   engine.controller.stop();
   const was = new Map(drawn);
@@ -3849,7 +3849,7 @@ function buildChart(doc, data, refit) {
     morphFrom = null;
     endReveal();
   }
-  if (sameView && !sameTimeline && priorTimes.length > 1 && data.times.length > 1 && !reduced.matches) {
+  if (sameView && !sameTimeline && priorTimes.length > 1 && data.times.length > 1 && !reduced()) {
     // Where the old first point sits in the new data (before its start, negative: the oldest let go).
     const offset = data.times[0] > priorTimes[0] ? -lowerBound(priorTimes, data.times[0]) : lowerBound(data.times, priorTimes[0]);
     morphFrom = { from: offset, to: offset + priorTimes.length - 1, ...overviewScale, at: performance.now() };
@@ -4818,7 +4818,7 @@ function renderBelt() {
   // (Its state as the belt's: a path being placed, its points are steps.)
   syncUndo();
   const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
-  const was = belt.hidden || belt.classList.contains("held") || reduced.matches ? null : belt.getBoundingClientRect();
+  const was = belt.hidden || belt.classList.contains("held") || reduced() ? null : belt.getBoundingClientRect();
   // (Its parts where they were, by their ids: kept ones move from there, see reshapeBelt.)
   const partsWere = was ? new Map(all$("[id]", belt).map((part) => [part.id, part.getBoundingClientRect()])) : null;
   const hide = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || magnifying || drawings.length || beltKeys);
@@ -6252,10 +6252,7 @@ function writeSideList(current) {
   const recentOrder = recents.map((item) => item.id).join();
   if (recentDrawn && recentOrder !== recentDrawn) (sideHeld = true), sideLight(null);
   recentDrawn = recentOrder;
-  const row = (/** @type {Chart} */ doc, depth = 0) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
-            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}">${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escapeHtml(titleOf(doc))}</span></button>
-            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escapeHtml(titleOf(doc))}" data-tip="More">${ICONS.more}</button>
-          </div>`;
+  const row = (/** @type {Chart} */ doc, depth = 0) => leafRow({ kind: "chart", id: doc.id, depth, mark: chartMark(doc), label: titleOf(doc), labelCls: doc.title ? "" : "derived", name: titleOf(doc) });
   /** @type {[string, string][]} */
   const parts = [
     // Home first (Studio's start), a rule under it, scrolled with the rest: only the brand, the search and the
@@ -6275,19 +6272,14 @@ function writeSideList(current) {
     // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
     ...sideTree().map(({ item, depth }) => {
       if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
-      const folder = item, closed = folder.closed || rail, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
-      return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(folder.name)}">${folderMark(folder)}<span class="label">${escapeHtml(folder.name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
-              <button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify({ folder: folder.id }))}" aria-label="View ${escapeHtml(folder.name)}" data-tip="View">${ICONS.arrowRight}</button>
-              <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escapeHtml(folder.name)}" data-tip="More">${ICONS.more}</button>
-            </div>`]);
+      return /** @type {[string, string]} */ ([`folder:${item.id}`, folderRow({ kind: "folder", id: item.id, depth, closed: item.closed || rail, holds: Boolean(current?.folder && isIn(current.folder, item.id)), rail, mark: folderMark(item), name: item.name, count: counts.get(item.id) ?? 0, place: { folder: item.id } })]);
     })]),
     ...presetParts(),
   ];
   // (What it lists changed (a chart opened, saved, closed or deleted, a group come): its rows glide to their places,
   // none jumping there, unless what changed it moves them itself (see movingSide). Where they were, read only then.)
   const list = $("chart-list"), drawn = listWritten.get(list), keys = (/** @type {[string, string][]} */ items) => items.map(([key]) => key).join("\n");
-  const was = drawn && !sideMoved && !reduced.matches && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
+  const was = drawn && !sideMoved && !reduced() && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
   // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
   if (writeList(list, parts)) fitSoon(list, true);
   if (was) glideList(list, was);
@@ -6406,12 +6398,12 @@ function applyTheme(/** @type {boolean} */ anyway = false) {
     // (Words being typed on the chart: in their tone on this surface.)
     if (writing) dressField(writing.drawing);
   };
-  if (document.startViewTransition && !reduced.matches) document.startViewTransition(swap);
+  if (document.startViewTransition && !reduced()) document.startViewTransition(swap);
   else swap();
 }
 deviceLight.addEventListener("change", () => applyTheme());
 // (More contrast asked for, or no longer: the same theme's tones changed, everything drawn in them drawn again.)
-matchMedia("(prefers-contrast: more)").addEventListener("change", () => applyTheme(true));
+matchMedia(MEDIA.moreContrast).addEventListener("change", () => applyTheme(true));
 // Another tab's choices, taken here too as they're shown (the theme, the sidebar, the panel, the belt, the pen).
 addEventListener("storage", ({ key, newValue }) => {
   if (key !== PREFS) return;
@@ -6811,20 +6803,15 @@ function presetByAddress(i, window = undefined) {
 }
 /**
  * A preset picked (its tile, its row, ⌘K's, the empty chart's cards): opened, as itself, whatever's open, and where
- * it is in the sidebar in sight: the presets and the sections it's in opened, its rows (marked, as the open one's
- * are) in sight, the nearest scrolled to (see revealNearest).
+ * it is in the sidebar in sight: the presets opened (the sections it's in open as it's the open one: see revealed),
+ * its rows (marked, as the open one's are) in sight, the nearest scrolled to (see revealNearest).
  */
 function pickPreset(/** @type {number} */ i) {
   if (!presets?.[i]) return;
-  // (Opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has no
-  // sidebar to show it in.)
+  // (The group opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has
+  // no sidebar to show it in.)
   if (!phone.matches) {
-    const closed = sectionKeys(i).filter((key) => !prefs.presetsOpen.includes(key)), shut = groupShut("presets");
-    if (closed.length || shut) {
-      prefs.presetsOpen = [...prefs.presetsOpen, ...closed];
-      if (shut) prefs.groupsOpen = [...prefs.groupsOpen, "presets"];
-      savePrefs();
-    }
+    if (groupShut("presets")) (prefs.groupsOpen = [...prefs.groupsOpen, "presets"]), savePrefs();
     presetToReveal = i;
   }
   openPreset(i);
@@ -7852,7 +7839,7 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   // (Opened again as it leaves: it stays, put away no more.)
   if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
   // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
-  if (!isOpen(dialog)) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
+  if (!isOpen(dialog)) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced());
   // (Its second frame; frames not running (a tab put away as it opened), a moment on all the same: never left unseen.)
   // (This arrival's alone: ⌘K closed and opened again meanwhile, the next one's its own.)
   if (dialog.hasAttribute("data-arriving")) ((arrived) => (requestAnimationFrame(() => requestAnimationFrame(arrived)), setTimeout(arrived, 100)))(((arrival) => () => arrival === paletteArrivals && dialog.removeAttribute("data-arriving"))(++paletteArrivals));
@@ -9445,7 +9432,7 @@ function toast(text, action, done = true) {
   const redoes = action?.label === "Redo";
   // (One said as another shows: that one fading out as this one comes, each as wide as its words, never one cut to
   // the other.)
-  const replacing = element.classList.contains("visible") && !reduced.matches;
+  const replacing = element.classList.contains("visible") && !reduced();
   if (replacing) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }]);
   else cutFade(element);
   element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escapeHtml(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escapeHtml(action.label)}</button>` : ""}`;
@@ -9994,7 +9981,7 @@ const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @t
       const top = view.top + (parseFloat(getComputedStyle(list).scrollPaddingTop) || 0), bottom = Math.min(view.bottom, viewport.offsetTop + viewport.height) - 12;
       // (Taller than what shows, its top.)
       const by = box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : Math.min(0, box.top - top);
-      if (Math.abs(by) > 1) list.scrollBy({ top: by, behavior: reduced.matches ? "auto" : "smooth" });
+      if (Math.abs(by) > 1) list.scrollBy({ top: by, behavior: reduced() ? "auto" : "smooth" });
     });
   };
   const read = () => {
@@ -10525,7 +10512,7 @@ async function pollPrice() {
     // (Nor in full screen, where the live line isn't shown; on a phone, its grid shows it.)
     if ((phone.matches ? home : !fullOn()) || liveLayers().length) {
       const version = drawVersion, price = await client.getLivePrice();
-      if (Number.isFinite(price) && price !== livePrice) {
+      if (typeof price === "number" && Number.isFinite(price) && price !== livePrice) {
         livePrice = price;
         updateStatus();
       }
@@ -10978,7 +10965,7 @@ function quickPicture(/** @type {Chart} */ doc) {
     if (!bubbles || key !== `${doc.id}:${previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
     if (heat.whole === false) quickPictures.delete(key);
     const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE, heat, bubbles);
-    // (Each layer's value at the picture's end, as the legend reads it there: a cloud to an edge, its one side.)
+    // (Each layer's value at the picture's end, as the legend reads it there, a cloud's by the legend's own reading.)
     const values = new Map(copy.layers.flatMap((layer) => {
       const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
       // (A heatmap's, as its legend reads it at rest: its open day's cell at that day's close, see heatReading; at the
@@ -10992,7 +10979,7 @@ function quickPicture(/** @type {Chart} */ doc) {
       if (!high || result.error) return [];
       const at = lastIn(high, 0, drawn.end ?? high.length - 1);
       if (at < 0) return [];
-      return [[layer.id, !low ? bandOf(layer, high[at])?.name ?? format(high[at], unit) : layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`]];
+      return [[layer.id, !low ? bandOf(layer, high[at])?.name ?? format(high[at], unit) : rangeText(layer, high, low, at, unit)]];
     }));
     // (Its named values, in their band's color.)
     const bands = new Map(copy.layers.flatMap((layer) => {
