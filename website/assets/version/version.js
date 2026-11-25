@@ -87,10 +87,10 @@
       .reload:hover { background: var(--bitview-version-orange-hover); }
       .close { width: 26px; height: 26px; border-radius: 7px; background: none; color: var(--bitview-version-faint); }
       .close:hover { background: var(--bitview-version-press); color: var(--bitview-version-ink); }
-      svg { width: 10px; height: 10px; }
+      svg { width: 16px; height: 16px; }
       button:focus-visible { outline: 2px solid var(--bitview-version-orange); outline-offset: 2px; }
       @media (max-width: 760px) { :host { top: calc(10px + env(safe-area-inset-top)); right: 12px; bottom: auto; left: 12px; max-width: none; } }
-    </style><div class="box" role="status"><span class="mark" aria-hidden="true"><img src="${logo}" alt="" /></span><span class="text"><b></b><span></span></span><button class="reload" type="button">Reload</button><button class="close" type="button" aria-label="Dismiss"><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`;
+    </style><div class="box" role="status"><span class="mark" aria-hidden="true"><img src="${logo}" alt="" /></span><span class="text"><b></b><span></span></span><button class="reload" type="button">Reload</button><button class="close" type="button" aria-label="Dismiss"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="m4.25 4.25 7.5 7.5M11.75 4.25l-7.5 7.5"/></svg></button></div>`;
     const box = /** @type {HTMLElement} */ (root.querySelector(".box"));
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches, edge = () => (phone.matches ? -1 : 1);
     // In from its edge with a little spring, back to the edge it's at as it goes: a fade alone for reduced motion.

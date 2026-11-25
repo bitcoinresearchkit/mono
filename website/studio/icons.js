@@ -22,20 +22,21 @@ const STYLE = {
   angles: [0, 26.565, 45, 63.435, 90],
   /** The keyline circle's outer diameter; a drawing's longer side is at least `min`. */
   keyline: { circle: 13, min: 9 },
-  /** Ink as a multiple of the keyline circle's: past these an icon looks darker or fainter than its neighbours. */
-  weight: [0.15, 1.7],
+  /** Ink as a multiple of the keyline circle's: past these an icon looks darker or fainter than its neighbours. A frame with three lines inside (table) is the heaviest, at 1.8; the next is 1.61. */
+  weight: [0.15, 1.8],
 };
 /** Rules an icon is allowed to break, each with its reason. */
 const ICON_EXEMPT = /** @type {Record<string, { rules: string[], why: string }>} */ ({
   weight: { rules: ["stroke"], why: "it draws three stroke widths" },
   star: { rules: ["angle", "gap"], why: "a five-point star's edges run at 36° and 72°, its tips narrower than 45°" },
+  bolt: { rules: ["angle", "gap"], why: "a lightning bolt's diagonals lean 56° and its stroke turns back sharply at both tips; at the table's 45° or 63° it reads as a shuriken or a stack of parallels" },
 });
 
 const svg = (body, attrs = `width="${STYLE.grid}" height="${STYLE.grid}"`) => `<svg viewBox="0 0 ${STYLE.grid} ${STYLE.grid}" ${attrs} fill="none" stroke="currentColor" stroke-width="${STYLE.stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
 // Drawn once, shared: the frame of every panel, the lens of every search, the dot of every grip.
 const FRAME = '<rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2"/>';
 const LENS = '<circle cx="7.25" cy="7.25" r="4.5"/><path d="m10.5 10.5 3.25 3.25"/>';
-const dot = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="1" fill="currentColor" stroke="none"/>`;
+const dot = (cx, cy, r = 1) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="currentColor" stroke="none"/>`;
 const CHEVRON_LEFT = svg('<path d="M9.75 3.25 5.25 7.75l4.5 4.5"/>');
 const CHEVRON_RIGHT = svg('<path d="m6.25 3.25 4.5 4.5-4.5 4.5"/>');
 const ARROW = {
@@ -55,7 +56,7 @@ const ICONS = {
   charts: svg(`${FRAME}<path d="m4.75 10.75 2.5-2.5 1.5 1.5 2.5-2.5"/>`),
   grid: svg('<rect x="2.25" y="2.25" width="4" height="4" rx="1"/><rect x="9.75" y="2.25" width="4" height="4" rx="1"/><rect x="2.25" y="9.75" width="4" height="4" rx="1"/><rect x="9.75" y="9.75" width="4" height="4" rx="1"/>'),
   browse: svg(LENS),
-  keyboard: svg(`<rect x="2.25" y="3.75" width="11.5" height="8.5" rx="2"/>${dot(5, 6.5)}${dot(8, 6.5)}${dot(11, 6.5)}${dot(6.5, 9.5)}${dot(9.5, 9.5)}`),
+  keyboard: svg(`<rect x="2.25" y="3.75" width="11.5" height="8.5" rx="2"/>${dot(5, 6.5)}${dot(8, 6.5)}${dot(11, 6.5)}<path d="M5.25 9.75h5.5"/>`),
   sidebar: svg(`${FRAME}<path d="M6.25 2.75v10.5"/>`),
   arrowUp: svg(ARROW.up),
   arrowDown: svg(ARROW.down),
@@ -65,7 +66,7 @@ const ICONS = {
   swap: svg('<path d="M2.75 5.25h10.5M10.75 2.75l2.5 2.5-2.5 2.5"/><path d="M13.25 10.75H2.75M5.25 8.25l-2.5 2.5 2.5 2.5"/>'),
   panel: svg(`${FRAME}<path d="M9.75 2.75v10.5"/>`),
   pane: svg(`${FRAME}<path d="M2.25 8.75h11.5"/>`),
-  more: svg(`${dot(3.5, 8)}${dot(8, 8)}${dot(12.5, 8)}`),
+  more: svg(`${dot(3.5, 8, 1.5)}${dot(8, 8, 1.5)}${dot(12.5, 8, 1.5)}`),
   next: CHEVRON_RIGHT,
   back: CHEVRON_LEFT,
   left: CHEVRON_LEFT,
@@ -92,7 +93,7 @@ const ICONS = {
   folderOut: svg(`<path d="${FOLDER_CUT}"/><path d="M12.25 14.25v-4.5M10.25 11.75l2-2 2 2"/>`),
   // (A preset section's own, and a folder's to pick: see FOLDER_ICONS.)
   candles: svg('<path d="M5.25 2.25v2.5M5.25 10.75v3M10.75 3.25v3M10.75 11.75v2"/><rect x="3.75" y="4.75" width="3" height="6" rx="1"/><rect x="9.25" y="6.25" width="3" height="5.5" rx="1"/>'),
-  scale: svg('<path d="M7.75 4.25v9.5M4.75 13.75h6M2.25 4.25h11M3.25 4.25l-2 4h4zM12.25 4.25l-2 4h4z"/>'),
+  scale: svg('<path d="M7.75 2.25v11.5M4.75 13.75h6M2.25 4.25h11M3.25 4.25l-2 4h4zM12.25 4.25l-2 4h4z"/>'),
   coins: svg('<path d="M2.75 4.25C2.75 3.15 5 2.25 7.75 2.25s5 .9 5 2-2.25 2-5 2-5-.9-5-2ZM2.75 4.25v7c0 1.1 2.25 2 5 2s5-.9 5-2v-7M2.75 7.75c0 1.1 2.25 2 5 2s5-.9 5-2"/>'),
   people: svg('<circle cx="5.75" cy="4.75" r="2.5"/><path d="M2.25 13.75v-1a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1M10.75 2.75a2.5 2.5 0 0 1 0 5M13.75 13.75v-1a2 2 0 0 0-2-2"/>'),
   hourglass: svg('<path d="M3.75 2.25h8M3.75 13.25h8M4.75 2.25c0 2.5 1.75 3.25 1.75 5.5s-1.75 3-1.75 5.5M10.75 2.25c0 2.5-1.75 3.25-1.75 5.5s1.75 3 1.75 5.5"/>'),
@@ -101,12 +102,12 @@ const ICONS = {
   dollar: svg('<path d="M7.75 1.75v12.5M11.25 4.25h-5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4h-5"/>'),
   key: svg('<circle cx="5.25" cy="10.75" r="3"/><path d="M7.5 8.5 13.75 2.25M11.25 4.75l2 2M9.25 6.75l2 2"/>'),
   pickaxe: svg('<path d="M5.25 2.75a8 8 0 0 1 8 8M2.75 13.25l8.5-8.5"/>'),
-  nodes: svg('<path d="M7.75 3.75l-4 8h8z"/><g fill="currentColor" stroke="none"><circle cx="7.5" cy="3.5" r="2"/><circle cx="3.5" cy="11.5" r="2"/><circle cx="11.5" cy="11.5" r="2"/></g>'),
+  nodes: svg(`<path d="M7.75 3.75l-4 8h8z"/>${dot(7.75, 3.75, 1.75)}${dot(3.75, 11.75, 1.75)}${dot(11.75, 11.75, 1.75)}`),
   clock: CLOCK,
   layers: svg('<path d="M7.75 2.25 13.75 5.25l-6 3-6-3ZM1.75 8.25l6 3 6-3M1.75 11.25l6 3 6-3"/>'),
   star: svg('<path d="M7.75 1.75 9.25 6l4.5.25-3.5 2.75 1.25 4.25-3.75-2.5-3.75 2.5L5.25 9l-3.5-2.75L6.25 6Z"/>'),
   flag: svg('<path d="M3.75 13.75v-11.5M3.75 3.25h8l-2.5 2.5 2.5 2.5h-8"/>'),
-  bolt: svg('<path d="m2.25 9.75 7-7v4h4.5l-7 7v-4Z"/>'),
+  bolt: svg('<path d="M9.25 1.75 4.25 9.25h4l-1.5 5 5-7.5h-4Z"/>'),
   target: svg('<circle cx="7.75" cy="7.75" r="5.5"/><circle cx="7.75" cy="7.75" r="2.5"/>'),
   folderAdd: svg(`<path d="${FOLDER_CUT}"/><path d="M12.25 10.75v4M10.25 12.75h4"/>`),
   series: svg('<path d="m1.75 12.25 4.5-4.5 3 3 4.5-4.5"/>'),
@@ -116,14 +117,14 @@ const ICONS = {
   upload: svg('<path d="M7.75 10.25v-7.5M4.75 5.75l3-3 3 3"/><path d="M2.75 10.25v2.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5"/>'),
   download: svg('<path d="M7.75 2.75v7.5M4.75 7.25l3 3 3-3"/><path d="M2.75 10.25v2.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5"/>'),
   image: svg(`${FRAME}${dot(5.5, 6.5)}<path d="M4.25 13.25 9.75 7.75l4 4"/>`),
-  table: svg(`${FRAME}<path d="M2.25 6.25h11.5M6.25 6.25v7"/>`),
+  table: svg(`${FRAME}<path d="M2.25 6.25h11.5M2.25 9.75h11.5M6.25 6.25v7"/>`),
   file: svg('<path d="M5.25 1.75h3l4 4v6.5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-8.5a2 2 0 0 1 2-2ZM8.25 1.75v4h4"/>'),
   check: svg('<path d="m3.25 8.25 3.5 3.5 6-6"/>'),
   ruler: svg('<path d="m2.25 11.25 9-9 3 3-9 9ZM4.75 8.75l1 1M7.25 6.25l1 1M9.75 3.75l1 1"/>'),
   magnifier: svg(`${LENS}<path d="M5.25 7.25h4M7.25 5.25v4"/>`),
   // (Zoom out: the magnifier's lens, its plus a minus.)
   zoomOut: svg(`${LENS}<path d="M5.25 7.25h4"/>`),
-  draw: svg('<path d="M7.75 13.75 3.75 5.75l1.5-3h5l1.5 3Z"/><path d="M7.75 13.75v-5"/>'),
+  draw: svg('<path d="M7.75 14.25 2.75 9.25v-4l2-4h6l2 4v4Z"/><circle cx="7.75" cy="7.75" r="1.5"/><path d="M7.75 9.25v5"/>'),
   ellipse: svg('<ellipse cx="7.75" cy="7.75" rx="6" ry="4.5"/>'),
   arrow: svg('<path d="m3.25 12.75 9.5-9.5M7.25 3.25h5.5v5.5"/>'),
   label: svg('<path d="M1.75 7.75h3M10.75 7.75h3"/><rect x="4.75" y="4.75" width="6" height="6" rx="1"/>'),
@@ -134,12 +135,12 @@ const ICONS = {
   expand: svg('<path d="M2.25 6.25v-4h4M9.25 2.25h4v4M13.25 9.25v4h-4M6.25 13.25h-4v-4"/>'),
   shrink: svg('<path d="M6.25 2.25v4h-4M13.25 6.25h-4v-4M9.25 13.25v-4h4M2.25 9.25h4v4"/>'),
   select: svg('<path d="M4.75 2.25h-1.5a1 1 0 0 0-1 1v1.5M7.25 2.25h1M10.75 2.25h1.5a1 1 0 0 1 1 1v1.5M13.25 7.25v1M13.25 10.75v1.5a1 1 0 0 1-1 1h-1.5M7.25 13.25h1M4.75 13.25h-1.5a1 1 0 0 1-1-1v-1.5M2.25 7.25v1"/>'),
-  cursor: svg('<path d="M3.75 2.25v11l3-3h5Z"/>'),
+  cursor: svg('<path d="M3.75 2.25v11l3-3h5Z"/><path d="m7.75 10.25 2 4"/>'),
   opacity: svg('<circle cx="8" cy="8" r="5.75"/><path d="M8 4.5a3.5 3.5 0 0 1 0 7Z" fill="currentColor"/>'),
   weight: svg('<path d="M2.75 3.5h10.5" stroke-width="1"/><path d="M2.75 7h10.5" stroke-width="2"/><path d="M2.75 12h10.5" stroke-width="3"/>'),
   grip: svg(`${dot(6, 4)}${dot(10, 4)}${dot(6, 8)}${dot(10, 8)}${dot(6, 12)}${dot(10, 12)}`),
   trend: svg('<path d="M4.75 11.25 11.25 4.75"/><circle cx="3.5" cy="12.5" r="1.75"/><circle cx="12.5" cy="3.5" r="1.75"/>'),
-  path: svg('<path d="m4.75 11.25 2-2M9.25 6.75l2-2"/><circle cx="3.5" cy="12.5" r="1.75"/><circle cx="8" cy="8" r="1.75"/><circle cx="12.5" cy="3.5" r="1.75"/>'),
+  path: svg('<path d="m4.5 10 2-4M9 5.5l2 2"/><circle cx="3.5" cy="12" r="1.75"/><circle cx="7.5" cy="4" r="1.75"/><circle cx="12.5" cy="9" r="1.75"/>'),
   hline: svg('<path d="M1.75 7.75h4M9.75 7.75h4"/><circle cx="7.75" cy="7.75" r="2"/>'),
   vline: svg('<path d="M7.75 1.75v4M7.75 9.75v4"/><circle cx="7.75" cy="7.75" r="2"/>'),
   rect: svg('<rect x="2.25" y="3.25" width="11.5" height="9.5" rx="1"/>'),
