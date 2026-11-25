@@ -1,0 +1,1784 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Globe" data-color="#ce5210"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
+    <title>Globe · Bitview</title>
+    <meta name="description" content="Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by website/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/globe/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/globe/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Globe · Bitview" />
+    <meta property="og:description" content="Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/globe.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Globe: the week's blocks by their mining pool's home country on a globe, each country's share since 2011 under it" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
+      /* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.rest.woff2") format("woff2");
+        unicode-range: U+018F, U+01A0-01B0, U+01CD-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02D8-02D9, U+02DB, U+02DD, U+0300-0328, U+037E-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03CE, U+0400-0475, U+0490-04F9, U+0524-0525, U+0E3F, U+1E28-1E29, U+1E80-1E85, U+1E9E-1EF9, U+2070-2089, U+20A1-20AB, U+20AD-20BD, U+2113-2116, U+2126-212E, U+2150-215E, U+2B0E-2B11, U+2B58, U+3000, U+E0A0-E0B3;
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      /* The planet as a print: land a field of fine dots in the ink, the countries that mine lit in Bitview's orange as
+         strong as their share, the night a little darker; everything else type and hairlines, as the Oracle's. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f3f2ec, #0a0c0b);
+        --plate: light-dark(#f8f7f2, #0e1110);
+        --ink: light-dark(#151916, #e3e8e4);
+        --text: light-dark(#2f3631, #b9c2bc);
+        --soft: light-dark(#454d47, #a3ada6);
+        --faint: light-dark(#5f6862, #7b8580);
+        --line: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
+        --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
+        --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
+        /* (Deep enough on the paper to be read as small text, 4.5:1 and more: a picked country's name.) */
+        --answer: light-dark(rgb(184 68 10), rgb(255 128 52));
+        --mono: Lilex, "Lilex Fallback", ui-monospace, "SF Mono", Menlo, monospace;
+        --gutter: max(20px, env(safe-area-inset-left));
+      }
+
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#222723, #ced5d0);
+          --soft: light-dark(#313732, #bcc4be);
+          --faint: light-dark(#474f4a, #99a29d);
+          --line: light-dark(rgb(21 25 22 / 0.33), rgb(227 232 228 / 0.29));
+          --grid: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--app);
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 450 14px/1.7 var(--mono);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* An instrument's labels: small, spaced capitals. */
+      .kicker,
+      .when {
+        margin: 0;
+        color: var(--faint);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* ── One screen of data: the planet and under it the months since 2011; the countries and the latest blocks beside ── */
+      .app {
+        display: grid;
+        grid-template: "top" "globe" "board" "history" / minmax(0, 1fr);
+        gap: 20px;
+        padding: 0 var(--gutter) 40px;
+
+        > canvas {
+          grid-area: globe;
+          display: block;
+          width: 100%;
+          aspect-ratio: 1;
+          cursor: grab;
+          touch-action: pan-y;
+
+          &.dragging {
+            cursor: grabbing;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          height: max(720px, 100svh);
+          grid-template: "top top" 64px "globe board" minmax(0, 1fr) "history board" auto / minmax(0, 1fr) 340px;
+          gap: 0 48px;
+          padding: 0 clamp(24px, 3vw, 48px) 24px;
+
+          > canvas {
+            height: 100%;
+            min-height: 0;
+            aspect-ratio: auto;
+            /* (The planet runs past its box: its top and bottom fade into the page.) */
+            mask-image: linear-gradient(transparent, #000 12%, #000 86%, transparent);
+          }
+
+          .board {
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: none;
+          }
+        }
+      }
+
+      .top {
+        grid-area: top;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 64px;
+        font-size: 13px;
+
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          color: var(--ink);
+          font-weight: 600;
+
+          img {
+            width: 22px;
+            height: 22px;
+          }
+        }
+
+
+      }
+
+      /* The latest block, live: a dot that breathes beside its height. */
+      .tip-height {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+        color: var(--faint);
+
+        &::before {
+          content: "";
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--answer);
+          animation: breathe 2.8s ease-in-out infinite;
+
+          @media (prefers-reduced-motion: reduce) {
+            animation: none;
+          }
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 500;
+        }
+      }
+
+      .tip-height[hidden] {
+        display: none;
+      }
+
+      @keyframes breathe {
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      /* (The page's name, read aloud only: the data is the page.) */
+      h1 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .note {
+        margin: 10px 0 0;
+        color: var(--soft);
+        font-size: 12px;
+      }
+
+      /* ── The board: the period or the month, its countries by blocks, then the latest blocks ── */
+      .board {
+        grid-area: board;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+
+      .board-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 16px;
+
+        .total {
+          color: var(--faint);
+          font-size: 12px;
+        }
+      }
+
+      .periods {
+        display: flex;
+        margin: 12px 0 6px;
+        /* (A button's height and the border, kept before the buttons are made, so nothing under moves when they are.) */
+        min-height: 34px;
+        border: 1px solid var(--line);
+
+        button {
+          flex: 1;
+          height: 32px;
+          border: 0;
+          color: var(--faint);
+          background: none;
+          font-size: 12px;
+          cursor: pointer;
+          touch-action: manipulation;
+
+          + button {
+            border-left: 1px solid var(--line);
+          }
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-pressed="true"] {
+            color: var(--app);
+            background: var(--ink);
+          }
+        }
+      }
+
+      .countries {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        /* (Five rows' height, the rest scrolled to, on a desk as on a phone: the first answer fills them in place, and a
+           period or a month with more or fewer countries never moves what's under it.) */
+        flex: none;
+        height: calc(5 * 59px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+
+        /* (Faded at an edge only where rows go on past it: see the list's cuts.) */
+        &[data-cut="end"] {
+          mask-image: linear-gradient(to top, transparent, #000 44px);
+        }
+
+        &[data-cut="start"] {
+          mask-image: linear-gradient(to bottom, transparent, #000 44px);
+        }
+
+        &[data-cut="both"] {
+          mask-image: linear-gradient(transparent, #000 44px, #000 calc(100% - 44px), transparent);
+        }
+      }
+
+      /* A country: its name, its blocks, its share; under them its share as a hairline, in the answer's orange. */
+      .country {
+        border-bottom: 1px solid var(--line);
+
+        > button {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto auto;
+          align-content: center;
+          align-items: baseline;
+          gap: 2px 14px;
+          width: 100%;
+          height: 58px;
+          border: 0;
+          padding: 0;
+          background: none;
+          text-align: left;
+          cursor: pointer;
+        }
+
+        .name {
+          overflow: hidden;
+          color: var(--ink);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .rate {
+          margin-left: 8px;
+          color: var(--soft);
+          font-size: 11px;
+        }
+
+        .count {
+          color: var(--soft);
+          font-size: 12px;
+        }
+
+        .share {
+          min-width: 4.5ch;
+          color: var(--ink);
+          font-size: 18px;
+          font-weight: 500;
+          letter-spacing: -0.03em;
+          text-align: right;
+        }
+
+        .swatch {
+          display: none;
+        }
+
+        .bar {
+          grid-column: 1 / -1;
+          height: 2px;
+          margin-top: 6px;
+          background: linear-gradient(var(--color), var(--color)) 0 0 / var(--share) 100% no-repeat, var(--grid);
+        }
+
+        > button:hover .name,
+        &.active .name {
+          color: var(--answer);
+        }
+      }
+
+      /* The pools behind a country, opened. */
+      .pools {
+        margin: -2px 0 10px;
+        padding: 0;
+        color: var(--soft);
+        font-size: 12px;
+        list-style: none;
+
+        li {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 2px 0;
+        }
+
+        .num {
+          color: var(--faint);
+        }
+      }
+
+      /* The latest blocks: a row each, the pool and its home, the height and how long ago. */
+      .ticker {
+        display: grid;
+        gap: 8px;
+        margin-top: 28px;
+      }
+
+      .latest {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          display: grid;
+          grid-template-columns: 8px minmax(0, 1fr) auto;
+          gap: 0 12px;
+          align-items: baseline;
+          border-top: 1px solid var(--line);
+          padding: 9px 0;
+          font-size: 13px;
+
+          /* (A block new to the list, arriving.) */
+          &.new {
+            animation: arrive 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+          }
+
+          &:nth-child(n + 5) {
+            display: none;
+          }
+        }
+
+        .swatch {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--color);
+          translate: 0 -1px;
+        }
+
+        b {
+          overflow: hidden;
+          color: var(--ink);
+          font-weight: 500;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .meta {
+          grid-column: 2;
+          overflow: hidden;
+          color: var(--faint);
+          font-size: 12px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* (The height above the age, at the right.) */
+        .stamp {
+          display: flex;
+          grid-column: 3;
+          grid-row: 1 / span 2;
+          flex-direction: column;
+          align-items: flex-end;
+          color: var(--faint);
+          font-size: 12px;
+        }
+      }
+
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          translate: 0 6px;
+        }
+      }
+
+      /* (What's said of new blocks: to a screen reader only.) */
+      .said {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      /* ── How it moved: each country's share month by month since 2011, a row each, one month read across them ── */
+      .history {
+        grid-area: history;
+        min-width: 0;
+        padding-top: 16px;
+        /* (A row: its name, its plot, its share in the month read; the events and years over the plots' column.) */
+        --name: 8.5rem;
+        --value: 3.5rem;
+        --gap: 12px;
+        /* (A row's plot: the rows, nine always, take their height before they load, so nothing moves when they do.) */
+        --plot: clamp(22px, 3.2vh, 30px);
+
+        /* (On a phone: narrower names, no event labels (each row shows them), every fourth year.) */
+        @media (max-width: 640px) {
+          --name: 6.5rem;
+          --value: 2.75rem;
+          --gap: 8px;
+
+          .events {
+            display: none;
+          }
+
+          .years span:nth-child(even) {
+            display: none;
+          }
+
+          .area .row {
+            font-size: 11px;
+          }
+        }
+      }
+
+      .history-head {
+        display: flex;
+        align-items: center;
+        gap: 12px 16px;
+
+        h2 {
+          flex: 1;
+          min-width: 0;
+        }
+
+        /* (As wide as the longest month, so reading one never moves the row.) */
+        output {
+          min-width: 14ch;
+          color: var(--ink);
+          font-size: 13px;
+          text-align: right;
+          white-space: nowrap;
+        }
+      }
+
+      .play {
+        height: 28px;
+        border: 1px solid var(--line);
+        padding: 0 12px;
+        background: none;
+        font-size: 12px;
+        cursor: pointer;
+        touch-action: manipulation;
+
+        &:hover:not(:disabled) {
+          border-color: var(--soft);
+        }
+
+        /* (Nothing to play yet.) */
+        &:disabled {
+          opacity: 0.35;
+          cursor: default;
+        }
+      }
+
+      /* (The rows' height, fixed: nine rows always, loading or loaded.) */
+      .history :is(.message, .area) {
+        height: calc(9 * (var(--plot) + 1px));
+        margin: 0;
+      }
+
+      .message {
+        margin-top: 24px;
+        color: var(--faint);
+
+        p {
+          margin: 0 0 10px;
+        }
+      }
+
+      /* The events that moved the map: a word above the month each happened, a line down to it. */
+      /* (Each label on a row, and to a side of its line: --anchor 0 starts at it, 0.5 centers on it, 1 ends at it.) */
+      .events {
+        position: relative;
+        height: calc(22px + var(--top, 1) * 16px);
+        margin: 4px calc(var(--value) + var(--gap)) 0 calc(var(--name) + var(--gap));
+        color: var(--soft);
+        font-size: 12px;
+
+        span {
+          position: absolute;
+          bottom: calc(4px + var(--row, 0) * 16px);
+          translate: calc(var(--anchor, 0.5) * -100%) 0;
+          white-space: nowrap;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: calc(var(--anchor, 0.5) * 100%);
+            height: calc(4px + var(--row, 0) * 16px);
+            border-left: 1px dotted var(--faint);
+          }
+        }
+      }
+
+      /* The rows: a country's name, its share since 2011 (the same scale for all), its share in the month read. */
+      .area {
+        position: relative;
+        display: grid;
+        touch-action: pan-y;
+        cursor: crosshair;
+
+        /* (Not there until the rows are: else its empty box stands under the message, and the page moves when they load.) */
+        &[hidden] {
+          display: none;
+        }
+
+        .row {
+          display: grid;
+          grid-template-columns: var(--name) minmax(0, 1fr) var(--value);
+          align-items: end;
+          gap: var(--gap);
+          border-top: 1px solid var(--line);
+          font-size: 12px;
+        }
+
+        .row > span {
+          overflow: hidden;
+          padding-bottom: 3px;
+          color: var(--soft);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .row > b {
+          padding-bottom: 3px;
+          color: var(--ink);
+          font-weight: 500;
+          text-align: right;
+        }
+
+        svg {
+          display: block;
+          width: 100%;
+          height: var(--plot);
+          padding-top: 3px;
+        }
+
+        .fill {
+          fill: var(--ink);
+          fill-opacity: 0.16;
+        }
+
+        .line {
+          fill: none;
+          stroke: var(--ink);
+          stroke-width: 1.5;
+          stroke-opacity: 0.85;
+          vector-effect: non-scaling-stroke;
+        }
+
+        /* (The month read, across the plots' column.) */
+        .cursor {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: calc(var(--name) + var(--gap) + (100% - var(--name) - var(--value) - 2 * var(--gap)) * var(--at));
+          border-left: 1px solid var(--answer);
+          pointer-events: none;
+
+          &[hidden] {
+            display: none;
+          }
+        }
+      }
+
+      .years {
+        position: relative;
+        height: 18px;
+        margin: 6px calc(var(--value) + var(--gap)) 0 calc(var(--name) + var(--gap));
+        color: var(--soft);
+        font-size: 11px;
+
+        span {
+          position: absolute;
+          translate: -50% 0;
+        }
+      }
+
+      /* What's under the pointer on the planet. */
+      .float {
+        position: fixed;
+        z-index: 10;
+        max-width: 260px;
+        border: 1px solid var(--line);
+        padding: 8px 10px;
+        color: var(--soft);
+        background: var(--plate);
+        font-size: 12px;
+        pointer-events: none;
+
+        b {
+          display: block;
+          margin-bottom: 2px;
+          color: var(--ink);
+          font-weight: 500;
+        }
+
+        &[hidden] {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+      /* (A finger's reach, unseen: the brand 44px tall; the periods 44px too, grown upward only, into the heading's room:
+         the countries are just under them.) */
+      a.brand {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+
+      .play {
+        position: relative;
+
+        /* (For fingers: a pointer needs none; grown upward only, into the section's top room: the chart is just under it.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -17px 0 0;
+          }
+        }
+      }
+
+      .periods button {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -12px 0 0;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <!-- One screen of data: the planet with the period's shares, the countries and the latest blocks beside it, and how
+           it moved since 2011 under it. -->
+      <section class="app" aria-labelledby="title">
+        <header class="top">
+          <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+          <h1 id="title">Where blocks are mined</h1>
+          <span class="tip-height" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
+        </header>
+        <canvas id="globe" role="img" aria-label="A globe, each country lit by its share of the blocks; the list of countries has the same."></canvas>
+        <div class="board">
+          <div class="board-head">
+            <span class="when" id="when">&nbsp;</span>
+            <span class="total num" id="total">&nbsp;</span>
+          </div>
+          <div class="periods" role="group" aria-label="Over" id="periods"></div>
+          <ol class="countries" id="countries" aria-label="Countries by blocks"></ol>
+          <p class="note">By each pool's home, not where its machines run, which the chain doesn't say.</p>
+          <div class="ticker">
+            <span class="kicker" id="latest-title">Latest blocks</span>
+            <ol class="latest" id="latest" aria-labelledby="latest-title"></ol>
+            <p class="said" id="said" role="status"></p>
+          </div>
+        </div>
+        <!-- How it moved: each country's share month by month since 2011; read a month across them, the globe goes too. -->
+        <section class="history" id="history" aria-labelledby="history-title">
+          <div class="history-head">
+            <h2 class="kicker" id="history-title">Share of blocks by month, since 2011</h2>
+            <output class="num" id="history-when"></output>
+            <button type="button" class="play" id="play" disabled>Play</button>
+          </div>
+          <div class="events" id="events" aria-hidden="true"></div>
+          <div class="message" id="history-message">Loading…</div>
+          <div class="area" id="area" hidden></div>
+          <div class="years" id="years" aria-hidden="true"></div>
+        </section>
+      </section>
+    </main>
+    <div class="float" id="float" hidden aria-hidden="true"></div>
+    <script type="module">
+      // @ts-check
+      // Where blocks are mined: each pool's home country (researched below), every block counted there; over a period, or
+      // month by month since 2011; live as blocks are found. All from the server that serves the page, but the map
+      // (world-atlas, kept beside the page).
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      const groupedFormat = new Intl.NumberFormat("en-US");
+      const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
+      const percent = (/** @type {number} */ share) => (share > 0 && share < 0.001 ? "<0.1%" : `${(share * 100).toFixed(share >= 0.1 ? 0 : 1)}%`);
+      const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const canvas = /** @type {HTMLCanvasElement} */ ($("globe"));
+      const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+
+      // Countries that host at least one known pool. `at` is [lon, lat] of the
+      // marker; `id` is the ISO 3166-1 numeric code used by world-atlas.
+      const COUNTRIES = {
+        US: { id: "840", name: "United States", at: [-98.5, 39.5] },
+        CN: { id: "156", name: "China", at: [104, 35] },
+        CA: { id: "124", name: "Canada", at: [-106, 56] },
+        JP: { id: "392", name: "Japan", at: [138.3, 36.2] },
+        IN: { id: "356", name: "India", at: [79, 22] },
+        NO: { id: "578", name: "Norway", at: [9, 61] },
+        RU: { id: "643", name: "Russia", at: [90, 60] },
+        AU: { id: "036", name: "Australia", at: [134, -25] },
+        GB: { id: "826", name: "United Kingdom", at: [-2, 54] },
+        PL: { id: "616", name: "Poland", at: [19.4, 52] },
+        SE: { id: "752", name: "Sweden", at: [15, 62] },
+        DE: { id: "276", name: "Germany", at: [10.4, 51.1] },
+        CZ: { id: "203", name: "Czechia", at: [15.5, 49.8] },
+        SI: { id: "705", name: "Slovenia", at: [14.8, 46.1] },
+        NL: { id: "528", name: "Netherlands", at: [5.3, 52.2] },
+        UA: { id: "804", name: "Ukraine", at: [31, 49] },
+        AE: { id: "784", name: "United Arab Emirates", at: [54, 24] },
+        SG: { id: "702", name: "Singapore", at: [103.82, 1.35] },
+        SC: { id: "690", name: "Seychelles", at: [55.49, -4.68] },
+        HK: { id: "344", name: "Hong Kong", at: [114.17, 22.32] },
+        LT: { id: "440", name: "Lithuania", at: [23.9, 55.3] },
+        NZ: { id: "554", name: "New Zealand", at: [172.5, -41.5] },
+      };
+
+      // Where each pool is run from, by Bitview pool slug. That's the operating
+      // headquarters, not the legal domicile: many pools sit in Singapore, Hong
+      // Kong, Cayman or Seychelles shells while being run elsewhere; those only
+      // decide when nothing else is known. Pools missing here (and `unknown`)
+      // are shown as the moon, e.g. Binance Pool, whose parent says it has no
+      // headquarters, and pools with no public operator information.
+      const HEADQUARTERS = {
+        US: `foundryusa marapool luxor ocean titan blockfills btcguild eligius eclipsemc
+             coinlab cointerra 21inc cloudhashing eobot simplecoinus shawnp0wers wk057
+             futurebitapollosolo portlandhodl
+             bitclub megabigpower hhtt telco214`, // BitClub: US operators (DOJ); MegaBigPower: Washington state; HHTT: run by fireduck; Telco 214: US telecom
+        // AntPool is legally Singaporean, SpiderPool Caymanian; both are run from Beijing.
+        CN: `antpool f2pool viabtc spiderpool poolin cloverpool huobipool okexpool okpooltop
+             okminer 1thash btctop 175btc asicminer btcc bwpool exxbw 8baochi tbdice
+             hotpool 1hash bixin connectbtc batpool btpool 58coin haozhuzhu 7pool dpool
+             rawpool haominer tangpool bytepool novablock lubiancom aaopool purebtccom
+             wayicn canoepool canoe okkong
+             secpool`, // SECPOOL: inferred. Chinese-first site, AntPool templates and custody (b10c, TheMinerMag); its app is sold by "Fair Mine Hub Limited"
+        CA: "bitfarms terrapool", // Terra Pool: run by DMG Blockchain Solutions (Vancouver) with Argo
+        JP: "sbicrypto bitcoincom", // Bitcoin.com was run from Tokyo while its pool mined (2016–2019)
+        IN: "gbminers bitcoinindia bitcoinindiapool",
+        NO: "bitminter",
+        RU: "bitcoinrussia 50btc sigmapoolcom innopolistech",
+        AU: "ozcoin ckpool solock kanopool digitalbtc digitalxmintsy", // ckpool and KanoPool: the Australian cgminer developers
+        GB: "ghashio pegapool", // GHash.IO: CEX.IO, London; PEGA Pool: PEGA Mining Ltd
+        PL: "polmine",
+        SE: "kncminer gogreenlight", // GoGreenLight: Uppsala, bought KnCMiner's hardware
+        DE: "bitalo",
+        CZ: "braiinspool braiinssolo",
+        SI: "nicehash", // Maribor
+        NL: "bitfury miningdutch",
+        UA: "bitcoinukraine",
+        LT: "whitepool", // WhiteBIT, which moved its headquarters from Kyiv to Vilnius
+        AE: "phoenix",
+        SG: "bitfufupool miningsquared", // Mining Squared: B² Network
+        HK: "emcdpool", // EMCD states Hong Kong as its headquarters (Russian-founded, Moscow office)
+        NZ: "bitparking", // run by doublec (Chris Double)
+        SC: "kucoinpool",
+      };
+
+      const POOL_COUNTRY = new Map(
+        Object.entries(HEADQUARTERS).flatMap(([cc, slugs]) =>
+          slugs.split(/\s+/).filter(Boolean).map((slug) => [slug, cc]),
+        ),
+      );
+      const CC_BY_ID = new Map(Object.entries(COUNTRIES).map(([cc, c]) => [c.id, cc]));
+
+      // An orthographic globe, written out: just the geometry this page needs. -----------
+      // Points are [lon, lat] degrees; `view` turns them into unit vectors in view space,
+      // [right, up, toward the viewer], after spinning by rot[0] and tilting by rot[1].
+      const RAD = Math.PI / 180;
+      const TAU = Math.PI * 2;
+
+      /** @param {number[]} point [lon, lat] */
+      function view([lon, lat]) {
+        const spin = (lon + rot[0]) * RAD;
+        const phi = lat * RAD;
+        const tilt = rot[1] * RAD;
+        const x = Math.cos(phi) * Math.cos(spin);
+        const y = Math.cos(phi) * Math.sin(spin);
+        const z = Math.sin(phi);
+        return [y, z * Math.cos(tilt) + x * Math.sin(tilt), x * Math.cos(tilt) - z * Math.sin(tilt)];
+      }
+      const toScreen = (/** @type {number[]} */ [x, y]) => [cx + R * x, cy - R * y];
+
+      /** Screen point to [lon, lat], or null off the globe. */
+      function invert(sx, sy) {
+        const x = (sx - cx) / R;
+        const y = (cy - sy) / R;
+        const d = x * x + y * y;
+        if (d > 1) return null;
+        const z = Math.sqrt(1 - d);
+        const tilt = rot[1] * RAD;
+        const lon = Math.atan2(x, z * Math.cos(tilt) + y * Math.sin(tilt)) / RAD - rot[0];
+        const lat = Math.asin(Math.max(-1, Math.min(1, y * Math.cos(tilt) - z * Math.sin(tilt)))) / RAD;
+        return [((lon + 540) % 360) - 180, lat];
+      }
+
+      const polygonsOf = (geometry) => (geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates);
+
+      /** Whether [lon, lat] lies inside a geometry (the atlas is cut at the antimeridian). @param {number[]} point */
+      function contains(geometry, point) {
+        const [lon, lat] = point;
+        let inside = false;
+        for (const ring of polygonsOf(geometry).flat()) {
+          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const [xi, yi] = ring[i];
+            const [xj, yj] = ring[j];
+            if (yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi) inside = !inside;
+          }
+        }
+        return inside;
+      }
+
+      /** TopoJSON → plain geometries: decode the quantized arcs and stitch them into rings. */
+      function decodeTopology(topology) {
+        const [kx, ky] = topology.transform.scale;
+        const [dx, dy] = topology.transform.translate;
+        const arcs = topology.arcs.map((arc) => {
+          let [x, y] = [0, 0];
+          return arc.map(([ax, ay]) => [(x += ax) * kx + dx, (y += ay) * ky + dy]);
+        });
+        const line = (indexes) => indexes.flatMap((index, i) => {
+          const points = index < 0 ? arcs[~index].toReversed() : arcs[index];
+          return i ? points.slice(1) : points;
+        });
+        const geometries = (name) => topology.objects[name].geometries.map(({ type, arcs: indexes, id }) => ({
+          id,
+          type,
+          coordinates: type === "Polygon" ? indexes.map(line) : indexes.map((polygon) => polygon.map(line)),
+        }));
+        return { geometries };
+      }
+
+      // ── State ──
+      let W = 0, H = 0, R = 100, cx = 0, cy = 0;
+      const rot = [-20, -28, 0];
+      /** @type {{ geometry: any, cc: string | undefined }[]} */
+      let features = [];
+      /** Pools' names by slug. */
+      const names = new Map([["unknown", "Unknown"]]);
+      /** The countries with the most blocks ever, the most first: a row each in the history. @type {string[]} */
+      let leading = [];
+      /** One color: a block with a known home in the answer's orange, the rest faint. */
+      const colorOf = (/** @type {string | null} */ cc) => (cc ? "var(--answer)" : "var(--faint)");
+
+      /** @typedef {{ cc: string | null, count: number, pools: { slug: string, count: number }[] }} Row */
+      /** A period's or a month's blocks by country; a period's, the network's hashrate too. @typedef {{ label: string, total: number, rows: Row[], hashrate?: number }} Snapshot */
+      /** @type {Snapshot | null} */
+      let snapshot = null;
+      /** What the globe and list show: a period (as the API names it), or a month of the history. */
+      let period = "1w";
+      /** @type {number | null} */
+      let month = null;
+      /** The row opened: a country's code, `UNKNOWN` for the blocks without a known home; none, null. */
+      const UNKNOWN = "unknown";
+      /** @type {string | null} */
+      let selected = null;
+      const keyOf = (/** @type {Row} */ row) => row.cc ?? UNKNOWN;
+      /** @type {{ months: string[], total: number[], pools: Map<string, number[]> } | null} */
+      let history = null;
+      /** New blocks landing: [lon, lat], when. @type {{ at: number[], t0: number }[]} */
+      const pulses = [];
+
+      const PERIODS = /** @type {[string, string, string][]} */ ([
+        ["24h", "24h", "Past 24 hours"],
+        ["1w", "Week", "Past week"],
+        ["1m", "Month", "Past month"],
+        ["1y", "Year", "Past year"],
+        ["all", "All", "All time"],
+      ]);
+      /** What moved the map, by month: the halvings, and China's ban on mining. */
+      const EVENTS = /** @type {[string, string][]} */ ([
+        ["2012-11-01", "1st halving"],
+        ["2016-07-01", "2nd halving"],
+        ["2020-05-01", "3rd halving"],
+        ["2021-05-01", "China bans mining"],
+        ["2024-04-01", "4th halving"],
+      ]);
+      /** A hashrate as an instrument reads it: three digits and its unit. */
+      const rate = (/** @type {number} */ hashes) => {
+        const units = ["H/s", "kH/s", "MH/s", "GH/s", "TH/s", "PH/s", "EH/s", "ZH/s"];
+        const k = Math.min(units.length - 1, Math.max(0, Math.floor(Math.log10(hashes) / 3)));
+        return `${Number((hashes / 1000 ** k).toPrecision(3))} ${units[k]}`;
+      };
+
+      /** Rows by country, the most first, the blocks without a known home last. */
+      function tally(/** @type {{ slug: string, count: number }[]} */ list, /** @type {number} */ total) {
+        /** @type {Map<string | null, Row>} */
+        const rows = new Map();
+        let known = 0;
+        for (const { slug, count } of list) {
+          if (!count) continue;
+          const cc = POOL_COUNTRY.get(slug) ?? null;
+          const row = rows.get(cc) ?? rows.set(cc, { cc, count: 0, pools: [] }).get(cc);
+          row.count += count;
+          row.pools.push({ slug, count });
+          if (cc) known += count;
+        }
+        const unknown = rows.get(null) ?? { cc: null, count: 0, pools: [] };
+        unknown.count = Math.max(0, total - known);
+        for (const row of rows.values()) row.pools.sort((a, b) => b.count - a.count);
+        return [...rows.values()].filter((row) => row.cc).sort((a, b) => b.count - a.count).concat(unknown.count ? [unknown] : []);
+      }
+
+      // ── Data, from the server that serves the page ──
+      const json = (/** @type {string} */ path, /** @type {AbortSignal | undefined} */ signal = undefined) =>
+        fetch(path, { signal }).then((response) => (response.ok ? response.json() : Promise.reject(new Error(`The server answered ${response.status}.`))));
+      /** Each period's counts, as asked for (the latest ask stands: one forgotten is stopped). @type {Map<string, { asked: Promise<Snapshot>, stop: AbortController }>} */
+      const periods = new Map();
+      function loadPeriod(/** @type {string} */ p) {
+        const known = periods.get(p);
+        if (known) return known.asked;
+        const stop = new AbortController(), asked = fetchPeriod(p, stop.signal);
+        periods.set(p, { asked, stop });
+        asked.catch(() => periods.get(p)?.asked === asked && periods.delete(p));
+        return asked;
+      }
+      /** Every period's counts forgotten (a new block makes them old), those still on their way stopped. */
+      function forgetPeriods() {
+        for (const { stop } of periods.values()) stop.abort();
+        periods.clear();
+      }
+      async function fetchPeriod(/** @type {string} */ p, /** @type {AbortSignal} */ signal) {
+        const answer = await json(`/api/v1/mining/pools/${p}`, signal);
+        for (const pool of answer.pools) names.set(pool.slug, pool.name);
+        const label = /** @type {string} */ (PERIODS.find(([id]) => id === p)?.[2]);
+        // (The network's hashrate for a day's or a week's blocks; for longer, none matches: no implied hashrates.)
+        const hashrate = { "24h": answer.lastEstimatedHashrate, "1w": answer.lastEstimatedHashrate1w }[p];
+        const result = { label, total: answer.blockCount, hashrate, rows: tally(answer.pools.map((pool) => ({ slug: pool.slug, count: pool.blockCount })), answer.blockCount) };
+        return result;
+      }
+      /** Every month's blocks, by pool with a known home (their running counts, 30 to a request, as the API allows). */
+      async function loadHistory(/** @type {{ slug: string, blockCount: number }[]} */ allTime) {
+        const slugs = allTime.filter((pool) => pool.blockCount && POOL_COUNTRY.has(pool.slug)).map((pool) => pool.slug);
+        const chunks = [];
+        for (let i = 0; i < slugs.length; i += 30) chunks.push(slugs.slice(i, i + 30));
+        const answers = await Promise.all(chunks.map((chunk, i) => json(`/api/series/bulk?${new URLSearchParams({ series: [...(i ? [] : ["date", "block_count_cumulative"]), ...chunk.map((slug) => `pool_${slug}_block_count_cumulative`)].join(","), index: "month1" })}`)));
+        const monthly = (/** @type {number[]} */ running) => running.map((value, k) => (value ?? 0) - (k ? running[k - 1] ?? 0 : 0));
+        const [dates, total] = answers[0];
+        const pools = new Map();
+        answers.forEach((answer, i) => answer.slice(i ? 0 : 2).forEach((series, j) => pools.set(chunks[i][j], monthly(series.data))));
+        // (From 2011: before, too few blocks had a known pool to say much.)
+        const from = dates.data.indexOf("2011-01-01");
+        return { months: dates.data.slice(from), total: monthly(total.data).slice(from), pools: new Map([...pools].map(([slug, values]) => [slug, values.slice(from)])) };
+      }
+      /** A month of the history by name: "March 2021". */
+      function monthLabel(/** @type {number} */ k) {
+        const [year, m] = /** @type {NonNullable<typeof history>} */ (history).months[k].split("-").map(Number);
+        return `${MONTHS[m - 1]} ${year}`;
+      }
+      function monthSnapshot(/** @type {number} */ k) {
+        const h = /** @type {NonNullable<typeof history>} */ (history);
+        return { label: monthLabel(k), total: h.total[k], rows: tally([...h.pools].map(([slug, values]) => ({ slug, count: values[k] })), h.total[k]) };
+      }
+
+      // ── The board: the period or month, its countries ──
+      $("periods").append(...PERIODS.map(([id, short, label]) => {
+        const button = Object.assign(document.createElement("button"), { type: "button", textContent: short });
+        button.dataset.period = id;
+        button.title = label;
+        button.addEventListener("click", () => setPeriod(id));
+        return button;
+      }));
+      function drawBoard() {
+        if (!snapshot) return;
+        const shown = snapshot;
+        // (The row that had the focus keeps it, drawn again.)
+        const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".country") ?? null)?.dataset.key;
+        $("when").textContent = shown.label;
+        $("total").textContent = `${grouped(shown.total)} blocks`;
+        pressPeriods();
+        $("countries").replaceChildren(...shown.rows.map((row) => {
+          const key = keyOf(row), open = key === selected, share = shown.total ? row.count / shown.total : 0;
+          const item = Object.assign(document.createElement("li"), { className: `country${open ? " active" : ""}` });
+          item.dataset.key = key;
+          const button = Object.assign(document.createElement("button"), { type: "button" });
+          button.style.setProperty("--color", colorOf(row.cc));
+          button.style.setProperty("--share", `${(share * 100).toFixed(2)}%`);
+          if (row.pools.length) button.setAttribute("aria-expanded", String(open));
+          const label = Object.assign(document.createElement("span"), { className: "name", textContent: row.cc ? COUNTRIES[row.cc].name : "No known home" });
+          // (A period's: its hashrate, as the share of the network's that its blocks say.)
+          if (shown.hashrate && share) label.append(Object.assign(document.createElement("small"), { className: "rate num", textContent: `≈ ${rate(shown.hashrate * share)}` }));
+          button.append(
+            Object.assign(document.createElement("span"), { className: "swatch" }),
+            label,
+            Object.assign(document.createElement("span"), { className: "count num", textContent: grouped(row.count) }),
+            Object.assign(document.createElement("span"), { className: "share num", textContent: percent(share) }),
+            Object.assign(document.createElement("span"), { className: "bar" }),
+          );
+          button.addEventListener("click", () => select(open ? null : key));
+          item.append(button);
+          if (open && row.pools.length) {
+            const pools = Object.assign(document.createElement("ul"), { className: "pools" });
+            pools.append(...row.pools.slice(0, 6).map(({ slug, count }) => {
+              const pool = document.createElement("li");
+              pool.append(Object.assign(document.createElement("span"), { textContent: names.get(slug) ?? slug }), Object.assign(document.createElement("span"), { className: "num", textContent: grouped(count) }));
+              return pool;
+            }));
+            if (row.pools.length > 6) pools.append(Object.assign(document.createElement("li"), { textContent: `And ${row.pools.length - 6} more` }));
+            item.append(pools);
+          }
+          return item;
+        }));
+        if (focused) /** @type {HTMLElement | null} */ ($("countries").querySelector(`[data-key="${focused}"] > button`))?.focus({ preventScroll: true });
+        invalidate();
+      }
+      function select(/** @type {string | null} */ key) {
+        selected = key;
+        drawBoard();
+        if (key && COUNTRIES[key]) flyTo(COUNTRIES[key].at);
+      }
+      /** The period shown pressed (none while a month is). */
+      function pressPeriods() {
+        for (const button of $("periods").querySelectorAll("button")) button.setAttribute("aria-pressed", String(month === null && /** @type {HTMLElement} */ (button).dataset.period === period));
+      }
+      async function setPeriod(/** @type {string} */ p) {
+        stopPlaying();
+        period = p;
+        month = pinned = null;
+        pressPeriods();
+        drawCursor();
+        const asked = loadPeriod(p);
+        try {
+          const shown = await asked;
+          if (period !== p || month !== null || periods.get(p)?.asked !== asked) return;
+          snapshot = shown;
+          drawBoard();
+          greet();
+        } catch (error) {
+          // (Said if it's still the period shown and no other ask for it came since: a failed one's forgotten, a stopped
+          // one replaced.)
+          if (period === p && month === null && /** @type {Error} */ (error).name !== "AbortError" && (periods.get(p)?.asked ?? asked) === asked) {
+            $("countries").replaceChildren(failure(/** @type {Error} */ (error), () => setPeriod(p)));
+          }
+        }
+      }
+      /** What failed, in the page's words (a fetch that never reached the server fails as a TypeError), and a way to try again. */
+      /** The answer first, once: with the first counts shown, the globe turns to their leading country, a little east of it
+       * so the slow turn brings it across the middle; unless it's been taken in hand (a drag, a pick) by then. */
+      let greeted = false;
+      function greet() {
+        if (greeted) return;
+        greeted = true;
+        const lead = snapshot?.rows.find((row) => row.cc);
+        if (lead && !selected && !dragging) flyTo([COUNTRIES[lead.cc].at[0] + (reduced.matches ? 0 : 15), COUNTRIES[lead.cc].at[1]]);
+      }
+      function failure(/** @type {Error} */ error, /** @type {() => void} */ again) {
+        const message = Object.assign(document.createElement("li"), { className: "message" }), retry = Object.assign(document.createElement("button"), { type: "button", className: "play", textContent: "Try again" });
+        retry.addEventListener("click", again);
+        message.append(Object.assign(document.createElement("p"), { textContent: error instanceof TypeError ? "This server couldn't be reached." : error.message }), retry);
+        return message;
+      }
+      function setMonth(/** @type {number | null} */ k) {
+        if (k === null) return setPeriod(period);
+        if (k === month) return;
+        month = k;
+        snapshot = monthSnapshot(k);
+        drawBoard();
+        drawCursor();
+      }
+
+      // ── The globe ──
+      /** The page's inks as the canvas needs them (custom properties come back unresolved: read through a probe). */
+      const ink = /** @type {Record<string, string>} */ ({});
+      let font = "";
+      function readInks() {
+        font = `500 12px ${getComputedStyle(document.body).fontFamily}`;
+        const probe = document.createElement("span");
+        document.body.append(probe);
+        for (const name of ["ink", "faint", "app", "answer", "line"]) {
+          probe.style.color = `var(--${name})`;
+          ink[name] = getComputedStyle(probe).color;
+        }
+        probe.remove();
+      }
+
+      /** The planet fills its box, a little in from its edges; its names keep inside it. */
+      function resize() {
+        const box = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+        W = box.width;
+        H = box.height;
+        canvas.width = Math.round(W * dpr);
+        canvas.height = Math.round(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // (Wide, as close as reads: past its box's top and bottom, which fade into the page; else whole in its square.)
+        const close = W > H * 1.3;
+        cx = W / 2;
+        cy = H / 2;
+        R = close ? Math.min(W / 2 - 12, H * 0.62) : Math.min(W, H) / 2 - 12;
+        invalidate();
+      }
+      new ResizeObserver(resize).observe(canvas);
+      // (The inks again with the scheme or Increase Contrast: the canvas draws with them.)
+      for (const query of ["(prefers-color-scheme: dark)", "(prefers-contrast: more)"]) matchMedia(query).addEventListener("change", () => (readInks(), invalidate()));
+
+      /** A country's share now, and the largest. */
+      function shares() {
+        const byCountry = new Map(), shown = snapshot;
+        if (!shown?.total) return { byCountry, top: 1, unknown: 0 };
+        let unknown = 0;
+        for (const row of shown.rows) {
+          if (row.cc) byCountry.set(row.cc, row.count / shown.total);
+          else unknown = row.count / shown.total;
+        }
+        return { byCountry, top: Math.max(...byCountry.values(), 0.0001), unknown };
+      }
+
+      /** Where the sun is overhead now ([lon, lat]: its declination by the day of the year, its longitude by the hour). */
+      function subsolar(/** @type {Date} */ date) {
+        const day = (date.getTime() - Date.UTC(date.getUTCFullYear(), 0, 0)) / 86_400_000;
+        const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
+        return [-15 * (hours - 12), -23.44 * Math.cos(((2 * Math.PI) / 365) * (day + 10))];
+      }
+      /** A [lon, lat] as a point on the unit sphere. */
+      const unit = (/** @type {number} */ lon, /** @type {number} */ lat) => [Math.cos(lat * RAD) * Math.cos(lon * RAD), Math.cos(lat * RAD) * Math.sin(lon * RAD), Math.sin(lat * RAD)];
+
+      /** The names placed this frame, as boxes. @type {number[][]} */
+      let placed = [];
+      /** A name beside its mark, on whichever side it fits, else just above or below that side (none fitting: none),
+       * haloed in the page's color. */
+      function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius) {
+        const width = ctx.measureText(text).width;
+        // (Clear of the box's faded top and bottom, where the planet runs past it.)
+        if (W > H * 1.3 && (y < H * 0.12 || y > H * 0.86)) return;
+        // (Nor over a mark, or a name already placed: the larger share, named first, keeps its place.)
+        const free = (/** @type {number} */ left, /** @type {number} */ at) => !placed.some(([l, t, r, b]) => left < r && left + width > l && at - 10 < b && at + 6 > t);
+        const spots = [0, -16, 16].flatMap((dy) => [x + radius + 8, x - radius - 8 - width].map((left) => [left, y + dy]));
+        const spot = spots.find(([left, at]) => left >= 4 && left + width <= W - 4 && free(left, at));
+        if (!spot) return;
+        const [left, at] = spot;
+        placed.push([left - 4, at - 12, left + width + 4, at + 8]);
+        const right = left > x, tx = right ? left : left + width;
+        ctx.textAlign = right ? "left" : "right";
+        ctx.lineWidth = 4;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = ink.app;
+        ctx.fillStyle = ink.ink;
+        ctx.strokeText(text, tx, at + 4);
+        ctx.fillText(text, tx, at + 4);
+        ctx.textAlign = "left";
+      }
+
+      /** The land as a print: a dot every STEP degrees of it (spaced as evenly over the sphere as rows allow), each with its
+       * country (the index of its feature) and its place on the unit sphere. Below 60° south, none: no one mines there. */
+      const STEP = 1.1;
+      let dots = { lon: new Float32Array(0), lat: new Float32Array(0), xyz: new Float32Array(0), cc: /** @type {(string | undefined)[]} */ ([]) };
+      function printLand() {
+        const boxes = features.map((feature) => {
+          let [w, s, e, n] = [180, 90, -180, -90];
+          for (const ring of polygonsOf(feature.geometry).flat()) for (const [lon, lat] of ring) [w, s, e, n] = [Math.min(w, lon), Math.min(s, lat), Math.max(e, lon), Math.max(n, lat)];
+          return [w, s, e, n];
+        });
+        const lon = [], lat = [], xyz = [], cc = [];
+        for (let y = 83; y >= -60; y -= STEP) {
+          const step = STEP / Math.max(0.2, Math.cos(y * RAD));
+          for (let x = -180 + step / 2; x < 180; x += step) {
+            const k = features.findIndex((feature, i) => x >= boxes[i][0] && x <= boxes[i][2] && y >= boxes[i][1] && y <= boxes[i][3] && contains(feature.geometry, [x, y]));
+            if (k < 0) continue;
+            lon.push(x);
+            lat.push(y);
+            xyz.push(...unit(x, y));
+            cc.push(features[k].cc);
+          }
+        }
+        dots = { lon: Float32Array.from(lon), lat: Float32Array.from(lat), xyz: Float32Array.from(xyz), cc };
+      }
+
+      /** Each named country's mark: where it is on screen, how near counts as on it. @type {{ cc: string, x: number, y: number, r: number }[]} */
+      let marks = [];
+      /** Dots by how they're inked: the land's, then the countries' that mine, each at one of ALPHAS strengths. */
+      const ALPHAS = 12;
+      function draw(/** @type {number} */ now) {
+        ctx.clearRect(0, 0, W, H);
+        // (No room for a planet yet: a canvas laid out at nothing, or not at all.)
+        if (!(R > 0)) return;
+        ctx.font = font;
+        const { byCountry, top } = shares();
+        // The planet: a faint body of its own, its edge a hairline.
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, TAU);
+        ctx.globalAlpha = 0.035;
+        ctx.fillStyle = ink.ink;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = ink.line;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        // The dots: faint where the planet turns away, a little darker on the night side; a country's in the answer's
+        // orange, as strong as its share (the one picked, full).
+        const sun = unit(...subsolar(new Date())), size = Math.max(0.6, R * STEP * RAD * 0.26);
+        const buckets = Array.from({ length: 2 * ALPHAS }, () => new Path2D());
+        // (view() for every dot, from its unit vector: the spin and tilt's sines and cosines once a frame, then sums and
+        // products a dot, nothing made per dot: thousands of them, every frame the planet turns.)
+        const spin = rot[0] * RAD, tilt = rot[1] * RAD, cs = Math.cos(spin), ss = Math.sin(spin), ct = Math.cos(tilt), st = Math.sin(tilt);
+        const xyz = dots.xyz;
+        for (let i = 0; i < dots.cc.length; i++) {
+          const X = xyz[3 * i], Y = xyz[3 * i + 1], Z = xyz[3 * i + 2], sx = X * cs - Y * ss, depth = sx * ct - Z * st;
+          if (depth <= 0) continue;
+          const right = X * ss + Y * cs, up = Z * ct + sx * st;
+          const day = X * sun[0] + Y * sun[1] + Z * sun[2];
+          const fade = Math.min(1, depth * 3) * (day > 0 ? 1 : 0.6), cc = dots.cc[i], share = cc ? byCountry.get(cc) : undefined;
+          const strength = share ? (cc === selected ? 1 : 0.45 + 0.55 * Math.sqrt(share / top)) * fade : 0.42 * fade;
+          const x = cx + R * right, y = cy - R * up, r = size * (0.6 + 0.4 * depth) * (share ? 1.25 : 1);
+          const path = buckets[(share ? ALPHAS : 0) + Math.min(ALPHAS - 1, Math.floor(strength * ALPHAS))];
+          path.moveTo(x + r, y);
+          path.arc(x, y, r, 0, TAU);
+        }
+        buckets.forEach((path, k) => {
+          ctx.globalAlpha = ((k % ALPHAS) + 0.5) / ALPHAS;
+          ctx.fillStyle = k < ALPHAS ? ink.ink : ink.answer;
+          ctx.fill(path);
+        });
+        ctx.globalAlpha = 1;
+        // The five biggest and the one picked, named beside a mark at their middle.
+        // (Every mark first, then the names, each clear of the marks as of the names before it.)
+        const named = [...byCountry].sort((a, b) => b[1] - a[1]).flatMap(([cc, share], rank) => {
+          const v = view(COUNTRIES[cc].at);
+          return v[2] > 0.05 && (rank < 5 || cc === selected) ? [{ cc, share, v, at: toScreen(v) }] : [];
+        });
+        // (Pointing finds a named one by its mark; the rest, by their shape.)
+        marks = named.map(({ cc, at: [x, y] }) => ({ cc, x, y, r: 8 }));
+        placed = named.map(({ at: [x, y] }) => [x - 6, y - 6, x + 6, y + 6]);
+        for (const { v, at: [x, y] } of named) {
+          ctx.globalAlpha = Math.min(1, v[2] * 3);
+          ctx.fillStyle = ink.ink;
+          ctx.strokeStyle = ink.app;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, TAU);
+          ctx.stroke();
+          ctx.fill();
+        }
+        for (const { cc, share, v, at: [x, y] } of named) {
+          ctx.globalAlpha = Math.min(1, v[2] * 3);
+          label(`${COUNTRIES[cc].name} ${percent(share)}`, x, y, 3);
+        }
+        ctx.globalAlpha = 1;
+        // Blocks landing: a ring that widens and fades.
+        for (let i = pulses.length - 1; i >= 0; i--) {
+          const pulse = pulses[i], t = (now - pulse.t0) / 1800;
+          if (t >= 1) {
+            pulses.splice(i, 1);
+            continue;
+          }
+          const v = view(pulse.at);
+          if (v[2] <= 0) continue;
+          const [x, y] = toScreen(v);
+          ctx.globalAlpha = 1 - t;
+          ctx.strokeStyle = ink.answer;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(x, y, 6 + 40 * t, 0, TAU);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // ── Motion: a slow turn, a drag, a flight; drawn only while something moves, and on screen ──
+      /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
+      let flight = null;
+      let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
+      let last = 0, frameId = 0, onScreen = true;
+      const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+      /** Whether anything moves of itself: the turn (unless motion's reduced or a country's picked), a flight, a ring. */
+      const moving = () => Boolean(flight || pulses.length || (!reduced.matches && !selected && !dragging));
+      function invalidate() {
+        if (!frameId && onScreen) frameId = requestAnimationFrame(frame);
+      }
+      function flyTo(/** @type {number[]} */ at) {
+        const to = [-at[0], Math.max(-55, Math.min(55, -at[1]))], turn = ((to[0] - rot[0] + 540) % 360) - 180;
+        flight = { from: [rot[0], rot[1]], to: [rot[0] + turn, to[1]], t0: performance.now(), dur: reduced.matches ? 0 : Math.min(2000, 600 + Math.hypot(turn, to[1] - rot[1]) * 8) };
+        invalidate();
+      }
+      function frame(/** @type {number} */ now) {
+        frameId = 0;
+        const dt = Math.min(100, now - (last || now));
+        last = now;
+        if (flight) {
+          const t = flight.dur ? Math.min(1, (now - flight.t0) / flight.dur) : 1, k = ease(t);
+          rot[0] = flight.from[0] + (flight.to[0] - flight.from[0]) * k;
+          rot[1] = flight.from[1] + (flight.to[1] - flight.from[1]) * k;
+          if (t >= 1) flight = null;
+        } else if (moving()) {
+          rot[0] += dt * 0.004;
+        }
+        draw(now);
+        if (moving()) invalidate();
+        else last = 0;
+      }
+      new IntersectionObserver(([entry]) => {
+        onScreen = entry.isIntersecting;
+        if (onScreen) invalidate();
+      }).observe(canvas);
+      reduced.addEventListener("change", invalidate);
+      document.addEventListener("visibilitychange", () => (last = 0));
+
+      // Drag to turn; a tap or click (no drag) picks what's under it (a dot, a country, the moon); pointing says what it holds.
+      canvas.addEventListener("pointerdown", (event) => {
+        dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false };
+        flight = null;
+        greeted = true;
+      });
+      addEventListener("pointermove", (event) => {
+        if (dragging) {
+          const dx = event.clientX - dragging.x, dy = event.clientY - dragging.y;
+          if (Math.hypot(dx, dy) > 4) {
+            dragging.moved = true;
+            canvas.classList.add("dragging");
+          }
+          rot[0] = dragging.rot[0] + dx * (90 / R);
+          rot[1] = Math.max(-80, Math.min(80, dragging.rot[1] - dy * (90 / R)));
+          invalidate();
+        } else if (event.target === canvas && event.pointerType === "mouse") showFloat(pickAt(event), event);
+      });
+      addEventListener("pointerup", (event) => {
+        if (dragging && !dragging.moved && event.target === canvas) {
+          const key = pickAt(event);
+          select(key && key !== selected ? key : null);
+        }
+        dragging = null;
+        canvas.classList.remove("dragging");
+        invalidate();
+      });
+      canvas.addEventListener("pointerleave", () => showFloat(null));
+      canvas.addEventListener("pointercancel", () => ((dragging = null), canvas.classList.remove("dragging"), invalidate()));
+      /** What's under a pointer: a country by its shape, or a named one's mark (the small ones have no shape on this map). */
+      function pickAt(/** @type {PointerEvent} */ event) {
+        const box = canvas.getBoundingClientRect(), x = event.clientX - box.left, y = event.clientY - box.top;
+        // (The country under it by its shape; else a named one's mark near it, for those too small to have one here.)
+        const at = invert(x, y), { byCountry } = shares();
+        const shape = at ? features.find((feature) => feature.cc && byCountry.has(feature.cc) && contains(feature.geometry, at))?.cc : undefined;
+        return shape ?? marks.find((mark) => Math.hypot(x - mark.x, y - mark.y) <= mark.r)?.cc ?? null;
+      }
+      function showFloat(/** @type {string | null} */ key, /** @type {PointerEvent | undefined} */ event = undefined) {
+        const float = $("float"), row = snapshot?.rows.find((r) => keyOf(r) === key);
+        if (!key || !row || !event || !snapshot) return void (float.hidden = true);
+        const lines = [`${percent(row.count / snapshot.total)} of the blocks, ${grouped(row.count)}`, row.pools.slice(0, 3).map(({ slug }) => names.get(slug) ?? slug).join(", ")];
+        float.replaceChildren(Object.assign(document.createElement("b"), { textContent: row.cc ? COUNTRIES[row.cc].name : "No known home" }), ...lines.map((line) => Object.assign(document.createElement("div"), { textContent: line })));
+        float.hidden = false;
+        float.style.left = `${Math.min(innerWidth - float.offsetWidth - 8, event.clientX + 14)}px`;
+        float.style.top = `${Math.min(innerHeight - float.offsetHeight - 8, event.clientY + 14)}px`;
+      }
+
+      // ── History: each country's monthly share, a row each, a cursor on a month read across them, the events that moved it ──
+      /** The history's rows as drawn: a name and each month's share. @type {{ name: string, shares: number[] }[]} */
+      let historyRows = [];
+      function drawHistory() {
+        if (!history) return;
+        const h = history, n = h.months.length;
+        // (A row for each country with the most blocks ever, then the rest of the known together, then the unknown.)
+        const counts = leading.map((cc) => ({ name: COUNTRIES[cc].name, cc, values: new Array(n).fill(0) }));
+        const others = { name: "Others", cc: "", values: new Array(n).fill(0) }, unknown = { name: "No known home", cc: "", values: new Array(n).fill(0) };
+        for (const [slug, values] of h.pools) {
+          const target = counts.find((row) => row.cc === POOL_COUNTRY.get(slug)) ?? others;
+          values.forEach((value, k) => (target.values[k] += value));
+        }
+        for (let k = 0; k < n; k++) unknown.values[k] = Math.max(0, h.total[k] - counts.reduce((sum, row) => sum + row.values[k], 0) - others.values[k]);
+        historyRows = [...counts, others, unknown].map(({ name, values }) => ({ name, shares: values.map((value, k) => (h.total[k] ? value / h.total[k] : 0)) }));
+        // (Each the same scale, a row's full height its whole: an area under its share, month by month.)
+        const x = (/** @type {number} */ k) => ((k / (n - 1)) * 1000).toFixed(1);
+        $("area").innerHTML = historyRows.map(({ name, shares }) => {
+          const line = shares.map((share, k) => `${x(k)},${(100 - share * 100).toFixed(2)}`).join("L");
+          return `<div class="row"><span>${name}</span><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path class="fill" d="M0,100L${line}L1000,100Z"/><path class="line" d="M${line}"/></svg><b class="num"></b></div>`;
+        }).join("") + `<div class="cursor" id="month-cursor" hidden></div>`;
+        Object.assign($("area"), { hidden: false, tabIndex: 0 });
+        /** @type {HTMLButtonElement} */ ($("play")).disabled = false;
+        $("area").setAttribute("role", "slider");
+        $("area").setAttribute("aria-label", "Month");
+        $("history-message").hidden = true;
+        $("area").setAttribute("aria-valuemin", "0");
+        $("area").setAttribute("aria-valuemax", String(n - 1));
+        const at = (/** @type {number} */ k) => (k / (n - 1)) * 100;
+        $("years").innerHTML = h.months.flatMap((date, k) => (date.endsWith("-01-01") && Number(date.slice(0, 4)) % 2 === 0 && k > n * 0.02 && k < n * 0.98 ? [`<span class="num" style="left: ${at(k)}%">${date.slice(0, 4)}</span>`] : [])).join("");
+        $("events").innerHTML = EVENTS.flatMap(([date, text]) => {
+          const k = h.months.indexOf(date);
+          return k < 0 ? [] : [`<span style="left: ${at(k)}%">${text}</span>`];
+        }).join("");
+        placeEvents();
+        drawCursor();
+      }
+      /** The events' labels placed: each a row and a side of its line, none over another or another's line, within the
+       * chart (the first that fits, nearest the chart and centered first; none fitting, alternate rows). */
+      function placeEvents() {
+        const box = $("events"), width = box.clientWidth, labels = /** @type {HTMLElement[]} */ ([...box.children]);
+        if (!width || !labels.length) return;
+        const spans = labels.map((label) => ({ x: (parseFloat(label.style.left) / 100) * width, width: label.offsetWidth }));
+        const options = [0, 1, 2].flatMap((row) => [0.5, 0, 1].map((anchor) => ({ row, anchor })));
+        /** @type {{ row: number, anchor: number, x: number, left: number, right: number }[]} */
+        const placed = [];
+        const solve = (/** @type {number} */ i) => {
+          if (i === spans.length) return true;
+          const { x, width: w } = spans[i];
+          for (const { row, anchor } of options) {
+            const left = x - anchor * w, right = left + w;
+            if (left < 0 || right > width) continue;
+            // (Same row: apart. A label below: this line misses it. A label above: its line misses this.)
+            const clear = placed.every((p) => (p.row === row ? right + 8 < p.left || left > p.right + 8 : p.row < row ? x < p.left - 4 || x > p.right + 4 : p.x < left - 4 || p.x > right + 4));
+            if (!clear) continue;
+            placed.push({ row, anchor, x, left, right });
+            if (solve(i + 1)) return true;
+            placed.pop();
+          }
+          return false;
+        };
+        const rows = solve(0) ? placed : spans.map((_, i) => ({ row: i % 2, anchor: 0.5 }));
+        labels.forEach((label, i) => {
+          label.style.setProperty("--row", String(rows[i].row));
+          label.style.setProperty("--anchor", String(rows[i].anchor));
+        });
+        box.style.setProperty("--top", String(Math.max(...rows.map(({ row }) => row))));
+      }
+      new ResizeObserver(placeEvents).observe($("events"));
+      document.fonts.ready.then(placeEvents);
+      function drawCursor() {
+        const cursor = document.getElementById("month-cursor");
+        if (!cursor || !history) return;
+        const end = history.months.length - 1;
+        cursor.hidden = month === null;
+        if (month !== null) cursor.style.setProperty("--at", String(month / end));
+        // (Each row's share in the month read; none read, the latest.)
+        $("area").querySelectorAll(".row > b").forEach((value, i) => {
+          const share = historyRows[i]?.shares[month ?? end] ?? 0;
+          value.textContent = share ? percent(share) : "–";
+        });
+        $("history-when").textContent = monthLabel(month ?? end);
+        // (A period's shown: the slider stands at now.)
+        $("area").setAttribute("aria-valuenow", String(month ?? end));
+        const event = month === null ? undefined : EVENTS.find(([date]) => date === history?.months[month]);
+        // (The slider says the month and every row's share in it: its rows are inside it, so read through it.)
+        const k = month ?? end, read = historyRows.map(({ name, shares }) => `${name} ${shares[k] ? percent(shares[k]) : "none"}`).join(", ");
+        $("area").setAttribute("aria-valuetext", `${monthLabel(k)}${event ? `, ${event[1]}` : ""}: ${read}`);
+      }
+      const monthAt = (/** @type {PointerEvent} */ event) => {
+        // (Along the plots' column: a row's plot spans it.)
+        const box = /** @type {Element} */ ($("area").querySelector("svg")).getBoundingClientRect(), n = /** @type {NonNullable<typeof history>} */ (history).months.length;
+        return Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) * (n - 1));
+      };
+      // (Pointed at, a month shows; picked (a tap, a click, a drag), it stays until another or a period's picked.)
+      let pinned = /** @type {number | null} */ (null);
+      // (A touch picks as it lifts: a scroll started on the chart leaves the month as it was. Playing, only a pick counts.)
+      $("area").addEventListener("pointermove", (event) => history && !playing && (event.pointerType === "mouse" || event.buttons) && setMonth(monthAt(event)));
+      $("area").addEventListener("pointerdown", (event) => history && event.pointerType !== "touch" && (stopPlaying(), setMonth((pinned = monthAt(event)))));
+      $("area").addEventListener("pointerup", (event) => history && (stopPlaying(), setMonth((pinned = monthAt(event)))));
+      $("area").addEventListener("pointercancel", () => history && !playing && setMonth(pinned));
+      $("area").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && history && !playing && setMonth(pinned));
+      $("area").addEventListener("keydown", (event) => {
+        if (!history) return;
+        const end = history.months.length - 1, at = month ?? end;
+        const to = { ArrowLeft: at - 1, ArrowDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, PageDown: at - 12, PageUp: at + 12, Home: 0, End: end }[event.key];
+        if (to === undefined) return;
+        event.preventDefault();
+        stopPlaying();
+        setMonth((pinned = Math.max(0, Math.min(end, to))));
+      });
+      // Play: every month in turn, from the first, about twelve seconds in all.
+      let playing = 0;
+      function stopPlaying() {
+        if (!playing) return;
+        cancelAnimationFrame(playing);
+        playing = 0;
+        $("play").textContent = "Play";
+      }
+      $("play").addEventListener("click", () => {
+        if (!history) return;
+        if (playing) return stopPlaying();
+        const n = history.months.length, t0 = performance.now(), from = month !== null && month < n - 1 ? month : 0;
+        $("play").textContent = "Pause";
+        const step = (/** @type {number} */ now) => {
+          // (A frame's time can come before the click's: never before where it starts.)
+          const k = Math.min(n - 1, from + Math.floor((Math.max(0, now - t0) / 12_000) * n));
+          if (k !== month) setMonth((pinned = k));
+          if (k < n - 1) playing = requestAnimationFrame(step);
+          else stopPlaying();
+        };
+        playing = requestAnimationFrame(step);
+      });
+      /** The history, again if it fails (the rest of the page goes on without it). */
+      async function showHistory(/** @type {{ slug: string, blockCount: number }[]} */ allTime) {
+        $("history-message").textContent = "Loading…";
+        try {
+          history = await loadHistory(allTime);
+          drawHistory();
+        } catch (error) {
+          const retry = Object.assign(document.createElement("button"), { type: "button", className: "play", textContent: "Try again" });
+          retry.addEventListener("click", () => showHistory(allTime));
+          $("history-message").replaceChildren(Object.assign(document.createElement("p"), { textContent: /** @type {Error} */ (error).message }), retry);
+        }
+      }
+
+      // ── The latest blocks, live ──
+      /** The last block shown (the series'), the chain's tip as seen (its height and hash), and whether a reorganization's
+       * blocks are being read again. */
+      let tip = 0, seen = 0, tipHash = "", rereading = false;
+      /** @type {{ height: number, pool: string, time: number }[]} */
+      let latest = [];
+      async function blocks(/** @type {number} */ start, /** @type {number} */ end) {
+        const [pools, times] = await json(`/api/series/bulk?${new URLSearchParams({ series: "block_pool,timestamp", index: "height", start: String(start), end: String(end) })}`);
+        return pools.data.map((pool, i) => ({ height: pools.start + i, pool, time: times.data[i] }));
+      }
+      const ago = (/** @type {number} */ time) => {
+        const minutes = Math.max(0, Math.round((Date.now() / 1000 - time) / 60));
+        return minutes < 1 ? "just now" : minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+      };
+      /** A block's height and age, each whole. */
+      function stamp(/** @type {{ height: number, time: number }} */ block) {
+        const line = Object.assign(document.createElement("span"), { className: "meta num stamp" });
+        line.append(...[`#${grouped(block.height)}`, ago(block.time)].map((text) => Object.assign(document.createElement("span"), { textContent: text })));
+        return line;
+      }
+      let shownLatest = new Set();
+      function drawLatest() {
+        const before = shownLatest;
+        shownLatest = new Set(latest.map((block) => block.height));
+        $("latest").replaceChildren(...latest.map((block) => {
+          const cc = POOL_COUNTRY.get(block.pool) ?? null, item = Object.assign(document.createElement("li"), { className: before.size && !before.has(block.height) ? "new" : "" });
+          item.style.setProperty("--color", colorOf(cc));
+          item.append(
+            Object.assign(document.createElement("span"), { className: "swatch" }),
+            Object.assign(document.createElement("b"), { textContent: names.get(block.pool) ?? block.pool }),
+            Object.assign(document.createElement("span"), { className: "meta", textContent: cc ? COUNTRIES[cc].name : "No known home" }),
+            stamp(block),
+          );
+          return item;
+        }));
+      }
+      let polling = false;
+      async function poll() {
+        if (polling) return;
+        polling = true;
+        try {
+          // (The sun and the night move on, a little each poll, whatever else does.)
+          invalidate();
+          // (The tip by its hash: a new block, or another at the same height or lower (a reorganization), both change it.
+          // What the chain's tip is (`seen`) and the last block the series gave (`tip`) apart: the series can lag.)
+          const hash = await fetch("/api/blocks/tip/hash").then((response) => (response.ok ? response.text() : Promise.reject()));
+          if (hash !== tipHash) {
+            const height = Number(await fetch("/api/blocks/tip/height").then((response) => (response.ok ? response.text() : Promise.reject())));
+            if (!Number.isFinite(height)) return;
+            const first = !seen;
+            if (seen && height <= seen) rereading = true;
+            [seen, tipHash] = [height, hash];
+            $("tip-height").textContent = grouped(height);
+            $("tip").hidden = false;
+            // (A new tip: every period's counts are old; the one shown asked for again, as a pick would, its answer or its
+            // failure said; not waited for, so a slow answer never holds up the next poll.)
+            if (!first) {
+              forgetPeriods();
+              if (month === null) setPeriod(period);
+            }
+          }
+          if (tip >= seen && !rereading) return drawLatest();
+          // (The blocks since the last one shown; after a reorganization, the last six again, until the series has the tip.)
+          const before = tip, fresh = (await blocks(rereading || !tip ? seen - 5 : tip + 1, seen + 1)).reverse();
+          if (!fresh.length) return;
+          tip = fresh[0].height;
+          latest = (rereading ? fresh : [...fresh, ...latest.filter((block) => block.height < fresh[fresh.length - 1].height)]).slice(0, 6);
+          drawLatest();
+          if (before > 0 && !rereading && fresh.length <= 3) {
+            for (const block of fresh) {
+              const cc = POOL_COUNTRY.get(block.pool);
+              if (cc && !reduced.matches) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now() });
+            }
+            // (Said once, as it arrives.)
+            $("said").textContent = fresh.map((block) => `Block ${grouped(block.height)}: ${names.get(block.pool) ?? block.pool}, ${POOL_COUNTRY.has(block.pool) ? COUNTRIES[/** @type {string} */ (POOL_COUNTRY.get(block.pool))].name : "no known home"}`).join(". ");
+          }
+          if (rereading && tip === seen) rereading = false;
+          invalidate();
+        } catch {
+        } finally {
+          polling = false;
+        }
+      }
+
+      // ── Start ──
+      async function start() {
+        readInks();
+        resize();
+        const [topology, allTime] = await Promise.all([json("/modules/world-atlas/2.0.2/countries-110m.json"), json("/api/v1/mining/pools/all")]);
+        const atlas = decodeTopology(topology);
+        features = atlas.geometries("countries").map((geometry) => ({ geometry, cc: CC_BY_ID.get(geometry.id) }));
+        printLand();
+        for (const pool of allTime.pools) names.set(pool.slug, pool.name);
+        // (The history's rows: the countries with the most blocks ever found.)
+        leading = tally(allTime.pools.map((/** @type {any} */ pool) => ({ slug: pool.slug, count: pool.blockCount })), allTime.blockCount)
+          .flatMap((row) => (row.cc ? [row.cc] : [])).slice(0, 7);
+        invalidate();
+        await setPeriod(period);
+        poll();
+        setInterval(poll, 20_000);
+        showHistory(allTime.pools);
+      }
+      /** The start, again if it fails (offered beside the message). */
+      function begin() {
+        $("countries").replaceChildren();
+        start().catch((error) => {
+          $("countries").replaceChildren(failure(error, begin));
+          $("history-message").textContent = "Shown once the page has loaded.";
+        });
+      }
+      // (The countries say where rows go on past the list's edges, as they're drawn again or scrolled.)
+      {
+        const list = $("countries");
+        const cuts = () => {
+          const start = list.scrollTop > 1, end = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
+          const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
+          if (cut) list.dataset.cut = cut;
+          else delete list.dataset.cut;
+        };
+        list.addEventListener("scroll", cuts, { passive: true });
+        new MutationObserver(cuts).observe(list, { childList: true });
+        new ResizeObserver(cuts).observe(list);
+      }
+      begin();
+    </script>
+  </body>
+</html>

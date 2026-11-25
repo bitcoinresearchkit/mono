@@ -1,0 +1,1304 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's; in the API's colour, which it's beside. -->
+    <script src="/assets/launch/launch.js" data-app="Changes" data-color="#af4000"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by website/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/changes/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/changes/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Changes · Bitview" />
+    <meta property="og:description" content="What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/changes.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Changes: a release's series ids renamed and removed, its endpoints changed, and its notes" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Changes · Bitview</title>
+    <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
+    <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
+      /* fallback fonts */
+      /* Local faces keep text visible while the web fonts load. Width fits use a general Latin sample;
+         vertical metrics come from Inter 4.1 and Lilex 2.620, divided by size-adjust.
+         Menlo needs its full/PostScript name in Chromium. Other mono faces share its calibration. */
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
+        font-weight: 100 600;
+        size-adjust: 108.088066%;
+        ascent-override: 89.625991%;
+        descent-override: 22.316149%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Inter Fallback";
+        src: local("Arial-BoldMT"), local("Arial Bold"), local("Helvetica Bold"), local("Roboto Bold");
+        font-weight: 601 900;
+        size-adjust: 99.756055%;
+        ascent-override: 97.111900%;
+        descent-override: 24.180080%;
+        line-gap-override: 0%;
+      }
+      @font-face {
+        font-family: "Lilex Fallback";
+        src: local("Menlo"), local("Menlo-Regular"), local("SF Mono"), local("SFMono-Regular"), local("Consolas"), local("DejaVu Sans Mono"), local("Liberation Mono");
+        font-weight: 500 700;
+        size-adjust: 99.659367%;
+        ascent-override: 100.241455%;
+        descent-override: 30.202881%;
+        line-gap-override: 0%;
+      }
+      /* /fallback fonts */
+
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.rest.woff2") format("woff2");
+        unicode-range: U+0180-0191, U+0193-02BA, U+02BD-02C5, U+02C7-02D9, U+02DB, U+02DD-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03DD, U+03F0-04FF, U+052F, U+0E3F, U+1D00-1D1B, U+1D43-1D65, U+1D9C-1DA0, U+1DBB-1FFE, U+2070-20AB, U+20AD-20BE, U+20C0, U+20DB-2121, U+2126-213B, U+214D-2189, U+2423, U+2460-2468, U+24B6-24CF, U+24EA, U+2600-2606, U+263C, U+2661-266B, U+26A0, U+2717, U+2756-2764, U+2780-2788, U+27EF-27FA, U+2913, U+2A38, U+2B06-2B24, U+2C7C-2C7F, U+2DFF, U+2E18, U+A69F, U+A7FF, U+A92E, U+E000-E0F5, U+E106-E163, U+E1C3-E2DC, U+EE01-EEE1, U+F6C3, U+1F12F-1F149, U+1F16A-1F16B, U+1F850-1F852;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.core.woff2") format("woff2");
+        unicode-range: U+0000-017F, U+0192, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0394, U+03A3, U+03C3, U+2000-206F, U+20AC, U+20BF, U+2122, U+2190-23FF, U+2500-25FF, U+2713-2715, U+FE0E-FE0F, U+FEFF, U+FFFD;
+        font-weight: 100 700;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.rest.woff2") format("woff2");
+        unicode-range: U+018F, U+01A0-01B0, U+01CD-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02D8-02D9, U+02DB, U+02DD, U+0300-0328, U+037E-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03CE, U+0400-0475, U+0490-04F9, U+0524-0525, U+0E3F, U+1E28-1E29, U+1E80-1E85, U+1E9E-1EF9, U+2070-2089, U+20A1-20AB, U+20AD-20BD, U+2113-2116, U+2126-212E, U+2150-215E, U+2B0E-2B11, U+2B58, U+3000, U+E0A0-E0B3;
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      /* The series page's paper and ink: hairlines between rows, ids in a monospace, Bitcoin's orange for what's
+         chosen and what an id became. Light or dark, as the system is. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#fbfaf7, #0e0f11);
+        --pane: light-dark(#ffffff, #141519);
+        --well: light-dark(#efece5, #1b1d22);
+        --ink: light-dark(#17181b, #eceae5);
+        --soft: light-dark(#53565e, #a9acb4);
+        --faint: light-dark(#6a6d75, #8c9099);
+        --line: light-dark(#e7e4dd, #24262c);
+        --line-strong: light-dark(#d6d2c9, #33363e);
+        --accent: light-dark(#d4570a, #f2873a);
+        --accent-ink: light-dark(#9c3d00, #ffb27a);
+        --pick: light-dark(#fbe9dc, #33221a);
+        --gone: light-dark(#a3261f, #ff8f87);
+        --sans: Inter, "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --measure: 540px; /* prose lines stay near 70 characters */
+        --mono: Lilex, "Lilex Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more), as every page: the greys toward the ink, the
+         hairlines about twice as strong. */
+      @media (prefers-contrast: more) {
+        :root {
+          --soft: light-dark(#3a3c42, #c3c4c7);
+          --faint: light-dark(#515359, #a8aaaf);
+          --line: light-dark(#c4c1bc, #3e3f44);
+          --line-strong: light-dark(#b6b3ac, #4b4e55);
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-padding-top: 76px;
+      }
+
+      body {
+        margin: 0;
+        background: var(--app);
+        color: var(--ink);
+        font: 14px/1.5 var(--sans);
+        font-feature-settings: "cv11", "ss01";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      input {
+        font-size: 16px;
+      }
+
+      button {
+        border: 0;
+        background: none;
+        cursor: pointer;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      code {
+        font-family: var(--mono);
+        font-size: 0.92em;
+        overflow-wrap: anywhere;
+      }
+
+      /* ── The bar: the brand, the search, the ways back to the API and to GitHub ── */
+
+      .bar {
+        position: sticky;
+        top: 0;
+        z-index: 3;
+        display: grid;
+        /* (The same room either side, so the search sits in the middle; where there isn't, each side as much as it holds.) */
+        grid-template-columns: minmax(max-content, 1fr) minmax(0, 560px) minmax(max-content, 1fr);
+        align-items: center;
+        gap: 16px;
+        height: 56px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--pane);
+
+        @media (width < 640px) {
+          grid-template-columns: auto minmax(0, 1fr);
+
+          .ends {
+            display: none;
+          }
+        }
+      }
+
+      .brand {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+        white-space: nowrap;
+
+        img {
+          width: 20px;
+          height: 20px;
+        }
+
+        &::before {
+          content: "";
+          position: absolute;
+          inset: -11px 0;
+        }
+      }
+
+      .ends {
+        justify-self: end;
+        display: flex;
+        gap: 20px;
+        white-space: nowrap;
+
+        a {
+          position: relative;
+          color: var(--soft);
+          font-weight: 500;
+          text-decoration: none;
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -12px 0;
+          }
+        }
+      }
+
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
+      .search {
+        position: relative;
+
+        svg {
+          position: absolute;
+          top: 50%;
+          left: 11px;
+          width: 15px;
+          height: 15px;
+          translate: 0 -50%;
+          color: var(--faint);
+          pointer-events: none;
+        }
+
+        /* (A thumb's reach on a phone: a label behind the field, unseen, so a tap on the bar around it lands in the field.) */
+        .reach {
+          display: none;
+
+          @media (width < 640px), (pointer: coarse) {
+            display: block;
+            position: absolute;
+            z-index: -1;
+            inset-inline: 0;
+            top: 50%;
+            height: 44px;
+            translate: 0 -50%;
+          }
+        }
+
+        input {
+          width: 100%;
+          height: 36px;
+          padding: 0 12px 0 34px;
+          border: 1px solid var(--line);
+          border-radius: 9px;
+          background: var(--well);
+          outline: none;
+
+          &::placeholder {
+            color: var(--faint);
+          }
+
+          &:focus {
+            border-color: var(--accent);
+            background: var(--pane);
+          }
+        }
+      }
+
+      /* ── The page: its head, then a column of sections beside their contents ── */
+
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 24px 120px;
+
+        @media (width < 640px) {
+          padding: 20px 16px 96px;
+        }
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+      }
+
+      /* (A tab each release to the one after it, newest first; the one read in Bitcoin's orange.) */
+      .releases {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px 6px;
+        margin: 14px 0 0;
+
+        button {
+          position: relative;
+          padding: 5px 12px;
+          border: 1px solid var(--line-strong);
+          border-radius: 999px;
+          color: var(--soft);
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+
+          /* (A finger's reach, its look as it is; the gap between pills left to neither.) */
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -6px -3px;
+          }
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-selected="true"] {
+            border-color: var(--accent);
+            background: var(--pick);
+            color: var(--accent-ink);
+          }
+        }
+      }
+
+      /* (Room for the two lines a lead runs to at the measure, so the one-line "Reading…" before it moves nothing.) */
+      .lead {
+        max-width: var(--measure);
+        min-height: 2lh;
+        margin: 14px 0 0;
+        color: var(--soft);
+        font-size: 15px;
+      }
+
+      /* (What it changed, in a few figures, hairlines between.) */
+      .figures {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        margin: 28px 0 0;
+        border-block: 1px solid var(--line);
+
+        &:empty {
+          display: none;
+        }
+
+        div {
+          padding: 14px 16px 14px 0;
+        }
+
+        div + div {
+          padding-left: 16px;
+          border-left: 1px solid var(--line);
+        }
+
+        strong {
+          display: block;
+          font-size: 22px;
+          font-weight: 650;
+          letter-spacing: -0.02em;
+          font-variant-numeric: tabular-nums;
+        }
+
+        span {
+          color: var(--faint);
+          font-size: 12.5px;
+        }
+
+        @media (width < 640px) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+
+          div:nth-child(odd) {
+            padding-left: 0;
+            border-left: 0;
+          }
+
+          div:nth-child(n + 3) {
+            border-top: 1px solid var(--line);
+          }
+        }
+      }
+
+      /* (What an id typed became, or why it's gone.) */
+      .answer {
+        margin: 24px 0 0;
+        padding: 14px 16px;
+        max-width: var(--measure);
+        border-radius: 9px;
+        background: var(--pick);
+
+        p {
+          margin: 0;
+        }
+
+        .now {
+          font-size: 15px;
+          font-weight: 600;
+        }
+
+        .why {
+          margin-top: 4px;
+          color: var(--soft);
+        }
+
+        /* (The one result's link only: the closest ids below it wrap, close under each other, with no room for a reach.) */
+        .now a {
+          position: relative;
+
+          &::after {
+            content: "";
+            position: absolute;
+            inset: -12px 0;
+          }
+        }
+      }
+
+      .body {
+        display: grid;
+        grid-template-columns: 190px minmax(0, 1fr);
+        gap: 48px;
+        margin-top: 40px;
+
+        /* (A lone section needs no contents beside it.) */
+        &:has(> nav[hidden]) {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        @media (width < 960px) {
+          display: block;
+        }
+
+        @media (width < 640px) {
+          margin-top: 28px;
+        }
+      }
+
+      /* (The sections, each with how many rows it has: where to go, as the page scrolls.) */
+      .body > nav {
+        position: sticky;
+        top: 80px;
+        align-self: start;
+        display: grid;
+        gap: 2px;
+
+        a {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          padding: 5px 10px;
+          border-radius: 7px;
+          color: var(--soft);
+          text-decoration: none;
+
+          &:hover {
+            background: var(--well);
+            color: var(--ink);
+          }
+        }
+
+        span {
+          color: var(--faint);
+          font-variant-numeric: tabular-nums;
+        }
+
+        @media (width < 960px) {
+          display: none;
+        }
+      }
+
+      section {
+        padding: 0 0 36px;
+
+        & + section {
+          padding-top: 32px;
+          border-top: 1px solid var(--line);
+        }
+
+        h2 {
+          margin: 0;
+          font-size: 19px;
+          font-weight: 650;
+          letter-spacing: -0.015em;
+        }
+
+        > p {
+          max-width: var(--measure);
+          margin: 4px 0 0;
+          color: var(--soft);
+
+          /* (A link alone in its paragraph, as a release's "View changes": a thumb's reach, unseen, in the room around it.) */
+          > a:only-child {
+            position: relative;
+
+            &::after {
+              content: "";
+              position: absolute;
+              inset: -5px 0 -24px;
+            }
+          }
+        }
+
+        h3 {
+          margin: 22px 0 6px;
+          font-size: 16px;
+          font-weight: 650;
+
+          @media (width < 640px) {
+            margin-top: 18px;
+          }
+        }
+
+        /* (A kind of note's topic, beneath its kind.) */
+        h4 {
+          margin: 16px 0 0;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        /* (A release's date, beside its version.) */
+        .date {
+          margin-left: 8px;
+          color: var(--faint);
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0;
+        }
+      }
+
+      /* (A dash hangs outside each nested note, as its marker: a wrapped id stays under its own text and the dash never
+         lands alone on a line above a long id.) */
+      .subs,
+      .notes {
+        margin: 4px 0 0;
+        color: var(--soft);
+        list-style: "– ";
+
+        li::marker {
+          color: var(--faint);
+        }
+      }
+
+      /* (A note's own, beneath it; its pairs apart from each other.) */
+      .subs {
+        padding: 0 0 0 2em;
+
+        li + li {
+          margin-top: 10px;
+        }
+      }
+
+      /* ── Rows: a rename on a line, as it was, then as it is, then what its values were multiplied by and how many it
+         renamed ── */
+
+      .rows {
+        --columns: minmax(0, 1fr) 20px minmax(0, 1fr) 96px 56px;
+        margin: 10px 0 0;
+        padding: 0;
+        list-style: none;
+
+        > li {
+          display: grid;
+          grid-template-columns: var(--columns);
+          align-items: baseline;
+          gap: 0 8px;
+          padding: 7px 0;
+          border-bottom: 1px solid var(--line);
+        }
+
+        /* (A family's pattern, on the rows' columns, its cohorts beneath.) */
+        .line {
+          display: grid;
+          grid-template-columns: var(--columns);
+          align-items: baseline;
+          gap: 0 8px;
+        }
+
+        .to {
+          color: light-dark(#c05008, var(--accent));
+          text-align: center;
+        }
+
+        .factor,
+        .count {
+          color: var(--faint);
+          font-size: 12.5px;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+
+        .count {
+          text-align: right;
+        }
+
+        /* (A row that's one thing: an id gone, an endpoint and what changed of it.) */
+        > li.whole {
+          display: block;
+        }
+
+        /* (A note in words: at the measure of the page's other prose, its rule still the column's width; its ids and
+           paths each on a well, as the members' are.) */
+        > li.prose {
+          max-width: var(--measure);
+          font-size: 15px;
+          line-height: 1.55;
+
+          code {
+            padding: 0 3px;
+            border-radius: 4px;
+            background: var(--well);
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+          }
+        }
+
+        /* (A row that's a thing and what's said of it, on one line: an endpoint gone and what it was, an index and
+           its spellings gone.) */
+        > li.said {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 4px 16px;
+
+          > :last-child {
+            color: var(--soft);
+          }
+
+          .members {
+            margin: 0;
+          }
+        }
+
+        @media (width < 640px) {
+          --columns: 20px minmax(0, 1fr) auto auto;
+
+          > li.said {
+            grid-template-columns: minmax(0, 1fr);
+          }
+
+          > li > :first-child,
+          .line > :first-child {
+            grid-column: 1 / -1;
+          }
+        }
+      }
+
+      .gone {
+        color: var(--gone);
+      }
+
+      /* (A family of cohorts renamed alike: its pattern, then the cohorts in it.) */
+      .members {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin: 6px 0 2px;
+
+        code {
+          padding: 1px 6px;
+          border-radius: 5px;
+          background: var(--well);
+          color: var(--soft);
+        }
+      }
+
+      /* (An endpoint: its method, its path, what changed of it beneath.) */
+      .method {
+        display: inline-block;
+        min-width: 44px;
+        margin-right: 8px;
+        color: var(--faint);
+        font: 600 11.5px var(--mono);
+      }
+
+      .notes {
+        margin-left: 52px;
+        padding: 0 0 0 1.1em;
+      }
+
+      /* (Ids gone, one by one: in columns.) */
+      .ids {
+        columns: 3 260px;
+        column-gap: 24px;
+        margin: 10px 0 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          padding: 3px 0;
+          break-inside: avoid;
+        }
+      }
+
+      .more {
+        margin: 10px 0 0;
+        padding: 5px 12px;
+        border: 1px solid var(--line-strong);
+        border-radius: 999px;
+        color: var(--soft);
+        font-size: 13px;
+
+        &:hover {
+          color: var(--ink);
+        }
+      }
+
+      .made {
+        margin-top: 8px;
+        color: var(--faint);
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+      <form class="search" role="search" id="search-form">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <label class="reach" for="q"></label>
+        <input type="search" id="q" placeholder="An id, an endpoint, a word" aria-label="Find what changed" autocomplete="off" spellcheck="false" />
+      </form>
+      <nav class="ends" aria-label="Elsewhere"><a href="/api">API reference</a><a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a></nav>
+    </header>
+    <div class="page">
+      <h1>Changes</h1>
+      <div class="releases" id="releases" role="tablist" aria-label="Releases"></div>
+      <p class="lead" id="lead">Reading what changed…</p>
+      <div class="figures" id="figures"></div>
+      <div class="answer" id="answer" aria-live="polite" hidden></div>
+      <div class="body">
+        <nav id="nav" aria-label="Sections"></nav>
+        <main id="sections"></main>
+      </div>
+    </div>
+
+    <script type="module">
+      import { index, read } from "./rules.js";
+      import { releases } from "./changelog.js";
+
+      // The releases whose API was compared, newest first, each as from, to: `<from>.json` beside this page, written by
+      // diff.mjs from two servers, the one release's and the other's before it was released.
+      const RELEASES = [["v0.12.2","v0.13.0"]];
+      /** @type {Map<string, Promise<any>>} API comparisons, fetched once and shared by the tabs and id lookup. */
+      const comparisons = new Map();
+
+      /** @param {string | undefined} from */
+      function comparison(from) {
+        if (!from) return;
+        if (!comparisons.has(from)) comparisons.set(from, fetch(`./${from}.json`).then((response) => {
+          if (!response.ok) throw new Error(`${from}.json: ${response.status}`);
+          return response.json();
+        }));
+        return comparisons.get(from);
+      }
+
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const escape = (/** @type {unknown} */ text) =>
+        String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
+      const code = (/** @type {string} */ text) => `<code>${escape(text)}</code>`;
+      /** Text with its `quoted` parts as code. */
+      const marked = (/** @type {string} */ text) => escape(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+      const grouped = new Intl.NumberFormat("en-US");
+      /** What a series' values are multiplied by under its new id, said: `÷ 100`, `× 10,000`, or nothing. */
+      const factor = (/** @type {number} */ f) =>
+        Math.abs(f - 1) < 1e-12 ? "" : f < 1 ? `÷ ${grouped.format(Math.round(1 / f))}` : `× ${grouped.format(Math.round(f))}`;
+
+      /**
+       * Two releases as their tab says them: a minor release by its minor alone (`0.12 → 0.13`, the first breaking
+       * what the second keeps), else each whole (`0.12.2 → 0.12.3`).
+       * @param {string} from
+       * @param {string} to
+       */
+      function versions(from, to) {
+        const [a, b] = [from, to].map((version) => version.replace(/^v/, "").split(".").map(Number));
+        const minor = b[2] === 0 && (b[0] > a[0] || b[1] > a[1]);
+        return minor ? [`${a[0]}.${a[1]}`, `${b[0]}.${b[1]}`] : [a.join("."), b.join(".")];
+      }
+
+      // ── The sections: each a list of rows searchable by their text, the first shown, the rest at a tap ──
+
+      const SHOWN = 25;
+      /**
+       * @typedef {{ html: string, text: string }} Row
+       * @typedef {{ group?: string, title?: string, said?: string, rows: Row[], list?: "rows" | "ids" }} List In a group
+       *   (a kind of note), the group's heading comes once, its lists' titles beneath it.
+       * @typedef {{ rows: Row[], element: HTMLElement, more: HTMLButtonElement, all: boolean, own: HTMLElement[], group?: HTMLElement }} Shown
+       * @typedef {{ id: string, section: HTMLElement, link: HTMLElement, lists: Shown[] }} Section
+       */
+      /** @type {Section[]} */
+      const sections = [];
+
+      /** A rename's cells: what it was, what it is, and its factor and count if any. @param {string} from @param {string} to */
+      const cells = (from, to, said = "", count = "") =>
+        `<span>${from}</span><span class="to" aria-label="now">→</span><span>${to}</span><span class="factor">${said}</span><span class="count">${count}</span>`;
+      /** A rename's row. @param {string} from @param {string} to */
+      const rename = (from, to, said = "", count = "") => `<li>${cells(from, to, said, count)}</li>`;
+      /** @param {string} text */
+      const dropped = (text) => (text ? code(text) : `<span class="gone">dropped</span>`);
+
+      /**
+       * A section: its title, what it says, and its lists of rows; and its way in, in the column beside.
+       * @param {string} id
+       * @param {string} title
+       * @param {string} said
+       * @param {List[]} lists
+       * @param {string} label its way in's, if not its title
+       */
+      function addSection(id, title, said, lists, label = title) {
+        lists = lists.filter((list) => list.rows.length);
+        if (!lists.length) return;
+        const section = document.createElement("section");
+        section.id = id;
+        section.innerHTML = `<h2>${title}</h2>${said ? `<p>${said}</p>` : ""}`;
+        const entry = /** @type {Section} */ ({ id, section, lists: [] });
+        const make = (/** @type {string} */ tag, /** @type {string} */ html) => Object.assign(document.createElement(tag), { innerHTML: html });
+        /** @type {HTMLElement | undefined} */
+        let group;
+        for (const list of lists) {
+          if (list.group === undefined) group = undefined;
+          else if (list.group !== group?.dataset.group) {
+            group = make("h3", escape(list.group.replace(/(?<= )[A-Z](?=[a-z])/g, (c) => c.toLowerCase())));
+            group.dataset.group = list.group;
+            section.append(group);
+          }
+          /** @type {HTMLElement[]} */
+          const own = [];
+          if (list.title) own.push(make(group ? "h4" : "h3", list.title));
+          if (list.said) own.push(make("p", list.said));
+          const rows = document.createElement("ul");
+          rows.className = list.list ?? "rows";
+          const more = document.createElement("button");
+          more.className = "more";
+          section.append(...own, rows, more);
+          /** @type {Shown} */
+          const shown = { rows: list.rows.map((row) => ({ ...row, text: row.text.toLowerCase() })), element: rows, more, all: false, own, group };
+          more.addEventListener("click", () => ((shown.all = true), render()));
+          entry.lists.push(shown);
+        }
+        const total = entry.lists.reduce((sum, list) => sum + list.rows.length, 0);
+        entry.link = Object.assign(document.createElement("a"), { href: `#${id}` });
+        entry.link.innerHTML = `${label}<span>${grouped.format(total)}</span>`;
+        $("nav").append(entry.link);
+        $("sections").append(section);
+        sections.push(entry);
+      }
+
+      /** Every list, its rows found by what's searched (all while nothing is), the first shown unless asked for all. */
+      function render() {
+        const query = /** @type {HTMLInputElement} */ ($("q")).value.trim().toLowerCase();
+        for (const { section, link, lists } of sections) {
+          let any = false;
+          for (const list of lists) {
+            const found = query ? list.rows.filter((row) => row.text.includes(query)) : list.rows;
+            const limit = list.all ? found.length : SHOWN;
+            list.element.innerHTML = found.slice(0, limit).map((row) => row.html).join("");
+            list.element.hidden = !found.length;
+            for (const own of list.own) own.hidden = !found.length;
+            list.more.hidden = found.length <= limit;
+            list.more.textContent = `Show all ${grouped.format(found.length)}`;
+            any ||= found.length > 0;
+          }
+          // (A group's heading while any of its lists shows.)
+          for (const { group } of lists) if (group) group.hidden = !lists.some((list) => list.group === group && !list.element.hidden);
+          section.hidden = !any;
+          link.hidden = !any;
+        }
+      }
+
+      // ── The releases: a tab each minor release, its notes from the changelog, and its API's changes if compared ──
+
+      /**
+       * @typedef {import("./changelog.js").Release} Release
+       * @typedef {{ name: string, label: string, notes: Release[], api?: string[] }} Tab A minor release (`0.12`), or
+       *   those not released yet; its releases' notes, newest first; the API comparison into it, as from, to.
+       */
+      /** @type {Tab[]} */
+      let tabs = [];
+      /** @type {ReturnType<typeof index>} */
+      let rules;
+      /** @type {Set<string>} */
+      let different = new Set();
+      /** @type {any} */
+      let changes;
+
+      const minorOf = (/** @type {string} */ version) => version.replace(/^v/, "").split(".").slice(0, 2).join(".");
+
+      /**
+       * The tabs: the changelog's releases by their minor, then each API comparison in the tab of the release it's
+       * into, those not released yet if it isn't out (a tab of its own if the changelog has neither).
+       * @param {Release[]} notes
+       */
+      function tabsOf(notes) {
+        /** @type {Tab[]} */
+        const tabs = [];
+        for (const release of notes) {
+          const name = release.version ? minorOf(release.version) : "unreleased";
+          let tab = tabs.find((tab) => tab.name === name);
+          if (!tab) tabs.push((tab = { name, label: release.version ? name : "Unreleased", notes: [] }));
+          tab.notes.push(release);
+        }
+        for (const [from, to] of RELEASES) {
+          const tab = tabs.find((tab) => tab.name === minorOf(to)) ?? tabs.find((tab) => tab.name === "unreleased");
+          if (tab) tab.api ??= [from, to];
+          else tabs.push({ name: minorOf(to), label: versions(from, to).join(" → "), notes: [], api: [from, to] });
+        }
+        return tabs;
+      }
+
+      /** @param {Tab} current */
+      function showTabs(current) {
+        $("releases").replaceChildren(
+          ...tabs.map((tab) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.role = "tab";
+            button.ariaSelected = String(tab === current);
+            button.textContent = tab.label;
+            button.addEventListener("click", () => tab !== current && open(tab));
+            return button;
+          }),
+        );
+      }
+
+      let opening = 0;
+      /** A tab's changes, the tab chosen (its address saying so, but for the newest's). @param {Tab} tab */
+      function open(tab) {
+        const request = ++opening;
+        const url = new URL(location.href);
+        if (tab === tabs[0]) url.searchParams.delete("release");
+        else url.searchParams.set("release", tab.name);
+        history.replaceState(null, "", url);
+        showTabs(tab);
+        return load(tab, request).catch((error) => {
+          if (request === opening) $("lead").textContent = `The changes couldn't be read: ${error.message}.`;
+        });
+      }
+
+      const version = (/** @type {Release} */ release) => escape(release.version?.replace(/^v/, "") ?? "");
+
+      /** What a tab says first: what its notes are, and how to find an id of its API's. @param {Tab} tab */
+      function leadOf(tab) {
+        const released = tab.notes.filter((release) => release.version);
+        const notes = !tab.notes.length
+          ? ""
+          : !released.length
+            ? "What's coming, not released yet"
+            : released.length === 1
+              ? `What ${version(released[0])} changed`
+              : `What each ${escape(tab.name)} release changed, ${version(/** @type {Release} */ (released.at(-1)))} to ${version(released[0])}`;
+        if (!changes) return `${notes}.`;
+        if (!tab.api) return `${notes}. Type an old series id above to see where it went.`;
+        const [from, to] = versions(changes.from, changes.to);
+        const api = `what ${escape(to)} changes of ${escape(from)}'s API. Type an id from ${escape(from)} above to see where it went.`;
+        return notes ? `${notes}: its notes, then ${api}` : api[0].toUpperCase() + api.slice(1);
+      }
+
+      /** A tab's notes: a section each release, its notes by kind and topic, found by the search as the rest. @param {Tab} tab */
+      function addNotes(tab) {
+        for (const release of tab.notes) {
+          const title = release.version ? `${version(release)}${release.date ? `<span class="date">${escape(release.date)}</span>` : ""}` : "Unreleased";
+          const lists = release.groups.map((group) => ({
+            group: group.kind,
+            title: group.topic?.html,
+            said: group.said.join(" "),
+            rows: group.notes.map((note) => ({ html: `<li class="whole prose">${note.html}</li>`, text: `${note.text} ${group.kind} ${group.topic?.text ?? ""}` })),
+          }));
+          addSection(release.version ?? "unreleased", title, release.said.join("</p><p>"), lists, release.version ? version(release) : "Unreleased");
+        }
+      }
+
+      /** @param {Tab} tab @param {number} request */
+      async function load(tab, request) {
+        changes = undefined;
+        different = new Set();
+        ++asked;
+        $("answer").hidden = true;
+        sections.length = 0;
+        $("sections").replaceChildren();
+        $("nav").replaceChildren();
+        $("nav").hidden = !tab.api && tab.notes.length < 2;
+        $("figures").replaceChildren();
+        $("lead").innerHTML = leadOf(tab);
+        addNotes(tab);
+        render();
+        const data = await comparison((tab.api ?? RELEASES[0])?.[0]);
+        if (request !== opening) return;
+        changes = data;
+        if (changes) {
+          // Series renames written in the notes belong to the same lookup as the API comparison.
+          const ids = tab.notes.flatMap((release) => release.groups.flatMap((group) => group.notes.flatMap((note) => {
+            const [heading] = note.html.split('<ul class="subs">');
+            if (!/\bseries ids?\b/i.test(heading)) return [];
+            return [...note.html.matchAll(/<code>([a-z0-9_]+)<\/code>\s*→\s*<code>([a-z0-9_]+)<\/code>/g)].map((match) => [match[1], match[2], 1]);
+          })));
+          rules = index({ ...changes.rules, ids: [...changes.rules.ids, ...ids] });
+          different = new Set(changes.different);
+        }
+        $("lead").innerHTML = leadOf(tab);
+        if (!tab.api || !changes) return void (render(), lookUp());
+        const { series, endpoints, indexes } = changes;
+        const [, to] = versions(changes.from, changes.to);
+
+        const figure = (/** @type {number} */ count, /** @type {string} */ said) => `<div><strong>${grouped.format(count)}</strong><span>${said}</span></div>`;
+        $("figures").innerHTML = [
+          figure(series.renamed, "series ids renamed"),
+          figure(series.removed, "series ids removed"),
+          figure(series.kept, "series ids kept"),
+          figure(endpoints.removed.length, "endpoints removed"),
+          figure(endpoints.changed.length, "endpoints changed"),
+        ].join("");
+
+        addSection("endpoints", "Endpoints", "Those gone, then those whose path, parameters or answer changed. A path parameter only renamed breaks no request.", [
+          {
+            title: "Removed",
+            rows: endpoints.removed.map(([method, path, summary]) => ({
+              html: `<li class="said"><span><span class="method">${method}</span>${code(path)}</span><span>${escape(summary)}</span></li>`,
+              text: `${method} ${path} ${summary}`,
+            })),
+          },
+          {
+            title: "Changed",
+            rows: endpoints.changed.map(([method, path, notes]) => ({
+              html: `<li class="whole"><span class="method">${method}</span>${code(path)}<ul class="notes">${notes.map((note) => `<li>${marked(note)}</li>`).join("")}</ul></li>`,
+              text: `${method} ${path} ${notes.join(" ")}`,
+            })),
+          },
+        ]);
+
+        // (Each spelling gone, by the index it spelled.)
+        const spellings = new Map();
+        for (const [alias, name] of indexes.aliases) {
+          const now = indexes.renamed.find(([was]) => was === name)?.[1] ?? name;
+          spellings.set(now, [...(spellings.get(now) ?? []), alias]);
+        }
+        addSection("indexes", "Indexes", "An index is read by its name alone now: every other spelling is gone.", [
+          { title: "Renamed", rows: indexes.renamed.map(([was, now]) => ({ html: rename(code(was), code(now)), text: `${was} ${now}` })) },
+          { title: "Removed", rows: indexes.removed.map((name) => ({ html: `<li class="whole">${code(name)}</li>`, text: name })) },
+          {
+            title: "Spellings gone",
+            rows: [...spellings].map(([name, aliases]) => ({
+              html: `<li class="said"><span>${code(name)}</span><span class="members">${aliases.map(code).join("")}</span></li>`,
+              text: `${name} ${aliases.join(" ")}`,
+            })),
+          },
+        ]);
+
+        // Cohorts renamed alike told once: the words around what they share (`utxos_…_old_` to `age_…_`), then each.
+        /** @type {Map<string, { from?: string, to?: string, member?: string, whole: string[], members: string[], count: number }>} */
+        const families = new Map();
+        for (const [was, now, count] of changes.rules.cohorts) {
+          if (was === now) continue;
+          const pattern = familyOf(was, now);
+          const family = families.get(pattern.key) ?? { ...pattern, members: [], count: 0 };
+          family.members.push(pattern.member ?? was);
+          family.count += count;
+          families.set(pattern.key, family);
+        }
+        addSection("cohorts", "Cohorts", "A cohort's ids begin with its name: renamed, each of its ids is, its measure kept (or renamed as below). Counts are the ids found renamed so by their values.", [
+          {
+            rows: [...families.values()]
+              .sort((a, b) => b.count - a.count)
+              .map((family) =>
+                family.members.length > 1
+                  ? {
+                      html:
+                        `<li class="whole"><div class="line">${cells(code(family.from ?? ""), code(family.to ?? ""), "", grouped.format(family.count))}</div>` +
+                        `<div class="members">${family.members.map(code).join("")}</div></li>`,
+                      text: `${family.from} ${family.to} ${family.members.join(" ")}`,
+                    }
+                  : { html: rename(code(family.whole[0]), code(family.whole[1]), "", grouped.format(family.count)), text: family.whole.join(" ") },
+              ),
+          },
+        ]);
+
+        addSection("measures", "Measures", "What follows a cohort's name, renamed whole, in every cohort that has it, its values multiplied where said (a new unit).", [
+          { rows: changes.rules.measures.map(([was, now, f, count]) => ({ html: rename(code(was), code(now), factor(f), grouped.format(count)), text: `${was} ${now}` })) },
+        ]);
+
+        addSection("words", "Words", "A word or a few renamed inside measures: tried where they stand, the measure kept as it was where the release serves nothing they'd make.", [
+          { rows: changes.rules.words.map(([was, now, count]) => ({ html: rename(code(was), dropped(now), "", grouped.format(count)), text: `${was} ${now}` })) },
+        ]);
+
+        addSection("units", "Units", "An id's last word, its unit, renamed or dropped, its values multiplied as said. Where a unit reads two ways, the first is tried first: `_cents` is `_usd` where the measure counts bitcoin and has its dollars apart, dropped where it counts dollars.".replace(/`([^`]+)`/g, "<code>$1</code>"), [
+          { rows: rules.suffixes.map(([was, now, f, count]) => ({ html: rename(code(`_${was}`), now ? code(`_${now}`) : dropped(""), factor(f), grouped.format(count)), text: `${was} ${now}` })) },
+        ]);
+
+        addSection("ids", "One by one", "Ids renamed that no rule above explains, each found by its values.", [
+          { rows: changes.rules.ids.map(([was, now, f]) => ({ html: rename(code(was), code(now), factor(f)), text: `${was} ${now}` })) },
+        ]);
+
+        addSection("removed", "Removed", "Series no longer served under any id: whole cohorts, then measures gone from three cohorts or more, then each one.", [
+          { title: "Cohorts", rows: changes.removed.cohorts.map(([prefix, count]) => ({ html: rename(code(`${prefix}…`), `<span class="gone">gone</span>`, "", grouped.format(count)), text: prefix })) },
+          { title: "Measures", rows: changes.removed.measures.map(([measure, count]) => ({ html: rename(code(`…_${measure}`), `<span class="gone">gone</span>`, "", `${grouped.format(count)}×`), text: measure })) },
+          { title: "Ids", list: "ids", rows: changes.removed.ids.map((id) => ({ html: `<li>${code(id)}</li>`, text: id })) },
+        ]);
+
+        addSection("kept", "Kept, changed", "Ids served as they were, their values changed under them: in another unit, computed anew, or of another JSON type; or without an index they had.", [
+          {
+            rows: changes.changed.map(([id, f, anew, json, lost]) => {
+              const said = [factor(f) && `values ${factor(f)}`, anew && "values computed anew", json && `JSON ${json}`, lost.length && `no longer by ${lost.join(", ")}`].filter(Boolean);
+              return { html: `<li class="whole">${code(id)}<ul class="notes"><li>${escape(said.join("; "))}</li></ul></li>`, text: `${id} ${said.join(" ")}` };
+            }),
+          },
+        ]);
+
+        addSection("types", "Value types", "Their names, as a series' info and the typed clients give them: renamed, the values reading alike. Counts are the series that went from one to the other.", [
+          { rows: changes.kinds.map(([was, now, count]) => ({ html: rename(code(was), code(now), "", grouped.format(count)), text: `${was} ${now}` })) },
+        ]);
+
+        $("sections").insertAdjacentHTML(
+          "beforeend",
+          `<p class="made">Found ${escape(changes.date)} by comparing a ${escape(changes.compared[0])} server with a build of ${escape(to)} (${escape(changes.compared[1])}), series by series.</p>`,
+        );
+        render();
+        lookUp();
+      }
+
+      /**
+       * A cohort's rename as a family's: the words the two names share in the middle (`2y_to_3y`) stand for its
+       * member, and the words around them for the family (`utxos_…_old_` to `age_…_`, `…_` to `pool_…_`). Without
+       * such words, it's alone.
+       * @param {string} from
+       * @param {string} to
+       */
+      function familyOf(from, to) {
+        const a = from.slice(0, -1).split("_"), b = to.slice(0, -1).split("_");
+        let best = { length: 0, i: 0, j: 0 };
+        for (let i = 0; i < a.length; i++) {
+          for (let j = 0; j < b.length; j++) {
+            let length = 0;
+            while (a[i + length] !== undefined && a[i + length] === b[j + length]) length++;
+            if (length > best.length) best = { length, i, j };
+          }
+        }
+        if (!best.length) return { key: `${from}\t${to}`, whole: [from, to] };
+        const join = (/** @type {string[]} */ words) => words.join("_");
+        const outer = (/** @type {string[]} */ words, /** @type {number} */ at) =>
+          [join(words.slice(0, at)), "…", join(words.slice(at + best.length))].filter(Boolean).join("_") + "_";
+        return { key: `${outer(a, best.i)}\t${outer(b, best.j)}`, from: outer(a, best.i), to: outer(b, best.j), member: join(a.slice(best.i, best.i + best.length)), whole: [from, to] };
+      }
+
+      // ── An id looked up: as it is now, if the release serves it ──
+
+      /** @type {Map<string, Promise<boolean>>} */
+      const served = new Map();
+      /** The server not answering, or with another error than its 404. */
+      class Unanswered extends Error {}
+      /**
+       * Whether this page's server serves series `id` (the release it's on): its 404 says no; otherwise `Unanswered`, and
+       * asked again next time. @param {string} id
+       */
+      function serves(id) {
+        if (!served.has(id)) {
+          const unanswered = () => {
+            served.delete(id);
+            throw new Unanswered();
+          };
+          served.set(id, fetch(`/api/series/${encodeURIComponent(id)}`).then((r) => (r.ok || r.status === 404 ? r.ok : unanswered()), unanswered));
+        }
+        return /** @type {Promise<boolean>} */ (served.get(id));
+      }
+      const seriesLink = (/** @type {string} */ id) => `<a href="/catalog/?series=${encodeURIComponent(id)}">${code(id)}</a>`;
+      /**
+       * Ids gone that Studio computes from the series served now, each with its chart, where the formula lives (home.mjs
+       * checks every address into Studio a page has is one). @type {Record<string, string>}
+       */
+      const IN_STUDIO = {
+        puell_multiple: "/studio/presets/mining/rewards/puell-multiple",
+        nvt: "/studio/presets/valuation/nvt",
+        rhodl_ratio: "/studio/presets/valuation/rhodl",
+        thermo_cap_multiple: "/studio/presets/valuation/thermocap-multiple",
+        pi_cycle: "/studio/presets/price/technical/pi-cycle",
+      };
+
+      let asked = 0;
+      async function lookUp() {
+        const id = /** @type {HTMLInputElement} */ ($("q")).value.trim();
+        // (Typed, from three letters; linked, as the API's not-found links any id it lacks, whatever its length.)
+        const answer = $("answer"), ask = ++asked, linked = id === asked0;
+        if (!changes || !(linked ? /^[a-z0-9_]+$/ : /^[a-z0-9_]{3,}$/).test(id)) return void (answer.hidden = true);
+        const readings = read(id, rules);
+        const said = await (async () => {
+          if (!readings[0]?.exact && (await serves(id))) {
+            const changed = changes.changed.some((/** @type {string[]} */ row) => row[0] === id);
+            return `<p class="now">${code(id)} is served as it was.</p>` + (changed ? `<p class="why">Its values changed under it.</p>` : "");
+          }
+          for (const reading of readings) {
+            if (reading.id === id || !(await serves(reading.id))) continue;
+            /** @type {string[]} */
+            const why = [];
+            if (reading.exact) why.push("renamed one by one");
+            if (reading.cohort) why.push(`cohort ${code(reading.cohort[0])} → ${code(reading.cohort[1])}`);
+            if (reading.measure) why.push(`measure ${code(reading.measure[0])} → ${code(reading.measure[1])}`);
+            for (const [was, now] of reading.words ?? []) why.push(`${code(was)} → ${now ? code(now) : "dropped"}`);
+            if (reading.suffix) why.push(`unit ${code(`_${reading.suffix[0]}`)} → ${reading.suffix[1] ? code(`_${reading.suffix[1]}`) : "dropped"}`);
+            const values = factor(reading.factor);
+            return (
+              `<p class="now">${code(id)} is now ${seriesLink(reading.id)}</p>` +
+              `<p class="why">${why.join(", ")}${values ? `; its values ${values}` : ""}.</p>` +
+              (different.has(id) ? `<p class="why">Its values aren't the same as they were: computed anew.</p>` : "")
+            );
+          }
+          // (Why, where the lists say: its whole cohort gone, or its measure from three cohorts or more.)
+          const cohort = changes.removed.cohorts.find((/** @type {[string, number]} */ [prefix]) => id.startsWith(prefix));
+          const measure = !cohort && changes.removed.measures.find((/** @type {[string, number]} */ [name]) => id.endsWith(`_${name}`));
+          // (Every id gone is in a list of the removed; one that's in none wasn't an id, as a word searched in the
+          // notes: nothing said of it, unless a link asked for it, as the API's not-found does for any id it lacks.)
+          const removed = cohort || measure || changes.removed.ids.includes(id);
+          if (!removed && !linked) return "";
+          const near = await fetch(`/api/series/search?q=${encodeURIComponent(id)}&limit=5`).then((r) => (r.ok ? r.json() : []), () => []);
+          const [from, to] = versions(changes.from, changes.to);
+          // (Under a unit's suffix too, `puell_multiple_ppm`: Studio draws the id without it.)
+          const computed = [id, ...rules.suffixes.map(([unit]) => id.endsWith(`_${unit}`) && id.slice(0, -unit.length - 1))].find(
+            (it) => it && Object.hasOwn(IN_STUDIO, it),
+          );
+          return (
+            (removed
+              ? `<p class="now">${code(id)} <span class="gone">isn't served</span> under any id we could find.</p>`
+              : `<p class="now">${code(id)} <span class="gone">isn't served</span>, and ${escape(to)} didn't rename or remove it from ${escape(from)}: if it was an id before that, check the earlier releases' notes.</p>`) +
+            (cohort ? `<p class="why">Its cohort, ${code(`${cohort[0]}…`)}, is gone, all ${grouped.format(cohort[1])} of its ids.</p>` : "") +
+            (measure ? `<p class="why">Its measure, ${code(`…_${measure[0]}`)}, is gone from ${grouped.format(measure[1])} cohorts.</p>` : "") +
+            (computed ? `<p class="why">Studio computes ${computed === id ? "it" : code(computed)} from the series served now: <a href="${IN_STUDIO[computed]}">its chart</a>, with its formula.</p>` : "") +
+            (near.length ? `<p class="why">Closest now: ${near.map(seriesLink).join(", ")}</p>` : "")
+          );
+        })().catch((error) => {
+          if (!(error instanceof Unanswered)) throw error;
+          return `<p class="now">The server didn't answer: try again.</p>`;
+        });
+        if (ask !== asked) return;
+        answer.innerHTML = said;
+        answer.hidden = !said;
+      }
+
+      let typing = 0;
+      $("q").addEventListener("input", () => {
+        render();
+        clearTimeout(typing);
+        typing = setTimeout(lookUp, 250);
+      });
+      $("search-form").addEventListener("submit", (event) => (event.preventDefault(), lookUp()));
+      // (A link may name an id, and a release: /changes/?id=utxos_2y_to_3y_old_supply, /changes/?release=0.12.)
+      const params = new URLSearchParams(location.search), asked0 = params.get("id"), wanted = params.get("release");
+      if (asked0) /** @type {HTMLInputElement} */ ($("q")).value = asked0;
+      // (Without the changelog, the API's comparisons alone.)
+      const changelog = await fetch("./CHANGELOG.md").then((response) => (response.ok ? response.text() : ""), () => "");
+      tabs = tabsOf(releases(changelog));
+      if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? tabs[0]);
+      else $("lead").textContent = "No release yet.";
+    </script>
+  </body>
+</html>

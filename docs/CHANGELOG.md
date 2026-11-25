@@ -11,7 +11,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - `--website` is gone: bitviewd always serves the site, and there is no API-only mode. A `config.toml` or command line
   that still sets `website` fails at startup, saying so (remove it). `/` is the home page again, never a redirect to
   `/openapi.json`. `bitview_server::ServerConfig` has no `website` field and `bitview_website::router` takes only
-  `cdn_purged`. Debug builds read the repository's `showcases` folder live, wherever they run from.
+  `cdn_purged`. Debug builds read the repository's `website` folder live, wherever they run from.
+- The repository's `showcases` folder is now `website`, with every path that named it.
 
 - The client types `Reused` and `AddressesReused` trade shapes: `Reused` is now all addresses' (with direct
   reuse), `AddressesReused` each address type's. Client names no longer follow instance counts.

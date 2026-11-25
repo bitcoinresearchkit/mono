@@ -1,6 +1,6 @@
 # bitview_website
 
-Serves Bitview's showcases: the embedded copy, or in debug builds the repository's folder live.
+Serves Bitview's website: the embedded copy, or in debug builds the repository's folder live.
 
 `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html`;
 an address no file answers that is served elsewhere answers 308 to the same place under its new folder (`/address/…`
@@ -9,7 +9,7 @@ revalidated as the files are, so a redirect changed with a release reaches brows
 the site's `404.html` for a request whose `Accept` lists `text/html` (a browser's), a plain message otherwise, both
 `no-store` since the answer depends on `Accept`. Release builds tag each response with an ETag of its content, and with the same hash in a
 `Bitview-Version` header, which an open page reads to tell when a newer version of it is served
-(`showcases/assets/version`).
+(`website/assets/version`).
 
 The embedded site is served under one release, a hash of every file's path, content type and content: each file is
 also at `/v/<release>/<path>`, cached for good (`immutable`), while pages stay revalidated. A page as served starts
@@ -22,8 +22,8 @@ so a returning visitor downloads the files it uses once again. An earlier releas
 late) answers the current file, revalidated, as only the current release is held. Workers start at the same files'
 second address, `/w/<release>/<path>`, and import relative to it (a worker has no import map): in WebKit, a page's
 module whose address a worker has also loaded comes from the network on each reload after (Studio's
-`showcases/studio/workers.js`): the import map's `worker/` entry supplies their address. In debug builds the
-repository's `showcases` folder (a path fixed when the crate is built) is read on each request and transformed the same
+`website/studio/workers.js`): the import map's `worker/` entry supplies their address. In debug builds the
+repository's `website` folder (a path fixed when the crate is built) is read on each request and transformed the same
 way, without a release, so it checks pages in development. Pages need a literal
 `<head>` and module scripts with a `src` name a site file by its absolute path. Invalid embedded pages stop router
 initialization with every bad file named. The live folder has no release.
@@ -39,7 +39,7 @@ Cloudflare drops pages' ETag whenever one of its features that process HTML is o
 changes anything: browsers then download every page again in full instead of revalidating it (a 304 with no body).
 Automatic HTTPS Rewrites alone does it (turned back on for a test, every page lost its ETag within seconds); Email
 Address Obfuscation, Server Side Excludes and Replace insecure JavaScript libraries are of the same kind. The
-showcases need none of them (no `http://` links, no email addresses, no `<!--sse-->` blocks, no third-party
+website needs none of them (no `http://` links, no email addresses, no `<!--sse-->` blocks, no third-party
 scripts): bitview.space has them all off. Scripts, images and JSON keep their ETag either way. Cloudflare drops the
 ETag on every `HEAD` request too, but keeps the server's own headers (`Bitview-Version`) on `GET` and `HEAD` alike.
 
@@ -60,7 +60,7 @@ See the `website` example for a complete standalone server with tracing, and oth
 cargo run -p bitview_website --example website
 ```
 
-Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's front page and its showcases.
+Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's front page and its apps.
 
 ## Address-specific page info
 

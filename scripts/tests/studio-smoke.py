@@ -31,8 +31,8 @@ from playwright.sync_api import sync_playwright
 # shared assets (fonts, launch) it loads, by the directories they're served from (see local); everything else is the
 # server's.
 ROOT = Path(__file__).resolve().parents[2]
-PAGE = (ROOT / "showcases" / "studio" / "index.html").resolve()
-OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve(), "/assets/": (ROOT / "showcases" / "assets").resolve()}
+PAGE = (ROOT / "website" / "studio" / "index.html").resolve()
+OWNED = {"/studio/": PAGE.parent, "/modules/": (ROOT / "modules").resolve(), "/assets/": (ROOT / "website" / "assets").resolve()}
 mimetypes.add_type("text/javascript", ".mjs")
 STORE = "bitview-studio:v2"
 PREFS = "bitview-studio:prefs"
@@ -463,7 +463,7 @@ OLD = {
 
 def check_made_files(run):
     """What seo.mjs makes from the presets and the page (presets.hash, llms.txt, sitemap.xml) is as the code makes them now, by the chain's facts they were written by: what the chain did since fails nothing."""
-    done = subprocess.run(["bun", str(ROOT / "showcases" / "studio" / "seo.mjs"), "--check"], capture_output=True, text=True)
+    done = subprocess.run(["bun", str(ROOT / "website" / "studio" / "seo.mjs"), "--check"], capture_output=True, text=True)
     said = (done.stdout + done.stderr).strip().splitlines()
     if done.returncode:
         raise Failure(next((line for line in reversed(said) if line.strip()), f"seo.mjs --check exited {done.returncode}"))

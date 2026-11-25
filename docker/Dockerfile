@@ -6,12 +6,12 @@ WORKDIR /app
 
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates crates
-# Workspace member (root Cargo.toml) and the showcases embedded by bitview_website
-# (crates/bitview_website/showcases -> showcases, showcases/modules -> modules).
+# Workspace member (root Cargo.toml) and the website embedded by bitview_website
+# (crates/bitview_website/website -> website, website/modules -> modules).
 COPY examples examples
-COPY showcases showcases
+COPY website website
 COPY modules modules
-# The changelog the Changes page reads (showcases/changes/CHANGELOG.md -> docs/CHANGELOG.md):
+# The changelog the Changes page reads (website/changes/CHANGELOG.md -> docs/CHANGELOG.md):
 # include_dir! fails on a link left dangling.
 COPY docs/CHANGELOG.md docs/CHANGELOG.md
 

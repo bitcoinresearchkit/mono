@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Self-hosting" data-color="#ff8a3d"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f3ef" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0d0c" />
+    <title>Bitview — self-hosted Bitcoin data server</title>
+    <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by website/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/dev/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/dev/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Bitview — self-hosted Bitcoin data server" />
+    <meta property="og:description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/dev.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Running Bitview: Bitcoin's data on your own node, beside Bitcoin Core" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23171512'/%3E%3Cpath%20transform='translate(32%2032)%20scale(31.5)'%20fill='%23f2efe8'%20fill-rule='evenodd'%20d='M-0.6299%20-0.3674L-0.6267%20-0.3841L-0.6172%20-0.4011L-0.6012%20-0.4188L-0.5788%20-0.4373L-0.5501%20-0.4571L-0.5149%20-0.4784L-0.1922%20-0.6647L-0.1553%20-0.6850L-0.1211%20-0.7016L-0.0890%20-0.7145L-0.0585%20-0.7237L-0.0290%20-0.7293L-0.0000%20-0.7311L0.0290%20-0.7293L0.0585%20-0.7237L0.0890%20-0.7145L0.1211%20-0.7016L0.1553%20-0.6850L0.1922%20-0.6647L0.5149%20-0.4784L0.5501%20-0.4571L0.5788%20-0.4373L0.6012%20-0.4188L0.6172%20-0.4011L0.6267%20-0.3841L0.6299%20-0.3674L0.6299%200.3674L0.6267%200.3841L0.6172%200.4011L0.6012%200.4188L0.5788%200.4373L0.5501%200.4571L0.5149%200.4784L0.1922%200.6647L0.1553%200.6850L0.1211%200.7016L0.0890%200.7145L0.0585%200.7237L0.0290%200.7293L0.0000%200.7311L-0.0290%200.7293L-0.0585%200.7237L-0.0890%200.7145L-0.1211%200.7016L-0.1553%200.6850L-0.1922%200.6647L-0.5149%200.4784L-0.5501%200.4571L-0.5788%200.4373L-0.6012%200.4188L-0.6172%200.4011L-0.6267%200.3841L-0.6299%200.3674ZM0.0209%20-0.6291L0.0423%20-0.6251L0.0644%20-0.6184L0.0876%20-0.6090L0.1123%20-0.5970L0.1390%20-0.5824L0.4420%20-0.4074L0.4545%20-0.3979L0.4640%20-0.3854L0.4700%20-0.3709L0.4721%20-0.3554L0.4700%20-0.3399L0.4640%20-0.3254L0.4545%20-0.3129L0.4420%20-0.3034L0.1390%20-0.1284L0.1123%20-0.1138L0.0876%20-0.1017L0.0644%20-0.0924L0.0423%20-0.0857L0.0209%20-0.0817L0.0000%20-0.0804L0.0000%20-0.0804L-0.0000%20-0.0804L-0.0209%20-0.0817L-0.0423%20-0.0857L-0.0644%20-0.0924L-0.0876%20-0.1017L-0.1123%20-0.1138L-0.1390%20-0.1284L-0.4420%20-0.3034L-0.4545%20-0.3129L-0.4640%20-0.3254L-0.4700%20-0.3399L-0.4721%20-0.3554L-0.4700%20-0.3709L-0.4640%20-0.3854L-0.4545%20-0.3979L-0.4420%20-0.4074L-0.1390%20-0.5824L-0.1123%20-0.5970L-0.0876%20-0.6090L-0.0644%20-0.6184L-0.0423%20-0.6251Z'/%3E%3C/svg%3E" />
+    <style>
+      /* craft rules */
+      /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
+         lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
+         shifts what sits beside it (a face without equal-width digits, like Instrument Serif, can't: its box is fixed). */
+      :where(h1, h2, h3, h4, h5, h6) {
+        text-wrap: balance;
+      }
+      :where(p, li, dd, blockquote, figcaption) {
+        text-wrap: pretty;
+      }
+      html body {
+        font-variant-numeric: tabular-nums;
+      }
+      /* /craft rules */
+      /* A datasheet for a server: graphite and paper, one accent (Bitview's orange), specs set as large numerals, labels
+         small in a monospace, hairline rules between parts. One file, system fonts: it's served on its own. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f4f3ef, #0d0d0c);
+        --card: light-dark(#fbfaf7, #141413);
+        --raised: light-dark(#ebe9e3, #1c1c1a);
+        --ink: light-dark(#121211, #f1f0ec);
+        --text: light-dark(#383732, #c9c7c0);
+        --soft: light-dark(#5f5d56, #a19e96);
+        --faint: light-dark(#6c6a63, #8f8c85);
+        --rule: light-dark(rgb(18 18 17 / 0.14), rgb(241 240 236 / 0.13));
+        --hair: light-dark(rgb(18 18 17 / 0.08), rgb(241 240 236 / 0.07));
+        --accent: light-dark(#ad470b, #ff8a3d);
+        --on-accent: light-dark(#fff8f2, #170b02);
+        --focus: light-dark(rgb(18 18 17 / 0.6), rgb(241 240 236 / 0.6));
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#242421, #dddbd6);
+          --soft: light-dark(#3e3d39, #b9b7b0);
+          --faint: light-dark(#4f4d48, #a4a29b);
+          --rule: light-dark(rgb(18 18 17 / 0.31), rgb(241 240 236 / 0.29));
+          --hair: light-dark(rgb(18 18 17 / 0.18), rgb(241 240 236 / 0.15));
+        }
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 72px;
+
+        @media (prefers-reduced-motion: reduce) {
+          scroll-behavior: auto;
+        }
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 16px/1.6 var(--sans);
+        -webkit-font-smoothing: antialiased;
+        text-wrap: pretty;
+      }
+
+      a {
+        color: inherit;
+        text-underline-offset: 0.2em;
+        text-decoration-color: color-mix(in oklab, var(--soft) 70%, transparent);
+
+        &:hover {
+          color: var(--accent);
+          text-decoration-color: currentColor;
+        }
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      code,
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.92em;
+      }
+
+      .shell {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 20px;
+
+        @media (min-width: 760px) {
+          padding: 0 40px;
+        }
+      }
+
+      .skip {
+        position: absolute;
+        left: -999px;
+
+        &:focus {
+          left: 12px;
+          top: 12px;
+          z-index: 10;
+          padding: 6px 12px;
+          background: var(--card);
+        }
+      }
+
+      /* A label: small, in the body face. */
+      .label {
+        color: var(--soft);
+        font: 500 13px/1.4 var(--sans);
+      }
+
+      /* ── The bar ── */
+
+      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
+         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
+      .stars {
+        white-space: nowrap;
+      }
+
+      .stars-count {
+        font-weight: 600;
+        color: var(--ink);
+      }
+
+      /* (Where the bar has no room for them beside the way home and Run it: its words for screen readers alone, the star and the count shown.) */
+      @media (width < 360px) {
+        .bar .stars-words {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
+      }
+
+      .star {
+        flex: none;
+        width: 1em;
+        height: 1em;
+        margin-right: 0.4em;
+        vertical-align: -0.125em;
+        fill: #e8a530;
+        stroke: #e8a530;
+        stroke-width: 1;
+        stroke-linejoin: round;
+      }
+
+      .bar {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        border-bottom: 1px solid var(--hair);
+        background: color-mix(in oklab, var(--app), transparent 12%);
+        backdrop-filter: blur(12px);
+
+        nav {
+          display: flex;
+          align-items: center;
+          gap: 22px;
+          height: 56px;
+        }
+
+        .brand {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-right: auto;
+          color: var(--ink);
+          font-weight: 650;
+          letter-spacing: -0.01em;
+          text-decoration: none;
+
+          img {
+            width: 18px;
+            height: 21px;
+          }
+        }
+
+        a:not(.brand) {
+          color: var(--soft);
+          font-size: 14px;
+          white-space: nowrap;
+          text-decoration: none;
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          @media (max-width: 620px) {
+            &.optional {
+              display: none;
+            }
+          }
+        }
+      }
+
+      /* ── The hero: what it is, then its specs ── */
+
+      .hero {
+        padding-top: 40px;
+
+        @media (min-width: 760px) {
+          padding-top: 96px;
+        }
+
+        h1 {
+          max-width: 14ch;
+          margin: 0;
+          color: var(--ink);
+          font-size: clamp(40px, 7vw, 76px);
+          font-weight: 700;
+          line-height: 1;
+          letter-spacing: -0.025em;
+        }
+
+        .lede {
+          max-width: 56ch;
+          margin: 22px 0 0;
+          font-size: 18px;
+        }
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 28px;
+      }
+
+      /* Who uses Bitview: their logos, each a link to its site (written by website/home.mjs from
+         assets/used-by/list.js). Each logo is its shape alone in the page's ink, at one height (its list entry's scale
+         evens out how big it reads), lit to the ink on hover rather than the accent, so no logo takes a colour that isn't
+         its own. Still, it's one wrapped row; with motion allowed it drifts by, with a pause beside its label. */
+      .used-by {
+        margin-top: 40px;
+
+        .head {
+          display: flex;
+          align-items: center;
+          gap: 2px;
+          margin-bottom: 6px;
+        }
+
+        .label {
+          margin: 0;
+        }
+
+        /* The drift's pause: a toggle button drawn as its icon (pause while it drifts, play once pressed), there only
+           while the strip can move and the page's script can work it (its own `hidden` until then). Its box (44 px to
+           a finger) overhangs the label's line rather than growing it (and above the strip it overhangs). Paused, a
+           walk through the logos by keyboard still leaves the strip at its start. */
+        .pause {
+          display: none;
+          width: 28px;
+          height: 28px;
+          margin-block: -6px;
+          padding: 0;
+          border: 0;
+          border-radius: 6px;
+          outline-offset: 0;
+          background: none;
+          color: var(--soft);
+          cursor: pointer;
+          transition: color 0.3s;
+
+          @media (pointer: coarse) {
+            position: relative;
+            z-index: 1;
+            width: 44px;
+            height: 44px;
+            margin: -14px -8px;
+          }
+
+          &:hover,
+          &:focus-visible {
+            color: var(--ink);
+          }
+
+          /* (The icon on its own layer: a mask on the button would clip its focus ring.) */
+          &::before {
+            content: "";
+            display: block;
+            height: 100%;
+            background: currentColor;
+            mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect x='9.5' y='9' width='3' height='10' rx='1'/%3E%3Crect x='15.5' y='9' width='3' height='10' rx='1'/%3E%3C/svg%3E") center / 28px no-repeat;
+
+            @media (forced-colors: active) {
+              forced-color-adjust: none;
+              background: ButtonText;
+            }
+          }
+
+          &[aria-pressed="true"]::before {
+            mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Cpath d='M10.5 8.6v10.8a.8.8 0 0 0 1.2.7l8.6-5.4a.8.8 0 0 0 0-1.4l-8.6-5.4a.8.8 0 0 0-1.2.7Z'/%3E%3C/svg%3E");
+          }
+        }
+
+        .strip {
+          --height: 24px;
+          --gap: 64px;
+          --fade: 32px;
+          padding-block: 6px;
+        }
+
+        ul {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 40px;
+          margin: 0 -4px;
+          padding: 0;
+          list-style: none;
+
+          &[aria-hidden] {
+            display: none;
+          }
+        }
+
+        a {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          height: 44px;
+          padding-inline: 4px;
+          border-radius: 6px;
+          color: var(--soft);
+          font: 600 17px/1 var(--sans);
+          letter-spacing: -0.01em;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: color 0.3s;
+
+          &:hover,
+          &:focus-visible {
+            color: var(--ink);
+          }
+        }
+
+        .logo {
+          flex: none;
+          height: calc(var(--height) * var(--scale));
+          background: currentColor;
+          mask: var(--logo) center / contain no-repeat;
+
+          /* (Forced colours would paint the mask's ground as the page's, hiding it: kept, and set to the links' forced
+             colour, which the kept element no longer inherits.) */
+          @media (forced-colors: active) {
+            forced-color-adjust: none;
+            background: LinkText;
+          }
+        }
+
+        /* The drift: the list there twice, the track moved by half, so it loops without a seam; 9 s a user (written as
+           --users), so a longer list keeps about the same pace (a count, not the track's width, which CSS can't time
+           an animation by). It rests under the pointer. From the keyboard it stands still at its start and
+           shows one logo to a view, centred, so the next is always wholly out of view and focus scrolls to it: a browser
+           leaves a link half in view where it is, and a paused track can't bring back a link carried off its left edge
+           (both measured in Chromium and WebKit). */
+        @media (prefers-reduced-motion: no-preference) {
+          /* (Clipped, not hidden: a clip isn't a scroll container, so the offset the keyboard mode scrolled to is
+             dropped when focus leaves, rather than kept under the drift as a blank.) */
+          .pause:not([hidden]) {
+            display: block;
+          }
+
+          &:has(.pause[aria-pressed="true"]) .track {
+            animation-play-state: paused;
+          }
+
+          .strip {
+            overflow: clip;
+            container-type: inline-size;
+            mask: linear-gradient(to right, transparent, #000 var(--fade), #000 calc(100% - var(--fade)), transparent);
+
+            &:hover .track {
+              animation-play-state: paused;
+            }
+
+            &:has(:focus-visible) {
+              overflow-x: auto;
+              scrollbar-width: none;
+
+              .track {
+                animation: none;
+              }
+
+              ul {
+                gap: 0;
+                padding: 0;
+              }
+
+              li {
+                display: flex;
+                justify-content: center;
+                width: 100cqi;
+              }
+            }
+          }
+
+          .track {
+            display: flex;
+            width: max-content;
+            animation: used-by calc(var(--users) * 9s) linear infinite;
+          }
+
+          ul {
+            flex-wrap: nowrap;
+            gap: var(--gap);
+            margin: 0;
+            padding: 0 calc(var(--gap) / 2);
+
+            &[aria-hidden] {
+              display: flex;
+            }
+          }
+        }
+      }
+
+      @keyframes used-by {
+        to {
+          transform: translateX(-50%);
+        }
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 42px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        padding: 0 16px;
+        color: var(--ink);
+        background: var(--card);
+        font-size: 14.5px;
+        font-weight: 600;
+        text-decoration: none;
+
+        &:hover {
+          color: var(--ink);
+          border-color: var(--soft);
+        }
+
+        &.primary {
+          border-color: var(--accent);
+          color: var(--on-accent);
+          background: var(--accent);
+
+          &:hover {
+            color: var(--on-accent);
+            filter: brightness(1.08);
+          }
+        }
+      }
+
+      /* The specs: a row of measured numbers, each labeled, rules between. */
+      .specs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin: 64px 0 0;
+        border-top: 1px solid var(--ink);
+        border-bottom: 1px solid var(--rule);
+
+        /* (Three over two where five abreast would break a number; five from 1024px.) */
+        @media (min-width: 760px) {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+
+        @media (min-width: 1024px) {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        > div {
+          padding: 16px 16px 18px 0;
+
+          @media (min-width: 760px) and (max-width: 1023px) {
+            grid-column: span 2;
+
+            &:nth-child(n + 4) {
+              grid-column: span 3;
+            }
+
+            &:nth-child(-n + 3) {
+              border-bottom: 1px solid var(--hair);
+            }
+
+            &:not(:first-child, :nth-child(4)) {
+              border-left: 1px solid var(--hair);
+              padding-left: 18px;
+            }
+          }
+
+          @media (min-width: 1024px) {
+            & + div {
+              border-left: 1px solid var(--hair);
+              padding-left: 18px;
+            }
+          }
+
+          @media (max-width: 759px) {
+            border-bottom: 1px solid var(--hair);
+
+            &:nth-child(even) {
+              border-left: 1px solid var(--hair);
+              padding-left: 16px;
+            }
+
+            /* (Five: the last across both, none alone.) */
+            &:last-child:nth-child(odd) {
+              grid-column: 1 / -1;
+              border-bottom: 0;
+            }
+          }
+        }
+
+        dt {
+          color: var(--soft);
+          font: 500 13px var(--sans);
+        }
+
+        dd {
+          margin: 8px 0 0;
+          color: var(--ink);
+          font-size: clamp(28px, 4vw, 40px);
+          font-weight: 650;
+          line-height: 1;
+          letter-spacing: -0.025em;
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+
+          small {
+            display: block;
+            white-space: normal;
+            margin-top: 8px;
+            color: var(--soft);
+            font-size: 13px;
+            font-weight: 400;
+            letter-spacing: 0;
+            line-height: 1.4;
+          }
+        }
+      }
+
+      .specs-foot {
+        margin: 10px 0 0;
+        color: var(--faint);
+        font-size: 13px;
+      }
+
+      /* ── Parts: a number and a title on the left, the part on the right ── */
+
+      .part {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px 48px;
+        margin-top: 96px;
+        border-top: 1px solid var(--rule);
+        padding-top: 28px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: minmax(0, 0.38fr) minmax(0, 1fr);
+        }
+
+        h2 {
+          margin: 0;
+          color: var(--ink);
+          font-size: clamp(26px, 3.4vw, 34px);
+          font-weight: 700;
+          line-height: 1.1;
+          letter-spacing: -0.025em;
+        }
+
+        .intro {
+          margin: 12px 0 0;
+          color: var(--soft);
+          /* Plain wrap: pretty leaves an uneven rag in this narrow column. */
+          text-wrap: wrap;
+        }
+      }
+
+      /* The install: a terminal, its command copyable. */
+      .terminal {
+        position: relative;
+        overflow-x: auto;
+        margin: 0;
+        border-radius: 10px;
+        border: 1px solid var(--rule);
+        padding: 18px 20px;
+        color: var(--ink);
+        background: var(--card);
+        font: 13px/1.75 var(--mono);
+
+        .prompt {
+          color: var(--accent);
+          user-select: none;
+        }
+
+        /* (A command a line, wrapped where the block's too narrow, its turns indented past the prompt: read whole,
+           and copied whole by its button.) */
+        .line {
+          display: block;
+          padding-left: 2ch;
+          text-indent: -2ch;
+          white-space: pre-wrap;
+        }
+
+        /* (A word with hyphens kept whole: never "--" and "locked" on two lines.) */
+        .w {
+          white-space: nowrap;
+        }
+      }
+
+      /* Above the terminal: what it is, and a copy of its command. */
+      .term-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+
+        button {
+          border: 1px solid var(--rule);
+          border-radius: 8px;
+          padding: 0 12px;
+          height: 32px;
+          color: var(--soft);
+          background: var(--card);
+          font: 13px var(--sans);
+          cursor: pointer;
+
+          &:hover {
+            color: var(--ink);
+          }
+        }
+      }
+
+      /* A spec table: a label, its value. */
+      .table {
+        margin: 22px 0 0;
+        border-top: 1px solid var(--rule);
+
+        > div {
+          display: grid;
+          grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+          gap: 4px 20px;
+          border-bottom: 1px solid var(--hair);
+          padding: 13px 0;
+
+          @media (max-width: 560px) {
+            grid-template-columns: minmax(0, 1fr);
+          }
+        }
+
+        dt {
+          color: var(--ink);
+          font-weight: 600;
+          font-size: 14.5px;
+        }
+
+        dd {
+          margin: 0;
+          font-size: 14.5px;
+        }
+      }
+
+      .note {
+        margin: 18px 0 0;
+        color: var(--text);
+        font-size: 14.5px;
+
+        b {
+          color: var(--ink);
+        }
+      }
+
+      /* What it serves: four, each with what it looks like where there's a picture. */
+      .serves {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1px;
+        overflow: hidden;
+        border: 1px solid var(--rule);
+        border-radius: 12px;
+        background: var(--rule);
+
+        @media (min-width: 640px) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        a {
+          display: flex;
+          flex-direction: column;
+          background: var(--card);
+          text-decoration: none;
+
+          &:hover {
+            color: inherit;
+
+            h3 span {
+              color: var(--accent);
+              translate: 2px 0;
+            }
+          }
+        }
+
+        .body {
+          padding: 16px 18px 18px;
+        }
+
+        h3 {
+          display: flex;
+          justify-content: space-between;
+          margin: 0;
+          color: var(--ink);
+          font-size: 16px;
+          font-weight: 650;
+
+          span {
+            color: var(--faint);
+            transition: translate 0.15s, color 0.15s;
+          }
+        }
+
+        p {
+          margin: 6px 0 0;
+          color: var(--soft);
+          font-size: 14.5px;
+        }
+      }
+
+      /* How it's built: a schematic, then the code of a plugin. */
+      /* (A phone: the same four steps as a list, the drawing too small to read.) */
+      .steps {
+        display: none;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          position: relative;
+          border-left: 1px solid var(--rule);
+          padding: 6px 0 10px 18px;
+
+          &::before {
+            content: "";
+            position: absolute;
+            left: -4px;
+            top: 13px;
+            width: 7px;
+            height: 7px;
+            border: 1px solid var(--soft);
+            border-radius: 50%;
+            background: var(--app);
+          }
+
+          &.accent::before {
+            border-color: var(--accent);
+            background: var(--accent);
+          }
+        }
+
+        b {
+          display: block;
+          color: var(--ink);
+        }
+
+        span {
+          color: var(--soft);
+          font-size: 14px;
+        }
+      }
+
+      @media (max-width: 559px) {
+        .schematic {
+          display: none !important;
+        }
+
+        .steps {
+          display: block;
+        }
+      }
+
+      .schematic {
+        display: block;
+        width: 100%;
+        height: auto;
+        margin-top: 4px;
+
+        .box {
+          fill: var(--card);
+          stroke: var(--rule);
+        }
+
+        .box.accent {
+          stroke: var(--accent);
+        }
+
+        .name {
+          fill: var(--ink);
+          font: 600 15px var(--sans);
+        }
+
+        .what {
+          fill: var(--soft);
+          font: 14px var(--sans);
+        }
+
+        .wire {
+          fill: none;
+          stroke: var(--soft);
+          stroke-width: 1.25;
+          marker-end: url(#arrow);
+        }
+
+        .tag {
+          fill: var(--soft);
+          font: 500 14px var(--sans);
+        }
+
+        .group {
+          stroke: var(--rule);
+        }
+      }
+
+      /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
+      .code {
+        margin: 22px 0 0;
+        border: 1px solid var(--rule);
+        border-radius: 10px;
+        background: var(--card);
+
+        pre {
+          overflow-x: auto;
+          margin: 0;
+          border-radius: 9px;
+          padding: 16px 18px;
+          font: 13px/1.65 var(--mono);
+        }
+
+        /* (Reached by keys to scroll it: the ring on the frame, the code's own clipped by it.) */
+        &:has(pre:focus-visible) {
+          outline: 2px solid var(--focus);
+          outline-offset: 3px;
+        }
+
+        pre:focus-visible {
+          outline: none;
+        }
+
+        .c {
+          color: var(--faint);
+          white-space: pre-wrap;
+        }
+
+        .k {
+          color: var(--accent);
+        }
+      }
+
+      .caption {
+        margin: 8px 0 0;
+        color: var(--faint);
+        font-size: 13px;
+      }
+
+      /* (Its own class beside the shell's: the shell's margin would otherwise win over its own.) */
+      .site-foot.shell {
+        margin-top: 96px;
+        padding-bottom: 48px;
+      }
+
+      .foot {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 10px 24px;
+        border-top: 1px solid var(--rule);
+        padding-top: 22px;
+        color: var(--faint);
+        font-size: 13.5px;
+
+        nav {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px 18px;
+
+          /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
+          @media (pointer: coarse) {
+            row-gap: 24px;
+          }
+
+        }
+      }
+      /* For screen readers only: the copy buttons' outcome. */
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
+      button[data-copy]:not([hidden]) {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+
+        &::after {
+          content: "Copied";
+          height: 0;
+          overflow: hidden;
+          visibility: hidden;
+        }
+      }
+      /* (A finger's reach, unseen: the bar's and the foot's links, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(.bar a, button[data-copy], footer a, .button) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+      /* (The bar's short links, too, a finger's width: into the gap between them.) */
+      .bar a:not(.brand)::before {
+        @media (pointer: coarse) {
+          inset-inline: min(0px, calc((100% - 44px) / 2));
+        }
+      }
+      /* (The copy button's, further up than down: the terminal below it is drawn over what's under the button.) */
+      button[data-copy]::before {
+        @media (pointer: coarse) {
+          inset-block: -16px -7px;
+        }
+      }
+      /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,
+         none.) */
+      pre[data-cut="end"] {
+        mask-image: linear-gradient(to left, transparent, #000 40px);
+      }
+
+      pre[data-cut="start"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px);
+      }
+
+      pre[data-cut="both"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="bar">
+      <nav class="shell" aria-label="Bitview">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <a href="#run">Run it</a>
+        <a class="optional" href="#serves">What it serves</a>
+        <a class="optional" href="#built">How it’s built</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero shell" id="top" aria-labelledby="title">
+        <h1 id="title">Bitcoin’s data, on your own node.</h1>
+        <p class="lede">Bitview reads every block from your Bitcoin Core and measures it: prices, supply, holders, miners, fees and thousands more series. Then it serves them to Studio, an HTTP API, generated clients and assistants. <a href="https://bitview.space">bitview.space</a> is the public instance, the same server.</p>
+        <div class="actions">
+          <a class="button primary" href="#run">Run Bitview</a>
+          <a class="button" href="https://bitview.space">Open the public instance ↗</a>
+        </div>
+        <!-- used by -->
+        <div class="used-by" id="used-by"><div class="head"><p class="label" id="used-by-label">Used by</p><button class="pause" type="button" aria-pressed="false" aria-label="Pause the logos" hidden></button></div><div class="strip"><div class="track" style="--users: 8"><ul aria-labelledby="used-by-label"><li><a href="https://sparrowwallet.com/"><span class="logo" style="--logo: url(/assets/used-by/sparrowwallet.png); --scale: 1.1; aspect-ratio: 1"></span>Sparrow Wallet</a></li><li><a href="https://www.lookintobitcoin.com/" aria-label="Look Into Bitcoin"><span class="logo" style="--logo: url(/assets/used-by/lookintobitcoin.png); --scale: 0.85; aspect-ratio: 8.238"></span></a></li><li><a href="https://www.checkonchain.com/" aria-label="Checkonchain"><span class="logo" style="--logo: url(/assets/used-by/checkonchain.svg); --scale: 1.15; aspect-ratio: 4.271"></span></a></li><li><a href="https://newhedge.io/" aria-label="Newhedge"><span class="logo" style="--logo: url(/assets/used-by/newhedge.svg); --scale: 0.85; aspect-ratio: 7.191"></span></a></li><li><a href="https://thebitcoinlayer.com/" aria-label="The Bitcoin Layer"><span class="logo" style="--logo: url(/assets/used-by/thebitcoinlayer.png); --scale: 1.3; aspect-ratio: 2.375"></span></a></li><li><a href="https://qfilabs.substack.com/"><span class="logo" style="--logo: url(/assets/used-by/qfilabs.png); --scale: 1; aspect-ratio: 1"></span>QFI Labs</a></li><li><a href="https://papanglabs.com/"><span class="logo" style="--logo: url(/assets/used-by/papanglabs.svg); --scale: 0.85; aspect-ratio: 1.573"></span>Papang Labs</a></li><li><a href="https://atreidis.app/"><span class="logo" style="--logo: url(/assets/used-by/atreidis.svg); --scale: 1; aspect-ratio: 0.88"></span>Atreidis</a></li></ul><ul aria-hidden="true"><li><a href="https://sparrowwallet.com/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/sparrowwallet.png); --scale: 1.1; aspect-ratio: 1"></span>Sparrow Wallet</a></li><li><a href="https://www.lookintobitcoin.com/" aria-label="Look Into Bitcoin" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/lookintobitcoin.png); --scale: 0.85; aspect-ratio: 8.238"></span></a></li><li><a href="https://www.checkonchain.com/" aria-label="Checkonchain" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/checkonchain.svg); --scale: 1.15; aspect-ratio: 4.271"></span></a></li><li><a href="https://newhedge.io/" aria-label="Newhedge" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/newhedge.svg); --scale: 0.85; aspect-ratio: 7.191"></span></a></li><li><a href="https://thebitcoinlayer.com/" aria-label="The Bitcoin Layer" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/thebitcoinlayer.png); --scale: 1.3; aspect-ratio: 2.375"></span></a></li><li><a href="https://qfilabs.substack.com/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/qfilabs.png); --scale: 1; aspect-ratio: 1"></span>QFI Labs</a></li><li><a href="https://papanglabs.com/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/papanglabs.svg); --scale: 0.85; aspect-ratio: 1.573"></span>Papang Labs</a></li><li><a href="https://atreidis.app/" tabindex="-1"><span class="logo" style="--logo: url(/assets/used-by/atreidis.svg); --scale: 1; aspect-ratio: 0.88"></span>Atreidis</a></li></ul></div></div></div>
+        <!-- /used by -->
+
+        <dl class="specs" aria-label="Bitview, measured">
+          <div><dt>First index</dt><dd>~1½ h<small>from block 0</small></dd></div>
+          <div><dt>Peak memory</dt><dd>8.4 GiB<small>16 GiB recommended</small></dd></div>
+          <div><dt>On disk</dt><dd>290 GiB<small>beside Bitcoin Core’s</small></dd></div>
+          <div><dt>Series</dt><dd>21,154<small>across their indexes</small></dd></div>
+          <div><dt>API operations</dt><dd>98<small>series, blocks, mempool and more</small></dd></div>
+        </dl>
+        <p class="specs-foot">Measured on an Apple M6 Mac mini, 16 GB, external NVMe SSD; every run on <a href="/benchmarks/">Benchmarks</a>.</p>
+      </section>
+
+      <section class="shell" id="run" aria-labelledby="run-title"><div class="part">
+        <div>
+          <h2 id="run-title">Run it</h2>
+          <p class="intro">One executable: the official plugins, Studio and the API, beside your node.</p>
+        </div>
+        <div>
+          <div class="term-head"><span class="label">Install, or update</span><button type="button" data-copy='rustup update &amp;&amp; RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd'>Copy</button></div>
+          <pre class="terminal"><span class="line"><span class="prompt">$</span> rustup update &amp;&amp; <span class="w">RUSTFLAGS="-C target-cpu=native"</span> cargo install <span class="w">--locked</span> bitviewd</span><span class="line"><span class="prompt">$</span> bitviewd</span></pre>
+          <dl class="table">
+            <div><dt>Bitcoin Core</dt><dd>Mainnet, with <code>server=1</code> and RPC credentials, and its <code>blk*.dat</code> files complete from genesis (not pruned).</dd></div>
+            <div><dt>Machine</dt><dd>Linux or macOS, with Rust from <a href="https://rustup.rs">rustup.rs</a>.</dd></div>
+            <div><dt>First index</dt><dd>Slower disks and CPUs take longer. When more than 10,000 blocks behind, Bitview catches up before it starts serving.</dd></div>
+            <div><dt>Configuration</dt><dd><code>~/.bitview/config.toml</code>, edited by hand; the install command updates the executable only.</dd></div>
+          </dl>
+          <p class="note"><b>It listens on <code>127.0.0.1:3110</code>, this machine only, without authentication.</b> To serve your network, set <code>serverbind = "0.0.0.0"</code> in the configuration, behind access control.</p>
+          <div class="actions">
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/bitviewd/README.md">Installation and configuration</a>
+          </div>
+        </div>
+      </div></section>
+
+      <section class="shell" id="serves" aria-labelledby="serves-title"><div class="part">
+        <div>
+          <h2 id="serves-title">What it serves</h2>
+          <p class="intro">The same data, however you work: charts, plain HTTP, a client in your language, or an assistant.</p>
+        </div>
+        <div class="serves">
+          <a href="https://bitview.space/studio/">
+            <div class="body"><h3>Studio <span aria-hidden="true">→</span></h3><p>Chart any series: overlay, stack in panes, derive with formulas, then keep, share or export.</p></div>
+          </a>
+          <a href="https://bitview.space/api/">
+            <div class="body"><h3>HTTP API <span aria-hidden="true">→</span></h3><p>Series as JSON or CSV; blocks, transactions, addresses and the mempool as JSON; OpenAPI documentation.</p></div>
+          </a>
+          <a href="https://github.com/bitcoinresearchkit/mono/tree/main/crates/bitview_bindgen">
+            <div class="body"><h3>Generated clients <span aria-hidden="true">→</span></h3><p>Rust, JavaScript, Python and a command line, generated from the server’s own catalog.</p></div>
+          </a>
+          <a href="/mcp">
+            <div class="body"><h3>For assistants <span aria-hidden="true">→</span></h3><p>A stateless MCP server whose tools come from the read-only API, at <code>bitview.space/mcp</code>, no key needed; or hand one <code>llms.txt</code>.</p></div>
+          </a>
+        </div>
+      </div></section>
+
+      <section class="shell" id="built" aria-labelledby="built-title"><div class="part">
+        <div>
+          <h2 id="built-title">How it’s built</h2>
+          <p class="intro">Plugins are plain Rust crates, put together into a typed graph at compile time: no dynamic loading, no plugin ABI. Bitview’s own are the default; yours join them.</p>
+        </div>
+        <div>
+          <svg class="schematic" viewBox="0 0 720 106" role="img" aria-label="Bitcoin Core validates and picks the chain; the Bitcoin Research Kit reads it; plugins index and compute; Studio, the API and clients serve it">
+            <defs><marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0L8,4L0,8" fill="none" stroke="currentColor" style="stroke: var(--soft)" /></marker></defs>
+            <path class="group" d="M0,19.5H150M190,19.5H720" />
+            <text class="tag" x="0" y="14">Your node</text>
+            <rect class="box" x="0" y="26" width="150" height="76" rx="8" /><text class="name" x="14" y="52">Bitcoin Core</text><text class="what" x="14" y="73">validates, picks</text><text class="what" x="14" y="90">the chain</text>
+            <path class="wire" d="M150,64H186" />
+            <text class="tag" x="190" y="14">Bitview</text>
+            <rect class="box" x="190" y="26" width="150" height="76" rx="8" /><text class="name" x="204" y="52">Research Kit</text><text class="what" x="204" y="73">reads blocks,</text><text class="what" x="204" y="90">RPC, mempool</text>
+            <path class="wire" d="M340,64H376" />
+            <rect class="box accent" x="380" y="26" width="150" height="76" rx="8" /><text class="name" x="394" y="52">Plugins</text><text class="what" x="394" y="73">index, compute</text><text class="what" x="394" y="90">every series</text>
+            <path class="wire" d="M530,64H566" />
+            <rect class="box" x="570" y="26" width="150" height="76" rx="8" /><text class="name" x="584" y="52">Serve</text><text class="what" x="584" y="73">Studio, API,</text><text class="what" x="584" y="90">clients</text>
+          </svg>
+          <ol class="steps" aria-label="How it’s built">
+            <li><b>Bitcoin Core</b><span>on your node; validates, picks the chain</span></li>
+            <li><b>Research Kit</b><span>reads blocks, RPC, mempool</span></li>
+            <li class="accent"><b>Plugins</b><span>index, compute every series</span></li>
+            <li><b>Serve</b><span>Studio, API, clients</span></li>
+          </ol>
+          <div class="code"><pre><span class="c">// A plugin: its storage, and what it keeps.</span>
+<span class="k">#[derive(Traversable, Plugin)]</span>
+<span class="k">#[plugin(storage = STORAGE)]</span>
+pub struct Vecs&lt;M: StorageMode = Rw&gt; {
+    #[traversable(skip)]
+    db: Database,
+
+    <span class="c">/// Consecutive blocks at least 90% of the maximum weight.</span>
+    streak: M::Stored&lt;PcoVec&lt;Height, Count&gt;&gt;,
+}
+
+<span class="c">// The binary: Bitview’s runner, your composition.</span>
+fn main() -&gt; Result&lt;()&gt; {
+    run(Plugins::import)
+}</pre></div>
+          <p class="caption">The whole example adds one series to Bitview’s defaults and serves it through the same API.</p>
+          <div class="actions">
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/tree/main/examples/custom_plugin">Custom plugin example</a>
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/bitview_plugin/README.md">Plugin contract</a>
+          </div>
+        </div>
+      </div></section>
+
+      <section class="shell" aria-labelledby="status-title"><div class="part">
+        <div>
+          <h2 id="status-title">In active development</h2>
+        </div>
+        <div>
+          <p style="margin: 0">Public APIs, stored datasets and the plugin contract may change between releases. The public instance runs without a service-level commitment.</p>
+          <div class="actions">
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/releases">Releases</a>
+            <a class="button" href="https://github.com/bitcoinresearchkit/mono/issues">Issues</a>
+            <a class="button" href="https://opensats.org/projects/bitcoinresearchkit">Supported by OpenSats ↗</a>
+          </div>
+        </div>
+      </div></section>
+    </main>
+
+    <footer class="shell site-foot"><div class="foot">
+      <span>Bitview · open source · MIT</span>
+      <nav aria-label="Elsewhere">
+        <a href="https://bitview.space">bitview.space</a>
+        <a href="/benchmarks/">Benchmarks</a>
+        <a href="https://bitcoinresearchkit.org">Bitcoin Research Kit</a>
+        <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg class="star" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span class="stars-words"> GitHub stars</span></a>
+      </nav>
+    </div></footer>
+
+    <p class="sr" id="copied" role="status"></p>
+
+    <script>
+      // The install command, copied; where the page can't write the clipboard, no button: the text's there to select.
+      for (const button of document.querySelectorAll("[data-copy]")) {
+        button.hidden = !navigator.clipboard;
+        button.addEventListener("click", async () => {
+          let said = "Copied";
+          try {
+            await navigator.clipboard.writeText(button.dataset.copy);
+          } catch {
+            said = "Failed";
+          }
+          // (The button's word short, no wider than "Copied"; the whole said aloud.)
+          button.textContent = said;
+          copied.textContent = `${said === "Copied" ? "Copied" : "Copy failed"}: ${button.dataset.copy}`;
+          setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
+        });
+      }
+      // A code block that scrolls sideways says where it's cut: data-cut start, end or both, read as it scrolls and as
+      // its box changes (none when it's whole).
+      for (const block of document.querySelectorAll("pre")) {
+        const cuts = () => {
+          const start = block.scrollLeft > 1, end = block.scrollLeft + block.clientWidth < block.scrollWidth - 1;
+          const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
+          if (cut) block.dataset.cut = cut;
+          else delete block.dataset.cut;
+        };
+        block.addEventListener("scroll", cuts, { passive: true });
+        new ResizeObserver(cuts).observe(block);
+      }
+      // The logos' pause, a toggle (its pressed state is what the strip's CSS reads); without script, no button, and
+      // the strip still rests under the pointer.
+      const pause = document.querySelector(".used-by .pause");
+      pause.hidden = false;
+      pause.addEventListener("click", () => {
+        pause.ariaPressed = String(pause.ariaPressed !== "true");
+      });
+    </script>
+  </body>
+</html>

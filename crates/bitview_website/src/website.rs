@@ -14,7 +14,7 @@ use tracing::{error, info};
 
 use crate::Error;
 
-pub(crate) static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
+pub(crate) static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
 
 /// The embedded site as served, made once on first use: each file's bytes and content hash, its pages with the
 /// release's addresses written in (`versioned`), and the release itself, one hash of every file's path and hash.
@@ -31,7 +31,7 @@ pub(crate) const RELEASES: &str = "v/";
 
 /// The same files at a second address (`/w/<release>/<path>`), for workers: in WebKit, a page's module whose address a
 /// worker has also loaded comes from the network on each reload after, so a worker's modules have addresses of their
-/// own (`showcases/studio/workers.js`).
+/// own (`website/studio/workers.js`).
 pub(crate) const WORKERS: &str = "w/";
 
 /// A file to serve, with the content type its name declares. Embedded content carries its hash, computed once.
@@ -100,7 +100,7 @@ fn content_type(path: &Path) -> &'static str {
 /// The folder a debug build serves live, read on each request so an edit shows on reload: the repository's, at a path
 /// fixed when it was built. A release build serves its embedded copy.
 pub(crate) fn live() -> Option<&'static Path> {
-    const FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/showcases");
+    const FOLDER: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/website");
     cfg!(debug_assertions).then(|| Path::new(FOLDER))
 }
 

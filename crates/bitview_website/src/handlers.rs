@@ -22,7 +22,7 @@ use crate::{
 const MOVED: &[(&str, To)] = &[
     ("series", To::Under("catalog")),
     ("api-changes", To::Under("changes")),
-    // The explorer's places (its routes, `parse()` in showcases/explorer/index.html), at the root on mempool.space and
+    // The explorer's places (its routes, `parse()` in website/explorer/index.html), at the root on mempool.space and
     // the explorers that copy its addresses.
     ("address", To::Under("explorer/address")),
     ("tx", To::Under("explorer/tx")),
@@ -363,7 +363,7 @@ fn tagged(
         // Weak: a CDN compressing the file serves other bytes under the same validator.
         headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());
         // The same hash as the file's version, for an open page to tell a newer one is served
-        // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
+        // (`website/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
         headers.insert(VERSION, etag.parse().unwrap());
     }
     headers.insert(header::CACHE_CONTROL, HeaderValue::from_static(browser));

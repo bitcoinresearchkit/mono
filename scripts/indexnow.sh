@@ -28,15 +28,15 @@ WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
 listed() {
-    for sitemap in showcases/sitemap.xml showcases/studio/sitemap.xml; do
+    for sitemap in website/sitemap.xml website/studio/sitemap.xml; do
         git -C "$ROOT" show "$1:$sitemap" 2>/dev/null || true
     done | sed -n 's|.*<loc>\(.*\)</loc>.*|\1|p' | sed 's/&amp;/\&/g' | LC_ALL=C sort -u
 }
 listed "$OLD" > "$WORK/old"
 listed "$NEW" > "$WORK/new"
 
-git -C "$ROOT" diff --name-only "$OLD" "$NEW" -- showcases/index.html 'showcases/*/index.html' |
-    sed -e 's|^showcases/index\.html$||' -e 's|^showcases/\(.*\)/index\.html$|\1/|' -e "s|^|https://$HOST/|" |
+git -C "$ROOT" diff --name-only "$OLD" "$NEW" -- website/index.html 'website/*/index.html' |
+    sed -e 's|^website/index\.html$||' -e 's|^website/\(.*\)/index\.html$|\1/|' -e "s|^|https://$HOST/|" |
     LC_ALL=C sort -u > "$WORK/edited"
 
 {
@@ -50,7 +50,7 @@ if [ "$DRY_RUN" = true ]; then
 fi
 [ -s "$WORK/urls" ] || exit 0
 
-KEY_FILE="$(git -C "$ROOT" ls-tree --name-only "$NEW" showcases/ | grep -E '^showcases/[0-9a-f]{32}\.txt$' || true)"
+KEY_FILE="$(git -C "$ROOT" ls-tree --name-only "$NEW" website/ | grep -E '^website/[0-9a-f]{32}\.txt$' || true)"
 if [ -z "$KEY_FILE" ]; then
     echo "$NEW has no IndexNow key; nothing sent" >&2
     exit 0

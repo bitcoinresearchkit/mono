@@ -1,12 +1,12 @@
 [package]
 name = "bitview_website"
-description = "Serves Bitview's showcases: the embedded copy, or in debug builds the repository's folder live"
+description = "Serves Bitview's website: the embedded copy, or in debug builds the repository's folder live"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-include = ["src/**/*", "showcases/**/*", "Cargo.toml", "README.md"]
+include = ["src/**/*", "website/**/*", "Cargo.toml", "README.md"]
 
 [dependencies]
 axum = { workspace = true }

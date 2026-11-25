@@ -34,10 +34,10 @@ echo ""
 
 echo "--- API changes ---"
 # What this release changes of the API, from the version it follows: the page beside the API reference
-# (showcases/changes/), made from prod, still on that version, and next, by its diff.mjs.
+# (website/changes/), made from prod, still on that version, and next, by its diff.mjs.
 CURRENT_VERSION=$(sed -n 's/^package\.version = "\([^"]*\)"/\1/p' "$ROOT_DIR/Cargo.toml")
-if [ ! -f "$ROOT_DIR/showcases/changes/v$CURRENT_VERSION.json" ]; then
-    echo "The API changes since v$CURRENT_VERSION aren't written: run bun showcases/changes/diff.mjs, then commit them."
+if [ ! -f "$ROOT_DIR/website/changes/v$CURRENT_VERSION.json" ]; then
+    echo "The API changes since v$CURRENT_VERSION aren't written: run bun website/changes/diff.mjs, then commit them."
     exit 1
 fi
 echo "OK"

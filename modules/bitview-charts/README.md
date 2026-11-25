@@ -297,4 +297,4 @@ clears); avoid reflecting programmatic calls. A programmatic
   index, not a scan); bars' and candles', from their points.
 - Lines' ys on device pixels, a run at one y one segment; bevelled joins (half a round join's cost in Firefox).
 
-Its bench and its types: `showcases/_engine/` (`index.html`, `types.html`).
+Its bench and its types: `website/_engine/` (`index.html`, `types.html`).

@@ -8,20 +8,20 @@ Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, me
   Core data, RPC, mempool tracking, storage, domain types, and the on-chain
   price oracle.
 - **Bitview:** the self-hostable application that composes BRK with a typed
-  indexer and analytics plugin graph, query layer, REST server, showcases, and
+  indexer and analytics plugin graph, query layer, REST server, website, and
   generated clients.
 
 <!-- used by -->
 **Used by**
 
-<a href="https://sparrowwallet.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/sparrowwallet-dark.png" /><img src="../showcases/assets/used-by/sparrowwallet.png" width="24" height="24" align="absmiddle" alt="" /></picture> Sparrow Wallet</a>&emsp;
-<a href="https://www.lookintobitcoin.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/lookintobitcoin-dark.png" /><img src="../showcases/assets/used-by/lookintobitcoin.png" width="157" height="19" align="absmiddle" alt="Look Into Bitcoin" /></picture></a>&emsp;
-<a href="https://www.checkonchain.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/checkonchain-dark.svg" /><img src="../showcases/assets/used-by/checkonchain.svg" width="107" height="25" align="absmiddle" alt="Checkonchain" /></picture></a>&emsp;
-<a href="https://newhedge.io/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/newhedge-dark.svg" /><img src="../showcases/assets/used-by/newhedge.svg" width="137" height="19" align="absmiddle" alt="Newhedge" /></picture></a>&emsp;
-<a href="https://thebitcoinlayer.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/thebitcoinlayer-dark.png" /><img src="../showcases/assets/used-by/thebitcoinlayer.png" width="69" height="29" align="absmiddle" alt="The Bitcoin Layer" /></picture></a>&emsp;
-<a href="https://qfilabs.substack.com/"><img src="../showcases/assets/used-by/qfilabs.png" width="22" height="22" align="absmiddle" alt="" /> QFI Labs</a>&emsp;
-<a href="https://papanglabs.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../showcases/assets/used-by/papanglabs-dark.svg" /><img src="../showcases/assets/used-by/papanglabs.svg" width="30" height="19" align="absmiddle" alt="" /></picture> Papang Labs</a>&emsp;
-<a href="https://atreidis.app/"><img src="../showcases/assets/used-by/atreidis.svg" width="19" height="22" align="absmiddle" alt="" /> Atreidis</a>
+<a href="https://sparrowwallet.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../website/assets/used-by/sparrowwallet-dark.png" /><img src="../website/assets/used-by/sparrowwallet.png" width="24" height="24" align="absmiddle" alt="" /></picture> Sparrow Wallet</a>&emsp;
+<a href="https://www.lookintobitcoin.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../website/assets/used-by/lookintobitcoin-dark.png" /><img src="../website/assets/used-by/lookintobitcoin.png" width="157" height="19" align="absmiddle" alt="Look Into Bitcoin" /></picture></a>&emsp;
+<a href="https://www.checkonchain.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../website/assets/used-by/checkonchain-dark.svg" /><img src="../website/assets/used-by/checkonchain.svg" width="107" height="25" align="absmiddle" alt="Checkonchain" /></picture></a>&emsp;
+<a href="https://newhedge.io/"><picture><source media="(prefers-color-scheme: dark)" srcset="../website/assets/used-by/newhedge-dark.svg" /><img src="../website/assets/used-by/newhedge.svg" width="137" height="19" align="absmiddle" alt="Newhedge" /></picture></a>&emsp;
+<a href="https://thebitcoinlayer.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../website/assets/used-by/thebitcoinlayer-dark.png" /><img src="../website/assets/used-by/thebitcoinlayer.png" width="69" height="29" align="absmiddle" alt="The Bitcoin Layer" /></picture></a>&emsp;
+<a href="https://qfilabs.substack.com/"><img src="../website/assets/used-by/qfilabs.png" width="22" height="22" align="absmiddle" alt="" /> QFI Labs</a>&emsp;
+<a href="https://papanglabs.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="../website/assets/used-by/papanglabs-dark.svg" /><img src="../website/assets/used-by/papanglabs.svg" width="30" height="19" align="absmiddle" alt="" /></picture> Papang Labs</a>&emsp;
+<a href="https://atreidis.app/"><img src="../website/assets/used-by/atreidis.svg" width="19" height="22" align="absmiddle" alt="" /> Atreidis</a>
 <!-- /used by -->
 
 See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
@@ -37,14 +37,14 @@ See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 | [`examples/custom_plugin`](../examples/custom_plugin) | Runnable external-plugin and custom-composition example |
 | [`modules/bitview-client`](../modules/bitview-client) | JavaScript/TypeScript client |
 | [`packages/bitview_client`](../packages/bitview_client) | Python client |
-| `showcases` | Showcase pages, served by the server, and Studio |
+| `website` | The site: its front page, Studio and apps, served by the server |
 | `docs`, `benches`, `docker`, and `scripts` | Project documentation, measurements, packaging, and maintenance tooling |
 
 ## Use Bitview
 
-The hosted showcases, API, and MCP endpoint require no account or authentication:
+The hosted website, API, and MCP endpoint require no account or authentication:
 
-- [Bitview](https://bitview.space), its front page, Studio and showcases
+- [Bitview](https://bitview.space), its front page, Studio and apps
 - [Interactive API](https://bitview.space/api)
 - [OpenAPI](https://bitview.space/openapi.json)
 - MCP client endpoint: `https://bitview.space/mcp`
@@ -70,7 +70,7 @@ bitviewd
 The default composition needs Linux or macOS, a mainnet Bitcoin Core node with
 RPC and complete `blk*.dat` files from genesis, about 290 GiB for Bitview plus
 Bitcoin Core storage and growth headroom, and 16 GB of RAM recommended for a
-full sync. The showcases and API are served at [localhost:3110](http://localhost:3110),
+full sync. The website and API are served at [localhost:3110](http://localhost:3110),
 to this machine only unless `serverbind` says otherwise.
 
 See the [`bitviewd` guide](../crates/bitviewd) for requirements, disk usage,
