@@ -106,7 +106,7 @@ include_dir = "0.7"
 indexmap = { version = "2.14.2", features = ["serde"] }
 itoa = "1.0.18"
 http-body = "1.1.0"
-jiff = { version = "0.2.38", features = ["perf-inline", "tz-system"], default-features = false }
+jiff = { version = "1.0.2", features = ["perf-inline", "tz-system"], default-features = false }
 libc = "0.2"
 log = "0.4.34"
 lsm-tree = { package = "brk_lsm_tree", path = "crates/lsm-tree", version = "0.13.0" }

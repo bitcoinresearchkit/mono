@@ -310,7 +310,7 @@ impl From<Date> for Timestamp {
     fn from(value: Date) -> Self {
         Self::from(
             JiffDate::from(value)
-                .to_zoned(TimeZone::UTC)
+                .to_zoned_datetime(TimeZone::UTC)
                 .unwrap()
                 .timestamp(),
         )
