@@ -119,6 +119,14 @@
 
         --page-x: 2rem;
         --transition-duration: 150ms;
+        /* How far a dialog or toast slides in as it fades: none for a reader who asked for less motion. */
+        --slide: 1;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        :root {
+          --slide: 0;
+        }
       }
 
       @media (max-width: 34rem) {
@@ -419,7 +427,7 @@
         color: var(--black);
         background: var(--white);
         opacity: 0;
-        translate: 0 0.5rem;
+        translate: 0 calc(0.5rem * var(--slide));
         transition:
           opacity var(--transition-duration) ease,
           translate var(--transition-duration) ease,
@@ -447,7 +455,7 @@
         @starting-style {
           &[open] {
             opacity: 0;
-            translate: 0 0.5rem;
+            translate: 0 calc(0.5rem * var(--slide));
           }
 
           &[open]::backdrop {
@@ -504,8 +512,7 @@
       /* Hold-to-confirm buttons */
 
       [data-hold] {
-        --hold-progress: 0;
-        --hold-progress-width: 0%;
+        --hold-progress: 0%;
 
         position: relative;
         isolation: isolate;
@@ -519,13 +526,13 @@
           position: absolute;
           inset: 0;
           opacity: 0;
+          /* The fill and the label wipe in together as the hold goes on. */
+          clip-path: inset(0 calc(100% - var(--hold-progress)) 0 0);
         }
 
         &::before {
           z-index: -1;
           background: var(--red);
-          transform: scaleX(var(--hold-progress));
-          transform-origin: left;
         }
 
         &::after {
@@ -536,7 +543,6 @@
           padding: inherit;
           color: var(--black);
           white-space: nowrap;
-          clip-path: inset(0 calc(100% - var(--hold-progress-width)) 0 0);
           pointer-events: none;
         }
 
@@ -1153,7 +1159,7 @@
             font-size: var(--font-size-sm);
             text-transform: uppercase;
             opacity: 0;
-            translate: -50% calc(-50% + 0.25rem);
+            translate: -50% calc(-50% + 0.25rem * var(--slide));
             transition:
               opacity 150ms ease,
               translate 150ms ease;
@@ -2465,8 +2471,7 @@
         let previous = 0;
 
         function render() {
-          button.style.setProperty("--hold-progress", String(progress));
-          button.style.setProperty("--hold-progress-width", `${progress * 100}%`);
+          button.style.setProperty("--hold-progress", `${progress * 100}%`);
           button.toggleAttribute("data-active", progress > 0);
         }
 
