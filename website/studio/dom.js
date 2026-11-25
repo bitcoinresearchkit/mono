@@ -43,7 +43,8 @@ function proseHtml(/** @type {string} */ markdown) {
   const html = /** @type {string[]} */ ([]), lines = markdown.trim().split("\n");
   let paragraph = /** @type {string[]} */ ([]), list = /** @type {{ tag: string, items: string[] } | null} */ (null);
   const close = () => {
-    if (paragraph.length) html.push(`<p>${inline(paragraph.join(" "))}</p>`);
+    // (Its last two words held together by a no-break space: no line ends on one word alone.)
+    if (paragraph.length) html.push(`<p>${inline(paragraph.join(" ").replace(/ (\S+)$/, "\u00a0$1"))}</p>`);
     if (list) html.push(`<${list.tag}>${list.items.map((item) => `<li>${inline(item)}</li>`).join("")}</${list.tag}>`);
     paragraph = [];
     list = null;
