@@ -13,14 +13,12 @@ use aide::{axum::ApiRouter, openapi::OpenApi};
 use axum::{
     Extension, Router,
     middleware::{from_fn, map_response},
-    response::{IntoResponse, Redirect, Response},
-    routing::get,
+    response::{IntoResponse, Response},
     serve,
 };
 #[cfg(feature = "series")]
 use bitview_query::SharedSeries;
 use bitview_query::{AsyncQuery, Result};
-use bitview_website::router as WebsiteRouter;
 use jiff::Timestamp;
 use tokio::{
     net::{TcpListener, TcpSocket},
@@ -61,7 +59,6 @@ pub use answer::CdnCacheMode;
 pub use mcp::DESCRIPTION as MCP_DESCRIPTION;
 pub use api::ApiRoutes;
 
-pub use bitview_website::Website;
 pub use error::Error;
 pub use port::Port;
 
@@ -117,7 +114,6 @@ impl Server {
         socket.bind(address)?;
         let listener = socket.listen(ACCEPT_QUEUE)?;
 
-        config.website.log();
         #[cfg(feature = "series")]
         query.sync(|q| {
             log_shared_series(q.registry().shared_series(), q.registry().value_type_conflicts())
@@ -194,7 +190,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
         urpd_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "full-api")]
         mining_pools_body,
-        website: config.website,
         started_at: Timestamp::now(),
         started_instant: Instant::now(),
         max_weight: config.max_weight,
@@ -203,19 +198,12 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<Router> {
     };
     let state = AppState::new(query.clone(), shared);
 
-    let website_router = WebsiteRouter(
-        state.website.clone(),
-        state.cdn_cache_mode == CdnCacheMode::Aggressive,
-    );
-    let mut router = ApiRouter::new()
+    let cdn_purged = state.cdn_cache_mode == CdnCacheMode::Aggressive;
+    let router = ApiRouter::new()
         .add_api_routes()
-        .route_layer(from_fn(canonical_url::refuse_respelled));
-    if !state.website.is_enabled() {
-        router = router.route("/", get(Redirect::temporary("/openapi.json")));
-    }
-    let router = router
+        .route_layer(from_fn(canonical_url::refuse_respelled))
         .with_state(state)
-        .merge(website_router)
+        .merge(bitview_website::router(cdn_purged))
         .layer(from_fn(request_deadline::apply))
         .layer(from_fn(json_error::respond))
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {

@@ -1,6 +1,6 @@
 [package]
 name = "bitview_website"
-description = "Serves Bitview's showcases, embedded or from a directory"
+description = "Serves Bitview's showcases: the embedded copy, or in debug builds the repository's folder live"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -16,7 +16,7 @@ flate2 = { workspace = true }
 rapidhash = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
+tokio = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
 
 [dev-dependencies]

@@ -2,7 +2,7 @@
 
 HTTP API server for Bitcoin on-chain analytics.
 
-Responses are sent uncompressed, for a CDN in front to compress. The server can also serve a folder of pages (the showcases by default).
+Responses are sent uncompressed, for a CDN in front to compress. The server also serves the site (the showcases), always: embedded, or in debug builds read live from the repository.
 
 `series` serves the generic series routes and `full-api`, the default, adds every other route.
 Custom compositions can disable default features and enable `series` alone, which needs only the
@@ -16,7 +16,6 @@ let server = Server::bind(
     &async_query,
     ServerConfig {
         data_path,
-        website: Website::Filesystem(files_path),
         ..Default::default()
     },
 )
@@ -128,7 +127,7 @@ Errors deliberately have no ETag: a conditional request must receive the error
 status again rather than `304`. Client errors (`400`, `404`), invalid addresses
 included, use a one-second, must-revalidate policy, since a release can change
 even a permanent verdict and browsers are never purged; service-unavailable and
-server errors use `no-store`. With the website served, the 404 for an address no route or website file names is
+server errors use `no-store`. The 404 for an address no route or website file names is
 `no-store` too: the website answers a browser with its not-found page there, so the answer depends on `Accept`,
 which a CDN's cache key leaves out; the error layer keeps a cache policy its handler marked (`CachePolicy::mark`). Server errors carry a generic message; the detail goes to the log.
 
