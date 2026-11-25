@@ -109,7 +109,7 @@ import {
 import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";
 import {
   addDrawn, boxTo, bubbleColumns, cellText, closeCell, drawingMenu, drawingRows, drawnSteps, dressField,
-  duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCode, heatCome, heatDays, heatExtras, heatFresh,
+  duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCome, heatDays, heatExtras, heatFresh,
   heatIn, heatLook, heatLooks, heatPump, heatRows, heatSeries, heatWaiters, heatWants, hold, inBox, logRows, moveTo,
   noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placingPath, pointsApart, pressAt, profileHit,
   profileShares, profilesUnder, readingLine, removeDrawing, removeDrawings, rowsOf, setCohorts, showBox, shownHeats,
@@ -7041,9 +7041,9 @@ function writeLayers() {
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
         const result = resolved?.results.get(layer.id);
         const loading = layer.series && !result;
-        // (Its second line: what's wrong, what it's between, its formula, its heatmap's code or its series; said whole in
+        // (Its second line: what's wrong, what it's between or its formula; a series or a heatmap, nothing (its id is the inspector's, not the list's); said whole in
         // its tip, under its name, when either's cut short.)
-        const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : heatLike(layer) ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
+        const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : ["sub", ""];
         // (Its letter heading its second line, its mark leading the row: see .row-mark.)
         const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escapeHtml(result.detail)}"` : ""}><span class="sub-letter">${letterChip(layer)}</span>${escapeHtml(subText)}</span>`;
         return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">

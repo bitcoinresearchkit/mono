@@ -53,7 +53,7 @@ import {
   picked, placeNames, previewKey, previewSvg, seePaletteMarks, setTheme, stepChart, titleOf, treeOf,
 } from "/studio/grid.js";
 import {
-  clearDrawings, drawingRows, duplicateDrawings, finishPath, flipDrawings, flipsOf, HEAT_ABOUT, HEAT_SHORT, heatCode,
+  clearDrawings, drawingRows, duplicateDrawings, finishPath, flipDrawings, flipsOf, HEAT_ABOUT, HEAT_SHORT,
   heatReading, heatRows, placingPath, PROFILE_ABOUT, PROFILE_SHORT, readingLine, removeDrawings, selectInView,
 } from "/studio/heatmaps.js";
 import {
@@ -1835,7 +1835,7 @@ function layerRow(layer) {
   const open = () => layerPage(layer.id);
   return {
     kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
-    aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : heatLike(layer) ? heatCode(layer) : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label || heatLike(layer)), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
+    aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.series !== undefined || heatLike(layer) ? "" : layer.label ? layer.formula : formulaLine(layer), mono: !layer.from && Boolean(layer.label), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
     actions: () => [{ label: "Open", icon: ICONS.arrowRight, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
     preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
   };
@@ -2128,8 +2128,10 @@ function previewLayer(panel, id, color = /** @type {string | null} */ (null), /*
   if (!layer) return void (panel.innerHTML = "");
   const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
   const about = layer.series ? known.get(layer.series)?.description : null;
+  // (What it is, in its own words: its formula, what it is between; a series or a heatmap by its name and description, its id is the layer page's.)
+  const source = layer.from ? escapeHtml(`Between ${fromSpan(layer) || "no layers"}`) : layer.formula !== undefined ? `<code>${escapeHtml(layer.formula)}</code>` : "";
   panel.innerHTML = `<h4 class="plain">${escapeHtml(viewName(chart, layer))}</h4>
-          <p class="description">${layer.from ? escapeHtml(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escapeHtml(layer.series ?? layer.formula ?? (heatLike(layer) ? heatCode(layer) : ""))}</code>`}</p>
+          ${source && `<p class="description">${source}</p>`}
           ${about ? `<div class="description clamped">${proseHtml(about)}</div>` : ""}
           ${result?.error ? `<div class="error-box">${escapeHtml(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || heatLike(layer) ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escapeHtml(layer.letter)}</h5><dl>
