@@ -10,6 +10,7 @@ import {
 } from "/studio/app.js";
 import { $, escapeHtml, TOUCH } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
+import { until } from "/studio/timing.js";
 import { format, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
 import {
@@ -256,14 +257,8 @@ const heatIn = () => document.hidden || shownHeats().every((look) => (look.undra
  * @type {Set<{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }>}
  */
 const heatExtras = new Set();
-/**
- * The days `keys` come (or failed), within `ms`, while `still` holds (what they're for): looked at every tenth of a
- * second (a tab out of sight too).
- */
-const heatCome = (/** @type {string[]} */ keys, /** @type {number} */ ms, /** @type {() => boolean} */ still) => new Promise((done) => {
-  const end = performance.now() + ms, look = () => (keys.every((key) => heatDays.get(key) && !heatDays.get(key)?.pending) || !still() || performance.now() > end ? done(undefined) : setTimeout(look, 100));
-  look();
-});
+/** The days `keys` come (or failed), within `ms`, while `still` holds (what they're for): looked at every tenth of a second. */
+const heatCome = (/** @type {string[]} */ keys, /** @type {number} */ ms, /** @type {() => boolean} */ still) => until(() => keys.every((key) => heatDays.get(key) && !heatDays.get(key)?.pending) || !still(), ms, 100);
 /** The looks of the heatmaps the chart shows (with a price to draw on). */
 const shownHeats = () => chart.layers.flatMap((layer) => ((look) => (heatLike(layer) && !layer.hidden && look && resolved?.results.get(layer.id)?.closes?.some(Number.isFinite) ? [look] : []))(heatLooks.get(layer.id)));
 /** The days wanted asked for, a few at once, the first wanted first. */

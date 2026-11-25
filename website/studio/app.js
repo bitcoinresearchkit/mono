@@ -18,7 +18,7 @@ import {
 } from "/studio/dom.js";
 import { motionClock } from "/modules/motion/clock.js";
 import { reduced as motionReduced, whenReduced } from "/modules/motion/reduced.js";
-import { whenIdle } from "/studio/timing.js";
+import { until, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import {
   ago, dollarsAndCents, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes, toTheCent,
@@ -103,7 +103,7 @@ import {
   sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
   sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
   stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
-  toggleSection, treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  toggleSection, treeOf, unstretched, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
   walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 } from "/studio/grid.js";
 import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";

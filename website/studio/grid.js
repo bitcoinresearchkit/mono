@@ -21,7 +21,7 @@ import {
 import {
   $, all$, closest, composing, escapeHtml, holdPage, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing,
 } from "/studio/dom.js";
-import { inSlices, whenIdle } from "/studio/timing.js";
+import { inSlices, until, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import { format, grouped, plural, precise } from "/studio/format.js";
 import { ICONS, markBody } from "/studio/icons.js";
@@ -2207,15 +2207,6 @@ function gridActions() {
   ];
 }
 /**
- * Resolves once `test` holds (or `ms` have passed). On timers, not frames: while a change of place is being made
- * the page draws no frames (the chart paints its own on the first one after).
- */
-const until = (/** @type {() => boolean} */ test, /** @type {number} */ ms) => new Promise((done) => {
-  const end = performance.now() + ms;
-  const step = () => (test() || performance.now() > end ? done(undefined) : setTimeout(step, 16));
-  step();
-});
-/**
  * A change of place between the Charts page and a chart, both live (no pictures of them, every browser alike): the
  * chart's card grows out of a tile over the page (`opening`), or shrinks back into it, the page under it all along
  * (data-morph: both shown); with no tile, it fades in or out over the page. `update` changes the place and returns
@@ -4028,6 +4019,6 @@ export {
   setTheme, sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead,
   sideId, sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
   stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
-  toggleSection, treeOf, unstretched, until, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  toggleSection, treeOf, unstretched, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
   walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 };
