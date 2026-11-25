@@ -71,6 +71,11 @@ impl Reader {
         &self.0.blocks_dir
     }
 
+    /// Path of a Bitcoin Core block file.
+    pub fn blk_path(&self, blk_index: u16) -> PathBuf {
+        self.0.blk_path(blk_index)
+    }
+
     #[inline]
     pub fn xor_bytes(&self) -> XORBytes {
         self.0.xor_bytes

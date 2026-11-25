@@ -68,12 +68,9 @@ impl Query {
         let bytes = self.reader().read_raw_bytes(position, HEADER_SIZE)?;
         Self::verify_header(&bytes, hash).map_err(|error| {
             let found = BlockHash::from(BitcoinBlockHash::hash(&bytes));
-            let path = self
-                .blocks_dir()
-                .join(format!("blk{:05}.dat", position.blk_index()));
             std::io::Error::other(format!(
                 "{error} at height {height}: expected {hash}, found {found}, blk path {}",
-                path.display()
+                self.reader().blk_path(position.blk_index()).display()
             ))
         })?;
         Ok(bytes)

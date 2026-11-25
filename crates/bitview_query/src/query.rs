@@ -229,11 +229,6 @@ impl Query {
     }
 
     #[inline]
-    pub fn blocks_dir(&self) -> &Path {
-        self.reader().blocks_dir()
-    }
-
-    #[inline]
     pub(crate) fn indexer(&self) -> &Indexer<Ro> {
         self.0.plugins.indexer
     }

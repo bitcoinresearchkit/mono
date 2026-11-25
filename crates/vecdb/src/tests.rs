@@ -335,16 +335,22 @@ impl<V: Variant> Subject<V> {
             LazyVec::<usize, usize, u64>::new("starts", Version::ONE, boxed.clone(), |i, _| {
                 window_start(i)
             });
+        let cumulative = LazyVec::new("cumulative", Version::ONE, boxed, cumulative_value);
         let sums = LazyDeltaVec::<usize, u64, u64, DeltaSub>::new(
             "sums",
             Version::ONE,
-            boxed,
+            cumulative.into_read_only_boxed(),
             starts.into_read_only_boxed(),
         );
+        let cumulative: Vec<_> = x
+            .iter()
+            .enumerate()
+            .map(|(i, &value)| cumulative_value(i, value))
+            .collect();
         let expect: Vec<_> = (0..x.len())
             .map(|h| {
-                let before = window_start(h).checked_sub(1).map_or(0, |i| x[i]);
-                Some(x[h].saturating_sub(before))
+                let before = window_start(h).checked_sub(1).map_or(0, |i| cumulative[i]);
+                Some(cumulative[h] - before)
             })
             .collect();
         check_reads(&sums, &expect, rng);
@@ -962,6 +968,10 @@ fn values(rng: &mut Rng, count: usize) -> Vec<u64> {
 
 fn lazy_value(index: usize, value: u64) -> u64 {
     value.rotate_left(17) ^ index as u64
+}
+
+fn cumulative_value(index: usize, value: u64) -> u64 {
+    index as u64 * 100 + value % 100
 }
 
 /// Window starts that move back and forth: near the index, or halfway back.
