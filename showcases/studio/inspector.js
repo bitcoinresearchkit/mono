@@ -892,15 +892,26 @@ const INK_DARK = "#f7f8f8";
 const GRADIENT_STEPS = 64;
 /**
  * A gradient's colors as kept, `GRADIENT_STEPS` of them from 0% to 100%, mixed by the library (see its gradientTable, in
- * OKLCH). Bitview's alone are mixed as they're written, the dark's, each mix an `oklch(…)` of Bitview's (toned in the
- * theme as drawn: the curve bends, so toning the stops first would draw another gradient); with a person's own among
- * them, as the theme shows each (see shownOklch), each mix a hex, as theirs are.
+ * OKLCH), each by the two stops it lies between (past the outer ones, that one). Between two of Bitview's, as they're
+ * written (the dark's form), the mix an `oklch(…)` of Bitview's, toned in the theme as drawn (the curve bends, so toning
+ * the stops first would draw another gradient); with a person's own on either side, each stop as the theme shows it (see
+ * shownOklch), the mix a hex, as theirs are.
  * @param {[number, string][]} stops @returns {string[]}
  */
 function mixedOf(stops) {
-  const theirs = stops.some(([, color]) => color.startsWith("#")), lch = (/** @type {number[]} */ values) => `oklch(${values.join(" ")})`;
-  return theirs ? mixedTable(stops.map(([at, color]) => [at, lch(shownOklch(color))]), GRADIENT_STEPS).map((mixed) => oklchToHex(...oklchOf(mixed)))
-    : mixedTable(stops.map(([at, color]) => [at, lch(color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color))]), GRADIENT_STEPS);
+  const lch = (/** @type {number[]} */ values) => `oklch(${values.join(" ")})`, theirs = (/** @type {[number, string]} */ [, color]) => color.startsWith("#");
+  // (Each stop in one form, Bitview's as written (ink, its dark side), and as shown from that, so a stop reads the same
+  // from either side.)
+  const forms = stops.map(([at, color]) => /** @type {[number, string]} */ ([at, color.startsWith("#") ? color : lch(color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color))]));
+  const kept = mixedTable(forms, GRADIENT_STEPS);
+  if (!stops.some(theirs)) return kept;
+  const shown = mixedTable(forms.map(([at, color]) => [at, lch(shownOklch(color))]), GRADIENT_STEPS);
+  return kept.map((mixed, k) => {
+    // (Its two stops as the library finds them: the first at or past its place, and the one before.)
+    const next = stops.findIndex(([where]) => where >= (k / (GRADIENT_STEPS - 1)) * 100);
+    const own = next < 0 ? !theirs(stops[stops.length - 1]) : !theirs(stops[next]) && (next === 0 || !theirs(stops[next - 1]));
+    return own ? mixed : oklchToHex(...oklchOf(shown[k]));
+  });
 }
 /** A gradient's colors as the theme draws them (see mixedOf), in hex. @param {[number, string][]} stops @returns {string[]} */
 function gradientTable(stops) {
