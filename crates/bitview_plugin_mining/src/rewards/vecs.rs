@@ -17,6 +17,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// consensus subsidy, and can be lower when the miner leaves some available
     /// reward unclaimed.
     #[traversable(lead = "Block subsidy: the new bitcoin miners claimed, besides fees.")]
+    #[traversable(client = "TxValue")]
     pub subsidy: ValuePerBlockCumulativeRolling<M>,
     /// Puell Multiple: 365 times trailing-24h claimed subsidy in USD divided by
     /// trailing-365-day claimed subsidy in USD, valued at each block's spot price.

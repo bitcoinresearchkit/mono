@@ -8,6 +8,7 @@ use vecdb::{Rw, StorageMode};
 use super::periods::Periods;
 
 #[derive(Traversable)]
+#[traversable(client = "Ema")]
 pub(crate) struct SmaVecs<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub periods: Periods<StoredSma<M>>,

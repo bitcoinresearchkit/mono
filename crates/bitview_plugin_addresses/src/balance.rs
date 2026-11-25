@@ -93,6 +93,7 @@ impl ZeroBalanceVecs {
 }
 
 #[derive(Traversable)]
+#[traversable(client = "Activity")]
 pub struct BalanceActivity<M: StorageMode = Rw> {
     /// Value the band's addresses spent in each block, each spend attributed by its address's
     /// balance immediately before that input is applied, so one address can contribute to
@@ -103,6 +104,7 @@ pub struct BalanceActivity<M: StorageMode = Rw> {
 }
 
 #[derive(Traversable)]
+#[traversable(client = "Realized")]
 pub struct BalanceRealized<M: StorageMode = Rw> {
     /// Profit realized by the band's spends, each attributed by its address's balance
     /// immediately before that input is applied: spending value minus creation-date value,

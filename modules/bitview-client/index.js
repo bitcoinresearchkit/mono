@@ -2937,9 +2937,9 @@ const _Part = _s({
  *   usd: SeriesPattern1<?Dollars>,
  *   marketCap: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- * }} SupplyInLoss
+ * }} AllSupplyInLoss
  */
-const _SupplyInLoss = _s({
+const _AllSupplyInLoss = _s({
   btc: [_i1, '*_supply_in_loss'],
   usd: [_i1, '*_supply_in_loss_usd'],
   marketCap: [_i1, '*_market_cap_in_loss'],
@@ -3910,7 +3910,7 @@ const _SharedCapital = _s({
  * @typedef {{
  *   total: SpotValue,
  *   inProfit: SupplyInProfit,
- *   inLoss: SupplyInLoss,
+ *   inLoss: AllSupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
  * }} SharedSupply
@@ -3918,7 +3918,7 @@ const _SharedCapital = _s({
 const _SharedSupply = _s({
   total: [_SpotValue, '*'],
   inProfit: [_SupplyInProfit, '*'],
-  inLoss: [_SupplyInLoss, '*'],
+  inLoss: [_AllSupplyInLoss, '*'],
   delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
 });
@@ -4004,14 +4004,14 @@ const _Capital = _s({
  * @typedef {{
  *   total: HoldersSpotValue,
  *   inProfit: SupplyInProfit,
- *   inLoss: SupplyInLoss,
+ *   inLoss: AllSupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  * }} HoldersSupply
  */
 const _HoldersSupply = _s({
   total: [_HoldersSpotValue, 'circulating_*'],
   inProfit: [_SupplyInProfit, ''],
-  inLoss: [_SupplyInLoss, ''],
+  inLoss: [_AllSupplyInLoss, ''],
   delta: [_Delta, '*_delta'],
 });
 
@@ -5304,19 +5304,19 @@ const _Coinbase = _s({
 
 /**
  * @typedef {{
+ *   value: ValueFlow,
  *   count: Flow<Count>,
  *   share: Share,
  *   txCount: Flow<Count>,
  *   txShare: Share,
- *   value: ValueFlow,
  * }} OutputTypeSeries
  */
 const _OutputTypeSeries = _s({
+  value: [_ValueFlow, '*_value'],
   count: [_Flow, '*_count'],
   share: [_Share, '*_share'],
   txCount: [_Flow, '*_tx_count'],
   txShare: [_Share, '*_tx_share'],
-  value: [_ValueFlow, '*_value'],
 });
 
 /**
@@ -5676,9 +5676,9 @@ const _AddressesReuseEvents = _s({
  *   count: ReusedCount,
  *   supply: PredicateSupply,
  *   events: AddressesReuseEvents,
- * }} Reused
+ * }} AddressesReused
  */
-const _Reused = _s({
+const _AddressesReused = _s({
   count: [_ReusedCount, '*'],
   supply: [_PredicateSupply, '*_reused_address'],
   events: [_AddressesReuseEvents, '*'],
@@ -5690,9 +5690,9 @@ const _Reused = _s({
  *   supply: PredicateSupply,
  *   events: AddressesReuseEvents,
  *   direct: OutputCount,
- * }} AddressesReused
+ * }} Reused
  */
-const _AddressesReused = _s({
+const _Reused = _s({
   count: [_ReusedCount, ''],
   supply: [_PredicateSupply, 'reused_*'],
   events: [_AddressesReuseEvents, ''],
@@ -5724,7 +5724,7 @@ const _AddressesActivity = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: Reused,
+ *   reused: AddressesReused,
  *   respent: Respent,
  *   exposed: Exposed,
  * }} AddressSeries
@@ -5736,7 +5736,7 @@ const _AddressSeries = _s({
   new: [_NewAddressCount, '*_new_address_count'],
   activity: [_AddressesActivity, '*'],
   avgBalance: [_Value, '*_address_balance_avg'],
-  reused: [_Reused, '*'],
+  reused: [_AddressesReused, '*'],
   respent: [_Respent, '*'],
   exposed: [_Exposed, '*'],
 });
@@ -5768,7 +5768,7 @@ const _AddressType = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: AddressesReused,
+ *   reused: Reused,
  *   respent: Respent,
  *   exposed: Exposed,
  *   supply: CohortSupply,
@@ -5784,7 +5784,7 @@ const _Addresses = _s({
   new: [_NewAddressCount, 'new_*_count'],
   activity: [_AddressesActivity, ''],
   avgBalance: [_Value, '*_balance_avg'],
-  reused: [_AddressesReused, '*'],
+  reused: [_Reused, '*'],
   respent: [_Respent, ''],
   exposed: [_Exposed, ''],
   supply: [_CohortSupply, '*'],
@@ -7213,7 +7213,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "127b1dbc39c3eb5efe5a6445d7699b6ba1140a2cd6917508bfd8dd6ef3dfc041";
+  static HASH = "789048acca06ac48481822569e74008adff2305f427deeb8bf8fcaf806d750f0";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

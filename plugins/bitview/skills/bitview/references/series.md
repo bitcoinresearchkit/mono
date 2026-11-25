@@ -84,7 +84,7 @@
 - `outputs.count` (38): `output_count`, `output_count_cumulative`, `output_count_sum_24h`, `output_count_sum_1w`, `output_count_sum_1m`
 - `outputs.per_second` (4): `outputs_per_second_24h`, `outputs_per_second_1w`, `outputs_per_second_1m`, `outputs_per_second_1y`
 - `outputs.non_op_return_count` (6): `non_op_return_output_count`, `non_op_return_output_count_cumulative`, `non_op_return_output_count_sum_24h`, `non_op_return_output_count_sum_1w`, `non_op_return_output_count_sum_1m`
-- `outputs.types` (362): `p2pk_output_count`, `p2pk_output_count_cumulative`, `p2pk_output_count_sum_24h`, `p2pk_output_count_sum_1w`, `p2pk_output_count_sum_1m`
+- `outputs.types` (362): `p2pk_output_value`, `p2pk_output_value_usd`, `p2pk_output_value_cumulative`, `p2pk_output_value_cumulative_usd`, `p2pk_output_value_sum_24h`
 - `outputs.op_return_value` (12): `op_return_value`, `op_return_value_usd`, `op_return_value_cumulative`, `op_return_value_cumulative_usd`, `op_return_value_sum_24h`
 - `outputs.coinbase` (72): `coinbase_output_count`, `coinbase_output_count_cumulative`, `coinbase_output_count_sum_24h`, `coinbase_output_count_sum_1w`, `coinbase_output_count_sum_1m`
 - `outputs.pubkeys` (12): `compressed_pubkey_in_output_count`, `compressed_pubkey_in_output_count_cumulative`, `compressed_pubkey_in_output_count_sum_24h`, `compressed_pubkey_in_output_count_sum_1w`, `compressed_pubkey_in_output_count_sum_1m`

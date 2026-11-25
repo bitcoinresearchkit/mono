@@ -20,6 +20,9 @@ use crate::{
 /// The sections that differ by holder group: what [`Metrics`] holds as its supply, capital and
 /// realized flows.
 pub trait Kind {
+    /// The client type name of its metrics, published so: all coins' own, the others' the creation
+    /// cohort's they share a shape with.
+    const CLIENT: &'static str;
     type Supply<M: StorageMode>;
     type Capital<M: StorageMode>;
     type Realized<M: StorageMode>;
@@ -35,16 +38,19 @@ pub struct Young;
 pub struct Old;
 
 impl Kind for All {
+    const CLIENT: &'static str = "Metrics";
     type Supply<M: StorageMode> = Supply<M>;
     type Capital<M: StorageMode> = Capital<M>;
     type Realized<M: StorageMode> = AdjustedRealized<M>;
 }
 impl Kind for Young {
+    const CLIENT: &'static str = "CreationCohort";
     type Supply<M: StorageMode> = SharedSupply<M>;
     type Capital<M: StorageMode> = SharedCapital<M>;
     type Realized<M: StorageMode> = AdjustedRealized<M>;
 }
 impl Kind for Old {
+    const CLIENT: &'static str = "CreationCohort";
     type Supply<M: StorageMode> = SharedSupply<M>;
     type Capital<M: StorageMode> = SharedCapital<M>;
     type Realized<M: StorageMode> = Realized<M>;
@@ -52,6 +58,7 @@ impl Kind for Old {
 
 /// A holder group's series, its sections by its [`Kind`].
 #[derive(Traversable)]
+#[traversable(client = K::CLIENT)]
 pub struct Metrics<K: Kind, M: StorageMode = Rw> {
     pub supply: K::Supply<M>,
     pub capital: K::Capital<M>,

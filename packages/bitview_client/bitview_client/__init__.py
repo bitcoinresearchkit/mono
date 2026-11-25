@@ -3495,7 +3495,7 @@ class Part(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
 
 
-class SupplyInLoss(_Node):
+class AllSupplyInLoss(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*_supply_in_loss')
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_supply_in_loss_usd')
     market_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_market_cap_in_loss')
@@ -3953,7 +3953,7 @@ class SharedCapital(_Node):
 class SharedSupply(_Node):
     total: SpotValue = _at(SpotValue, '*')
     in_profit: SupplyInProfit = _at(SupplyInProfit, '*')
-    in_loss: SupplyInLoss = _at(SupplyInLoss, '*')
+    in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '*')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
 
@@ -3996,7 +3996,7 @@ class Capital(_Node):
 class HoldersSupply(_Node):
     total: HoldersSpotValue = _at(HoldersSpotValue, 'circulating_*')
     in_profit: SupplyInProfit = _at(SupplyInProfit, '')
-    in_loss: SupplyInLoss = _at(SupplyInLoss, '')
+    in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
 
 
@@ -4608,11 +4608,11 @@ class Coinbase(_Node):
 
 
 class OutputTypeSeries(_Node):
+    value: ValueFlow = _at(ValueFlow, '*_value')
     count: Flow[Count] = _at(Flow, '*_count')
     share: Share = _at(Share, '*_share')
     tx_count: Flow[Count] = _at(Flow, '*_tx_count')
     tx_share: Share = _at(Share, '*_tx_share')
-    value: ValueFlow = _at(ValueFlow, '*_value')
 
 
 class SpentWithin(_Node):
@@ -4779,13 +4779,13 @@ class AddressesReuseEvents(_Node):
     active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_reused_address')
 
 
-class Reused(_Node):
+class AddressesReused(_Node):
     count: ReusedCount = _at(ReusedCount, '*')
     supply: PredicateSupply = _at(PredicateSupply, '*_reused_address')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
 
 
-class AddressesReused(_Node):
+class Reused(_Node):
     count: ReusedCount = _at(ReusedCount, '')
     supply: PredicateSupply = _at(PredicateSupply, 'reused_*')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '')
@@ -4807,7 +4807,7 @@ class AddressSeries(_Node):
     new: NewAddressCount = _at(NewAddressCount, '*_new_address_count')
     activity: AddressesActivity = _at(AddressesActivity, '*')
     avg_balance: Value = _at(Value, '*_address_balance_avg')
-    reused: Reused = _at(Reused, '*')
+    reused: AddressesReused = _at(AddressesReused, '*')
     respent: Respent = _at(Respent, '*')
     exposed: Exposed = _at(Exposed, '*')
 
@@ -4828,7 +4828,7 @@ class Addresses(_Node):
     new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
     activity: AddressesActivity = _at(AddressesActivity, '')
     avg_balance: Value = _at(Value, '*_balance_avg')
-    reused: AddressesReused = _at(AddressesReused, '*')
+    reused: Reused = _at(Reused, '*')
     respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
     supply: CohortSupply = _at(CohortSupply, '*')

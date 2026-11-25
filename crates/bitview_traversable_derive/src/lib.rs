@@ -50,22 +50,29 @@ fn traversable_metas(attrs: &[Attribute]) -> Result<Vec<Meta>> {
 }
 
 /// A struct's own options: `merge`, and `client = ".."`, the name client types take for it where
-/// its Rust name describes storage (`LazyPercentCumulativeRolling` is `Share`).
-fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<LitStr>)> {
+/// its Rust name describes storage (`LazyPercentCumulativeRolling` is `Share`), or a constant
+/// naming it by a type parameter (`client = K::CLIENT`), where one generic struct takes two
+/// names.
+fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<ProcMacro2TokenStream>)> {
     let mut merge = false;
     let mut client = None;
     for meta in traversable_metas(attrs)? {
         match &meta {
             Meta::Path(path) if path.is_ident("merge") => merge = true,
             Meta::NameValue(name_value) if name_value.path.is_ident("client") => {
-                let Expr::Lit(ExprLit {
-                    lit: Lit::Str(value),
-                    ..
-                }) = &name_value.value
-                else {
-                    return Err(Error::new_spanned(&name_value.value, "expected a string"));
-                };
-                client = Some(declared_client(value)?);
+                client = Some(match ungrouped(&name_value.value) {
+                    Expr::Lit(ExprLit {
+                        lit: Lit::Str(value),
+                        ..
+                    }) => {
+                        let value = declared_client(value)?;
+                        quote! { #value }
+                    }
+                    Expr::Path(constant) => quote! { #constant },
+                    value => {
+                        return Err(Error::new_spanned(value, "expected a string or a constant"));
+                    }
+                });
             }
             _ => {
                 return Err(Error::new_spanned(
@@ -516,7 +523,7 @@ fn derive(input: &DeriveInput) -> Result<ProcMacro2TokenStream> {
     let (merge, client) = parse_struct_options(&input.attrs)?;
     let fields = parse_fields(input, merge)?;
     let client_name = client_name(input, &fields, merge, client)?;
-    let mut output = gen_traversable(input, &fields, merge, client_name.as_deref());
+    let mut output = gen_traversable(input, &fields, merge, client_name.as_ref());
     output.extend(gen_read_only_clone(input, &fields));
     Ok(output)
 }
@@ -528,8 +535,8 @@ fn client_name(
     input: &DeriveInput,
     fields: &[FieldModel],
     merge: bool,
-    client: Option<LitStr>,
-) -> Result<Option<String>> {
+    client: Option<ProcMacro2TokenStream>,
+) -> Result<Option<ProcMacro2TokenStream>> {
     if delegates(fields, merge) {
         return match client {
             Some(client) => Err(Error::new_spanned(
@@ -539,12 +546,12 @@ fn client_name(
             None => Ok(None),
         };
     }
-    if let Some(client) = client {
-        return Ok(Some(client.value()));
+    if client.is_some() {
+        return Ok(client);
     }
     let ident = input.ident.to_string();
     let name = ident.trim_suffix("Vecs");
-    Ok(is_type_name(name).then(|| name.to_owned()))
+    Ok(is_type_name(name).then(|| quote! { #name }))
 }
 
 /// Whether the struct's node is its one field's: a tuple struct's, or a lone visible flattened
@@ -559,7 +566,7 @@ fn gen_traversable(
     input: &DeriveInput,
     fields: &[FieldModel],
     merge: bool,
-    client: Option<&str>,
+    client: Option<&ProcMacro2TokenStream>,
 ) -> ProcMacro2TokenStream {
     let name = &input.ident;
     let generics = &input.generics;
@@ -684,7 +691,7 @@ fn collect_iters(
 }
 
 fn generate_field_traversals(
-    client: Option<&str>,
+    client: Option<&ProcMacro2TokenStream>,
     visible: &[&FieldModel],
     merge: bool,
 ) -> ProcMacro2TokenStream {

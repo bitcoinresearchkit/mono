@@ -33,6 +33,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// replaced, does not include inherited signaling, and does not account for full-RBF policy. Coinbase
     /// transactions are evaluated by the same sequence rule.
     #[traversable(
+        client = "TransactionsFlagged",
         lead = "Replace-by-fee transactions: ones that say they may be replaced by one paying more."
     )]
     pub rbf_signaling: Flagged<FlagView, Windowed<M>>,
@@ -49,6 +50,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// one; small sequence numbers there carry the tag by chance). EPOBC carries no `OP_RETURN`
     /// payload.
     #[traversable(
+        client = "TransactionsFlagged",
         lead = "EPOBC transactions: colored coins, an early way of issuing assets on Bitcoin."
     )]
     pub epobc: Flagged<FlagView, Windowed<M>>,

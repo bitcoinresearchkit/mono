@@ -9,6 +9,7 @@ use vecdb::{Database, LazyVec, PcoVec, PcoVecValue, Rw, StorageMode};
 
 /// A per-block quantity the indexer stores: its value per block and its rolling statistics.
 #[derive(Deref, DerefMut, Traversable)]
+#[traversable(client = "FlowStats")]
 pub struct BlockRolling<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity,

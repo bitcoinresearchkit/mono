@@ -50,6 +50,7 @@ pub struct PoolVecs {
 }
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "Share")]
 pub struct BlockShare {
     pub cumulative: LazyPercentPerBlock<PartsPerMillion32>,
     #[traversable(flatten)]
@@ -75,6 +76,7 @@ pub struct PoolFees {
 }
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "Value")]
 pub struct FeesAvg {
     /// In BTC.
     pub btc: LazyPerBlock<Bitcoin>,

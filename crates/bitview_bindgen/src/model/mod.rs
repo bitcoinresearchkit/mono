@@ -524,10 +524,12 @@ impl Model {
     }
 
     /// Each shape's name, by three rules: a section (a root child) is named after its key, any
-    /// other shape after the client name most of its instances' types give it (`Pool`); a name the
+    /// other shape after the client name its instances' type gives it (`Pool`: two types alike in
+    /// structure under two names stop the build, as a count of instances would pick); a name the
     /// API or a language already uses gets `Series` (`UtxoSetSeries`, beside the API's `UtxoSet`);
-    /// and of shapes sharing a name, one keeps it (a section, else the most used, then the
-    /// shallowest) while the others take their section as a prefix (`HoldersActivity`), except that
+    /// and of shapes sharing a name, one keeps it (a section, else the shallowest, then the first by
+    /// path: never by how many instances there are, so adding some renames nothing) while the
+    /// others take their section as a prefix (`HoldersActivity`), except that
     /// clashing shapes of one section that each always sit under their own field are named after it
     /// (`EntrySupply`, `EntryCapital`; with the section when that name is taken: `MappingsDay1`). A
     /// name still shared or not an identifier is left to the path rule, as are the root and shapes
@@ -539,14 +541,12 @@ impl Model {
         fields: &[Option<String>],
         root: usize,
     ) -> Vec<Option<String>> {
-        let mut votes: Vec<BTreeMap<&str, usize>> = vec![BTreeMap::new(); self.shapes.len()];
-        let mut instances = vec![0_usize; self.shapes.len()];
+        let mut given: Vec<BTreeSet<&str>> = vec![BTreeSet::new(); self.shapes.len()];
         for node in &self.nodes {
-            if let Body::Branch { shape, .. } = node.body {
-                instances[shape] += 1;
-                if let Some(name) = node.client_name {
-                    *votes[shape].entry(name).or_default() += 1;
-                }
+            if let Body::Branch { shape, .. } = node.body
+                && let Some(name) = node.client_name
+            {
+                given[shape].insert(name);
             }
         }
         let section = |shape: usize| to_pascal_case(&paths[shape][0]);
@@ -558,19 +558,29 @@ impl Model {
                 name
             }
         };
-        let wanted: Vec<Option<String>> = votes
+        let named = |shape: usize| shape != root && !is_section(shape);
+        let twice: Vec<String> = (0..given.len())
+            .filter(|&shape| named(shape) && given[shape].len() > 1)
+            .map(|shape| {
+                let names: Vec<&str> = given[shape].iter().copied().collect();
+                format!("{} ({})", paths[shape].join("."), names.join(" and "))
+            })
+            .collect();
+        assert!(
+            twice.is_empty(),
+            "client shapes named twice, give their types one name or tell them apart: {}",
+            twice.join("; "),
+        );
+        let wanted: Vec<Option<String>> = given
             .into_iter()
             .enumerate()
-            .map(|(shape, votes)| {
+            .map(|(shape, given)| {
                 let name = if shape == root {
                     None
                 } else if is_section(shape) {
                     Some(section(shape))
                 } else {
-                    votes
-                        .into_iter()
-                        .max_by(|(a, x), (b, y)| x.cmp(y).then_with(|| b.cmp(a)))
-                        .map(|(name, _)| name.to_owned())
+                    given.first().map(|name| (*name).to_owned())
                 };
                 name.map(unreserved)
             })
@@ -617,7 +627,6 @@ impl Model {
                 .max_by(|&a, &b| {
                     is_section(a)
                         .cmp(&is_section(b))
-                        .then_with(|| instances[a].cmp(&instances[b]))
                         .then_with(|| paths[b].len().cmp(&paths[a].len()))
                         .then_with(|| paths[b].cmp(&paths[a]))
                 });

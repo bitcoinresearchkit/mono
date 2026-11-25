@@ -25,6 +25,7 @@ const AGED_OUT_VERSION: Version = Version::new(5);
 
 /// One UTXO age range: a creation cohort plus what only disjoint age bands have.
 #[derive(Deref, DerefMut, Traversable)]
+#[traversable(client = "CreationCohort")]
 pub struct RangeVecs<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]

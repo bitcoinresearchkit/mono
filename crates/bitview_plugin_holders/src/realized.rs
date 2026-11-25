@@ -12,6 +12,7 @@ use vecdb::{ComputeVec, ReadableCloneableVec, Rw, StorageMode};
 use crate::section::{CohortCompute, Imports, Section};
 
 #[derive(Traversable)]
+#[traversable(client = "HoldersRealized")]
 pub struct Realized<M: StorageMode = Rw> {
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.

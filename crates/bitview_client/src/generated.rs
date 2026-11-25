@@ -814,7 +814,7 @@ pub mod tree {
         value: SeriesPattern1<Option<Dollars>> = "*",
         share: SeriesPattern1<Option<Percent>> = "*_share",
     } }
-    shape! { SupplyInLoss at "series().holders.all.supply.in_loss" {
+    shape! { AllSupplyInLoss at "series().holders.all.supply.in_loss" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*_supply_in_loss",
         usd: SeriesPattern1<Option<Dollars>> = "*_supply_in_loss_usd",
         market_cap: SeriesPattern1<Option<Dollars>> = "*_market_cap_in_loss",
@@ -1212,7 +1212,7 @@ pub mod tree {
     shape! { SharedSupply at "series().holders.lth.supply" {
         total: SpotValue = "*",
         in_profit: SupplyInProfit = "*",
-        in_loss: SupplyInLoss = "*",
+        in_loss: AllSupplyInLoss = "*",
         delta: Delta<Option<Bitcoin>> = "*_supply_delta",
         share: SeriesPattern1<Option<Percent>> = "*_supply_share",
     } }
@@ -1249,7 +1249,7 @@ pub mod tree {
     shape! { HoldersSupply at "series().holders.all.supply" {
         total: HoldersSpotValue = "circulating_*",
         in_profit: SupplyInProfit = "",
-        in_loss: SupplyInLoss = "",
+        in_loss: AllSupplyInLoss = "",
         delta: Delta<Option<Bitcoin>> = "*_delta",
     } }
     shape! { CapitalViews at "series().addresses.capital" {
@@ -1795,11 +1795,11 @@ pub mod tree {
         types: ByType = "*",
     } }
     shape! { OutputTypeSeries at "series().outputs.types.empty_script" {
+        value: ValueFlow = "*_value",
         count: Flow<Count> = "*_count",
         share: Share = "*_share",
         tx_count: Flow<Count> = "*_tx_count",
         tx_share: Share = "*_tx_share",
-        value: ValueFlow = "*_value",
     } }
     shape! { SpentWithin at "series().inputs.spent_within" {
         _1_block: Flow<Count> = "within_1_block_*",
@@ -1945,12 +1945,12 @@ pub mod tree {
         inputs: EventCount<Flow<Count>> = "*_input_from_reused_address",
         active: EventCount<Averaged<Count, Option<CountFract>>> = "*_active_reused_address",
     } }
-    shape! { Reused at "series().addresses.types.p2pk.reused" {
+    shape! { AddressesReused at "series().addresses.types.p2pk.reused" {
         count: ReusedCount = "*",
         supply: PredicateSupply = "*_reused_address",
         events: AddressesReuseEvents = "*",
     } }
-    shape! { AddressesReused at "series().addresses.reused" {
+    shape! { Reused at "series().addresses.reused" {
         count: ReusedCount = "",
         supply: PredicateSupply = "reused_*",
         events: AddressesReuseEvents = "",
@@ -1970,7 +1970,7 @@ pub mod tree {
         new: NewAddressCount = "*_new_address_count",
         activity: AddressesActivity = "*",
         avg_balance: Value = "*_address_balance_avg",
-        reused: Reused = "*",
+        reused: AddressesReused = "*",
         respent: Respent = "*",
         exposed: Exposed = "*",
     } }
@@ -1989,7 +1989,7 @@ pub mod tree {
         new: NewAddressCount = "new_*_count",
         activity: AddressesActivity = "",
         avg_balance: Value = "*_balance_avg",
-        reused: AddressesReused = "*",
+        reused: Reused = "*",
         respent: Respent = "",
         exposed: Exposed = "",
         supply: CohortSupply = "*",
