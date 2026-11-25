@@ -17,11 +17,12 @@ export const OKLCH = {
 };
 
 /**
- * Each holder group's color: all coins green, short-term holders orange, long-term blue; the age cutoffs around them, the
- * younger warm (under 4 months yellow, under 6 red), the older cool (at least 4 months cyan, at least 6 violet).
+ * Each holder group's color: all coins gray (the others' reference, as a reference is: apart from the price's ink,
+ * solid, a dash on a daily series breaking up), short-term holders orange, long-term blue; the age cutoffs around them,
+ * the younger warm (under 4 months yellow, under 6 red), the older cool (at least 4 months cyan, at least 6 violet).
  * @type {Readonly<Record<string, string>>}
  */
-export const HOLDER_COLORS = Object.freeze({ all: "green", sth: "orange", lth: "blue", under4m: "yellow", under6m: "red", over4m: "cyan", over6m: "violet" });
+export const HOLDER_COLORS = Object.freeze({ all: "gray", sth: "orange", lth: "blue", under4m: "yellow", under6m: "red", over4m: "cyan", over6m: "violet" });
 
 /** A holder group's color, by its key (none: not a holder group). @param {string} key */
 export const holderColor = (key) => (Object.hasOwn(HOLDER_COLORS, key) ? HOLDER_COLORS[key] : undefined);

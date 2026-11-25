@@ -333,6 +333,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /** A baseline at `base`: green above, red below (a ratio's base 1, a change's 0). @param {number} [base] @returns {Layer} */
   const around = (base = 0) => ({ type: "baseline", color: "green", colorBelow: "red", ...(base ? { base } : {}) });
   const baseline = around(0);
+  /**
+   * A layer shown wherever it's drawn, a pane past the subject's too (a profit and loss pair's net: part of its
+   * subject, not another form of it, so not folded, see twoShown); one hidden already stays so. @param {Layer} layer
+   */
+  const shownAnyway = (layer) => ({ hidden: false, ...layer });
 
   /**
    * A flow (an amount per block: summed over windows, `sum`, and since the start, `cumulative`) as charts: its sums,
@@ -587,14 +592,14 @@ export function studioPresets(client, facts, report = (problem) => console.error
       realized && section("Realized", [
         realized.profit && chart("Profit and loss", titled("Realized profit and loss"), [
           ...windows(realized.profit.sum, "Profit", { extra: { color: "green" } }), ...windows(realized.loss.sum, "Loss", { extra: { color: "red" } }),
-          ...(realized.netPnl ? windows(realized.netPnl.sum, "Net", { pane: 2, around: 0 }) : []),
+          ...(realized.netPnl ? windows(realized.netPnl.sum, "Net", { pane: 2, around: 0 }).map(shownAnyway) : []),
         ], { log: [1] }),
         ...flowShares(c, "Share of realized profit", who, color),
         ...flowShares(c, "Share of realized loss", who, color),
         realized.profit?.sum?._24h && realized.loss?.sum?._24h && measure(shownAs("Profit share", "Realized profit as a share of profit plus loss"), who, windows(Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, flowShare(rollingWindow(realized.profit.sum, key), realizedTotal(c, key))])), "", { color: color ?? "violet", extra: { levels: [{ value: 50, color: "gray", dash: 3 }] } })),
         realized.profit && chart("Profit and loss, all time", titled("Realized profit and loss, all time"), [
           series(realized.profit.cumulative, "Profit", { color: "green" }), series(realized.loss.cumulative, "Loss", { color: "red" }),
-          ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
+          ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", shownAnyway({ pane: 2, ...baseline }))] : []),
         ], { log: [1] }),
         // (Each day's net, as bubbles on the price: what was taken in profit or in loss, and where the price was.)
         realized.netPnl?.sum?._24h && chart("Profit and loss bubbles", titled("Net realized profit and loss bubbles"), [price(), series(realized.netPnl.sum._24h, "Net", { type: "bubbles", ref: "A", color: "green", colorBelow: "red" })]),
@@ -626,12 +631,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Profit and loss", titled("Unrealized profit and loss"), [
           series(unrealized.profit, "Profit", { color: "green" }), series(unrealized.loss, "Loss", { color: "red" }),
           ...(unrealized.grossPnl ? [series(unrealized.grossPnl, "Gross", { color: "gray", hidden: true })] : []),
-          series(unrealized.netPnl, "Net", { pane: 2, ...baseline }),
+          series(unrealized.netPnl, "Net", shownAnyway({ pane: 2, ...baseline })),
         ]),
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
         // (Against the whole market's value, not the cohort's own: one scale, so cohorts compare.)
         chart("Relative to market cap", titled("Unrealized profit and loss relative to market cap"), /** @type {[any, string, Partial<Layer>][]} */ ([
-          [unrealized.profit, "Profit", { color: "green" }], [unrealized.loss, "Loss", { color: "red" }], [unrealized.netPnl, "Net", { pane: 2, ...baseline }],
+          [unrealized.profit, "Profit", { color: "green" }], [unrealized.loss, "Loss", { color: "red" }], [unrealized.netPnl, "Net", shownAnyway({ pane: 2, ...baseline })],
         ]).map(([node, label, look]) => ({ formula: `100 * ${node.name} / ${MARKET_CAP}`, label, format: "percent", ...look }))),
       ]),
       c.costBasis && section("Cost basis", costCharts(c, who, urpd, color, weight)),
@@ -666,10 +671,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
       urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, ...weighed }]),
       // (By coin, a holder group with the oldest coins (see OLDEST and percentiles): its 25th out of the axis' fit.)
       // (The heatmap with what's read off it: its realized price, and where a quarter, half and three quarters of its
-      // coins last moved (by coin), dashed over the cells (the price alone solid white).)
+      // coins last moved (by coin), in gray over the cells (the price, ink), the median wider (solid: a dash on a daily series breaks up).)
       urpd && cost.byCoin.median && chart("Heatmap and percentiles", titled("Supply by cost basis, with its percentiles"), [
         price(), { heatmap: urpd, ...weighed },
-        ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "ink", width: key === "median" ? 1.5 : 1, dash: key === "median" ? 3 : 1, opacity: 0.6, ...(key === "p25" && oldest ? { fit: false } : {}) })),
+        ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "gray", width: key === "median" ? 1.5 : 1, ...(key === "p25" && oldest ? { fit: false } : {}) })),
         series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? PRICE_COLORS.realizedPrice, width: 2 }),
       ]),
       urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd], ...weighed }]),
@@ -882,12 +887,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const compared = (measure, { after = "", whole = false } = {}) => `${measure} ${options.each}${after}${options.within && !whole ? `: ${options.within}` : ""}`;
     // (Its URPDs weighted as its members are: see cohort.)
     const weighed = options.weight ? { weight: options.weight } : {};
-    // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
+    // (Holder groups each their own, all coins too (the others' reference), wherever they're drawn (see palette.js);
+    // times in time; others around the wheel.)
     const looks = members.map(([key]) => options.lookOf?.(key));
     const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
-    // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { ...shortOf(key), color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { ...shortOf(key), color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
      * then as their shares of it ("Supply", "Supply share"). Titled by its name as shown (see compared); `window`: the one it's over (see chart);
@@ -1627,7 +1632,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   }
   /**
    * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
-   * the median a line, the average dashed; the other lines (the bands' edges, the lowest and highest) in its legend. On
+   * the median a line, the average a thinner one; the other lines (the bands' edges, the lowest and highest) in its legend. On
    * a log scale (they span orders of magnitude; `log` false, a share's, linear). On a log one its tails (the 10th to the
    * 90th, the lowest and highest, decades past its middle at times: the empty blocks' months, a fee's spikes) out of the
    * axis' fit, drawn past its edges, the axis framed on its middle (a share's whole range its own, 0 to 100: fitted).
@@ -1641,7 +1646,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     if (!keys.includes("median")) return [];
     const at = (/** @type {string} */ key) => letter(1 + keys.indexOf(key));
     const tail = (/** @type {string} */ key) => (log && ["min", "p10", "p90", "max"].includes(key) ? { fit: false } : {});
-    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1, dash: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1 } : { width: 1, opacity: 0.5, hidden: true }) }));
     const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2, ...tail(low) }] : []);
     return [chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [], ...(average ? { average: { 2: average } } : {}), size: { 1: 1.4, 2: 3 }, window })];
   }
@@ -2044,14 +2049,24 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /**
    * Two panes shown as a preset opens (the price's and its subject's, else its first two): a pane past them, another
    * form of the same subject (its dollars, its share, its percent), starts folded, its layers hidden (its legend's
-   * strip, a click away). More than three panes is more than one subject: each a preset of its own.
+   * strip, a click away), but a layer said shown (see shownAnyway). More than three panes is more than one subject:
+   * each a preset of its own.
    * @param {Sketch} c @param {string[]} path @returns {Sketch}
    */
   const twoShown = (c, path) => {
     const panes = Math.max(...c.layers.map((layer) => layer.pane ?? 1));
     if (panes > 3) throw new Error(`A preset with ${panes} panes, three at most (one subject a preset): ${path.join(" / ")}`);
     const shown = [...new Set(c.layers.filter((layer) => !layer.hidden).map((layer) => layer.pane ?? 1))].sort((x, y) => x - y).slice(0, 2);
-    return { ...c, layers: c.layers.map((layer) => (layer.hidden || shown.includes(layer.pane ?? 1) ? layer : { ...layer, hidden: true })) };
+    const layers = c.layers.map((layer) => {
+      // (One said shown (see shownAnyway), as it is, its `hidden: false` dropped: a preset writes none.)
+      if (layer.hidden === false) {
+        const kept = { ...layer };
+        delete kept.hidden;
+        return kept;
+      }
+      return layer.hidden || shown.includes(layer.pane ?? 1) ? layer : { ...layer, hidden: true };
+    });
+    return { ...c, layers };
   };
 
   /** @type {Preset[]} */
