@@ -1294,7 +1294,52 @@
           text-decoration: underline;
         }
       }
-      li.future:not(.now) .tt-w b {
+      /* A look-alike address, under its row or in its transaction's lead: the caution's colour down the edge, the two
+         addresses whole and wrapping anywhere, where they agree in ink. */
+      .lead-act.caution {
+        --sig: var(--now);
+        --sig-text: var(--now-text);
+      }
+      .alike {
+        display: grid;
+        gap: 10px;
+        margin-top: 10px;
+        padding-left: 12px;
+        border-left: 2px solid var(--now);
+        p {
+          display: grid;
+          gap: 1px;
+          margin: 0;
+        }
+        small {
+          color: var(--soft);
+          font-size: 12.5px;
+          line-height: 1.4;
+        }
+        code + small {
+          margin-top: 3px;
+        }
+        .alike-h {
+          color: var(--now-text);
+          font-weight: 600;
+        }
+        code {
+          color: var(--soft);
+          font: 12.5px/1.45 var(--mono);
+          overflow-wrap: anywhere;
+          /* (Ends kept whole: a line breaks only in the middle.) */
+          b {
+            color: var(--ink);
+            font-size: inherit;
+            font-weight: 650;
+            white-space: nowrap;
+          }
+        }
+      }
+      .lead > .alike {
+        margin-top: 22px;
+      }
+      li.future:not(.now) .tt-w > b {
         color: var(--soft);
         font-weight: 500;
       }
@@ -1778,6 +1823,7 @@
         confirmed: [], // the latest blocks, newest first
         next: null, // the next block's transactions, followed by its diffs
         view: null,
+        alike: new Map(), // the last address page's look-alikes, by txid, for their transactions' pages
       };
 
       // ---------------------------------------------------------------- The live chain.
@@ -2845,6 +2891,7 @@
             <p class="lead-kicker"><span class="chip">${STATE[k.state]}${k.state === "confirmed" ? `, ${k.conf} of ${SETTLE}` : ""}</span>${copyPill(k.txid)}</p>
             <h2 class="lead-title">${k.title}</h2>
             <p class="lead-lede">${k.lede}</p>
+            ${state.alike.has(k.txid) ? alikeNote(state.alike.get(k.txid), "the address you came from") : ""}
             ${W && !k.inNext ? `<p class="lead-act"><b>${bump} more gets it into the next block.</b>Its sender can raise the fee, or its receiver can spend it with a fee that covers both.</p>` : ""}
             ${W ? `<p class="lead-note">Not final until it's in a block: ${k.signals ? "it signals that its sender may replace it" : "its sender can still replace it"}.</p>` : `<p class="lead-note${k.say ? "" : " held"}">${k.say}</p>`}
             <dl class="lead-figs">
@@ -3092,6 +3139,77 @@
         }
       }
 
+      // ---------------------------------------------------------------- Look-alike addresses. Address poisoning: someone
+      // grinds an address that starts and ends like one in a history (the address itself, or one it dealt with) and
+      // sends it a little, so the look-alike is copied from there by mistake. Two different addresses look alike when,
+      // past their type's prefix (1, 3, bc1q, bc1p…), they agree on their first characters and their last 4, compared
+      // without case as a glance reads base58. Against the page's own address 2 first: 32⁶ ≈ 10⁹ to one, a false alarm
+      // about once in 10⁵ pages of 10,000 addresses. Between two others 3, as every pair is compared: 32⁷, 4 · 10⁻⁴ at
+      // 5,000. The tail must agree, as every short form keeps an address's end. Both of a pair are marked: which came
+      // first can't tell the copy, as the original's earlier uses may be past the listed page. Two first named in one
+      // transaction warn of nothing (vanity addresses ground together). Thresholds and odds as rbitcoin.space's.
+      const ALIKE = { own: 2, pair: 3, tail: 4 };
+      const alikeKey = (a, head) => {
+        const f = a.toLowerCase();
+        return `${f.slice(0, (/^(bc|tb|bcrt)1/.test(f) ? f.lastIndexOf("1") + 2 : 1) + head)}…${f.slice(-ALIKE.tail)}`;
+      };
+      // An address's look-alikes in its listed transactions (newest first), by txid: each one in it, the address it
+      // resembles and the transaction that named that one first (none for the address itself, which comes first).
+      // Per key only its newest and oldest first naming are kept: whichever was first named apart from an address is
+      // one of them, so any number of addresses ground to one key cost one look each.
+      function lookalikes(address, txs) {
+        const named = txs.map(
+          (tx) => new Set([...tx.vin.map((x) => x.prevout?.scriptpubkey_address), ...tx.vout.map((o) => o.scriptpubkey_address)].filter((a) => a && a !== address)),
+        );
+        const first = new Map();
+        named.forEach((set, i) => set.forEach((a) => first.set(a, i)));
+        const ends = new Map();
+        for (const [a, i] of first) {
+          const k = alikeKey(a, ALIKE.pair);
+          const e = ends.get(k);
+          if (!e) ends.set(k, [a, a]);
+          else if (i < first.get(e[0])) e[0] = a;
+          else if (i > first.get(e[1])) e[1] = a;
+        }
+        const own = alikeKey(address, ALIKE.own);
+        const copies = new Map();
+        for (const [a, i] of first) {
+          if (alikeKey(a, ALIKE.own) === own) copies.set(a, { here: a, like: address });
+          else {
+            const b = ends.get(alikeKey(a, ALIKE.pair)).find((b) => first.get(b) !== i);
+            if (b) copies.set(a, { here: a, like: b, from: txs[first.get(b)] });
+          }
+        }
+        const found = new Map();
+        if (copies.size)
+          named.forEach((set, i) => {
+            const hits = [...set].flatMap((a) => copies.get(a) ?? []).sort((x, y) => !y.from - !x.from);
+            if (hits.length) found.set(txs[i].txid, hits);
+          });
+        return found;
+      }
+      // Both addresses whole, where they agree in ink and the rest softer.
+      const alikeAddr = (a, b) => {
+        const x = a.toLowerCase();
+        const y = b.toLowerCase();
+        const n = Math.min(x.length, y.length);
+        let p = 0;
+        let s = 0;
+        while (p < n && x[p] === y[p]) p++;
+        while (s < n - p && x.at(-1 - s) === y.at(-1 - s)) s++;
+        return `<code><b>${esc(a.slice(0, p))}</b>${esc(a.slice(p, a.length - s))}<b>${esc(a.slice(a.length - s))}</b></code>`;
+      };
+      // A transaction's look-alikes, the first two, as text and never as links: the one place not to copy from.
+      const alikeNote = (hits, self) =>
+        `<div class="alike" role="note">${hits
+          .slice(0, 2)
+          .map(
+            (h) => `<p><small class="alike-h">Look-alike in this transaction</small>${alikeAddr(h.here, h.like)}<small>looks like ${
+              !h.from ? self : h.from.status.confirmed ? `an address in block ${int(h.from.status.block_height)}` : "an address in a waiting transaction"
+            }</small>${alikeAddr(h.like, h.here)}</p>`,
+          )
+          .join("")}${hits.length > 2 ? `<small>and ${plural(hits.length - 2, "more look-alike")}</small>` : ""}</div>`;
+
       // ---------------------------------------------------------------- An address: what it holds on the left, its
       // transactions on the right as a timeline (each what came in or went out, and what it held after), the coins it
       // holds under them.
@@ -3116,6 +3234,15 @@
         const net = (tx) =>
           tx.vout.reduce((s, o) => s + (o.scriptpubkey_address === address ? o.value : 0), 0) -
           tx.vin.reduce((s, x) => s + (x.prevout?.scriptpubkey_address === address ? x.prevout.value : 0), 0);
+        // Look-alikes in what's listed, said at the top too, for a reader who never scrolls down to their rows.
+        const alike = (state.alike = lookalikes(address, txs));
+        const hits = [...alike.values()].flat();
+        const like = [hits.some((h) => !h.from) && "this address", hits.some((h) => h.from) && "one in another of its transactions"].filter(Boolean).join(" or ");
+        const warn = alike.size
+          ? `<p class="lead-act caution"><b>${new Set(hits.map((h) => h.here)).size === 1 ? "A look-alike address" : "Look-alike addresses"} in its history</b>${
+              alike.size === 1 ? "One" : int(alike.size)
+            } of its ${txs.length < c.tx_count + a.mempool_stats.tx_count ? "latest " : ""}${int(txs.length)} transactions ${alike.size === 1 ? "names" : "name"} an address that starts and ends like ${like}. It may be address poisoning, a small payment sent so the look-alike is copied by mistake. Never copy an address from a history, and check every character.</p>`
+          : "";
         // Its listed transactions oldest first, each with what it held after: back from today's balance, a net at a time.
         const mined = txs.filter((tx) => tx.status.confirmed).reverse();
         const waiting = txs.filter((tx) => !tx.status.confirmed).reverse();
@@ -3129,6 +3256,7 @@
           title: `<a href="${url.tx(tx.txid)}">${n > 0 ? `Received ${btc(n)}\u00a0BTC` : n < 0 ? `Sent ${btc(-n)}\u00a0BTC` : "Moved its own coins"}</a>`,
           note: tx.status.confirmed ? `block ${int(tx.status.block_height)} · then held ${btc(then)}\u00a0BTC` : "waiting to confirm",
           wait: !tx.status.confirmed,
+          alike: alike.get(tx.txid),
         });
         const earlier = c.tx_count - mined.length;
         const rows = [
@@ -3147,6 +3275,7 @@
               <h2 class="lead-title">${balance ? `Holds ${btc(balance)}\u00a0BTC` : "Holds nothing"}</h2>
               <p class="lead-lede">${balance ? `Worth ${usd((balance / 1e8) * price)}. ` : ""}Received ${btc(c.funded_txo_sum)}\u00a0BTC and sent ${btc(c.spent_txo_sum)}\u00a0BTC over ${plural(c.tx_count, "transaction")}.</p>
               ${pending ? `<p class="lead-note"><b>${pending > 0 ? "+" : "−"}${btc(Math.abs(pending))}\u00a0BTC</b> waiting to confirm.</p>` : ""}
+              ${warn}
               <dl class="lead-figs">
                 ${held ? fig("Cost basis", dollars(basis), "what its coins cost, on average") : ""}
                 ${held ? fig("Unrealized", `<span class="${tone(unreal)}">${signed(unreal)}</span>`, `at ${dollars(price)}`) : ""}
@@ -3177,7 +3306,7 @@
             if (r.kind === "strip") return `<li class="strip ${cls}"><span class="tt-t"></span><span class="tt-m"></span><span class="tt-s"><small><b>${r.say}</b>, ${r.sub}</small></span></li>`;
             return `<li class="moment ${r.mark} ${r.dir} ${cls}">
               <span class="tt-t">${r.mark === "now" ? "now" : r.wait ? "waiting" : stamp(r.at)}</span><span class="tt-m"><i class="tdot"></i></span>
-              <span class="tt-w"><b>${r.title}</b><small>${r.note}</small></span></li>`;
+              <span class="tt-w"><b>${r.title}</b><small>${r.note}</small>${r.alike ? alikeNote(r.alike, "this address") : ""}</span></li>`;
           })
           .join("");
       }
@@ -3214,7 +3343,7 @@
       // A block by its height (seven digits at most, for some time yet), else by its hash.
       const isHeight = (r) => /^\d{1,7}$/.test(r);
       // Bech32 is written in lowercase everywhere the server answers: an address typed or linked in capitals too.
-      const addressCase = (a) => (/^bc1/i.test(a) || /^([0-9a-f]{66}|[0-9a-f]{130})$/i.test(a) ? a.toLowerCase() : a);
+      const addressCase = (a) => (/^(bc|tb|bcrt)1/i.test(a) || /^([0-9a-f]{66}|[0-9a-f]{130})$/i.test(a) ? a.toLowerCase() : a);
       const fail = (e) =>
         ($("view").innerHTML =
           e?.status === 404 || e?.status === 400
@@ -3222,7 +3351,10 @@
             : `<div class="wait"><p>The server didn't answer. It will be tried again as the chain moves.</p></div>`);
       async function render() {
         flight?.cancel();
+        const was = state.view;
         const v = (state.view = parse());
+        // An address page's look-alikes go on only to a transaction opened from it (and that one read again).
+        if (v.kind !== "tx" || (was?.kind !== "address" && was?.txid !== v.txid)) state.alike = new Map();
         // Dimmed while it's read past a moment, until it's painted (a view may paint first with what it has).
         const slow = setTimeout(() => state.view === v && $("view").classList.add("busy"), 250);
         v.painted = () => {

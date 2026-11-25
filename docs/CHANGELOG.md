@@ -8,6 +8,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Explorer warns of address poisoning: when an address's latest transactions name a look-alike (same first and last
+  characters as the address itself or as one in another of its transactions, the usual sign of dust sent from a
+  vanity copy), its page says so at the top, writes both addresses out whole under the transaction, and the
+  transaction's page repeats it when opened from there. Read from the transactions the page already loads.
 - The benchmark counts retired instructions instead of guessing whether the machine was quiet. `bitviewd_bench` no
   longer samples other processes or writes `comparable`, and the benchmarks page holds each plugin's instructions
   computing the chain from zero alone (`serial_compute.csv`, with cycles; macOS) to the best, flagging a row over 5%
