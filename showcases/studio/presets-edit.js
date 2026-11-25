@@ -100,7 +100,7 @@ function presetsArrived() {
  * time it's made, so its drawings and what's kept of it follow it).
  * @param {Preset} preset
  */
-const fromPreset = (preset) => validate(fromSketch({ ...preset.c, title: preset.t }), true);
+const fromPreset = (preset) => ((doc) => (normalize(doc), doc))(validate(fromSketch({ ...preset.c, title: preset.t }), true));
 /**
  * Each preset as the chart it makes, made once it's looked at (its id stable: its drawing kept), the last
  * two hundred looked at kept (with their drawings: a gallery's page of them). @type {Map<number, Chart>}

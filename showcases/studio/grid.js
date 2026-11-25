@@ -26,7 +26,7 @@ import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import { format, grouped, plural, precise } from "/studio/format.js";
 import { ICONS, markBody } from "/studio/icons.js";
 import {
-  belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cloudLayers, DASHES, dashOf, edgesOf, heatLike, LINED, measureOf,
+  belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cloudLayers, DASHES, dashOf, edgesOf, gradientOfLayer, heatGradient, heatLike, LINED, measureOf,
   opacityOf, OUTLINED, PAIRS, placedOn, summed, unfitted,
 } from "/studio/vocabulary.js";
 import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "/studio/intervals.js";
@@ -270,13 +270,12 @@ async function drawThumb(doc) {
   for (const layer of doc.layers) {
     if (layer.hidden) continue;
     // (Where the chart draws it: a holder group it knows, on a scale it can be, see heatGrid. In its colors: its
-    // gradient's, where it's colored by one (an unrealized P&L's, its ends: loss its lowest, profit its highest).)
+    // pane's gradient's middle; an unrealized P&L's, red for a loss and green for a profit, see heatColor.)
     if (layer.type === "heatmap" && !washes.length && heatKnown(layer) && heatGrid(doc, layer)) {
       const behind = doc.layers.find((other) => other.pane === layer.pane && lineAt.has(other.id)), at = behind && lineAt.get(behind.id);
       if (!at) continue;
-      const stops = layer.byGradient && layer.gradient ? layer.gradient : null, one = stops ? stops[Math.floor(stops.length / 2)][1] : layer.color;
-      const [loss, profit] = stops ? [stops[0][1], /** @type {[number, string]} */ (stops.at(-1))[1]] : [belowOf(layer), layer.color];
-      washes.push(layer.measure === "pnl" ? [at.index, loss, profit, at.band.bottom, at.band.bottom + at.band.height] : [at.index, one, one, at.band.bottom, at.band.bottom + at.band.height]);
+      const stops = heatGradient(doc, layer), one = stops ? stops[Math.floor(stops.length / 2)][1] : "";
+      washes.push(stops ? [at.index, one, one, at.band.bottom, at.band.bottom + at.band.height] : [at.index, belowOf(layer), layer.color, at.band.bottom, at.band.bottom + at.band.height]);
     } else if (layer.type === "bubbles" && layer.ref && lineAt.has(layer.ref) && dots.length < 4) {
       const all = bubbles.get(layer.id) ?? data.results.get(layer.id)?.values, values = all && start ? Array.prototype.slice.call(all, start) : all, ys = lines[/** @type {{ index: number }} */ (lineAt.get(layer.ref)).index][1];
       if (!values) continue;
@@ -1271,7 +1270,7 @@ function plotHtml(doc, current = false, frame = "tile-plot") {
   return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}"${drawn ? ` data-drawn="${drawingId(drawn)}"` : ""}>${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
 }
 /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot (a gradient's, its colors), its name. @param {Layer} layer */
-const legendEntry = (doc, layer, after = "") => `<span style="--c:${escapeHtml(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escapeHtml(viewName(doc, layer))}${after}</span>`;
+const legendEntry = (doc, layer, after = "") => `<span style="--c:${escapeHtml(((stops) => (stops ? gradientCss(stops) : ink(layer.color)))(gradientOfLayer(doc, layer)))}">${escapeHtml(viewName(doc, layer))}${after}</span>`;
 /** A tile's interval, where it isn't a day's. @param {Chart} doc */
 const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
 /** A card's legend: its shown layers' entries. @param {Chart} doc */
@@ -2823,7 +2822,8 @@ function seriesMark(layer) {
   const span = (ys?.length ?? 2) - 1, x = (i) => 0.8 + (i / span) * 14.4, y = (value) => 11 - value * 10;
   let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
   // (A gradient's, a bar of its colors, low to high, whatever its type.)
-  if (layer.byGradient && layer.gradient) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(table[placeIndex(k / 7, table.length)])}"/>`).join(""))(gradientTable(layer.gradient));
+  const stops = gradientOfLayer(chart, layer);
+  if (stops) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(table[placeIndex(k / 7, table.length)])}"/>`).join(""))(gradientTable(stops));
   // A cloud's, a band in its color.
   else if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
   // (A signal's, its mark.)

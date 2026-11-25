@@ -6,14 +6,14 @@ import {
   boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
   css, draft, edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatAt, heatCohort,
   heatKnown, keepDrawing, keyTime, lensAt, light, moving, notice, picks, placing, profileColor, profileLit, renderBelt,
-  reshape, reshaped, resolved, selected, startLabel, startTyping, syncUndo, takeUp, tool, toolKept, undoToast, writing,
+  reshape, reshaped, resolved, startLabel, startTyping, syncUndo, takeUp, tool, toolKept, undoToast, writing,
 } from "/studio/app.js";
 import { $, escapeHtml, TOUCH } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
 import { format, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
 import {
-  belowOf, DEFAULT_MEASURE, DEFAULT_ROWS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, measureOf, measureUnit,
+  belowOf, DEFAULT_MEASURE, heatGradient, DEFAULT_ROWS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, measureOf, measureUnit,
   PROFILE_VIEWS,
 } from "/studio/vocabulary.js";
 import { BOXES, LINES, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS } from "/studio/tools.js";
@@ -27,7 +27,7 @@ import {
   pointFrom, repaintDrawings, shareAlong, sketches, textPlace, timeLine, timeOfBar, toSegment, wordsColor,
 } from "/studio/drawing.js";
 import { isOpen, onClosed } from "/studio/grid.js";
-import { editById, gradientTable, keepFocus, layerById, modeOf, showScale } from "/studio/inspector.js";
+import { editById, gradientTable, keepFocus, layerById, modeOf } from "/studio/inspector.js";
 import { menuOf } from "/studio/menus.js";
 import { refocus } from "/studio/presets-edit.js";
 /** @import { ChartStep } from "/studio/app.js" */
@@ -341,17 +341,15 @@ const HEAT_CURVE = 2.5;
 const HEAT_FADE = 0.3;
 /** How strong a cell's amount reads against the reference `most`, 0 to 1 (see heatColor). @param {number} value @param {number} most */
 const heatFelt = (value, most) => (value && most ? clamp(1 + Math.log10(Math.abs(value) / most) / HEAT_DECADES, 0, 1) ** HEAT_CURVE : 0);
-/** The amount a cell reads as strong as `felt` (0 to 1) against the reference `most` (heatFelt's inverse). @param {number} felt @param {number} most */
-const heatAmount = (felt, most) => most * 10 ** (HEAT_DECADES * (felt ** (1 / HEAT_CURVE) - 1));
 /** A gradient's colors as drawn in the theme now, each its channels (see gradientTable): a heatmap's, a heatmap pane's rows'. @param {[number, string][]} stops */
 const gradientChannels = (stops) => gradientTable(stops).map(channels);
 /**
- * A cell on a gradient (`table`, see gradientChannels): its color at its `place` in it (0 to 1), opaque but for the
- * weakest (as strong as `felt`, under HEAT_FADE: fading into the chart's own ground, a dark one's or a light one's), times `opacity`.
- * @param {number[][]} table @param {number} place @param {number} felt @param {number} opacity @param {Uint8ClampedArray} pixels @param {number} at
+ * A cell on a gradient (`table`, see gradientChannels): its color as far along it as it's strong (`felt`, 0 to 1), opaque
+ * but for the weakest (under HEAT_FADE: fading into the chart's own ground, a dark one's or a light one's), times `opacity`.
+ * @param {number[][]} table @param {number} felt @param {number} opacity @param {Uint8ClampedArray} pixels @param {number} at
  */
-function gradientCell(table, place, felt, opacity, pixels, at) {
-  const [r, g, b] = table[placeIndex(place, table.length)];
+function gradientCell(table, felt, opacity, pixels, at) {
+  const [r, g, b] = table[placeIndex(felt, table.length)];
   pixels[at] = r;
   pixels[at + 1] = g;
   pixels[at + 2] = b;
@@ -367,17 +365,16 @@ const heatMost = (day, measure) => (day.most ??= {})[measure] ??= amountsOf(day,
  * blue and opacity; the library's grid gives each pixel its strongest cell); none, left as it is: its strength on a
  * log scale over `HEAT_DECADES` (a ten-thousandth of it and under not seen), felt as `HEAT_CURVE` says: what changes
  * from one day to the next is what the coins did (each day against its own largest, a day with one big cluster
- * dimmed its whole column), and earlier eras' smaller amounts still read; with a gradient, its color there (unrealized P&L's from its loss's at 0%
- * through no gain at 50% to its profit's at 100%), opaque but for the weakest (`HEAT_FADE`, as a single color
- * fades: the chart's own ground under them, a dark one's or a light one's); else its color (a loss's, its color
- * below), as opaque as it's felt.
- * @param {number} value @param {number} most @param {{ measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null }} look
+ * dimmed its whole column), and earlier eras' smaller amounts still read: an amount's, its color along its pane's
+ * gradient (see heatGradient, gradientCell); an unrealized P&L's, its own colors (fixed, see normalize), green for a profit and red for a loss, as
+ * opaque as it's felt (none fading into the chart's own ground).
+ * @param {number} value @param {number} most @param {{ up: number[], down: number[], opacity: number, gradient: number[][] | null }} look
  * @param {Uint8ClampedArray} pixels @param {number} at
  */
 function heatColor(value, most, look, pixels, at) {
   const felt = heatFelt(value, most);
   if (!felt) return;
-  if (look.gradient) return gradientCell(look.gradient, look.measure === "pnl" ? 0.5 + (Math.sign(value) * felt) / 2 : felt, felt, look.opacity, pixels, at);
+  if (look.gradient) return gradientCell(look.gradient, felt, look.opacity, pixels, at);
   const [r, g, b] = value < 0 ? look.down : look.up;
   pixels[at] = r;
   pixels[at + 1] = g;
@@ -431,7 +428,7 @@ const profileShades = (id, color, opacity) => {
   const card = channels(css("--card")), own = channels(color), over = (/** @type {number} */ strength) => `rgb(${own.slice(0, 3).map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
   return { id, gain: over(0.72), loss: over(0.32), dimGain: over(0.72 * PROFILE_DIM), dimLoss: over(0.32 * PROFILE_DIM) };
 };
-const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: channels(ink(layer.color)), down: channels(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientChannels(layer.gradient) : null, paint: `${measureOf(layer)}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data), measure: measureOf(layer), up: channels(ink(layer.color)), down: channels(ink(belowOf(layer))), opacity, kind: layer.type, cumulative: layer.type === "profile" && Boolean(layer.cumulative), cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: ((stops) => (stops ? gradientChannels(stops) : null))(layer.type === "heatmap" && heatGradient(doc, layer)), paint: `${measureOf(layer)}|${opacity}|${layer.type === "heatmap" ? JSON.stringify(heatGradient(doc, layer)) : ""}|${light}` });
 /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
 const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
 /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -587,11 +584,7 @@ function viewHeat(heat, { step, owners }, grid) {
   const open = heatDays.get(keyOf(heat.days.length - 1));
   keep.add(keyOf(heat.days.length - 1));
   if (!open?.rows) want(heat.days.length - 1, Number.MAX_SAFE_INTEGER);
-  // (Its last while a new block's is asked for.)
-  const was = heat.reference;
   if (open?.rows) heat.reference = heatMost(open, heat.measure);
-  // (Come or changed: what its gradient's places are worth, in its editor, after this frame's drawing.)
-  if ((heat.reference ?? 0) !== (was ?? 0) && heat.id === selected) queueMicrotask(showScale);
   grid.setLook(`${heat.paint}|${heat.reference ?? 0}`);
   for (const owner of owners) {
     // (Its day, else the coarser ones' over it meanwhile; the missing ones wanted, the coarsest asked for first.)
@@ -1068,7 +1061,7 @@ function placeField() {
 export {
   addDrawn, amountsOf, boxTo, bubbleColumns, cellText, clearDrawings, closeCell, crossAt, drawingMenu, drawingRows,
   drawnSteps, dressField, duplicateDrawings, finishPath, flipDrawings, flipsOf, fromClose, gesturing, gradientCell, gradientChannels, HEAT_ABOUT,
-  HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatAmount, heatCalendar, heatCode, heatColor, heatCome, heatDayHeld, heatDayKey,
+  HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatCalendar, heatCode, heatColor, heatCome, heatDayHeld, heatDayKey,
   heatDays, heatExtras, heatFelt, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatName, heatPath,
   heatPump, heatReading, heatRows, heatSection, heatSeries, heatShown, heatWaiters, heatWants, hold, inBox, litCohort,
   logRows, mostIn, moveTo, noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placeSaid, placingPath,

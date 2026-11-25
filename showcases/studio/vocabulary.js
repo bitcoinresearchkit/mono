@@ -57,23 +57,16 @@ const HEAT_GRADIENTS = [
   ["viridis", "Viridis", [[0, "#440154"], [39, "#2c768e"], [69, "#41bd72"], [100, "#fde725"]]],
   ["plasma", "Plasma", [[0, "#0d0887"], [33, "#991a9e"], [72, "#f48b48"], [100, "#f0f921"]]],
 ];
-/** A layer's kind, as its first look goes (see kindLook): two-sided, a heatmap of an amount, or neither. @param {{ type?: string, measure?: string }} layer */
-const kindOf = (layer) => (twoSided(layer) ? "sided" : layer.type === "heatmap" ? "heat" : "");
-/**
- * A layer's own first color, where its kind has one (else the next free, see nextColor): two-sided, green (red its
- * own below); a heatmap's, orange (its gradient's off). @param {{ type?: string, measure?: string }} layer
- */
-const kindColor = (layer) => ({ sided: "green", heat: "orange" })[kindOf(layer)] ?? null;
+/** A layer's own first color, where its kind has one (else the next free, see nextColor): two-sided, green (red its own below). @param {{ type?: string, measure?: string }} layer */
+const kindColor = (layer) => (twoSided(layer) ? "green" : null);
 /**
  * The look a layer's kind starts it with, onto `layer` (as `next`, its kind, reads): its color (kindColor); two-sided,
- * its own red below, no gradient; a heatmap of an amount, colored by its gradient (its own kept, else HEAT_GRADIENT's).
- * @param {Layer} layer @param {{ type?: string, measure?: string }} next
+ * its own red below, no gradient. @param {Layer} layer @param {{ type?: string, measure?: string }} next
  */
 function kindLook(layer, next) {
-  const color = kindColor(next), kind = kindOf(next);
+  const color = kindColor(next);
   if (color) layer.color = color;
-  if (kind === "sided") delete layer.colorBelow, delete layer.byGradient;
-  if (kind === "heat") (layer.byGradient = true), (layer.gradient ??= structuredClone(HEAT_GRADIENT));
+  if (twoSided(next)) delete layer.colorBelow, delete layer.byGradient;
 }
 /** A layer's shape, as its look follows it: its type, a heatmap's P&L its own (see reshape). @param {Layer} layer */
 const shapeKey = (layer) => (layer.type === "heatmap" && layer.measure === "pnl" ? "heatmap:pnl" : layer.type);
@@ -181,17 +174,18 @@ const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], can
  * candles' two, rising and falling (their one, a choice).
  * @type {Record<string, string[]>}
  */
-const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], bubbles: ["sides", "one"], signal: ["one"], heatmap: ["one", "gradient"] };
+const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], bubbles: ["sides", "one"], signal: ["one"] };
 /** The types that can take their colors from another layer, and those that can be colored by their levels. */
 const COLORED_FROM = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("from")));
 const BY_LEVELS = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("levels")));
 /**
  * A layer's ways of coloring: its type's, but a cloud's two colors (which of its two is over) only between two layers
  * alone (an edge, or a third: no "the other one"), and its layers' only where it has some (its pane's two edges alone
- * have none); a heatmap's row, its one color alone (its name's: its cells take the pane's gradient, see paneGradient).
+ * have none); a heatmap's row, its one color alone (its name's: its cells take the pane's gradient, see paneGradient);
+ * a heatmap layer, none (its cells take its pane's, see heatGradient).
  * @param {Layer} layer @param {Chart} doc
  */
-const modesOf = (layer, doc) => (heatmapRow(doc, layer) ? ["one"] : COLOR_MODES[layer.type] ?? ["one"]).filter((mode) => layer.type !== "cloud" || (mode === "sides" ? cloudLayers(layer).length === 2 && !edgesOf(layer).length : mode !== "layers" || cloudLayers(layer).length > 0));
+const modesOf = (layer, doc) => (layer.type === "heatmap" ? [] : heatmapRow(doc, layer) ? ["one"] : COLOR_MODES[layer.type] ?? ["one"]).filter((mode) => layer.type !== "cloud" || (mode === "sides" ? cloudLayers(layer).length === 2 && !edgesOf(layer).length : mode !== "layers" || cloudLayers(layer).length > 0));
 /**
  * The chart's line styles, lightest to most broken up: each with its name, and its dash and gap as drawn on whole
  * pixels at 16×12 (in the proportions the chart dashes them).
@@ -234,10 +228,19 @@ const nameLayer = (layer, label) => {
 const OUTLINES = [[false, "None"], [true, "Below the level"]];
 /** Whether a pane's heatmap can be outlined: drawn as one, its rows with a level. @param {Chart} doc @param {Pane} pane */
 const outlinable = (doc, pane) => asRows(doc, pane) && rowsLevel(doc, pane) !== undefined;
-/** Whether a pane's heatmap is on a gradient (its own, see paneGradient): drawn as one, its rows without a level (about one, red and green). @param {Chart} doc @param {Pane} pane */
-const gradable = (doc, pane) => asRows(doc, pane) && rowsLevel(doc, pane) === undefined;
-/** A heatmap pane's gradient: its own, else the first (see HEAT_GRADIENTS). @param {Pane} pane */
-const paneGradient = (pane) => HEAT_GRADIENTS.find(([id]) => id === pane.gradient) ?? HEAT_GRADIENTS[0];
+/**
+ * Whether a pane draws a heatmap on its gradient (see paneGradient): its layers as one, its rows without a level (about
+ * one, red and green), or a heatmap layer of an amount (an unrealized P&L's: its two sides, see heatColor). @param {Chart} doc @param {Pane} pane
+ */
+const gradable = (doc, pane) => (asRows(doc, pane) && rowsLevel(doc, pane) === undefined) || doc.layers.some((layer) => layer.pane === pane.id && layer.type === "heatmap" && !signedMeasure(layer));
+/** A pane's heatmap gradient: its own, else the first (see HEAT_GRADIENTS). @param {Pane | undefined} pane */
+const paneGradient = (pane) => HEAT_GRADIENTS.find(([id]) => id === pane?.gradient) ?? HEAT_GRADIENTS[0];
+/** The stops a heatmap layer's cells are colored along: an amount's, its pane's; an unrealized P&L's, none (its two sides, see heatColor). @param {Chart} doc @param {Layer} layer */
+const heatGradient = (doc, layer) => (signedMeasure(layer) ? null : paneGradient(doc.panes.find((pane) => pane.id === layer.pane))[2]);
+/** A layer's own gradient while it's colored by it: one it keeps, where its ways of coloring have one now (a heatmap row's don't, see modesOf). @param {Chart} doc @param {Layer} layer */
+const ownGradient = (doc, layer) => (layer.byGradient && layer.gradient && modesOf(layer, doc).includes("gradient") ? layer.gradient : null);
+/** The gradient a layer is colored along, if it is: a heatmap's (see heatGradient), else its own (see ownGradient). @param {Chart} doc @param {Layer} layer */
+const gradientOfLayer = (doc, layer) => (layer.type === "heatmap" ? heatGradient(doc, layer) : ownGradient(doc, layer));
 /** Whether a layer is a row of a heatmap (see rowLayers). @param {Chart} doc @param {Layer} layer */
 const heatmapRow = (doc, layer) => ((pane) => Boolean(pane && asRows(doc, pane) && rowLayers(doc, pane).some((row) => row.id === layer.id)))(doc.panes.find((pane) => pane.id === layer.pane));
 /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
@@ -291,8 +294,8 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   `byGradient`: colored by its value instead, date by date, along its `gradient`: its stops (2 to 4, each where it
  *   is from 0% to 100% of the way from its lowest value to its highest, and its color), mixed between them; past its
  *   outer ones, theirs. Its lowest and highest of all its history (at a fine interval, of what it holds), or
- *   (`upToDate`) of its history up to each date (no hindsight). A heatmap's: by its cells' strength (see
- *   heatColor). Its gradient kept while it's colored otherwise. Never with `colorFrom`, `byLevels`, `byLayers`.
+ *   (`upToDate`) of its history up to each date (no hindsight). Its gradient kept while it's colored otherwise (a
+ *   heatmap's is its pane's: see heatGradient). Never with `colorFrom`, `byLevels`, `byLayers`.
  *   `byLayers`: a cloud's, colored by its layers: each one's own where it's over, following them (its `color` and
  *   `colorBelow` theirs, see layersColors; never with `colorFrom`).
  *   `colors`: bars' (their two, above and below their base, unset): 1, their one; 4, MACD's, each side's own where a
@@ -306,8 +309,8 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   one too (`baseLine`: gray, in sparse dots).
  * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" | "rows", reverse?: boolean, average?: string, outline?: true, gradient?: string }} Pane `reverse`:
  *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them. `outline`: a heatmap's
- *   region under its rows' level outlined (see rowsLevel), where that boundary is the question. `gradient`: a heatmap's
- *   without a level, one of HEAT_GRADIENTS' ids (none: the first)
+ *   region under its rows' level outlined (see rowsLevel), where that boundary is the question. `gradient`: its
+ *   heatmap's (its rows without a level, a heatmap layer of an amount), one of HEAT_GRADIENTS' ids (none: the first)
  * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
  *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
  * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], made?: string, drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
@@ -389,11 +392,11 @@ const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from,
 export {
   asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, drawnInto, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, DEFAULT_ROWS, defaultOpacity, EDGES, edgesOf,
-  failing, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST, gradable, HEAT_GRADIENT, HEAT_GRADIENTS,
-  HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideText, hollowOf, kindColor, kindLook, kindOf, layersColors,
+  failing, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST, gradable, gradientOfLayer, heatGradient, HEAT_GRADIENTS,
+  HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors,
   letterAt, LINE_STYLE, LINE_TYPE, LINED, lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_LEVELS,
   MAX_PANES, measured, measureOf, measureUnit, membersOf, MODES, modesOf, nameLayer, newPaneIn, nextColor, nextLetter, offScale,
-  ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn, placeName, poolPath, poolSeries,
+  ONE_SCALE, oneScale, OPACITIES, ownGradient, opacityOf, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn, placeName, poolPath, poolSeries,
   PROFILE_VIEWS, resultText, rowLayers, rowsLevel, rowsUnfit, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, summed, toggleMember,
-  TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, typeName, TYPES, unfitted, WIDTHS,
+  TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, twoSided, typeName, TYPES, unfitted, WIDTHS,
 };

@@ -26,7 +26,7 @@ import {
 } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
 import {
-  belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
+  belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf, ownGradient,
   asRows, drawnInto, paneGradient, placedOn, resultText, rowLayers, rowsLevel, signedMeasure, summed, stretchResult, TWO_KEPT,
 } from "/studio/vocabulary.js";
 import {
@@ -2105,7 +2105,7 @@ function paintSig(/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @typ
 }
 const samePaint = (/** @type {any[] | null | undefined} */ a, /** @type {any[]} */ b) => Boolean(a) && a?.length === b.length && b.every((value, i) => a?.[i] === value);
 /** Where a layer's colors vary date by date as the chart paints them (its colors another's, a trend's or a cloud's two): its colorsAt. */
-const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.byLevels || (layer.byGradient && !heatLike(layer)) || TWO_KEPT.has(layer.type) || (layer.type === "histogram" && layer.colors === 4) ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
+const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.byLevels || ownGradient(doc, layer) || TWO_KEPT.has(layer.type) || (layer.type === "histogram" && layer.colors === 4) ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
 /** The color a layer is drawn in at its latest value (its name), where it varies (its colors another's, a trend's or a cloud's two); else null. @param {Layer} layer */
 function colorNow(layer) {
   const at = resolved ? paintOf(chart, layer, resolved) : null;
@@ -2643,14 +2643,14 @@ function drawRows(doc, data) {
     // its 4 is green); about an amount's, one for both, the log already evening them.)
     const whole = signed ? quantile(placed((value) => Math.abs(place(value)) || NaN), ROWS_WHOLE) : NaN, sorted = signed ? null : placed(place);
     const lo = sorted ? quantile(sorted, 1 - ROWS_WHOLE) : -whole, hi = sorted ? quantile(sorted, ROWS_WHOLE) : whole;
-    const up = channels(ink("green")), down = channels(ink("red")), table = gradientChannels(paneGradient(pane)[2]);
+    const up = channels(ink("green")), down = channels(ink("red")), table = level === undefined ? gradientChannels(paneGradient(pane)[2]) : [];
     // (About a ratio, the middle lifted (see ROWS_CURVE); a signed log, as it is: lifted again, most cells read alike.)
     const curve = ratio ? ROWS_CURVE : 1;
     // (A cell at the level, or of nothing (no level: 0, a member not yet there), drawn none: the pane's ground.)
     kept.rows.paint = (value, _, pixels, at) => {
       const p = place(value);
       if (!Number.isFinite(p) || (level === undefined ? value === 0 : p === 0)) return;
-      if (level === undefined) return void ((strength) => gradientCell(table, strength, strength, 1, pixels, at))(clamp((p - lo) / (hi - lo || 1), 0, 1));
+      if (level === undefined) return gradientCell(table, clamp((p - lo) / (hi - lo || 1), 0, 1), 1, pixels, at);
       const strength = clamp(p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1), [r, g, b] = p < 0 ? down : up;
       (pixels[at] = r), (pixels[at + 1] = g), (pixels[at + 2] = b), (pixels[at + 3] = 255 * rowsOpacity(strength, curve));
     };

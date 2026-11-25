@@ -14,8 +14,8 @@ import { FORMATS, grouped, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
 import {
   blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, DASHES, DEFAULT_MEASURE, defaultOpacity, EDGES,
-  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT, HEAT_GRADIENTS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
-  kindColor, kindOf, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
+  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENTS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
+  kindColor, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   labelText, LINES, lookOfDrawing, MAX_DRAWINGS, MAX_STROKE, PAIRED, PEN_COLOR, pointOf, TOOLS,
@@ -987,7 +987,9 @@ const timeOfText = (/** @type {any} */ value) => {
  */
 function toSketch(doc) {
   const place = (/** @type {string} */ id) => doc.panes.findIndex((pane) => pane.id === id) + 1;
-  const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && !pane.average && pane.size === undefined);
+  // (Panes as a link draws them by default: each its id and its default scale alone, nothing else set (no list of
+  // fields to keep up with: one added is kept).)
+  const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && Object.keys(pane).every((key) => key === "id" || key === "mode"));
   const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
   if (doc === chart) saveView();
   const dates = linkDates(doc);
@@ -1157,6 +1159,7 @@ async function fromLink(encoded, base32 = false) {
   const input = JSON.parse(await new Blob(chunks).text());
   if (input?.v === undefined) return readChart(input);
   const doc = validate(input);
+  normalize(doc);
   keepCarriedView(doc, input);
   return doc;
 }
@@ -1225,10 +1228,8 @@ function fromSketch(/** @type {any} */ input) {
       color: colors[i] ?? colors[ids.indexOf(members?.find((member) => ids.includes(member)))] ?? PALETTE[0],
       // (A cloud of no colors given: colored by its layers.)
       ...(kind === "cloud" && !colors[i] && layer.colorBelow === undefined ? { byLayers: true } : {}),
-      // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so). None, nor a color: a
-      // heatmap of an amount on its steps, as one made here (see kindLook).)
+      // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so).)
       ...(Array.isArray(layer.gradient) && layer.byGradient === undefined ? { byGradient: true } : {}),
-      ...(!isColor(layer.color) && layer.gradient === undefined && layer.byGradient === undefined && kindOf({ type: typeof layer.heatmap === "string" ? "heatmap" : layer.type, measure: layer.measure }) === "heat" ? { byGradient: true, gradient: structuredClone(HEAT_GRADIENT) } : {}),
       ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
       ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstForm(seriesName(layer.series), typeof layer.type === "string" ? layer.type : undefined)) } : {}),
       ...(kind ? { [kind]: members } : {}),
@@ -1245,6 +1246,7 @@ const seriesName = (/** @type {string} */ text) => text.trim().toLowerCase().rep
  */
 function readChart(/** @type {any} */ input) {
   const sketch = fromSketch(input), doc = validate(sketch);
+  normalize(doc);
   keepCarriedView(doc, sketch);
   return doc;
 }
@@ -1279,7 +1281,7 @@ function formulaNow(/** @type {string} */ formula) {
   const now = formula.replace(/(?<![A-Za-z0-9_])lag(?=\s*\()/g, "shift");
   return now.length <= FORMULA_MAX ? now : formula;
 }
-/** Validates chart fields (only `keepIds` preserves valid, unique ids). @returns {Chart} */
+/** Validates chart fields (only `keepIds` preserves valid, unique ids), as they came: normalized after, by the caller (a stored copy's stamp told first, see read). @returns {Chart} */
 function validate(input, keepIds = false) {
   const taken = new Set();
   const idOf = (id) => (keepIds && typeof id === "string" && /^[a-z0-9]{1,16}$/.test(id) && !taken.has(id) ? (taken.add(id), id) : uid());
@@ -1374,7 +1376,6 @@ function validate(input, keepIds = false) {
       ...(LINES.has(kind) && typeof drawing.label === "string" && labelText(drawing.label) ? { label: labelText(drawing.label), ...(Number.isFinite(drawing.at) ? { at: clamp(drawing.at, 0, 1) } : {}) } : {}),
     }];
   });
-  normalize(doc);
   return doc;
 }
 

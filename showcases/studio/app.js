@@ -27,10 +27,10 @@ import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
   asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
-  fittable, FLIP_APART, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE, lineTypeOf,
+  fittable, FLIP_APART, fromOf, HEAT_GRADIENTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult,
-  toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, unfitted, WIDTHS,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, signedMeasure, stretchResult,
+  toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, twoSided, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   BACKS, BOXES, KINDS, LABEL_MAX, labelText, LINES, lookOfDrawing, MAX_STROKE, PAIRED, PEN_COLOR, POINTED, pointOf,
@@ -345,27 +345,27 @@ function colorName(color) {
 const secondColor = (layer) => ((other) => (other && other !== layer.color ? other : layer.color === "red" ? "green" : "red"))(layer.type === "cloud" ? ownerOf(layer)?.layers.find((item) => item.id === layer.from?.[1])?.color : undefined);
 /**
  * A layer's look before its last shape change and as that shape left it (its colors, whose colors it takes, colored
- * by its levels or its gradient), the kind it was then (see kindOf), this session (not kept with it), by its chart's
+ * by its levels or its gradient), whether it was two-sided then (see twoSided), this session (not kept with it), by its chart's
  * id and its own (a chart's copy has its layers' ids).
- * @type {Map<string, { to: string, kind: string, before: Record<string, any>, after: Record<string, any> }>}
+ * @type {Map<string, { to: string, kind: boolean, before: Record<string, any>, after: Record<string, any> }>}
  */
 const looksLeft = new Map();
 /**
  * A layer's shape changed (its type, a heatmap's measure, by `edit`): what the shape it leaves took or set (two
  * sides' green and red, colors from another layer or by its levels it drops), unchanged since, back as it was
  * before it (a color picked since, kept); one of another kind starts as its kind does (kindLook: two-sided green
- * over red, as the website draws a baseline; a heatmap of an amount on its steps), unless what came back is its
+ * over red, as the website draws a baseline), unless what came back is its
  * own look of that kind. @param {Layer} layer @param {(layer: Layer) => void} edit
  */
 const reshape = (layer, edit) => {
-  const from = shapeKey(layer), kind = kindOf(layer), next = /** @type {Layer} */ ({ ...layer });
+  const from = shapeKey(layer), kind = twoSided(layer), next = /** @type {Layer} */ ({ ...layer });
   edit(next);
   if (shapeKey(next) === from) return void edit(layer);
   // (Its memory the shape it's left's own: one of another (an undo since) holds nothing.)
   const look = /** @type {Record<string, any>} */ (layer), key = `${chart?.id}:${layer.id}`, was = looksLeft.get(key), back = was?.to === from;
   if (back) for (const key of LOOK_KEYS) if (look[key] === was.after[key]) was.before[key] === undefined ? delete look[key] : (look[key] = was.before[key]);
   const before = Object.fromEntries(LOOK_KEYS.map((key) => [key, look[key]]));
-  if (kindOf(next) !== kind && !(back && was.kind === kindOf(next))) kindLook(layer, next);
+  if (twoSided(next) !== kind && !(back && was.kind === twoSided(next))) kindLook(layer, next);
   edit(layer);
   const type = layer.type;
   // (As it'll be once normalized: what this type can't have, gone.)
@@ -867,6 +867,19 @@ function normalize(doc) {
   // (Colors from another layer: one there, not itself, for a type that takes them.)
   // (Nor one taking its colors from this one: a pair, each the other's, has nothing to start from.)
   for (const layer of doc.layers) if (layer.colorFrom && (!COLORED_FROM.has(layer.type) || layer.colorFrom === layer.id || !doc.layers.some((other) => other.id === layer.colorFrom) || doc.layers.find((other) => other.id === layer.colorFrom)?.colorFrom === layer.id)) delete layer.colorFrom;
+  // (Each layer in a pane there: one whose pane is gone, in the first; before any reads its pane.)
+  if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
+  const ids = new Set(doc.panes.map((pane) => pane.id));
+  for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
+  // (A heatmap's gradient its pane's: one kept on the layer, as older charts and links held it, moved there if it's
+  // one ready made (the first, none kept; several heatmaps on one pane, the first's other than the first); its own,
+  // made by hand, gone (its pane's first, said in the changes).)
+  // (A P&L heatmap's colors fixed, its kind's: green over, red under (none stored that could differ from what's drawn).)
+  for (const layer of doc.layers) if (layer.type === "heatmap" && signedMeasure(layer)) (layer.color = /** @type {string} */ (kindColor(layer))), delete layer.colorBelow;
+  for (const layer of doc.layers) {
+    const pane = layer.type === "heatmap" && layer.byGradient && !signedMeasure(layer) && doc.panes.find((item) => item.id === layer.pane), ready = pane && !pane.gradient && HEAT_GRADIENTS.find(([, , stops]) => JSON.stringify(stops) === JSON.stringify(layer.gradient));
+    if (pane && ready && ready !== HEAT_GRADIENTS[0]) pane.gradient = ready[0];
+  }
   // (A gradient where its type takes one, its way of coloring alone; up to each date, a gradient's.)
   for (const layer of doc.layers) if (layer.gradient && !(COLOR_MODES[layer.type] ?? []).includes("gradient")) delete layer.gradient;
   for (const layer of doc.layers) if (!layer.gradient) delete layer.byGradient, delete layer.upToDate;
@@ -903,9 +916,6 @@ function normalize(doc) {
   }
   // (Out of its axis' fit where it can be.)
   for (const layer of doc.layers) if ((layer.fit !== false && layer.fit !== "zero") || !fittable(layer)) delete layer.fit;
-  if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
-  const ids = new Set(doc.panes.map((pane) => pane.id));
-  for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
   // A cloud or a trend where its layers are (it reads their values as one), in another pane behind them (a trend in
   // front, the other way round where a pane's last is in front), as one added; theirs apart, where it was (it says
   // so). A signal on its layer's.
@@ -1018,11 +1028,12 @@ let library = (() => {
  * and gradients, so one that doesn't know them can't turn a heatmap into a line or drop a gradient; 14, profiles, so
  * one that doesn't know them can't turn a profile into a line or drop its holder groups; 15, a layer's interval ceiling
  * (`maxInterval`) and its zero framing (`fit: "zero"`), so one that doesn't know them can't drop them; 16, a pane drawn as a
- * heatmap, its outline and its layers' short names, so one that doesn't know them can't drop them or draw it as a stack): one saved by a newer
+ * heatmap, its outline and its layers' short names, so one that doesn't know them can't drop them or draw it as a stack; 17, a heatmap's gradient
+ * on its pane, so one that keeps it on the layer can't drop it): one saved by a newer
  * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
  * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
  */
-const SCHEMA = 16;
+const SCHEMA = 17;
 let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && startText !== null);
 /** Why nothing's saved here, if it isn't: a newer Studio's library ("newer"), one this can't read ("unreadable"), storage full ("full"). */
 let unsavedWhy = !readOnly ? "" : Number(/** @type {any} */ (library)?.schema) > SCHEMA ? "newer" : "unreadable";
@@ -1049,6 +1060,10 @@ function read(stored) {
   if (typeof stored.made === "string" && stored.made.length <= 2000) doc.made = stored.made;
   if (stored.blank === true) doc.blank = true;
   doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
+  // (A preset's copy told as made or edited as it was stored, before it's normalized: a newer client moving its
+  // fields isn't an edit (see pristine); one as made is made anew once the presets are read, see prunePresets.)
+  if (doc.preset !== undefined) pristine(doc);
+  normalize(doc);
   return doc;
 }
 /** A stored chart, read; one that can't be is set aside (never dropped: if it can't be, nothing's saved). @returns {Chart[]} */
@@ -1073,6 +1088,10 @@ function presetsOf(/** @type {any} */ stored) {
   for (const doc of (Array.isArray(stored) ? stored : []).flatMap(restore)) {
     if (typeof doc.preset !== "string" || library.deleted[doc.id] >= doc.updated) continue;
     delete doc.folder;
+    // (Whether it's as made, told as stored, before anything normalizes it: a copy left as it was stays so through a
+    // newer client's moving its fields (not an edit, see pristine), and is made anew once the presets are read, see
+    // prunePresets; told after, it would read as edited.)
+    pristine(doc);
     if (!((byKey.get(doc.preset)?.updated ?? -Infinity) > doc.updated)) byKey.set(doc.preset, doc);
   }
   return [...byKey.values()];

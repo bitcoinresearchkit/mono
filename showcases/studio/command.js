@@ -28,7 +28,7 @@ import { dashGlyph, glyph, glyphSvg, ICONS, markBody, OUTLINE_GLYPH, shapeGlyph 
 import {
   belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
   GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
-  drawnInto, gradable, MAX_PANES, measured, MODES, modesOf, nameLayer, paneGradient, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
+  drawnInto, gradable, MAX_PANES, measured, MODES, modesOf, nameLayer, paneGradient, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, ownGradient, outlinable, placedOn, placeName, resultText,
   seriesLooked, SHAPES, STACKS, stretchResult, summed, typeName, TYPES,
 } from "/studio/vocabulary.js";
 import {
@@ -1918,14 +1918,14 @@ function layerPage(id) {
       ...colorSlots(layer).map(([key, label]) => (key === "from"
         ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
         : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${inSentence(label)}` : "Color"))),
-      // (A gradient's: another color, and what its lowest and highest are of (not a heatmap's: each day its own).)
-      ...(layer.byGradient && layer.gradient ? [
+      // (A gradient's: another color, and what its lowest and highest are of.)
+      ...((stops) => !stops ? [] : [
         // (The gradients ready made, as its editor's row of them: each a small bar of itself.)
-        { key: "gradient-ready", icon: gradientSwatch(layer.gradient), label: "Ready made", aside: readyName(layer.gradient), group: "Style", page: () => readyPage(id, lookOfChoice) },
+        { key: "gradient-ready", icon: gradientSwatch(stops), label: "Ready made", aside: readyName(stops), group: "Style", page: () => readyPage(id, lookOfChoice) },
         { key: "gradient-reverse", icon: ICONS.swap, label: "Reverse the gradient", aside: "Its lowest's color its highest's", group: "Style", run: () => reverseGradient(id) },
-        { key: "gradient-add", icon: ICONS.plus, label: "Add a color", aside: "In the widest gap", group: "Style", ...(layer.gradient.length < GRADIENT_MOST ? { run: set((item) => addStop(item)) } : { disabled: `A gradient holds up to ${GRADIENT_MOST} colors` }) },
-        ...(heatLike(layer) ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
-      ] : []),
+        { key: "gradient-add", icon: ICONS.plus, label: "Add a color", aside: "In the widest gap", group: "Style", ...(stops.length < GRADIENT_MOST ? { run: set((item) => addStop(item)) } : { disabled: `A gradient holds up to ${GRADIENT_MOST} colors` }) },
+        { key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) },
+      ])(ownGradient(chart, layer)),
       { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
       ...(layer.type !== "histogram" && !placedOn(layer) ? [widthRow(layer.width, now, both)] : []),
       ...(lineish ? [
