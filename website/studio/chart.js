@@ -36,7 +36,7 @@ import {
 import { aboutOf, latestSaid } from "/studio/command.js";
 import { plotBox, PULL } from "/studio/drawing.js";
 import {
-  breaksAt, evaluate, parse, refsOf, restarts, rolling, seriesNamed, seriesUnnamed, unitOfNode, unstarted,
+  breaksAt, evaluate, fromStart, parse, refsOf, restarts, rolling, seriesNamed, seriesUnnamed, unitOfNode, unstarted,
 } from "/studio/formulas.js";
 import { profileMark, seriesMark, titleOf } from "/studio/grid.js";
 import {
@@ -748,7 +748,7 @@ function averageResult(result, average, index, layer) {
   /** @type {Result} */
   let out;
   try {
-    const mean = (/** @type {Vector} */ values) => rolling(values, points, partial).mean;
+    const mean = (/** @type {Vector} */ values) => fromStart(values, (from) => rolling(from, points, partial).mean);
     const members = result.members?.map(mean);
     const shape = members ? cloudOf(members, edgesOf(layer).includes("top"), edgesOf(layer).includes("bottom"), cloudLayers(layer).length === 2)
       : { values: mean(result.values), ...(result.low ? { low: mean(result.low) } : {}), ...(result.opens ? { opens: mean(result.opens), highs: mean(/** @type {Vector} */ (result.highs)), lows: mean(/** @type {Vector} */ (result.lows)) } : {}) };
