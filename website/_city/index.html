@@ -409,8 +409,10 @@
       const PRESS_MS = 450;
       const OUT_MS = 1_000;
       const SETTLE_MS = 600;
-      // When nothing else moves, the belt is drawn again once it has moved this far, in pixels.
+      // When nothing else moves, what does is drawn again once it has moved this far, in pixels: the belt, and the pool's
+      // water, whose waves move at most WATER_SPEED of the scale in pixels a second.
       const IDLE_STEP = 0.2;
+      const WATER_SPEED = 0.042;
       const MIN_SCALE = 3;
       const MAX_SCALE = 160;
       const COS = Math.cos(Math.PI / 6);
@@ -492,10 +494,16 @@
       const camera = { u: 0, v: 0, scale: 40 };
       /** @type {{ from: typeof camera, to: typeof camera, start: number } | null} */
       let flight = null;
-      let dirty = true;
       let animateUntil = 0;
-      let lastDraw = 0;
       let lastFrame = 0;
+      // Nothing draws at rest: a frame is asked for (invalidate) by what changed, each display frame after while something
+      // moves, and else by a timer for the slowest thing that does.
+      let frameId = 0;
+      let timer = 0;
+      // How long that timer was set for, in milliseconds.
+      let waited = 0;
+      // (Not before the font's in, or for a while after: canvas text ignores font-display.)
+      let started = false;
       // The clock everything that moves runs on, but the belt: real time, sped up while
       // something would otherwise take long. In milliseconds.
       let sim = performance.now();
@@ -530,7 +538,7 @@
         root.dataset.theme = dark ? "dark" : "light";
         themeButton.textContent = dark ? "Light" : "Dark";
         readPalette();
-        dirty = true;
+        invalidate();
       }
 
       themeButton.addEventListener("click", () => {
@@ -557,7 +565,7 @@
         const image = new Image();
         image.addEventListener("load", () => {
           logos.set(key, inked(image));
-          dirty = true;
+          invalidate();
         });
         image.src = poolLogo(slug, light);
         return null;
@@ -2223,7 +2231,7 @@
         followed = worker;
         card.hidden = !worker;
         cardText = "";
-        dirty = true;
+        invalidate();
       }
 
       const ordinal = (/** @type {number} */ n) => (n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`);
@@ -2263,7 +2271,7 @@
         camera.u += du;
         camera.v += dv;
         // Redrawn while the camera moves by more than a hundredth of a pixel.
-        if ((Math.abs(du) + Math.abs(dv)) * camera.scale > 0.01) dirty = true;
+        if ((Math.abs(du) + Math.abs(dv)) * camera.scale > 0.01) invalidate();
         const step = followed.steps[0];
         const title = !step
           ? "Waiting"
@@ -2979,7 +2987,7 @@
         if (!txTable.item?.tx || txTable.open) return;
         txTable.open = now;
         animateUntil = Math.max(animateUntil, now + OPEN_MS + 100);
-        dirty = true;
+        invalidate();
       }
 
       /** Fetches a transaction's details, by its place along the chain, and lays them out. */
@@ -2990,7 +2998,7 @@
           const tx = parcel.tx ?? (await client.getTx(txid));
           Object.assign(parcel, { txid, tx }, layTx(tx));
           if (txTable.item === parcel) opening(sim);
-          dirty = true;
+          invalidate();
         })().catch((error) => console.error("transaction", error));
       }
 
@@ -3560,7 +3568,7 @@
           table.layout = layout;
           table.split = sim;
           animateUntil = table.split + SPLIT_MS + 100;
-          dirty = true;
+          invalidate();
         }).catch(() => setTimeout(() => current() && show(block, visit), TIP_POLL_MS));
       }
 
@@ -3954,17 +3962,32 @@
         nowButton.hidden = machineX > -80 && machineX < W + 80 && machineY > -80 && machineY < H + 80;
       }
 
+      const wake = () => {
+        timer = 0;
+        if (started) frameId ||= requestAnimationFrame(frame);
+      };
+      function invalidate() {
+        // (Woken from its wait by a change: the first frame's step is a display frame's, not the whole wait's.)
+        if (timer) {
+          clearTimeout(timer);
+          lastFrame = 0;
+        }
+        wake();
+      }
+
       function frame(/** @type {number} */ now) {
-        requestAnimationFrame(frame);
-        const dt = lastFrame ? Math.min(100, now - lastFrame) : 16;
+        frameId = 0;
+        // (A frame's time, at most a tenth of a second past the wait before it: a stall never leaps.)
+        const dt = lastFrame ? Math.min(100 + waited, now - lastFrame) : 16;
         lastFrame = now;
+        waited = 0;
         if (flight) {
           const t = ease((now - flight.start) / 700);
           camera.u = flight.from.u + (flight.to.u - flight.from.u) * t;
           camera.v = flight.from.v + (flight.to.v - flight.from.v) * t;
           camera.scale = flight.from.scale * Math.pow(flight.to.scale / flight.from.scale, t);
           if (t >= 1) flight = null;
-          dirty = true;
+          invalidate();
         }
         // What shows now, for what moves faster out of sight.
         updateView();
@@ -3976,17 +3999,22 @@
         const rolling = stepTable(step);
         const sliding = stepTx(step);
         const flying = stepDrone(sim, step) || rolling || sliding;
-        // The pool's water and the robots move all the time: at full rate while they show.
+        // The robots at work, and the ripples, move at full rate while the pool shows; its water alone, slowly.
         const lively = camera.scale >= 12 && inView(PLINTH, QUEUE_Y - BELT_WIDTH, SIGN_X, POOL_Y1, 2);
+        const busy = lively && (workers.some((worker) => worker.steps.length) || ripples.some((ripple) => sim >= ripple.start && sim < ripple.start + RIPPLE_MS));
         stepFollow(step);
-        const moving = stepQueue(step) || !!job || sim < animateUntil || lively || flying || warp > 1;
-        // The belt moves under a pixel a second: a few frames a second carry it, more up close.
-        const idleMs = (1000 * IDLE_STEP * SECONDS_PER_UNIT) / camera.scale;
-        if (!moving && !dirty && now - lastDraw < idleMs) return;
-        dirty = false;
-        lastDraw = now;
+        const moving = stepQueue(step) || !!job || sim < animateUntil || busy || flying || warp > 1;
         draw(sim);
         streak();
+        if (moving) invalidate();
+        // (The belt moves under a pixel a second, the water under a few: a few frames a second carry them, more up close.)
+        else if (!frameId) {
+          const belt = (1000 * IDLE_STEP * SECONDS_PER_UNIT) / camera.scale;
+          // (The water's, and the next ripple's start, where the pool shows.)
+          const ripple = Math.min(...ripples.map((r) => r.start - sim).filter((t) => t > 0));
+          waited = lively ? Math.min(belt, (1000 * IDLE_STEP) / (WATER_SPEED * camera.scale), ripple) : belt;
+          timer = setTimeout(wake, waited);
+        }
       }
 
       // Fast-forward -------------------------------------------------------------
@@ -4065,7 +4093,7 @@
         H = window.innerHeight;
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
-        dirty = true;
+        invalidate();
       }
 
       function pan(/** @type {number} */ dx, /** @type {number} */ dy) {
@@ -4073,7 +4101,7 @@
         if (followed) follow(null);
         camera.u -= dx / camera.scale;
         camera.v -= dy / camera.scale;
-        dirty = true;
+        invalidate();
       }
 
       function zoom(/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ factor) {
@@ -4084,7 +4112,7 @@
         camera.scale = scale;
         camera.u = u - (x - W / 2) / scale;
         camera.v = v - (y - H / 2) / scale;
-        dirty = true;
+        invalidate();
       }
 
       function flyHome() {
@@ -4241,7 +4269,7 @@
         hovered = found;
         hoveredTx = tx;
         hoveredSlot = slot;
-        dirty = true;
+        invalidate();
         describe();
       }
 
@@ -4326,7 +4354,7 @@
           status.textContent = `#${heightFormat.format(tip.height)} · ${ago(Date.now() / 1000 - tip.time)}`;
         }
         if (hovered) describe();
-        if (blocks.length && legible(0.6 * camera.scale) && inView(-HALF, MACHINE_Y0, HALF, MACHINE_Y1, MACHINE_TOP)) dirty = true;
+        if (blocks.length && legible(0.6 * camera.scale) && inView(-HALF, MACHINE_Y0, HALF, MACHINE_Y1, MACHINE_TOP)) invalidate();
       }
 
       function setLive(/** @type {boolean} */ value, /** @type {string} */ text = "") {
@@ -4380,7 +4408,7 @@
           place(older, blocks[0]);
           blocks = older.concat(blocks);
           if (start === 0) reachedGenesis = true;
-          dirty = true;
+          invalidate();
         } catch (error) {
           console.error("older blocks", error);
           olderAfter = performance.now() + TIP_POLL_MS;
@@ -4408,7 +4436,7 @@
         queue.forEach((waiting, i) => (waiting.target = i));
         mempoolCount = list.reduce((sum, block) => sum + block.nTx, 0);
         mempoolVSize = list.reduce((sum, block) => sum + block.blockVSize, 0);
-        dirty = true;
+        invalidate();
       }
 
       /** Projections wait for the blocks found before them to be stamped, which takes theirs in. */
@@ -4438,6 +4466,7 @@
             if (!fresh.length) break;
             knownTip = fresh[fresh.length - 1].height;
             arriving.push(...fresh);
+            invalidate();
           }
           projected(await client.getMempoolBlocks({ cache: false }));
           setLive(true);
@@ -4454,7 +4483,7 @@
           const client = await clientReady;
           client.getPools().then((list) => {
             for (const { slug, name } of list) poolNames.set(slug, name);
-            dirty = true;
+            invalidate();
             describe();
           }).catch(() => {});
           const height = await client.getBlockTipHeight({ cache: false });
@@ -4520,8 +4549,9 @@
       void start();
       // Canvas ignores font-display; wait for the face, but no longer than its block period.
       const ready = await Promise.race([font.then(() => true), new Promise((done) => setTimeout(() => done(false), 3000))]);
-      if (!ready) font.then(() => (dirty = true));
-      requestAnimationFrame(frame);
+      if (!ready) font.then(invalidate);
+      started = true;
+      invalidate();
     </script>
   </body>
 </html>
