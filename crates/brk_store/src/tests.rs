@@ -114,13 +114,16 @@ where
         if round == 1 {
             // A changed version, or records without one, are refused.
             assert!(matches!(
-                import(Version::new(2)),
-                Err(Error::VersionMismatch { .. })
+                refusal(import(Version::new(2))),
+                Error::VersionMismatch { .. }
             ));
             let marker = path.join("meta").join(name).join("version");
             let saved = fs::read(&marker).unwrap();
             fs::remove_file(&marker).unwrap();
-            assert!(matches!(import(VERSION), Err(Error::MissingVersion { .. })));
+            assert!(matches!(
+                refusal(import(VERSION)),
+                Error::MissingVersion { .. }
+            ));
             fs::write(&marker, saved).unwrap();
         }
         let mut store = import(VERSION).unwrap();
@@ -339,6 +342,15 @@ impl Rng {
 }
 
 /// A random key, or the first of `records` from one.
+/// The refusal an open ended with, under the `OpeningStorage` naming the path.
+fn refusal<T>(opened: Result<T>) -> Error {
+    match opened {
+        Err(Error::OpeningStorage { source, .. }) => *source,
+        Err(error) => error,
+        Ok(_) => panic!("the open succeeded"),
+    }
+}
+
 fn near<T>(rng: &mut Rng, records: &BTreeMap<u32, T>) -> u32 {
     let key = rng.key();
     if rng.coin() {
