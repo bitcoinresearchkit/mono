@@ -25,11 +25,11 @@ import {
 } from "/studio/format.js";
 import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
-  automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
   fittable, FLIP_APART, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, rowLayers, shapeKey, stretchResult,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult, summed,
   toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -696,7 +696,7 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  * at its running total, not at its values (its price line neither); on a percent or indexed scale, as its changes.
  * @param {Chart} doc @param {Layer} layer
  */
-const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack === "rows" ? "Not drawn in rows: their colors turn on it" : pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
+const acrossUnfit = (doc, layer) => ((pane) => (pane && asRows(doc, pane) ? "Not drawn in rows: their colors turn on it" : pane && summed(pane) ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
@@ -3741,7 +3741,7 @@ function buildChart(doc, data, refit) {
     for (const side of SIDES) {
       // (A side's ticks in the letters of its layers' unit, SI's for bytes and hash rates.)
       // (A pane of rows: their names on the left, nothing else written there; the price over them on the right, on its log scale.)
-      const rowed = pane.stack === "rows";
+      const rowed = asRows(doc, pane);
       const format = rowed ? (side === "left" ? NO_FORMAT : valueFormatOf(["usd"])) : fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
       panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[rowed ? (side === "left" ? 0 : 1) : paneMode(pane)] }) });
       if (!keep) panes[i].setRange(undefined, undefined, side);

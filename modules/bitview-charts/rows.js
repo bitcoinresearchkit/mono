@@ -11,7 +11,8 @@
 import { PILL } from "./tags.js";
 
 /**
- * @typedef {{ values: ArrayLike<number>, name: string, color: string }} Row
+ * A row: its values on the timeline, its name and color (its axis tag), and the page's `id` for it (what a hit on it is).
+ * @typedef {{ values: ArrayLike<number>, name: string, color: string, id: string }} Row
  */
 
 export class Rows {
@@ -33,8 +34,9 @@ export class Rows {
     this.faint = false;
     this.scaled = false;
     this.version = 0;
-    /** Its cells as painted (none: to be painted at the next draw). @type {HTMLCanvasElement | null} */
-    this.image = null;
+    /** Its cells as painted (`painted`: as it paints now, else painted again at the next draw). */
+    this.image = document.createElement("canvas");
+    this.painted = false;
     /** Each row's points under the level (1), as `below` reads them. @type {Uint8Array[]} */
     this.under = [];
   }
@@ -47,7 +49,7 @@ export class Rows {
 
   /** What it paints changed (its colors, its level): painted anew at the next draw. */
   changed() {
-    this.image = null;
+    this.painted = false;
     this.version++;
   }
 
@@ -82,9 +84,9 @@ export class Rows {
     for (let k = 0; k < n; k += every) add((k + 0.5) * h, this.rows[k].name, this.rows[k].color);
   }
 
-  /** Its cells, a pixel a point, each row three pixels alike; and each row's points under the level. */
-  #painted() {
-    const rows = this.rows, n = rows.reduce((most, row) => Math.max(most, row.values.length), 0), image = this.image ?? document.createElement("canvas");
+  /** Its cells painted, a pixel a point, each row three pixels alike; and each row's points under the level. */
+  #paintCells() {
+    const rows = this.rows, n = rows.reduce((most, row) => Math.max(most, row.values.length), 0), image = this.image;
     (image.width = Math.max(1, n)), (image.height = Math.max(1, 3 * rows.length));
     const context = /** @type {CanvasRenderingContext2D} */ (image.getContext("2d")), cells = context.createImageData(image.width, image.height), pixels = cells.data, line = 4 * image.width;
     this.under = rows.map(() => new Uint8Array(n));
@@ -100,7 +102,7 @@ export class Rows {
       pixels.copyWithin(top + 2 * line, top, top + line);
     });
     context.putImageData(cells, 0, 0);
-    return (this.image = image);
+    this.painted = true;
   }
 
   /**
@@ -112,7 +114,8 @@ export class Rows {
   draw(g, time, scale, x0, x1, dpr) {
     const n = this.rows.length;
     if (!n) return;
-    const image = this.image ?? this.#painted(), last = image.width - 1;
+    if (!this.painted) this.#paintCells();
+    const image = this.image, last = image.width - 1;
     const a = Math.max(0, Math.floor(time.index(x0) - 1)), b = Math.min(last, Math.ceil(time.index(x1) + 1));
     if (a > b) return;
     const half = time.spacing / 2, left = (time.x(a) - half) * dpr, right = (time.x(b) + half) * dpr, h = (scale.height * dpr) / n;
@@ -153,22 +156,24 @@ export class Rows {
         marks[at + j] = seen && 2 * count > seen ? 1 : 0;
       }
     }
+    // (A line on whole device pixels: an odd width centered on one, an even one between two.)
+    const width = Math.max(1, Math.round(dpr)), off = (width % 2) / 2;
     const xAt = (/** @type {number} */ j) => Math.round((time.x(from + j * step) - time.spacing / 2) * dpr);
     g.beginPath();
     for (let k = 0; k <= n; k++) {
       const y = Math.round(k * h), over = k * blocks, at = (k + 1) * blocks;
       // (Down, at a block's left edge, in row k.)
-      if (k < n) for (let j = 0; j <= blocks; j++) if ((j ? marks[at + j - 1] : 0) !== (j < blocks ? marks[at + j] : 0)) g.moveTo(xAt(j) + 0.5, y), g.lineTo(xAt(j) + 0.5, Math.round((k + 1) * h));
+      if (k < n) for (let j = 0; j <= blocks; j++) if ((j ? marks[at + j - 1] : 0) !== (j < blocks ? marks[at + j] : 0)) g.moveTo(xAt(j) + off, y), g.lineTo(xAt(j) + off, Math.round((k + 1) * h));
       // (Across, along row k's top, each run of blocks that differ from the row over it as one.)
       for (let j = 0; j < blocks; j++) {
         if (marks[over + j] === marks[at + j]) continue;
         let end = j;
         while (end + 1 < blocks && marks[over + end + 1] !== marks[at + end + 1]) end++;
-        g.moveTo(xAt(j), y + 0.5), g.lineTo(xAt(end + 1), y + 0.5);
+        g.moveTo(xAt(j), y + off), g.lineTo(xAt(end + 1), y + off);
         j = end;
       }
     }
-    g.lineWidth = Math.max(1, Math.round(dpr));
+    g.lineWidth = width;
     g.strokeStyle = this.outline;
     g.stroke();
   }

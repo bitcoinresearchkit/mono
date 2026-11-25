@@ -719,7 +719,7 @@ const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack 
 const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
 const setPaneAverage = (id, average) => editPane(id, (pane) => (average ? (pane.average = average) : delete pane.average));
 /** A pane's two orders, named as it draws them: [reverse, its name]. @param {Pane} pane */
-const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front"], [true, pane.stack ? "Last at the foot" : "Last in front"]]);
+const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack === "rows" ? "First at the top" : pane.stack ? "First at the foot" : "First in front"], [true, pane.stack === "rows" ? "Last at the top" : pane.stack ? "Last at the foot" : "Last in front"]]);
 const toggleLog = (id) => {
   const pane = chart.panes.find((item) => item.id === id);
   if (pane?.stack === "percent") notice("A 100% stack shows shares of the total, so there's no scale to choose");

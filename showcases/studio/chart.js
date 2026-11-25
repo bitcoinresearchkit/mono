@@ -27,7 +27,7 @@ import {
 import { ICONS } from "/studio/icons.js";
 import {
   belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
-  placedOn, resultText, rowLayers, signedMeasure, stretchResult, TWO_KEPT,
+  asRows, placedOn, resultText, rowLayers, signedMeasure, stretchResult, TWO_KEPT,
 } from "/studio/vocabulary.js";
 import {
   CADENCE, CHUNK, FINE, FINE_STEP, FIRST_CHUNKS, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, KEPT_CHUNKS,
@@ -380,7 +380,7 @@ const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).fin
 const formulaSeries = (doc) => [...new Set(doc.layers.flatMap((layer) => (layer.formula !== undefined ? [...seriesNamed(layer.formula, "reads"), ...seriesUnnamed(layer.formula)] : [])))];
 /** Every series a chart reads, its layers' and its formulas', each once. @param {Chart} doc @returns {string[]} */
 // (A heatmap's dates, the price's: its days drawn on them, see Heat; and a pane of rows', drawn over them.)
-const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : heatLike(layer) ? ["price"] : [])), ...(doc.panes.some((pane) => pane.stack === "rows") ? ["price"] : []), ...formulaSeries(doc)])];
+const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : heatLike(layer) ? ["price"] : [])), ...(doc.panes.some((pane) => asRows(doc, pane)) ? ["price"] : []), ...formulaSeries(doc)])];
 
 /** Visible layers and their transitive inputs, in chart order. Hidden inputs still feed visible results. @param {Chart} doc */
 function drawLayers(doc) {
@@ -1116,7 +1116,7 @@ const settled = () => chartShown() && !pending() && !buildAsked;
  * What a chart's resolved values depend on: its interval, each pane's average, and what each layer reads and its
  * pane (in any order); a heatmap's holders and measure (its result's: whether Bitview has them, its unit).
  */
-const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map(({ id, average, stack }) => [id, average ?? "", stack === "rows"]).sort(), doc.layers.map((layer) => [layer.id, layer.pane, layer.letter, layer.series, layer.formula, layer.from ? layer.type : null, layer.from ?? null, layer.ref ?? null, heatLike(layer) ? [layer.heatmap ?? "all", layer.profile ?? null, measureOf(layer)] : null]).sort()]);
+const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map((pane) => [pane.id, pane.average ?? "", asRows(doc, pane)]).sort(), doc.layers.map((layer) => [layer.id, layer.pane, layer.letter, layer.series, layer.formula, layer.from ? layer.type : null, layer.from ?? null, layer.ref ?? null, heatLike(layer) ? [layer.heatmap ?? "all", layer.profile ?? null, measureOf(layer)] : null]).sort()]);
 /**
  * What a chart's build draws from, the theme's tokens too (what they're read for: a contrast change redraws it, see
  * redrawChart): all of it but its title and names, its range (a view: see showRange), its drawings, its panes' sizes
@@ -1643,7 +1643,7 @@ function updateLegends() {
       const readOn = (/** @type {string} */ layer) => ((series) => [series?.engine, series?.edge])(drawn.get(layer));
       const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
       return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
-    }), (pane?.stack === "rows" && rowPanes.get(pane.id)?.scale) || averageFor(chart, pane).name);
+    }), (pane && asRows(chart, pane) && rowPanes.get(pane.id)?.scale) || averageFor(chart, pane).name);
     const chip = legendAccess(element);
     // (Put back once the library has laid its items: it moves them into place, which drops a focus.)
     if (chip && (focus || element.contains(document.activeElement))) element.focus({ preventScroll: true });
@@ -2591,10 +2591,10 @@ const ROWS_WHOLE = 0.98;
 const ROWS_FAINT = 0.08;
 /** Its strength's curve: under 1, the middle lifted (a cell halfway to the strongest reads more than half as strong as it). */
 const ROWS_CURVE = 0.6;
+/** A cell's opacity by its strength (0 to 1): see ROWS_FAINT, ROWS_CURVE. @param {number} strength */
+const rowsOpacity = (strength) => ROWS_FAINT + (1 - ROWS_FAINT) * strength ** ROWS_CURVE;
 /** Each pane of rows' drawing, by its pane's id: its rows and the price over them, on its pane, and what they were painted from. @type {Map<string, { on: import("/modules/bitview-charts/pane.js").Pane, rows: Rows, price: Line, key: string, scale: HTMLElement }>} */
 const rowPanes = new Map();
-/** Each row's layer, as drawn. @type {WeakMap<object, string>} */
-const rowOwners = new WeakMap();
 /** The value at a share of the way up sorted values (none: NaN). @param {Float64Array} sorted @param {number} share */
 const quantile = (sorted, share) => (sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(share * sorted.length))] : NaN);
 /**
@@ -2610,7 +2610,7 @@ function drawRows(doc, data) {
   const gone = new Set(rowPanes.keys());
   doc.panes.forEach((pane, i) => {
     const on = engine.panes[i];
-    if (pane.stack !== "rows" || !on) return;
+    if (!asRows(doc, pane) || !on) return;
     gone.delete(pane.id);
     for (const layer of doc.layers) if (layer.pane === pane.id) ((own) => own && [own.engine, own.edge].forEach((series) => series && (series.hidden = true)))(drawn.get(layer.id));
     let kept = rowPanes.get(pane.id);
@@ -2629,7 +2629,7 @@ function drawRows(doc, data) {
     const key = JSON.stringify([tokensNow(), log, level, named, layers.map((layer) => [layer.id, idOf(/** @type {Vector} */ (data.results.get(layer.id)?.values)), layer.color, labelOf(layer)])]);
     if (key === kept.key) return;
     kept.key = key;
-    const rows = layers.map((layer) => ({ values: /** @type {Vector} */ (data.results.get(layer.id)?.values), name: named ? labelOf(layer) : layer.letter, color: ink(layer.color) }));
+    const rows = layers.map((layer) => ({ values: /** @type {Vector} */ (data.results.get(layer.id)?.values), name: named ? labelOf(layer) : layer.letter, color: ink(layer.color), id: layer.id }));
     // (A value's place: its distance from the level (by ratio on a log scale, a level over 0), else its own (its log).)
     const ratio = log && level !== undefined && level > 0;
     const place = level === undefined ? (log ? Math.log10 : (/** @type {number} */ value) => value) : ratio ? (/** @type {number} */ value) => Math.log(value / level) : (/** @type {number} */ value) => value - level;
@@ -2642,19 +2642,18 @@ function drawRows(doc, data) {
     kept.rows.paint = (value, k, pixels, at) => {
       const p = place(value);
       if (!Number.isFinite(p)) return;
-      const strength = clamp(level === undefined ? (p - lo) / (hi - lo || 1) : p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1) ** ROWS_CURVE, [r, g, b] = level === undefined ? colors[k] : p < 0 ? down : up;
-      (pixels[at] = r), (pixels[at + 1] = g), (pixels[at + 2] = b), (pixels[at + 3] = 255 * (ROWS_FAINT + (1 - ROWS_FAINT) * strength));
+      const strength = clamp(level === undefined ? (p - lo) / (hi - lo || 1) : p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1), [r, g, b] = level === undefined ? colors[k] : p < 0 ? down : up;
+      (pixels[at] = r), (pixels[at + 1] = g), (pixels[at + 2] = b), (pixels[at + 3] = 255 * rowsOpacity(strength));
     };
     kept.rows.below = level === undefined ? null : (value) => place(value) < 0;
     kept.rows.outline = css("--ink");
     // (Its key, in its legend: the colors from one end to the other, at the values they stand for (about a level, the
     // level between its two sides).)
     const words = valueFormatOf(layers.slice(0, 1).map((layer) => unitFor(layer, data.results.get(layer.id)))).value, at = (/** @type {number} */ p) => (ratio ? /** @type {number} */ (level) * Math.exp(p) : level === undefined ? (log ? 10 ** p : p) : level + p);
-    const strip = (/** @type {number[]} */ c, /** @type {boolean} */ rising) => `<span class="key-strip">${[0, 1, 2, 3, 4].map((k) => `<i style="--c:rgb(${c.slice(0, 3).join(" ")} / ${ROWS_FAINT + (1 - ROWS_FAINT) * ((rising ? k : 4 - k) / 4) ** ROWS_CURVE})"></i>`).join("")}</span>`;
+    const strip = (/** @type {number[]} */ c, /** @type {boolean} */ rising) => `<span class="key-strip">${[0, 1, 2, 3, 4].map((k) => `<i style="--c:rgb(${c.slice(0, 3).join(" ")} / ${rowsOpacity((rising ? k : 4 - k) / 4)})"></i>`).join("")}</span>`;
     const ends = (/** @type {number} */ p) => `<span>${escapeHtml(Number.isFinite(p) ? words(at(p)) : "")}</span>`;
     kept.scale.className = "legend-key rows-key";
     kept.scale.innerHTML = level === undefined ? `${ends(lo)}${strip(channels(css("--ink")), true)}${ends(hi)}` : `${ends(Math.min(lo, 0))}${strip(down, false)}<span>${escapeHtml(words(level))}</span>${strip(up, true)}${ends(Math.max(hi, 0))}`;
-    rows.forEach((row, k) => rowOwners.set(row, layers[k].id));
     kept.rows.set(rows);
   });
   for (const id of gone) ((kept) => kept && (kept.on.remove(kept.rows), kept.on.remove(kept.price), rowPanes.delete(id)))(rowPanes.get(id));
@@ -2908,7 +2907,7 @@ function chartPoint(index, pane, x, y, input, hit) {
   const line = hit >= 0 ? engine.panes[pane]?.series[hit] : null;
   // (On a pane of rows, the row's layer there.)
   const row = line instanceof Rows ? line.rows[line.rowAt(y, engine.panes[pane].height)] : null;
-  const layer = row ? rowOwners.get(row) ?? null : !line ? null : [...drawn].find(([, series]) => series.engine === line || series.edge === line)?.[0] ?? null;
+  const layer = row ? row.id : !line ? null : [...drawn].find(([, series]) => series.engine === line || series.edge === line)?.[0] ?? null;
   return { point: { x, y }, time: engine.time.times[index], logical: index, pane: pane >= 0 ? pane : undefined, input, layer };
 }
 /** @type {ChartPoint} */

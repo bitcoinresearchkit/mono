@@ -27,7 +27,7 @@ import { format, grouped, plural, precise } from "/studio/format.js";
 import { ICONS, markBody } from "/studio/icons.js";
 import {
   belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cloudLayers, DASHES, dashOf, edgesOf, heatLike, LINED, measureOf,
-  opacityOf, OUTLINED, PAIRS, placedOn, unfitted,
+  opacityOf, OUTLINED, PAIRS, placedOn, summed, unfitted,
 } from "/studio/vocabulary.js";
 import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "/studio/intervals.js";
 import { isColor } from "/studio/color.js";
@@ -241,8 +241,8 @@ async function drawThumb(doc) {
       // (Those out of the fit drawn on the others' scale: see unfitted.)
       const framing = on.filter(({ layer }) => !unfitted(doc, layer));
       const bases = framing.flatMap(({ layer, shape }) => [
-        ...(layer.type === "histogram" && !pane.stack && modeOf(doc, layer) === 0 ? [shape.scale(baseOf(layer))] : []),
-        ...(zeroFit(doc, layer, modeOf(doc, layer), Boolean(pane.stack)) ? [shape.scale(0)] : []),
+        ...(layer.type === "histogram" && !summed(pane) && modeOf(doc, layer) === 0 ? [shape.scale(baseOf(layer))] : []),
+        ...(zeroFit(doc, layer, modeOf(doc, layer), summed(pane)) ? [shape.scale(0)] : []),
       ]).filter(Number.isFinite);
       const lo = Math.min(...framing.map(({ shape }) => shape.lo), ...bases), hi = Math.max(...framing.map(({ shape }) => shape.hi), ...bases);
       if (!Number.isFinite(lo)) continue;

@@ -2,7 +2,7 @@
 // A chart's document and its words: its shape, layer kinds and looks, marks, measures, panes, how layers are made from
 // layers, a new layer, a blank chart.
 import { precise } from "/studio/format.js";
-import { DEFAULT_RANGE } from "/studio/intervals.js";
+import { DEFAULT_RANGE, FINE } from "/studio/intervals.js";
 import { uid } from "/studio/math.js";
 import { PALETTE } from "/studio/color.js";
 /** @import { Result } from "/studio/chart.js" */
@@ -196,16 +196,19 @@ const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash])
 /** A pane's stack: none, its layers one on another, as shares of their sum, or one under another as rows (each a row of
  * cells colored by its value, the price over them: see rowLayers). @type {[("" | "stack" | "percent" | "rows"), string, string][]} */
 const STACKS = [["", "Off", "Each at its own value"], ["stack", "Stacked", "Each on the ones before"], ["percent", "100%", "As shares of them all"], ["rows", "Rows", "Each a row, colored by its value, the price over them"]];
-/** Whether a pane's layers are summed: stacked, or as shares. @param {Pane} pane */
-const summed = (pane) => pane.stack === "stack" || pane.stack === "percent";
+/** Whether a pane's layers are summed: stacked, or as shares (none, not). @param {Pane | undefined} pane */
+const summed = (pane) => pane?.stack === "stack" || pane?.stack === "percent";
 /**
  * A pane's rows, were it drawn as rows: its own value layers (not the price's candles, which the rows draw over them
- * themselves; not one made from others, a signal, bubbles or a heatmap), shown (all: hidden ones too), in its order.
+ * themselves; not one made from others, a signal, bubbles or a heatmap), shown (all: hidden ones too), in its order (the
+ * first at the top; reversed, the last).
  * @param {Chart} doc @param {Pane} pane
  */
-const rowLayers = (doc, pane, all = false) => doc.layers.filter((layer) => layer.pane === pane.id && (all || !layer.hidden) && layer.type !== "candles" && layer.type !== "cloud" && !layer.from && !placedOn(layer) && !heatLike(layer));
-/** Why a pane can't be drawn as rows (none: it can): fewer than two layers of its own to be rows (see rowLayers), or them on its two scales (two units). @param {Chart} doc @param {Pane} pane */
-const rowsUnfit = (doc, pane) => ((rows) => (rows.length < 2 ? "Rows need two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "Rows need the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
+const rowLayers = (doc, pane, all = false) => ((rows) => (pane.reverse ? rows.reverse() : rows))(doc.layers.filter((layer) => layer.pane === pane.id && (all || !layer.hidden) && layer.type !== "candles" && layer.type !== "cloud" && !layer.from && !placedOn(layer) && !heatLike(layer)));
+/** Why a pane can't be drawn as rows (none: it can): at an interval finer than a day (a point a pixel of its image, too many), fewer than two layers of its own to be rows (see rowLayers), or them on its two scales (two units). @param {Chart} doc @param {Pane} pane */
+const rowsUnfit = (doc, pane) => ((rows) => (FINE.has(doc.index) ? "Rows need a daily or coarser interval" : rows.length < 2 ? "Rows need two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "Rows need the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
+/** Whether a pane is drawn as rows: asked for, and it can be (else as lines, its choice kept for when it can). @param {Chart} doc @param {Pane} pane */
+const asRows = (doc, pane) => pane.stack === "rows" && !rowsUnfit(doc, pane);
 /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
 const MODES = [
   { chip: "Linear", name: "Linear", tip: "Linear" },
@@ -350,7 +353,7 @@ const poolSeries = (/** @type {string} */ name) => POOLS_RENAMED.reduce((n, [fro
 const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from, to]) => (p.startsWith(`pools.${from}.`) ? `pools.${to}.${p.slice(from.length + 7)}` : p), path);
 
 export {
-  automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, DEFAULT_ROWS, defaultOpacity, EDGES, edgesOf,
   failing, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT,
   HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideText, hollowOf, kindColor, kindLook, kindOf, layersColors,

@@ -2533,7 +2533,7 @@ async function addSeries(name, { newPane = false, pane: into = /** @type {string
   units.set(name, unit);
   // (A pane of its own wanted, every pane taken and the last a stack (where it would go): said, not summed into it.)
   const own = into ? null : newPane || !chart.layers.length ? undefined : paneShowing(chart, unit);
-  if (!bubbles && !into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && chart.panes.at(-1)?.stack) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
+  if (!bubbles && !into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && summed(chart.panes.at(-1))) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
   /** @type {Layer | undefined} */
   let added;
   commit((doc) => {
@@ -2583,7 +2583,7 @@ function addSignalLayer(/** @type {string} */ formula, /** @type {string | undef
   toast(`Added ${formula} as ${added.letter}, marked on ${((on) => (on ? labelOf(on) : "no layer"))(layerById(added.ref ?? ""))}`, editAdded(added));
 }
 /** Where a new pane would go, at the most panes, is the last, and it's a stack (a layer there would be summed into it). @param {string | null | undefined} pane */
-const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && Boolean(chart.panes.at(-1)?.stack);
+const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && summed(chart.panes.at(-1));
 /** A formula as a layer, selected: in `pane` (on `side`, its layer's it's made from), else in a new one (at the most panes, the last). */
 function addFormulaLayer(formula, pane = /** @type {string | null} */ (null), side = /** @type {string | null} */ (null)) {
   if (stackedOnly(pane)) return void notice(STACKED_ONLY);
