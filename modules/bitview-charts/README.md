@@ -77,7 +77,8 @@ chart.show(365);                                 // the last 365 points in view
   `stop()` every motion. In an `embedded` chart a mostly vertical wheel scrolls the page, a pinch zooms, a sideways
   scroll pans. `time.first`, the first point with data (a page's series starting after its times do): the view's held
   on its data from there, as from a first point. `time.shown(span)` is the range `show(span)` sets (an eased move aimed
-  there). `clock.js`'s `motionClock()` and `motionTime()` make a frame's time steady where the browser rounds it.
+  there). A flick's glide and an eased move resolve at once under reduced motion. Its physics and clocks are
+  `/modules/motion`'s (`glide`, `velocityTracker`, `reduced`; `motionClock()` and `motionTime()`).
 - Presses: `press(pointerdown, { end, move?, captor?, signal? })` (exported) follows a press to its end however it
   ends, so the chart's presses and a page's own (a slider's drag, a long press, a list's reorder) end alike: `end` is
   told once, with the pointerup at a release, else with null at its pointercancel, its capture lost by `captor`, the

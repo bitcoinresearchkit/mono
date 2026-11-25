@@ -16,7 +16,8 @@ import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
   MAC, NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
-import { motionClock } from "/modules/bitview-charts/clock.js";
+import { motionClock } from "/modules/motion/clock.js";
+import { reduced as motionReduced, whenReduced } from "/modules/motion/reduced.js";
 import { whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
 import {
@@ -226,15 +227,14 @@ const css = (name) => {
   if (!tokens.has(name)) readTokens([name]);
   return tokens.get(name);
 };
-const reducedAsked = matchMedia("(prefers-reduced-motion: reduce)");
 /**
  * A Back or Forward whose motion the system played already (iOS's swipe from the screen's edge: the page before slid
  * in, as it was): Studio's own motion not played over it (its transitions neither: data-still), the step shown as it
  * lands. For the work the step starts (go's, a frame and a task on), then over.
  */
 let stepShown = false;
-/** Motion reduced: as asked for (the system's setting), or for a step shown already (see stepShown). */
-const reduced = { get matches() { return reducedAsked.matches || stepShown; }, addEventListener: reducedAsked.addEventListener.bind(reducedAsked) };
+/** Motion reduced: as asked for (the system's setting, motion's one reading), or for a step shown already (see stepShown). */
+const reduced = { get matches() { return motionReduced() || stepShown; } };
 let stillSteps = 0;
 /** A step from the history begun, the system's motion of it played or not (see stepShown). @param {boolean} shown */
 function stillStep(shown) {
@@ -3005,7 +3005,7 @@ function animateMark() {
     });
   };
   phone.addEventListener("change", wake);
-  reduced.addEventListener("change", wake);
+  whenReduced(wake);
   wake();
 }
 animateMark();
