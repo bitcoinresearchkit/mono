@@ -205,7 +205,7 @@ impl Pages {
                         }
                         Ok((format!("{prefix}{address}"), Page::new(source, template_hash)))
                     })
-                    .collect::<Result<_>>()?;
+                    .collect::<Result<HashMap<_, _>>>()?;
                 let moved = match website.get_file(
                     file.with_file_name(MOVED).to_str().ok_or("Non-UTF-8 moved path")?,
                 ) {
@@ -218,7 +218,13 @@ impl Pages {
                                 .ok_or_else(|| {
                                     format!("{MOVED}: not an old and a new address: {line}")
                                 })?;
-                            Ok((format!("{prefix}{from}"), format!("{prefix}{to}")))
+                            let (from, to) = (format!("{prefix}{from}"), format!("{prefix}{to}"));
+                            // (Each to a page of the folder: never a redirect to a 404, or to another.)
+                            let place = to.split_once('#').map_or(to.as_str(), |(place, _)| place);
+                            if !pages.contains_key(place) {
+                                return Err(format!("{MOVED}: {from} opens no page: {to}").into());
+                            }
+                            Ok((from, to))
                         })
                         .collect::<Result<_>>()?,
                     Err(error) if error.is_not_found() => HashMap::new(),

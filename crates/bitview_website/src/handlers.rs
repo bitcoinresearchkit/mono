@@ -211,7 +211,11 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
         // way, or under a folder that moved, or both: there. Else a 404 for search engines; a browser still gets the
         // app, to say what's missing there (a renamed address).
         Listing::Unknown => {
-            if let Some(to) = site.pages.moved(&found.path, uri.path()) {
+            // (Either slash spelling of it, as a live one's.)
+            let path = uri.path();
+            let other = path.strip_suffix('/').map_or_else(|| format!("{path}/"), str::to_owned);
+            let to = site.pages.moved(&found.path, path);
+            if let Some(to) = to.or_else(|| site.pages.moved(&found.path, &other)) {
                 // (The query before the target's fragment, where a URL keeps it.)
                 let (to, fragment) = match to.split_once('#') {
                     Some((to, fragment)) => (to, format!("#{fragment}")),
