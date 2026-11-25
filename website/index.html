@@ -949,13 +949,16 @@
             background: color-mix(in oklab, var(--ink), transparent 72%);
           }
 
+          /* (The bar of the title showing, full at rest: its nine seconds fill it, below.) */
           &::after {
-            width: 0;
+            width: 100%;
             background: var(--ink);
+            transform: scaleX(0);
+            transform-origin: left;
           }
 
           &[aria-current="true"]::after {
-            width: var(--done, 100%);
+            transform: none;
           }
 
           &:hover::before {
@@ -1120,6 +1123,31 @@
         visibility: hidden;
         /* (Shown anyway after 4 s if the script never lays them: one that failed to load or threw.) */
         animation: shown 0s 4s forwards;
+      }
+
+      /* The billboard's turn: the showing title's bar fills over nine seconds on the compositor, with no script running, and
+         its end turns the title. It stays where it is while the pointer is on the billboard, a key's focus is in it, or the
+         script holds it (paused, a sheet open, scrolled off, the tab hidden). */
+      @media (prefers-reduced-motion: no-preference) {
+        .pages button[aria-current="true"]::after {
+          animation: fill 9s linear;
+        }
+
+        .billboard:is([data-held], :has(:focus-visible)) .pages button::after {
+          animation-play-state: paused;
+        }
+
+        @media (hover: hover) and (pointer: fine) {
+          .billboard:hover .pages button::after {
+            animation-play-state: paused;
+          }
+        }
+      }
+
+      @keyframes fill {
+        from {
+          transform: scaleX(0);
+        }
       }
 
       @keyframes shown {
@@ -2531,15 +2559,15 @@
       }
 
       // ── The billboard: a title every nine seconds, its segment filling; held while pointed at, focused by keys or a sheet's
-      // open, paused by its button, not turning at all with less motion asked for; its frames asked for only while it
-      // turns ──
+      // open, paused by its button, not turning at all with less motion asked for; its bar filled by the stylesheet, so no
+      // frame is asked for ──
 
       const art = /** @type {HTMLElement} */ (document.querySelector(".art")), first = /** @type {HTMLImageElement} */ (art.querySelector("img"));
       // (Each at the size its screen draws: about 1,900 wide, or 2,880 for a sharp screen; as wide as the first one says
       // they're drawn: on a desk the billboard's height times the widest banner's ratio, and 1,140 px at least (a narrow
       // desk's billboard as tall as its words, up to some 495 px; where a browser can't work it out, 130vw or that), on a
       // phone Studio's band, its top only, the widest there.)
-      // (The first, in the page from its start; the others made here, each asked for halfway through the one before it, or
+      // (The first, in the page from its start; the others made here, each asked for once the one before it shows, or
       // when chosen: all in view, stacked, a lazy one would load at once.)
       const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "" })) : first));
       const fetchPicture = (/** @type {number} */ i) => {
@@ -2575,19 +2603,22 @@
         fill(copy, t);
         return copy;
       }));
-      const SHOW = 9000;
       /** The title turned to (at), the one its words and buttons show (current: the same once its words are in). */
-      let at = -1, current = 0, elapsed = 0, fading = 0;
+      let at = -1, current = 0, fading = 0;
       function show(/** @type {number} */ i) {
         if (i === at) return;
         const t = FEATURED[i], first = at < 0;
         at = i;
-        elapsed = 0;
         fetchPicture(i);
         // (The one showing stays until this one is ready, or has failed: a picture chosen before it came never fades
         // into an empty band; a later choice meanwhile wins.)
-        pictures[i].decode().catch(() => {}).then(() => at === i && pictures.forEach((p, k) => p.classList.toggle("on", k === i)));
-        pages.forEach((b, k) => (b.setAttribute("aria-current", String(k === i)), b.style.setProperty("--done", reduced && k === i ? "100%" : "0%")));
+        pictures[i].decode().catch(() => {}).then(() => {
+          if (at !== i) return;
+          pictures.forEach((p, k) => p.classList.toggle("on", k === i));
+          // (The next one's, ready for the turn: not where nothing turns.)
+          if (!reduced) fetchPicture((i + 1) % FEATURED.length);
+        });
+        pages.forEach((b, k) => b.setAttribute("aria-current", String(k === i)));
         const words = $("words"), put = () => {
           current = i;
           fill(shown, t);
@@ -2605,50 +2636,30 @@
         fading = setTimeout(put, 200);
       }
       const billboard = $("billboard");
-      let stopped = false, hovered = false, sheetOpen = false, onScreen = true, running = false, last = 0;
-      // (Held by a keyboard's focus in it, shown by its ring, read as it is: a click's (a title's bar, More info, its sheet's
-      // focus coming back) holds nothing, else it held until a click somewhere else; a key pressed on it after, it does.)
-      const keyed = () => billboard.contains(document.activeElement) && /** @type {Element} */ (document.activeElement).matches(":focus-visible");
-      const turning = () => !reduced && !stopped && !hovered && !keyed() && !sheetOpen && onScreen && !document.hidden;
-      function wake() {
-        if (running || !turning()) return;
-        running = true;
-        last = performance.now();
-        requestAnimationFrame(tick);
-      }
-      function tick(/** @type {number} */ now) {
-        if (!turning()) return void (running = false);
-        // (A frame's time, at most a tenth of a second: a stall, or a tab coming back, never skips a title.)
-        elapsed += Math.min(100, now - last);
-        last = now;
-        pages[at].style.setProperty("--done", `${Math.min(100, (elapsed / SHOW) * 100)}%`);
-        if (elapsed >= SHOW / 2) fetchPicture((at + 1) % FEATURED.length);
-        if (elapsed >= SHOW) show((at + 1) % FEATURED.length);
-        requestAnimationFrame(tick);
-      }
-      billboard.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && (hovered = true));
-      billboard.addEventListener("pointerleave", () => ((hovered = false), wake()));
-      // (Woken once focus has moved: during its focusout, the standard still has the one leaving focused.)
-      billboard.addEventListener("focusout", (e) => billboard.contains(/** @type {Node | null} */ (e.relatedTarget)) || setTimeout(wake));
+      let stopped = false, sheetOpen = false, onScreen = true;
+      // (What holds it besides the pointer and a keyboard's focus in it, which the stylesheet sees, as read: a click's
+      // focus (a title's bar, More info, its sheet's coming back) holds nothing, else it held until a click somewhere else.)
+      const hold = () => billboard.toggleAttribute("data-held", stopped || sheetOpen || !onScreen || document.hidden);
+      $("pages").addEventListener("animationend", (e) => e.animationName === "fill" && show((at + 1) % FEATURED.length));
       // (Held while a title's sheet is open, More info's or a cover's: nothing turns behind the one read. Its toggle caught
       // on its way down: it doesn't bubble.)
       document.addEventListener("toggle", (e) => {
         if (!(/** @type {Element} */ (e.target).matches(".about"))) return;
         sheetOpen = /** @type {ToggleEvent} */ (e).newState === "open";
-        wake();
+        hold();
       }, true);
-      document.addEventListener("visibilitychange", wake);
+      document.addEventListener("visibilitychange", hold);
       // (Its last word: scrolled off and back between two of its calls, it says both, oldest first.)
-      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), wake())).observe(billboard);
+      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), hold())).observe(billboard);
       show(0);
       $("pause").hidden = reduced;
       $("pause").addEventListener("click", () => {
         stopped = !stopped;
         $("pause").setAttribute("aria-label", stopped ? "Play" : "Pause");
         /** @type {SVGUseElement} */ ($("pause").querySelector("use")).setAttribute("href", stopped ? "#i-play" : "#i-pause");
-        wake();
+        hold();
       });
-      wake();
+      hold();
       $("bb-about").addEventListener("click", () => about(FEATURED[current], $("bb-about")));
 
       // ── Shelves ──
