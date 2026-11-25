@@ -28,8 +28,8 @@ import { dashGlyph, glyph, glyphSvg, ICONS, markBody, OUTLINE_GLYPH, shapeGlyph 
 import {
   belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
   GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
-  MAX_PANES, measured, MODES, modesOf, newPaneIn, OPACITIES, opacityOf, OUTLINED, placedOn, placeName, resultText,
-  seriesLooked, SHAPES, STACKS, stretchResult, typeName, TYPES,
+  drawnInto, gradable, MAX_PANES, measured, MODES, modesOf, nameLayer, paneGradient, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, ownGradient, outlinable, placedOn, placeName, resultText,
+  seriesLooked, SHAPES, STACKS, stretchResult, summed, typeName, TYPES,
 } from "/studio/vocabulary.js";
 import {
   BACKS, ENDS, KINDS, labelText, LENS_SAYS, LINES, SIZE_NAMES, SIZES, TEXT_SIZE, THROUGH, TOOLS,
@@ -425,7 +425,7 @@ function commands() {
     ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
     ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
     ...((found) => (found?.offered ?? []).map((key) => ({ follows: windowShort(key), title: `Window: ${windowSaid(key)}`, text: `Each value its series over the ${windowSaid(key).replace(/^1 /, "")} before it.`, icon: "hourglass", ...(key === found?.window ? { current: true } : { run: () => switchWindow(key) }) })))(empty ? null : chartWindow(chart)),
-    ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
+    ...(empty || summed(scalePane()) ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
     ...(empty ? [] : [
       { title: beltUp() ? "Hide the drawing tools" : "Show the drawing tools", text: beltUp() ? "They show again while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: () => (beltUp() ? hideBelt() : showBelt()) },
       ...(tool ? [placingPath() ? { title: "Finish the path", text: "Keeps it as it is (two points at least); the chart pans again.", icon: tool, kbd: "esc", run: () => finishPath() } : { title: "Stop drawing", text: `Stops drawing; the chart pans again.`, icon: tool, kbd: "esc", run: () => takeUp("") }] : []),
@@ -1903,7 +1903,7 @@ function layerPage(id) {
         { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
       ] : []),
       ...(!layer.from && layer.type !== "signal" ? /** @type {const} */ ([["cycles", false, "Compare halving cycles"], ["cycles", true, "Overlay halving cycles"], ["years", false, "Compare years"], ["years", true, "Overlay years"]]).map(([which, over, label]) => ({ key: over ? `${which}-over` : which, icon: ICONS.pane, label, verb: over ? "Overlay" : "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: over ? "Each over the ones before" : "Each from its start" }))(((periods) => (periods.length ? unfitHere([periods[0].formula]) : overShort(which)))(periodsOf(layer, which, over))), run: () => comparePeriods(id, which, over) })) : []),
-      { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined))) },
+      { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => nameLayer(item, text))) },
       // (A bubbles layer's own, after its series' or formula's, as its settings have them: one group each.)
       ...(layer.type === "bubbles" ? [
         { key: "ref", icon: glyph("bubbles"), label: "On", aside: ((ref) => (ref ? labelOf(ref) : "Its pane's middle"))(layerById(layer.ref ?? "")), group: "Bubbles", page: () => choicePage("On", () => refChoices(id)) },
@@ -1914,18 +1914,18 @@ function layerPage(id) {
       ...(seriesLooked(layer) ? [{ key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.opens || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) }] : []),
       ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
       ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
-      ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
+      ...(modesOf(layer, chart).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
       ...colorSlots(layer).map(([key, label]) => (key === "from"
         ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
         : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${inSentence(label)}` : "Color"))),
-      // (A gradient's: another color, and what its lowest and highest are of (not a heatmap's: each day its own).)
-      ...(layer.byGradient && layer.gradient ? [
+      // (A gradient's: another color, and what its lowest and highest are of.)
+      ...((stops) => !stops ? [] : [
         // (The gradients ready made, as its editor's row of them: each a small bar of itself.)
-        { key: "gradient-ready", icon: gradientSwatch(layer.gradient), label: "Ready made", aside: readyName(layer.gradient), group: "Style", page: () => readyPage(id, lookOfChoice) },
+        { key: "gradient-ready", icon: gradientSwatch(stops), label: "Ready made", aside: readyName(stops), group: "Style", page: () => readyPage(id, lookOfChoice) },
         { key: "gradient-reverse", icon: ICONS.swap, label: "Reverse the gradient", aside: "Its lowest's color its highest's", group: "Style", run: () => reverseGradient(id) },
-        { key: "gradient-add", icon: ICONS.plus, label: "Add a color", aside: "In the widest gap", group: "Style", ...(layer.gradient.length < GRADIENT_MOST ? { run: set((item) => addStop(item)) } : { disabled: `A gradient holds up to ${GRADIENT_MOST} colors` }) },
-        ...(heatLike(layer) ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
-      ] : []),
+        { key: "gradient-add", icon: ICONS.plus, label: "Add a color", aside: "In the widest gap", group: "Style", ...(stops.length < GRADIENT_MOST ? { run: set((item) => addStop(item)) } : { disabled: `A gradient holds up to ${GRADIENT_MOST} colors` }) },
+        { key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) },
+      ])(ownGradient(chart, layer)),
       { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
       ...(layer.type !== "histogram" && !placedOn(layer) ? [widthRow(layer.width, now, both)] : []),
       ...(lineish ? [
@@ -1941,7 +1941,7 @@ function layerPage(id) {
       ...(layer.type === "candles" ? ((hollow) => [{ key: "hollow", icon: glyph("candles"), label: "Candles", aside: hollow ? "Hollow" : "Filled", verb: hollow ? "Fill them" : "Make rising ones hollow", group: "Style", stay: true, run: set((item) => (item.hollow = hollowOf(item) ? "none" : undefined)) }])(hollowOf(layer)) : []),
       ...(OUTLINED.has(layer.type) ? [{ key: "outline", icon: OUTLINE_GLYPH, label: "Outline", aside: layer.outline ? "On" : "Off", verb: layer.outline ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.outline = !item.outline || undefined)) }] : []),
       ...(layer.type === "bubbles" ? [] : [
-        { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
+        { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? ((into) => (layer.type !== "signal" && into ? `On, not drawn in ${into}` : "On"))(drawnInto(chart, chart.panes.find((pane) => pane.id === layer.pane))) : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
         { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? `${plural(layer.levels.length, "level")}${((why) => (why ? `, ${why.toLowerCase()}` : ""))(acrossUnfit(chart, layer))}` : "None", group: "Style", page: () => levelsPage(id) },
       ]),
       { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
@@ -2193,9 +2193,11 @@ function panePage(id) {
     if (i < 0) return [];
     const pane = chart.panes[i], layers = chart.layers.filter((layer) => layer.pane === id);
     return [
-      ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
+      ...(summed(pane) ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
       { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
       ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
+      ...(gradable(chart, pane) ? [{ key: "gradient", icon: ICONS.charts, label: "Gradient", aside: paneGradient(pane)[1], group: "Pane", page: () => choicePage("Gradient", () => scaleGroup(id, "Gradient")) }] : []),
+      ...(outlinable(chart, pane) ? [{ key: "outline", icon: ICONS.charts, label: "Outline", aside: OUTLINES[pane.outline ? 1 : 0][1], group: "Pane", page: () => choicePage("Outline", () => scaleGroup(id, "Outline")) }] : []),
       { key: "average", icon: ICONS.sliders, label: "Average", aside: averageFor(chart, pane).active || "Raw", group: "Pane", page: () => choicePage("Average", () => scaleGroup(id, "Average")) },
       ...paneRows(id, true).map((row) => ({ ...row, group: "Pane" })),
       ...layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })),
@@ -2213,7 +2215,7 @@ function previewPane(panel, id, share = /** @type {number | null} */ (null)) {
   const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
   if (share !== null) sizes[i] = (share * others) / (1 - share);
   panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack === "rows" ? ", as a heatmap" : pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layerRows(layers) || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
 }

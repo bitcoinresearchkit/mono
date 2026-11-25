@@ -25,12 +25,12 @@ import {
 } from "/studio/format.js";
 import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
-  automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
-  fittable, FLIP_APART, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE, lineTypeOf,
+  fittable, FLIP_APART, fromOf, HEAT_GRADIENTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult,
-  toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, unfitted, WIDTHS,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, signedMeasure, stretchResult,
+  toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, twoSided, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   BACKS, BOXES, KINDS, LABEL_MAX, labelText, LINES, lookOfDrawing, MAX_STROKE, PAIRED, PEN_COLOR, POINTED, pointOf,
@@ -46,7 +46,7 @@ import {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, bubbleAt, Bubbles, build,
   built, BY_BLOCK, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme, chartWidth, chipText,
   chunkAt, chunked, chunks, Cloud, columnBy, crossHeld, crossOn, crossSet, cssColor, dailyOf, dashFor, dataKey,
-  describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, endReveal,
+  describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawRows, drawSeries, dropCross, endReveal,
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
   fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
@@ -145,7 +145,7 @@ import {
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
-  setPaneMode, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
+  setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
 } from "/studio/presets-edit.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -345,27 +345,27 @@ function colorName(color) {
 const secondColor = (layer) => ((other) => (other && other !== layer.color ? other : layer.color === "red" ? "green" : "red"))(layer.type === "cloud" ? ownerOf(layer)?.layers.find((item) => item.id === layer.from?.[1])?.color : undefined);
 /**
  * A layer's look before its last shape change and as that shape left it (its colors, whose colors it takes, colored
- * by its levels or its gradient), the kind it was then (see kindOf), this session (not kept with it), by its chart's
+ * by its levels or its gradient), whether it was two-sided then (see twoSided), this session (not kept with it), by its chart's
  * id and its own (a chart's copy has its layers' ids).
- * @type {Map<string, { to: string, kind: string, before: Record<string, any>, after: Record<string, any> }>}
+ * @type {Map<string, { to: string, kind: boolean, before: Record<string, any>, after: Record<string, any> }>}
  */
 const looksLeft = new Map();
 /**
  * A layer's shape changed (its type, a heatmap's measure, by `edit`): what the shape it leaves took or set (two
  * sides' green and red, colors from another layer or by its levels it drops), unchanged since, back as it was
  * before it (a color picked since, kept); one of another kind starts as its kind does (kindLook: two-sided green
- * over red, as the website draws a baseline; a heatmap of an amount on its steps), unless what came back is its
+ * over red, as the website draws a baseline), unless what came back is its
  * own look of that kind. @param {Layer} layer @param {(layer: Layer) => void} edit
  */
 const reshape = (layer, edit) => {
-  const from = shapeKey(layer), kind = kindOf(layer), next = /** @type {Layer} */ ({ ...layer });
+  const from = shapeKey(layer), kind = twoSided(layer), next = /** @type {Layer} */ ({ ...layer });
   edit(next);
   if (shapeKey(next) === from) return void edit(layer);
   // (Its memory the shape it's left's own: one of another (an undo since) holds nothing.)
   const look = /** @type {Record<string, any>} */ (layer), key = `${chart?.id}:${layer.id}`, was = looksLeft.get(key), back = was?.to === from;
   if (back) for (const key of LOOK_KEYS) if (look[key] === was.after[key]) was.before[key] === undefined ? delete look[key] : (look[key] = was.before[key]);
   const before = Object.fromEntries(LOOK_KEYS.map((key) => [key, look[key]]));
-  if (kindOf(next) !== kind && !(back && was.kind === kindOf(next))) kindLook(layer, next);
+  if (twoSided(next) !== kind && !(back && was.kind === twoSided(next))) kindLook(layer, next);
   edit(layer);
   const type = layer.type;
   // (As it'll be once normalized: what this type can't have, gone.)
@@ -688,7 +688,7 @@ const trendShort = () => {
 const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
   const pane = doc.panes.find((item) => item.id === layer.pane);
   // (A cloud of its pane's two edges alone reads no values: anywhere.)
-  return !layer.from || (edgesOf(layer).length > 1 && !cloudLayers(layer).length) ? "" : offScale(doc, layer) ? ONE_SCALE : pane?.stack ? "Not in a stack" : layer.type === "cloud" && paneMode(pane) >= 2 ? "Not on this scale" : "";
+  return !layer.from || (edgesOf(layer).length > 1 && !cloudLayers(layer).length) ? "" : offScale(doc, layer) ? ONE_SCALE : drawnInto(doc, pane) ? `Not in ${drawnInto(doc, pane)}` : layer.type === "cloud" && paneMode(pane) >= 2 ? "Not on this scale" : "";
 };
 
 /**
@@ -696,7 +696,7 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  * at its running total, not at its values (its price line neither); on a percent or indexed scale, as its changes.
  * @param {Chart} doc @param {Layer} layer
  */
-const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
+const acrossUnfit = (doc, layer) => ((pane) => (drawnInto(doc, pane) ? `Not drawn in ${drawnInto(doc, pane)}` : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
@@ -867,6 +867,19 @@ function normalize(doc) {
   // (Colors from another layer: one there, not itself, for a type that takes them.)
   // (Nor one taking its colors from this one: a pair, each the other's, has nothing to start from.)
   for (const layer of doc.layers) if (layer.colorFrom && (!COLORED_FROM.has(layer.type) || layer.colorFrom === layer.id || !doc.layers.some((other) => other.id === layer.colorFrom) || doc.layers.find((other) => other.id === layer.colorFrom)?.colorFrom === layer.id)) delete layer.colorFrom;
+  // (Each layer in a pane there: one whose pane is gone, in the first; before any reads its pane.)
+  if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
+  const ids = new Set(doc.panes.map((pane) => pane.id));
+  for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
+  // (A heatmap's gradient its pane's: one kept on the layer, as older charts and links held it, moved there if it's
+  // one ready made (the first, none kept; several heatmaps on one pane, the first's other than the first); its own,
+  // made by hand, gone (its pane's first, said in the changes).)
+  // (A P&L heatmap's colors fixed, its kind's: green over, red under (none stored that could differ from what's drawn).)
+  for (const layer of doc.layers) if (layer.type === "heatmap" && signedMeasure(layer)) (layer.color = /** @type {string} */ (kindColor(layer))), delete layer.colorBelow;
+  for (const layer of doc.layers) {
+    const pane = layer.type === "heatmap" && layer.byGradient && !signedMeasure(layer) && doc.panes.find((item) => item.id === layer.pane), ready = pane && !pane.gradient && HEAT_GRADIENTS.find(([, , stops]) => JSON.stringify(stops) === JSON.stringify(layer.gradient));
+    if (pane && ready && ready !== HEAT_GRADIENTS[0]) pane.gradient = ready[0];
+  }
   // (A gradient where its type takes one, its way of coloring alone; up to each date, a gradient's.)
   for (const layer of doc.layers) if (layer.gradient && !(COLOR_MODES[layer.type] ?? []).includes("gradient")) delete layer.gradient;
   for (const layer of doc.layers) if (!layer.gradient) delete layer.byGradient, delete layer.upToDate;
@@ -903,9 +916,6 @@ function normalize(doc) {
   }
   // (Out of its axis' fit where it can be.)
   for (const layer of doc.layers) if ((layer.fit !== false && layer.fit !== "zero") || !fittable(layer)) delete layer.fit;
-  if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
-  const ids = new Set(doc.panes.map((pane) => pane.id));
-  for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
   // A cloud or a trend where its layers are (it reads their values as one), in another pane behind them (a trend in
   // front, the other way round where a pane's last is in front), as one added; theirs apart, where it was (it says
   // so). A signal on its layer's.
@@ -1017,11 +1027,13 @@ let library = (() => {
  * path (a drawing of many points) and a folder's icon, so one that doesn't know them can't drop them; 13, heatmaps
  * and gradients, so one that doesn't know them can't turn a heatmap into a line or drop a gradient; 14, profiles, so
  * one that doesn't know them can't turn a profile into a line or drop its holder groups; 15, a layer's interval ceiling
- * (`maxInterval`) and its zero framing (`fit: "zero"`), so one that doesn't know them can't drop them): one saved by a newer
+ * (`maxInterval`) and its zero framing (`fit: "zero"`), so one that doesn't know them can't drop them; 16, a pane drawn as a
+ * heatmap, its outline and its layers' short names, so one that doesn't know them can't drop them or draw it as a stack; 17, a heatmap's gradient
+ * on its pane, so one that keeps it on the layer can't drop it): one saved by a newer
  * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
  * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
  */
-const SCHEMA = 15;
+const SCHEMA = 17;
 let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && startText !== null);
 /** Why nothing's saved here, if it isn't: a newer Studio's library ("newer"), one this can't read ("unreadable"), storage full ("full"). */
 let unsavedWhy = !readOnly ? "" : Number(/** @type {any} */ (library)?.schema) > SCHEMA ? "newer" : "unreadable";
@@ -1048,6 +1060,10 @@ function read(stored) {
   if (typeof stored.made === "string" && stored.made.length <= 2000) doc.made = stored.made;
   if (stored.blank === true) doc.blank = true;
   doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
+  // (A preset's copy told as made or edited as it was stored, before it's normalized: a newer client moving its
+  // fields isn't an edit (see pristine); one as made is made anew once the presets are read, see prunePresets.)
+  if (doc.preset !== undefined) pristine(doc);
+  normalize(doc);
   return doc;
 }
 /** A stored chart, read; one that can't be is set aside (never dropped: if it can't be, nothing's saved). @returns {Chart[]} */
@@ -1072,6 +1088,10 @@ function presetsOf(/** @type {any} */ stored) {
   for (const doc of (Array.isArray(stored) ? stored : []).flatMap(restore)) {
     if (typeof doc.preset !== "string" || library.deleted[doc.id] >= doc.updated) continue;
     delete doc.folder;
+    // (Whether it's as made, told as stored, before anything normalizes it: a copy left as it was stays so through a
+    // newer client's moving its fields (not an edit, see pristine), and is made anew once the presets are read, see
+    // prunePresets; told after, it would read as edited.)
+    pristine(doc);
     if (!((byKey.get(doc.preset)?.updated ?? -Infinity) > doc.updated)) byKey.set(doc.preset, doc);
   }
   return [...byKey.values()];
@@ -3663,6 +3683,7 @@ function buildChart(doc, data, refit) {
     drawn.set(layer.id, series);
   }
   stackBands(doc, stacked);
+  drawRows(doc, data);
   // Lines across, behind every series, labeled on the axis: one per value on a scale (a pane's side), in its color
   // and style; shared by several layers, gray, in the first one's style; shown while any of its layers is. None in
   // % and indexed panes: they show changes, not values. Each pane's side's the library's Levels.
@@ -3739,7 +3760,8 @@ function buildChart(doc, data, refit) {
     panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
     for (const side of SIDES) {
       // (A side's ticks in the letters of its layers' unit, SI's for bytes and hash rates.)
-      const format = fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
+      // (A heatmap: its rows' names on their axis (see drawRows), no values written.)
+      const format = asRows(doc, pane) ? NO_FORMAT : fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
       panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
       if (!keep) panes[i].setRange(undefined, undefined, side);
       const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
@@ -7435,7 +7457,7 @@ $("inspector").addEventListener("keydown", (event) => {
 });
 $("inspector").addEventListener("input", (event) => {
   const target = event.target;
-  if (target.id === "label") editLayer((layer) => (layer.label = target.value.trim() || undefined), { coalesce: `label:${selected}` });
+  if (target.id === "label") editLayer((layer) => nameLayer(layer, target.value.trim()), { coalesce: `label:${selected}` });
   else if (target.id === "formula") {
     markTyping();
     drawWhenReady(selected, target.value);
@@ -9825,11 +9847,11 @@ document.addEventListener("click", (event) => {
   const template = closest(event, "[data-template]");
   const card = template && recommendedCards[Number(template.dataset.template)];
   if (card) return pickPreset(card.preset);
-  const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+  const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-pane-outline], [data-pane-gradient], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
   // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
   const target = byTouch && found?.matches(".legend [data-toggle]") ? /** @type {HTMLElement | null} */ (found.closest("[data-select]")) : found;
   if (!target) return;
-  const { select: id, toggle, paneMode, paneStack, paneReverse, mode, action, sheet, openChart } = target.dataset;
+  const { select: id, toggle, paneMode, paneStack, paneReverse, paneOutline, paneGradient, gradient, mode, action, sheet, openChart } = target.dataset;
   if (openChart) {
     delete document.body.dataset.sheet;
     go(chartById(openChart));
@@ -9841,8 +9863,10 @@ document.addEventListener("click", (event) => {
   else if (id) select(id);
   else if (toggle) event.altKey ? soloLayer(toggle) : toggleHidden(toggle);
   else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneMode(paneMode, Number(mode));
-  else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
+  else if (paneStack) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneStack(paneStack, target.dataset.stack ?? "");
   else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
+  else if (paneOutline) setPaneOutline(paneOutline, Boolean(target.dataset.outline));
+  else if (paneGradient) setPaneGradient(paneGradient, gradient ?? "");
   // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
   else if (action === "palette") openPalette({ resume: true });
   // (Home's search, drawn as a field: ⌘K afresh, its keyboard with it by touch, as a tap on a field asks.)
@@ -10342,7 +10366,7 @@ const LIVE = new Map([
 function liveLayers() {
   if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
   // Averaged measurements, like formula averages, update when a block supplies their source data.
-  return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && ((pane) => !pane?.stack && !averageFor(chart, pane).active)(chart.panes.find((pane) => pane.id === layer.pane)));
+  return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && ((pane) => !drawnInto(chart, pane) && !averageFor(chart, pane).active)(chart.panes.find((pane) => pane.id === layer.pane)));
 }
 /** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
 const ownLive = new WeakSet();

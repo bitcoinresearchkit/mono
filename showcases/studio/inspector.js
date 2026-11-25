@@ -21,9 +21,9 @@ import {
 import { CHEVRON, dashGlyph, glyph, glyphSvg, ICONS, markBody, shapeGlyph } from "/studio/icons.js";
 import {
   belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
-  GRADIENT_MOST, HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
-  markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale,
-  OUTLINED, PAIRS, placedBy, placedOn, placeName, seriesLooked, SHAPES, STACKS, toggleMember, TREND_FLIP, TREND_SAYS,
+  GRADIENT_MOST, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
+  markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, ownGradient, nextColor, nextLetter, ONE_SCALE, oneScale,
+  drawnInto, gradable, HEAT_GRADIENTS, nameLayer, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
   TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -45,7 +45,7 @@ import {
 } from "/studio/formulas.js";
 import { fillSlot, isOpen, recommendedCards } from "/studio/grid.js";
 import {
-  HEAT_FADE, heatAmount, heatFelt, heatGrid, heatLooks, heatName, heatPath, heatSection,
+  heatGrid, heatName, heatPath, heatSection,
 } from "/studio/heatmaps.js";
 import { cutFade, exportData, fadeOut, letGo, menuOf, scrolled, showMenu } from "/studio/menus.js";
 import { ordersOf, presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
@@ -70,7 +70,7 @@ function fillOf(layer, stacked) {
   return [top, stacked || above || layer.solid ? top : regime ? top * 0.08 : 0];
 }
 /** Whether a layer's pane stacks it. @param {Layer} layer */
-const stackedIn = (layer, doc = chart) => Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.stack);
+const stackedIn = (layer, doc = chart) => summed(doc.panes.find((pane) => pane.id === layer.pane));
 /** The open chart's stacks as last made, and what they were made of (see stackOf). */
 let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, foot: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()), times: /** @type {unknown} */ (null) };
 /**
@@ -88,14 +88,14 @@ function stackOf(doc, data, kept = true) {
   // The open chart's, kept while what they're made of is the same (the stacked panes, their layers, places and values):
   // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again. (Its marks' own,
   // from other data, aren't kept: `kept` false.)
-  const key = kept && doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
+  const key = kept && doc.id === chart?.id ? doc.panes.filter(summed).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
     const shown = data.results.get(layer.id)?.values;
     return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${layer.from ?? ""}.${placedOn(layer) ? 1 : 0}.${shown ? idOf(shown) : "-"}`;
   }).join()}`).join("|") : "";
   if (key && key === stacksMade.key) return stacksMade.stacked;
   const stacked = new Map();
   for (const pane of doc.panes) {
-    if (!pane.stack) continue;
+    if (!summed(pane)) continue;
     const shares = pane.stack === "percent";
     for (const side of SIDES) {
       const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && !placedOn(layer) && data.results.get(layer.id)?.values);
@@ -124,12 +124,14 @@ function sameVector(a, b) {
 /** The scale of the pane a layer is on. @param {Chart} doc */
 const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
 /**
- * A pane's scale as drawn: a stack's is linear or log (percent change and indexed would start each band from its
- * own first value), a 100% stack's linear (shares of a whole), whatever the pane keeps for later. @param {Pane} [pane]
+ * A pane's scale as drawn, from the one it keeps (declared, or chosen) and how it draws: a stack, summed or as shares,
+ * linear (on log, a band's height says nothing of its amount); a heatmap linear or log (percent change and indexed
+ * would start each row from its own first value); lines, the kept one. The kept one never changes with the stack, so
+ * switching back and forth leaves the chart as it was. @param {Pane} [pane]
  */
-const paneMode = (pane) => (!pane ? 0 : pane.stack === "percent" || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
-/** The scales a pane can take now (a stack: linear and log; a 100% one: none to choose). @param {Pane} pane */
-const modesFor = (pane) => (pane.stack === "percent" ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
+const paneMode = (pane) => (!pane || summed(pane) || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
+/** The scales a pane can take now (a stack: none to choose; a heatmap: linear and log). @param {Pane} pane */
+const modesFor = (pane) => (summed(pane) ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
 const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.from ? fromName(layer) : heatLike(layer) ? heatName(layer) : layer.formula || "Formula");
 /**
  * A layer made from layers, named, unnamed: what it is, then its layers' letters (three at most; past that, how
@@ -477,9 +479,11 @@ function renderInspector() {
             ${fitField([layer])}
             ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escapeHtml(formatName(layer, result))}"><span class="name">${escapeHtml(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
-            ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
-            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
+            ${summed(layerPane) ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a heatmap (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
+            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" ${stack === "rows" && rowsUnfit(chart, layerPane) ? `aria-disabled="true" data-tip="${rowsUnfit(chart, layerPane)}"` : `data-tip="${tip}"`}>${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
+            ${gradable(chart, layerPane) ? `<div class="field"><span>Gradient</span><div class="tabs" role="group" aria-label="Gradient">${HEAT_GRADIENTS.map(([id, name]) => `<button type="button" data-pane-gradient="${layer.pane}" data-gradient="${id}" aria-pressed="${paneGradient(layerPane)[0] === id}">${name}</button>`).join("")}</div></div>` : ""}
+            ${outlinable(chart, layerPane) ? `<div class="field"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${OUTLINES.map(([on, name]) => `<button type="button" data-pane-outline="${layer.pane}" data-outline="${on ? 1 : ""}" aria-pressed="${Boolean(layerPane.outline) === on}">${name}</button>`).join("")}</div></div>` : ""}
           </section>`}
           ${(actionsShown = actionsOf(layer))}`;
   // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those
@@ -618,8 +622,8 @@ const candlesField = (/** @type {Layer[]} */ layers) => {
 };
 const priceLineField = (/** @type {Layer[]} */ layers) => {
   if (!layers.every((layer) => layer.type !== "cloud" && !placedOn(layer) && !heatLike(layer))) return "";
-  const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), stacked = layers.some((layer) => layer.priceLine && chart.panes.find((pane) => pane.id === layer.pane)?.stack);
-  return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${stacked ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`;
+  const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), into = layers.map((layer) => (layer.priceLine ? drawnInto(chart, chart.panes.find((pane) => pane.id === layer.pane)) : "")).find(Boolean);
+  return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${into ? `<p class="from-status" role="status">Not drawn in ${into}.</p>` : ""}`;
 };
 const outlineField = (/** @type {Layer[]} */ layers) => {
   if (!layers.every((layer) => OUTLINED.has(layer.type))) return "";
@@ -796,19 +800,18 @@ const barAt = (/** @type {HTMLElement} */ bar, /** @type {number} */ clientX) =>
 
 /** How a layer's colors are chosen now (see COLOR_MODES). @param {Layer} layer */
 function colorModeOf(layer) {
-  if (layer.byGradient && layer.gradient) return "gradient";
-  if (layer.colorFrom) return "from";
-  if (layer.byLayers && modesOf(layer).includes("layers")) return "layers";
-  if (layer.byLevels) return "levels";
+  const modes = modesOf(layer, chart);
+  if (ownGradient(chart, layer)) return "gradient";
+  if (layer.colorFrom && modes.includes("from")) return "from";
+  if (layer.byLayers && modes.includes("layers")) return "layers";
+  if (layer.byLevels && modes.includes("levels")) return "levels";
   if (layer.type === "histogram") return layer.colors === 1 ? "one" : layer.colors === 4 ? "momentum" : "sides";
   if (TWO_OR_ONE.has(layer.type)) return layer.colors === 1 ? "one" : "sides";
-  if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modesOf(layer).includes("sides"))) return "sides";
+  if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modes.includes("sides"))) return "sides";
   return "one";
 }
-/** One way of coloring that's two colors (see colorSlots): a P&L heatmap's, its profit's and its loss's; a signal's that marks both ways, up and down. */
-const pairedOne = (/** @type {Layer} */ layer) => (layer.type === "heatmap" && layer.measure === "pnl") || signedSignal(layer);
 /** A way of coloring, named for a layer of its type (a pair, by what its two are for). */
-const modeName = (/** @type {string} */ mode, /** @type {Layer} */ layer) => (mode === "one" ? (pairedOne(layer) ? "Two" : "One") : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : mode === "gradient" ? "Gradient" : "From a layer");
+const modeName = (/** @type {string} */ mode, /** @type {Layer} */ layer) => (mode === "one" ? (signedSignal(layer) ? "Two" : "One") : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : mode === "gradient" ? "Gradient" : "From a layer");
 /**
  * A layer's colors in its way of coloring, each with what it's for: [its key (a Layer's field; "from", the layer it
  * takes them from), its label].
@@ -816,10 +819,11 @@ const modeName = (/** @type {string} */ mode, /** @type {Layer} */ layer) => (mo
  */
 function colorSlots(layer) {
   // (A gradient's: its stops, each by where it is.)
-  if (layer.byGradient && layer.gradient) return layer.gradient.map(([at], k) => [`stop${k}`, `At ${at}%`]);
-  // (A profile's: each holder group's. A heatmap's: one; its unrealized P&L's, its profit's and its loss's.)
+  const stops = ownGradient(chart, layer);
+  if (stops) return stops.map(([at], k) => [`stop${k}`, `At ${at}%`]);
+  // (A profile's: each holder group's. A heatmap's: none, fixed or its pane's, see heatColor.)
   if (layer.type === "profile") return (layer.profile ?? []).map((cohort) => [`cohort:${cohort}`, cohortName(cohort)]);
-  if (layer.type === "heatmap") return layer.measure === "pnl" ? [["color", "In profit"], ["colorBelow", "In loss"]] : [["color", "Color"]];
+  if (layer.type === "heatmap") return [];
   const mode = colorModeOf(layer), pair = layer.type === "cloud" ? ((letters) => (letters.length === 2 ? [`${letters[0]} over ${letters[1]}`, `${letters[1]} over ${letters[0]}`] : ["First over", "Second over"]))(fromLetters(layer)) : PAIRS[layer.type];
   return mode === "from" ? [["from", "Layer"]] : mode === "levels" ? [["color", "Under its levels"]] : mode === "layers" ? []
     : mode === "sides" || signedSignal(layer) ? [["color", pair[0]], ["colorBelow", pair[1]]]
@@ -860,7 +864,7 @@ function setColorMode(/** @type {Layer} */ layer, /** @type {string} */ mode, fr
   delete layer.colors;
   // (Its gradient kept, as its other colors are: colored by it again, as it was.)
   delete layer.byGradient;
-  if (mode === "gradient") (layer.byGradient = true), (layer.gradient ??= gradientFor(layer));
+  if (mode === "gradient") (layer.byGradient = true), (layer.gradient ??= gradientFor());
   else if (mode === "levels") (layer.byLevels = true), colorLevels(layer);
   else if (mode === "layers") (layer.byLayers = true), layersColors(layer, ownerOf(layer));
   else if (mode === "from") layer.colorFrom = from;
@@ -872,12 +876,8 @@ function setColorMode(/** @type {Layer} */ layer, /** @type {string} */ mode, fr
   else if (TWO_OR_ONE.has(layer.type) && mode === "sides") layer.colorBelow ??= secondColor(layer);
 }
 
-/**
- * A gradient a layer starts with: a heatmap's unrealized P&L through gray at no gain from loss to profit; another
- * heatmap's from indigo through rose to yellow (dark to bright, as heat); anything else's from blue to red.
- * @param {Layer} layer @returns {[number, string][]}
- */
-const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "pnl" ? [[0, "red"], [50, "gray"], [100, "green"]] : structuredClone(HEAT_GRADIENT)) : [[0, "blue"], [100, "red"]]);
+/** A gradient a layer starts with: from blue to red. @returns {[number, string][]} */
+const gradientFor = () => [[0, "blue"], [100, "red"]];
 /**
  * A gradient as CSS draws it, across: its own colors (see gradientTable), each as shown, a sample of them (CSS's own
  * mixing, between its stops, would be another: through gray where they're mixed in sRGB).
@@ -1050,10 +1050,10 @@ function bandsSwatch(layer) {
 function modeSwatch(/** @type {Layer} */ layer, /** @type {string} */ mode) {
   if (mode === "levels") return bandsSwatch(layer);
   // (A gradient's, across, as its bar is.)
-  if (mode === "gradient") return gradientSwatch(layer.gradient ?? gradientFor(layer));
+  if (mode === "gradient") return gradientSwatch(layer.gradient ?? gradientFor());
   // (From a layer: which, once there is one; none chosen yet, no letter that would say one was.)
   if (mode === "from") return ((source) => (source ? letterChip(source) : ICONS.series))(layerById(layer.colorFrom ?? ""));
-  const colors = mode === "momentum" ? [layer.color, fadingOf(layer, false), fadingOf(layer, true), belowOf(layer)] : mode === "sides" || (mode === "one" && pairedOne(layer)) || (mode === "layers" && !edgesOf(layer).length) ? [layer.color, belowOf(layer)] : [layer.color];
+  const colors = mode === "momentum" ? [layer.color, fadingOf(layer, false), fadingOf(layer, true), belowOf(layer)] : mode === "sides" || (mode === "one" && signedSignal(layer)) || (mode === "layers" && !edgesOf(layer).length) ? [layer.color, belowOf(layer)] : [layer.color];
   const share = 100 / colors.length;
   return `<i class="swatch" style="background: linear-gradient(to bottom, ${colors.map((color, k) => `${escapeHtml(cssColor(color))} ${(k * share).toFixed(1)}% ${((k + 1) * share).toFixed(1)}%`).join(", ")})"></i>`;
 }
@@ -1064,11 +1064,11 @@ const slotName = (/** @type {Layer} */ layer, /** @type {string} */ key) => ((ow
  * takes, each on its line, said by what it's for (from a layer: which).
  */
 function colorPicker(/** @type {Layer} */ layer) {
-  // (A profile of no groups: none to color.)
-  if (layer.type === "profile" && !layer.profile?.length) return "";
-  const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
+  // (A profile of no groups: none to color; a heatmap: fixed or its pane's, see heatColor.)
+  if ((layer.type === "profile" && !layer.profile?.length) || layer.type === "heatmap") return "";
+  const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer, chart).length > 1;
   // The way: a choice, as every other, on its line's right (none to choose: its label alone).
-  const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escapeHtml(name)}"><span class="name">${escapeHtml(name)}</span>${CHEVRON}</button>` : ""}</div>`;
+  const head = `<div class="field"><span>${mode === "one" && !signedSignal(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escapeHtml(name)}"><span class="name">${escapeHtml(name)}</span>${CHEVRON}</button>` : ""}</div>`;
   if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escapeHtml(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escapeHtml(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
   // By its levels, by its layers: its colors theirs (none here).
   if (mode === "levels" || mode === "layers") return head;
@@ -1088,22 +1088,12 @@ function colorPicker(/** @type {Layer} */ layer) {
   const body = from === "custom" ? `<div class="color-box">${planeHtml(colorOf(layer, key), target, label)}${hexField(target, colorOf(layer, key))}</div>`
     : from === "auto" ? `<p class="color-auto"><i class="swatch" style="--c:${escapeHtml(cssColor(faintOf(side)))}"></i>Fainter ${escapeHtml(colorName(side).toLowerCase())}</p>`
     : swatchGrid(own && SWATCHES.includes(own) ? own : "");
-  // (Relative to all of its history, or up to each date: not a heatmap's, each day its own.)
-  const relative = mode === "gradient" && !heatLike(layer) ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escapeHtml(tip)}">${text}</button>`).join("")}</div></div>` : "";
+  // (Relative to all of its history, or up to each date.)
+  const relative = mode === "gradient" ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escapeHtml(tip)}">${text}</button>`).join("")}</div></div>` : "";
   return `${head}<div class="color-editor" data-palette="${key}">${which}${tabs}<div class="color-pick">${body}</div></div>${relative}`;
 }
-/**
- * Gradients ready made, each its 4 colors that mixed (see gradientTable) come nearest it (within about what an eye
- * tells apart): matplotlib's perceptual maps, and loss to profit. A heatmap of an amount starts on the first.
- * @type {[string, string, [number, string][]][]}
- */
-const GRADIENT_PRESETS = [
-  ["inferno", "Inferno", HEAT_GRADIENT],
-  ["magma", "Magma", [[0, "#000004"], [18, "#331064"], [71, "#f8755e"], [100, "#fcfdbf"]]],
-  ["viridis", "Viridis", [[0, "#440154"], [39, "#2c768e"], [69, "#41bd72"], [100, "#fde725"]]],
-  ["plasma", "Plasma", [[0, "#0d0887"], [33, "#991a9e"], [72, "#f48b48"], [100, "#f0f921"]]],
-  ["sides", "Loss to profit", [[0, "red"], [50, "gray"], [100, "green"]]],
-];
+/** Gradients ready made: the heat ones (see HEAT_GRADIENTS), and loss to profit. @type {[string, string, [number, string][]][]} */
+const GRADIENT_PRESETS = [...HEAT_GRADIENTS, ["sides", "Loss to profit", [[0, "red"], [50, "gray"], [100, "green"]]]];
 /** The gradient ready made a gradient is, if it's one (its stops, every one the same). @param {[number, string][] | undefined} stops */
 const readyGradient = (stops) => GRADIENT_PRESETS.find(([, , preset]) => JSON.stringify(preset) === JSON.stringify(stops))?.[0] ?? null;
 /** Its name: the gradient ready made it is, else its own. @param {[number, string][] | undefined} stops */
@@ -1148,9 +1138,7 @@ function reverseGradient(id) {
   if (id === selected) pressed(), renderInspector();
 }
 /**
- * Where a layer's values fall along its gradient, as an axis's ticks are written (see axisLabel): a heatmap's at each
- * power of ten from its faintest cell seen to its reference (unrealized P&L's, a loss's and a gain's either side
- * of none, at 50%, kept or not together); else round steps from its lowest to its highest; each its place (0 to
+ * Where a layer's values fall along its gradient, as an axis's ticks are written (see axisLabel): round steps from its lowest to its highest; each its place (0 to
  * 100) and its label's left on the bar as laid out (`width` across: under its place, inside it at its ends), the
  * strongest kept where two would come closer than a gap. First of all, the color in hand's own worth under its
  * knob (at `hand`: `own`), those near it giving way. None yet (or the bar not laid out), none.
@@ -1161,20 +1149,11 @@ function gradientTicks(layer, width, hand) {
   // (Each kept with the others of its group, or none of them.)
   const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), ticks = /** @type {[number, number][][]} */ ([]), worth = hand === undefined ? null : gradientWorth(layer, hand);
   // (None to write (no reference yet, values all the same): the color in hand's alone.)
-  if (layer.type === "heatmap") {
-    const most = heatLooks.get(layer.id)?.reference ?? 0, pnl = layer.measure === "pnl";
-    for (let power = Math.floor(Math.log10(most)); most && 10 ** power >= heatAmount(0, most); power--) {
-      const felt = heatFelt(10 ** power, most);
-      ticks.push(pnl ? [[50 + felt * 50, 10 ** power], [50 - felt * 50, -(10 ** power)]] : [[felt * 100, 10 ** power]]);
-    }
-    if (pnl && most) ticks.unshift([[50, 0]]);
-  } else {
-    const [low, high] = rangeOf(result?.values ?? []), rough = (high - low) / 4, step = ((ten) => [1, 2, 5, 10].map((k) => k * ten).find((size) => size >= rough) ?? 10 * ten)(10 ** Math.floor(Math.log10(rough)));
-    // (Eleven at most, counted apart from the values: a step too small to move one (a range of a few ulps) still
-    // ends, its ticks as one, the overlaps dropped below.)
-    for (let i = 0, first = Math.ceil(low / step); high > low && i <= 10 && first + i <= Math.floor(high / step); i++) ticks.push([[(((first + i) * step - low) / (high - low)) * 100, (first + i) * step]]);
-    ticks.sort((a, b) => Math.abs(b[0][1]) - Math.abs(a[0][1]));
-  }
+  const [low, high] = rangeOf(result?.values ?? []), rough = (high - low) / 4, step = ((ten) => [1, 2, 5, 10].map((k) => k * ten).find((size) => size >= rough) ?? 10 * ten)(10 ** Math.floor(Math.log10(rough)));
+  // (Eleven at most, counted apart from the values: a step too small to move one (a range of a few ulps) still
+  // ends, its ticks as one, the overlaps dropped below.)
+  for (let i = 0, first = Math.ceil(low / step); high > low && i <= 10 && first + i <= Math.floor(high / step); i++) ticks.push([[(((first + i) * step - low) / (high - low)) * 100, (first + i) * step]]);
+  ticks.sort((a, b) => Math.abs(b[0][1]) - Math.abs(a[0][1]));
   // (Kept, the first first, while its label is a gap clear of those kept: each as wide as it's set, see widest. Those
   // under the color in hand's worth give way alone, the others of their group kept.)
   const GAP = 12, label = (/** @type {number} */ at, /** @type {string} */ text, own = false) => ((size) => /** @type {[number, string, number, number, boolean]} */ ([at, text, clamp((at / 100) * width - size / 2, 0, width - size), size, own]))(widest([text], own ? 510 : 400, 11));
@@ -1187,14 +1166,8 @@ function gradientTicks(layer, width, hand) {
   return kept.sort((a, b) => a[0] - b[0]).map(([at, text, left, , own]) => /** @type {[number, string, number, boolean]} */ ([at, text, left, own]));
 }
 /**
- * How a gradient heatmap's weakest cells fade into the chart (see heatColor), as a mask across its bar: an amount's
- * from its lowest; unrealized P&L's either side of none. None else. @param {Layer} layer
- */
-const gradientFade = (layer) => (layer.type !== "heatmap" ? "" : layer.measure === "pnl" ? `linear-gradient(to right, #000 ${50 - 50 * HEAT_FADE}%, transparent 50%, #000 ${50 + 50 * HEAT_FADE}%)` : `linear-gradient(to right, transparent, #000 ${100 * HEAT_FADE}%)`);
-/**
  * A gradient's editor, at the top of its colors' (under its colors' line): the gradient ready made it is (a select of
- * them, see readyPage), across from it ways to reverse it and to add a color; its bar, as the chart draws it (a
- * heatmap's weakest faded), its colors each a cursor through it where it is, its knob under it (pressed, its color
+ * them, see readyPage), across from it ways to reverse it and to add a color; its bar, as the chart draws it, its colors each a cursor through it where it is, its knob under it (pressed, its color
  * the one set; dragged, or moved by the arrows, between its neighbors; ⌫, gone, two left at least), a press on the
  * bar or under it a color added there; where its values fall along it (see gradientTicks). Then the color in hand,
  * heading the picker that sets it: a row as every field's (its color, named; what its place is worth, its place,
@@ -1204,9 +1177,8 @@ const gradientFade = (layer) => (layer.type !== "heatmap" ? "" : layer.measure =
 function gradientEditor(layer, key) {
   const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST, k = clamp(Number(key.slice(4)) || 0, 0, stops.length - 1);
   const stop = (/** @type {[number, string]} */ [place, tint], /** @type {number} */ i) => `<button type="button" class="gradient-stop" data-color-slot="stop${i}" data-stop="${i}" aria-pressed="${i === k}" style="left: ${place}%; --c: ${escapeHtml(cssColor(tint))}" aria-label="${escapeHtml(stopSaid([place, tint]))}" data-tip="${escapeHtml(stopSaid([place, tint]))}${escapeHtml(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
-  const fade = gradientFade(layer);
   const head = `<div class="gradient-head"><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escapeHtml(readyName(stops))}" data-tip="Gradients ready made">${gradientSwatch(stops)}<span class="name">${escapeHtml(readyName(stops))}</span>${CHEVRON}</button><button type="button" class="cap" data-action="gradient-reverse" aria-label="Reverse the gradient" data-tip="Reverse the gradient">${ICONS.swap}</button><button type="button" class="cap" data-action="gradient-add" aria-label="Add a color" ${stops.length >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button></div>`;
-  return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escapeHtml(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer, stops[k]?.[0])}</div>${gradientHand(layer, k)}`;
+  return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escapeHtml(gradientCss(stops))}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer, stops[k]?.[0])}</div>${gradientHand(layer, k)}`;
 }
 /** The width a gradient's bar is laid out at, its ticks fitted to it: kept as it changes (the panel's grip, a phone turned). */
 let gradientWidth = 0;
@@ -1244,20 +1216,10 @@ function gradientHand(layer, k) {
 }
 /**
  * What a place along a gradient (0 to 100) is worth, as its values are written: between its lowest and highest of
- * all its history (up to each date, the same range in all); a heatmap's, on its log scale from its faintest cell
- * seen to its reference (see heatColor), its unrealized P&L's from its largest loss through none to its largest
- * gain. None yet, none. @param {Layer} layer @param {number} at @returns {string | null}
+ * all its history (up to each date, the same range in all). None yet, none. @param {Layer} layer @param {number} at @returns {string | null}
  */
 function gradientWorth(layer, at) {
   const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), place = at / 100;
-  if (layer.type === "heatmap") {
-    // (A place is how strong it reads, see heatColor.)
-    const most = heatLooks.get(layer.id)?.reference ?? 0;
-    if (!most) return null;
-    if (layer.measure !== "pnl") return format(heatAmount(place, most), unit);
-    // (Its middle, none; either side, a loss or a gain as strong as it's far from it.)
-    return place === 0.5 ? format(0, unit) : format(Math.sign(place - 0.5) * heatAmount(Math.abs(place - 0.5) * 2, most), unit);
-  }
   const [low, high] = rangeOf(result?.values ?? []);
   return high >= low ? format(low + (high - low) * place, unit) : null;
 }
@@ -1328,7 +1290,7 @@ function colorModeChoices(/** @type {string} */ id) {
   const layer = layerById(id);
   if (!layer) return [];
   const mode = colorModeOf(layer);
-  return modesOf(layer).map((each) => ({
+  return modesOf(layer, chart).map((each) => ({
     key: `mode:${each}`, icon: ((copy) => (setColorMode(copy, each), modeSwatch(copy, each)))(structuredClone(layer)), label: modeName(each, layer), aside: each === "sides" && layer.type === "trend" ? "Resistance and support" : each === "sides" && layer.type === "cloud" ? "The one over's, parting where they cross" : /** @type {Record<string, string>} */ (MODE_ASIDES)[each], current: mode === each,
     ...(each === "from" ? (colorSources(layer).length ? { page: () => choicePage("Colors from", () => fromChoices(id)) } : { disabled: "There's no other layer to take them from" })
       : each === "levels" && !layer.levels?.length ? { disabled: "Add a level first" }
@@ -2508,7 +2470,8 @@ function duplicateLayers(ids) {
     for (const layer of originals) {
       // (One of two colors, or colored by another layer or its levels, kept as it looks: a color of its own, the next.)
       const paired = layer.type === "candles" || colorModeOf(layer) !== "one" || (layer.type === "signal" && (layer.colorBelow !== undefined || signedSignal(layer)));
-      const copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: paired ? layer.color : nextColor(doc), label: layer.label ? `${layer.label} copy` : undefined };
+      const copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: paired ? layer.color : nextColor(doc) };
+      nameLayer(copy, layer.label && `${layer.label} copy`);
       doc.layers.splice(doc.layers.findIndex((item) => item.id === layer.id) + 1, 0, copy);
       copies.push(copy.id);
     }
@@ -2533,7 +2496,7 @@ async function addSeries(name, { newPane = false, pane: into = /** @type {string
   units.set(name, unit);
   // (A pane of its own wanted, every pane taken and the last a stack (where it would go): said, not summed into it.)
   const own = into ? null : newPane || !chart.layers.length ? undefined : paneShowing(chart, unit);
-  if (!bubbles && !into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && chart.panes.at(-1)?.stack) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
+  if (!bubbles && !into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && summed(chart.panes.at(-1))) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
   /** @type {Layer | undefined} */
   let added;
   commit((doc) => {
@@ -2583,7 +2546,7 @@ function addSignalLayer(/** @type {string} */ formula, /** @type {string | undef
   toast(`Added ${formula} as ${added.letter}, marked on ${((on) => (on ? labelOf(on) : "no layer"))(layerById(added.ref ?? ""))}`, editAdded(added));
 }
 /** Where a new pane would go, at the most panes, is the last, and it's a stack (a layer there would be summed into it). @param {string | null | undefined} pane */
-const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && Boolean(chart.panes.at(-1)?.stack);
+const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && summed(chart.panes.at(-1));
 /** A formula as a layer, selected: in `pane` (on `side`, its layer's it's made from), else in a new one (at the most panes, the last). */
 function addFormulaLayer(formula, pane = /** @type {string | null} */ (null), side = /** @type {string | null} */ (null)) {
   if (stackedOnly(pane)) return void notice(STACKED_ONLY);
@@ -2785,7 +2748,7 @@ function deriveChoices(/** @type {string} */ id) {
   ];
 }
 /** Whether a layer's in a stack (what's added over it would be summed in). */
-const onStack = (/** @type {Layer} */ layer) => Boolean(chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+const onStack = (/** @type {Layer} */ layer) => summed(chart.panes.find((pane) => pane.id === layer.pane));
 /**
  * A starter's formulas from a layer, added: in its pane when they're in its unit, else in a new one (a band's two
  * lines in one color), the first selected, its window to set in its formula. "own": ⌘K's formula page on its letter.

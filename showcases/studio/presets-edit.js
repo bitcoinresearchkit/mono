@@ -17,7 +17,7 @@ import { $, all$, escapeHtml } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
 import { monthYear, plural } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
-import { MODES, newPaneIn, STACKS } from "/studio/vocabulary.js";
+import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneGradient, rowsUnfit, STACKS, summed } from "/studio/vocabulary.js";
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
 import { isNamed } from "/studio/color.js";
 import { hashOf, uid } from "/studio/math.js";
@@ -100,7 +100,7 @@ function presetsArrived() {
  * time it's made, so its drawings and what's kept of it follow it).
  * @param {Preset} preset
  */
-const fromPreset = (preset) => validate(fromSketch({ ...preset.c, title: preset.t }), true);
+const fromPreset = (preset) => ((doc) => (normalize(doc), doc))(validate(fromSketch({ ...preset.c, title: preset.t }), true));
 /**
  * Each preset as the chart it makes, made once it's looked at (its id stable: its drawing kept), the last
  * two hundred looked at kept (with their drawings: a gallery's page of them). @type {Map<number, Chart>}
@@ -708,7 +708,7 @@ const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement
 /** A menu item's mark: a check on the current one, the same room on the others. */
 const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
 /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
-const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
+const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : pane.stack === "stack" ? "Stacked" : `${MODES[paneMode(pane)].chip}${pane.stack === "rows" ? " · Heatmap" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
 /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
 const editPane = (id, edit, look = false) => commit((doc) => {
   const pane = doc.panes.find((item) => item.id === id);
@@ -717,15 +717,18 @@ const editPane = (id, edit, look = false) => commit((doc) => {
 const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode), true);
 const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
 const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
+const setPaneOutline = (id, on) => editPane(id, (pane) => (on ? (pane.outline = true) : delete pane.outline), true);
+/** A heatmap pane's gradient, by its id (the first: none kept). @param {string} id @param {string} gradient */
+const setPaneGradient = (id, gradient) => editPane(id, (pane) => (gradient !== HEAT_GRADIENTS[0][0] ? (pane.gradient = gradient) : delete pane.gradient), true);
 const setPaneAverage = (id, average) => editPane(id, (pane) => (average ? (pane.average = average) : delete pane.average));
 /** A pane's two orders, named as it draws them: [reverse, its name]. @param {Pane} pane */
-const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front"], [true, pane.stack ? "Last at the foot" : "Last in front"]]);
+const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack === "rows" ? "First at the top" : pane.stack ? "First at the foot" : "First in front"], [true, pane.stack === "rows" ? "Last at the top" : pane.stack ? "Last at the foot" : "Last in front"]]);
 const toggleLog = (id) => {
   const pane = chart.panes.find((item) => item.id === id);
-  if (pane?.stack === "percent") notice("A 100% stack shows shares of the total, so there's no scale to choose");
+  if (summed(pane)) notice("A stack draws linear, so there's no scale to choose");
   else if (pane) setPaneMode(id, paneMode(pane) === 1 ? 0 : 1);
 };
-/** A pane's scale, stack, order and average, from its chip. */
+/** A pane's scale, stack, order, gradient, outline and average, from its chip. */
 const scaleMenu = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id) => menuOf(anchor, scaleChoices(id), null, "", { heads: true });
 /**
  * A pane's scale, stack, order and average as choices, those in effect ticked (its chip's menu, its ⌘K pages): a stack's
@@ -737,9 +740,11 @@ function scaleChoices(id) {
   if (!pane) return [];
   const current = averageFor(chart, pane), ticking = chart.layers.some((layer) => layer.pane === id && !layer.hidden && LIVE.has(layer.series ?? ""));
   return [
-    ...(pane.stack === "percent" ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a stacked pane (use linear or log)` }), run: () => setPaneMode(id, m) }))),
-    ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, run: () => setPaneStack(id, stack) })),
+    ...(summed(pane) ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a heatmap (use linear or log)` }), run: () => setPaneMode(id, m) }))),
+    ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, ...(stack === "rows" && rowsUnfit(chart, pane) ? { disabled: rowsUnfit(chart, pane) } : {}), run: () => setPaneStack(id, stack) })),
     ...(chart.layers.filter((layer) => layer.pane === id).length > 1 ? ordersOf(pane).map(([reverse, name]) => ({ key: `order:${reverse ? "last" : "first"}`, group: "Order", label: name, current: Boolean(pane.reverse) === reverse, run: () => setPaneReverse(id, reverse) })) : []),
+    ...(gradable(chart, pane) ? HEAT_GRADIENTS.map(([gradient, name]) => ({ key: `gradient:${gradient}`, group: "Gradient", label: name, current: paneGradient(pane)[0] === gradient, run: () => setPaneGradient(id, gradient) })) : []),
+    ...(outlinable(chart, pane) ? OUTLINES.map(([on, name]) => ({ key: `outline:${on ? "below" : "none"}`, group: "Outline", label: name, current: Boolean(pane.outline) === on, run: () => setPaneOutline(id, on) })) : []),
     ...["", ...Object.keys(AVERAGES)].map((span) => {
       const choice = averageFor(chart, pane, span);
       return { key: `average:${span || "raw"}`, group: "Average", label: span || "Raw", current: current.active === span,
@@ -917,6 +922,6 @@ export {
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,
   prunePresets, RECOMMENDED, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleGroup, scaleMenu, setFull,
-  setLegend, setPaneMode, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick, toggleHalvings,
+  setLegend, setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick, toggleHalvings,
   toggleLog, vocabNow,
 };

@@ -34,12 +34,12 @@
  * whose coins and capital a cohort's shares divide, as said ("short-term holders' coins", "the capital of coins under 4
  * months old"), and as its charts' places keep them (see wholeOf, groupWhole); a holder group's, also its own series
  * (`cohort`, shown beside its members' where they have their words for it: see Naming's `beside`) and its name in titles
- * @typedef {{ name: Name, who: string, inWhole?: string, said?: string, of?: Whole, beside?: [string, string] }} Naming a family member's: its name,
+ * @typedef {{ name: Name, who: string, inWhole?: string, said?: string, of?: Whole, beside?: [string, string], short?: string }} Naming a family member's: its name,
  * whose its charts are in titles (`who`, "Short-term holders' coins over 10% in profit"), and, as its shares of its
  * family's whole name it (`inWhole`, "Coins over 10% in profit", see cohort), where that's another; a band's, its band
  * inside a sentence (`said`, "1 day to under 1 week old"); `of`, its own whole, where each member has its own (a holder
  * group's weighted coins, their group); `beside`, its word and its whole's in a legend where its shares in profit and loss
- * are shown beside its whole's ("Mobile", "All")
+ * are shown beside its whole's ("Mobile", "All"); `short`, its name where room is tight, as its set's table has it ("1d-1w": its layers', see Layer)
  * @typedef {import("./words.js").Dimension & { inWhole?: (said: string) => string }} Bands a band dimension as its
  * families and cutoffs read it (see Dimension), and `inWhole`, its members within their whole (see Naming)
  * @typedef {{ within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Kin
@@ -371,12 +371,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
   ];
   /**
    * A whole's parts compared: their amounts stacked, then their shares of it, as areas (`[name, title]` each chart's;
-   * `window`, both's, said in their titles; `windows`, theirs once, see chart). @param {[Name, string]} amounts
-   * @param {[Name, string]} shares @param {Layer[]} layers @param {string} [window] @param {string[]} [windows] @returns {ChartNode[]}
+   * `window`, both's, said in their titles; `windows`, theirs once, see chart; `log`, the amounts' scale where they aren't
+   * stacked: a heatmap's, lines'). @param {[Name, string]} amounts
+   * @param {[Name, string]} shares @param {Layer[]} layers @param {string} [window] @param {string[]} [windows] @param {boolean} [log] @returns {ChartNode[]}
    */
-  const parts = ([name, title], [shareName, shareTitle], layers, window = undefined, windows = undefined) => {
+  const parts = ([name, title], [shareName, shareTitle], layers, window = undefined, windows = undefined, log = false) => {
     const areas = layers.map((layer) => ({ ...layer, type: "area" }));
-    return [chart(name, title, areas, { stack: { 1: "stack" }, window, windows }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window, windows })];
+    return [chart(name, title, areas, { stack: { 1: "stack" }, ...(log ? { log: [1] } : {}), window, windows }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window, windows })];
   };
   /**
    * A count's title, from what it counts, as said inside a sentence ("coinjoin transactions": "Number of coinjoin
@@ -870,6 +871,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const members = all.filter(([key]) => names.has(key));
     /** A member's naming. @param {string} key */
     const nameOf = (key) => /** @type {Naming} */ (names.get(key));
+    /** A member's short name, as its layers carry it (none, nothing). @param {string} key */
+    const shortOf = (key) => ((short) => (short ? { short } : {}))(nameOf(key).short);
     /**
      * A comparison's title, from its measure: how its members differ, then what follows it (`after`), then the group
      * they lie within, if any, after the colon ("Supply by profit band: Short-term holders"). `whole`: a share of the
@@ -884,7 +887,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
     // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { ...shortOf(key), color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
      * then as their shares of it ("Supply", "Supply share"). Titled by its name as shown (see compared); `window`: the one it's over (see chart);
@@ -899,7 +902,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       const measure = shownOf(name), title = compared(measure, { whole: o.whole }), { window, windows } = o;
       if (options.disjoint && o.additive) {
         const known = options.known?.[placeOf(name)];
-        return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window, windows).slice(0, o.shares === false ? 1 : 2);
+        return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window, windows, o.log).slice(0, o.shares === false ? 1 : 2);
       }
       if (o.price) return [chart(name, title, [price(), ...layers], { window, windows })];
       return [chart(name, title, layers, { window, windows, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];
@@ -916,7 +919,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const shareComparisons = (where) => !splits ? [] : FLOW_SHARES.flatMap(({ flow, places: [, place], log, section: at, pick }) => {
       const window = "_1m", total = pick(t.holders.all, window), parts = members.filter(([key, c]) => key !== "all" && byDate(pick(c, window)));
       if (at !== where || !byDate(total) || parts.length < 2) return [];
-      const layers = parts.map(([key, c]) => series(flowShare(pick(c, window), total), shownOf(nameOf(key).name), { color: colors[members.findIndex(([k]) => k === key)], type: "area" }));
+      const layers = parts.map(([key, c]) => series(flowShare(pick(c, window), total), shownOf(nameOf(key).name), { ...shortOf(key), color: colors[members.findIndex(([k]) => k === key)], type: "area" }));
       const said = `Share of all ${flow}`;
       const windows = FLOW_WINDOWS.map(([key]) => key);
       return [...compare(capitalized(flow), (c) => pick(c, window), { additive: true, shares: false, log, window, windows }), chart(shownAs(place, said), compared(said), layers, { stack: { 1: "stack" }, window, windows })];
@@ -974,11 +977,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * A band family's member, as a family's `naming` reads it: its place, the client's name for it (`table`'s, less what
    * its folder already says, `trim`, if any: an age band's " old"); shown, its band as its dimension says it, and in titles
    * whose (see dimensionBand: "Coins 1 day to under 1 week old"). One it can't read, reported and left out (see reported).
-   * @param {Record<string, { long: string }>} table @param {Bands} d @param {RegExp} [trim] @returns {(key: string) => Naming | undefined}
+   * @param {Record<string, { long: string, short?: string }>} table @param {Bands} d @param {RegExp} [trim] @returns {(key: string) => Naming | undefined}
    */
   const bandMember = (table, d, trim = undefined) => (key) => {
     const read = reported(key, dimensionBand(key, d));
-    return read && { name: shownAs(trim ? named(table, key).replace(trim, "") : named(table, key), capitalized(read.said)), who: read.who, inWhole: d.inWhole?.(read.said), said: read.said };
+    return read && { name: shownAs(trim ? named(table, key).replace(trim, "") : named(table, key), capitalized(read.said)), who: read.who, inWhole: d.inWhole?.(read.said), said: read.said, short: table[key]?.short };
   };
   /** An age band's naming: its place without the " old" its folder says. */
   const ageBand = bandMember(client.AGE_RANGE_NAMES, AGES, / old$/);

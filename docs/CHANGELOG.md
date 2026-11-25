@@ -93,6 +93,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ### Breaking Changes
 
+- Studio: a heatmap's gradient belongs to its pane, chosen in the pane's menu (Inferno, Magma, Viridis or Plasma), and
+  the unrealized P&L heatmap keeps its green for a profit and red for a loss, no longer changed per chart. A saved chart
+  or link whose cost-basis heatmap used a ready-made gradient opens on it; one whose cost-basis heatmap was drawn in a
+  single color (a link's `color`, or one picked in Studio) or on a gradient made by hand now opens as Inferno.
 - The JavaScript, Python and Rust clients type six fields as nullable that were always set, because a chain other
   than mainnet has no BTC/USD price or pool list: `AddressChainStats.realized_price`, `BlockExtras.price`,
   `BlockExtras.pool`, `BlockFeesEntry.USD`, `BlockRewardsEntry.USD` and `PricePoint.USD` (mainnet answers still set

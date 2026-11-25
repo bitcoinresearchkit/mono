@@ -14,8 +14,8 @@ import { FORMATS, grouped, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
 import {
   blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, DASHES, DEFAULT_MEASURE, defaultOpacity, EDGES,
-  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
-  kindColor, kindOf, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
+  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENTS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
+  kindColor, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   labelText, LINES, lookOfDrawing, MAX_DRAWINGS, MAX_STROKE, PAIRED, PEN_COLOR, pointOf, TOOLS,
@@ -987,7 +987,9 @@ const timeOfText = (/** @type {any} */ value) => {
  */
 function toSketch(doc) {
   const place = (/** @type {string} */ id) => doc.panes.findIndex((pane) => pane.id === id) + 1;
-  const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && !pane.average && pane.size === undefined);
+  // (Panes as a link draws them by default: each its id and its default scale alone, nothing else set (no list of
+  // fields to keep up with: one added is kept).)
+  const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && Object.keys(pane).every((key) => key === "id" || key === "mode"));
   const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
   if (doc === chart) saveView();
   const dates = linkDates(doc);
@@ -1157,6 +1159,7 @@ async function fromLink(encoded, base32 = false) {
   const input = JSON.parse(await new Blob(chunks).text());
   if (input?.v === undefined) return readChart(input);
   const doc = validate(input);
+  normalize(doc);
   keepCarriedView(doc, input);
   return doc;
 }
@@ -1225,10 +1228,8 @@ function fromSketch(/** @type {any} */ input) {
       color: colors[i] ?? colors[ids.indexOf(members?.find((member) => ids.includes(member)))] ?? PALETTE[0],
       // (A cloud of no colors given: colored by its layers.)
       ...(kind === "cloud" && !colors[i] && layer.colorBelow === undefined ? { byLayers: true } : {}),
-      // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so). None, nor a color: a
-      // heatmap of an amount on its steps, as one made here (see kindLook).)
+      // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so).)
       ...(Array.isArray(layer.gradient) && layer.byGradient === undefined ? { byGradient: true } : {}),
-      ...(!isColor(layer.color) && layer.gradient === undefined && layer.byGradient === undefined && kindOf({ type: typeof layer.heatmap === "string" ? "heatmap" : layer.type, measure: layer.measure }) === "heat" ? { byGradient: true, gradient: structuredClone(HEAT_GRADIENT) } : {}),
       ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
       ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstForm(seriesName(layer.series), typeof layer.type === "string" ? layer.type : undefined)) } : {}),
       ...(kind ? { [kind]: members } : {}),
@@ -1245,6 +1246,7 @@ const seriesName = (/** @type {string} */ text) => text.trim().toLowerCase().rep
  */
 function readChart(/** @type {any} */ input) {
   const sketch = fromSketch(input), doc = validate(sketch);
+  normalize(doc);
   keepCarriedView(doc, sketch);
   return doc;
 }
@@ -1279,7 +1281,7 @@ function formulaNow(/** @type {string} */ formula) {
   const now = formula.replace(/(?<![A-Za-z0-9_])lag(?=\s*\()/g, "shift");
   return now.length <= FORMULA_MAX ? now : formula;
 }
-/** Validates chart fields (only `keepIds` preserves valid, unique ids). @returns {Chart} */
+/** Validates chart fields (only `keepIds` preserves valid, unique ids), as they came: normalized after, by the caller (a stored copy's stamp told first, see read). @returns {Chart} */
 function validate(input, keepIds = false) {
   const taken = new Set();
   const idOf = (id) => (keepIds && typeof id === "string" && /^[a-z0-9]{1,16}$/.test(id) && !taken.has(id) ? (taken.add(id), id) : uid());
@@ -1290,7 +1292,7 @@ function validate(input, keepIds = false) {
   if (input.halvings === true) doc.halvings = true;
   if (input.legend === "off") doc.legend = "off";
   const panes = input.panes.slice(0, MAX_PANES);
-  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
+  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(pane?.outline === true ? { outline: true } : {}), ...(HEAT_GRADIENTS.some(([id], k) => k && id === pane?.gradient) ? { gradient: pane.gradient } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
   const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
   /** Each layer's id as read, to its own: its drawings follow it. */
   const layerIds = new Map();
@@ -1310,7 +1312,7 @@ function validate(input, keepIds = false) {
       ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cumulative === true ? { cumulative: true } : {}), ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== DEFAULT_MEASURE && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)) } : typeof layer.series === "string"
         ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
         : { formula: formulaNow(String(layer.formula ?? "").slice(0, FORMULA_MAX)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path))) } : {}) }),
-      ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
+      ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}), ...(typeof layer.short === "string" ? { short: layer.short.slice(0, 24) } : {}),
       color: isColor(layer.color) ? layer.color : undefined,
       type: heat ? "heatmap" : profiled ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
       width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
@@ -1374,7 +1376,6 @@ function validate(input, keepIds = false) {
       ...(LINES.has(kind) && typeof drawing.label === "string" && labelText(drawing.label) ? { label: labelText(drawing.label), ...(Number.isFinite(drawing.at) ? { at: clamp(drawing.at, 0, 1) } : {}) } : {}),
     }];
   });
-  normalize(doc);
   return doc;
 }
 
