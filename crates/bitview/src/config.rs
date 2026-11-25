@@ -5,7 +5,7 @@ use std::{
 
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, PublicUrl,
-    ServerConfig, SiteUrl, Website,
+    ServerConfig, SiteUrl,
 };
 use brk_error::{Error, Result};
 use brk_reader::Reader;
@@ -100,7 +100,6 @@ settings! {
         bitviewdir: String, "<PATH>", "Output directory", "~/.bitview";
         serverbind: IpAddr, "<IP>", "Server bind address", DEFAULT_BIND;
         serverport: Port, "<PORT>", "Server port", Port::DEFAULT;
-        website: Website, "<BOOL|PATH>", "Serve the showcases (true), nothing (false) or a directory", true;
         cdn: bool, "<BOOL>", "Aggressive CDN cache, requires purge on deploy", false;
         maxweight: usize, "<BYTES>",
             "Server cap on series response weight in bytes; rejects /api/series/... over the limit",
@@ -127,6 +126,9 @@ settings! {
         #[secret] rpcpassword: String, "<PASSWORD>", "RPC password";
     ]
 }
+
+/// What an old config or command line passing `website` is told.
+const WEBSITE_GONE: &str = "the setting is gone: the site is always served, remove it";
 
 fn setting(key: &str) -> Option<&'static Setting> {
     SETTINGS.iter().find(|setting| setting.key == key)
@@ -188,6 +190,7 @@ impl Config {
                     println!("{} audits in {}", records.len() / 2, dir.display());
                     exit(0);
                 }
+                Long("website") => return Err(Error::Parse(format!("--website: {WEBSITE_GONE}"))),
                 Long(name) => {
                     let Some(setting) = setting(name) else {
                         return Err(parse_error(arg.unexpected()));
@@ -226,6 +229,9 @@ impl Config {
                 .find_map(|quote| key.strip_prefix(quote)?.strip_suffix(quote))
                 .unwrap_or(key);
             let Some(setting) = setting(key) else {
+                if key == "website" {
+                    return Err(at(format!("website: {WEBSITE_GONE}")));
+                }
                 if key.is_empty()
                     || !key
                         .bytes()
@@ -394,7 +400,6 @@ impl Config {
                 bind: self.serverbind.unwrap_or(DEFAULT_BIND),
                 port: self.serverport.unwrap_or_default(),
                 data_path,
-                website: self.website.clone().unwrap_or_default(),
                 cdn_cache_mode: if self.cdn.unwrap_or(false) {
                     CdnCacheMode::Aggressive
                 } else {

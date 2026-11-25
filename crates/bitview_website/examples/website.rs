@@ -1,9 +1,4 @@
-use std::{
-    env,
-    io::{Error, ErrorKind, Result},
-    path::PathBuf,
-    time::Duration,
-};
+use std::{io::Result, time::Duration};
 
 use axum::{
     body::Body,
@@ -11,7 +6,7 @@ use axum::{
     middleware::{self, Next},
     serve,
 };
-use bitview_website::{Website, router};
+use bitview_website::router;
 use brk_logger::init;
 use tokio::net::TcpListener;
 use tower_http::{
@@ -23,22 +18,6 @@ use tracing::{Span, error, info};
 #[tokio::main]
 async fn main() -> Result<()> {
     let _ = init(None);
-
-    let website = match env::args_os().nth(1) {
-        Some(path) => {
-            let path = PathBuf::from(path);
-            if !path.is_dir() {
-                return Err(Error::new(
-                    ErrorKind::NotFound,
-                    format!("Website folder does not exist: {}", path.display()),
-                ));
-            }
-            Website::Filesystem(path)
-        }
-        None => Website::Default,
-    };
-
-    website.log();
 
     let response_uri_layer = middleware::from_fn(
         async |request: Request<Body>, next: Next| -> Response<Body> {
@@ -72,7 +51,7 @@ async fn main() -> Result<()> {
         )
         .on_eos(());
 
-    let app = router(website, false)
+    let app = router(false)
         .layer(CatchPanicLayer::new())
         .layer(response_uri_layer)
         .layer(trace_layer)

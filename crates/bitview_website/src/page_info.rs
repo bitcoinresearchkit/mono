@@ -13,10 +13,7 @@ use include_dir::Dir;
 use serde::Deserialize;
 use tracing::info;
 
-use crate::{
-    Website,
-    website::{EMBEDDED, hash},
-};
+use crate::website::{self, EMBEDDED, hash};
 
 const NAME: &str = "page-info.json.gz";
 /// Beside a folder's page info, where its addresses once were: a line each, the old address and where it opens now,
@@ -141,7 +138,7 @@ impl Listed<'_> {
 pub(crate) struct Pages(HashMap<PathBuf, Folder>);
 
 impl Pages {
-    pub(crate) fn load(website: &Website) -> Result<Self> {
+    pub(crate) fn load() -> Result<Self> {
         fn embedded(dir: &Dir<'_>, files: &mut Vec<PathBuf>) {
             files.extend(
                 dir.files()
@@ -166,24 +163,22 @@ impl Pages {
         }
         let start = Instant::now();
         let mut files = Vec::new();
-        match website.filesystem_path() {
+        match website::live() {
             Some(base) => filesystem(base, base, &mut files)?,
             None => embedded(&EMBEDDED, &mut files),
         }
         // The embedded site's files are what they are for good: its templates and tags are made here, once.
-        let fixed = website.filesystem_path().is_none();
+        let fixed = website::live().is_none();
         let mut pages = Self::default();
         for file in files {
             let load = || -> Result<Folder> {
-                let contents = website
-                    .get_file(file.to_str().ok_or("Non-UTF-8 page-info path")?)
+                let contents = website::get_file(file.to_str().ok_or("Non-UTF-8 page-info path")?)
                     .map_err(|_| "Cannot read page-info file")?;
                 let mut decoded = Vec::new();
                 GzDecoder::new(contents.contents.as_ref()).read_to_end(&mut decoded)?;
                 let sources: HashMap<String, Source> = serde_json::from_slice(&decoded)?;
                 let index = file.with_file_name(INDEX);
-                let template = website
-                    .get_file(index.to_str().ok_or("Non-UTF-8 index path")?)
+                let template = website::get_file(index.to_str().ok_or("Non-UTF-8 index path")?)
                     .map_err(|_| "Cannot read page-info index.html")?;
                 let slots = slots(std::str::from_utf8(&template.contents)?)?;
                 let template_hash = template.hash.filter(|_| fixed);
@@ -206,7 +201,7 @@ impl Pages {
                         Ok((format!("{prefix}{address}"), Page::new(source, template_hash)))
                     })
                     .collect::<Result<HashMap<_, _>>>()?;
-                let moved = match website.get_file(
+                let moved = match website::get_file(
                     file.with_file_name(MOVED).to_str().ok_or("Non-UTF-8 moved path")?,
                 ) {
                     Ok(moved) => std::str::from_utf8(&moved.contents)?

@@ -7,13 +7,13 @@ use axum::{
     response::{IntoResponse, Redirect},
 };
 use bitview_http::{CDN_CACHE_CONTROL, CachePolicy, IMMUTABLE, REVALIDATE};
-use tokio::{sync::Semaphore, task::spawn_blocking};
+use tokio::task::spawn_blocking;
 
 use crate::{
     Error,
     page_info::{self, Form, Listed, Listing},
     router::Site,
-    website::{File, RELEASES, WORKERS, hash},
+    website::{self, File, RELEASES, WORKERS, hash},
 };
 
 /// Addresses served elsewhere on the site, each old folder (a path from the root) with where its addresses go now: a
@@ -46,7 +46,7 @@ enum To {
 const NOT_FOUND_PAGE: &str = "404.html";
 
 /// Any address on the site, `/` included: the file it names, else where it moved, else the not-found answer, in one job
-/// on the website's files. A file there always wins, as a site served from a folder may have its own.
+/// on the website's files. A file there always wins.
 pub async fn file_handler(
     State(site): State<Arc<Site>>,
     headers: HeaderMap,
@@ -57,7 +57,7 @@ pub async fn file_handler(
             Some(to) => permanent(&to),
             None => not_found(
                 wants_page(&headers)
-                    .then(|| site.website.get_file(NOT_FOUND_PAGE).ok())
+                    .then(|| website::get_file(NOT_FOUND_PAGE).ok())
                     .flatten(),
             ),
         },
@@ -132,28 +132,17 @@ fn wants_page(headers: &HeaderMap) -> bool {
         .any(|range| bitview_http::media_type(range).eq_ignore_ascii_case("text/html"))
 }
 
-/// Concurrent filesystem jobs.
-static FILESYSTEM_READS: Semaphore = Semaphore::const_new(2);
-
-/// Runs a job on the website's files. Filesystem reads block, so there it leaves the executor, holding a permit until it
-/// ends.
+/// Runs a job on the website's files. The live folder's reads block, so there it leaves the executor.
 async fn read(
     site: Arc<Site>,
     job: impl FnOnce(&Site) -> Response<Body> + Send + 'static,
 ) -> Response<Body> {
-    if site.website.filesystem_path().is_none() {
+    if website::live().is_none() {
         return job(&site);
     }
-    let permit = match FILESYSTEM_READS.acquire().await {
-        Ok(permit) => permit,
-        Err(e) => return Error::internal(e.to_string()).into_response(),
-    };
-    spawn_blocking(move || {
-        let _permit = permit;
-        job(&site)
-    })
-    .await
-    .unwrap_or_else(|e| Error::internal(e.to_string()).into_response())
+    spawn_blocking(move || job(&site))
+        .await
+        .unwrap_or_else(|e| Error::internal(e.to_string()).into_response())
 }
 
 /// A 308 to where an address is answered now, revalidated as the site's files are: without a lifetime a browser may
@@ -171,7 +160,7 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     if !is_one_address(uri.path()) || path == NOT_FOUND_PAGE {
         return Err(Error::not_found());
     }
-    if let Some(release) = site.website.release()
+    if let Some(release) = website::release()
         && let Some((asked, path)) = [RELEASES, WORKERS]
             .into_iter()
             .find_map(|folder| path.strip_prefix(folder))
@@ -179,7 +168,7 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
     {
         return released(site, path, asked == release, uri, request_headers);
     }
-    let found = match site.website.get_file(path) {
+    let found = match website::get_file(path) {
         // No file there: a listed page's Markdown twin, at an address of its own.
         Err(error) if error.is_not_found() => {
             return twin(site, uri, request_headers).ok_or(error);
@@ -241,7 +230,7 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
 /// (`page_info::twin`), without a query. `None` when it is no listed page's.
 fn twin(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Option<Response<Body>> {
     let page = page_info::twin_page(uri.path()).filter(|_| uri.query().is_none())?;
-    let index = site.website.get_file(page.strip_prefix('/')?).ok()?;
+    let index = website::get_file(page.strip_prefix('/')?).ok()?;
     let Listing::Listed(listed) = site.pages.find(&index.path, page) else {
         return None;
     };
@@ -299,7 +288,7 @@ fn released(
     uri: &Uri,
     request_headers: &HeaderMap,
 ) -> Result<Response<Body>, Error> {
-    let found = site.website.get_file(path)?;
+    let found = website::get_file(path)?;
     if found.path.to_str() != Some(path)
         || found.content_type == "text/html"
         || uri.query().is_some()
@@ -315,7 +304,7 @@ fn released(
 enum Kept {
     /// At the current release's address: for good.
     Release,
-    /// Anywhere else: until the next release of an embedded site, or any time for a folder's.
+    /// Anywhere else: until the next release of an embedded site, or any time for the live folder's.
     Document,
 }
 
@@ -327,7 +316,7 @@ impl Site {
         match kept {
             Kept::Release => (IMMUTABLE, None),
             Kept::Document => {
-                let fixed = self.cdn_purged && self.website.filesystem_path().is_none();
+                let fixed = self.cdn_purged && website::live().is_none();
                 (REVALIDATE, fixed.then_some(IMMUTABLE))
             }
         }

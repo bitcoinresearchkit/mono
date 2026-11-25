@@ -11,7 +11,7 @@ use axum::{
 use bitview_query::{AsyncQuery, Error as QueryError};
 use bitview_server::{
     CdnCacheMode, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Error as ServerError, Port, ServerConfig,
-    Website, app,
+    app,
 };
 use brk_error::{Error, Result};
 use tempfile::tempdir;
@@ -46,7 +46,6 @@ pub(crate) fn render_errors(plugins: &DefaultPlugins) -> Result<Snapshot> {
                 bind: IpAddr::V4(Ipv4Addr::LOCALHOST),
                 port: Port::DEFAULT,
                 data_path: data.path().to_path_buf(),
-                website: Website::Disabled,
                 cdn_cache_mode: CdnCacheMode::default(),
                 max_weight: DEFAULT_MAX_WEIGHT,
                 max_utxos: DEFAULT_MAX_UTXOS,

@@ -7,7 +7,6 @@ use std::{
 
 use axum::http::{HeaderValue, Uri};
 use bitview_primitives::OHLCCents;
-use bitview_website::Website;
 use serde::{Serialize, Serializer};
 
 use crate::{CdnCacheMode, Port};
@@ -29,7 +28,6 @@ pub struct ServerConfig {
     pub bind: IpAddr,
     pub port: Port,
     pub data_path: PathBuf,
-    pub website: Website,
     pub cdn_cache_mode: CdnCacheMode,
     pub max_weight: usize,
     pub max_utxos: usize,
@@ -59,7 +57,6 @@ impl Default for ServerConfig {
             bind: DEFAULT_BIND,
             port: Port::DEFAULT,
             data_path: PathBuf::default(),
-            website: Website::default(),
             cdn_cache_mode: CdnCacheMode::default(),
             max_weight: DEFAULT_MAX_WEIGHT,
             max_utxos: DEFAULT_MAX_UTXOS,

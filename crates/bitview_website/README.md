@@ -1,14 +1,13 @@
 # bitview_website
 
-Serves Bitview's showcases, embedded or from a directory.
+Serves Bitview's showcases: the embedded copy, or in debug builds the repository's folder live.
 
 `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html`;
 an address no file answers that is served elsewhere answers 308 to the same place under its new folder (`/address/…`
 to the explorer's), or to the page that replaced it (`/charts` to Studio's; `MOVED` in `src/handlers.rs`), each 308
 revalidated as the files are, so a redirect changed with a release reaches browsers; anything else is 404, with
 the site's `404.html` for a request whose `Accept` lists `text/html` (a browser's), a plain message otherwise, both
-`no-store` since the answer depends on `Accept`. A `Filesystem` website without a `404.html` answers browsers with the
-plain message too (behind the API server, its JSON problem document). Release builds tag each response with an ETag of its content, and with the same hash in a
+`no-store` since the answer depends on `Accept`. Release builds tag each response with an ETag of its content, and with the same hash in a
 `Bitview-Version` header, which an open page reads to tell when a newer version of it is served
 (`showcases/assets/version`).
 
@@ -23,15 +22,16 @@ so a returning visitor downloads the files it uses once again. An earlier releas
 late) answers the current file, revalidated, as only the current release is held. Workers start at the same files'
 second address, `/w/<release>/<path>`, and import relative to it (a worker has no import map): in WebKit, a page's
 module whose address a worker has also loaded comes from the network on each reload after (Studio's
-`showcases/studio/workers.js`): the import map's `worker/` entry supplies their address. In debug builds `Default`
-transforms `./showcases` the same way, without a release, so it checks pages in development. Pages need a literal
+`showcases/studio/workers.js`): the import map's `worker/` entry supplies their address. In debug builds the
+repository's `showcases` folder (a path fixed when the crate is built) is read on each request and transformed the same
+way, without a release, so it checks pages in development. Pages need a literal
 `<head>` and module scripts with a `src` name a site file by its absolute path. Invalid embedded pages stop router
-initialization with every bad file named. A `Filesystem` website has no release and serves its HTML unchanged.
+initialization with every bad file named. The live folder has no release.
 
 Outside a release's address, browsers revalidate every answer (`max-age=1, must-revalidate`). With
-`router(website, true)` (the server's `--cdn`: a CDN in front, purged on every release) the embedded site's files
+`router(true)` (the server's `--cdn`: a CDN in front, purged on every release) the embedded site's files
 and pages also carry `CDN-Cache-Control: immutable`, as only a release changes them; redirects don't, nor anything
-of a `Filesystem` website, whose files change at any time.
+of the live folder, whose files change at any time.
 
 ## Behind Cloudflare
 
@@ -46,19 +46,11 @@ ETag on every `HEAD` request too, but keeps the server's own headers (`Bitview-V
 ## Usage
 
 ```rust,ignore
-use bitview_website::{Website, router};
+use bitview_website::router;
 
-let website_router = router(Website::Default);
+let website_router = router(false);
 let app = your_api_router.merge(website_router);
 ```
-
-## Website Enum
-
-| Variant | Description |
-|---------|-------------|
-| `Default` | `./showcases` in debug builds when it exists, the embedded showcases otherwise |
-| `Filesystem(path)` | Always serve from specified path |
-| `Disabled` | No routes registered |
 
 ## Standalone Server
 
@@ -66,12 +58,6 @@ See the `website` example for a complete standalone server with tracing, and oth
 
 ```sh
 cargo run -p bitview_website --example website
-```
-
-Pass a folder to serve it instead of the showcases:
-
-```sh
-cargo run -p bitview_website --example website -- path/to/site
 ```
 
 Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's front page and its showcases.
@@ -102,7 +88,7 @@ That index provides exactly one pair of each marker, in document order:
 
 The server replaces the head slot and fills the body slot. The Markdown subset supports headings, paragraphs,
 unordered lists and HTTP(S), root-relative or fragment links; raw HTML is escaped. Rendered entries load once when
-the router starts, including for filesystem websites: restart after replacing the data. Gzip keeps large generated
+the router starts, the live folder's too: restart after replacing the data. Gzip keeps large generated
 catalogs small on disk and in embedded builds; requests never decompress or render Markdown.
 
 An app removes its body article when it starts, leaving that article readable when JavaScript cannot run.
@@ -114,4 +100,4 @@ head; the twin names its page (`rel="canonical"`). Nothing is negotiated: an add
 `Accept` says, so pages and twins are cached as every other document is. A twin takes no query, and a file of that
 name comes first. For the embedded site each entry's two ETags are made as the router starts (the page's from its
 index's hash and what is written in, the twin's from its Markdown) and its index's slots are found once, so a 304
-renders no page; a `Filesystem` website's index is read, and its page named by its bytes, on each request.
+renders no page; the live folder's index is read, and its page named by its bytes, on each request.

@@ -15,7 +15,7 @@ use tokio::sync::Semaphore;
 use crate::prepared_json::PreparedJson;
 #[cfg(feature = "series")]
 use crate::series_bodies::SeriesBodies;
-use crate::{CdnCacheMode, Website};
+use crate::CdnCacheMode;
 
 /// One request's state: its query (carrying the request deadline) over the server's shared state.
 #[derive(Clone, Deref)]
@@ -71,7 +71,6 @@ pub struct SharedState {
     pub urpd_bodies: Arc<Semaphore>,
     #[cfg(feature = "full-api")]
     pub mining_pools_body: Arc<PreparedJson>,
-    pub website: Website,
     pub started_at: Timestamp,
     pub started_instant: Instant,
     pub max_weight: usize,
