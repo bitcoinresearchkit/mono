@@ -1135,6 +1135,18 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - Explorer's fee range for the week read 0.05 sat/vB at its cheapest where seven hours were at 0: the hourly minimum
   was raised to 0.05 before it was counted. Since 5 November. The range starts at 0 now, and the caption says the
   figures are estimates.
+- Clients (JavaScript, Python, Rust): an answer that carries `bitview-origin` came from the server itself, so the
+  caller gets it, a 503 or 504 included, and the client keeps using that server; before, any 5xx made the client send
+  the request again through the configured URL and pass the server over for 10 minutes. Only a failure to answer
+  (network, timeout) or an answer without the header, a proxy's, counts as a server that is gone. A POST
+  (`/api/tx`) is never sent a second time
+- Python client: sends `Accept-Encoding: gzip` and decompresses (47,934 → 20,332 bytes for the whole daily `price_close`);
+  series data reads the fields it knows and ignores the rest, where a field the server added raised `TypeError`; any
+  answer but a 2xx, a redirect included, raises `BitviewError` with its status and the URL, where a 301 raised
+  `ValueError`
+- Rust client: parses JSON from the whole body (`serde_json::from_slice`) and no longer builds ureq's `json` feature,
+  which took 36 packages into `Cargo.lock` (342 → 306) that were never compiled; a malformed answer's error message
+  loses ureq's `json: ` prefix
 - The pools' dollar fee averages (`pool_*_fees_avg_{24h,1w,1m,1y}_usd`) serve the same `version` however the server
   got there; after a first compute in the same process they served another number until a restart (values were
   equal). Their version and that of the market's 1w/1m/1y price ranges and moving averages change once; the market
