@@ -1,11 +1,11 @@
-use std::{ops::Range, slice};
+use std::{ops::Range, slice, sync::LazyLock};
 
 use bitcoin::{Block, Transaction, TxOut, consensus::deserialize, hashes::Hash};
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Bytes32, TxInIndex, TypeIndex};
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, OutputType, Sats, Tweak, TxIndex};
-use rayon::prelude::*;
+use rayon::{ThreadPool, ThreadPoolBuilder, current_num_threads, prelude::*};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
 use crate::{
@@ -56,6 +56,20 @@ impl BlockScan {
     }
 }
 
+/// The scan's own workers, half the cores. On the global pool a batch's blocks of curve math keep
+/// every worker busy, and the jobs other plugins hand in from their own threads (the addresses
+/// plugin's block loop, the sync's critical path) wait until the batch runs dry. Here the cores are
+/// shared by the operating system and the global pool stays free for the others: on the bench
+/// mini the sync's tail took 41-60 s less (two fresh-boot pairs, 2026-11-25), though the scan
+/// itself runs ~74% longer.
+static POOL: LazyLock<Option<ThreadPool>> = LazyLock::new(|| {
+    ThreadPoolBuilder::new()
+        .num_threads(current_num_threads().div_ceil(2))
+        .thread_name(|index| format!("silent-payments-{index}"))
+        .build()
+        .ok()
+});
+
 /// Whether BIP352 may count a key for an input spending this output type.
 fn may_have_key(output_type: OutputType) -> bool {
     matches!(
@@ -80,20 +94,24 @@ pub(crate) fn is_candidate(transaction: &Transaction, input_types: &[OutputType]
 }
 
 /// Each block's scanning data over `heights`, in block order: the blocks' indexer columns read in
-/// large range reads, then the blocks and their transactions scanned in parallel.
+/// large range reads, then the blocks and their transactions scanned in parallel on the scan's
+/// own workers.
 pub fn scan(indexer: &Indexer, tweaker: &Tweaker, heights: Range<usize>) -> Result<Vec<BlockScan>> {
     let scanned = heights.start.max(TAPROOT_ACTIVATION)..heights.end;
     let mut blocks = Vec::from_fn(heights.len() - scanned.len(), |_| BlockScan::before_activation());
     if scanned.is_empty() {
         return Ok(blocks);
     }
+    let pool = POOL
+        .as_ref()
+        .ok_or(Error::Internal("Silent payments' scan workers didn't start"))?;
     let scanner = Scanner::read(indexer, tweaker, scanned);
-    blocks.extend(
+    blocks.extend(pool.install(|| {
         (0..scanner.blocks.len())
             .into_par_iter()
             .map(|block| scanner.block(block))
-            .collect::<Result<Vec<_>>>()?,
-    );
+            .collect::<Result<Vec<_>>>()
+    })?);
     Ok(blocks)
 }
 
