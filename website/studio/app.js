@@ -10518,7 +10518,7 @@ async function pollPrice() {
     // (Nor in full screen, where the live line isn't shown; on a phone, its grid shows it.)
     if ((phone.matches ? home : !fullOn()) || liveLayers().length) {
       const version = drawVersion, price = await client.getLivePrice();
-      if (Number.isFinite(price) && price !== livePrice) {
+      if (typeof price === "number" && Number.isFinite(price) && price !== livePrice) {
         livePrice = price;
         updateStatus();
       }
