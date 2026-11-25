@@ -20,7 +20,16 @@ impl Vecs {
     ) -> Result<Self> {
         let sources = WeightedCohortSources::import(db, "awake", "dormant", version, mappings)?;
         let cohorts = AgeAggregate::try_from_fn(|id| {
-            CohortVecs::new(db, id, version, &sources, mappings, window_starts, spot_price, id.select(group_caps))
+            CohortVecs::new(
+                db,
+                id,
+                version,
+                &sources,
+                mappings,
+                window_starts,
+                spot_price,
+                id.select(group_caps),
+            )
         })?;
         Ok(Vecs { cohorts, sources })
     }

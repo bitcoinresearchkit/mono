@@ -199,7 +199,14 @@ impl DefaultPlugins {
                 })?;
                 let coinflow = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINFLOW_ID, || {
-                        Coinflow::import(context, &mappings, &window_starts, &price, &group_caps, &age)
+                        Coinflow::import(
+                            context,
+                            &mappings,
+                            &window_starts,
+                            &price,
+                            &group_caps,
+                            &age,
+                        )
                     })
                 })?;
                 let bedrock = large_stack_thread().spawn_scoped(scope, || {

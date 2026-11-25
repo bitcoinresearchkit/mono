@@ -33,7 +33,7 @@ pub struct WeightedCohort<M: StorageMode = Rw> {
     pub capital: SharedCapital,
     pub unrealized: Unrealized,
     pub cost_basis: CostBasisVecs<M>,
-    /// The supply in loss's share at full precision, for models calibrating on it.
+    /// The supply in loss's share, of its rounded satoshis, for models calibrating on it.
     #[traversable(skip)]
     pub loss_share: ReadableBoxedVec<Height, BoundedRatio>,
 }
@@ -109,7 +109,13 @@ impl WeightedCohort {
         .read_only_boxed_clone();
         // Each part's share of the supply, as a holder group's.
         let spot_part = |metric: &str, sats: &ReadableBoxedVec<Height, Sats>| Part {
-            value: LazySpotValuePerBlock::from_sats_source(&name(metric), version, sats, mappings, spot),
+            value: LazySpotValuePerBlock::from_sats_source(
+                &name(metric),
+                version,
+                sats,
+                mappings,
+                spot,
+            ),
             share: Share::from_ratio::<Sats, Sats, Quotient<PartsPerMillion32>>(
                 &format!("{}_share", name(metric)),
                 version,

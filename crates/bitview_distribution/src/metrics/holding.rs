@@ -121,7 +121,8 @@ impl Unrealized {
         let fiat = |metric: &str, source: &dyn ReadableCloneableVec<Height, Cents>| {
             LazyFiatPerBlock::from_cents_source(&name(metric), version, source, mappings)
         };
-        let net_pnl = net_pnl_source(&name("net_unrealized_pnl_cents_source"), version, profit, loss);
+        let net_pnl =
+            net_pnl_source(&name("net_unrealized_pnl_cents_source"), version, profit, loss);
         let gross_pnl = LazyIndexedVec::new(
             &name("gross_unrealized_pnl_cents_source"),
             version,

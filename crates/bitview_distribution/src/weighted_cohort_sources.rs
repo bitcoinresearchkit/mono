@@ -41,14 +41,54 @@ impl WeightedCohortSources {
                 version,
                 indexes,
             )?,
-            weighted_supply_in_loss: import_aggregate(db, &side("supply_in_loss_sats"), version, indexes)?,
-            weighted_realized_cap: import_aggregate(db, &side("realized_cap_cents"), version, indexes)?,
-            weighted_realized_price: import_aggregate(db, &side("realized_price_cents"), version, indexes)?,
-            weighted_capitalized_price: import_aggregate(db, &side("capitalized_price_cents"), version, indexes)?,
-            weighted_capital_in_profit: import_aggregate(db, &side("capital_in_profit_cents"), version, indexes)?,
-            weighted_capital_in_loss: import_aggregate(db, &side("capital_in_loss_cents"), version, indexes)?,
-            weighted_unrealized_profit: import_aggregate(db, &side("unrealized_profit_cents"), version, indexes)?,
-            weighted_unrealized_loss: import_aggregate(db, &side("unrealized_loss_cents"), version, indexes)?,
+            weighted_supply_in_loss: import_aggregate(
+                db,
+                &side("supply_in_loss_sats"),
+                version,
+                indexes,
+            )?,
+            weighted_realized_cap: import_aggregate(
+                db,
+                &side("realized_cap_cents"),
+                version,
+                indexes,
+            )?,
+            weighted_realized_price: import_aggregate(
+                db,
+                &side("realized_price_cents"),
+                version,
+                indexes,
+            )?,
+            weighted_capitalized_price: import_aggregate(
+                db,
+                &side("capitalized_price_cents"),
+                version,
+                indexes,
+            )?,
+            weighted_capital_in_profit: import_aggregate(
+                db,
+                &side("capital_in_profit_cents"),
+                version,
+                indexes,
+            )?,
+            weighted_capital_in_loss: import_aggregate(
+                db,
+                &side("capital_in_loss_cents"),
+                version,
+                indexes,
+            )?,
+            weighted_unrealized_profit: import_aggregate(
+                db,
+                &side("unrealized_profit_cents"),
+                version,
+                indexes,
+            )?,
+            weighted_unrealized_loss: import_aggregate(
+                db,
+                &side("unrealized_loss_cents"),
+                version,
+                indexes,
+            )?,
         })
     }
 
