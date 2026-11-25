@@ -1281,7 +1281,7 @@ function tileHtml(doc) {
   const legend = cardLegend(doc);
   return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
-            <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
+            ${moreCap("tile-more", "data-tile-menu", doc.id, titleOf(doc))}
             ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escapeHtml(tickOn("ink"))}" aria-label="Select ${title}" data-tip="${on ? "Deselect" : "Select"}" ${on ? "checked" : ""} />`}
           </div>`;
 }
@@ -1605,7 +1605,7 @@ const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-she
  * of them at any depth), a row; its name leads to its page. None in it, it says so.
  * @param {{ name: string, place: Place, folder?: string, count: number }} shelf @param {string} tiles
  */
-const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section class="shelf"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="${escapeHtml(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escapeHtml(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section class="shelf"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="${escapeHtml(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escapeHtml(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? moreCap("shelf-more", "data-folder-menu", folder, name) : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
 /** A chart's tile: what the chart grows out of and shrinks into. */
 // (A preset's written as a slot yet: written now, for what wants it (the way back from it shrinks into it).)
 const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`) ?? ((slot) => slot && fillSlot(slot))(/** @type {HTMLElement | null} */ ($("home").querySelector(`.tile-slot[data-slot="${presetById(id)}"]`))));
@@ -1693,7 +1693,7 @@ const recommendedPresets = () => recommendedAt().filter((i) => i >= 0);
 function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
   const title = escapeHtml(titleOf(doc));
   const legend = cardLegend(doc);
-  return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
+  return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button>${moreCap("tile-more", "data-preset-menu", i, titleOf(doc))}</div>`;
 }
 /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
 let listsDrawn = 0;
@@ -2887,6 +2887,24 @@ function movingSide(/** @type {() => void} */ change) {
 const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
 /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
 const groupShut = (group) => !prefs.groupsOpen.includes(group);
+/** A row's ⋯ cap (its menu, found by `attr`), in the class its place gives it (`chart-more`: the sidebar's, `tile-more`, `shelf-more`). */
+const moreCap = (/** @type {string} */ cls, /** @type {string} */ attr, /** @type {string | number} */ id, /** @type {string} */ name) => `<button type="button" class="cap small ${cls}" ${attr}="${escapeHtml(id)}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>`;
+/** A sidebar row's View cap: its page, `place`. */
+const viewCap = (/** @type {Place} */ place, /** @type {string} */ name) => `<button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="View ${escapeHtml(name)}" data-tip="View">${ICONS.arrowRight}</button>`;
+/**
+ * A chart's or a preset's row in the sidebar (`kind`: "chart", "preset"): its mark and `label` opening it (`tip`, its
+ * hover, else its `name`), its ⋯; `cls`, and `labelCls`, as it is.
+ */
+const leafRow = ({ kind, id, depth, cls = "", mark, label, labelCls = "", name, tip = name }) => `<div class="chart-row ${cls} ${depth ? "in-folder" : ""}" data-${kind}-row="${id}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-${kind}="${id}" data-tip="${escapeHtml(tip)}">${mark}<span class="label ${labelCls}">${escapeHtml(label)}</span></button>${moreCap("chart-more", `data-${kind}-menu`, id, name)}</div>`;
+/**
+ * A folder's row in the sidebar (`kind`: "folder", "section" of the presets): its mark and name opening or closing it
+ * (on the rail, its menu), how many it holds, its page, its ⋯; closed, holding the open chart (`holds`), it says so.
+ */
+const folderRow = ({ kind, id, depth, closed, holds, rail, mark, name, count, place }) => `<div class="folder-row ${kind === "section" ? "section-row" : ""} ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-${kind}-row="${escapeHtml(id)}" style="--depth: ${depth}">
+              <button type="button" class="nav-item folder-item" data-${kind}-item="${escapeHtml(id)}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(name)}">${mark}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(count)}</span></button>
+              ${viewCap(place, name)}
+              ${moreCap("chart-more", `data-${kind}-menu`, id, name)}
+            </div>`;
 /**
  * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
  * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
@@ -2896,7 +2914,7 @@ const groupShut = (group) => !prefs.groupsOpen.includes(group);
  */
 const sideHead = (group, count, holds) => {
   const [name, place] = GROUP_OF[group], shut = groupShut(group);
-  return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify(place))}" aria-label="View ${name}" data-tip="View">${ICONS.arrowRight}</button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
+  return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button>${viewCap(place, name)}${moreCap("chart-more", "data-group-menu", group, name)}</div>`];
 };
 /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
 const groupRows = (group) => [
@@ -3084,16 +3102,12 @@ function presetParts() {
         if (!depth) continue;
         // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
         const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
-        const title = escapeHtml(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escapeHtml(presetName(preset));
-        parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? " (edited)" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
+        const title = doc ? titleOf(doc) : preset.t;
+        parts.push([`preset:${item}`, leafRow({ kind: "preset", id: item, depth, cls: `preset-row ${edited ? "edited" : ""}`, mark: presetMark(item), label: doc && titleOf(doc) !== preset.t ? title : presetName(preset), name: title, tip: `${title}${edited ? " (edited)" : ""}` })]);
         continue;
       }
-      const section = item, shown = open.has(section.key), name = section.name, key = escapeHtml(section.key);
-      parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escapeHtml(name)}">${sectionMark(section, shown)}<span class="label">${escapeHtml(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.under.length)}</span></button>
-              <button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify({ path: section.path }))}" aria-label="View ${escapeHtml(name)}" data-tip="View">${ICONS.arrowRight}</button>
-              <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escapeHtml(name)}" data-tip="More">${ICONS.more}</button>
-            </div>`]);
+      const section = item, shown = open.has(section.key);
+      parts.push([`section:${section.key}`, folderRow({ kind: "section", id: section.key, depth, closed: !shown, holds: holding.has(section.key), rail, mark: sectionMark(section, shown), name: section.name, count: section.under.length, place: { path: section.path } })]);
       if (shown) walk(section, depth + 1);
     }
   };
@@ -3990,10 +4004,10 @@ export {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
   clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
-  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRows,
+  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRow, folderRows,
   forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions,
   groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
-  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph,
+  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, markOf, morph,
   morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,
   onChart, onClosed, onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf,
   pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey,

@@ -88,10 +88,10 @@ import {
   aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
   depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
-  fillSlot, folderActions, folderById, folderPath, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
+  fillSlot, folderActions, folderById, folderPath, folderRow, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
   galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions, groupRows, groupShut, heatSamples,
   heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt,
-  keysCame, landingIn, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
+  keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
   nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint,
   paletteMarksAsked, panelSize, parentOf, pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS,
   presetMark, presetMarkKey, presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts,
@@ -6252,10 +6252,7 @@ function writeSideList(current) {
   const recentOrder = recents.map((item) => item.id).join();
   if (recentDrawn && recentOrder !== recentDrawn) (sideHeld = true), sideLight(null);
   recentDrawn = recentOrder;
-  const row = (/** @type {Chart} */ doc, depth = 0) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
-            <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}">${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escapeHtml(titleOf(doc))}</span></button>
-            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escapeHtml(titleOf(doc))}" data-tip="More">${ICONS.more}</button>
-          </div>`;
+  const row = (/** @type {Chart} */ doc, depth = 0) => leafRow({ kind: "chart", id: doc.id, depth, mark: chartMark(doc), label: titleOf(doc), labelCls: doc.title ? "" : "derived", name: titleOf(doc) });
   /** @type {[string, string][]} */
   const parts = [
     // Home first (Studio's start), a rule under it, scrolled with the rest: only the brand, the search and the
@@ -6275,12 +6272,8 @@ function writeSideList(current) {
     // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
     ...sideTree().map(({ item, depth }) => {
       if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
-      const folder = item, closed = folder.closed || rail, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
-      return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escapeHtml(folder.name)}">${folderMark(folder)}<span class="label">${escapeHtml(folder.name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
-              <button type="button" class="cap small chart-go" data-place="${escapeHtml(JSON.stringify({ folder: folder.id }))}" aria-label="View ${escapeHtml(folder.name)}" data-tip="View">${ICONS.arrowRight}</button>
-              <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escapeHtml(folder.name)}" data-tip="More">${ICONS.more}</button>
-            </div>`]);
+      const folder = item;
+      return /** @type {[string, string]} */ ([`folder:${folder.id}`, folderRow({ kind: "folder", id: folder.id, depth, closed: folder.closed || rail, holds: Boolean(current?.folder && isIn(current.folder, folder.id)), rail, mark: folderMark(folder), name: folder.name, count: counts.get(folder.id) ?? 0, place: { folder: folder.id } })]);
     })]),
     ...presetParts(),
   ];
