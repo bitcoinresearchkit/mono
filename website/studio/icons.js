@@ -56,7 +56,7 @@ const ICONS = {
   charts: svg(`${FRAME}<path d="m4.75 10.75 2.5-2.5 1.5 1.5 2.5-2.5"/>`),
   grid: svg('<rect x="2.25" y="2.25" width="4" height="4" rx="1"/><rect x="9.75" y="2.25" width="4" height="4" rx="1"/><rect x="2.25" y="9.75" width="4" height="4" rx="1"/><rect x="9.75" y="9.75" width="4" height="4" rx="1"/>'),
   browse: svg(LENS),
-  keyboard: svg(`<rect x="2.25" y="3.75" width="11.5" height="8.5" rx="2"/>${dot(5, 6.5)}${dot(8, 6.5)}${dot(11, 6.5)}${dot(6.5, 9.5)}${dot(9.5, 9.5)}`),
+  keyboard: svg(`<rect x="2.25" y="3.75" width="11.5" height="8.5" rx="2"/>${dot(5, 6.5)}${dot(8, 6.5)}${dot(11, 6.5)}<path d="M5.25 9.75h5.5"/>`),
   sidebar: svg(`${FRAME}<path d="M6.25 2.75v10.5"/>`),
   arrowUp: svg(ARROW.up),
   arrowDown: svg(ARROW.down),
