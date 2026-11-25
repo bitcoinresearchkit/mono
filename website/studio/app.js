@@ -6804,18 +6804,16 @@ function presetByAddress(i, window = undefined) {
 }
 /**
  * A preset picked (its tile, its row, ⌘K's, the empty chart's cards): opened, as itself, whatever's open, and where
- * it is in the sidebar in sight: the presets and the sections it's in opened, its rows (marked, as the open one's
- * are) in sight, the nearest scrolled to (see revealNearest).
+ * it is in the sidebar in sight: the presets opened (the sections it's in open as it's the open one: see revealed),
+ * its rows (marked, as the open one's are) in sight, the nearest scrolled to (see revealNearest).
  */
 function pickPreset(/** @type {number} */ i) {
   if (!presets?.[i]) return;
-  // (Opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has no
-  // sidebar to show it in.)
+  // (The group opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has
+  // no sidebar to show it in.)
   if (!phone.matches) {
-    const closed = sectionKeys(i).filter((key) => !prefs.presetsOpen.includes(key)), shut = groupShut("presets");
-    if (closed.length || shut) {
-      prefs.presetsOpen = [...prefs.presetsOpen, ...closed];
-      if (shut) prefs.groupsOpen = [...prefs.groupsOpen, "presets"];
+    if (groupShut("presets")) {
+      prefs.groupsOpen = [...prefs.groupsOpen, "presets"];
       savePrefs();
     }
     presetToReveal = i;

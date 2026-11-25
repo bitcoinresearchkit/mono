@@ -3077,6 +3077,14 @@ const seePaletteMarks = (rows) => {
 /** The presets a menu shows, their marks to draw (apart from the sidebar's rows in sight, which it clears). */
 const presetMarksAsked = /** @type {Set<number>} */ (new Set());
 /**
+ * The sections the open preset is in, opened in the sidebar for as long as it's the one open (its `at`), unless one is
+ * closed there meanwhile: shown, never kept (`presetsOpen` is what was opened there), so another preset opened folds
+ * them again.
+ */
+let revealed = { at: -1, keys: /** @type {Set<string>} */ (new Set()) };
+/** Whether a section of the presets is open in the sidebar: kept so, or opened for the open preset. */
+const sectionShown = (/** @type {string} */ key) => prefs.presetsOpen.includes(key) || revealed.keys.has(key);
+/**
  * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
  * opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
  * @returns {[string, string][]}
@@ -3087,11 +3095,13 @@ function presetParts() {
   // first frame, not come in after the rest, out of reach till the presets' own replace them (a moment: what they'd
   // run needs the presets); else, or they couldn't be read, its head alone, what it holds counted once it's read.)
   if (!root || !presets) return sidePresets && !presetsFailed && !onRail() && !groupShut("presets") && sidePresets.open === JSON.stringify(prefs.presetsOpen) ? sidePresets.parts.map(([key, html]) => [key, html.replace(/^<div /, "<div inert ")]) : [sideHead("presets", null, false)];
-  // (On the rail, none open: see renderCharts.)
-  const rail = onRail(), open = new Set(rail ? [] : prefs.presetsOpen);
-  // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is; the
-  // head too, only so (a preset's chart whose place is gone is in none of them).)
+  // (The sections the open preset is in: opened for the view, kept as they were (see revealed), whichever way it was
+  // opened; one closed holds it, marked as a folder holding the open chart is; the head too, only so (a preset's chart
+  // whose place is gone is in none of them).)
   const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
+  if (at !== revealed.at) revealed = { at, keys: new Set(holding) };
+  // (On the rail, none open: see renderCharts.)
+  const rail = onRail(), open = new Set(rail ? [] : [...prefs.presetsOpen, ...revealed.keys]);
   /** @type {[string, string][]} */
   const parts = [sideHead("presets", presets.length, at >= 0)];
   if (groupShut("presets")) return parts;
@@ -3111,7 +3121,8 @@ function presetParts() {
     }
   };
   walk(root, 0);
-  if (!rail) keepSidePresets(parts);
+  // (Kept as drawn only with what's kept open: a reveal restored in a first frame would be one of another view's.)
+  if (!rail && [...revealed.keys].every((key) => prefs.presetsOpen.includes(key))) keepSidePresets(parts);
   return parts;
 }
 /**
@@ -3257,11 +3268,12 @@ function toggleFolder(/** @type {string} */ id) {
 /** A section of the presets' menu in the sidebar (its ⋯, a right-click): its page; open or close it here. @returns {Action[]} */
 const sectionRows = (/** @type {string} */ key) => [
   { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", run: () => goTo(asPlace({ path: JSON.parse(key) })) },
-  ((open) => ({ key: "toggle", icon: open ? ICONS.folder : ICONS.folderOpen, label: open ? "Collapse" : "Expand", stay: true, run: () => toggleSection(key) }))(prefs.presetsOpen.includes(key)),
+  ((open) => ({ key: "toggle", icon: open ? ICONS.folder : ICONS.folderOpen, label: open ? "Collapse" : "Expand", stay: true, run: () => toggleSection(key) }))(sectionShown(key)),
 ];
 /** A section of the presets opened or closed in the sidebar, as a folder is (kept as left). @param {string} key */
 function toggleSection(key) {
-  const closing = prefs.presetsOpen.includes(key);
+  const closing = sectionShown(key);
+  revealed.keys.delete(key);
   prefs.presetsOpen = closing ? prefs.presetsOpen.filter((other) => other !== key) : [...prefs.presetsOpen, key];
   savePrefs();
   foldRow(() => all$("[data-section-row]", $("chart-list")).find((row) => row.dataset.sectionRow === key) ?? null, closing);
