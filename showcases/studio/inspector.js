@@ -23,7 +23,7 @@ import {
   belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
   GRADIENT_MOST, HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
   markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale,
-  OUTLINED, PAIRS, placedBy, placedOn, placeName, seriesLooked, SHAPES, STACKS, toggleMember, TREND_FLIP, TREND_SAYS,
+  OUTLINED, PAIRS, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
   TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -88,14 +88,14 @@ function stackOf(doc, data, kept = true) {
   // The open chart's, kept while what they're made of is the same (the stacked panes, their layers, places and values):
   // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again. (Its marks' own,
   // from other data, aren't kept: `kept` false.)
-  const key = kept && doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
+  const key = kept && doc.id === chart?.id ? doc.panes.filter(summed).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
     const shown = data.results.get(layer.id)?.values;
     return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${layer.from ?? ""}.${placedOn(layer) ? 1 : 0}.${shown ? idOf(shown) : "-"}`;
   }).join()}`).join("|") : "";
   if (key && key === stacksMade.key) return stacksMade.stacked;
   const stacked = new Map();
   for (const pane of doc.panes) {
-    if (!pane.stack) continue;
+    if (!summed(pane)) continue;
     const shares = pane.stack === "percent";
     for (const side of SIDES) {
       const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && !placedOn(layer) && data.results.get(layer.id)?.values);
@@ -478,7 +478,7 @@ function renderInspector() {
             ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escapeHtml(formatName(layer, result))}"><span class="name">${escapeHtml(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
             ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
-            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
+            <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" ${stack === "rows" && rowsUnfit(chart, layerPane) ? `aria-disabled="true" data-tip="${rowsUnfit(chart, layerPane)}"` : `data-tip="${tip}"`}>${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
           </section>`}
           ${(actionsShown = actionsOf(layer))}`;

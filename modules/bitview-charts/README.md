@@ -134,7 +134,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   `{ id, series, label, elements, hidden }` (the page's own `elements`, the first its key and name, the rest beside it;
   else made from its first series: a key of its color, its `label`, its value at the crosshair or its last in view, as
   its tag writes it; none in view, blank: a value from outside the view isn't shown as the view's). One shown, named; more, a chip (their first four keys and how many; a press on it told
-  `onPress`); an optional `summary` caption stays beside the folded count. The series pointed at named alone in it: the page's (`crosshair.pointed`, the crosshair on the plot or
+  `onPress`); an optional `summary` caption stays beside the folded count (words, or the page's own element: a color scale's key). The series pointed at named alone in it: the page's (`crosshair.pointed`, the crosshair on the plot or
   not: a tag, a row of its own, the pointer moved onto the legend), else the one the crosshair's pointer is on. Hidden ones
   left out (none shown: each named). `setWhole(true)`: every item named (a picture's). Its look the page's stylesheet's,
   over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-count`; `data-chip`,
@@ -190,6 +190,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   onto device pixels, smoothed only where it's squeezed; `forget(key)`, a column's strips let go (its cells anew).
   `viewed({ step, owners })`, told the blocks in view before each draw (what the page fetches and keeps). Fitted by
   the page's `fit`, else not; never hit.
+- `Rows({ paint, below, outline, side })`: a set's members one under another, time across (a heatmap of members): `set(rows)`, each `{ values, name, color }` on the timeline, the first at the top, each the pane's height shared evenly; each point a cell colored by the page's `paint(value, row, pixels, at)` (none, left clear: a row draws nothing before its data starts). Painted once into an image (a pixel a point), drawn a row a `drawImage` each pass, smoothed only where its points are squeezed. `below(value)`: its region under the page's level, outlined in `outline`, by blocks of a power of two of points (a device pixel wide at least, each under where most of its points are: the same at any pan). Its names on `side`'s axis, each in its row's color (rows shorter than a pill: every so many). Read on no scale; hit on a row with a value there (`rowAt(y, height)`). `changed()` after a change of how it paints.
 - `Profile({ groups, edge, cell, at, lit, bin, backdrop, closeLine, cumulative, viewed, fit })`: groups' amounts by value
   rows (each `{ id, rows, values, gain, loss, dimGain, dimLoss }`; a row's floor `edge(row)`, a value's row
   `cell(value)`) as bars from the plot's right edge, stacked, as long as a bin's total against the longest in view

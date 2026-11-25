@@ -17,7 +17,7 @@ import { $, all$, escapeHtml } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
 import { monthYear, plural } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
-import { MODES, newPaneIn, STACKS } from "/studio/vocabulary.js";
+import { MODES, newPaneIn, rowsUnfit, STACKS } from "/studio/vocabulary.js";
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
 import { isNamed } from "/studio/color.js";
 import { hashOf, uid } from "/studio/math.js";
@@ -708,7 +708,7 @@ const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement
 /** A menu item's mark: a check on the current one, the same room on the others. */
 const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
 /** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
-const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : `${MODES[paneMode(pane)].chip}${pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
+const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : `${MODES[paneMode(pane)].chip}${pane.stack === "rows" ? " · Rows" : pane.stack ? " · Stacked" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
 /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
 const editPane = (id, edit, look = false) => commit((doc) => {
   const pane = doc.panes.find((item) => item.id === id);
@@ -738,7 +738,7 @@ function scaleChoices(id) {
   const current = averageFor(chart, pane), ticking = chart.layers.some((layer) => layer.pane === id && !layer.hidden && LIVE.has(layer.series ?? ""));
   return [
     ...(pane.stack === "percent" ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a stacked pane (use linear or log)` }), run: () => setPaneMode(id, m) }))),
-    ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, run: () => setPaneStack(id, stack) })),
+    ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, ...(stack === "rows" && rowsUnfit(chart, pane) ? { disabled: rowsUnfit(chart, pane) } : {}), run: () => setPaneStack(id, stack) })),
     ...(chart.layers.filter((layer) => layer.pane === id).length > 1 ? ordersOf(pane).map(([reverse, name]) => ({ key: `order:${reverse ? "last" : "first"}`, group: "Order", label: name, current: Boolean(pane.reverse) === reverse, run: () => setPaneReverse(id, reverse) })) : []),
     ...["", ...Object.keys(AVERAGES)].map((span) => {
       const choice = averageFor(chart, pane, span);

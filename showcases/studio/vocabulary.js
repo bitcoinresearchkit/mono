@@ -193,8 +193,19 @@ const DASHES = [
   [LINE_STYLE.SparseDotted, "Sparse dots", 2, 4],
 ];
 const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
-/** A pane's stack: none, its layers one on another, or as shares of their sum. @type {[("" | "stack" | "percent"), string, string][]} */
-const STACKS = [["", "Off", "Each at its own value"], ["stack", "Stacked", "Each on the ones before"], ["percent", "100%", "As shares of them all"]];
+/** A pane's stack: none, its layers one on another, as shares of their sum, or one under another as rows (each a row of
+ * cells colored by its value, the price over them: see rowLayers). @type {[("" | "stack" | "percent" | "rows"), string, string][]} */
+const STACKS = [["", "Off", "Each at its own value"], ["stack", "Stacked", "Each on the ones before"], ["percent", "100%", "As shares of them all"], ["rows", "Rows", "Each a row, colored by its value, the price over them"]];
+/** Whether a pane's layers are summed: stacked, or as shares. @param {Pane} pane */
+const summed = (pane) => pane.stack === "stack" || pane.stack === "percent";
+/**
+ * A pane's rows, were it drawn as rows: its own value layers (not the price's candles, which the rows draw over them
+ * themselves; not one made from others, a signal, bubbles or a heatmap), shown (all: hidden ones too), in its order.
+ * @param {Chart} doc @param {Pane} pane
+ */
+const rowLayers = (doc, pane, all = false) => doc.layers.filter((layer) => layer.pane === pane.id && (all || !layer.hidden) && layer.type !== "candles" && layer.type !== "cloud" && !layer.from && !placedOn(layer) && !heatLike(layer));
+/** Why a pane can't be drawn as rows (none: it can): fewer than two layers of its own to be rows (see rowLayers), or them on its two scales (two units). @param {Chart} doc @param {Pane} pane */
+const rowsUnfit = (doc, pane) => ((rows) => (rows.length < 2 ? "Rows need two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "Rows need the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
 /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
 const MODES = [
   { chip: "Linear", name: "Linear", tip: "Linear" },
@@ -258,7 +269,7 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
  *   in its color in place of the number (see bandOf; under them all, the layer's `underName`). A baseline's base draws
  *   one too (`baseLine`: gray, in sparse dots).
- * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent", reverse?: boolean, average?: string }} Pane `reverse`:
+ * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" | "rows", reverse?: boolean, average?: string }} Pane `reverse`:
  *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
  * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
  *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
@@ -346,6 +357,6 @@ export {
   letterAt, LINE_STYLE, LINE_TYPE, LINED, lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_LEVELS,
   MAX_PANES, measured, measureOf, measureUnit, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, offScale,
   ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, PAIRS, placedBy, placedOn, placeName, poolPath, poolSeries,
-  PROFILE_VIEWS, resultText, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, toggleMember,
+  PROFILE_VIEWS, resultText, rowLayers, rowsUnfit, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, summed, toggleMember,
   TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, typeName, TYPES, unfitted, WIDTHS,
 };

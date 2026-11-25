@@ -58,10 +58,11 @@ export class Legend {
     });
   }
 
-  /** Its items (the page's elements put in it in their order, in place of what it held). @param {LegendItem[]} items @param {string} [summary] context beside the folded count */
+  /** Its items (the page's elements put in it in their order, in place of what it held). @param {LegendItem[]} items @param {string | HTMLElement} [summary] context beside the folded count (words, or the page's own element) */
   set(items, summary = "") {
     this.items = items;
-    if (this.summary.textContent !== summary) this.summary.textContent = summary;
+    if (typeof summary !== "string") this.summary.firstChild !== summary && this.summary.replaceChildren(summary);
+    else if (this.summary.textContent !== summary || this.summary.children.length) this.summary.textContent = summary;
     this.laid = items.map((item) => item.elements ?? [made(item)]);
     const all = [...this.laid.flat(), this.count, this.summary];
     // (What it holds now, in order: the elements given, then its count and summary; moved only where they're not so already (a

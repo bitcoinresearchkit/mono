@@ -2213,7 +2213,7 @@ function previewPane(panel, id, share = /** @type {number | null} */ (null)) {
   const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
   if (share !== null) sizes[i] = (share * others) / (1 - share);
   panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack === "rows" ? ", as rows" : pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layerRows(layers) || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
 }

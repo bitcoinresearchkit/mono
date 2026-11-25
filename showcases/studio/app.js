@@ -29,7 +29,7 @@ import {
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
   fittable, FLIP_APART, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, rowLayers, shapeKey, stretchResult,
   toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -46,7 +46,7 @@ import {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, bubbleAt, Bubbles, build,
   built, BY_BLOCK, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme, chartWidth, chipText,
   chunkAt, chunked, chunks, Cloud, columnBy, crossHeld, crossOn, crossSet, cssColor, dailyOf, dashFor, dataKey,
-  describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawSeries, dropCross, endReveal,
+  describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawRows, drawSeries, dropCross, endReveal,
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
   fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
@@ -696,7 +696,7 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  * at its running total, not at its values (its price line neither); on a percent or indexed scale, as its changes.
  * @param {Chart} doc @param {Layer} layer
  */
-const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
+const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack === "rows" ? "Not drawn in rows: their colors turn on it" : pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
@@ -3663,6 +3663,7 @@ function buildChart(doc, data, refit) {
     drawn.set(layer.id, series);
   }
   stackBands(doc, stacked);
+  drawRows(doc, data);
   // Lines across, behind every series, labeled on the axis: one per value on a scale (a pane's side), in its color
   // and style; shared by several layers, gray, in the first one's style; shown while any of its layers is. None in
   // % and indexed panes: they show changes, not values. Each pane's side's the library's Levels.
@@ -3739,8 +3740,10 @@ function buildChart(doc, data, refit) {
     panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
     for (const side of SIDES) {
       // (A side's ticks in the letters of its layers' unit, SI's for bytes and hash rates.)
-      const format = fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
-      panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
+      // (A pane of rows: their names on the left, nothing else written there; the price over them on the right, on its log scale.)
+      const rowed = pane.stack === "rows";
+      const format = rowed ? (side === "left" ? NO_FORMAT : valueFormatOf(["usd"])) : fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
+      panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[rowed ? (side === "left" ? 0 : 1) : paneMode(pane)] }) });
       if (!keep) panes[i].setRange(undefined, undefined, side);
       const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
       panes[i].setFormat(used || format === NO_FORMAT ? format.value : libraryWords, used || format === NO_FORMAT ? format.ticks : null, side);
@@ -9841,7 +9844,7 @@ document.addEventListener("click", (event) => {
   else if (id) select(id);
   else if (toggle) event.altKey ? soloLayer(toggle) : toggleHidden(toggle);
   else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneMode(paneMode, Number(mode));
-  else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
+  else if (paneStack) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneStack(paneStack, target.dataset.stack ?? "");
   else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
   // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
   else if (action === "palette") openPalette({ resume: true });
