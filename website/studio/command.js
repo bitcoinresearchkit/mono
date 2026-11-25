@@ -126,7 +126,7 @@ function startFinder() {
   try {
     worker = finder.worker = startWorker(new URL("./search-worker.js", import.meta.url));
   } catch {
-    return;
+    return; // (startWorker said why.)
   }
   // (Its first message builds the engine; questions sent after it wait for that.)
   worker.postMessage(finderFrom());
@@ -139,7 +139,7 @@ function startFinder() {
   };
   worker.onerror = stop;
   worker.onmessage = ({ data }) => {
-    if (!data || data.broken !== undefined) return stop();
+    if (!data || data.broken !== undefined) return console.error("search-worker.js: its index could not be built", data?.broken), stop();
     if (data.ready) return void (finder.ready = true);
     const reply = finder.asking;
     finder.asking = null;
