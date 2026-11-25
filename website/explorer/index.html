@@ -268,8 +268,8 @@
           position: absolute;
           top: 11px;
           left: 13px;
-          width: 14px;
-          height: 14px;
+          width: 16px;
+          height: 16px;
           color: var(--faint);
           pointer-events: none;
         }
@@ -586,8 +586,8 @@
         color: var(--ink);
         cursor: pointer;
         svg {
-          width: 15px;
-          height: 15px;
+          width: 16px;
+          height: 16px;
         }
       }
       /* (A finger's reach, 44px, unseen: half the 6px gap toward the other step, the rest outward.) */
@@ -1517,7 +1517,7 @@
     <header class="bar">
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="find" id="find" role="search" autocomplete="off">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="7" cy="7" r="5" /><path d="m14 14-3.4-3.4" /></svg>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.25" cy="7.25" r="4.5" /><path d="m10.5 10.5 3.25 3.25" /></svg>
         <label class="reach" for="find-q"></label>
         <input
           id="find-q"
@@ -1761,9 +1761,9 @@
       const poolName = (pool) => esc(!pool || pool.name === "Unknown" ? "Unknown miner" : pool.name);
 
       const ICON = {
-        prev: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m10 3-5 5 5 5"/></svg>`,
-        next: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 5 5-5 5"/></svg>`,
-        copy: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 3.2A1.8 1.8 0 0 0 8.8 2H4a2 2 0 0 0-2 2v4.8c0 .8.5 1.5 1.2 1.7"/></svg>`,
+        prev: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 3.25 5.25 7.75l4.5 4.5"/></svg>`,
+        next: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6.25 3.25 4.5 4.5-4.5 4.5"/></svg>`,
+        copy: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5.25" y="5.25" width="9" height="9" rx="2"/><path d="M9.75 1.75h-6a2 2 0 0 0-2 2v6"/></svg>`,
       };
 
       // ---------------------------------------------------------------- Packing a block into squares.

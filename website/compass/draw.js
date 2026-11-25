@@ -188,7 +188,7 @@ export function buildCompass(/** @type {SVGSVGElement} */ svg, /** @type {boolea
   for (const [i, s] of STATES.entries()) {
     const col = 1 - s.local, row = 1 - s.cycle, cx = (2 - col) * CELL, cy = row * CELL;
     cells.push(`<g class="cell" data-i="${i}" data-light="${i}" role="button" tabindex="0" aria-label="${s.name}: light its days" aria-pressed="false" style="--c: var(--s-${s.id})"><rect x="${cx + GAP / 2}" y="${cy + GAP / 2}" width="${CELL - GAP}" height="${CELL - GAP}" rx="14" /></g>`);
-    words.push(`<g class="cell" data-i="${i}" data-light="${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 46}">${s.name}</text><g class="icon" fill="none" stroke="var(--s-${TRENDS[s.trend].color})" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path data-x="${cx + 18}" data-y="${cy + 24}" d="${TRENDS[s.trend].arrow}" /></g><text class="share" x="${cx + 18}" y="${cy + 78}">–</text><text class="move" x="${cx + 18}" y="${cy + 180}">${s.move}</text></g>`);
+    words.push(`<g class="cell" data-i="${i}" data-light="${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 46}">${s.name}</text><g class="icon" fill="none" stroke="var(--s-${TRENDS[s.trend].color})" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path data-x="${cx + 18}" data-y="${cy + 24}" d="${TRENDS[s.trend].arrow}" /></g><text class="share" x="${cx + 18}" y="${cy + 78}">–</text><text class="move" x="${cx + 18}" y="${cy + 180}">${s.move}</text></g>`);
   }
   // (Each side: its cloud named on the outside, its three parts inside, each over its row or column, pressed
   // anywhere in that stretch of the margin, the cloud's name too: a press on it lights the days inside its cloud.
@@ -216,7 +216,8 @@ export function buildCompass(/** @type {SVGSVGElement} */ svg, /** @type {boolea
   fitCompass(svg);
 }
 /** What follows the drawing's width and its text's size as its font draws it: the page's px and the axis words at
- * its 12px (in the drawing's units, so at any width), each mood's trend's arrow after its name. (Again as it's resized, or
+ * its 12px (in the drawing's units, so at any width), each mood's trend's arrow after its name (a 1.5 stroke on the 16 grid, scaled
+ * with the figure, itself scaled to any width: the one drawing here not shown at its size). (Again as it's resized, or
  * its fonts load.) */
 export function fitCompass(/** @type {SVGSVGElement} */ svg) {
   const drawn = svg.getBoundingClientRect().width;

@@ -857,8 +857,8 @@
           }
 
           svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             margin-left: -4px;
           }
         }
@@ -1291,8 +1291,8 @@
           transition: background-color 0.15s, opacity 0.15s;
 
           svg {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
           }
 
           &:hover:not(:disabled) {
@@ -1418,8 +1418,8 @@
         transition: opacity 0.2s;
 
         svg {
-          width: 17px;
-          height: 17px;
+          width: 16px;
+          height: 16px;
         }
 
         &:hover {
@@ -2294,17 +2294,16 @@
   </head>
   <body>
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
-      <!-- The page's icons, one set: a 24 grid, a 2 stroke, round ends and joins; the filled ones (play, pause) as heavy
-           as the stroked ones look. Play's triangle sits right of the middle, where it looks centred, its corners round. -->
+      <!-- The page's icons, one set: the 16 grid and 1.5 stroke of the style table (studio/icons.js), round ends and joins; the filled ones
+           (play, pause), drawn on 24, as heavy as the stroked ones look. Play's triangle sits right of the middle, where it looks centred, its corners round. -->
       <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.25 5.32v13.36c0 .86.93 1.4 1.68.97l11.07-6.68a1.12 1.12 0 0 0 0-1.94L9.93 4.35c-.75-.43-1.68.11-1.68.97z" fill="currentColor" /></symbol>
       <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6.5" y="5" width="3.75" height="14" rx="1.25" fill="currentColor" /><rect x="13.75" y="5" width="3.75" height="14" rx="1.25" fill="currentColor" /></symbol>
-      <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5.25" /><circle cx="12" cy="7.75" r="0.75" fill="currentColor" stroke-width="1" /></symbol>
-      <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.75 5.5 8.25 12l6.5 6.5" /></symbol>
-      <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.25 5.5 15.75 12l-6.5 6.5" /></symbol>
-      <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5v-11M8.25 7.25 12 3.5l3.75 3.75M8 10.5H6.5A1.5 1.5 0 0 0 5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7a1.5 1.5 0 0 0-1.5-1.5H16" /></symbol>
-      <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.75 6.75l10.5 10.5M17.25 6.75 6.75 17.25" /></symbol>
-      <symbol id="i-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5 15 12l-5.5 5.5" /></symbol>
-      <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M8 6h10v10" /></symbol>
+      <symbol id="i-info" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.75" cy="7.75" r="5.5" /><path d="M7.75 8.25v2.5" /><circle cx="7.75" cy="5.25" r="1.25" fill="currentColor" stroke="none" /></symbol>
+      <symbol id="i-left" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9.75 3.25 5.25 7.75l4.5 4.5" /></symbol>
+      <symbol id="i-right" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6.25 3.25 4.5 4.5-4.5 4.5" /></symbol>
+      <symbol id="i-share" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7.75 10.25v-8M5.25 4.75l2.5-2.5 2.5 2.5" /><path d="M5.25 7.75h-.5a2 2 0 0 0-2 2v2.5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-2.5a2 2 0 0 0-2-2h-.5" /></symbol>
+      <symbol id="i-close" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m4.25 4.25 7.5 7.5M11.75 4.25l-7.5 7.5" /></symbol>
+      <symbol id="i-out" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3.25 12.75 9.5-9.5M7.25 3.25h5.5v5.5" /></symbol>
     </svg>
 
     <div class="edge" aria-hidden="true"></div>
@@ -2356,9 +2355,9 @@
 
     <main id="shelves">
       <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
-      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
-      <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
-      <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/explorer/">Explorer<svg class="glyph" aria-hidden="true"><use href="#i-right" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-right" /></svg></a></h2></section>
+      <section class="shelf" aria-labelledby="charts-title"><h2 id="charts-title">Popular charts <a href="/studio/presets/">All charts<svg class="glyph" aria-hidden="true"><use href="#i-right" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="topics-title"><h2 id="topics-title">Browse charts by topic <small id="topics-count"></small></h2></section>
       <section class="shelf" aria-labelledby="dev-title"><h2 id="dev-title">For developers</h2></section>
     </main>
