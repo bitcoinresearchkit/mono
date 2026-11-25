@@ -208,8 +208,16 @@ const rowLayers = (doc, pane, all = false) => ((rows) => (pane.reverse ? rows.re
 const rowsUnfit = (doc, pane) => ((rows) => (FINE.has(doc.index) ? "A heatmap needs a daily or coarser interval" : rows.length < 2 ? "A heatmap needs two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "A heatmap needs the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
 /** Whether a pane is drawn as rows: asked for, and it can be (else as lines, its choice kept for when it can). @param {Chart} doc @param {Pane} pane */
 const asRows = (doc, pane) => pane.stack === "rows" && !rowsUnfit(doc, pane);
+/** What a pane draws its layers into, as said ("Not drawn in a stack"): a heatmap or a stack; none, "". @param {Chart} doc @param {Pane | undefined} pane */
+const drawnInto = (doc, pane) => (pane && asRows(doc, pane) ? "a heatmap" : summed(pane) ? "a stack" : "");
 /** The level a pane's rows all have (a ratio's 1, a net's 0: what their colors diverge about), none: undefined. @param {Chart} doc @param {Pane} pane */
 const rowsLevel = (doc, pane) => ((rows) => rows[0]?.levels?.map((line) => line.value).find((value) => rows.every((layer) => layer.levels?.some((line) => line.value === value))))(rowLayers(doc, pane));
+/** A layer named anew (none: its own name), its set's short name for the old one (`short`) let go with it: every rename goes through here. @param {Layer} layer @param {string | undefined} label */
+const nameLayer = (layer, label) => {
+  if (label) layer.label = label;
+  else delete layer.label;
+  delete layer.short;
+};
 /** A heatmap's outlines: none, or around the region under its rows' level (see rowsLevel), offered only where it has one (`outlinable`): [on, its name]. @type {[boolean, string][]} */
 const OUTLINES = [[false, "None"], [true, "Below the level"]];
 /** Whether a pane's heatmap can be outlined: drawn as one, its rows with a level. @param {Chart} doc @param {Pane} pane */
@@ -361,11 +369,11 @@ const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from,
 
 export {
   asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
-  cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, DEFAULT_ROWS, defaultOpacity, EDGES, edgesOf,
+  cloudLayers, COLOR_MODES, drawnInto, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, DEFAULT_ROWS, defaultOpacity, EDGES, edgesOf,
   failing, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT,
   HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideText, hollowOf, kindColor, kindLook, kindOf, layersColors,
   letterAt, LINE_STYLE, LINE_TYPE, LINED, lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_LEVELS,
-  MAX_PANES, measured, measureOf, measureUnit, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, offScale,
+  MAX_PANES, measured, measureOf, measureUnit, membersOf, MODES, modesOf, nameLayer, newPaneIn, nextColor, nextLetter, offScale,
   ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, PAIRS, placedBy, placedOn, placeName, poolPath, poolSeries,
   PROFILE_VIEWS, resultText, rowLayers, rowsLevel, rowsUnfit, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, summed, toggleMember,
   TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, typeName, TYPES, unfitted, WIDTHS,

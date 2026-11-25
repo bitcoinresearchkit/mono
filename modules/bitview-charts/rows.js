@@ -100,14 +100,14 @@ export class Rows {
     const rows = this.rows, n = rows.reduce((most, row) => Math.max(most, row.values.length), 0), image = this.image;
     (image.width = Math.max(1, n)), (image.height = Math.max(1, 3 * rows.length));
     const context = /** @type {CanvasRenderingContext2D} */ (image.getContext("2d")), cells = context.createImageData(image.width, image.height), pixels = cells.data, line = 4 * image.width;
-    this.under = rows.map(() => new Uint8Array(n));
+    this.under = this.below ? rows.map(() => new Uint8Array(n)) : [];
     rows.forEach((row, k) => {
       const values = row.values, under = this.under[k], top = 3 * k * line;
       for (let i = 0; i < values.length; i++) {
         const value = values[i];
         if (value !== value) continue;
         this.paint(value, k, pixels, top + 4 * i);
-        if (this.below?.(value)) under[i] = 1;
+        if (under && this.below?.(value)) under[i] = 1;
       }
       pixels.copyWithin(top + line, top, top + line);
       pixels.copyWithin(top + 2 * line, top, top + line);

@@ -25,11 +25,11 @@ import {
 } from "/studio/format.js";
 import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
-  asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
   fittable, FLIP_APART, fromOf, heatLike, hideText, hollowOf, kindLook, kindOf, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult, summed,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, stretchResult,
   toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -688,7 +688,7 @@ const trendShort = () => {
 const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
   const pane = doc.panes.find((item) => item.id === layer.pane);
   // (A cloud of its pane's two edges alone reads no values: anywhere.)
-  return !layer.from || (edgesOf(layer).length > 1 && !cloudLayers(layer).length) ? "" : offScale(doc, layer) ? ONE_SCALE : pane?.stack ? "Not in a stack" : layer.type === "cloud" && paneMode(pane) >= 2 ? "Not on this scale" : "";
+  return !layer.from || (edgesOf(layer).length > 1 && !cloudLayers(layer).length) ? "" : offScale(doc, layer) ? ONE_SCALE : drawnInto(doc, pane) ? `Not in ${drawnInto(doc, pane)}` : layer.type === "cloud" && paneMode(pane) >= 2 ? "Not on this scale" : "";
 };
 
 /**
@@ -696,7 +696,7 @@ const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
  * at its running total, not at its values (its price line neither); on a percent or indexed scale, as its changes.
  * @param {Chart} doc @param {Layer} layer
  */
-const acrossUnfit = (doc, layer) => ((pane) => (pane && asRows(doc, pane) ? "Not drawn in rows: their colors turn on it" : pane && summed(pane) ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
+const acrossUnfit = (doc, layer) => ((pane) => (drawnInto(doc, pane) ? `Not drawn in ${drawnInto(doc, pane)}` : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 /**
  * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
  * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
@@ -7438,8 +7438,7 @@ $("inspector").addEventListener("keydown", (event) => {
 });
 $("inspector").addEventListener("input", (event) => {
   const target = event.target;
-  // (Its short name, its set's for the label it had, goes with it.)
-  if (target.id === "label") editLayer((layer) => ((layer.label = target.value.trim() || undefined), delete layer.short), { coalesce: `label:${selected}` });
+  if (target.id === "label") editLayer((layer) => nameLayer(layer, target.value.trim()), { coalesce: `label:${selected}` });
   else if (target.id === "formula") {
     markTyping();
     drawWhenReady(selected, target.value);
@@ -10347,7 +10346,7 @@ const LIVE = new Map([
 function liveLayers() {
   if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
   // Averaged measurements, like formula averages, update when a block supplies their source data.
-  return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && ((pane) => !pane?.stack && !averageFor(chart, pane).active)(chart.panes.find((pane) => pane.id === layer.pane)));
+  return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && ((pane) => !drawnInto(chart, pane) && !averageFor(chart, pane).active)(chart.panes.find((pane) => pane.id === layer.pane)));
 }
 /** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
 const ownLive = new WeakSet();

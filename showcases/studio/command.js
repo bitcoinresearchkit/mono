@@ -28,7 +28,7 @@ import { dashGlyph, glyph, glyphSvg, ICONS, markBody, OUTLINE_GLYPH, shapeGlyph 
 import {
   belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
   GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
-  MAX_PANES, measured, MODES, modesOf, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
+  drawnInto, MAX_PANES, measured, MODES, modesOf, nameLayer, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
   seriesLooked, SHAPES, STACKS, stretchResult, typeName, TYPES,
 } from "/studio/vocabulary.js";
 import {
@@ -1903,7 +1903,7 @@ function layerPage(id) {
         { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
       ] : []),
       ...(!layer.from && layer.type !== "signal" ? /** @type {const} */ ([["cycles", false, "Compare halving cycles"], ["cycles", true, "Overlay halving cycles"], ["years", false, "Compare years"], ["years", true, "Overlay years"]]).map(([which, over, label]) => ({ key: over ? `${which}-over` : which, icon: ICONS.pane, label, verb: over ? "Overlay" : "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: over ? "Each over the ones before" : "Each from its start" }))(((periods) => (periods.length ? unfitHere([periods[0].formula]) : overShort(which)))(periodsOf(layer, which, over))), run: () => comparePeriods(id, which, over) })) : []),
-      { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined))) },
+      { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => nameLayer(item, text))) },
       // (A bubbles layer's own, after its series' or formula's, as its settings have them: one group each.)
       ...(layer.type === "bubbles" ? [
         { key: "ref", icon: glyph("bubbles"), label: "On", aside: ((ref) => (ref ? labelOf(ref) : "Its pane's middle"))(layerById(layer.ref ?? "")), group: "Bubbles", page: () => choicePage("On", () => refChoices(id)) },
@@ -1941,7 +1941,7 @@ function layerPage(id) {
       ...(layer.type === "candles" ? ((hollow) => [{ key: "hollow", icon: glyph("candles"), label: "Candles", aside: hollow ? "Hollow" : "Filled", verb: hollow ? "Fill them" : "Make rising ones hollow", group: "Style", stay: true, run: set((item) => (item.hollow = hollowOf(item) ? "none" : undefined)) }])(hollowOf(layer)) : []),
       ...(OUTLINED.has(layer.type) ? [{ key: "outline", icon: OUTLINE_GLYPH, label: "Outline", aside: layer.outline ? "On" : "Off", verb: layer.outline ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.outline = !item.outline || undefined)) }] : []),
       ...(layer.type === "bubbles" ? [] : [
-        { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
+        { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? ((into) => (layer.type !== "signal" && into ? `On, not drawn in ${into}` : "On"))(drawnInto(chart, chart.panes.find((pane) => pane.id === layer.pane))) : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
         { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? `${plural(layer.levels.length, "level")}${((why) => (why ? `, ${why.toLowerCase()}` : ""))(acrossUnfit(chart, layer))}` : "None", group: "Style", page: () => levelsPage(id) },
       ]),
       { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },

@@ -23,7 +23,7 @@ import {
   belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
   GRADIENT_MOST, HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
   markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale,
-  OUTLINED, OUTLINES, outlinable, PAIRS, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
+  drawnInto, nameLayer, OUTLINED, OUTLINES, outlinable, PAIRS, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
   TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -70,7 +70,7 @@ function fillOf(layer, stacked) {
   return [top, stacked || above || layer.solid ? top : regime ? top * 0.08 : 0];
 }
 /** Whether a layer's pane stacks it. @param {Layer} layer */
-const stackedIn = (layer, doc = chart) => Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.stack);
+const stackedIn = (layer, doc = chart) => summed(doc.panes.find((pane) => pane.id === layer.pane));
 /** The open chart's stacks as last made, and what they were made of (see stackOf). */
 let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, foot: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()), times: /** @type {unknown} */ (null) };
 /**
@@ -619,8 +619,8 @@ const candlesField = (/** @type {Layer[]} */ layers) => {
 };
 const priceLineField = (/** @type {Layer[]} */ layers) => {
   if (!layers.every((layer) => layer.type !== "cloud" && !placedOn(layer) && !heatLike(layer))) return "";
-  const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), stacked = layers.some((layer) => layer.priceLine && chart.panes.find((pane) => pane.id === layer.pane)?.stack);
-  return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${stacked ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`;
+  const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), into = layers.map((layer) => (layer.priceLine ? drawnInto(chart, chart.panes.find((pane) => pane.id === layer.pane)) : "")).find(Boolean);
+  return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${into ? `<p class="from-status" role="status">Not drawn in ${into}.</p>` : ""}`;
 };
 const outlineField = (/** @type {Layer[]} */ layers) => {
   if (!layers.every((layer) => OUTLINED.has(layer.type))) return "";
@@ -2509,7 +2509,8 @@ function duplicateLayers(ids) {
     for (const layer of originals) {
       // (One of two colors, or colored by another layer or its levels, kept as it looks: a color of its own, the next.)
       const paired = layer.type === "candles" || colorModeOf(layer) !== "one" || (layer.type === "signal" && (layer.colorBelow !== undefined || signedSignal(layer)));
-      const copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: paired ? layer.color : nextColor(doc), label: layer.label ? `${layer.label} copy` : undefined };
+      const copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: paired ? layer.color : nextColor(doc) };
+      nameLayer(copy, layer.label && `${layer.label} copy`);
       doc.layers.splice(doc.layers.findIndex((item) => item.id === layer.id) + 1, 0, copy);
       copies.push(copy.id);
     }
@@ -2786,7 +2787,7 @@ function deriveChoices(/** @type {string} */ id) {
   ];
 }
 /** Whether a layer's in a stack (what's added over it would be summed in). */
-const onStack = (/** @type {Layer} */ layer) => Boolean(chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+const onStack = (/** @type {Layer} */ layer) => summed(chart.panes.find((pane) => pane.id === layer.pane));
 /**
  * A starter's formulas from a layer, added: in its pane when they're in its unit, else in a new one (a band's two
  * lines in one color), the first selected, its window to set in its formula. "own": ⌘K's formula page on its letter.

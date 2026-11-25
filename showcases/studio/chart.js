@@ -27,7 +27,7 @@ import {
 import { ICONS } from "/studio/icons.js";
 import {
   belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
-  asRows, placedOn, resultText, rowLayers, rowsLevel, signedMeasure, summed, stretchResult, TWO_KEPT,
+  asRows, drawnInto, placedOn, resultText, rowLayers, rowsLevel, signedMeasure, summed, stretchResult, TWO_KEPT,
 } from "/studio/vocabulary.js";
 import {
   CADENCE, CHUNK, FINE, FINE_STEP, FIRST_CHUNKS, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, KEPT_CHUNKS,
@@ -1116,7 +1116,7 @@ const settled = () => chartShown() && !pending() && !buildAsked;
  * What a chart's resolved values depend on: its interval, each pane's average, and what each layer reads and its
  * pane (in any order); a heatmap's holders and measure (its result's: whether Bitview has them, its unit).
  */
-const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map((pane) => [pane.id, pane.average ?? "", asRows(doc, pane)]).sort(), doc.layers.map((layer) => [layer.id, layer.pane, layer.letter, layer.series, layer.formula, layer.from ? layer.type : null, layer.from ?? null, layer.ref ?? null, heatLike(layer) ? [layer.heatmap ?? "all", layer.profile ?? null, measureOf(layer)] : null]).sort()]);
+const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.panes.map(({ id, average }) => [id, average ?? ""]).sort(), doc.layers.map((layer) => [layer.id, layer.pane, layer.letter, layer.series, layer.formula, layer.from ? layer.type : null, layer.from ?? null, layer.ref ?? null, heatLike(layer) ? [layer.heatmap ?? "all", layer.profile ?? null, measureOf(layer)] : null]).sort()]);
 /**
  * What a chart's build draws from, the theme's tokens too (what they're read for: a contrast change redraws it, see
  * redrawChart): all of it but its title and names, its range (a view: see showRange), its drawings, its panes' sizes
@@ -1477,7 +1477,7 @@ function setGap() {
  * layer's.
  */
 function bandsOf(/** @type {Pane} */ pane) {
-  const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !pane.stack) && !placedOn(layer) && !heatLike(layer));
+  const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !summed(pane)) && !placedOn(layer) && !heatLike(layer));
   return pane.reverse ? layers.reverse() : layers;
 }
 /**
@@ -1625,7 +1625,7 @@ function updateLegends() {
     // foldedInto.)
     const folded = foldedInto(chart);
     const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane && !folded.has(layer.id));
-    const html = (pane?.stack && pane.reverse ? mine.reverse() : mine).map(item).join("");
+    const html = (drawnInto(chart, pane) && pane?.reverse ? mine.reverse() : mine).map(item).join("");
     // (Its focus kept: written again as what it shows changes (a layer renamed, recolored, hidden; a selection only
     // marks it, see markLegends).)
     let focus = null;
@@ -2643,8 +2643,8 @@ function drawRows(doc, data) {
     const place = level === undefined ? (log ? Math.log10 : (/** @type {number} */ value) => value) : ratio ? (/** @type {number} */ value) => Math.log(value / level) : (/** @type {number} */ value) => ((d) => Math.sign(d) * Math.log1p(Math.abs(d) / typical))(value - level);
     // (Its ends: about a ratio's level, each side's own, so the side that strays less still reads (MVRV's 0.6 as red as
     // its 4 is green); about an amount's, one for both, the log already evening them.)
-    const sorted = placed(place), whole = signed ? quantile(placed((value) => Math.abs(place(value)) || NaN), ROWS_WHOLE) : NaN;
-    const lo = signed ? -whole : quantile(sorted, 1 - ROWS_WHOLE), hi = signed ? whole : quantile(sorted, ROWS_WHOLE);
+    const whole = signed ? quantile(placed((value) => Math.abs(place(value)) || NaN), ROWS_WHOLE) : NaN, sorted = signed ? null : placed(place);
+    const lo = sorted ? quantile(sorted, 1 - ROWS_WHOLE) : -whole, hi = sorted ? quantile(sorted, ROWS_WHOLE) : whole;
     const up = channels(ink("green")), down = channels(ink("red")), one = channels(ink(ROWS_HUE));
     // (About a ratio, the middle lifted (see ROWS_CURVE); a signed log or one hue, as it is: lifted again, most cells read alike.)
     const curve = ratio ? ROWS_CURVE : 1;
@@ -3086,7 +3086,7 @@ function marginsOf(doc, pane, i) {
   // (A picture's legend wraps, all of it shown: room for it, however many lines, the lines under it (60% at most);
   // the page's scrolls in one.)
   const room = doc.legend === "off" ? 14 : legendRoom;
-  return { top: clamp(room / height, 0.03, exporting ? 0.6 : 0.35), bottom: pane.stack ? 0 : clamp(14 / height, 0.02, 0.08) };
+  return { top: clamp(room / height, 0.03, exporting ? 0.6 : 0.35), bottom: drawnInto(doc, pane) ? 0 : clamp(14 / height, 0.02, 0.08) };
 }
 /** The room over a pane's lines a legend takes, as one last measured (a guess till then). */
 let legendRoom = 40;

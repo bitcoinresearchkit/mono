@@ -17,7 +17,7 @@ import { $, all$, escapeHtml } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
 import { monthYear, plural } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
-import { MODES, newPaneIn, OUTLINES, outlinable, rowsUnfit, STACKS, summed } from "/studio/vocabulary.js";
+import { MODES, newPaneIn, OUTLINES, outlinable, rowsUnfit, STACKS } from "/studio/vocabulary.js";
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
 import { isNamed } from "/studio/color.js";
 import { hashOf, uid } from "/studio/math.js";
@@ -715,11 +715,7 @@ const editPane = (id, edit, look = false) => commit((doc) => {
   if (pane) edit(pane);
 }, { look });
 const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode), true);
-// (A stack drawn as a heatmap: its linear scale was the stack's (sums need one); its cells by log, amounts across decades.)
-const setPaneStack = (id, stack) => editPane(id, (pane) => {
-  if (stack === "rows" && summed(pane)) pane.mode = 1;
-  stack ? (pane.stack = stack) : delete pane.stack;
-});
+const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
 const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
 const setPaneOutline = (id, on) => editPane(id, (pane) => (on ? (pane.outline = true) : delete pane.outline), true);
 const setPaneAverage = (id, average) => editPane(id, (pane) => (average ? (pane.average = average) : delete pane.average));
