@@ -514,12 +514,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const titled = (/** @type {string} */ what) => `${what}: ${who}`;
     /**
      * Its share of supply or capital in profit and loss: the two stacked, the share in profit under, in loss over, where
-     * they meet the share; beside its whole's, the share in loss alone, its whole's the same measure in its color,
-     * dashed, unfilled (in profit, the rest).
+     * they meet the share; beside its whole's, the share in loss alone, two lines unfilled (a fill tints the plot under
+     * them): its own in the measure's color, its whole's in ink, dashed, as context (in profit, the rest).
      * @param {string} what @param {any} own @param {any} theirs
      */
     const shares = (what, own, theirs) => (beside && theirs?.inLoss?.share
-      ? measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "area" }), series(theirs.inLoss.share, beside[1], { color: "red", dash: 3 })])
+      ? measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "line" }), series(theirs.inLoss.share, beside[1], { color: "ink", type: "line", dash: 3 })])
       : measure(shownAs("Share in profit", `Share of ${what} in profit and in loss`), who, [series(own.inProfit.share, "In profit", { color: "green", type: "area" }), series(own.inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }));
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
@@ -1001,7 +1001,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
    */
   const groupWhole = (key) => {
     if (key === "all") return { ...ALL, cohort: t.holders.all, who: holderName("all").who };
-    const h = holderName(key), coins = h.coins, capital = h.coins.endsWith("' coins") ? h.coins.replace(/ coins$/, " capital") : `the capital of ${coins}`;
+    const h = holderName(key), { coins, capital } = h;
     return { coins, capital, place: { coins, capital }, cohort: t.holders[key], who: h.who };
   };
   /** A holder group's section. @param {string} key @param {(ChartNode | SectionNode | null | undefined | false)[]} items @param {{ icon?: string }} [options] */

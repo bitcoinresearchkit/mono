@@ -10837,6 +10837,9 @@ const studio = Object.freeze({
     const type = options.type ?? "image/png", quality = bounded(options.quality ?? 0.9, "quality", 0.01, 1), partSize = Math.round(bounded(options.partSize ?? 45_000, "partSize", 1000, 1e8));
     if (!["image/png", "image/webp", "image/jpeg"].includes(type)) throw new Error('type: "image/png", "image/webp" or "image/jpeg"');
     await studio.ready();
+    // (Its legends' marks its own lines, as the picture page draws them: not the faint ones they show till its mini
+    // chart's drawn, which a page just opened, by a script, has yet to.)
+    if (await freshThumb(chart)) saveThumbsSoon();
     // (Made for the chart as it is now, whole or its part 0; its parts after the first from that same picture, of the
     // same chart, cut alike, whatever's moved since (a live price each second); one asked for otherwise, none.)
     const wanted = JSON.stringify([chart.id, width, height, scale, type, quality, partSize]);
