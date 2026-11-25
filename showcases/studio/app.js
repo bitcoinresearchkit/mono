@@ -145,7 +145,7 @@ import {
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
-  setPaneMode, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
+  setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
 } from "/studio/presets-edit.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -1017,11 +1017,12 @@ let library = (() => {
  * path (a drawing of many points) and a folder's icon, so one that doesn't know them can't drop them; 13, heatmaps
  * and gradients, so one that doesn't know them can't turn a heatmap into a line or drop a gradient; 14, profiles, so
  * one that doesn't know them can't turn a profile into a line or drop its holder groups; 15, a layer's interval ceiling
- * (`maxInterval`) and its zero framing (`fit: "zero"`), so one that doesn't know them can't drop them): one saved by a newer
+ * (`maxInterval`) and its zero framing (`fit: "zero"`), so one that doesn't know them can't drop them; 16, a pane drawn as a
+ * heatmap, its outline and its layers' short names, so one that doesn't know them can't drop them or draw it as a stack): one saved by a newer
  * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
  * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
  */
-const SCHEMA = 15;
+const SCHEMA = 16;
 let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && startText !== null);
 /** Why nothing's saved here, if it isn't: a newer Studio's library ("newer"), one this can't read ("unreadable"), storage full ("full"). */
 let unsavedWhy = !readOnly ? "" : Number(/** @type {any} */ (library)?.schema) > SCHEMA ? "newer" : "unreadable";
@@ -3740,10 +3741,9 @@ function buildChart(doc, data, refit) {
     panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
     for (const side of SIDES) {
       // (A side's ticks in the letters of its layers' unit, SI's for bytes and hash rates.)
-      // (A pane of rows: their names on the left, nothing else written there; the price over them on the right, on its log scale.)
-      const rowed = asRows(doc, pane);
-      const format = rowed ? (side === "left" ? NO_FORMAT : valueFormatOf(["usd"])) : fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
-      panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[rowed ? (side === "left" ? 0 : 1) : paneMode(pane)] }) });
+      // (A heatmap: its rows' names on their axis (see drawRows), no values written.)
+      const format = asRows(doc, pane) ? NO_FORMAT : fixed ?? valueFormatOf(doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal").map((layer) => unitFor(layer, data.results.get(layer.id))));
+      panes[i].setScale(side, { ...marginsOf(doc, pane, i), ...(keep ? {} : { mode: SCALE_MODES[paneMode(pane)] }) });
       if (!keep) panes[i].setRange(undefined, undefined, side);
       const used = panes[i].series.some((series, k) => (panes[i].sides[k] ? "left" : "right") === side && !series.overlay);
       panes[i].setFormat(used || format === NO_FORMAT ? format.value : libraryWords, used || format === NO_FORMAT ? format.ticks : null, side);
@@ -7438,7 +7438,8 @@ $("inspector").addEventListener("keydown", (event) => {
 });
 $("inspector").addEventListener("input", (event) => {
   const target = event.target;
-  if (target.id === "label") editLayer((layer) => (layer.label = target.value.trim() || undefined), { coalesce: `label:${selected}` });
+  // (Its short name, its set's for the label it had, goes with it.)
+  if (target.id === "label") editLayer((layer) => ((layer.label = target.value.trim() || undefined), delete layer.short), { coalesce: `label:${selected}` });
   else if (target.id === "formula") {
     markTyping();
     drawWhenReady(selected, target.value);
@@ -9828,11 +9829,11 @@ document.addEventListener("click", (event) => {
   const template = closest(event, "[data-template]");
   const card = template && recommendedCards[Number(template.dataset.template)];
   if (card) return pickPreset(card.preset);
-  const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+  const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-pane-outline], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
   // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
   const target = byTouch && found?.matches(".legend [data-toggle]") ? /** @type {HTMLElement | null} */ (found.closest("[data-select]")) : found;
   if (!target) return;
-  const { select: id, toggle, paneMode, paneStack, paneReverse, mode, action, sheet, openChart } = target.dataset;
+  const { select: id, toggle, paneMode, paneStack, paneReverse, paneOutline, mode, action, sheet, openChart } = target.dataset;
   if (openChart) {
     delete document.body.dataset.sheet;
     go(chartById(openChart));
@@ -9846,6 +9847,7 @@ document.addEventListener("click", (event) => {
   else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneMode(paneMode, Number(mode));
   else if (paneStack) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneStack(paneStack, target.dataset.stack ?? "");
   else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
+  else if (paneOutline) setPaneOutline(paneOutline, Boolean(target.dataset.outline));
   // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
   else if (action === "palette") openPalette({ resume: true });
   // (Home's search, drawn as a field: ⌘K afresh, its keyboard with it by touch, as a tap on a field asks.)

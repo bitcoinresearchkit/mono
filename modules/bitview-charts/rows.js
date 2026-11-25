@@ -1,13 +1,13 @@
 // @ts-check
-// Rows: a set's members one under another, time across (a heatmap of members: age bands, kinds). Each row the pane's
-// height shared evenly (the first at the top), each point a cell colored by the page (`paint(value, row, pixels, at)`:
+// Rows: a set's members one under another, time across (a heatmap of members: age bands, kinds). Each row the room its
+// scale keeps for values shared evenly (the first at the top; over it, its legend's), each point a cell colored by the
+// page (`paint(value, row, pixels, at)`:
 // into its red, green, blue, opacity; none, left clear), so a row draws nothing before its data starts. Painted once
 // into an image (a pixel a point, a row three pixels alike so a row's smoothing never reads its neighbour's), stretched
 // onto the plot a row a draw (one pass of the pane's cells), smoothed only where its points are squeezed. `below`: a
-// value under the page's level, its region's edges outlined in `outline`, block by block (a power of two of points, a
-// device pixel wide at least, each below where most of its points are: the same blocks at any pan). Its rows' names on
-// its side's axis, each in its row's color (`axisTags`). Read on no scale (its own, unseen): its side's scale stays the
-// page's. Hit anywhere on a row with a value there (`rowAt(y)`: which one).
+// value under the page's level, its region's edges outlined in `outline` (see #outline). Its rows' names on its side's
+// axis, each in its row's color (`axisTags`). Read on no scale (its own, unseen): its side's scale stays the page's.
+// Hit anywhere on a row with a value there (`rowAt(y)`: which one).
 import { PILL } from "./tags.js";
 
 /**
@@ -53,10 +53,16 @@ export class Rows {
     this.version++;
   }
 
-  /** The row at `y` (CSS pixels from its pane's top, its pane `height` tall), -1 none. @param {number} y @param {number} height */
-  rowAt(y, height) {
-    const k = Math.floor((y / height) * this.rows.length);
+  /** The row at `y` (CSS pixels from its pane's top), -1 none. @param {number} y @param {import("./scale.js").Scale} scale */
+  rowAt(y, scale) {
+    const [top, h] = this.#band(scale), k = Math.floor((y - top) / h);
     return k >= 0 && k < this.rows.length ? k : -1;
+  }
+
+  /** Where its rows lie on its scale's height (CSS pixels): their top, and each row's height. @param {import("./scale.js").Scale} scale */
+  #band(scale) {
+    const top = scale.top * scale.height;
+    return [top, Math.max(0, scale.height * (1 - scale.top - scale.bottom)) / Math.max(1, this.rows.length)];
   }
 
   /** Nothing to fit. */
@@ -69,19 +75,24 @@ export class Rows {
 
   /** Hit on a row with a value at the point. @param {number} i @param {number} y @param {import("./scale.js").Scale} scale */
   distance(i, y, scale) {
-    const k = this.rowAt(y, scale.height), at = Math.round(i);
+    const k = this.rowAt(y, scale), at = Math.round(i);
     return k >= 0 && Number.isFinite(this.rows[k].values[at]) ? 0 : Infinity;
   }
 
   /**
-   * Its rows' names on its side's axis, at their middles, each in its row's color.
+   * Its rows' names on its side's axis, at their middles, each in its row's color: every row's where each is as tall
+   * as a name (its pill and a gap), else as many as fit a pill apart, evenly spread, the first and the last always.
    * @param {number} side @param {(y: number, text: string, color: string) => void} add @param {import("./scale.js").Scale} scale
    */
   axisTags(side, add, scale) {
-    if (side !== this.side) return;
-    // (Rows shorter than a pill and its gap: every so many named, the first always, none over another.)
-    const n = this.rows.length, h = scale.height / n, every = Math.ceil((PILL + 2) / h);
-    for (let k = 0; k < n; k += every) add((k + 0.5) * h, this.rows[k].name, this.rows[k].color);
+    const n = this.rows.length;
+    if (side !== this.side || !n) return;
+    // (Named every `every` rows at least, a pill and its gap apart: as many as that leaves, spread from the first to the last.)
+    const [top, h] = this.#band(scale), every = Math.ceil((PILL + 2) / Math.max(h, 1e-9)), fit = n === 1 ? 1 : Math.min(n, Math.floor((n - 1) / every) + 1);
+    for (let j = 0; j < fit; j++) {
+      const k = fit === n ? j : fit === 1 ? 0 : Math.round((j * (n - 1)) / (fit - 1));
+      add(top + (k + 0.5) * h, this.rows[k].name, this.rows[k].color);
+    }
   }
 
   /** Its cells painted, a pixel a point, each row three pixels alike; and each row's points under the level. */
@@ -118,33 +129,38 @@ export class Rows {
     const image = this.image, last = image.width - 1;
     const a = Math.max(0, Math.floor(time.index(x0) - 1)), b = Math.min(last, Math.ceil(time.index(x1) + 1));
     if (a > b) return;
-    const half = time.spacing / 2, left = (time.x(a) - half) * dpr, right = (time.x(b) + half) * dpr, h = (scale.height * dpr) / n;
+    const [band, size] = this.#band(scale), half = time.spacing / 2, left = (time.x(a) - half) * dpr, right = (time.x(b) + half) * dpr, top = band * dpr, h = size * dpr;
     const smooth = g.imageSmoothingEnabled, quality = g.imageSmoothingQuality;
     g.setTransform(1, 0, 0, 1, 0, 0);
     // (Squeezed, its points averaged into each pixel; else each a block of its own color, edges sharp.)
     g.imageSmoothingEnabled = time.spacing * dpr < 1;
     g.imageSmoothingQuality = "medium";
     for (let k = 0; k < n; k++) {
-      const top = Math.round(k * h), bottom = Math.round((k + 1) * h);
-      g.drawImage(image, a, 3 * k + 1, b - a + 1, 1, left, top, right - left, bottom - top);
+      const y = Math.round(top + k * h), foot = Math.round(top + (k + 1) * h);
+      g.drawImage(image, a, 3 * k + 1, b - a + 1, 1, left, y, right - left, foot - y);
     }
     (g.imageSmoothingEnabled = smooth), (g.imageSmoothingQuality = quality);
-    if (this.below && this.outline) this.#outline(g, time, a, b, h, dpr);
+    if (this.below && this.outline) this.#outline(g, time, a, b, top, h, dpr);
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
   /**
-   * The edges of where its rows are under the level, by blocks (see the file's head) from point `a` to `b`, in one
-   * stroke: down between two blocks of a row one under, the other not; across between two rows' blocks the same way
-   * (the top's and the foot's against nothing).
+   * The edges of the regions where its rows are under the level, from point `a` to `b`, in one stroke: down between two
+   * blocks of a row, one under, the other not; across between two rows' blocks the same way (the top's and the foot's
+   * against nothing). A row read by blocks (a power of two of points, a device pixel wide at least, each under where
+   * most of its points with a value are: the same blocks at any pan), then its regions as the eye reads them: a gap in
+   * one narrower than OUTLINE_RUN filled, then one narrower than it dropped (a closing, then an opening), so a day-to-day
+   * flicker is one region or none, never a comb of edges; zoomed in until a point is that wide, every point its own.
+   * Read from OUTLINE_RUN's width twice past each edge, so a region crossing one is judged whole, as panning shows it.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {number} a @param {number} b
-   * @param {number} h @param {number} dpr
+   * @param {number} top @param {number} h @param {number} dpr
    */
-  #outline(g, time, a, b, h, dpr) {
-    const n = this.rows.length, under = this.under;
+  #outline(g, time, a, b, top, h, dpr) {
+    const n = this.rows.length, under = this.under, last = this.image.width - 1;
     let step = 1;
     while (step * time.spacing * dpr < 1 && step < 1 << 14) step *= 2;
-    const from = Math.floor(a / step) * step, blocks = Math.ceil((b + 1 - from) / step);
+    const run = Math.ceil(OUTLINE_RUN / (step * time.spacing)), from = Math.max(0, (Math.floor(a / step) - 2 * run) * step);
+    const blocks = Math.ceil((Math.min(last, b + 2 * run * step) + 1 - from) / step);
     if (marks.length < blocks * (n + 2)) marks = new Uint8Array(blocks * (n + 2) * 2);
     // (A row's blocks, 1 where most of its points with a value are under; rows -1 and n, nothing.)
     marks.fill(0, 0, blocks * (n + 2));
@@ -155,15 +171,16 @@ export class Rows {
         for (let i = from + j * step, end = Math.min(i + step, row.length); i < end; i++) if (values[i] === values[i]) (seen++, (count += row[i]));
         marks[at + j] = seen && 2 * count > seen ? 1 : 0;
       }
+      if (run > 1) merge(at, blocks, 0, run), merge(at, blocks, 1, run);
     }
     // (A line on whole device pixels: an odd width centered on one, an even one between two.)
     const width = Math.max(1, Math.round(dpr)), off = (width % 2) / 2;
-    const xAt = (/** @type {number} */ j) => Math.round((time.x(from + j * step) - time.spacing / 2) * dpr);
+    const xAt = (/** @type {number} */ j) => Math.round((time.x(from + j * step) - time.spacing / 2) * dpr), yAt = (/** @type {number} */ k) => Math.round(top + k * h);
     g.beginPath();
     for (let k = 0; k <= n; k++) {
-      const y = Math.round(k * h), over = k * blocks, at = (k + 1) * blocks;
+      const y = yAt(k), over = k * blocks, at = (k + 1) * blocks;
       // (Down, at a block's left edge, in row k.)
-      if (k < n) for (let j = 0; j <= blocks; j++) if ((j ? marks[at + j - 1] : 0) !== (j < blocks ? marks[at + j] : 0)) g.moveTo(xAt(j) + off, y), g.lineTo(xAt(j) + off, Math.round((k + 1) * h));
+      if (k < n) for (let j = 0; j <= blocks; j++) if ((j ? marks[at + j - 1] : 0) !== (j < blocks ? marks[at + j] : 0)) g.moveTo(xAt(j) + off, y), g.lineTo(xAt(j) + off, yAt(k + 1));
       // (Across, along row k's top, each run of blocks that differ from the row over it as one.)
       for (let j = 0; j < blocks; j++) {
         if (marks[over + j] === marks[at + j]) continue;
@@ -176,6 +193,27 @@ export class Rows {
     g.lineWidth = width;
     g.strokeStyle = this.outline;
     g.stroke();
+  }
+}
+
+/** The narrowest region (or gap) an outline draws, in CSS pixels: narrower, its two edges read as one mark, a comb of them as noise (at 2, the young bands at Max still combed; at 4, regions). */
+const OUTLINE_RUN = 4;
+
+/**
+ * A row's marks (`count` of them from `at`) with each run of `value` shorter than `run` between two of the other
+ * turned to the other (one at an end, against nothing, kept: it may go on past what's read).
+ * @param {number} at @param {number} count @param {number} value @param {number} run
+ */
+function merge(at, count, value, run) {
+  for (let j = 0; j < count; ) {
+    if (marks[at + j] !== value) {
+      j++;
+      continue;
+    }
+    let end = j;
+    while (end < count && marks[at + end] === value) end++;
+    if (j > 0 && end < count && end - j < run) marks.fill(1 - value, at + j, at + end);
+    j = end;
   }
 }
 

@@ -28,7 +28,7 @@ import { dashGlyph, glyph, glyphSvg, ICONS, markBody, OUTLINE_GLYPH, shapeGlyph 
 import {
   belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
   GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
-  MAX_PANES, measured, MODES, modesOf, newPaneIn, OPACITIES, opacityOf, OUTLINED, placedOn, placeName, resultText,
+  MAX_PANES, measured, MODES, modesOf, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
   seriesLooked, SHAPES, STACKS, stretchResult, typeName, TYPES,
 } from "/studio/vocabulary.js";
 import {
@@ -2196,6 +2196,7 @@ function panePage(id) {
       ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
       { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
       ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
+      ...(outlinable(chart, pane) ? [{ key: "outline", icon: ICONS.charts, label: "Outline", aside: OUTLINES[pane.outline ? 1 : 0][1], group: "Pane", page: () => choicePage("Outline", () => scaleGroup(id, "Outline")) }] : []),
       { key: "average", icon: ICONS.sliders, label: "Average", aside: averageFor(chart, pane).active || "Raw", group: "Pane", page: () => choicePage("Average", () => scaleGroup(id, "Average")) },
       ...paneRows(id, true).map((row) => ({ ...row, group: "Pane" })),
       ...layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })),
@@ -2213,7 +2214,7 @@ function previewPane(panel, id, share = /** @type {number | null} */ (null)) {
   const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
   if (share !== null) sizes[i] = (share * others) / (1 - share);
   panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack === "rows" ? ", as rows" : pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack === "rows" ? ", as a heatmap" : pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layerRows(layers) || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
 }

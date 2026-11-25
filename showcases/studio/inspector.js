@@ -23,7 +23,7 @@ import {
   belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
   GRADIENT_MOST, HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
   markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale,
-  OUTLINED, PAIRS, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
+  OUTLINED, OUTLINES, outlinable, PAIRS, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
   TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -480,6 +480,7 @@ function renderInspector() {
             ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" ${stack === "rows" && rowsUnfit(chart, layerPane) ? `aria-disabled="true" data-tip="${rowsUnfit(chart, layerPane)}"` : `data-tip="${tip}"`}>${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
+            ${outlinable(chart, layerPane) ? `<div class="field"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${OUTLINES.map(([on, name]) => `<button type="button" data-pane-outline="${layer.pane}" data-outline="${on ? 1 : ""}" aria-pressed="${Boolean(layerPane.outline) === on}">${name}</button>`).join("")}</div></div>` : ""}
           </section>`}
           ${(actionsShown = actionsOf(layer))}`;
   // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those

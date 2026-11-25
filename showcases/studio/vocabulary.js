@@ -193,22 +193,27 @@ const DASHES = [
   [LINE_STYLE.SparseDotted, "Sparse dots", 2, 4],
 ];
 const dashOf = (/** @type {number | undefined} */ style) => DASHES.find(([dash]) => dash === style) ?? DASHES[0];
-/** A pane's stack: none, its layers one on another, as shares of their sum, or one under another as rows (each a row of
- * cells colored by its value, the price over them: see rowLayers). @type {[("" | "stack" | "percent" | "rows"), string, string][]} */
-const STACKS = [["", "Off", "Each at its own value"], ["stack", "Stacked", "Each on the ones before"], ["percent", "100%", "As shares of them all"], ["rows", "Rows", "Each a row, colored by its value, the price over them"]];
+/** A pane's stack: none, its layers one on another, as shares of their sum, or a heatmap, one under another as rows
+ * (each a row of cells colored by its value: see rowLayers). @type {[("" | "stack" | "percent" | "rows"), string, string][]} */
+const STACKS = [["", "Off", "Each at its own value"], ["stack", "Stacked", "Each on the ones before"], ["percent", "100%", "As shares of them all"], ["rows", "Heatmap", "Each a row, colored by its value"]];
 /** Whether a pane's layers are summed: stacked, or as shares (none, not). @param {Pane | undefined} pane */
 const summed = (pane) => pane?.stack === "stack" || pane?.stack === "percent";
 /**
- * A pane's rows, were it drawn as rows: its own value layers (not the price's candles, which the rows draw over them
- * themselves; not one made from others, a signal, bubbles or a heatmap), shown (all: hidden ones too), in its order (the
+ * A pane's rows, were it drawn as rows: its own value layers (not the price's candles; not one made from others, a signal, bubbles or a heatmap), shown (all: hidden ones too), in its order (the
  * first at the top; reversed, the last).
  * @param {Chart} doc @param {Pane} pane
  */
 const rowLayers = (doc, pane, all = false) => ((rows) => (pane.reverse ? rows.reverse() : rows))(doc.layers.filter((layer) => layer.pane === pane.id && (all || !layer.hidden) && layer.type !== "candles" && layer.type !== "cloud" && !layer.from && !placedOn(layer) && !heatLike(layer)));
 /** Why a pane can't be drawn as rows (none: it can): at an interval finer than a day (a point a pixel of its image, too many), fewer than two layers of its own to be rows (see rowLayers), or them on its two scales (two units). @param {Chart} doc @param {Pane} pane */
-const rowsUnfit = (doc, pane) => ((rows) => (FINE.has(doc.index) ? "Rows need a daily or coarser interval" : rows.length < 2 ? "Rows need two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "Rows need the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
+const rowsUnfit = (doc, pane) => ((rows) => (FINE.has(doc.index) ? "A heatmap needs a daily or coarser interval" : rows.length < 2 ? "A heatmap needs two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "A heatmap needs the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
 /** Whether a pane is drawn as rows: asked for, and it can be (else as lines, its choice kept for when it can). @param {Chart} doc @param {Pane} pane */
 const asRows = (doc, pane) => pane.stack === "rows" && !rowsUnfit(doc, pane);
+/** The level a pane's rows all have (a ratio's 1, a net's 0: what their colors diverge about), none: undefined. @param {Chart} doc @param {Pane} pane */
+const rowsLevel = (doc, pane) => ((rows) => rows[0]?.levels?.map((line) => line.value).find((value) => rows.every((layer) => layer.levels?.some((line) => line.value === value))))(rowLayers(doc, pane));
+/** A heatmap's outlines: none, or around the region under its rows' level (see rowsLevel), offered only where it has one (`outlinable`): [on, its name]. @type {[boolean, string][]} */
+const OUTLINES = [[false, "None"], [true, "Below the level"]];
+/** Whether a pane's heatmap can be outlined: drawn as one, its rows with a level. @param {Chart} doc @param {Pane} pane */
+const outlinable = (doc, pane) => asRows(doc, pane) && rowsLevel(doc, pane) !== undefined;
 /** A pane's scales, by mode: its short name (the pane's chip, the inspector's tab), the menu's name, and the tab's tip. */
 const MODES = [
   { chip: "Linear", name: "Linear", tip: "Linear" },
@@ -229,7 +234,7 @@ const averageBlocked = (doc, pane) => doc.layers.some((layer) => layer.pane === 
 /** An error said short where it's glanced at (the legend, a row: what to do), and in full where there's room. */
 const failing = (/** @type {string} */ detail, /** @type {string} */ short) => Object.assign(new Error(detail), { short });
 /**
- * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, maxInterval?: string, color: string,
+ * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, short?: string, maxInterval?: string, color: string,
  *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, fit?: false | "zero", size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
  *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
  *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
@@ -249,6 +254,7 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   Bubbles): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
  *   sized against all of its history (unset: what's in view); above zero in its color, below in its second
  *   (`colorBelow`, red unset; `colors` 1, its one).
+ *   `short`: its name where room is tight (a heatmap's row), as its set says it (an age band's "1w-1m"); none, its label.
  *   `fit` "zero": a linear axis includes zero; false: its axis framed without it (see fittable), drawn where its values are, past the plot's edge if
  *   they're far: a spike, a far tail.
  *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
@@ -272,8 +278,9 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
  *   in its color in place of the number (see bandOf; under them all, the layer's `underName`). A baseline's base draws
  *   one too (`baseLine`: gray, in sparse dots).
- * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" | "rows", reverse?: boolean, average?: string }} Pane `reverse`:
- *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
+ * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" | "rows", reverse?: boolean, average?: string, outline?: true }} Pane `reverse`:
+ *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them. `outline`: a heatmap's
+ *   region under its rows' level outlined (see rowsLevel), where that boundary is the question
  * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
  *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
  * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], made?: string, drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
@@ -359,7 +366,7 @@ export {
   HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideText, hollowOf, kindColor, kindLook, kindOf, layersColors,
   letterAt, LINE_STYLE, LINE_TYPE, LINED, lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_LEVELS,
   MAX_PANES, measured, measureOf, measureUnit, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, offScale,
-  ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, PAIRS, placedBy, placedOn, placeName, poolPath, poolSeries,
-  PROFILE_VIEWS, resultText, rowLayers, rowsUnfit, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, summed, toggleMember,
+  ONE_SCALE, oneScale, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, PAIRS, placedBy, placedOn, placeName, poolPath, poolSeries,
+  PROFILE_VIEWS, resultText, rowLayers, rowsLevel, rowsUnfit, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, summed, toggleMember,
   TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, typeName, TYPES, unfitted, WIDTHS,
 };

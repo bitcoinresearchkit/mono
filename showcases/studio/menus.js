@@ -1290,7 +1290,7 @@ function validate(input, keepIds = false) {
   if (input.halvings === true) doc.halvings = true;
   if (input.legend === "off") doc.legend = "off";
   const panes = input.panes.slice(0, MAX_PANES);
-  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
+  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(pane?.outline === true ? { outline: true } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
   const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
   /** Each layer's id as read, to its own: its drawings follow it. */
   const layerIds = new Map();
@@ -1310,7 +1310,7 @@ function validate(input, keepIds = false) {
       ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cumulative === true ? { cumulative: true } : {}), ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== DEFAULT_MEASURE && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)) } : typeof layer.series === "string"
         ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
         : { formula: formulaNow(String(layer.formula ?? "").slice(0, FORMULA_MAX)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path))) } : {}) }),
-      ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
+      ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}), ...(typeof layer.short === "string" ? { short: layer.short.slice(0, 24) } : {}),
       color: isColor(layer.color) ? layer.color : undefined,
       type: heat ? "heatmap" : profiled ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
       width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
