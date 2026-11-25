@@ -124,12 +124,14 @@ function sameVector(a, b) {
 /** The scale of the pane a layer is on. @param {Chart} doc */
 const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
 /**
- * A pane's scale as drawn: a stack's is linear or log (percent change and indexed would start each band from its
- * own first value), a 100% stack's linear (shares of a whole), whatever the pane keeps for later. @param {Pane} [pane]
+ * A pane's scale as drawn, from the one it keeps (declared, or chosen) and how it draws: a stack, summed or as shares,
+ * linear (on log, a band's height says nothing of its amount); a heatmap linear or log (percent change and indexed
+ * would start each row from its own first value); lines, the kept one. The kept one never changes with the stack, so
+ * switching back and forth leaves the chart as it was. @param {Pane} [pane]
  */
-const paneMode = (pane) => (!pane ? 0 : pane.stack === "percent" || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
-/** The scales a pane can take now (a stack: linear and log; a 100% one: none to choose). @param {Pane} pane */
-const modesFor = (pane) => (pane.stack === "percent" ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
+const paneMode = (pane) => (!pane || summed(pane) || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
+/** The scales a pane can take now (a stack: none to choose; a heatmap: linear and log). @param {Pane} pane */
+const modesFor = (pane) => (summed(pane) ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
 const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.from ? fromName(layer) : heatLike(layer) ? heatName(layer) : layer.formula || "Formula");
 /**
  * A layer made from layers, named, unnamed: what it is, then its layers' letters (three at most; past that, how
@@ -477,7 +479,7 @@ function renderInspector() {
             ${fitField([layer])}
             ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escapeHtml(formatName(layer, result))}"><span class="name">${escapeHtml(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
-            ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
+            ${summed(layerPane) ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a heatmap (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" ${stack === "rows" && rowsUnfit(chart, layerPane) ? `aria-disabled="true" data-tip="${rowsUnfit(chart, layerPane)}"` : `data-tip="${tip}"`}>${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
             ${outlinable(chart, layerPane) ? `<div class="field"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${OUTLINES.map(([on, name]) => `<button type="button" data-pane-outline="${layer.pane}" data-outline="${on ? 1 : ""}" aria-pressed="${Boolean(layerPane.outline) === on}">${name}</button>`).join("")}</div></div>` : ""}

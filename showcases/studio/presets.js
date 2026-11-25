@@ -371,12 +371,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
   ];
   /**
    * A whole's parts compared: their amounts stacked, then their shares of it, as areas (`[name, title]` each chart's;
-   * `window`, both's, said in their titles; `windows`, theirs once, see chart). @param {[Name, string]} amounts
-   * @param {[Name, string]} shares @param {Layer[]} layers @param {string} [window] @param {string[]} [windows] @returns {ChartNode[]}
+   * `window`, both's, said in their titles; `windows`, theirs once, see chart; `log`, the amounts' scale where they aren't
+   * stacked: a heatmap's, lines'). @param {[Name, string]} amounts
+   * @param {[Name, string]} shares @param {Layer[]} layers @param {string} [window] @param {string[]} [windows] @param {boolean} [log] @returns {ChartNode[]}
    */
-  const parts = ([name, title], [shareName, shareTitle], layers, window = undefined, windows = undefined) => {
+  const parts = ([name, title], [shareName, shareTitle], layers, window = undefined, windows = undefined, log = false) => {
     const areas = layers.map((layer) => ({ ...layer, type: "area" }));
-    return [chart(name, title, areas, { stack: { 1: "stack" }, window, windows }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window, windows })];
+    return [chart(name, title, areas, { stack: { 1: "stack" }, ...(log ? { log: [1] } : {}), window, windows }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" }, window, windows })];
   };
   /**
    * A count's title, from what it counts, as said inside a sentence ("coinjoin transactions": "Number of coinjoin
@@ -901,7 +902,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       const measure = shownOf(name), title = compared(measure, { whole: o.whole }), { window, windows } = o;
       if (options.disjoint && o.additive) {
         const known = options.known?.[placeOf(name)];
-        return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window, windows).slice(0, o.shares === false ? 1 : 2);
+        return parts([name, title], [extended(name, " share"), compared(`${measure} share`, { after: known ? ` (${known})` : "" })], layers, window, windows, o.log).slice(0, o.shares === false ? 1 : 2);
       }
       if (o.price) return [chart(name, title, [price(), ...layers], { window, windows })];
       return [chart(name, title, layers, { window, windows, ...(o.log ? { log: [1] } : {}), ...(o.absolute ? { absolute: each(o.absolute), absoluteLog: o.absoluteLog } : {}) })];

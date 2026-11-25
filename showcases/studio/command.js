@@ -29,7 +29,7 @@ import {
   belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
   GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
   drawnInto, MAX_PANES, measured, MODES, modesOf, nameLayer, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
-  seriesLooked, SHAPES, STACKS, stretchResult, typeName, TYPES,
+  seriesLooked, SHAPES, STACKS, stretchResult, summed, typeName, TYPES,
 } from "/studio/vocabulary.js";
 import {
   BACKS, ENDS, KINDS, labelText, LENS_SAYS, LINES, SIZE_NAMES, SIZES, TEXT_SIZE, THROUGH, TOOLS,
@@ -425,7 +425,7 @@ function commands() {
     ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
     ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
     ...((found) => (found?.offered ?? []).map((key) => ({ follows: windowShort(key), title: `Window: ${windowSaid(key)}`, text: `Each value its series over the ${windowSaid(key).replace(/^1 /, "")} before it.`, icon: "hourglass", ...(key === found?.window ? { current: true } : { run: () => switchWindow(key) }) })))(empty ? null : chartWindow(chart)),
-    ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
+    ...(empty || summed(scalePane()) ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
     ...(empty ? [] : [
       { title: beltUp() ? "Hide the drawing tools" : "Show the drawing tools", text: beltUp() ? "They show again while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: () => (beltUp() ? hideBelt() : showBelt()) },
       ...(tool ? [placingPath() ? { title: "Finish the path", text: "Keeps it as it is (two points at least); the chart pans again.", icon: tool, kbd: "esc", run: () => finishPath() } : { title: "Stop drawing", text: `Stops drawing; the chart pans again.`, icon: tool, kbd: "esc", run: () => takeUp("") }] : []),
@@ -2193,7 +2193,7 @@ function panePage(id) {
     if (i < 0) return [];
     const pane = chart.panes[i], layers = chart.layers.filter((layer) => layer.pane === id);
     return [
-      ...(pane.stack === "percent" ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
+      ...(summed(pane) ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
       { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
       ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
       ...(outlinable(chart, pane) ? [{ key: "outline", icon: ICONS.charts, label: "Outline", aside: OUTLINES[pane.outline ? 1 : 0][1], group: "Pane", page: () => choicePage("Outline", () => scaleGroup(id, "Outline")) }] : []),
