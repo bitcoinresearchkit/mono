@@ -22,8 +22,8 @@ const STYLE = {
   angles: [0, 26.565, 45, 63.435, 90],
   /** The keyline circle's outer diameter; a drawing's longer side is at least `min`. */
   keyline: { circle: 13, min: 9 },
-  /** Ink as a multiple of the keyline circle's: past these an icon looks darker or fainter than its neighbours. */
-  weight: [0.15, 1.7],
+  /** Ink as a multiple of the keyline circle's: past these an icon looks darker or fainter than its neighbours. A frame with three lines inside (table) is the heaviest, at 1.8; the next is 1.61. */
+  weight: [0.15, 1.8],
 };
 /** Rules an icon is allowed to break, each with its reason. */
 const ICON_EXEMPT = /** @type {Record<string, { rules: string[], why: string }>} */ ({
@@ -117,7 +117,7 @@ const ICONS = {
   upload: svg('<path d="M7.75 10.25v-7.5M4.75 5.75l3-3 3 3"/><path d="M2.75 10.25v2.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5"/>'),
   download: svg('<path d="M7.75 2.75v7.5M4.75 7.25l3 3 3-3"/><path d="M2.75 10.25v2.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2.5"/>'),
   image: svg(`${FRAME}${dot(5.5, 6.5)}<path d="M4.25 13.25 9.75 7.75l4 4"/>`),
-  table: svg(`${FRAME}<path d="M2.25 6.25h11.5M6.25 6.25v7"/>`),
+  table: svg(`${FRAME}<path d="M2.25 6.25h11.5M2.25 9.75h11.5M6.25 6.25v7"/>`),
   file: svg('<path d="M5.25 1.75h3l4 4v6.5a2 2 0 0 1-2 2h-5a2 2 0 0 1-2-2v-8.5a2 2 0 0 1 2-2ZM8.25 1.75v4h4"/>'),
   check: svg('<path d="m3.25 8.25 3.5 3.5 6-6"/>'),
   ruler: svg('<path d="m2.25 11.25 9-9 3 3-9 9ZM4.75 8.75l1 1M7.25 6.25l1 1M9.75 3.75l1 1"/>'),
