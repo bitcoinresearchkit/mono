@@ -92,6 +92,7 @@ pub struct NewAddressCount {
 }
 
 #[derive(Traversable)]
+#[traversable(client = "AddressesActivity")]
 pub struct ActivityVecs<M: StorageMode = Rw> {
     /// Distinct previously funded addresses that received an output in the
     /// represented block while holding no unspent outputs immediately before
@@ -118,6 +119,7 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
 }
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "Value")]
 pub struct AvgBalance {
     /// Reported in BTC.
     pub btc: LazyPerBlock<Bitcoin>,
@@ -190,6 +192,7 @@ pub struct EventCount<M: StorageMode = Rw> {
 }
 
 #[derive(Traversable)]
+#[traversable(client = "EventCount")]
 pub struct ActiveEvents<M: StorageMode = Rw> {
     pub count: PerBlockCumulativeAverage<Count, M>,
     pub share: LazyPercentCumulativeRolling<PartsPerMillion32>,

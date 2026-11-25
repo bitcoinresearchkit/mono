@@ -19,6 +19,9 @@ use crate::{
 };
 
 const NAME: &str = "page-info.json.gz";
+/// Beside a folder's page info, where its addresses once were: a line each, the old address and where it opens now,
+/// tab-separated, both folder-relative (the second may carry a fragment). Written by the folder's own generator.
+const MOVED: &str = "moved.txt";
 /// A folder's page, at the folder's address.
 const INDEX: &str = "index.html";
 /// What a page's address takes to name its Markdown twin, a folder's page being its `index.html`
@@ -75,6 +78,8 @@ struct Template {
 struct Folder {
     template: Option<Template>,
     pages: HashMap<String, Page>,
+    /// Each old address, as requested, and where it opens now (`MOVED`).
+    moved: HashMap<String, String>,
 }
 
 /// The two ways a listed address is sent: the page, and its Markdown twin at an address of its own (`twin`).
@@ -200,13 +205,38 @@ impl Pages {
                         }
                         Ok((format!("{prefix}{address}"), Page::new(source, template_hash)))
                     })
-                    .collect::<Result<_>>()?;
+                    .collect::<Result<HashMap<_, _>>>()?;
+                let moved = match website.get_file(
+                    file.with_file_name(MOVED).to_str().ok_or("Non-UTF-8 moved path")?,
+                ) {
+                    Ok(moved) => std::str::from_utf8(&moved.contents)?
+                        .lines()
+                        .map(|line| {
+                            let (from, to) = line
+                                .split_once('\t')
+                                .filter(|(from, to)| from.starts_with('/') && to.starts_with('/'))
+                                .ok_or_else(|| {
+                                    format!("{MOVED}: not an old and a new address: {line}")
+                                })?;
+                            let (from, to) = (format!("{prefix}{from}"), format!("{prefix}{to}"));
+                            // (Each to a page of the folder: never a redirect to a 404, or to another.)
+                            let place = to.split_once('#').map_or(to.as_str(), |(place, _)| place);
+                            if !pages.contains_key(place) {
+                                return Err(format!("{MOVED}: {from} opens no page: {to}").into());
+                            }
+                            Ok((from, to))
+                        })
+                        .collect::<Result<_>>()?,
+                    Err(error) if error.is_not_found() => HashMap::new(),
+                    Err(error) => return Err(format!("Cannot read {MOVED}: {error:?}").into()),
+                };
                 Ok(Folder {
                     template: fixed.then(|| Template {
                         html: template.contents,
                         slots,
                     }),
                     pages,
+                    moved,
                 })
             };
             let folder = load().map_err(|error| format!("{}: {error}", file.display()))?;
@@ -222,6 +252,11 @@ impl Pages {
         self.0
             .get(index)
             .is_some_and(|folder| folder.pages.contains_key(address))
+    }
+
+    /// Where the folder of `index` says `address` opens now, if it once was one of its addresses (`MOVED`).
+    pub(crate) fn moved(&self, index: &Path, address: &str) -> Option<&str> {
+        self.0.get(index)?.moved.get(address).map(String::as_str)
     }
 
     /// What the folder of `index`, the file that answers `address`, makes of it: only that folder owns the

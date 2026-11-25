@@ -179,6 +179,7 @@ impl DefaultPlugins {
             )
         })?;
         let all_chain = holders.all_chain_sources();
+        let group_caps = holders.realized_caps();
 
         let (cointime, coinflow, bedrock, entry) =
             thread::scope(|scope| -> Result<_> {
@@ -191,13 +192,21 @@ impl DefaultPlugins {
                             &price,
                             &mining.rewards.subsidy.cumulative.cents,
                             &all_chain,
+                            &group_caps,
                             &age,
                         )
                     })
                 })?;
                 let coinflow = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(COINFLOW_ID, || {
-                        Coinflow::import(context, &mappings, &price, &age)
+                        Coinflow::import(
+                            context,
+                            &mappings,
+                            &window_starts,
+                            &price,
+                            &group_caps,
+                            &age,
+                        )
                     })
                 })?;
                 let bedrock = large_stack_thread().spawn_scoped(scope, || {

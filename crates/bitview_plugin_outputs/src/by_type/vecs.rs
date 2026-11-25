@@ -9,20 +9,23 @@ use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
+/// A spendable type's counts merge into its value, which names the branch (`OutputType`): an
+/// unspendable type has its counts alone, a `TypeSeries` as inputs' are.
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub(crate) values: SpendableType<OutputValue<M>>,
     #[traversable(flatten)]
     pub(crate) types: ByType<OutputTypeVecs>,
     #[traversable(hidden)]
     pub(crate) count_stored: ByType<CumulativeSource<Count, M>>,
     #[traversable(hidden)]
     pub(crate) tx_count_stored: ByType<CumulativeSource<Count, M>>,
-    #[traversable(flatten)]
-    pub(crate) values: SpendableType<OutputValue<M>>,
 }
 
 /// What a spendable type's outputs were sent.
 #[derive(Traversable)]
+#[traversable(client = "OutputType")]
 pub(crate) struct OutputValue<M: StorageMode = Rw> {
     /// All outputs of the type ever created, in bitcoin.
     #[traversable(lead = "Value sent to outputs of this type.")]
@@ -52,6 +55,7 @@ impl OutputValue {
 }
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "TypeSeries")]
 pub struct OutputTypeVecs {
     /// Number of outputs of the type.
     #[traversable(lead = "Outputs of this type.")]

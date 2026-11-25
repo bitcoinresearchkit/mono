@@ -17,7 +17,11 @@ const SWATCHES = ["ink", "gray", "red", "orange", "amber", "yellow", "avocado", 
 /** New layers take these in turn, far apart on the wheel. */
 const PALETTE = ["ink", "orange", "blue", "green", "purple", "red", "teal", "yellow", "sky", "pink", "lime", "gray"];
 const OKLCH_TEXT = /^oklch\((0|1|0?\.\d+) (0|0?\.\d+) (\d{1,3}(\.\d+)?)\)$/;
-const isNamed = (color) => color === "ink" || Object.hasOwn(OKLCH, color);
+/** The page's own inks, by the custom property each is (by theme): its ink (white or black), the axes' softer one. */
+const PAGE_INKS = /** @type {Record<string, string>} */ ({ ink: "--ink", soft: "--soft" });
+/** The page's custom property a color is, if it's one of the page's inks. @param {string} color */
+const pageInk = (color) => (Object.hasOwn(PAGE_INKS, color) ? PAGE_INKS[color] : undefined);
+const isNamed = (color) => Boolean(pageInk(color)) || Object.hasOwn(OKLCH, color);
 /** Whether a value is a color a layer can have (checked on everything read back or imported). */
 const isColor = (color) => typeof color === "string" && (isNamed(color) || /^#[0-9a-f]{6}$/i.test(color) || (OKLCH_TEXT.test(color) && Number(color.split(" ")[2].slice(0, -1)) <= 360));
 /** In OKLCH, names follow hue first (hue weighted by chroma, so a near-gray's hardly matters). */
@@ -75,6 +79,6 @@ function hexToOklch(hex) {
 }
 
 export {
-  gamma, hexToOklch, inside, isColor, isNamed, limit, maxChroma, nameDistance, oklchToHex, oklchToLinear, onCurve,
+  gamma, hexToOklch, inside, isColor, isNamed, pageInk, limit, maxChroma, nameDistance, oklchToHex, oklchToLinear, onCurve,
   PALETTE, SWATCHES, TONE, warmLift,
 };

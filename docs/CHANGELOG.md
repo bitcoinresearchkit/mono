@@ -8,6 +8,9 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- The client types `Reused` and `AddressesReused` trade shapes: `Reused` is now all addresses' (with direct
+  reuse), `AddressesReused` each address type's. Client names no longer follow instance counts.
+
 - Explorer warns of address poisoning: when an address's latest transactions name a look-alike (same first and last
   characters as the address itself or as one in another of its transactions, the usual sign of dust sent from a
   vanity copy), its page says so at the top, writes both addresses out whole under the transaction, and the

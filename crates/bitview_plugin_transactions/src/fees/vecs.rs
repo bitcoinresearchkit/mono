@@ -56,6 +56,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// descendants raise their chunk's rate. This comparison uses 4 * fee / max(weight,
     /// 20 * sigop cost), not the separately published raw fee / ceil(weight / 4).
     #[traversable(
+        client = "TransactionsFlagged",
         lead = "CPFP parents: transactions a later one paid to confirm (child pays for parent)."
     )]
     pub(crate) cpfp_parent: Classified<M>,
@@ -64,6 +65,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// raises a same-block chunk's rate. This comparison uses 4 * fee / max(weight,
     /// 20 * sigop cost), not the separately published raw fee / ceil(weight / 4).
     #[traversable(
+        client = "TransactionsFlagged",
         lead = "CPFP children: transactions paying extra to confirm the ones before them (child pays for parent)."
     )]
     pub(crate) cpfp_child: Classified<M>,

@@ -3429,15 +3429,6 @@ class Caps(_Node):
     producerness: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, 'producerness')
 
 
-class MobileCapital(_Node):
-    total: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_capital')
-    realized_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_cap')
-
-
-class MobileSupplyInLoss(_Node):
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*')
-
-
 class Velocity(_Node):
     btc: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_btc')
     usd: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_usd')
@@ -3597,12 +3588,6 @@ class CointimeSupply(_Node):
     active: SpotValue = _at(SpotValue, 'active')
 
 
-class MobileSupply(_Node):
-    total: SpotValue = _at(SpotValue, '*')
-    in_loss: MobileSupplyInLoss = _at(MobileSupplyInLoss, '*_supply_in_loss_share')
-    in_profit: MobileSupplyInLoss = _at(MobileSupplyInLoss, '*_supply_in_profit_share')
-
-
 class Side(_Node):
     supply: SpotValue = _at(SpotValue, '*')
 
@@ -3700,32 +3685,6 @@ class CostBasis(_Node):
     by_dollar: CostBasisByDollar = _at(CostBasisByDollar, '*')
     supply_density: Density = _at(Density, '*_supply_density')
     capital_density: Density = _at(Density, '*_capital_density')
-
-
-class Awake(_Node):
-    supply: MobileSupply = _at(MobileSupply, '*')
-    capital: MobileCapital = _at(MobileCapital, '*')
-    cost_basis: CostBasis = _at(CostBasis, '*')
-
-
-class CoinflowCohort(_Node):
-    mobile: Awake = _at(Awake, '*_mobile')
-    immobile: Side = _at(Side, '*_immobile')
-
-
-class CointimeCohort(_Node):
-    awake: Awake = _at(Awake, '*_awake')
-    dormant: Side = _at(Side, '*_dormant')
-
-
-class AgeAggregate(_Node, Generic[A]):
-    all: A = _at(0, '')
-    sth: A = _at(0, 'sth')
-    lth: A = _at(0, 'lth')
-    under_4m: A = _at(0, '*_under_4m')
-    under_6m: A = _at(0, '*_under_6m')
-    over_4m: A = _at(0, '*_over_4m')
-    over_6m: A = _at(0, '*_over_6m')
 
 
 class HoldersCostBasis(_Node):
@@ -3997,6 +3956,33 @@ class SharedSupply(_Node):
     in_loss: AllSupplyInLoss = _at(AllSupplyInLoss, '*')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_supply_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
+
+
+class WeightedCohort(_Node):
+    supply: SharedSupply = _at(SharedSupply, '*')
+    capital: SharedCapital = _at(SharedCapital, '*')
+    unrealized: Unrealized = _at(Unrealized, '*')
+    cost_basis: CostBasis = _at(CostBasis, '*')
+
+
+class CoinflowCohort(_Node):
+    mobile: WeightedCohort = _at(WeightedCohort, '*_mobile')
+    immobile: Side = _at(Side, '*_immobile')
+
+
+class CointimeCohort(_Node):
+    awake: WeightedCohort = _at(WeightedCohort, '*_awake')
+    dormant: Side = _at(Side, '*_dormant')
+
+
+class AgeAggregate(_Node, Generic[A]):
+    all: A = _at(0, '')
+    sth: A = _at(0, 'sth')
+    lth: A = _at(0, 'lth')
+    under_4m: A = _at(0, '*_under_4m')
+    under_6m: A = _at(0, '*_under_6m')
+    over_4m: A = _at(0, '*_over_4m')
+    over_6m: A = _at(0, '*_over_6m')
 
 
 class Capital(_Node):
@@ -4622,11 +4608,11 @@ class Coinbase(_Node):
 
 
 class OutputTypeSeries(_Node):
+    value: ValueFlow = _at(ValueFlow, '*_value')
     count: Flow[Count] = _at(Flow, '*_count')
     share: Share = _at(Share, '*_share')
     tx_count: Flow[Count] = _at(Flow, '*_tx_count')
     tx_share: Share = _at(Share, '*_tx_share')
-    value: ValueFlow = _at(ValueFlow, '*_value')
 
 
 class SpentWithin(_Node):
@@ -4793,13 +4779,13 @@ class AddressesReuseEvents(_Node):
     active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_reused_address')
 
 
-class Reused(_Node):
+class AddressesReused(_Node):
     count: ReusedCount = _at(ReusedCount, '*')
     supply: PredicateSupply = _at(PredicateSupply, '*_reused_address')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
 
 
-class AddressesReused(_Node):
+class Reused(_Node):
     count: ReusedCount = _at(ReusedCount, '')
     supply: PredicateSupply = _at(PredicateSupply, 'reused_*')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '')
@@ -4821,7 +4807,7 @@ class AddressSeries(_Node):
     new: NewAddressCount = _at(NewAddressCount, '*_new_address_count')
     activity: AddressesActivity = _at(AddressesActivity, '*')
     avg_balance: Value = _at(Value, '*_address_balance_avg')
-    reused: Reused = _at(Reused, '*')
+    reused: AddressesReused = _at(AddressesReused, '*')
     respent: Respent = _at(Respent, '*')
     exposed: Exposed = _at(Exposed, '*')
 
@@ -4842,7 +4828,7 @@ class Addresses(_Node):
     new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
     activity: AddressesActivity = _at(AddressesActivity, '')
     avg_balance: Value = _at(Value, '*_balance_avg')
-    reused: AddressesReused = _at(AddressesReused, '*')
+    reused: Reused = _at(Reused, '*')
     respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
     supply: CohortSupply = _at(CohortSupply, '*')

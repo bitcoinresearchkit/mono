@@ -207,10 +207,22 @@ fn respond(site: &Site, uri: &Uri, request_headers: &HeaderMap) -> Result<Respon
             listed_answer(site, &found, &listed, Form::Html, uri.path(), request_headers)
         }
         Listing::Unlisted => Ok(answer(found, site.kept(Kept::Document), request_headers)),
-        // Not one of an app's addresses. One of them written the slash the other way, or under a folder that moved,
-        // or both: there. Else a 404 for search engines; a browser still gets the app, to say what's missing there (a
-        // renamed address).
+        // Not one of an app's addresses. One it once had: where it opens now. One of them written the slash the other
+        // way, or under a folder that moved, or both: there. Else a 404 for search engines; a browser still gets the
+        // app, to say what's missing there (a renamed address).
         Listing::Unknown => {
+            // (Either slash spelling of it, as a live one's.)
+            let path = uri.path();
+            let other = path.strip_suffix('/').map_or_else(|| format!("{path}/"), str::to_owned);
+            let to = site.pages.moved(&found.path, path);
+            if let Some(to) = to.or_else(|| site.pages.moved(&found.path, &other)) {
+                // (The query before the target's fragment, where a URL keeps it.)
+                let (to, fragment) = match to.split_once('#') {
+                    Some((to, fragment)) => (to, format!("#{fragment}")),
+                    None => (to, String::new()),
+                };
+                return Ok(permanent(&format!("{}{fragment}", with_query(to, uri.query()))));
+            }
             let moved = moved(uri.path(), None);
             let listed = [Some(uri.path()), moved.as_deref()]
                 .into_iter()

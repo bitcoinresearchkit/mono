@@ -16,6 +16,7 @@ use crate::columns::Columns;
 
 /// Creation-price statistics of the cohort's unspent outputs.
 #[derive(Traversable)]
+#[traversable(client = "HoldersCostBasis")]
 pub struct CostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by satoshis.

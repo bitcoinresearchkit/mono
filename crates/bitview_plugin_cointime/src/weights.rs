@@ -13,8 +13,9 @@ impl<M: StorageMode> Vecs<M> {
         resolve_cohort_weight(age.select(&sources).collect_one(height), supply)
     }
 
-    /// All-supply awake in-loss share at full precision, for models calibrating on it.
+    /// All-supply awake in-loss share (its rounded sats in loss over its rounded supply), for models
+    /// calibrating on it.
     pub fn all_awake_supply_in_loss_share(&self) -> &impl ReadableVec<Height, BoundedRatio> {
-        &self.aggregate.sources.weighted_supply_in_loss_share.all
+        &self.aggregate.cohorts.all.awake.loss_share
     }
 }

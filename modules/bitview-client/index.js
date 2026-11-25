@@ -2793,26 +2793,6 @@ const _Caps = _s({
 
 /**
  * @typedef {{
- *   total: SeriesPattern1<?Dollars>,
- *   realizedCap: SeriesPattern1<?Dollars>,
- * }} MobileCapital
- */
-const _MobileCapital = _s({
-  total: [_i1, '*_capital'],
-  realizedCap: [_i1, '*_realized_cap'],
-});
-
-/**
- * @typedef {{
- *   share: SeriesPattern1<?Percent>,
- * }} MobileSupplyInLoss
- */
-const _MobileSupplyInLoss = _s({
-  share: [_i1, '*'],
-});
-
-/**
- * @typedef {{
  *   btc: SeriesPattern1<?Ratio>,
  *   usd: SeriesPattern1<?Ratio>,
  * }} Velocity
@@ -3155,19 +3135,6 @@ const _CointimeSupply = _s({
 
 /**
  * @typedef {{
- *   total: SpotValue,
- *   inLoss: MobileSupplyInLoss,
- *   inProfit: MobileSupplyInLoss,
- * }} MobileSupply
- */
-const _MobileSupply = _s({
-  total: [_SpotValue, '*'],
-  inLoss: [_MobileSupplyInLoss, '*_supply_in_loss_share'],
-  inProfit: [_MobileSupplyInLoss, '*_supply_in_profit_share'],
-});
-
-/**
- * @typedef {{
  *   supply: SpotValue,
  * }} Side
  */
@@ -3372,64 +3339,6 @@ const _CostBasis = _s({
   byDollar: [_CostBasisByDollar, '*'],
   supplyDensity: [_Density, '*_supply_density'],
   capitalDensity: [_Density, '*_capital_density'],
-});
-
-/**
- * @typedef {{
- *   supply: MobileSupply,
- *   capital: MobileCapital,
- *   costBasis: CostBasis,
- * }} Awake
- */
-const _Awake = _s({
-  supply: [_MobileSupply, '*'],
-  capital: [_MobileCapital, '*'],
-  costBasis: [_CostBasis, '*'],
-});
-
-/**
- * @typedef {{
- *   mobile: Awake,
- *   immobile: Side,
- * }} CoinflowCohort
- */
-const _CoinflowCohort = _s({
-  mobile: [_Awake, '*_mobile'],
-  immobile: [_Side, '*_immobile'],
-});
-
-/**
- * @typedef {{
- *   awake: Awake,
- *   dormant: Side,
- * }} CointimeCohort
- */
-const _CointimeCohort = _s({
-  awake: [_Awake, '*_awake'],
-  dormant: [_Side, '*_dormant'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   all: A,
- *   sth: A,
- *   lth: A,
- *   under4m: A,
- *   under6m: A,
- *   over4m: A,
- *   over6m: A,
- * }} AgeAggregate
- */
-/** @type {_Make} */
-const _AgeAggregate = (c, b, f0) => _n(c, b, {
-  all: [f0, ''],
-  sth: [f0, 'sth'],
-  lth: [f0, 'lth'],
-  under4m: [f0, '*_under_4m'],
-  under6m: [f0, '*_under_6m'],
-  over4m: [f0, '*_over_4m'],
-  over6m: [f0, '*_over_6m'],
 });
 
 /**
@@ -4012,6 +3921,66 @@ const _SharedSupply = _s({
   inLoss: [_AllSupplyInLoss, '*'],
   delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: SharedSupply,
+ *   capital: SharedCapital,
+ *   unrealized: Unrealized,
+ *   costBasis: CostBasis,
+ * }} WeightedCohort
+ */
+const _WeightedCohort = _s({
+  supply: [_SharedSupply, '*'],
+  capital: [_SharedCapital, '*'],
+  unrealized: [_Unrealized, '*'],
+  costBasis: [_CostBasis, '*'],
+});
+
+/**
+ * @typedef {{
+ *   mobile: WeightedCohort,
+ *   immobile: Side,
+ * }} CoinflowCohort
+ */
+const _CoinflowCohort = _s({
+  mobile: [_WeightedCohort, '*_mobile'],
+  immobile: [_Side, '*_immobile'],
+});
+
+/**
+ * @typedef {{
+ *   awake: WeightedCohort,
+ *   dormant: Side,
+ * }} CointimeCohort
+ */
+const _CointimeCohort = _s({
+  awake: [_WeightedCohort, '*_awake'],
+  dormant: [_Side, '*_dormant'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   all: A,
+ *   sth: A,
+ *   lth: A,
+ *   under4m: A,
+ *   under6m: A,
+ *   over4m: A,
+ *   over6m: A,
+ * }} AgeAggregate
+ */
+/** @type {_Make} */
+const _AgeAggregate = (c, b, f0) => _n(c, b, {
+  all: [f0, ''],
+  sth: [f0, 'sth'],
+  lth: [f0, 'lth'],
+  under4m: [f0, '*_under_4m'],
+  under6m: [f0, '*_under_6m'],
+  over4m: [f0, '*_over_4m'],
+  over6m: [f0, '*_over_6m'],
 });
 
 /**
@@ -5335,19 +5304,19 @@ const _Coinbase = _s({
 
 /**
  * @typedef {{
+ *   value: ValueFlow,
  *   count: Flow<Count>,
  *   share: Share,
  *   txCount: Flow<Count>,
  *   txShare: Share,
- *   value: ValueFlow,
  * }} OutputTypeSeries
  */
 const _OutputTypeSeries = _s({
+  value: [_ValueFlow, '*_value'],
   count: [_Flow, '*_count'],
   share: [_Share, '*_share'],
   txCount: [_Flow, '*_tx_count'],
   txShare: [_Share, '*_tx_share'],
-  value: [_ValueFlow, '*_value'],
 });
 
 /**
@@ -5707,9 +5676,9 @@ const _AddressesReuseEvents = _s({
  *   count: ReusedCount,
  *   supply: PredicateSupply,
  *   events: AddressesReuseEvents,
- * }} Reused
+ * }} AddressesReused
  */
-const _Reused = _s({
+const _AddressesReused = _s({
   count: [_ReusedCount, '*'],
   supply: [_PredicateSupply, '*_reused_address'],
   events: [_AddressesReuseEvents, '*'],
@@ -5721,9 +5690,9 @@ const _Reused = _s({
  *   supply: PredicateSupply,
  *   events: AddressesReuseEvents,
  *   direct: OutputCount,
- * }} AddressesReused
+ * }} Reused
  */
-const _AddressesReused = _s({
+const _Reused = _s({
   count: [_ReusedCount, ''],
   supply: [_PredicateSupply, 'reused_*'],
   events: [_AddressesReuseEvents, ''],
@@ -5755,7 +5724,7 @@ const _AddressesActivity = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: Reused,
+ *   reused: AddressesReused,
  *   respent: Respent,
  *   exposed: Exposed,
  * }} AddressSeries
@@ -5767,7 +5736,7 @@ const _AddressSeries = _s({
   new: [_NewAddressCount, '*_new_address_count'],
   activity: [_AddressesActivity, '*'],
   avgBalance: [_Value, '*_address_balance_avg'],
-  reused: [_Reused, '*'],
+  reused: [_AddressesReused, '*'],
   respent: [_Respent, '*'],
   exposed: [_Exposed, '*'],
 });
@@ -5799,7 +5768,7 @@ const _AddressType = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: AddressesReused,
+ *   reused: Reused,
  *   respent: Respent,
  *   exposed: Exposed,
  *   supply: CohortSupply,
@@ -5815,7 +5784,7 @@ const _Addresses = _s({
   new: [_NewAddressCount, 'new_*_count'],
   activity: [_AddressesActivity, ''],
   avgBalance: [_Value, '*_balance_avg'],
-  reused: [_AddressesReused, '*'],
+  reused: [_Reused, '*'],
   respent: [_Respent, ''],
   exposed: [_Exposed, ''],
   supply: [_CohortSupply, '*'],
@@ -7244,7 +7213,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "e6021df1f0f11a7501ca8ba0f2123188619085dc66cd44d87ad1030d909e71a8";
+  static HASH = "789048acca06ac48481822569e74008adff2305f427deeb8bf8fcaf806d750f0";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

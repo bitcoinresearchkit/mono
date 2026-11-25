@@ -756,13 +756,6 @@ pub mod tree {
         investorness: SeriesPattern1<Option<Percent>> = "investorness",
         producerness: SeriesPattern1<Option<Percent>> = "producerness",
     } }
-    shape! { MobileCapital at "series().coinflow.cohorts.all.mobile.capital" {
-        total: SeriesPattern1<Option<Dollars>> = "*_capital",
-        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
-    } }
-    shape! { MobileSupplyInLoss at "series().coinflow.cohorts.all.mobile.supply.in_loss" {
-        share: SeriesPattern1<Option<Percent>> = "*",
-    } }
     shape! { Velocity at "series().supply.velocity" {
         btc: SeriesPattern1<Option<Ratio>> = "*_btc",
         usd: SeriesPattern1<Option<Ratio>> = "*_usd",
@@ -898,11 +891,6 @@ pub mod tree {
         hodled_or_lost: SpotValue = "hodled_or_lost",
         active: SpotValue = "active",
     } }
-    shape! { MobileSupply at "series().coinflow.cohorts.all.mobile.supply" {
-        total: SpotValue = "*",
-        in_loss: MobileSupplyInLoss = "*_supply_in_loss_share",
-        in_profit: MobileSupplyInLoss = "*_supply_in_profit_share",
-    } }
     shape! { Side at "series().coinflow.age_ranges._10y_to_12y.immobile" {
         supply: SpotValue = "*",
     } }
@@ -991,28 +979,6 @@ pub mod tree {
         by_dollar: CostBasisByDollar = "*",
         supply_density: Density = "*_supply_density",
         capital_density: Density = "*_capital_density",
-    } }
-    shape! { Awake at "series().coinflow.cohorts.all.mobile" {
-        supply: MobileSupply = "*",
-        capital: MobileCapital = "*",
-        cost_basis: CostBasis = "*",
-    } }
-    shape! { CoinflowCohort at "series().coinflow.cohorts.all" {
-        mobile: Awake = "*_mobile",
-        immobile: Side = "*_immobile",
-    } }
-    shape! { CointimeCohort at "series().cointime.cohorts.all" {
-        awake: Awake = "*_awake",
-        dormant: Side = "*_dormant",
-    } }
-    shape! { AgeAggregate<A> at "series().coinflow.cohorts" {
-        all: A = "",
-        sth: A = "sth",
-        lth: A = "lth",
-        under_4m: A = "*_under_4m",
-        under_6m: A = "*_under_6m",
-        over_4m: A = "*_over_4m",
-        over_6m: A = "*_over_6m",
     } }
     shape! { HoldersCostBasis at "series().holders.all.cost_basis" {
         by_coin: CostBasisByCoin = "*",
@@ -1249,6 +1215,29 @@ pub mod tree {
         in_loss: AllSupplyInLoss = "*",
         delta: Delta<Option<Bitcoin>> = "*_supply_delta",
         share: SeriesPattern1<Option<Percent>> = "*_supply_share",
+    } }
+    shape! { WeightedCohort at "series().coinflow.cohorts.all.mobile" {
+        supply: SharedSupply = "*",
+        capital: SharedCapital = "*",
+        unrealized: Unrealized = "*",
+        cost_basis: CostBasis = "*",
+    } }
+    shape! { CoinflowCohort at "series().coinflow.cohorts.all" {
+        mobile: WeightedCohort = "*_mobile",
+        immobile: Side = "*_immobile",
+    } }
+    shape! { CointimeCohort at "series().cointime.cohorts.all" {
+        awake: WeightedCohort = "*_awake",
+        dormant: Side = "*_dormant",
+    } }
+    shape! { AgeAggregate<A> at "series().coinflow.cohorts" {
+        all: A = "",
+        sth: A = "sth",
+        lth: A = "lth",
+        under_4m: A = "*_under_4m",
+        under_6m: A = "*_under_6m",
+        over_4m: A = "*_over_4m",
+        over_6m: A = "*_over_6m",
     } }
     shape! { Capital at "series().holders.all.capital" {
         total: SeriesPattern1<Option<Dollars>> = "*",
@@ -1806,11 +1795,11 @@ pub mod tree {
         types: ByType = "*",
     } }
     shape! { OutputTypeSeries at "series().outputs.types.empty_script" {
+        value: ValueFlow = "*_value",
         count: Flow<Count> = "*_count",
         share: Share = "*_share",
         tx_count: Flow<Count> = "*_tx_count",
         tx_share: Share = "*_tx_share",
-        value: ValueFlow = "*_value",
     } }
     shape! { SpentWithin at "series().inputs.spent_within" {
         _1_block: Flow<Count> = "within_1_block_*",
@@ -1956,12 +1945,12 @@ pub mod tree {
         inputs: EventCount<Flow<Count>> = "*_input_from_reused_address",
         active: EventCount<Averaged<Count, Option<CountFract>>> = "*_active_reused_address",
     } }
-    shape! { Reused at "series().addresses.types.p2pk.reused" {
+    shape! { AddressesReused at "series().addresses.types.p2pk.reused" {
         count: ReusedCount = "*",
         supply: PredicateSupply = "*_reused_address",
         events: AddressesReuseEvents = "*",
     } }
-    shape! { AddressesReused at "series().addresses.reused" {
+    shape! { Reused at "series().addresses.reused" {
         count: ReusedCount = "",
         supply: PredicateSupply = "reused_*",
         events: AddressesReuseEvents = "",
@@ -1981,7 +1970,7 @@ pub mod tree {
         new: NewAddressCount = "*_new_address_count",
         activity: AddressesActivity = "*",
         avg_balance: Value = "*_address_balance_avg",
-        reused: Reused = "*",
+        reused: AddressesReused = "*",
         respent: Respent = "*",
         exposed: Exposed = "*",
     } }
@@ -2000,7 +1989,7 @@ pub mod tree {
         new: NewAddressCount = "new_*_count",
         activity: AddressesActivity = "",
         avg_balance: Value = "*_balance_avg",
-        reused: AddressesReused = "*",
+        reused: Reused = "*",
         respent: Respent = "",
         exposed: Exposed = "",
         supply: CohortSupply = "*",

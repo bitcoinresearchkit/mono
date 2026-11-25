@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
 use bitview_cohort::{AgeAggregateId, BuildMember, UpdateMember};
-use bitview_distribution::metrics::UtxoViews;
+use bitview_distribution::metrics::{UtxoViews, holding::Unrealized};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Height};
@@ -15,12 +15,14 @@ use crate::{
     realized::Realized,
     section::{CohortCompute, Imports, Rest, Section},
     supply::{SharedSupply, Supply},
-    unrealized::Unrealized,
 };
 
 /// The sections that differ by holder group: what [`Metrics`] holds as its supply, capital and
 /// realized flows.
 pub trait Kind {
+    /// The client type name of its metrics, published so: all coins' own, the others' the creation
+    /// cohort's they share a shape with.
+    const CLIENT: &'static str;
     type Supply<M: StorageMode>;
     type Capital<M: StorageMode>;
     type Realized<M: StorageMode>;
@@ -36,16 +38,19 @@ pub struct Young;
 pub struct Old;
 
 impl Kind for All {
+    const CLIENT: &'static str = "Metrics";
     type Supply<M: StorageMode> = Supply<M>;
     type Capital<M: StorageMode> = Capital<M>;
     type Realized<M: StorageMode> = AdjustedRealized<M>;
 }
 impl Kind for Young {
+    const CLIENT: &'static str = "CreationCohort";
     type Supply<M: StorageMode> = SharedSupply<M>;
     type Capital<M: StorageMode> = SharedCapital<M>;
     type Realized<M: StorageMode> = AdjustedRealized<M>;
 }
 impl Kind for Old {
+    const CLIENT: &'static str = "CreationCohort";
     type Supply<M: StorageMode> = SharedSupply<M>;
     type Capital<M: StorageMode> = SharedCapital<M>;
     type Realized<M: StorageMode> = Realized<M>;
@@ -53,6 +58,7 @@ impl Kind for Old {
 
 /// A holder group's series, its sections by its [`Kind`].
 #[derive(Traversable)]
+#[traversable(client = K::CLIENT)]
 pub struct Metrics<K: Kind, M: StorageMode = Rw> {
     pub supply: K::Supply<M>,
     pub capital: K::Capital<M>,
@@ -104,7 +110,14 @@ where
             ),
             activity: Activity::import(db, id, v, c, mappings, windows)?,
             realized: Section::import(id, cx)?,
-            unrealized: Unrealized::new(id, v, c, mappings),
+            unrealized: Unrealized::new(
+                |metric| id.metric_name(metric),
+                v,
+                &c.unrealized_profit,
+                &c.unrealized_loss,
+                &c.nupl,
+                mappings,
+            ),
             cost_basis,
         })
     }

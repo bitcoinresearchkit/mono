@@ -14,6 +14,7 @@ use vecdb::{ComputeVec, Database, Rw, StorageMode};
 use crate::columns::Columns;
 
 #[derive(Traversable)]
+#[traversable(client = "HoldersActivity")]
 pub struct Activity<M: StorageMode = Rw> {
     /// Value of the cohort's outputs spent in each block. BTC representations use
     /// the spent output value; USD representations value it at the spending

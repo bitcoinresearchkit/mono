@@ -10,12 +10,14 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// cumulative coinblocks destroyed divided by cumulative coinblocks
     /// created. This raises realized price as a larger share of accumulated
     /// holding time is consumed rather than stored.
+    #[traversable(client = "CointimePriceWithMvrv")]
     #[traversable(lead = "Vaulted price: the realized price, scaled up by how much of the supply sits unmoved.")]
     pub vaulted: PriceWithMvrv<M>,
     /// Realized price divided by liveliness, where liveliness is cumulative
     /// coinblocks destroyed divided by cumulative coinblocks created.
     /// This raises realized price when little accumulated holding time has been
     /// consumed.
+    #[traversable(client = "CointimePriceWithMvrv")]
     #[traversable(lead = "Active price: the realized price, scaled by how much of the supply is in use.")]
     pub active: PriceWithMvrv<M>,
     /// Investor capitalization, equal to realized capitalization minus the
@@ -23,6 +25,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// component, divided by active supply in BTC. Active supply is circulating
     /// supply multiplied by liveliness. Undefined (null) unless both investor
     /// capitalization and active supply are positive.
+    #[traversable(client = "CointimePriceWithRatio")]
     #[traversable(lead = "True market mean: the realized cap without what miners received, per coin of the supply in use.")]
     pub true_market_mean: PriceWithRatio<M>,
     /// AVIV: active capitalization divided by investor capitalization, which
@@ -42,6 +45,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Cumulative cointime value destroyed divided by cumulative coinblocks
     /// stored, expressed as a price per BTC. It represents the average value
     /// destroyed for each unit of holding time that remains stored.
+    #[traversable(client = "CointimePriceWithMvrv")]
     #[traversable(lead = "Cointime price: the value of the holding time spent, for each unit stored.")]
     pub cointime: PriceWithMvrv<M>,
     #[traversable(hidden)]

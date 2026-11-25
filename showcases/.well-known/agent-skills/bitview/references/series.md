@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31083 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31545 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -84,7 +84,7 @@
 - `outputs.count` (38): `output_count`, `output_count_cumulative`, `output_count_sum_24h`, `output_count_sum_1w`, `output_count_sum_1m`
 - `outputs.per_second` (4): `outputs_per_second_24h`, `outputs_per_second_1w`, `outputs_per_second_1m`, `outputs_per_second_1y`
 - `outputs.non_op_return_count` (6): `non_op_return_output_count`, `non_op_return_output_count_cumulative`, `non_op_return_output_count_sum_24h`, `non_op_return_output_count_sum_1w`, `non_op_return_output_count_sum_1m`
-- `outputs.types` (362): `p2pk_output_count`, `p2pk_output_count_cumulative`, `p2pk_output_count_sum_24h`, `p2pk_output_count_sum_1w`, `p2pk_output_count_sum_1m`
+- `outputs.types` (362): `p2pk_output_value`, `p2pk_output_value_usd`, `p2pk_output_value_cumulative`, `p2pk_output_value_cumulative_usd`, `p2pk_output_value_sum_24h`
 - `outputs.op_return_value` (12): `op_return_value`, `op_return_value_usd`, `op_return_value_cumulative`, `op_return_value_cumulative_usd`, `op_return_value_sum_24h`
 - `outputs.coinbase` (72): `coinbase_output_count`, `coinbase_output_count_cumulative`, `coinbase_output_count_sum_24h`, `coinbase_output_count_sum_1w`, `coinbase_output_count_sum_1m`
 - `outputs.pubkeys` (12): `compressed_pubkey_in_output_count`, `compressed_pubkey_in_output_count_cumulative`, `compressed_pubkey_in_output_count_sum_24h`, `compressed_pubkey_in_output_count_sum_1w`, `compressed_pubkey_in_output_count_sum_1m`
@@ -201,7 +201,7 @@
 
 - `cointime.activity` (25): `coinblocks_created`, `coinblocks_created_cumulative`, `coinblocks_created_sum_24h`, `coinblocks_created_sum_1w`, `coinblocks_created_sum_1m`
 - `cointime.age_ranges` (460): `age_under_1h_coindays_created`, `age_under_1h_coindays_created_cumulative`, `age_under_1h_coindays_created_sum_24h`, `age_under_1h_coindays_created_sum_1w`, `age_under_1h_coindays_created_sum_1m`
-- `cointime.cohorts` (441): `awake_supply`, `awake_supply_usd`, `awake_market_cap`, `awake_supply_in_loss_share`, `awake_supply_in_profit_share`
+- `cointime.cohorts` (672): `awake_supply`, `awake_supply_usd`, `awake_market_cap`, `awake_supply_in_profit`, `awake_supply_in_profit_usd`
 - `cointime.supply` (9): `vaulted_supply`, `vaulted_supply_usd`, `vaulted_market_cap`, `hodled_or_lost_supply`, `hodled_or_lost_supply_usd`
 - `cointime.value` (18): `cointime_value_destroyed`, `cointime_value_destroyed_cumulative`, `cointime_value_destroyed_sum_24h`, `cointime_value_destroyed_sum_1w`, `cointime_value_destroyed_sum_1m`
 - `cointime.caps` (7): `thermo_cap`, `investor_cap`, `active_cap`, `vaulted_cap`, `cointime_cap`
@@ -212,7 +212,7 @@
 ### coinflow
 
 - `coinflow.age_ranges` (207): `age_under_1h_spending_rate`, `age_under_1h_spending_exposure`, `age_under_1h_mobility`, `age_under_1h_mobile_supply`, `age_under_1h_mobile_supply_usd`
-- `coinflow.cohorts` (441): `mobile_supply`, `mobile_supply_usd`, `mobile_market_cap`, `mobile_supply_in_loss_share`, `mobile_supply_in_profit_share`
+- `coinflow.cohorts` (672): `mobile_supply`, `mobile_supply_usd`, `mobile_market_cap`, `mobile_supply_in_profit`, `mobile_supply_in_profit_usd`
 
 ### bedrock
 
@@ -241,10 +241,10 @@ Each member holds the family's series, its ids built on the member's base (`key 
 - `blocks.size` (4 series each): `sum` → `block_size_sum`, `avg` → `block_size_avg`, `min` → `block_size_min`, `max` → `block_size_max`, `p10` → `block_size_p10`, `p25` → `block_size_p25`, `median` → `block_size_median`, `p75` → `block_size_p75`, `p90` → `block_size_p90`
 - `blocks.weight` (4 series each): `sum` → `block_weight_sum`, `avg` → `block_weight_avg`, `min` → `block_weight_min`, `max` → `block_weight_max`, `p10` → `block_weight_p10`, `p25` → `block_weight_p25`, `median` → `block_weight_median`, `p75` → `block_weight_p75`, `p90` → `block_weight_p90`
 - `coinflow.age_ranges` (9 series each): `under_1h` → `age_under_1h`, `1h_to_1d` → `age_1h_to_1d`, `1d_to_1w` → `age_1d_to_1w`, `1w_to_1m` → `age_1w_to_1m`, `1m_to_2m` → `age_1m_to_2m`, `2m_to_3m` → `age_2m_to_3m`, `3m_to_4m` → `age_3m_to_4m`, `4m_to_5m` → `age_4m_to_5m`, `5m_to_6m` → `age_5m_to_6m`, `6m_to_9m` → `age_6m_to_9m`, `9m_to_1y` → `age_9m_to_1y`, `1y_to_18m` → `age_1y_to_18m`, `18m_to_2y` → `age_18m_to_2y`, `2y_to_3y` → `age_2y_to_3y`, `3y_to_4y` → `age_3y_to_4y`, `4y_to_5y` → `age_4y_to_5y`, `5y_to_6y` → `age_5y_to_6y`, `6y_to_7y` → `age_6y_to_7y`, `7y_to_8y` → `age_7y_to_8y`, `8y_to_10y` → `age_8y_to_10y`, `10y_to_12y` → `age_10y_to_12y`, `12y_to_15y` → `age_12y_to_15y`, `over_15y` → `age_over_15y`
-- `coinflow.cohorts` (63 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
+- `coinflow.cohorts` (96 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
 - `cointime.activity` (6 series each): `coinblocks_created` → `coinblocks_created`, `coinblocks_destroyed` → `coinblocks_destroyed`, `coinblocks_stored` → `coinblocks_stored`
 - `cointime.age_ranges` (20 series each): `under_1h` → `age_under_1h`, `1h_to_1d` → `age_1h_to_1d`, `1d_to_1w` → `age_1d_to_1w`, `1w_to_1m` → `age_1w_to_1m`, `1m_to_2m` → `age_1m_to_2m`, `2m_to_3m` → `age_2m_to_3m`, `3m_to_4m` → `age_3m_to_4m`, `4m_to_5m` → `age_4m_to_5m`, `5m_to_6m` → `age_5m_to_6m`, `6m_to_9m` → `age_6m_to_9m`, `9m_to_1y` → `age_9m_to_1y`, `1y_to_18m` → `age_1y_to_18m`, `18m_to_2y` → `age_18m_to_2y`, `2y_to_3y` → `age_2y_to_3y`, `3y_to_4y` → `age_3y_to_4y`, `4y_to_5y` → `age_4y_to_5y`, `5y_to_6y` → `age_5y_to_6y`, `6y_to_7y` → `age_6y_to_7y`, `7y_to_8y` → `age_7y_to_8y`, `8y_to_10y` → `age_8y_to_10y`, `10y_to_12y` → `age_10y_to_12y`, `12y_to_15y` → `age_12y_to_15y`, `over_15y` → `age_over_15y`
-- `cointime.cohorts` (63 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
+- `cointime.cohorts` (96 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
 - `cointime.prices` (3 series each): `vaulted` → `vaulted`, `active` → `active`, `cointime` → `cointime`
 - `cointime.supply` (3 series each): `vaulted` → `vaulted`, `hodled_or_lost` → `hodled_or_lost`, `active` → `active`
 - `cointime.value` (6 series each): `destroyed` → `cointime_value_destroyed`, `created` → `cointime_value_created`, `stored` → `cointime_value_stored`

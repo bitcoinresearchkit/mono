@@ -1,42 +1,24 @@
 use std::{borrow::Borrow, ops::Deref};
 
 use bitview_cohort::AgeAggregateId;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
+use bitview_primitives::PartsPerMillion32;
+use bitview_distribution::metrics::holding;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyIndexedVec, LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, PercentPerBlock,
     ops::Quotient,
 };
 use brk_error::Result;
-use brk_types::{Height, Sats, SatsSigned};
+use brk_types::{Height, Sats};
 use vecdb::{ComputeVec, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::{
-    part::Part,
+    part::import_part,
     section::{CohortCompute, Imports, Section},
 };
 
-#[derive(Traversable)]
-pub struct Supply<M: StorageMode = Rw> {
-    /// Total unspent supply.
-    #[traversable(lead = "Supply: the bitcoin held.")]
-    pub total: LazySpotValuePerBlock,
-    /// Supply in profit: creation price at or below the spot price.
-    #[traversable(priced)]
-    #[traversable(
-        lead = "Supply in profit: coins whose price now is at or above the one they last moved at."
-    )]
-    pub in_profit: Part<LazySpotValuePerBlock, M>,
-    /// Supply in loss: creation price above the spot price.
-    #[traversable(priced)]
-    #[traversable(
-        lead = "Supply in loss: coins whose price now is below the one they last moved at."
-    )]
-    pub in_loss: Part<LazySpotValuePerBlock, M>,
-    /// Change in the cohort's supply over a trailing window.
-    #[traversable(lead = "Supply change: how much the bitcoin held changed.")]
-    pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
-}
+/// A holder group's supply, its parts' shares stored.
+pub type Supply<M = Rw> = holding::Supply<PercentPerBlock<PartsPerMillion32, M>>;
 
 /// The supply of a cohort but all, beside its share of all unspent supply (all's is 100%).
 #[derive(Traversable)]
@@ -87,8 +69,8 @@ impl Section for Supply {
         );
         Ok(Self {
             total,
-            in_profit: import_part(cx, &id.metric_name("supply_in_profit"), &c.supply_profit)?,
-            in_loss: import_part(cx, &id.metric_name("supply_in_loss"), &supply_loss)?,
+            in_profit: spot_part(cx, &id.metric_name("supply_in_profit"), &c.supply_profit)?,
+            in_loss: spot_part(cx, &id.metric_name("supply_in_loss"), &supply_loss)?,
             delta: LazyRollingDeltasAmountFromHeight::new(
                 &id.metric_name("supply_delta"),
                 v,
@@ -124,12 +106,12 @@ impl Section for Supply {
     }
 }
 
-fn import_part(
+fn spot_part(
     cx: &Imports,
     name: &str,
     sats: &impl ReadableCloneableVec<Height, Sats>,
-) -> Result<Part<LazySpotValuePerBlock>> {
-    Part::import(
+) -> Result<holding::Part<LazySpotValuePerBlock, PercentPerBlock<PartsPerMillion32>>> {
+    import_part(
         cx.db,
         name,
         cx.v,

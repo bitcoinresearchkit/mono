@@ -22,6 +22,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// contributes once, regardless of its number of inscriptions. Fees of
     /// separate commit transactions without a detected envelope are excluded.
     #[traversable(lead = "Fees paid by inscription transactions.")]
+    #[traversable(client = "FeesSeries")]
     pub fees: ValuePerBlockCumulativeRolling<M>,
     /// Inscription transactions' fees divided by all transaction fees in the chain over the
     /// same cumulative or trailing window; undefined (null) when those fees are zero.

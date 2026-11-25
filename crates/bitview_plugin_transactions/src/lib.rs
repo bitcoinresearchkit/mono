@@ -68,6 +68,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// 863,500 and at heights 892,500 and 921,000; coinbase transactions are not
     /// evaluated (never nonstandard).
     #[traversable(
+        client = "TransactionsFlagged",
         lead = "Nonstandard transactions: ones Bitcoin Core's default policy likely wouldn't relay, as far as one transaction shows."
     )]
     nonstandard: Classified<M>,

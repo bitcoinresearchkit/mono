@@ -10,8 +10,9 @@
 //                                                  they were written by: what the chain did since fails nothing)
 //   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone or old addresses changed (below)
 //
-// And moved.txt: every address a preset once had (once one a window, now that preset at it: see addresses.js) and what
-// it opens, each kept so for good, the build stopped where one changes or another place takes it.
+// And moved.txt: every address Studio once published and has no more, each with what it opens now, kept for good (the
+// server answers each with a redirect): a preset's old window address, that preset at it (see addresses.js), the build
+// stopped where one changes or another place takes it; a chart or section gone, its successor (see successor).
 import { gunzipSync, gzipSync } from "node:zlib";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -168,9 +169,33 @@ const opens = (path) => {
   if (!("preset" in to)) return path;
   return to.window ? `${book.presets[to.preset]}#window=${to.window}` : book.presets[to.preset];
 };
+const live = new Set(urls), before = writtenBytes("page-info.json.gz");
+const pageInfoBefore = before.length ? JSON.parse(gunzipSync(before).toString("utf8")) : {};
+/** A page's series, in its order, each once. @param {any} info @returns {string[]} */
+const seriesOf = (info) => [...new Set((info?.json_ld?.distribution ?? []).map((/** @type {{ name: string }} */ source) => source.name))];
+/**
+ * Where an address gone opens now: of the charts under the nearest section still there, the one showing the gone
+ * page's series earliest in its order (its first, else its second, ...), then the one showing fewest besides (the
+ * closest, not the busiest), then the first in the page's order; the section itself when none shows any of them.
+ * @param {string} address
+ */
+const successor = (address) => {
+  let section = address;
+  do section = section.replace(/[^/]+\/?$/, ""); while (!live.has(section));
+  const series = seriesOf(pageInfoBefore[address]);
+  /** @type {{ chart: string, hits: boolean[], size: number } | null} */
+  let best = null;
+  for (const chart of book.presets.filter((chart) => chart.startsWith(section))) {
+    const shows = new Set(seriesOf(pageInfo[chart])), hits = series.map((name) => shows.has(name));
+    const first = best ? hits.findIndex((hit, i) => hit !== best.hits[i]) : -1;
+    if (!best || (first >= 0 ? hits[first] : shows.size < best.size)) best = { chart, hits, size: shows.size };
+  }
+  return best?.hits.includes(true) ? best.chart : section;
+};
 const moved = new Map();
 for (const [path, to] of book.at) if ("window" in to) moved.set(path, opens(path));
-const changed = written("moved.txt").split("\n").filter(Boolean).map((line) => line.split("\t")).filter(([path, to]) => opens(path) !== to);
+const rows = written("moved.txt").split("\n").filter(Boolean).map((line) => line.split("\t"));
+const changed = rows.filter(([path, to]) => book.at.has(path) && opens(path) !== to);
 if (changed.length) {
   console.error(`Moved addresses that open another place now, or nothing, ${changed.length}:\n${changed.slice(0, 12).map(([path, to]) => `  ${path}: ${to} → ${opens(path)}`).join("\n")}${changed.length > 12 ? `\n  and ${changed.length - 12} more` : ""}`);
   if (!drop) {
@@ -178,17 +203,21 @@ if (changed.length) {
     process.exit(1);
   }
 }
-files["moved.txt"] = [...moved].sort(([a], [b]) => (a < b ? -1 : 1)).map(([path, to]) => `${path}\t${to}\n`).join("");
+// The rest kept, each opening its place while that's there, else its place's successor (a new page at one takes it).
+for (const [path, to] of rows) {
+  const place = to.split("#")[0];
+  if (!moved.has(path) && !live.has(path)) moved.set(path, live.has(place) ? to : successor(place));
+}
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
-// word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop). One the address
-// book still answers (moved, above) isn't gone.
-const now = new Set(urls.map((url) => `${ORIGIN}${url}`));
-const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&")).filter((loc) => !now.has(loc) && !book.at.has(loc.slice(ORIGIN.length)));
+// word (its layer reads nothing, so it isn't made). Named, and each sent to its successor only when meant (--drop).
+const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&").slice(ORIGIN.length)).filter((path) => !live.has(path) && !moved.has(path));
 if (gone.length && !drop) {
-  console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((loc) => `  ${loc}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
+  console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((path) => `  ${path} → ${successor(path)}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
   console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun showcases/studio/seo.mjs --drop");
   process.exit(1);
 }
+for (const path of gone) moved.set(path, successor(path));
+files["moved.txt"] = [...moved].sort(([a], [b]) => (a < b ? -1 : 1)).map(([path, to]) => `${path}\t${to}\n`).join("");
 const stale = [];
 for (const [name, text] of Object.entries(files)) {
   if (!check) writeFileSync(join(HERE, name), text);

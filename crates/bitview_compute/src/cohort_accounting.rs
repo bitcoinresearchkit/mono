@@ -1,10 +1,10 @@
 use bitview_cohort::{AgeRange, AgeRangeId};
 use bitview_primitives::{BoundedRatio, CentsSquaredSats};
-use brk_types::{CentsSats, Height, Sats};
+use brk_types::{Cents, CentsSats, Height, Sats};
 use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 use vecdb::{ReadableVec, VecValue};
 
-use crate::WeightedCohortState;
+use crate::{WeightedCohortState, weighted::BandAmounts};
 
 /// Bounded inputs shared by the weighted age models. Each consumer owns its batch.
 #[derive(Default)]
@@ -13,6 +13,10 @@ pub struct CohortAccounting {
     pub loss_supplies: AgeRange<Vec<Sats>>,
     pub cap_raw: AgeRange<Vec<CentsSats>>,
     pub capitalized_cap_raw: AgeRange<Vec<CentsSquaredSats>>,
+    pub unrealized_profits: AgeRange<Vec<Cents>>,
+    pub unrealized_losses: AgeRange<Vec<Cents>>,
+    pub capitals_in_profit: AgeRange<Vec<Cents>>,
+    pub capitals_in_loss: AgeRange<Vec<Cents>>,
 }
 
 impl CohortAccounting {
@@ -24,10 +28,16 @@ impl CohortAccounting {
         weight: BoundedRatio,
     ) -> WeightedCohortState {
         WeightedCohortState::new(
-            age.select(&self.supplies)[offset],
-            age.select(&self.loss_supplies)[offset],
-            age.select(&self.cap_raw)[offset],
-            age.select(&self.capitalized_cap_raw)[offset],
+            BandAmounts {
+                supply: age.select(&self.supplies)[offset],
+                loss_supply: age.select(&self.loss_supplies)[offset],
+                cap: age.select(&self.cap_raw)[offset],
+                capitalized_cap: age.select(&self.capitalized_cap_raw)[offset],
+                unrealized_profit: age.select(&self.unrealized_profits)[offset],
+                unrealized_loss: age.select(&self.unrealized_losses)[offset],
+                capital_in_profit: age.select(&self.capitals_in_profit)[offset],
+                capital_in_loss: age.select(&self.capitals_in_loss)[offset],
+            },
             weight,
         )
     }

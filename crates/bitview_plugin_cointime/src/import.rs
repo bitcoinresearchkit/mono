@@ -1,3 +1,4 @@
+use bitview_cohort::AgeAggregate;
 use bitview_distribution::AllChainSources;
 use bitview_plugin::ImportContext;
 use bitview_plugin_age::Vecs as AgeVecs;
@@ -5,8 +6,8 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_vecs::{LazyWindowStartVec, PerBlock, shapes::Windows};
 use brk_error::Result;
-use brk_types::{Cents, Version};
-use vecdb::ReadableCloneableVec;
+use brk_types::{Cents, Height, Version};
+use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
 use super::{
     STORAGE, Vecs, activity, adjusted, age_range, aggregate, cap, prices, reserve_risk, supply,
@@ -14,6 +15,7 @@ use super::{
 };
 
 impl Vecs {
+    #[allow(clippy::too_many_arguments)]
     pub fn import(
         context: ImportContext<'_>,
         mappings: &MappingsVecs,
@@ -21,6 +23,7 @@ impl Vecs {
         prices: &PriceVecs,
         subsidy_cents: &PerBlock<Cents>,
         all_chain: &AllChainSources,
+        group_caps: &AgeAggregate<ReadableBoxedVec<Height, Cents>>,
         age: &AgeVecs,
     ) -> Result<Self> {
         let db = STORAGE.open_database(context, 250_000)?;
@@ -31,8 +34,14 @@ impl Vecs {
         let age_ranges =
             age_range::Vecs::import(&db, version, mappings, window_starts, &spot_price, age)?;
         let supply = supply::Vecs::new(v1, mappings, &spot_price, &activity, all_chain);
-        let aggregate =
-            aggregate::Vecs::import(&db, version + Version::new(5), mappings, &spot_price)?;
+        let aggregate = aggregate::Vecs::import(
+            &db,
+            version + Version::new(8),
+            mappings,
+            window_starts,
+            &spot_price,
+            group_caps,
+        )?;
         let value = value::Vecs::import(&db, v1, mappings, window_starts)?;
         let caps = cap::Vecs::import(
             &db,

@@ -6,7 +6,7 @@ import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { hexToOklch, nameDistance, onCurve, SWATCHES, TONE, warmLift } from "/studio/color.js";
+import { hexToOklch, nameDistance, onCurve, pageInk, SWATCHES, TONE, warmLift } from "/studio/color.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
@@ -310,7 +310,7 @@ const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => cli
 let light = false;
 function shownOklch(/** @type {string} */ color) {
   const [l, c, h] = oklchOf(color);
-  return /** @type {[number, number, number]} */ (light && color !== "ink" && !color.startsWith("#") ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
+  return /** @type {[number, number, number]} */ (light && !pageInk(color) && !color.startsWith("#") ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
 }
 /**
  * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
@@ -10683,7 +10683,7 @@ async function showPicture() {
     await studio.ready();
     document.title = `${titleOf(chart)} · Bitview Studio`;
     const at = navigations;
-    if (await freshThumb(chart)) saveThumbsSoon();
+    if (await freshThumb(chart, true)) saveThumbsSoon();
     const url = (await chartImage()).toDataURL("image/png");
     if (at !== navigations) throw new Error("Another chart was opened meanwhile");
     if (run !== pictureRun || !picturing) return;
@@ -10837,6 +10837,9 @@ const studio = Object.freeze({
     const type = options.type ?? "image/png", quality = bounded(options.quality ?? 0.9, "quality", 0.01, 1), partSize = Math.round(bounded(options.partSize ?? 45_000, "partSize", 1000, 1e8));
     if (!["image/png", "image/webp", "image/jpeg"].includes(type)) throw new Error('type: "image/png", "image/webp" or "image/jpeg"');
     await studio.ready();
+    // (Its legends' marks its own lines, as the picture page draws them: not the faint ones they show till its mini
+    // chart's drawn, which a page just opened, by a script, has yet to.)
+    if (await freshThumb(chart, true)) saveThumbsSoon();
     // (Made for the chart as it is now, whole or its part 0; its parts after the first from that same picture, of the
     // same chart, cut alike, whatever's moved since (a live price each second); one asked for otherwise, none.)
     const wanted = JSON.stringify([chart.id, width, height, scale, type, quality, partSize]);
