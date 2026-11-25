@@ -126,17 +126,11 @@ impl BlockAddresses {
         Ok(())
     }
 
-    pub fn index_mut(
-        &mut self,
-        addr_type: OutputType,
-        addr_hash: &AddrHash,
-    ) -> &mut Option<TypeIndex> {
-        let index = *self
-            .indexes
-            .get_mut_unwrap(addr_type)
-            .get_mut(addr_hash)
-            .unwrap();
-        &mut self.resolved[index]
+    /// Gives a new address its index, for its later outputs in this block and, through the cache, in later blocks.
+    pub fn assign(&mut self, addr_type: OutputType, addr_hash: AddrHash, type_index: TypeIndex) {
+        let index = *self.indexes.get_unwrap(addr_type).get(&addr_hash).unwrap();
+        self.resolved[index] = Some(type_index);
+        self.cache.insert(addr_type, addr_hash, type_index);
     }
 
     pub fn index(&self, addr_type: OutputType, addr_hash: &AddrHash) -> Option<TypeIndex> {
@@ -146,6 +140,10 @@ impl BlockAddresses {
 
     pub fn clear_cache(&mut self) {
         self.cache.clear();
+    }
+
+    pub fn size_cache_for(&mut self, backlog: u32) {
+        self.cache.size_for(backlog);
     }
 
     pub fn clear_block(&mut self) {

@@ -48,7 +48,6 @@ use crate::{
     timing::{Timed, log_compute, timed_compute},
 };
 
-const REIMPORT_THRESHOLD: u32 = 10_000;
 /// The URPD history's compute, timed apart from the UTXO set plugin that holds it.
 const URPD: PluginId = PluginId::new("urpd");
 /// The walk's own compute: what it spends outside its consumers, reading the sources, moving the
@@ -463,7 +462,7 @@ impl ComputePluginSet for DefaultPlugins {
             // Local progress: the published height can sit at a rollback floor.
             chain_height.saturating_sub(*self.indexer.vecs().next_height())
         };
-        let far_behind = blocks_behind > REIMPORT_THRESHOLD;
+        let far_behind = blocks_behind > bitview_plugin_indexer::CATCH_UP_BLOCKS;
         if far_behind {
             info!("Indexing {blocks_behind} blocks before initializing metrics");
         }
