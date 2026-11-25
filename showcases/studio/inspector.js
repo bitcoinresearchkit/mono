@@ -23,7 +23,7 @@ import {
   belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
   GRADIENT_MOST, HEAT_GRADIENT, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
   markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, nextColor, nextLetter, ONE_SCALE, oneScale,
-  drawnInto, nameLayer, OUTLINED, OUTLINES, outlinable, PAIRS, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
+  drawnInto, gradable, HEAT_GRADIENTS, nameLayer, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
   TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -482,6 +482,7 @@ function renderInspector() {
             ${summed(layerPane) ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a heatmap (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" ${stack === "rows" && rowsUnfit(chart, layerPane) ? `aria-disabled="true" data-tip="${rowsUnfit(chart, layerPane)}"` : `data-tip="${tip}"`}>${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
+            ${gradable(chart, layerPane) ? `<div class="field"><span>Gradient</span><div class="tabs" role="group" aria-label="Gradient">${HEAT_GRADIENTS.map(([id, name]) => `<button type="button" data-pane-gradient="${layer.pane}" data-gradient="${id}" aria-pressed="${paneGradient(layerPane)[0] === id}">${name}</button>`).join("")}</div></div>` : ""}
             ${outlinable(chart, layerPane) ? `<div class="field"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${OUTLINES.map(([on, name]) => `<button type="button" data-pane-outline="${layer.pane}" data-outline="${on ? 1 : ""}" aria-pressed="${Boolean(layerPane.outline) === on}">${name}</button>`).join("")}</div></div>` : ""}
           </section>`}
           ${(actionsShown = actionsOf(layer))}`;
@@ -799,13 +800,14 @@ const barAt = (/** @type {HTMLElement} */ bar, /** @type {number} */ clientX) =>
 
 /** How a layer's colors are chosen now (see COLOR_MODES). @param {Layer} layer */
 function colorModeOf(layer) {
-  if (layer.byGradient && layer.gradient) return "gradient";
-  if (layer.colorFrom) return "from";
-  if (layer.byLayers && modesOf(layer).includes("layers")) return "layers";
-  if (layer.byLevels) return "levels";
+  const modes = modesOf(layer, chart);
+  if (layer.byGradient && layer.gradient && modes.includes("gradient")) return "gradient";
+  if (layer.colorFrom && modes.includes("from")) return "from";
+  if (layer.byLayers && modes.includes("layers")) return "layers";
+  if (layer.byLevels && modes.includes("levels")) return "levels";
   if (layer.type === "histogram") return layer.colors === 1 ? "one" : layer.colors === 4 ? "momentum" : "sides";
   if (TWO_OR_ONE.has(layer.type)) return layer.colors === 1 ? "one" : "sides";
-  if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modesOf(layer).includes("sides"))) return "sides";
+  if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modes.includes("sides"))) return "sides";
   return "one";
 }
 /** One way of coloring that's two colors (see colorSlots): a P&L heatmap's, its profit's and its loss's; a signal's that marks both ways, up and down. */
@@ -1069,7 +1071,7 @@ const slotName = (/** @type {Layer} */ layer, /** @type {string} */ key) => ((ow
 function colorPicker(/** @type {Layer} */ layer) {
   // (A profile of no groups: none to color.)
   if (layer.type === "profile" && !layer.profile?.length) return "";
-  const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
+  const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer, chart).length > 1;
   // The way: a choice, as every other, on its line's right (none to choose: its label alone).
   const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escapeHtml(name)}"><span class="name">${escapeHtml(name)}</span>${CHEVRON}</button>` : ""}</div>`;
   if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escapeHtml(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escapeHtml(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
@@ -1095,18 +1097,8 @@ function colorPicker(/** @type {Layer} */ layer) {
   const relative = mode === "gradient" && !heatLike(layer) ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escapeHtml(tip)}">${text}</button>`).join("")}</div></div>` : "";
   return `${head}<div class="color-editor" data-palette="${key}">${which}${tabs}<div class="color-pick">${body}</div></div>${relative}`;
 }
-/**
- * Gradients ready made, each its 4 colors that mixed (see gradientTable) come nearest it (within about what an eye
- * tells apart): matplotlib's perceptual maps, and loss to profit. A heatmap of an amount starts on the first.
- * @type {[string, string, [number, string][]][]}
- */
-const GRADIENT_PRESETS = [
-  ["inferno", "Inferno", HEAT_GRADIENT],
-  ["magma", "Magma", [[0, "#000004"], [18, "#331064"], [71, "#f8755e"], [100, "#fcfdbf"]]],
-  ["viridis", "Viridis", [[0, "#440154"], [39, "#2c768e"], [69, "#41bd72"], [100, "#fde725"]]],
-  ["plasma", "Plasma", [[0, "#0d0887"], [33, "#991a9e"], [72, "#f48b48"], [100, "#f0f921"]]],
-  ["sides", "Loss to profit", [[0, "red"], [50, "gray"], [100, "green"]]],
-];
+/** Gradients ready made: the heat ones (see HEAT_GRADIENTS), and loss to profit. @type {[string, string, [number, string][]][]} */
+const GRADIENT_PRESETS = [...HEAT_GRADIENTS, ["sides", "Loss to profit", [[0, "red"], [50, "gray"], [100, "green"]]]];
 /** The gradient ready made a gradient is, if it's one (its stops, every one the same). @param {[number, string][] | undefined} stops */
 const readyGradient = (stops) => GRADIENT_PRESETS.find(([, , preset]) => JSON.stringify(preset) === JSON.stringify(stops))?.[0] ?? null;
 /** Its name: the gradient ready made it is, else its own. @param {[number, string][] | undefined} stops */
@@ -1331,7 +1323,7 @@ function colorModeChoices(/** @type {string} */ id) {
   const layer = layerById(id);
   if (!layer) return [];
   const mode = colorModeOf(layer);
-  return modesOf(layer).map((each) => ({
+  return modesOf(layer, chart).map((each) => ({
     key: `mode:${each}`, icon: ((copy) => (setColorMode(copy, each), modeSwatch(copy, each)))(structuredClone(layer)), label: modeName(each, layer), aside: each === "sides" && layer.type === "trend" ? "Resistance and support" : each === "sides" && layer.type === "cloud" ? "The one over's, parting where they cross" : /** @type {Record<string, string>} */ (MODE_ASIDES)[each], current: mode === each,
     ...(each === "from" ? (colorSources(layer).length ? { page: () => choicePage("Colors from", () => fromChoices(id)) } : { disabled: "There's no other layer to take them from" })
       : each === "levels" && !layer.levels?.length ? { disabled: "Add a level first" }

@@ -28,7 +28,7 @@ import { dashGlyph, glyph, glyphSvg, ICONS, markBody, OUTLINE_GLYPH, shapeGlyph 
 import {
   belowOf, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, dashOf, defaultOpacity, fittable, follows, FORMULA_MAX,
   GRADIENT_LEAST, GRADIENT_MOST, heatLike, hideText, hollowOf, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
-  drawnInto, MAX_PANES, measured, MODES, modesOf, nameLayer, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
+  drawnInto, gradable, MAX_PANES, measured, MODES, modesOf, nameLayer, paneGradient, newPaneIn, OPACITIES, opacityOf, OUTLINED, OUTLINES, outlinable, placedOn, placeName, resultText,
   seriesLooked, SHAPES, STACKS, stretchResult, summed, typeName, TYPES,
 } from "/studio/vocabulary.js";
 import {
@@ -1914,7 +1914,7 @@ function layerPage(id) {
       ...(seriesLooked(layer) ? [{ key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.opens || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) }] : []),
       ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
       ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
-      ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
+      ...(modesOf(layer, chart).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
       ...colorSlots(layer).map(([key, label]) => (key === "from"
         ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
         : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${inSentence(label)}` : "Color"))),
@@ -2196,6 +2196,7 @@ function panePage(id) {
       ...(summed(pane) ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
       { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
       ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
+      ...(gradable(chart, pane) ? [{ key: "gradient", icon: ICONS.charts, label: "Gradient", aside: paneGradient(pane)[1], group: "Pane", page: () => choicePage("Gradient", () => scaleGroup(id, "Gradient")) }] : []),
       ...(outlinable(chart, pane) ? [{ key: "outline", icon: ICONS.charts, label: "Outline", aside: OUTLINES[pane.outline ? 1 : 0][1], group: "Pane", page: () => choicePage("Outline", () => scaleGroup(id, "Outline")) }] : []),
       { key: "average", icon: ICONS.sliders, label: "Average", aside: averageFor(chart, pane).active || "Raw", group: "Pane", page: () => choicePage("Average", () => scaleGroup(id, "Average")) },
       ...paneRows(id, true).map((row) => ({ ...row, group: "Pane" })),

@@ -14,7 +14,7 @@ import { FORMATS, grouped, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
 import {
   blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, DASHES, DEFAULT_MEASURE, defaultOpacity, EDGES,
-  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
+  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENT, HEAT_GRADIENTS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
   kindColor, kindOf, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -1290,7 +1290,7 @@ function validate(input, keepIds = false) {
   if (input.halvings === true) doc.halvings = true;
   if (input.legend === "off") doc.legend = "off";
   const panes = input.panes.slice(0, MAX_PANES);
-  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(pane?.outline === true ? { outline: true } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
+  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(pane?.outline === true ? { outline: true } : {}), ...(HEAT_GRADIENTS.some(([id], k) => k && id === pane?.gradient) ? { gradient: pane.gradient } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
   const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
   /** Each layer's id as read, to its own: its drawings follow it. */
   const layerIds = new Map();

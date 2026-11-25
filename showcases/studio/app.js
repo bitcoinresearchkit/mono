@@ -145,7 +145,7 @@ import {
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
-  setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
+  setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
 } from "/studio/presets-edit.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -9828,11 +9828,11 @@ document.addEventListener("click", (event) => {
   const template = closest(event, "[data-template]");
   const card = template && recommendedCards[Number(template.dataset.template)];
   if (card) return pickPreset(card.preset);
-  const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-pane-outline], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+  const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-pane-outline], [data-pane-gradient], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
   // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
   const target = byTouch && found?.matches(".legend [data-toggle]") ? /** @type {HTMLElement | null} */ (found.closest("[data-select]")) : found;
   if (!target) return;
-  const { select: id, toggle, paneMode, paneStack, paneReverse, paneOutline, mode, action, sheet, openChart } = target.dataset;
+  const { select: id, toggle, paneMode, paneStack, paneReverse, paneOutline, paneGradient, gradient, mode, action, sheet, openChart } = target.dataset;
   if (openChart) {
     delete document.body.dataset.sheet;
     go(chartById(openChart));
@@ -9847,6 +9847,7 @@ document.addEventListener("click", (event) => {
   else if (paneStack) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneStack(paneStack, target.dataset.stack ?? "");
   else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
   else if (paneOutline) setPaneOutline(paneOutline, Boolean(target.dataset.outline));
+  else if (paneGradient) setPaneGradient(paneGradient, gradient ?? "");
   // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
   else if (action === "palette") openPalette({ resume: true });
   // (Home's search, drawn as a field: ⌘K afresh, its keyboard with it by touch, as a tap on a field asks.)
