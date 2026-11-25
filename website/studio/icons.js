@@ -29,6 +29,7 @@ const STYLE = {
 const ICON_EXEMPT = /** @type {Record<string, { rules: string[], why: string }>} */ ({
   weight: { rules: ["stroke"], why: "it draws three stroke widths" },
   star: { rules: ["angle", "gap"], why: "a five-point star's edges run at 36° and 72°, its tips narrower than 45°" },
+  bolt: { rules: ["angle", "gap"], why: "a lightning bolt's diagonals lean 56° and its stroke turns back sharply at both tips; at the table's 45° or 63° it reads as a shuriken or a stack of parallels" },
 });
 
 const svg = (body, attrs = `width="${STYLE.grid}" height="${STYLE.grid}"`) => `<svg viewBox="0 0 ${STYLE.grid} ${STYLE.grid}" ${attrs} fill="none" stroke="currentColor" stroke-width="${STYLE.stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
@@ -106,7 +107,7 @@ const ICONS = {
   layers: svg('<path d="M7.75 2.25 13.75 5.25l-6 3-6-3ZM1.75 8.25l6 3 6-3M1.75 11.25l6 3 6-3"/>'),
   star: svg('<path d="M7.75 1.75 9.25 6l4.5.25-3.5 2.75 1.25 4.25-3.75-2.5-3.75 2.5L5.25 9l-3.5-2.75L6.25 6Z"/>'),
   flag: svg('<path d="M3.75 13.75v-11.5M3.75 3.25h8l-2.5 2.5 2.5 2.5h-8"/>'),
-  bolt: svg('<path d="m2.25 9.75 7-7v4h4.5l-7 7v-4Z"/>'),
+  bolt: svg('<path d="M9.25 1.75 4.25 9.25h4l-1.5 5 5-7.5h-4Z"/>'),
   target: svg('<circle cx="7.75" cy="7.75" r="5.5"/><circle cx="7.75" cy="7.75" r="2.5"/>'),
   folderAdd: svg(`<path d="${FOLDER_CUT}"/><path d="M12.25 10.75v4M10.25 12.75h4"/>`),
   series: svg('<path d="m1.75 12.25 4.5-4.5 3 3 4.5-4.5"/>'),
