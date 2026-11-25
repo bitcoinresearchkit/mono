@@ -7,7 +7,7 @@ import {
 import { addressSteps } from "/studio/addresses.js";
 import {
   applyPanel, asThen, atWindow, averageFor, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
-  drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, inLibrary, isDeleted, isPreview,
+  drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, inLibrary, isDeleted,
   keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, newDraft, nextHalvings, normalize, notice, openChart,
   panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching,
   previews, previousChart, readOnly, readPresetList, refresh, rekey, relist, renderCharts, resolved, retryPresets,
@@ -167,11 +167,11 @@ const missedSaid = (address) => `Nothing of the presets' at ${((text) => {
 /** Where the page is, as an address (its canonical one): a preset's, a place of the presets', else the page's own ("/": your charts are no one else's); null, not known till they're read. */
 function addressNow() {
   // (The presets' addresses made only where the page is one of theirs: the page's own, none.)
-  if (home ? !("path" in homeAt) : chart.preset === undefined && !isMade(chart)) return "/";
+  if (home ? !("path" in homeAt) : chart.preset === undefined) return "/";
   const book = addresses();
   if (!book) return null;
   if (home) return book.sections.get(JSON.stringify(/** @type {{ path: string[] }} */ (homeAt).path)) ?? "/";
-  const i = chartPreset(chart);
+  const i = presetIndex(chart);
   return i >= 0 ? book.presets[i] : "/";
 }
 /** Search names the live Studio on every origin. */
@@ -193,7 +193,7 @@ let addressDue = false, structuredFor = "";
 function placeAddress() {
   // (A link's picture being made: the page is its, not a place's; the page still starting, as it was asked for.)
   if (document.body.hasAttribute("data-picture") || !started) return;
-  const address = addressNow(), i = home ? -1 : chartPreset(chart), path = home && "path" in homeAt ? homeAt.path : null;
+  const address = addressNow(), i = home ? -1 : presetIndex(chart), path = home && "path" in homeAt ? homeAt.path : null;
   const inside = path && presets ? ((items) => [...items.flatMap((item) => (typeof item === "number" ? [] : [item.name])), ...items.flatMap((item) => (typeof item === "number" ? [/** @type {Preset[]} */ (presets)[item].t] : []))])(presetNodeAt(path)?.items ?? []) : [];
   // (A preset's words, its title as the chart says it: at another window, that window's, see atWindow.)
   const info = i >= 0 && presets ? presetInfo({ ...presets[i], t: chart.title || presets[i].t }, presetLabels)
@@ -225,7 +225,7 @@ function placeAddress() {
   }
   // (Where the page's Studio's own: a link still being read, a picture's, or broken, left as it is till it's dealt with.)
   // (An address waiting for the presets to be read, kept.)
-  const bar = ROUTED && !pendingRoute && !isLinkHash(location.hash) ? (home || (chart.preset === undefined && !isMade(chart)) ? address : presets ? presetLink(chart) ?? "/" : null) : null;
+  const bar = ROUTED && !pendingRoute && !isLinkHash(location.hash) ? (home || chart.preset === undefined ? address : presets ? presetLink(chart) ?? "/" : null) : null;
   if (bar === null) return;
   const [where, look = ""] = bar.split("#"), url = `${BASE}${where}${location.search}${look && `#${look}`}`;
   // (Safari refuses writes past so many in a few seconds: the address stays as it was, written again at the next rest.)
@@ -260,10 +260,11 @@ const windowless = (doc) => ((w) => (w ? atWindow(structuredClone(doc), w.offere
 /**
  * A chart's content as a fingerprint, how it's looked at aside: its view, as a preview's is, its interval, as
  * day1 (every preset opened at day1 before its own interval, an interval changed an edit: a stamp kept from before
- * is the same), and its trailing window (see windowless).
+ * is the same), its trailing window (see windowless), and its panes without their sizes: a separator dragged is a way
+ * of looking, not an edit (the sizes stay with the copy, kept, but never tell it from its preset).
  * @param {Chart} doc
  */
-const contentHash = (doc) => hashOf(contentOf(windowless({ ...doc, range: "", index: "day1" })));
+const contentHash = (doc) => hashOf(contentOf(windowless({ ...doc, range: "", index: "day1", panes: doc.panes.map(({ size, ...pane }) => pane) })));
 /** A preset's chart as made now, as an edit leaves a chart (normalized: nothing for an edit to change). */
 const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
 /**
@@ -315,17 +316,13 @@ function pristine(/** @type {Chart} */ doc) {
 }
 /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
 const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
-/** Whether a chart's a preview that is a preset as made (opened at its address, one's own edits of it apart: `made`, its place). @param {Chart} doc */
-const isMade = (doc) => doc.made !== undefined && isPreview(doc);
-/** The preset a chart is, its own or as made (see isMade): its index; none (or the presets unread), -1. @param {Chart} doc */
-const chartPreset = (doc) => presetIndex(isMade(doc) ? { ...doc, preset: doc.made } : doc);
 /**
  * A preset's address, with how it's looked at where that isn't how it opens (see linkLookOf): the chart of a preset as
  * made but for its view and its interval; else, or the presets unread, null. @param {Chart} doc
  */
 function presetLink(doc) {
-  const i = chartPreset(doc);
-  if (i < 0 || (isMade(doc) ? contentHash(doc) !== templateHash(i) : presetEdited(doc))) return null;
+  const i = presetIndex(doc);
+  if (i < 0 || presetEdited(doc)) return null;
   const look = lookFields(doc, presetLook(i));
   return `${/** @type {NonNullable<ReturnType<typeof addresses>>} */ (addresses()).presets[i]}${look && `#${look}`}`;
 }
@@ -371,17 +368,24 @@ const revealNearest = (preset, id) => requestAnimationFrame(() => {
   const nearest = all$(`[data-open-preset="${preset}"], [data-open-recent="${CSS.escape(id)}"]`, $("chart-list")).filter((row) => row.getClientRects().length).sort((a, b) => away(a) - away(b))[0];
   if (nearest && away(nearest) > 0) nearest.scrollIntoView({ block: "nearest" });
 });
+/** The presets read when the copies were last restamped (see prunePresets). @type {Preset[] | null} */
+let restampedFor = null;
 /**
  * The presets opened and left as they were, let go of (all but `keep`), but those opened lately: Recent's, drawn at
  * once on a reload, before the presets are read (once they are, one gone since let go of too, one changed since
  * made anew). (Nothing to record: another tab's copy back is as it was, and goes the same way.)
  */
 function prunePresets(/** @type {Chart | null} */ keep) {
+  // (A copy stamped while its panes' sizes counted as an edit (till 2026-11) is as made all the same where they were its
+  // only change: stamped anew, its sizes kept, once the presets are read. Delete in 2027-11.)
+  const resized = presets && restampedFor !== presets ? library.presets.filter((doc) => !pristine(doc) && presetIndex(doc) >= 0 && contentHash(doc) === templateHash(presetIndex(doc))) : [];
+  restampedFor = presets;
+  for (const doc of resized) (doc.base = templateHash(presetIndex(doc))), pristineSeen.delete(doc);
   const lately = new Set(viewed());
   const left = library.presets.filter((doc) => doc === keep || !pristine(doc) || (lately.has(doc.id) && (!presets || presetIndex(doc) >= 0)));
   // (Recent's, once the presets are read, as they're made now: one changed since, made anew.)
   const stale = presets ? left.filter((doc) => doc !== keep && pristine(doc) && keptPreset(presetIndex(doc), doc) !== doc) : [];
-  if (left.length === library.presets.length && !stale.length) return;
+  if (left.length === library.presets.length && !stale.length && !resized.length) return;
   library.presets = left;
   for (const doc of stale) presetChart(presetIndex(doc));
   save();
@@ -916,8 +920,8 @@ const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefi
   [".layer-adds", () => "adds", {}],
 ]);
 export {
-  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset,
-  fromPreset, fullOn, idsNow, isLinkHash, isMade, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
+  addressesSoon, adoptPresets, aFrame, BASE, copyPreset, dropLayers, editedPreset,
+  fromPreset, fullOn, idsNow, isLinkHash, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
   missedSaid, openPreset, openPresetMenu, ordersOf, paneActions, paneChip, paneRows, presetActions, presetById,
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,

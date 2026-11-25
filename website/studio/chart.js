@@ -1123,7 +1123,7 @@ const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index,
  * (each shown without one), and the library's own (where it came from, its folder, whether it began blank, when it
  * was edited).
  */
-const lookKey = (/** @type {Chart} */ doc) => JSON.stringify([tokensNow(), { ...doc, title: 0, range: 0, drawings: 0, made: 0, updated: 0, folder: 0, preset: 0, base: 0, blank: 0, panes: doc.panes.map(({ size, ...pane }) => pane), layers: doc.layers.map(({ label, underName, levels, ...layer }) => ({ ...layer, levels: levels?.map(({ name, ...level }) => level) })) }]);
+const lookKey = (/** @type {Chart} */ doc) => JSON.stringify([tokensNow(), { ...doc, title: 0, range: 0, drawings: 0, updated: 0, folder: 0, preset: 0, base: 0, blank: 0, panes: doc.panes.map(({ size, ...pane }) => pane), layers: doc.layers.map(({ label, underName, levels, ...layer }) => ({ ...layer, levels: levels?.map(({ name, ...level }) => level) })) }]);
 
 /**
  * The signals' marks, each on its layer's series, where it turns up or down (and with its results, where a stretch

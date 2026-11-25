@@ -109,7 +109,7 @@ import {
 import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";
 import {
   addDrawn, boxTo, bubbleColumns, cellText, closeCell, drawingMenu, drawingRows, drawnSteps, dressField,
-  duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCode, heatCome, heatDays, heatExtras, heatFresh,
+  duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCome, heatDays, heatExtras, heatFresh,
   heatIn, heatLook, heatLooks, heatPump, heatRows, heatSeries, heatWaiters, heatWants, hold, inBox, logRows, moveTo,
   noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placingPath, pointsApart, pressAt, profileHit,
   profileShares, profilesUnder, readingLine, removeDrawing, removeDrawings, rowsOf, setCohorts, showBox, shownHeats,
@@ -141,10 +141,10 @@ import {
   toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
 } from "/studio/menus.js";
 import {
-  addressesSoon, adoptPresets, aFrame, BASE, chartPreset, copyPreset, dropLayers, editedPreset, freshPreset, fullOn,
+  addressesSoon, adoptPresets, aFrame, BASE, copyPreset, dropLayers, fullOn,
   idsNow, isLinkHash, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu,
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
-  presetKey, presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
+  presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
   setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
 } from "/studio/presets-edit.js";
@@ -1057,7 +1057,6 @@ function read(stored) {
   // (A preset's, which one it is: the library's too.)
   if (typeof stored.preset === "string" && stored.preset.length <= 2000) doc.preset = stored.preset;
   if (typeof stored.base === "string" && /^[a-z0-9]{1,24}$/.test(stored.base)) doc.base = stored.base;
-  if (typeof stored.made === "string" && stored.made.length <= 2000) doc.made = stored.made;
   if (stored.blank === true) doc.blank = true;
   doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
   // (A preset's copy told as made or edited as it was stored, before it's normalized: a newer client moving its
@@ -2486,8 +2485,8 @@ function closePreview(doc = chart) {
 const closedPreviews = new Map();
 /** The preview the toast up says was closed (its Undo brings it back). @type {Chart | null} */
 let closedToast = null;
-/** The previews kept aside, this tab's and others'. @returns {Chart[]} */
-const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored.filter((doc) => typeof doc?.id === "string") : []))(storage.get(PREVIEW_ASIDE, null));
+/** The previews kept aside, this tab's and others' (a preset as made, which opened beside its edited copy till 2026-11, kept only if edited: read as the ordinary preview it is now; delete that in 2027-11). @returns {Chart[]} */
+const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored.filter((doc) => typeof doc?.id === "string" && !(doc.made !== undefined && doc.untouched === true)) : []))(storage.get(PREVIEW_ASIDE, null));
 /** Previews kept, by their ids aside (and when last edited): let go of there once saved with your charts (see persist). @type {Map<string, number>} */
 const keptPreviews = new Map();
 /** An aside copy that's another tab's later one than `updated` (edited there since): kept, as theirs. */
@@ -6136,7 +6135,7 @@ addEventListener("popstate", (event) => {
   // (A preset's address, a step back to it or its fields changed by hand: its preset as the address says, as a
   // visit to it reads it (see presetByAddress), whatever it's shown since; as shown already, nothing to do.)
   const route = ROUTED ? routeOf(location.pathname) : null, routed = route && "preset" in route ? route.preset : -1;
-  if (routed >= 0 && !home && chartPreset(chart) === routed && `${location.pathname}${location.hash}` === `${BASE}${presetLink(chart)}`) return void showAddress();
+  if (routed >= 0 && !home && presetIndex(chart) === routed && `${location.pathname}${location.hash}` === `${BASE}${presetLink(chart)}`) return void showAddress();
   const preset = typeof event.state?.chart === "string" ? presetById(event.state.chart) : -1;
   const doc = routed >= 0 ? presetByAddress(routed, route && "window" in route ? route.window : undefined) : chartById(event.state?.chart) ?? (preset >= 0 ? presetChart(preset) : undefined);
   if (!doc) {
@@ -6779,25 +6778,12 @@ let pendingRoute = "";
 /**
  * A preset opened at its address (a visit, not a step back): what the address says of how to look at it, else as it
  * opens, whatever view was left on it here (whoever follows a link sees what it says); `window`, an old address's
- * (see routeOf), unless its link says one. Edited here: the preset as
- * made all the same, as a preview, yours untouched and a tap away. @param {number} i @param {string} [window]
+ * (see routeOf), unless its link says one. Edited here: that copy, as it is, its look only what the link says.
+ * @param {number} i @param {string} [window]
  */
 function presetByAddress(i, window = undefined) {
-  const look = linkLookOf(new URLSearchParams(location.hash.slice(1)), window), had = editedPreset(i);
-  if (had && presetEdited(had)) {
-    const made = freshPreset(i);
-    takeLinkLook(made, look, presetLook(i));
-    const like = previewLike(made), doc = like ?? made;
-    if (like) lookAs(like, made);
-    doc.made = presetKey(i);
-    addPreview(doc);
-    keepAsideOpened(doc);
-    linkWindow = doc.id;
-    setTimeout(() => toast("The preset as made. Your edited copy is untouched", { label: "Open yours", run: () => openPreset(i) }));
-    return doc;
-  }
   const doc = presetChart(i);
-  takeLinkLook(doc, look, presetLook(i));
+  takeLinkLook(doc, linkLookOf(new URLSearchParams(location.hash.slice(1)), window), presetEdited(doc) ? undefined : presetLook(i));
   linkWindow = doc.id;
   return doc;
 }
@@ -7041,9 +7027,9 @@ function writeLayers() {
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
         const result = resolved?.results.get(layer.id);
         const loading = layer.series && !result;
-        // (Its second line: what's wrong, what it's between, its formula, its heatmap's code or its series; said whole in
+        // (Its second line: what's wrong, what it's between or its formula; a series or a heatmap, nothing (its id is the inspector's, not the list's); said whole in
         // its tip, under its name, when either's cut short.)
-        const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : heatLike(layer) ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
+        const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : ["sub", ""];
         // (Its letter heading its second line, its mark leading the row: see .row-mark.)
         const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escapeHtml(result.detail)}"` : ""}><span class="sub-letter">${letterChip(layer)}</span>${escapeHtml(subText)}</span>`;
         return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">

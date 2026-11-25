@@ -78,8 +78,6 @@ const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
 const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it last moved at, day by day, behind the price (the URPD).";
 /** The same, in a row's few words. */
 const HEAT_SHORT = "Holder groups' cost basis, day by day";
-/** A heatmap's code, where a series shows its name: its endpoint's, `urpd/` and its holders. @param {Layer} layer */
-const heatCode = (layer) => ["urpd", layer.type === "profile" ? (layer.profile ?? []).join("+") : layer.heatmap ?? "all"].filter(Boolean).join("/");
 /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
 const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? `log${rowsOf(layer)}`}${layer.weight ? `&weight=${layer.weight}` : ""}`;
 /** What each measure and weight is, said beside it. */
@@ -1056,7 +1054,7 @@ function placeField() {
 export {
   addDrawn, amountsOf, boxTo, bubbleColumns, cellText, clearDrawings, closeCell, crossAt, drawingMenu, drawingRows,
   drawnSteps, dressField, duplicateDrawings, finishPath, flipDrawings, flipsOf, fromClose, gesturing, gradientCell, gradientChannels, HEAT_ABOUT,
-  HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatCalendar, heatCode, heatColor, heatCome, heatDayHeld, heatDayKey,
+  HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatCalendar, heatColor, heatCome, heatDayHeld, heatDayKey,
   heatDays, heatExtras, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatName, heatPath,
   heatPump, heatReading, heatRows, heatSection, heatSeries, heatShown, heatWaiters, heatWants, hold, inBox, litCohort,
   logRows, mostIn, moveTo, noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placeSaid, placingPath,
