@@ -3,6 +3,8 @@
 // the short-term holders'), nine states from the two, each in one of three trends. All computed here
 // from the server's daily series. One module, for the Compass page and anything else that tells the day's mood.
 
+import { WeightedRank } from "/modules/weighted-rank/index.js";
+
 /** Where price is against a cloud: 1 above, 0 inside, -1 below. @typedef {1 | 0 | -1} Side */
 /** The nine, by the cycle's side (the long-term cloud) then the moment's (the short-term): north the cycle up. */
 /** Each a mood (how the holders feel, by who's in profit) and the move it is (what price is doing), and its trend
@@ -128,22 +130,18 @@ const weightOf = (/** @type {number} */ a, /** @type {number} */ b) => (weight(b
  */
 export function placeOf(/** @type {Float64Array} */ close, /** @type {[Float64Array, Float64Array]} */ [bottom, top], /** @type {number} */ first, /** @type {number} */ last) {
   const place = new Float32Array(close.length);
-  // (Each side's days so far, weighted, by how far out in buckets of 0.002 (a Fenwick tree each, for its prefix
-  // sums); farther than the last bucket, in it.)
-  const BUCKETS = 4096, WIDTH = 0.002, trees = [new Float64Array(BUCKETS + 1), new Float64Array(BUCKETS + 1)], mass = [0, 0];
+  // (Each side's days so far, weighted, by how far out in buckets of 0.002; farther than the last bucket, in it.)
+  const BUCKETS = 4096, WIDTH = 0.002, sides = [new WeightedRank(BUCKETS), new WeightedRank(BUCKETS)];
   for (let i = first; i <= last; i++) {
     const p = close[i], lo = bottom[i], hi = top[i];
     if (p >= lo && p <= hi) {
       place[i] = hi > lo ? -1 / 3 + ((2 / 3) * Math.log(p / lo)) / Math.log(hi / lo) : 0;
       continue;
     }
-    const k = p > hi ? 0 : 1, tree = trees[k], bucket = Math.min(BUCKETS - 1, Math.floor(Math.log(k ? lo / p : p / hi) / WIDTH));
+    const k = p > hi ? 0 : 1, side = sides[k], bucket = Math.min(BUCKETS - 1, Math.floor(Math.log(k ? lo / p : p / hi) / WIDTH));
     // (Its share of the days before as far out or less; the first out on its side, halfway.)
-    let below = 0;
-    for (let j = bucket + 1; j > 0; j -= j & -j) below += tree[j];
-    const rank = mass[k] ? below / mass[k] : 0.5, w = weight(i);
-    for (let j = bucket + 1; j <= BUCKETS; j += j & -j) tree[j] += w;
-    mass[k] += w;
+    const rank = side.total ? side.below(bucket + 1) / side.total : 0.5;
+    side.add(bucket, weight(i));
     place[i] = (k ? -1 : 1) * (1 / 3 + (2 / 3) * rank);
   }
   return place;
@@ -160,10 +158,10 @@ const EXTREME_PERCENT = 1;
  * Whether each day from `first` to `last` is extreme (1): either side's place in its own 1% tail, low or high, ranked
  * against that side's earlier days only (the day itself not among them), each by its weight, and said, as the index
  * is, only with a year of them behind it. In a tail: the weight of the days before strictly past it, low or high,
- * under 1% of theirs. (Each side's places ranked once, sorted; the days so far, weighted, in a Fenwick tree by rank.)
+ * under 1% of theirs. (Each side's places ranked once, sorted; the days so far, weighted, by rank.)
  */
 export function extremeOf(/** @type {Float32Array[]} */ sides, /** @type {number} */ first, /** @type {number} */ last) {
-  const extreme = new Uint8Array(sides[0].length), sorted = new Float64Array(last - first + 1), tree = new Float64Array(sorted.length + 1);
+  const extreme = new Uint8Array(sides[0].length), sorted = new Float64Array(last - first + 1);
   /** How many of the sorted places are under `v` (or, `atMost`, not over it). */
   const rankOf = (/** @type {number} */ v, atMost = false) => {
     let lo = 0, hi = sorted.length;
@@ -174,21 +172,14 @@ export function extremeOf(/** @type {Float32Array[]} */ sides, /** @type {number
     }
     return lo;
   };
-  /** The weight of the days so far of the `rank` lowest places. */
-  const below = (/** @type {number} */ rank) => {
-    let sum = 0;
-    for (let j = rank; j > 0; j -= j & -j) sum += tree[j];
-    return sum;
-  };
   for (const place of sides) {
     sorted.set(place.subarray(first, last + 1));
     sorted.sort();
-    tree.fill(0);
-    for (let i = first, mass = 0; i <= last; i++) {
-      const v = place[i], rank = rankOf(v), w = weight(i);
-      if (i >= first + INDEXED_AFTER && (below(rank) / mass < EXTREME_PERCENT / 100 || (mass - below(rankOf(v, true))) / mass < EXTREME_PERCENT / 100)) extreme[i] = 1;
-      for (let j = rank + 1; j <= sorted.length; j += j & -j) tree[j] += w;
-      mass += w;
+    const before = new WeightedRank(sorted.length);
+    for (let i = first; i <= last; i++) {
+      const v = place[i], rank = rankOf(v), mass = before.total;
+      if (i >= first + INDEXED_AFTER && (before.below(rank) / mass < EXTREME_PERCENT / 100 || (mass - before.below(rankOf(v, true))) / mass < EXTREME_PERCENT / 100)) extreme[i] = 1;
+      before.add(rank, weight(i));
     }
   }
   return extreme;
