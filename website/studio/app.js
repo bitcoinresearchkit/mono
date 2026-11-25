@@ -14,7 +14,7 @@ import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, NAMED_KEY, PHONE, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  MAC, MEDIA, NAMED_KEY, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 } from "/studio/dom.js";
 import { motionClock } from "/modules/motion/clock.js";
 import { reduced as motionReduced, whenReduced } from "/modules/motion/reduced.js";
@@ -199,7 +199,7 @@ const tokens = new Map(), probe = document.head.appendChild(document.createEleme
 let tokensFor = "";
 // (Read on lists of their own, which no one listens to: a list's matches read takes a change for itself
 // (Chromium), its listeners never hearing of it.)
-const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE), matchMedia("(prefers-contrast: more)"), matchMedia("(pointer: coarse)")];
+const tokensMedia = [matchMedia(MEDIA.light), matchMedia(MEDIA.phone), matchMedia(MEDIA.moreContrast), matchMedia("(pointer: coarse)")];
 // (The theme's own colors for the chart, not a high-contrast mode's: the page around it takes those.)
 probe.style.forcedColorAdjust = "none";
 /** Tokens read in one go: those named, else every one the page's root lists. @param {Iterable<string>} [names] */
@@ -250,7 +250,7 @@ function stillStep(shown) {
 }
 /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
 const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout"), wordsWait: parseFloat(css("--words-wait")), wordsIn: parseFloat(css("--words-in")) };
-const phone = matchMedia(PHONE);
+const phone = matchMedia(MEDIA.phone);
 /** Whether the sidebar's list is owed: not written while the layout's a phone's, where it never shows (see renderCharts; here, as charts are listed at the start). */
 let listOwed = false;
 /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
@@ -272,7 +272,7 @@ const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize 
 // hovered till the next tap, a button lit as if still pressed, a swatch as if picked. As the device is now (a mouse
 // put to a tablet), as the style's own touch rules are.
 {
-  const fingers = matchMedia("(hover: none)"), mark = () => document.documentElement.classList.toggle("can-hover", !fingers.matches);
+  const fingers = matchMedia(MEDIA.noHover), mark = () => document.documentElement.classList.toggle("can-hover", !fingers.matches);
   mark();
   fingers.addEventListener("change", mark);
 }
@@ -1472,7 +1472,7 @@ const THEMES = /** @type {const} */ ([
   ["light", "Light", "sun", "Light surfaces; Bitview's colors deepened to read on white, yours as picked."],
   ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are."],
 ]);
-const deviceLight = matchMedia("(prefers-color-scheme: light)");
+const deviceLight = matchMedia(MEDIA.light);
 /** The bar over the page (a browser's, an installed app's, a phone's status bar) in the page's color under it: the grid's ground, a chart's card on a phone. */
 // (One a scheme in the page, for its first frame; both the theme's, whichever the device's is: the chosen one wins.)
 const themeColors = /** @type {NodeListOf<HTMLMetaElement>} */ (document.querySelectorAll('meta[name="theme-color"]'));
@@ -6404,7 +6404,7 @@ function applyTheme(/** @type {boolean} */ anyway = false) {
 }
 deviceLight.addEventListener("change", () => applyTheme());
 // (More contrast asked for, or no longer: the same theme's tones changed, everything drawn in them drawn again.)
-matchMedia("(prefers-contrast: more)").addEventListener("change", () => applyTheme(true));
+matchMedia(MEDIA.moreContrast).addEventListener("change", () => applyTheme(true));
 // Another tab's choices, taken here too as they're shown (the theme, the sidebar, the panel, the belt, the pen).
 addEventListener("storage", ({ key, newValue }) => {
   if (key !== PREFS) return;

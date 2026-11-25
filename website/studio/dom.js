@@ -5,8 +5,13 @@ import { clamp } from "/studio/math.js";
 
 /** @type {(id: string) => any} */
 const $ = (id) => document.getElementById(id);
-/** A phone's layout, as a media query: the screen narrow, or low (a phone on its side). */
-const PHONE = "(max-width: 760px), (max-height: 500px)";
+/**
+ * The media queries more than one place reads, as strings: a list of its own wherever one is polled or listened to
+ * (see tokensMedia). The stylesheet and the page's first script keep copies of the layouts'.
+ */
+const MEDIA = {
+  phone: "(max-width: 760px), (max-height: 500px)", light: "(prefers-color-scheme: light)", moreContrast: "(prefers-contrast: more)", noHover: "(hover: none)",
+};
 /** A key that's part of an IME's composing (a candidate confirmed, put away): the IME's, not the page's. (Safari's
  * confirming Enter comes after the composition ends, as key 229.) @param {KeyboardEvent} event */
 const composing = (event) => event.isComposing || event.keyCode === 229;
@@ -75,7 +80,7 @@ const stepIn = (/** @type {number} */ at, /** @type {number} */ step, /** @type 
 /** What of the page shows (a keyboard over it, iOS's, shortens it; every browser Studio runs in has one). */
 const viewport = /** @type {VisualViewport} */ (window.visualViewport);
 /** A device of fingers (no hover): its words "tap", not "click". */
-const TOUCH = matchMedia("(hover: none)").matches, CLICK = TOUCH ? "tap" : "click";
+const TOUCH = matchMedia(MEDIA.noHover).matches, CLICK = TOUCH ? "tap" : "click";
 /** How far a finger moves and still taps, or holds (iOS's own, some 10pt): past it, a scroll (or a sheet's pull). */
 const SLOP = 10;
 /** Whether an element scrolls up and down: its content taller than it, and let scroll. @param {Element} element */
@@ -172,5 +177,5 @@ function holdPage(holder, on) {
 
 export {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, NAMED_KEY, PHONE, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  MAC, MEDIA, NAMED_KEY, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
 };
