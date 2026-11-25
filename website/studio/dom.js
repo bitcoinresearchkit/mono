@@ -1,5 +1,6 @@
 // @ts-check
 // The page's means: its elements found and made, text made safe as HTML, keys and pointers read.
+import { KEY_GLYPHS, keyGlyph } from "/studio/icons.js";
 import { clamp } from "/studio/math.js";
 
 /** @type {(id: string) => any} */
@@ -100,23 +101,6 @@ const keysOf = (kbd) => {
 };
 /** The same, as keycaps: one for a modified key, one per alternative. */
 const keycaps = (kbd) => ((keys) => (keys.length === 2 && keys.every((key) => /^[A-Z]$/.test(key)) ? `<span class="sequence"><kbd>${keys[0]}</kbd><span class="then" aria-hidden="true">then</span><kbd>${keys[1]}</kbd></span>` : keys.map((key) => `<kbd>${escapeHtml(key)}</kbd>`).join("")))(keysOf(kbd).split(" "));
-/**
- * A key's symbols as keycaps draw them, one family with the icons (their stroke, their ends): a font draws each its
- * own way (⌘ thin, ⇧ and ↵ uneven, some from another font), unlike each other and the icons beside them.
- */
-const KEY_GLYPHS = /** @type {Record<string, string>} */ ({
-  "⌘": '<path d="M9.8 4.6v6.8a1.6 1.6 0 1 0 1.6-1.6H4.6a1.6 1.6 0 1 0 1.6 1.6V4.6a1.6 1.6 0 1 0-1.6 1.6h6.8a1.6 1.6 0 1 0-1.6-1.6"/>',
-  "⇧": '<path d="M8 3.2 3.2 8.4h2.9V13h3.8V8.4h2.9Z"/>',
-  "⌥": '<path d="M2.8 4.5h3.1l4.2 7h3.1M9.6 4.5h3.6"/>',
-  "⌃": '<path d="M4 8.5 8 4.5l4 4"/>',
-  "↵": '<path d="M12.5 3.5V8a2 2 0 0 1-2 2H3.5M6.5 7l-3 3 3 3"/>',
-  "⇥": '<path d="M2.5 8h9M8.5 5l3 3-3 3M13.5 4v8"/>',
-  "⌫": '<path d="M6 3.5h6.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H6L1.8 8Z"/><path d="m7.6 6.2 3.6 3.6m0-3.6-3.6 3.6"/>',
-  "←": '<path d="M13 8H3M7 4 3 8l4 4"/>',
-  "→": '<path d="M3 8h10M9 4l4 4-4 4"/>',
-  "↑": '<path d="M8 13V3M4 7l4-4 4 4"/>',
-  "↓": '<path d="M8 3v10M4 9l4 4 4-4"/>',
-});
 /** Keys by their names in aria-keyshortcuts, from how they're written here (a Mac's glyphs, or "Ctrl+"). */
 const ARIA_KEYS = /** @type {Record<string, string>} */ ({ "⌘": "Meta", "⇧": "Shift", "⌥": "Alt", "⌃": "Control", ctrl: "Control", shift: "Shift", alt: "Alt", "↵": "Enter", enter: "Enter", "⌫": "Backspace", backspace: "Backspace", esc: "Escape", space: "Space", "↑": "ArrowUp", "↓": "ArrowDown", "←": "ArrowLeft", "→": "ArrowRight", "−": "-", "+": "Plus", "⇥": "Tab", tab: "Tab" });
 /** A key as aria-keyshortcuts names it ("⌘⇧Z" is Meta+Shift+Z, "Ctrl+K" Control+K); a sequence ("D L"), alternatives ("[ ]"), none. */
@@ -153,7 +137,7 @@ function drawKeys(/** @type {ParentNode} */ root) {
     if (![...text].some((glyph) => KEY_GLYPHS[glyph]) || key.querySelector(".key")) continue;
     key.textContent = "";
     for (const glyph of text) {
-      if (KEY_GLYPHS[glyph]) key.insertAdjacentHTML("beforeend", `<svg class="key" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KEY_GLYPHS[glyph]}</svg><span class="vh">${glyph}</span>`);
+      if (KEY_GLYPHS[glyph]) key.insertAdjacentHTML("beforeend", `${keyGlyph(glyph)}<span class="vh">${glyph}</span>`);
       else key.append(glyph);
     }
   }
