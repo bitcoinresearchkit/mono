@@ -102,7 +102,7 @@ const ICONS = {
   dollar: svg('<path d="M7.75 1.75v12.5M11.25 4.25h-5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4h-5"/>'),
   key: svg('<circle cx="5.25" cy="10.75" r="3"/><path d="M7.5 8.5 13.75 2.25M11.25 4.75l2 2M9.25 6.75l2 2"/>'),
   pickaxe: svg('<path d="M5.25 2.75a8 8 0 0 1 8 8M2.75 13.25l8.5-8.5"/>'),
-  nodes: svg('<path d="M7.75 3.75l-4 8h8z"/><g fill="currentColor" stroke="none"><circle cx="7.5" cy="3.5" r="2"/><circle cx="3.5" cy="11.5" r="2"/><circle cx="11.5" cy="11.5" r="2"/></g>'),
+  nodes: svg(`<path d="M7.75 3.75l-4 8h8z"/>${dot(7.75, 3.75, 1.75)}${dot(3.75, 11.75, 1.75)}${dot(11.75, 11.75, 1.75)}`),
   clock: CLOCK,
   layers: svg('<path d="M7.75 2.25 13.75 5.25l-6 3-6-3ZM1.75 8.25l6 3 6-3M1.75 11.25l6 3 6-3"/>'),
   star: svg('<path d="M7.75 1.75 9.25 6l4.5.25-3.5 2.75 1.25 4.25-3.75-2.5-3.75 2.5L5.25 9l-3.5-2.75L6.25 6Z"/>'),
