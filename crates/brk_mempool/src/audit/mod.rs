@@ -15,7 +15,7 @@ mod record;
 mod store;
 
 pub use record::{Audit, Difference, Expected, Mined, Summary};
-pub use store::{AuditReader, AuditStore};
+pub use store::{AuditReader, AuditStore, check_copy};
 
 /// A monotonic observation clock, separate from publication time: unchanged successful cycles
 /// refresh it, failed cycles do not, and an explicit Core reload revokes it.

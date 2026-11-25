@@ -179,6 +179,15 @@ impl Config {
                     exit(0);
                 }
                 Long("dumpconfig") => dump = true,
+                // fleet checks a copy of another server's audit store before it stops this server to
+                // merge it (AuditStore::open): a torn copy fails here, while the server still serves.
+                #[cfg(feature = "full-api")]
+                Long("checkaudits") => {
+                    let dir = parser.value().map_err(parse_error)?;
+                    let records = brk_mempool::audit::check_copy(Path::new(&dir))?;
+                    println!("{} audits in {}", records.len() / 2, dir.display());
+                    exit(0);
+                }
                 Long(name) => {
                     let Some(setting) = setting(name) else {
                         return Err(parse_error(arg.unexpected()));
@@ -301,6 +310,8 @@ impl Config {
             "    --dumpconfig              Print the settings given, file and flags, as {} lines",
             "config.toml".bright_black()
         );
+        #[cfg(feature = "full-api")]
+        println!("    --checkaudits <DIR>       Check an audit store copy before it goes into <bitviewdir>/mempool/audits/import");
         print_settings();
         println!();
         println!("{}", "ENVIRONMENT:".bold());
