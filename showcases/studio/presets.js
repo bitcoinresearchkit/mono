@@ -30,14 +30,16 @@
  * name by its place's key (`JSON.stringify(path)`, see shownStep)
  * @typedef {string | { place: string, shown: string }} Name a node's name: its place's step, and, where that says less
  * than its charts or is false, how it's shown (see shownAs)
- * @typedef {{ coins: string, capital: string, place: { coins: string, capital: string } }} Whole whose coins and capital a
- * cohort's shares divide, as said ("short-term holders' coins", "the capital of coins under 4 months old"), and as its
- * charts' places keep them (see wholeOf, groupWhole)
- * @typedef {{ name: Name, who: string, inWhole?: string, said?: string, of?: Whole }} Naming a family member's: its name,
+ * @typedef {{ coins: string, capital: string, place: { coins: string, capital: string }, cohort?: any, who?: string }} Whole
+ * whose coins and capital a cohort's shares divide, as said ("short-term holders' coins", "the capital of coins under 4
+ * months old"), and as its charts' places keep them (see wholeOf, groupWhole); a holder group's, also its own series
+ * (`cohort`, shown beside its members' where they have their words for it: see Naming's `beside`) and its name in titles
+ * @typedef {{ name: Name, who: string, inWhole?: string, said?: string, of?: Whole, beside?: [string, string] }} Naming a family member's: its name,
  * whose its charts are in titles (`who`, "Short-term holders' coins over 10% in profit"), and, as its shares of its
  * family's whole name it (`inWhole`, "Coins over 10% in profit", see cohort), where that's another; a band's, its band
  * inside a sentence (`said`, "1 day to under 1 week old"); `of`, its own whole, where each member has its own (a holder
- * group's weighted coins, their group)
+ * group's weighted coins, their group); `beside`, its word and its whole's in a legend where its shares in profit and loss
+ * are shown beside its whole's ("Mobile", "All")
  * @typedef {import("./words.js").Dimension & { inWhole?: (said: string) => string }} Bands a band dimension as its
  * families and cutoffs read it (see Dimension), and `inWhole`, its members within their whole (see Naming)
  * @typedef {{ within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Kin
@@ -502,12 +504,23 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * single lines of what it has (its supply, counts, realized cap, prices) in it; those with a meaning of their own (profit
    * green, loss red, a ratio around 1) as they are. None (all coins: the chain's own series), each its own. `weight`: its
    * URPD's ("wakefulness", "mobility"), a weighted cohort's (awake coins, mobile coins: each coin by its age band's share).
+   * `beside`: its word and its whole's ("Mobile", "All"), its shares in loss shown beside its whole's (`of.cohort`), under
+   * the whole's name, in place of its shares in profit and loss stacked.
    * @param {any} c @param {string} who
-   * @param {{ whole?: boolean, of?: Whole, urpd?: string, color?: string, weight?: string, inWhole?: string }} [options]
+   * @param {{ whole?: boolean, of?: Whole, urpd?: string, color?: string, weight?: string, inWhole?: string, beside?: [string, string] }} [options]
    * @returns {(ChartNode | SectionNode)[]}
    */
-  const cohort = (c, who, { whole = false, of = ALL, urpd = undefined, color = undefined, weight = undefined, inWhole = who } = {}) => {
+  const cohort = (c, who, { whole = false, of = ALL, urpd = undefined, color = undefined, weight = undefined, inWhole = who, beside = undefined } = {}) => {
     const titled = (/** @type {string} */ what) => `${what}: ${who}`;
+    /**
+     * Its share of supply or capital in profit and loss: the two stacked, the share in profit under, in loss over, where
+     * they meet the share; beside its whole's, the share in loss alone, its whole's the same measure in its color,
+     * dashed, unfilled (in profit, the rest).
+     * @param {string} what @param {any} own @param {any} theirs
+     */
+    const shares = (what, own, theirs) => (beside && theirs?.inLoss?.share
+      ? measure(shownAs("Share in loss", `Share of ${what} in loss`), of.who, [series(own.inLoss.share, beside[0], { color: "red", type: "area" }), series(theirs.inLoss.share, beside[1], { color: "red", dash: 3 })])
+      : measure(shownAs("Share in profit", `Share of ${what} in profit and in loss`), who, [series(own.inProfit.share, "In profit", { color: "green", type: "area" }), series(own.inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }));
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
     return [
@@ -517,8 +530,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
           series(btc(inProfit), "In profit", { color: "green", type: "area" }), series(btc(inLoss), "In loss", { color: "red", type: "area" }),
           ...(usd(inProfit) ? [series(usd(inProfit), "In profit, value", { color: "green", type: "area", pane: 2 }), series(usd(inLoss), "In loss, value", { color: "red", type: "area", pane: 2 })] : []),
         ], { stack: { 1: "stack", 2: "stack" } }),
-        // (Two parts of a whole: stacked, the share in profit under, in loss over, where they meet the share.)
-        inProfit?.share && measure(shownAs("Share in profit", "Share of supply in profit and in loss"), who, [series(inProfit.share, "In profit", { color: "green", type: "area" }), series(inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }),
+        inProfit?.share && shares("supply", supply, of.cohort?.supply),
         supply.share && !whole && measure(shownAs(`Share of ${of.place.coins}`, `Share of ${of.coins}`), inWhole, [series(supply.share, `Of ${of.coins}`, { color: color ?? "orange" })]),
         ...change(supply.delta, "Change", titled("Supply change")),
         ...flow(supply.agedOut, "Aged out", titled("Supply aging out"), { color }),
@@ -533,7 +545,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         capital.inProfit && chart("In profit and loss", titled("Capital in profit and loss"), [
           series(own(capital.inProfit), "In profit", { color: "green", type: "area" }), series(own(capital.inLoss), "In loss", { color: "red", type: "area" }),
         ], { stack: { 1: "stack" } }),
-        capital.inProfit?.share && measure(shownAs("Share in profit", "Share of capital in profit and in loss"), who, [series(capital.inProfit.share, "In profit", { color: "green", type: "area" }), series(capital.inLoss.share, "In loss", { color: "red", type: "area" })], { stack: { 1: "stack" } }),
+        capital.inProfit?.share && shares("capital", capital, of.cohort?.capital),
         capital.share && !whole && measure(shownAs(`Share of ${of.place.capital}`, `Share of ${of.capital}`), inWhole, [series(capital.share, `Of ${of.capital}`, { color: color ?? "orange" })]),
         ...change(capital.delta, "Change", titled("Capital change")),
       ]),
@@ -924,6 +936,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ...(whole && members.length > 1 && members.some(([key]) => key === "all") && members.every(([, c]) => c.costBasis?.byCoin?.realizedPrice) ? [chart("Realized prices on the heatmap", compared("Realized price", { after: ", on the supply by cost basis" }), [price(), { heatmap: whole, ...weighed }, ...each((c) => c.costBasis.byCoin.realizedPrice, { width: 2 })])] : []),
       ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
       ...compare(shownAs("Share in profit", "Share of supply in profit"), (c) => c.supply?.inProfit?.share, { absolute: (c) => btc(c.supply?.inProfit), absoluteLog: true }),
+      ...compare(shownAs("Capital share in profit", "Share of capital in profit"), (c) => c.capital?.inProfit?.share, { absolute: (c) => own(c.capital?.inProfit), absoluteLog: true }),
       ...compare("NUPL", (c) => c.unrealized?.nupl, { level: 0, absolute: (c) => c.unrealized?.netPnl }),
       ...compare("UTXO count", (c) => own(c.utxos?.count), { log: true, additive: true }),
       ...compare(shownAs("Address count", "Funded address count"), (c) => own(c.funded), { log: true, additive: true }),
@@ -941,7 +954,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // (Each member in its color, as its comparisons draw it; all coins, the chain's own series, each its own.)
       ...members.map(([key, c], i) => {
         const n = nameOf(key), color = key === "all" ? undefined : colors[i];
-        return member(n.name, cohort(c, n.who, { whole: key === "all" && !n.of, of: n.of ?? options.of, urpd: options.urpd?.(key), color, weight: options.weight, inWhole: n.inWhole }));
+        return member(n.name, cohort(c, n.who, { whole: key === "all" && !n.of, of: n.of ?? options.of, urpd: options.urpd?.(key), color, weight: options.weight, inWhole: n.inWhole, beside: n.beside }));
       }),
     ];
   };
@@ -987,9 +1000,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * @param {string} key @returns {Whole}
    */
   const groupWhole = (key) => {
-    if (key === "all") return ALL;
+    if (key === "all") return { ...ALL, cohort: t.holders.all, who: holderName("all").who };
     const h = holderName(key), coins = h.coins, capital = h.coins.endsWith("' coins") ? h.coins.replace(/ coins$/, " capital") : `the capital of ${coins}`;
-    return { coins, capital, place: { coins, capital } };
+    return { coins, capital, place: { coins, capital }, cohort: t.holders[key], who: h.who };
   };
   /** A holder group's section. @param {string} key @param {(ChartNode | SectionNode | null | undefined | false)[]} items @param {{ icon?: string }} [options] */
   const holderSection = (key, items, options = {}) => section(holder(key).name, items, options);
@@ -1960,7 +1973,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
    */
   function weightedSets(cohorts, on, weight) {
     // (Each group's weighted coins, its kind before its coins: "Short-term holders' awake coins".)
-    const naming = (/** @type {string} */ key) => ({ name: holder(key).name, who: capitalized(holderName(key).of(on)), of: groupWhole(key) });
+    // (Beside its group's, each by its word, the group's by all coins' own: "Mobile", "All".)
+    const beside = /** @type {[string, string]} */ ([capitalized(/** @type {string} */ (HOLDERS[on].before)), capitalized(/** @type {string} */ (HOLDERS.all.before))]);
+    const naming = (/** @type {string} */ key) => ({ name: holder(key).name, who: capitalized(holderName(key).of(on)), of: groupWhole(key), beside });
     return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, each, profile) => family(members, naming, { each, within: holderName(on).who, urpd: (key) => holderName(key).urpd, weight, profile }));
   }
   /** Cointime by age band: coin days consumed, wakefulness, awake and dormant supply. @param {any} ranges */
