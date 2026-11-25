@@ -44,7 +44,7 @@ impl<S: Subscriber> Layer<S> for Logger {
 
         let now = Timestamp::now();
         let time = now
-            .to_zoned(TimeZone::system())
+            .to_zoned_datetime(TimeZone::system())
             .strftime("%Y-%m-%d %H:%M:%S")
             .to_string();
         let meta = event.metadata();
