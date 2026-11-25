@@ -66,7 +66,7 @@ const ICONS = {
   swap: svg('<path d="M2.75 5.25h10.5M10.75 2.75l2.5 2.5-2.5 2.5"/><path d="M13.25 10.75H2.75M5.25 8.25l-2.5 2.5 2.5 2.5"/>'),
   panel: svg(`${FRAME}<path d="M9.75 2.75v10.5"/>`),
   pane: svg(`${FRAME}<path d="M2.25 8.75h11.5"/>`),
-  more: svg(`${dot(3.5, 8)}${dot(8, 8)}${dot(12.5, 8)}`),
+  more: svg(`${dot(3.5, 8, 1.5)}${dot(8, 8, 1.5)}${dot(12.5, 8, 1.5)}`),
   next: CHEVRON_RIGHT,
   back: CHEVRON_LEFT,
   left: CHEVRON_LEFT,
