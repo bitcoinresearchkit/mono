@@ -666,10 +666,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
       urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, ...weighed }]),
       // (By coin, a holder group with the oldest coins (see OLDEST and percentiles): its 25th out of the axis' fit.)
       // (The heatmap with what's read off it: its realized price, and where a quarter, half and three quarters of its
-      // coins last moved (by coin), dashed over the cells (the price alone solid white).)
+      // coins last moved (by coin), in gray over the cells (the price, ink), the median wider (solid: a dash on a daily series breaks up).)
       urpd && cost.byCoin.median && chart("Heatmap and percentiles", titled("Supply by cost basis, with its percentiles"), [
         price(), { heatmap: urpd, ...weighed },
-        ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "ink", width: key === "median" ? 1.5 : 1, dash: key === "median" ? 3 : 1, opacity: 0.6, ...(key === "p25" && oldest ? { fit: false } : {}) })),
+        ...[["p25", "25th"], ["median", "Median"], ["p75", "75th"]].filter(([key]) => cost.byCoin[key]).map(([key, label]) => series(key === "median" && cost.byCoin.medianRealizedPrice ? cost.byCoin.medianRealizedPrice : cost.byCoin[key], label, { color: "gray", width: key === "median" ? 1.5 : 1, ...(key === "p25" && oldest ? { fit: false } : {}) })),
         series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? PRICE_COLORS.realizedPrice, width: 2 }),
       ]),
       urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd], ...weighed }]),
@@ -882,12 +882,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const compared = (measure, { after = "", whole = false } = {}) => `${measure} ${options.each}${after}${options.within && !whole ? `: ${options.within}` : ""}`;
     // (Its URPDs weighted as its members are: see cohort.)
     const weighed = options.weight ? { weight: options.weight } : {};
-    // (Holder groups each their own, wherever they're drawn (see palette.js); times in time; others around the wheel.)
+    // (Holder groups each their own, all coins too (the others' reference), wherever they're drawn (see palette.js);
+    // times in time; others around the wheel.)
     const looks = members.map(([key]) => options.lookOf?.(key));
     const colors = ((wheel) => members.map(([key], i) => looks[i]?.color ?? holderColor(key) ?? wheel[i]))(options.inTime ? members.map((_, i) => recencyColor(i, members.length)) : ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
-    // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { ...shortOf(key), color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), shownOf(nameOf(key).name), { ...shortOf(key), color: colors[i], ...(looks[i]?.opacity === undefined ? {} : { opacity: looks[i]?.opacity }), ...extra })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
      * then as their shares of it ("Supply", "Supply share"). Titled by its name as shown (see compared); `window`: the one it's over (see chart);
@@ -1627,7 +1627,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   }
   /**
    * A spread as a fan in `color` under the price: the 10th to the 90th percentile faint, the 25th to the 75th stronger,
-   * the median a line, the average dashed; the other lines (the bands' edges, the lowest and highest) in its legend. On
+   * the median a line, the average a thinner one; the other lines (the bands' edges, the lowest and highest) in its legend. On
    * a log scale (they span orders of magnitude; `log` false, a share's, linear). On a log one its tails (the 10th to the
    * 90th, the lowest and highest, decades past its middle at times: the empty blocks' months, a fee's spikes) out of the
    * axis' fit, drawn past its edges, the axis framed on its middle (a share's whole range its own, 0 to 100: fitted).
@@ -1641,7 +1641,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     if (!keys.includes("median")) return [];
     const at = (/** @type {string} */ key) => letter(1 + keys.indexOf(key));
     const tail = (/** @type {string} */ key) => (log && ["min", "p10", "p90", "max"].includes(key) ? { fit: false } : {});
-    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1, dash: 2 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1 } : { width: 1, opacity: 0.5, hidden: true }) }));
     const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2, ...tail(low) }] : []);
     return [chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [], ...(average ? { average: { 2: average } } : {}), size: { 1: 1.4, 2: 3 }, window })];
   }
