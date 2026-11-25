@@ -35,7 +35,7 @@ const svg = (body, attrs = `width="${STYLE.grid}" height="${STYLE.grid}"`) => `<
 // Drawn once, shared: the frame of every panel, the lens of every search, the dot of every grip.
 const FRAME = '<rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2"/>';
 const LENS = '<circle cx="7.25" cy="7.25" r="4.5"/><path d="m10.5 10.5 3.25 3.25"/>';
-const dot = (cx, cy) => `<circle cx="${cx}" cy="${cy}" r="1" fill="currentColor" stroke="none"/>`;
+const dot = (cx, cy, r = 1) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="currentColor" stroke="none"/>`;
 const CHEVRON_LEFT = svg('<path d="M9.75 3.25 5.25 7.75l4.5 4.5"/>');
 const CHEVRON_RIGHT = svg('<path d="m6.25 3.25 4.5 4.5-4.5 4.5"/>');
 const ARROW = {
@@ -123,7 +123,7 @@ const ICONS = {
   magnifier: svg(`${LENS}<path d="M5.25 7.25h4M7.25 5.25v4"/>`),
   // (Zoom out: the magnifier's lens, its plus a minus.)
   zoomOut: svg(`${LENS}<path d="M5.25 7.25h4"/>`),
-  draw: svg('<path d="M7.75 13.75 3.75 5.75l1.5-3h5l1.5 3Z"/><path d="M7.75 13.75v-5"/>'),
+  draw: svg(`<path d="M7.75 14.25 2.75 9.25v-4l2-4h6l2 4v4Z"/>${dot(7.75, 6.75, 1.25)}<path d="M7.75 7.75v6.5"/>`),
   ellipse: svg('<ellipse cx="7.75" cy="7.75" rx="6" ry="4.5"/>'),
   arrow: svg('<path d="m3.25 12.75 9.5-9.5M7.25 3.25h5.5v5.5"/>'),
   label: svg('<path d="M1.75 7.75h3M10.75 7.75h3"/><rect x="4.75" y="4.75" width="6" height="6" rx="1"/>'),
