@@ -364,6 +364,7 @@
     <script type="module">
       // @ts-check
       import { logo as poolLogo } from "/assets/pools/logos.js";
+      import { reduced, whenReduced } from "/modules/motion/reduced.js";
       // Config ---------------------------------------------------------------
 
       // The server that serves the page.
@@ -1446,14 +1447,17 @@
       const WATER_Y0 = POOL_Y0 + POOL_WALL;
       const WATER_Y1 = POOL_Y1 - POOL_WALL;
 
+      // The water's own time, for its waves and bobbing: still for a reader who asked for less motion.
+      const swell = (/** @type {number} */ now) => (reduced() ? 0 : now);
+
       /** Where the i-th floating transaction is now. */
       function floatAt(/** @type {number} */ i, /** @type {number} */ now) {
         const f = floats[i];
         const w = (WATER_X1 - WATER_X0 - 0.4) / FLOAT_COLUMNS;
         const h = (WATER_Y1 - WATER_Y0 - 0.4) / FLOAT_ROWS;
         return {
-          x: WATER_X0 + 0.2 + ((f.cell % FLOAT_COLUMNS) + f.u) * w + 0.08 * Math.cos(now / 4_000 + f.phase),
-          y: WATER_Y0 + 0.2 + (Math.floor(f.cell / FLOAT_COLUMNS) + f.v) * h + 0.08 * Math.sin(now / 4_000 + f.phase),
+          x: WATER_X0 + 0.2 + ((f.cell % FLOAT_COLUMNS) + f.u) * w + 0.08 * Math.cos(swell(now) / 4_000 + f.phase),
+          y: WATER_Y0 + 0.2 + (Math.floor(f.cell / FLOAT_COLUMNS) + f.v) * h + 0.08 * Math.sin(swell(now) / 4_000 + f.phase),
         };
       }
 
@@ -1504,6 +1508,7 @@
         const ri = r - POOL_WALL;
         const level = poolLevel();
         const s = camera.scale;
+        const tide = swell(now);
         ctx.setLineDash(SOLID);
 
         // The outer wall: the outline at the foot, filled, shows below the rim in front. It turns
@@ -1548,12 +1553,12 @@
             const x = WATER_X0 + 0.3 + wave.u * (WATER_X1 - WATER_X0 - 0.6);
             const y = WATER_Y0 + 0.3 + wave.v * (WATER_Y1 - WATER_Y0 - 0.6);
             if (!inView(x - 0.3, y - 0.3, x + 0.3, y + 0.3, level)) continue;
-            const px = sx(x, y) + Math.sin(now / 2_000 + wave.phase) * 0.06 * s;
+            const px = sx(x, y) + Math.sin(tide / 2_000 + wave.phase) * 0.06 * s;
             const py = sy(x, y, level);
             const width = 0.32 * s;
             for (let i = 0; i <= 8; i++) {
               const qx = px + (i / 8 - 0.5) * width;
-              const qy = py + Math.sin((i / 8) * Math.PI * 2 + now / 600 + wave.phase) * 0.025 * s;
+              const qy = py + Math.sin((i / 8) * Math.PI * 2 + tide / 600 + wave.phase) * 0.025 * s;
               if (i === 0) ctx.moveTo(qx, qy);
               else ctx.lineTo(qx, qy);
             }
@@ -1584,7 +1589,7 @@
           for (const i of afloat) {
             const x = floatX[i];
             const y = floatY[i];
-            const z = level + 0.012 * Math.sin(now / 700 + floats[i].phase);
+            const z = level + 0.012 * Math.sin(tide / 700 + floats[i].phase);
             // Mostly under water: a ring round it, and its top just out.
             ctx.strokeStyle = palette.muted;
             ctx.beginPath();
@@ -2265,9 +2270,13 @@
       /** Keeps the followed robot in the middle, and its card up to date. */
       function stepFollow(/** @type {number} */ dt) {
         if (!followed) return;
-        const k = 1 - Math.exp(-dt / 200);
-        const du = ((followed.x - followed.y) * COS - camera.u) * k;
-        const dv = ((followed.x + followed.y) * SIN - 0.5 - camera.v) * k;
+        const toU = (followed.x - followed.y) * COS - camera.u;
+        const toV = (followed.x + followed.y) * SIN - 0.5 - camera.v;
+        // (Glides after the robot; for a reader who asked for less motion, the view stays and only jumps to it when the robot
+        // nears the edge, so nothing scrolls under them.)
+        const k = reduced() ? (Math.abs(toU) * camera.scale > W * 0.3 || Math.abs(toV) * camera.scale > H * 0.3 ? 1 : 0) : 1 - Math.exp(-dt / 200);
+        const du = toU * k;
+        const dv = toV * k;
         camera.u += du;
         camera.v += dv;
         // Redrawn while the camera moves by more than a hundredth of a pixel.
@@ -3723,7 +3732,8 @@
             seenTxids.add(tx.txid);
             pending.push(tx);
             const margin = POOL_WALL + 0.4;
-            ripples.push({
+            // (No rings spreading for a reader who asked for less motion.)
+            if (!reduced()) ripples.push({
               x: POOL_X0 + margin + Math.random() * (POOL_X1 - POOL_X0 - 2 * margin),
               y: POOL_Y0 + margin + Math.random() * (POOL_Y1 - POOL_Y0 - 2 * margin),
               start: now + (i * RECENT_POLL_MS) / fresh.length,
@@ -3982,7 +3992,7 @@
         lastFrame = now;
         waited = 0;
         if (flight) {
-          const t = ease((now - flight.start) / 700);
+          const t = reduced() ? 1 : ease((now - flight.start) / 700);
           camera.u = flight.from.u + (flight.to.u - flight.from.u) * t;
           camera.v = flight.from.v + (flight.to.v - flight.from.v) * t;
           camera.scale = flight.from.scale * Math.pow(flight.to.scale / flight.from.scale, t);
@@ -4012,7 +4022,7 @@
           const belt = (1000 * IDLE_STEP * SECONDS_PER_UNIT) / camera.scale;
           // (The water's, and the next ripple's start, where the pool shows.)
           const ripple = Math.min(...ripples.map((r) => r.start - sim).filter((t) => t > 0));
-          waited = lively ? Math.min(belt, (1000 * IDLE_STEP) / (WATER_SPEED * camera.scale), ripple) : belt;
+          waited = lively ? Math.min(belt, reduced() ? Infinity : (1000 * IDLE_STEP) / (WATER_SPEED * camera.scale), ripple) : belt;
           timer = setTimeout(wake, waited);
         }
       }
@@ -4055,7 +4065,7 @@
       /** The trail: the frame before laid faintly over this one, more so the faster it runs. */
       function streak() {
         const strength = Math.min(0.4, 0.12 * Math.log2(warp));
-        if (strength < 0.02) {
+        if (strength < 0.02 || reduced()) {
           trailing = false;
           return;
         }
@@ -4118,6 +4128,7 @@
       function flyHome() {
         follow(null);
         flight = { from: { ...camera }, to: homeView(), start: performance.now() };
+        invalidate();
       }
 
       /** @type {Map<number, { x: number, y: number }>} */
@@ -4239,6 +4250,8 @@
       nowButton.addEventListener("click", flyHome);
       $("card-stop").addEventListener("click", () => follow(null));
       window.addEventListener("resize", resize);
+      // (Drawn again as the reader changes it: the water stills or moves, a flight lands, the trail goes.)
+      whenReduced(invalidate);
 
       // Hover ------------------------------------------------------------------
 

@@ -715,6 +715,7 @@
       <div class="hint"><span class="pointer">Turn a page by its corner, or click it · ← → to turn, Home and End</span><span class="finger">Swipe a page from its edge, or tap it</span></div>
     </footer>
     <script type="module">
+      import { reduced } from "/modules/motion/reduced.js";
       // ---------------------------------------------------------------- Reads.
       const get = async (path) => {
         const r = await fetch(`/api${path}`);
@@ -1289,7 +1290,8 @@
       let hand = null;
       let pendingLayout = false;
       const endAt = (name) => (name === "C" ? { ...flip.C } : { x: -mode.W, y: flip.C.y });
-      // Moving the corner over time to one of its ends, along a gentle lift.
+      // Moving the corner over time to one of its ends, along a gentle lift (under reduced motion the page is just there,
+      // turned: the curl is the motion; a dragged page, moved by the hand, still follows it).
       let speed = 1;
       function travel(name, ms, lift, g) {
         const start = { ...flip.P };
@@ -1299,7 +1301,7 @@
         return new Promise((done) => {
           const step = (now) => {
             if (g !== gen || !flip) return done();
-            t = Math.min(1, t + ((now - last) / ms) * speed);
+            t = reduced() ? 1 : Math.min(1, t + ((now - last) / ms) * speed);
             last = now;
             const e = ease(t);
             const up = Math.sin(Math.PI * e) * lift * (flip.C.y === 0 ? -1 : 1);
@@ -1375,7 +1377,7 @@
           s = await resolve(compute);
         } catch {}
         if (g !== gen) return;
-        if (s && riffle && key(s.right) !== key(spread.right)) {
+        if (s && riffle && !reduced() && key(s.right) !== key(spread.right)) {
           const far = Math.abs(dayOf(s) - dayOf(spread));
           const kOf = (x) => firstDay(x)?.k ?? -1;
           const dir = Math.sign(dayOf(s) - dayOf(spread) || kOf(s) - kOf(spread)) || 1;
