@@ -1424,19 +1424,19 @@
       }
 
       // ── Motion: a slow turn, a drag, a flight; drawn only while something moves, and on screen ──
-      // (Nothing draws at rest: a frame is asked for by what changed, and by a flight or a ring each display frame after.
-      // The turn alone, a few pixels a second, is drawn on a timer, each step half a pixel at the globe's middle: a pixel
-      // there is 180 / (π R) degrees.)
+      // (A frame is asked for by what changed, and each display frame after while anything moves, the turn too: it moves
+      // smoothly or not at all. Nothing draws, or turns, at rest, off screen or in a hidden tab.)
       const TURN = 0.004; // degrees a millisecond
       /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
       let flight = null;
       let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
-      let last = 0, frameId = 0, timer = 0, onScreen = true;
+      let last = 0, frameId = 0, onScreen = true;
       const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
       /** The slow turn: on unless motion's reduced, a country's picked or a finger is turning it. */
       const turning = () => !reduced.matches && !selected && !dragging;
+      /** Whether anything moves of itself: the turn, a flight, a ring. */
+      const moving = () => Boolean(flight || pulses.length || turning());
       function invalidate() {
-        clearTimeout(timer);
         if (!frameId && onScreen) frameId = requestAnimationFrame(frame);
       }
       function flyTo(/** @type {number[]} */ at) {
@@ -1457,9 +1457,9 @@
           rot[0] += dt * TURN;
         }
         draw(now);
-        if (flight || pulses.length) invalidate();
-        else if (turning()) timer = setTimeout(invalidate, Math.min(100, 90 / Math.PI / R / TURN));
-        else last = 0;
+        // (Not asked for again, off screen or at rest: the next frame, whenever it comes, starts from no time passed.)
+        if (moving()) invalidate();
+        if (!frameId) last = 0;
       }
       new IntersectionObserver(([entry]) => {
         onScreen = entry.isIntersecting;

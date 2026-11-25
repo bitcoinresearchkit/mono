@@ -934,34 +934,33 @@
             outline-offset: -4px;
           }
 
-          &::before,
-          &::after {
-            content: "";
+          /* (The track, a rounded bar; the fill in it is as wide, slid in from the left behind its clip, so its ends are as
+             a bar of its width's, with nothing scaled. The showing title's, full at rest: its nine seconds slide it in, below.) */
+          span {
             position: absolute;
             left: 0;
+            right: 0;
             top: calc(50% - 1.5px);
             height: 3px;
             border-radius: 2px;
-          }
-
-          &::before {
-            right: 0;
+            overflow: clip;
             background: color-mix(in oklab, var(--ink), transparent 72%);
+
+            &::after {
+              content: "";
+              position: absolute;
+              inset: 0;
+              border-radius: 2px;
+              background: var(--ink);
+              transform: translateX(-100%);
+            }
           }
 
-          /* (The bar of the title showing, full at rest: its nine seconds fill it, below.) */
-          &::after {
-            width: 100%;
-            background: var(--ink);
-            transform: scaleX(0);
-            transform-origin: left;
-          }
-
-          &[aria-current="true"]::after {
+          &[aria-current="true"] span::after {
             transform: none;
           }
 
-          &:hover::before {
+          &:hover span {
             background: color-mix(in oklab, var(--ink), transparent 55%);
           }
         }
@@ -1129,16 +1128,16 @@
          its end turns the title. It stays where it is while the pointer is on the billboard, a key's focus is in it, or the
          script holds it (paused, a sheet open, scrolled off, the tab hidden). */
       @media (prefers-reduced-motion: no-preference) {
-        .pages button[aria-current="true"]::after {
+        .pages button[aria-current="true"] span::after {
           animation: fill 9s linear;
         }
 
-        .billboard:is([data-held], :has(:focus-visible)) .pages button::after {
+        .billboard:is([data-held], :has(:focus-visible)) .pages button span::after {
           animation-play-state: paused;
         }
 
         @media (hover: hover) and (pointer: fine) {
-          .billboard:hover .pages button::after {
+          .billboard:hover .pages button span::after {
             animation-play-state: paused;
           }
         }
@@ -1146,7 +1145,7 @@
 
       @keyframes fill {
         from {
-          transform: scaleX(0);
+          transform: translateX(-100%);
         }
       }
 
@@ -2574,7 +2573,7 @@
         if (!p.src) Object.assign(p, { sizes: first.sizes, srcset: `${src} 1900w, ${src.replace(".jpg", "@2x.jpg")} 2880w`, src });
       };
       const pages = FEATURED.map((t, i) => {
-        const button = el("button", { type: "button", ariaLabel: t.name });
+        const button = el("button", { type: "button", ariaLabel: t.name }, el("span"));
         button.addEventListener("click", () => {
           // (A title chosen is said; the turning ones aren't, every nine seconds.)
           $("words").setAttribute("aria-live", "polite");
