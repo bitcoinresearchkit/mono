@@ -27,7 +27,7 @@ import {
 import { ICONS } from "/studio/icons.js";
 import {
   belowOf, cloudLayers, edgesOf, failing, heatLike, MARK_PLACES, MARKER, measureOf, measureUnit, MODES, opacityOf,
-  asRows, placedOn, resultText, rowLayers, rowsLevel, signedMeasure, stretchResult, TWO_KEPT,
+  asRows, placedOn, resultText, rowLayers, rowsLevel, signedMeasure, summed, stretchResult, TWO_KEPT,
 } from "/studio/vocabulary.js";
 import {
   CADENCE, CHUNK, FINE, FINE_STEP, FIRST_CHUNKS, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, KEPT_CHUNKS,
@@ -1490,8 +1490,8 @@ function bandAt(param) {
   if (!point || !pane || !resolved || param.logical === undefined) return null;
   const at = Math.round(param.logical);
   // (Lines, not stacked: the one nearest the pointer, measured against its stroke as drawn (a step, a curve; an
-  // area's edge, not its fill), a line's reach away at most.)
-  if (!pane.stack) {
+  // area's edge, not its fill), a line's reach away at most; a heatmap's lines drawn none, its row under it.)
+  if (!summed(pane)) {
     let near = null, off = PULL;
     const bands = bandsOf(pane), on = engine.panes[/** @type {number} */ (param.pane)];
     for (const layer of bands) {
@@ -2628,20 +2628,30 @@ function drawRows(doc, data) {
     if (key === kept.key) return;
     kept.key = key;
     const rows = layers.map((layer) => ({ values: /** @type {Vector} */ (data.results.get(layer.id)?.values), name: layer.short ?? labelOf(layer), color: ink(layer.color), id: layer.id }));
-    // (A value's place: its distance from the level (by ratio on a log scale, a level over 0), else its own (its log).)
-    const ratio = log && level !== undefined && level > 0;
-    const place = level === undefined ? (log ? Math.log10 : (/** @type {number} */ value) => value) : ratio ? (/** @type {number} */ value) => Math.log(value / level) : (/** @type {number} */ value) => value - level;
+    // (A value's place: about a ratio's level (on a log scale, a level over 0), its log ratio; about an amount's, its
+    // signed log, sign × ln(1 + |v − level| / typical), `typical` the median distance of the pane's cells from the level
+    // (none at it): a typical cell half way up the log's first step, a year of billions not blacking out a decade of
+    // millions; with no level, its own (its log).)
+    const ratio = log && level !== undefined && level > 0, signed = level !== undefined && !ratio;
     const places = new Float64Array(rows.reduce((sum, row) => sum + row.values.length, 0));
-    let count = 0;
-    for (const { values } of rows) for (let i = 0; i < values.length; i++) ((at) => Number.isFinite(at) && (places[count++] = at))(place(values[i]));
-    // (Its ends: about a level, each side's own, so the side that strays less still reads (MVRV's 0.6 as red as its 4 is green).)
-    const sorted = places.subarray(0, count).sort(), lo = quantile(sorted, 1 - ROWS_WHOLE), hi = quantile(sorted, ROWS_WHOLE);
+    const placed = (/** @type {(value: number) => number} */ of) => {
+      let count = 0;
+      for (const { values } of rows) for (let i = 0; i < values.length; i++) ((at) => Number.isFinite(at) && (places[count++] = at))(of(values[i]));
+      return places.subarray(0, count).sort();
+    };
+    const typical = signed ? quantile(placed((value) => Math.abs(value - /** @type {number} */ (level)) || NaN), 0.5) || 1 : 1;
+    const place = level === undefined ? (log ? Math.log10 : (/** @type {number} */ value) => value) : ratio ? (/** @type {number} */ value) => Math.log(value / level) : (/** @type {number} */ value) => ((d) => Math.sign(d) * Math.log1p(Math.abs(d) / typical))(value - level);
+    // (Its ends: about a ratio's level, each side's own, so the side that strays less still reads (MVRV's 0.6 as red as
+    // its 4 is green); about an amount's, one for both, the log already evening them.)
+    const sorted = placed(place), whole = signed ? quantile(placed((value) => Math.abs(place(value)) || NaN), ROWS_WHOLE) : NaN;
+    const lo = signed ? -whole : quantile(sorted, 1 - ROWS_WHOLE), hi = signed ? whole : quantile(sorted, ROWS_WHOLE);
     const up = channels(ink("green")), down = channels(ink("red")), one = channels(ink(ROWS_HUE));
-    // (About a level, the middle lifted (see ROWS_CURVE); one hue, as it is: lifted, most cells of a log scale read alike.)
-    const curve = level === undefined ? 1 : ROWS_CURVE;
+    // (About a ratio, the middle lifted (see ROWS_CURVE); a signed log or one hue, as it is: lifted again, most cells read alike.)
+    const curve = ratio ? ROWS_CURVE : 1;
+    // (A cell at the level, or of nothing (no level: 0, a member not yet there), drawn none: the pane's ground.)
     kept.rows.paint = (value, _, pixels, at) => {
       const p = place(value);
-      if (!Number.isFinite(p)) return;
+      if (!Number.isFinite(p) || (level === undefined ? value === 0 : p === 0)) return;
       const strength = clamp(level === undefined ? (p - lo) / (hi - lo || 1) : p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1), [r, g, b] = level === undefined ? one : p < 0 ? down : up;
       (pixels[at] = r), (pixels[at + 1] = g), (pixels[at + 2] = b), (pixels[at + 3] = 255 * rowsOpacity(strength, curve));
     };
@@ -2649,7 +2659,7 @@ function drawRows(doc, data) {
     kept.rows.outline = css("--ink");
     // (Its key, in its legend: the colors from one end to the other, at the values they stand for (about a level, the
     // level between its two sides).)
-    const words = valueFormatOf(layers.slice(0, 1).map((layer) => unitFor(layer, data.results.get(layer.id)))).value, at = (/** @type {number} */ p) => (ratio ? /** @type {number} */ (level) * Math.exp(p) : level === undefined ? (log ? 10 ** p : p) : level + p);
+    const words = valueFormatOf(layers.slice(0, 1).map((layer) => unitFor(layer, data.results.get(layer.id)))).value, at = (/** @type {number} */ p) => (ratio ? /** @type {number} */ (level) * Math.exp(p) : level === undefined ? (log ? 10 ** p : p) : level + Math.sign(p) * typical * Math.expm1(Math.abs(p)));
     const strip = (/** @type {number[]} */ c, /** @type {boolean} */ rising) => `<span class="key-strip">${[0, 1, 2, 3, 4].map((k) => `<i style="--c:rgb(${c.slice(0, 3).join(" ")} / ${rowsOpacity((rising ? k : 4 - k) / 4, curve)})"></i>`).join("")}</span>`;
     const ends = (/** @type {number} */ p) => `<span>${escapeHtml(Number.isFinite(p) ? words(at(p)) : "")}</span>`;
     kept.scale.className = "legend-key rows-key";
