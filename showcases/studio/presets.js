@@ -616,7 +616,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
           series(unrealized.profit, "Profit", { color: "green" }), series(unrealized.loss, "Loss", { color: "red" }),
           ...(unrealized.grossPnl ? [series(unrealized.grossPnl, "Gross", { color: "gray", hidden: true })] : []),
           series(unrealized.netPnl, "Net", { pane: 2, ...baseline }),
-        ], { log: [1] }),
+        ]),
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
         // (Against the whole market's value, not the cohort's own: one scale, so cohorts compare.)
         chart("Relative to market cap", titled("Unrealized profit and loss relative to market cap"), /** @type {[any, string, Partial<Layer>][]} */ ([
