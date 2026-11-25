@@ -3131,10 +3131,10 @@
         margin: auto;
       }
 
-      /* A pane's legend (the library's, its items Studio's: see updateLegends): one layer, named, its value beside it; more, a chip, their first four marks
-         stacked (each ringed in the card's color) and how many, the way to the pane's layers; pointing at one, its mark,
-         name and value in it alone. The layers' panel shown, none: the panel names them, reads them, lights the one
-         pointed at (a picture's, every one named: see presentLegends). */
+      /* A pane's legend (the library's, its items Studio's: see updateLegends): one row of its layers, each its mark,
+         name and value, scrolling sideways where they don't fit (a .strip: its edges fade, a wheel turns it, the layer
+         pointed at in the plot comes into view). The layers' panel shown, none: the panel names them, reads them, lights
+         the one pointed at (a picture's, every one named: see presentLegends). */
       @media (min-width: 761px) and (min-height: 501px) {
         body:is([data-panel="open"], [data-peek]) .legend {
           display: none;
@@ -3160,80 +3160,32 @@
         display: flex;
         gap: 2px;
         height: 22px;
-        overflow-x: clip;
-        overflow-y: visible;
         pointer-events: none;
 
-        /* (Its items each reached, as controls; a chip's keys are its picture, the chip the control.) */
-        &:not([data-chip]) > button {
-          min-width: var(--control-hit);
-        }
-
-        /* (Every layer hidden: each named, its eye there to show it again, on as many lines as their names take, none
-           cut off: a folded pane as tall as they are, see paneFactors. One shown keeps its line: a profile's key beside
-           it never wraps over the plot.) */
-        &:not([data-chip]):not(:has(> button:not(.hidden))) {
-          flex-wrap: wrap;
-          row-gap: 2px;
-          height: auto;
-        }
-
-        &[data-chip] {
-          right: auto;
-          align-items: center;
-          gap: 0;
-          border-radius: 11px;
-          padding: 0 8px 0 6px;
-          background: color-mix(in srgb, var(--card) 88%, transparent);
+        /* (Only a row that scrolls takes the wheel and a swipe; otherwise the chart under it keeps them.) */
+        &.overflows {
           pointer-events: auto;
-          cursor: pointer;
+        }
 
-          /* (One control, its press the pane's layers: its keys a summary, none pointed at on its own (no eye, no
-             spotlight flipping between keys a few pixels apart).) */
-          > * {
-            pointer-events: none;
+        /* (Room kept clear of its faded edges (see edges: 28px) for an item brought into view.) */
+        scroll-padding-inline: 28px;
 
-            /* (But an error's words, its detail's tip under them: the one layer named shows them.) */
-            .legend-error[data-tip] {
-              pointer-events: auto;
-            }
+        /* (Its items each reached, as controls; their focus ring inside them: the row clips what's drawn outside.) */
+        > button {
+          min-width: var(--control-hit);
+
+          &:focus-visible {
+            outline-offset: -2px;
           }
+        }
 
-          > button {
-            margin-left: -6px;
-            border-radius: 50%;
-            padding: 0;
-            background: none !important;
-
-            &:first-child {
-              margin-left: 0;
-            }
-
-            :is(.name, .legend-value) {
-              display: none;
-            }
-          }
-
-          > :is(.bc-legend-count, .bc-legend-summary) {
-            margin-left: 6px;
-            color: var(--text);
-            opacity: 1;
-            font: 510 12px/22px var(--sans);
-            font-variant-numeric: tabular-nums;
-          }
-
-          /* (Pointing at one: it alone, named (the library hides the rest).) */
-          &[data-named] {
-            > button[data-pointed] {
-              display: flex;
-              margin-left: 0;
-              border-radius: var(--radius-md);
-
-              :is(.name, .legend-value) {
-                display: revert;
-              }
-            }
-          }
+        /* (A caption before the items, a heatmap's scale: it reads them all.) */
+        .bc-legend-summary {
+          margin-right: 6px;
+          color: var(--text);
+          opacity: 1;
+          font: 510 12px/22px var(--sans);
+          font-variant-numeric: tabular-nums;
         }
 
         .legend-key {
@@ -10348,10 +10300,6 @@
 
         .legend {
           top: 11px;
-
-          &:not([data-chip]):not(:has(> button:not(.hidden))) {
-            row-gap: 22px;
-          }
         }
 
         .navigator {

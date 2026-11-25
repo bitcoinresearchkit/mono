@@ -18,7 +18,7 @@ import {
   subSetups, tagLit, timeAt, timesAt, tokensNow, tool, updateRowChanges, viewMoving, viewTimes, widest, windowTooLong,
   within,
 } from "/studio/app.js";
-import { $, all$, closest, composing, escapeHtml, keyText } from "/studio/dom.js";
+import { $, all$, closest, escapeHtml, keyText } from "/studio/dom.js";
 import { motionTime } from "/modules/motion/clock.js";
 import { clamp, lowerBound } from "/studio/math.js";
 import {
@@ -1547,7 +1547,7 @@ function paintProfileItems() {
 /**
  * Each pane's caption, and the chart's readout, one line: every layer by name and color, its value beside its name in
  * a slot as wide as it gets (nothing moves as it's read): under the crosshair while hovering (the date shows on the
- * time axis), else at the view's end; a click selects. Laid by the library (one named, more a chip: see its legend.js).
+ * time axis), else at the view's end; a click selects. Laid by the library, one row that scrolls (see its legend.js).
  */
 /** A displayed measurement names its view as well, on screen, in pictures, and in exported data.
  * @param {Chart} doc @param {Layer} layer @param {string} [name]
@@ -1574,34 +1574,6 @@ function foldedInto(doc) {
 function cloudKeyHtml(layer) {
   const folded = foldedInto(chart), colors = [...new Set(chart.layers.filter((other) => folded.get(other.id) === layer.id && !other.hidden).map((other) => ink(other.color)))];
   return colors.length ? `<span class="legend-key cloud-key">${colors.map((color) => `<i style="--c:${escapeHtml(color)}"></i>`).join("")}</span>` : "";
-}
-/** A library legend's Studio controls: one action while folded, each layer while named (including export's mode). */
-function legendAccess(/** @type {HTMLElement} */ element) {
-  const chip = element.hasAttribute("data-chip"), buttons = /** @type {HTMLButtonElement[]} */ ([...element.querySelectorAll(":scope > button")]);
-  const pane = chart.panes.findIndex((pane) => pane.id === element.dataset.pane) + 1;
-  const names = buttons.filter((button) => !button.classList.contains("hidden")).map((button) => button.querySelector(".name")?.textContent).filter(Boolean);
-  element.setAttribute("role", chip ? "button" : "group");
-  element.tabIndex = chip ? 0 : -1;
-  element.setAttribute("aria-label", chip ? `${names.length} layers in pane ${pane}: ${names.join(", ")}. Show layers` : `Legend for pane ${pane}`);
-  if (chip) element.setAttribute("aria-controls", "layers-view");
-  else element.removeAttribute("aria-controls");
-  for (const button of buttons) {
-    button.setAttribute("aria-hidden", String(chip));
-    button.tabIndex = chip ? -1 : 0;
-  }
-  element.onkeydown ??= (event) => {
-    if (event.target !== element || !element.hasAttribute("data-chip") || composing(event) || !["Enter", " "].includes(event.key)) return;
-    event.preventDefault();
-    event.stopPropagation();
-    if (event.key === "Enter" && !event.repeat) element.click();
-  };
-  element.onkeyup ??= (event) => {
-    if (event.target !== element || !element.hasAttribute("data-chip") || composing(event) || event.key !== " ") return;
-    event.preventDefault();
-    event.stopPropagation();
-    element.click();
-  };
-  return chip;
 }
 function updateLegends() {
   if (!chart) return;
@@ -1644,12 +1616,12 @@ function updateLegends() {
       const readOn = (/** @type {string} */ layer) => ((series) => [series?.engine, series?.edge])(drawn.get(layer));
       const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
       return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
-    }), (pane && asRows(chart, pane) && rowPanes.get(pane.id)?.scale) || averageFor(chart, pane).name);
-    const chip = legendAccess(element);
+    }), (pane && asRows(chart, pane) && rowPanes.get(pane.id)?.scale) || "");
+    element.setAttribute("role", "group");
+    element.setAttribute("aria-label", `Legend for pane ${chart.panes.indexOf(/** @type {Pane} */ (pane)) + 1}`);
     // (Put back once the library has laid its items: it moves them into place, which drops a focus.)
-    if (chip && (focus || element.contains(document.activeElement))) element.focus({ preventScroll: true });
-    else if (!chip && document.activeElement === element) /** @type {HTMLButtonElement | null} */ (element.querySelector("button:not([hidden])"))?.focus({ preventScroll: true });
-    else restoreFocus(element, focus);
+    restoreFocus(element, focus);
+    fitSoon(element);
   }
   markLegends();
   paintProfileItems();
@@ -3005,10 +2977,10 @@ function tagAt(/** @type {number} */ x, /** @type {number} */ y) {
   return null;
 }
 /**
- * The layer pointed at, told the library: its chip names it, its dot on the crosshair ringed. One rule wherever it's
- * pointed at: its line or band in the plot (kept in its pane's empty space and on its legend, so the chip never
- * changes under the pointer: see crossMoved), a profile's bar, its value's tag on an axis. (Its row in the layers
- * panel: the legends hide while the panel shows.) The keys' crosshair says its own.
+ * The layer pointed at, told the library: its legend item brought into view, its dot on the crosshair ringed. One rule
+ * wherever it's pointed at: its line or band in the plot (kept in its pane's empty space: see crossMoved), a profile's
+ * bar, its value's tag on an axis. (Its row in the layers panel: the legends hide while the panel shows.) The keys'
+ * crosshair says its own.
  */
 function namePointed() {
   if (crossSet) return;
@@ -3282,7 +3254,7 @@ export {
   fadeLayer, failedChunks, failure, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
   fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, gapped, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
-  keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legendAccess, legends,
+  keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads, lookKey,
   mapResult, marginsOf, markLegends, markSignals, menuPicks, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT,
   noValues, oklchOf, overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries,
