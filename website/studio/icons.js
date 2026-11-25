@@ -139,7 +139,7 @@ const ICONS = {
   weight: svg('<path d="M2.75 3.5h10.5" stroke-width="1"/><path d="M2.75 7h10.5" stroke-width="2"/><path d="M2.75 12h10.5" stroke-width="3"/>'),
   grip: svg(`${dot(6, 4)}${dot(10, 4)}${dot(6, 8)}${dot(10, 8)}${dot(6, 12)}${dot(10, 12)}`),
   trend: svg('<path d="M4.75 11.25 11.25 4.75"/><circle cx="3.5" cy="12.5" r="1.75"/><circle cx="12.5" cy="3.5" r="1.75"/>'),
-  path: svg('<path d="m4.75 11.25 2-2M9.25 6.75l2-2"/><circle cx="3.5" cy="12.5" r="1.75"/><circle cx="8" cy="8" r="1.75"/><circle cx="12.5" cy="3.5" r="1.75"/>'),
+  path: svg('<path d="m4.5 10 2-4M9 5.5l2 2"/><circle cx="3.5" cy="12" r="1.75"/><circle cx="7.5" cy="4" r="1.75"/><circle cx="12.5" cy="9" r="1.75"/>'),
   hline: svg('<path d="M1.75 7.75h4M9.75 7.75h4"/><circle cx="7.75" cy="7.75" r="2"/>'),
   vline: svg('<path d="M7.75 1.75v4M7.75 9.75v4"/><circle cx="7.75" cy="7.75" r="2"/>'),
   rect: svg('<rect x="2.25" y="3.25" width="11.5" height="9.5" rx="1"/>'),
