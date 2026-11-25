@@ -1312,8 +1312,8 @@
         --sig: var(--now);
         --sig-text: var(--now-text);
         .see {
-          padding: 6px 0;
-          margin: -6px 0;
+          padding: 12px 0;
+          margin: -12px 0;
           border: 0;
           background: none;
           color: var(--now-text);
@@ -3056,8 +3056,9 @@
         $("flow").style.height = `${Math.min(460, Math.max(180, Math.max(ins.length, outs.length) * LABEL + 24))}px`;
         const { width: W, height: H } = svg.getBoundingClientRect();
         const narrow = W < 560;
-        // A look-alike, where an address shows only its ends: in the caution's colour, and said where there's room.
-        const alikeShort = (a) => `<tspan class="alike-t">${narrow ? "" : "look-alike "}${esc(short(a, 5))}</tspan>`;
+        // A look-alike, where an address shows only its ends: in the caution's colour, said where there's room and
+        // always in its link's name (built from the label's text, a hidden tspan's too).
+        const alikeShort = (a) => `<tspan class="alike-t"><tspan${narrow ? ' display="none"' : ""}>look-alike </tspan>${esc(short(a, 5))}</tspan>`;
         const L = narrow ? 92 : 168;
         const R = W - (narrow ? 96 : 176);
         const mid = (L + R) / 2;
