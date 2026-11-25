@@ -56,7 +56,7 @@ import {
   mapResult, marginsOf, markLegends, markSignals, MIN_BAR_SPACING, nameAxis, namePointed, NO_FORMAT, noValues, oklchOf,
   overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries, paintSig, paletteOf,
   PANE, paneRect, PERCENT_FORMAT, periodAmount, pinCross, placeBrush, placeFoot, placeFull, placePlotKeys, pointLabel,
-  prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, reachOut, readPoint, refreshFailed, rescan, resolve, respot,
+  prefetch, presetFits, presetShown, presetSpan, presetWindow, pressed, rangeText, reachOut, readPoint, refreshFailed, rescan, resolve, respot,
   retryInfo, reveal, rightGap, samePaint, sayValue, SCALE_MODES, seriesPane, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, setReserve, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
@@ -10978,7 +10978,7 @@ function quickPicture(/** @type {Chart} */ doc) {
     if (!bubbles || key !== `${doc.id}:${previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
     if (heat.whole === false) quickPictures.delete(key);
     const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE, heat, bubbles);
-    // (Each layer's value at the picture's end, as the legend reads it there: a cloud to an edge, its one side.)
+    // (Each layer's value at the picture's end, as the legend reads it there, a cloud's by the legend's own reading.)
     const values = new Map(copy.layers.flatMap((layer) => {
       const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
       // (A heatmap's, as its legend reads it at rest: its open day's cell at that day's close, see heatReading; at the
@@ -10992,7 +10992,7 @@ function quickPicture(/** @type {Chart} */ doc) {
       if (!high || result.error) return [];
       const at = lastIn(high, 0, drawn.end ?? high.length - 1);
       if (at < 0) return [];
-      return [[layer.id, !low ? bandOf(layer, high[at])?.name ?? format(high[at], unit) : layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`]];
+      return [[layer.id, !low ? bandOf(layer, high[at])?.name ?? format(high[at], unit) : rangeText(layer, high, low, at, unit)]];
     }));
     // (Its named values, in their band's color.)
     const bands = new Map(copy.layers.flatMap((layer) => {

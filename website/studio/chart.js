@@ -1409,16 +1409,19 @@ function periodAmount(layer) {
   }
 }
 /**
- * A cloud's range at a point, as its legend writes it: its lower to its higher (`lines`: its higher over its lower,
- * as the panel stacks them), from its value up (≥, to the top), or up to it (≤, from the bottom); a dash where
- * there's none (of its pane's two edges, all along).
+ * A cloud's range at index `at` of its two edges, as its legend writes it: its lower to its higher (`lines`: its higher
+ * over its lower, as the panel stacks them), from its value up (≥, to the top), or up to it (≤, from the bottom); a dash
+ * where there's none (of its pane's two edges, all along, or a value that's none: the pane, whatever its layers (its
+ * room, a dash's: see valueSlot)).
  */
+function rangeText(/** @type {Layer} */ layer, /** @type {Vector} */ high, /** @type {Vector} */ low, /** @type {number} */ at, /** @type {string} */ unit, lines = false) {
+  if (edgesOf(layer).length > 1 || !Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
+  return layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : lines ? `${format(high[at], unit)}\n${format(low[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`;
+}
+/** A cloud's range at a point of the chart's view, as its legend writes it (see rangeText). */
 function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point, /** @type {string} */ unit, lines = false) {
   const result = resolved?.results.get(layer.id), high = result?.values, low = result?.low, at = valuePointOf(layer, point);
-  // (To both its pane's edges: the pane, whatever its layers (its room, a dash's: see valueSlot).)
-  if (!high || !low || at < 0 || edgesOf(layer).length > 1) return "—";
-  if (!Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
-  return layer.from?.includes("top") ? `≥ ${format(low[at], unit)}` : layer.from?.includes("bottom") ? `≤ ${format(high[at], unit)}` : lines ? `${format(high[at], unit)}\n${format(low[at], unit)}` : `${format(low[at], unit)} – ${format(high[at], unit)}`;
+  return !high || !low || at < 0 ? "—" : rangeText(layer, high, low, at, unit, lines);
 }
 const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend:not([hidden])")]);
 /** What each legend last showed (written again only when it changes). @type {WeakMap<HTMLElement, string>} */
@@ -3287,7 +3290,7 @@ export {
   noValues, oklchOf, overviewSource, overviewSpan, paintedLayers, paintOf, paintPoint, paintProfileItems, paintSeries,
   paintSig, paletteOf, PANE, paneBox, paneRect, PERCENT_FORMAT, periodAmount, periodOf, pinCross, placeBrush,
   placeFoot, placeFull, placePlotKeys, pointLabel, prefetch, presetFits, presetShown, presetSpan, presetWindow,
-  pressed, PROFILE_DIM, profiled, rangeAt, reachOut, readPoint, refreshFailed, rescan, resolve, respot, retryInfo, reveal, rightGap, setReserve,
+  pressed, PROFILE_DIM, profiled, rangeAt, rangeText, reachOut, readPoint, refreshFailed, rescan, resolve, respot, retryInfo, reveal, rightGap, setReserve,
   samePaint, sayValue, SCALE_MODES, seriesIn, seriesPane, seriesScale, seriesValue, seriesY, setColumn, setGap,
   setPresetShown, settled, Shading, SHARE_FORMAT, showDates, shownDates, shownIndex, shownRange, shownSpan, showSpan,
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
