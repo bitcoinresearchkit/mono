@@ -71,7 +71,7 @@ fn find_best_lookback<L: Latent>(
   i: usize,
   latents: &[L],
   proposed_lookbacks: &[usize; PROPOSED_LOOKBACKS],
-  lookback_counts: &mut [u32],
+  lookback_goodnesses: &[Bitlen],
 ) -> usize {
   let mut best_goodness = 0;
   let mut best_lookback: usize = 0;
@@ -83,15 +83,14 @@ fn find_best_lookback<L: Latent>(
     // `proposal_idx.min(i)` with `proposal_idx < PROPOSED_LOOKBACKS`, and
     // repeating ones are earlier picks among these (every proposal scores at
     // least 1, so a pick is never the initial 0). With `i < latents.len()`,
-    // `lookback - 1 < min(window_n, latents.len()) = lookback_counts.len()`
+    // `lookback - 1 < min(window_n, latents.len()) = lookback_goodnesses.len()`
     // and `i - lookback` lies in `[0, i)`.
-    let (lookback_count, other) = unsafe {
+    let (lookback_goodness, other) = unsafe {
       (
-        *lookback_counts.get_unchecked(lookback - 1),
+        *lookback_goodnesses.get_unchecked(lookback - 1),
         *latents.get_unchecked(i - lookback),
       )
     };
-    let lookback_goodness = Bitlen::BITS - lookback_count.leading_zeros();
     let delta = L::min(l.wrapping_sub(other), other.wrapping_sub(l));
     let delta_goodness = delta.leading_zeros();
     let goodness = lookback_goodness + delta_goodness;
@@ -122,7 +121,12 @@ pub fn choose_lookbacks<L: Latent>(
     "we do not support tiny windows during compression"
   );
 
-  let mut lookback_counts = vec![1_u32; window_n.min(latents.len())];
+  let n_lookbacks = window_n.min(latents.len());
+  let mut lookback_counts = vec![1_u32; n_lookbacks];
+  // `lookback_goodnesses[j]` is always the bit width of `lookback_counts[j]`,
+  // which only changes when the count crosses a power of two. Maintaining it
+  // there keeps a `leading_zeros` out of the hot loop below.
+  let mut lookback_goodnesses = vec![1 as Bitlen; n_lookbacks];
   let mut idx_hash_table = vec![0_usize; COARSENESSES.len() * hash_table_n];
   let mut proposed_lookbacks = array::from_fn::<_, PROPOSED_LOOKBACKS, _>(|i| (i + 1).min(state_n));
   let mut best_lookback = 1;
@@ -147,7 +151,7 @@ pub fn choose_lookbacks<L: Latent>(
         i,
         latents,
         &proposed_lookbacks,
-        &mut lookback_counts,
+        &lookback_goodnesses,
       );
       if new_best_lookback != best_lookback {
         repeating_lookback_idx += 1;
@@ -155,7 +159,11 @@ pub fn choose_lookbacks<L: Latent>(
       proposed_lookbacks[BRUTE_LOOKBACKS + (repeating_lookback_idx) % REPEATING_LOOKBACKS] =
         new_best_lookback;
       best_lookback = new_best_lookback;
-      lookback_counts[best_lookback - 1] += 1;
+      let count = &mut lookback_counts[best_lookback - 1];
+      *count += 1;
+      if count.is_power_of_two() {
+        lookback_goodnesses[best_lookback - 1] += 1;
+      }
       best_lookback as DeltaLookback
     })
     .collect()
