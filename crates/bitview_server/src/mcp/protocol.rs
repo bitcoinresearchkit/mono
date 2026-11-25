@@ -73,6 +73,7 @@ impl Results {
         let uri = |path: &str| format!("skill://{name}/{path}");
         let skill_uri = uri("SKILL.md");
         debug_assert_eq!(skill.files[0].path, "SKILL.md");
+        debug_assert!(skill.pointer.contains(&skill_uri), "the pointer names the skill's URI");
         let entry = json!({
             "uri": skill_uri,
             "frontmatter": skill.frontmatter,
@@ -105,7 +106,7 @@ impl Results {
             "supportedVersions": SUPPORTED_PROTOCOL_VERSIONS,
             "capabilities": { "tools": {}, "resources": {}, "extensions": { SKILLS_EXTENSION: {} } },
             // Only this revision's instructions point at the skill: older ones can't read it.
-            "instructions": format!("{instructions}\n\nThe skill {skill_uri} {}", skill.pointer),
+            "instructions": format!("{instructions}\n\n{}", skill.pointer),
             "ttlMs": CATALOG_TTL_MS,
             "cacheScope": "public",
             "_meta": { SERVER_INFO_META: server_info },

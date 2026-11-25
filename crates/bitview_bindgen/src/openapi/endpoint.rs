@@ -9,6 +9,8 @@ pub struct Endpoint {
     pub(crate) path: String,
     /// Operation ID (e.g., "get_block"), naming every generated method, command and tool
     pub(crate) operation_id: String,
+    /// The operation's topic: its first tag, one of the document's.
+    pub(crate) tag: String,
     pub(crate) summary: Option<String>,
     pub(crate) description: Option<String>,
     /// In path order.

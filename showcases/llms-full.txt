@@ -18,93 +18,7 @@ For machine-readable tool construction, use [https://bitview.space/openapi.json]
 
 ## Operations
 
-### Address
-
-#### GET `/api/address/hash-prefix/{address_type}/{prefix}`
-
-Address hash-prefix matches
-
-Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
-
-Parameters:
-- `address_type` (path, AddressOutputType, required)
-- `prefix` (path, string, required): First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
-
-Returns: JSON `AddressHashPrefixMatches`
-
-#### GET `/api/address/{address}`
-
-Address information
-
-Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
-
-Parameters:
-- `address` (path, Address, required)
-
-Returns: JSON `AddressStats`
-
-#### GET `/api/address/{address}/txs`
-
-Address transactions
-
-Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
-
-Parameters:
-- `address` (path, Address, required)
-- `after_txid` (query, Txid, optional): Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed cursor skips the mempool). One that is neither answers 422.
-- `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
-
-Returns: JSON `Transaction[]`
-
-#### GET `/api/address/{address}/txs/chain`
-
-Address confirmed transactions
-
-Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
-
-Parameters:
-- `address` (path, Address, required)
-- `max_txs` (query, integer, optional): Transactions to return, at most 25 (the default); larger values return 25.
-
-Returns: JSON `Transaction[]`
-
-#### GET `/api/address/{address}/txs/chain/{after_txid}`
-
-Address confirmed transactions (paginated)
-
-Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
-
-Parameters:
-- `address` (path, Address, required)
-- `after_txid` (path, Txid, required): Last txid from the previous page (return transactions strictly older than this)
-- `max_txs` (query, integer, optional): Transactions to return, at most 25 (the default); larger values return 25.
-
-Returns: JSON `Transaction[]`
-
-#### GET `/api/address/{address}/txs/mempool`
-
-Address mempool transactions
-
-Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
-
-Parameters:
-- `address` (path, Address, required)
-- `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
-
-Returns: JSON `Transaction[]`
-
-#### GET `/api/address/{address}/utxo`
-
-Address UTXOs
-
-Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
-
-Parameters:
-- `address` (path, Address, required)
-
-Returns: JSON `Utxo[]`
-
-### Api.json
+### Server
 
 #### GET `/api.json`
 
@@ -114,364 +28,32 @@ Compact custom summary of the OpenAPI specification for LLM reading: types inste
 
 Returns: JSON `value`
 
-### Blindbit
+#### GET `/api/server/disk`
 
-#### GET `/blindbit/mainnet/block-hash/{height}`
+Disk usage
 
-Block hash
+Returns the bytes Bitview's data takes on disk and the bytes of the node's block files. Bitview's total is its indexer stores' table files as the stores track them, plus the allocated bytes (file lengths on non-Unix platforms) of every other file in its data directory, the server's own logs left out, measured when the server starts and after each indexed block. The node's total is its own estimate (`getblockchaininfo`'s `size_on_disk`: block and undo files, without its block index), as of the node's last new tip. No request reads the filesystem or asks the node. The ETag is made from both totals.
 
-The hash of the block at a height.
+Returns: JSON `DiskUsage`
 
-Parameters:
-- `height` (path, Height, required)
+#### GET `/api/server/logs`
 
-Returns: JSON `BlindbitBlockHash`
+Logs
 
-#### GET `/blindbit/mainnet/block-height`
-
-Last indexed block
-
-The height of the last indexed block.
-
-Returns: JSON `BlindbitBlockHeight`
-
-#### GET `/blindbit/mainnet/filter/{kind}/{height}`
-
-Block filter
-
-A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
+The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
 
 Parameters:
-- `kind` (path, BlindbitFilterKind, required)
-- `height` (path, Height, required)
+- `after` (query, string, optional): The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
 
-Returns: JSON `BlindbitFilter`
+Returns: JSON `Logs`
 
-#### POST `/blindbit/mainnet/forward-tx`
+#### GET `/api/server/sync`
 
-Broadcast transaction
+Sync status
 
-Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
+Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.
 
-Request body: `ForwardTx` (required)
-
-Returns: JSON `Txid`
-
-#### GET `/blindbit/mainnet/info`
-
-Server info
-
-The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
-
-Returns: JSON `BlindbitInfo`
-
-#### GET `/blindbit/mainnet/spent-index/{height}`
-
-Spent index
-
-The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `BlindbitSpentIndex`
-
-#### GET `/blindbit/mainnet/tweak-index/{height}`
-
-Tweak index
-
-The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
-
-Parameters:
-- `height` (path, Height, required)
-- `dustLimit` (query, integer, optional): Minimum Taproot output value in sats. Defaults to 0.
-
-Returns: JSON `Tweak[]`
-
-#### GET `/blindbit/mainnet/tweaks/{height}`
-
-Cut-through tweaks
-
-`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
-
-Parameters:
-- `height` (path, Height, required)
-- `dustLimit` (query, integer, optional): Minimum Taproot output value in sats. Defaults to 0.
-
-Returns: JSON `Tweak[]`
-
-#### GET `/blindbit/mainnet/utxos/{height}`
-
-Taproot outputs
-
-Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `BlindbitUtxo[]`
-
-### Block
-
-#### GET `/api/block/{hash}`
-
-Block information
-
-Details of a block by hash: height, time, transaction count, size, weight, and difficulty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `BlockInfo`
-
-#### GET `/api/block/{hash}/header`
-
-Block header
-
-Returns the hex-encoded 80-byte block header. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-header)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: text `Hex`
-
-#### GET `/api/block/{hash}/raw`
-
-Raw block
-
-Returns the raw block data in binary format. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-raw)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: binary data
-
-#### GET `/api/block/{hash}/status`
-
-Block status
-
-Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `BlockStatus`
-
-#### GET `/api/block/{hash}/txid/{index}`
-
-Transaction ID at index
-
-Retrieve a single transaction ID at a specific index within a block. Returns plain text txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-id)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-- `index` (path, BlockTxIndex, required): Transaction index within the block (0-based)
-
-Returns: text `Txid`
-
-#### GET `/api/block/{hash}/txids`
-
-Block transaction IDs
-
-Transaction IDs in block order. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `Txid[]`
-
-#### GET `/api/block/{hash}/txs`
-
-Block transactions
-
-Up to 25 transactions starting at index 0. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `Transaction[]`
-
-#### GET `/api/block/{hash}/txs/{start_index}`
-
-Block transactions (paginated)
-
-Up to 25 transactions starting at `start_index`, a multiple of 25. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-- `start_index` (path, BlockTxIndex, required): Starting transaction index within the block (0-based)
-
-Returns: JSON `Transaction[]`
-
-#### GET `/api/v1/block/{hash}`
-
-Block (v1)
-
-Returns block details with extras by hash. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-v1)*
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `BlockInfoV1`
-
-#### GET `/api/v1/block/{hash}/audit-summary`
-
-This server's recorded block expectation
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `AuditSummary`
-
-#### GET `/api/v1/block/{hash}/tx/{txid}/audit`
-
-How this server's expectation classified a confirmed transaction
-
-Parameters:
-- `hash` (path, BlockHash, required)
-- `txid` (path, Txid, required)
-
-Returns: JSON `TxAudit`
-
-### Block Height
-
-#### GET `/api/block-height/{height}`
-
-Block hash by height
-
-Block hash as plain text. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: text `BlockHash`
-
-### Block Template
-
-#### GET `/api/block-template`
-
-Next block template
-
-The next block's template (BIP 22), built by Bitview: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one, raised by BIP 94 and BIP 54 at a retarget's edges, as Bitcoin Core computes it), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Built once per projection of block 0 and dated as the request arrives (`curtime`), always on the current tip: `503` for the moment after a new block, until block 0 is projected on it. Bitcoin Core doesn't validate it first: check it as any template from a third party. *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
-
-Returns: JSON `BlockTemplate`
-
-### Blocks
-
-#### GET `/api/blocks`
-
-Recent blocks
-
-The last 10 blocks. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
-
-Returns: JSON `BlockInfo[]`
-
-#### GET `/api/blocks/tip/hash`
-
-Block tip hash
-
-Hash of the latest block. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
-
-Returns: text `BlockHash`
-
-#### GET `/api/blocks/tip/height`
-
-Block tip height
-
-Height of the latest block. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
-
-Returns: text `Height`
-
-#### GET `/api/blocks/{height}`
-
-Blocks from height
-
-Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `BlockInfo[]`
-
-#### GET `/api/v1/blocks`
-
-Recent blocks with extras
-
-Retrieve the last 15 blocks with extended data including pool identification and fee statistics. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
-
-Returns: JSON `BlockInfoV1[]`
-
-#### GET `/api/v1/blocks/{height}`
-
-Blocks from height with extras
-
-Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `BlockInfoV1[]`
-
-### Cpfp
-
-#### GET `/api/v1/cpfp/{txid}`
-
-CPFP info
-
-Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
-
-Parameters:
-- `txid` (path, Txid, required)
-
-Returns: JSON `Cpfp`
-
-### Difficulty Adjustment
-
-#### GET `/api/v1/difficulty-adjustment`
-
-Difficulty adjustment
-
-Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
-
-Returns: JSON `DifficultyAdjustment`
-
-### Fees
-
-#### GET `/api/v1/fees/mempool-blocks`
-
-Projected mempool blocks
-
-Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
-
-Returns: JSON `MempoolBlock[]`
-
-#### GET `/api/v1/fees/precise`
-
-Recommended fee rates (precise)
-
-Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
-
-Returns: JSON `PreciseRecommendedFees`
-
-#### GET `/api/v1/fees/recommended`
-
-Recommended fees
-
-Recommended fee rates by confirmation target, in whole sat/vB. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
-
-Returns: JSON `RecommendedFees`
-
-### Fullrbf
-
-#### GET `/api/v1/fullrbf/replacements`
-
-Recent full-RBF replacements
-
-Same response shape as `GET /api/v1/replacements`, but limited to trees where at least one predecessor was non-signaling (full-RBF). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-fullrbf-replacements)*
-
-Returns: JSON `ReplacementNode[]`
-
-### Health
+Returns: JSON `SyncStatus`
 
 #### GET `/health`
 
@@ -481,317 +63,6 @@ Local health and query-readiness check. Returns server identity, uptime, and the
 
 Returns: JSON `Health`
 
-### Historical Price
-
-#### GET `/api/v1/historical-price`
-
-Historical price
-
-Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
-
-Parameters:
-- `timestamp` (query, Timestamp, optional): UNIX timestamp: the latest close at or before it
-- `currency` (query, Currency, optional): Quote currency: USD, the only one served
-
-Returns: JSON `HistoricalPrice`
-
-### Mempool
-
-#### GET `/api/mempool`
-
-Mempool statistics
-
-Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
-
-Returns: JSON `MempoolInfo`
-
-#### GET `/api/mempool/recent`
-
-Recent mempool transactions
-
-Get the last 10 transactions to enter the mempool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
-
-Returns: JSON `MempoolTxSummary[]`
-
-#### GET `/api/mempool/txids`
-
-Mempool transaction IDs
-
-Get all transaction IDs currently in the mempool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*
-
-Returns: JSON `Txid[]`
-
-### Mempool Blocks
-
-#### GET `/api/mempool-blocks/{index}`
-
-Projected mempool block
-
-A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
-
-Parameters:
-- `index` (path, MempoolBlockIndex, required)
-
-Returns: JSON `MempoolBlockContent`
-
-#### GET `/api/mempool-blocks/{index}/diff/{since}`
-
-Projected mempool block changes
-
-The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there, replacing what was known of its txid. Walk `order` once to rebuild, replace the cached `stats` with the response's, and evict what was cached for the txids in `removed`. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) is answered from no copy, with `since` `"0"`: every entry is new and `removed` is empty, so replace the copy and drop what was cached for txids not in `order`.
-
-Parameters:
-- `index` (path, MempoolBlockIndex, required)
-- `since` (path, MempoolBlockHash, required): The `hash` of the client's copy, from the block or a previous diff
-
-Returns: JSON `MempoolBlockDiff`
-
-### Mining
-
-#### GET `/api/v1/mining/blocks/audit/score/{hash}`
-
-Recorded audit score for a block hash
-
-A permanent server-local score. A missing audit returns the JSON string "null".
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `AuditScoreResponse`
-
-#### GET `/api/v1/mining/blocks/audit/scores`
-
-Audited scores in the latest sixteen height slots
-
-Returns: JSON `AuditScore[]`
-
-#### GET `/api/v1/mining/blocks/audit/scores/{height}`
-
-Audited scores through a canonical height
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `AuditScore[]`
-
-#### GET `/api/v1/mining/blocks/audit/{hash}`
-
-Recorded missing, fresh, conflicting, added and unseen transactions
-
-Parameters:
-- `hash` (path, BlockHash, required)
-
-Returns: JSON `AuditDetail`
-
-#### GET `/api/v1/mining/blocks/fee-rates/{time_period}`
-
-Block fee rates
-
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `BlockFeeRatesEntry[]`
-
-#### GET `/api/v1/mining/blocks/fee-rates/{time_period}/precise`
-
-Block fee rates (precise)
-
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `BlockFeeRatesPreciseEntry[]`
-
-#### GET `/api/v1/mining/blocks/fees/{time_period}`
-
-Block fees
-
-Get average total fees per block for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `BlockFeesEntry[]`
-
-#### GET `/api/v1/mining/blocks/predictions/{time_period}`
-
-Time-bucketed canonical audit match rates
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `[integer, Height, number][]`
-
-#### GET `/api/v1/mining/blocks/rewards/{time_period}`
-
-Block rewards
-
-Get average coinbase reward (subsidy + fees) per block for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `BlockRewardsEntry[]`
-
-#### GET `/api/v1/mining/blocks/sizes-weights/{time_period}`
-
-Block sizes and weights
-
-Get average block sizes and weights for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `BlockSizesWeights`
-
-#### GET `/api/v1/mining/blocks/timestamp/{timestamp}`
-
-Block by timestamp
-
-Find the block with the greatest header timestamp at or before the given UNIX timestamp, choosing the earliest height on ties. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-timestamp)*
-
-Parameters:
-- `timestamp` (path, Timestamp, required)
-
-Returns: JSON `BlockTimestamp`
-
-#### GET `/api/v1/mining/difficulty-adjustments`
-
-Difficulty adjustments (all time)
-
-Every difficulty adjustment in the chain's history. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
-
-Returns: JSON `DifficultyAdjustmentEntry[]`
-
-#### GET `/api/v1/mining/difficulty-adjustments/{time_period}`
-
-Difficulty adjustments
-
-Get historical difficulty adjustments for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `DifficultyAdjustmentEntry[]`
-
-#### GET `/api/v1/mining/hashrate`
-
-Network hashrate (all time)
-
-Get network hashrate and difficulty data for all time. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
-
-Returns: JSON `HashrateSummary`
-
-#### GET `/api/v1/mining/hashrate/pools`
-
-All pools hashrate (all time)
-
-Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
-
-Returns: JSON `PoolHashrateEntry[]`
-
-#### GET `/api/v1/mining/hashrate/pools/{time_period}`
-
-All pools hashrate
-
-Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `PoolHashrateEntry[]`
-
-#### GET `/api/v1/mining/hashrate/{time_period}`
-
-Network hashrate
-
-Get network hashrate and difficulty data for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `HashrateSummary`
-
-#### GET `/api/v1/mining/pool/{slug}`
-
-Mining pool details
-
-Block counts and mining shares by time period for one pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
-
-Parameters:
-- `slug` (path, PoolSlug, required)
-
-Returns: JSON `PoolDetail`
-
-#### GET `/api/v1/mining/pool/{slug}/blocks`
-
-Mining pool blocks
-
-Get up to 100 recent blocks mined by a specific pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
-
-Parameters:
-- `slug` (path, PoolSlug, required)
-
-Returns: JSON `BlockInfoV1[]`
-
-#### GET `/api/v1/mining/pool/{slug}/blocks/{height}`
-
-Mining pool blocks before height
-
-Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
-
-Parameters:
-- `slug` (path, PoolSlug, required)
-- `height` (path, Height, required)
-
-Returns: JSON `BlockInfoV1[]`
-
-#### GET `/api/v1/mining/pool/{slug}/hashrate`
-
-Mining pool hashrate
-
-Get hashrate history for a specific mining pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrate)*
-
-Parameters:
-- `slug` (path, PoolSlug, required)
-
-Returns: JSON `PoolHashrateEntry[]`
-
-#### GET `/api/v1/mining/pools`
-
-List all mining pools
-
-Every known mining pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
-
-Returns: JSON `PoolInfo[]`
-
-#### GET `/api/v1/mining/pools/{time_period}`
-
-Mining pool statistics
-
-Get mining pool statistics for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
-
-Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-Returns: JSON `PoolsSummary`
-
-#### GET `/api/v1/mining/reward-stats/{block_count}`
-
-Mining reward statistics
-
-Get mining reward statistics for the last N blocks including total rewards, fees, and transaction count. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-reward-stats)*
-
-Parameters:
-- `block_count` (path, integer, required): Number of recent blocks to include
-
-Returns: JSON `RewardStats`
-
-### Openapi.json
-
 #### GET `/openapi.json`
 
 OpenAPI specification
@@ -800,65 +71,11 @@ Full OpenAPI 3.1 specification for this API. Build tools from this document.
 
 Returns: JSON `value`
 
-### Oracle
+#### GET `/version`
 
-#### GET `/api/oracle/blocks/{height}`
+API version
 
-The oracle at a block
-
-How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `OracleBlock`
-
-#### GET `/api/oracle/live`
-
-The oracle now
-
-The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
-
-Returns: JSON `OracleBlock`
-
-#### GET `/api/oracle/payments/{start}`
-
-The oracle's payments, 144 blocks at a time
-
-For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
-
-Parameters:
-- `start` (path, Height, required): The first block's height.
-
-Returns: JSON `OraclePayments`
-
-#### GET `/api/oracle/price`
-
-Live BTC/USD price
-
-Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
-
-Returns: JSON `Dollars | null`
-
-### Prices
-
-#### GET `/api/v1/prices`
-
-Current BTC price
-
-Returns bitcoin latest price (on-chain derived, USD only). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
-
-Returns: JSON `PricePoint`
-
-### Replacements
-
-#### GET `/api/v1/replacements`
-
-Recent RBF replacements
-
-Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
-
-Returns: JSON `ReplacementNode[]`
+Returns: JSON `ServerVersion`
 
 ### Series
 
@@ -1003,49 +220,664 @@ Parameters:
 
 Returns: JSON `Version`
 
-### Server
+### General
 
-#### GET `/api/server/disk`
+#### GET `/api/v1/difficulty-adjustment`
 
-Disk usage
+Difficulty adjustment
 
-Returns the bytes Bitview's data takes on disk and the bytes of the node's block files. Bitview's total is its indexer stores' table files as the stores track them, plus the allocated bytes (file lengths on non-Unix platforms) of every other file in its data directory, the server's own logs left out, measured when the server starts and after each indexed block. The node's total is its own estimate (`getblockchaininfo`'s `size_on_disk`: block and undo files, without its block index), as of the node's last new tip. No request reads the filesystem or asks the node. The ETag is made from both totals.
+Get current difficulty adjustment progress and estimates. Every field is computed from the chain alone, so the answer changes only with a new block: elapsed time is measured to the tip block, and `estimatedRetargetDate` is the tip block's time plus `remainingTime`, where mempool.space counts both from its clock. That date is early by the tip's age and, with a block or two left in the epoch, can be before now; add `remainingTime` to your own clock for a date counted from now. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustment)*
 
-Returns: JSON `DiskUsage`
+Returns: JSON `DifficultyAdjustment`
 
-#### GET `/api/server/logs`
+#### GET `/api/v1/historical-price`
 
-Logs
+Historical price
 
-The server's last log lines, at most 1,000, oldest first: requests (status, method, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
-
-Parameters:
-- `after` (query, string, optional): The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
-
-Returns: JSON `Logs`
-
-#### GET `/api/server/sync`
-
-Sync status
-
-Returns a coherent local index snapshot and the Bitcoin Core tip height the server last saw: it looks for a new tip every second and no request asks the node. The two heights differ while a new block is being indexed.
-
-Returns: JSON `SyncStatus`
-
-### Transaction Times
-
-#### GET `/api/v1/transaction-times`
-
-Transaction first-seen times
-
-First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
+Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
 Parameters:
-- `txId[]` (query, Txid[], required): Transaction IDs to look up (max 100 per request).
+- `timestamp` (query, Timestamp, optional): UNIX timestamp: the latest close at or before it
+- `currency` (query, Currency, optional): Quote currency: USD, the only one served
 
-Returns: JSON `Timestamp[]`
+Returns: JSON `HistoricalPrice`
 
-### Tx
+#### GET `/api/v1/prices`
+
+Current BTC price
+
+Returns bitcoin latest price (on-chain derived, USD only). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-price)*
+
+Returns: JSON `PricePoint`
+
+### Addresses
+
+#### GET `/api/address/hash-prefix/{address_type}/{prefix}`
+
+Address hash-prefix matches
+
+Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
+
+Parameters:
+- `address_type` (path, AddressOutputType, required)
+- `prefix` (path, string, required): First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
+
+Returns: JSON `AddressHashPrefixMatches`
+
+#### GET `/api/address/{address}`
+
+Address information
+
+Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
+
+Parameters:
+- `address` (path, Address, required)
+
+Returns: JSON `AddressStats`
+
+#### GET `/api/address/{address}/txs`
+
+Address transactions
+
+Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
+
+Parameters:
+- `address` (path, Address, required)
+- `after_txid` (query, Txid, optional): Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed cursor skips the mempool). One that is neither answers 422.
+- `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
+
+Returns: JSON `Transaction[]`
+
+#### GET `/api/address/{address}/txs/chain`
+
+Address confirmed transactions
+
+Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
+
+Parameters:
+- `address` (path, Address, required)
+- `max_txs` (query, integer, optional): Transactions to return, at most 25 (the default); larger values return 25.
+
+Returns: JSON `Transaction[]`
+
+#### GET `/api/address/{address}/txs/chain/{after_txid}`
+
+Address confirmed transactions (paginated)
+
+Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
+
+Parameters:
+- `address` (path, Address, required)
+- `after_txid` (path, Txid, required): Last txid from the previous page (return transactions strictly older than this)
+- `max_txs` (query, integer, optional): Transactions to return, at most 25 (the default); larger values return 25.
+
+Returns: JSON `Transaction[]`
+
+#### GET `/api/address/{address}/txs/mempool`
+
+Address mempool transactions
+
+Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
+
+Parameters:
+- `address` (path, Address, required)
+- `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
+
+Returns: JSON `Transaction[]`
+
+#### GET `/api/address/{address}/utxo`
+
+Address UTXOs
+
+Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
+
+Parameters:
+- `address` (path, Address, required)
+
+Returns: JSON `Utxo[]`
+
+#### GET `/api/v1/validate-address/{address}`
+
+Validate address
+
+Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
+
+Parameters:
+- `address` (path, string, required): Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130); anything else answers 400, as mempool.space does
+
+Returns: JSON `AddressValidation`
+
+### Blocks
+
+#### GET `/api/block-height/{height}`
+
+Block hash by height
+
+Block hash as plain text. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: text `BlockHash`
+
+#### GET `/api/block/{hash}`
+
+Block information
+
+Details of a block by hash: height, time, transaction count, size, weight, and difficulty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `BlockInfo`
+
+#### GET `/api/block/{hash}/header`
+
+Block header
+
+Returns the hex-encoded 80-byte block header. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-header)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: text `Hex`
+
+#### GET `/api/block/{hash}/raw`
+
+Raw block
+
+Returns the raw block data in binary format. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-raw)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: binary data
+
+#### GET `/api/block/{hash}/status`
+
+Block status
+
+Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `BlockStatus`
+
+#### GET `/api/block/{hash}/txid/{index}`
+
+Transaction ID at index
+
+Retrieve a single transaction ID at a specific index within a block. Returns plain text txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-id)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+- `index` (path, BlockTxIndex, required): Transaction index within the block (0-based)
+
+Returns: text `Txid`
+
+#### GET `/api/block/{hash}/txids`
+
+Block transaction IDs
+
+Transaction IDs in block order. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `Txid[]`
+
+#### GET `/api/block/{hash}/txs`
+
+Block transactions
+
+Up to 25 transactions starting at index 0. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `Transaction[]`
+
+#### GET `/api/block/{hash}/txs/{start_index}`
+
+Block transactions (paginated)
+
+Up to 25 transactions starting at `start_index`, a multiple of 25. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+- `start_index` (path, BlockTxIndex, required): Starting transaction index within the block (0-based)
+
+Returns: JSON `Transaction[]`
+
+#### GET `/api/blocks`
+
+Recent blocks
+
+The last 10 blocks. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
+
+Returns: JSON `BlockInfo[]`
+
+#### GET `/api/blocks/tip/hash`
+
+Block tip hash
+
+Hash of the latest block. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
+
+Returns: text `BlockHash`
+
+#### GET `/api/blocks/tip/height`
+
+Block tip height
+
+Height of the latest block. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
+
+Returns: text `Height`
+
+#### GET `/api/blocks/{height}`
+
+Blocks from height
+
+Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlockInfo[]`
+
+#### GET `/api/v1/block/{hash}`
+
+Block (v1)
+
+Returns block details with extras by hash. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-v1)*
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `BlockInfoV1`
+
+#### GET `/api/v1/blocks`
+
+Recent blocks with extras
+
+Retrieve the last 15 blocks with extended data including pool identification and fee statistics. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
+
+Returns: JSON `BlockInfoV1[]`
+
+#### GET `/api/v1/blocks/{height}`
+
+Blocks from height with extras
+
+Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlockInfoV1[]`
+
+#### GET `/api/v1/mining/blocks/timestamp/{timestamp}`
+
+Block by timestamp
+
+Find the block with the greatest header timestamp at or before the given UNIX timestamp, choosing the earliest height on ties. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-timestamp)*
+
+Parameters:
+- `timestamp` (path, Timestamp, required)
+
+Returns: JSON `BlockTimestamp`
+
+### Mining
+
+#### GET `/api/v1/block/{hash}/audit-summary`
+
+This server's recorded block expectation
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `AuditSummary`
+
+#### GET `/api/v1/block/{hash}/tx/{txid}/audit`
+
+How this server's expectation classified a confirmed transaction
+
+Parameters:
+- `hash` (path, BlockHash, required)
+- `txid` (path, Txid, required)
+
+Returns: JSON `TxAudit`
+
+#### GET `/api/v1/mining/blocks/audit/score/{hash}`
+
+Recorded audit score for a block hash
+
+A permanent server-local score. A missing audit returns the JSON string "null".
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `AuditScoreResponse`
+
+#### GET `/api/v1/mining/blocks/audit/scores`
+
+Audited scores in the latest sixteen height slots
+
+Returns: JSON `AuditScore[]`
+
+#### GET `/api/v1/mining/blocks/audit/scores/{height}`
+
+Audited scores through a canonical height
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `AuditScore[]`
+
+#### GET `/api/v1/mining/blocks/audit/{hash}`
+
+Recorded missing, fresh, conflicting, added and unseen transactions
+
+Parameters:
+- `hash` (path, BlockHash, required)
+
+Returns: JSON `AuditDetail`
+
+#### GET `/api/v1/mining/blocks/fee-rates/{time_period}`
+
+Block fee rates
+
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `BlockFeeRatesEntry[]`
+
+#### GET `/api/v1/mining/blocks/fee-rates/{time_period}/precise`
+
+Block fee rates (precise)
+
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `BlockFeeRatesPreciseEntry[]`
+
+#### GET `/api/v1/mining/blocks/fees/{time_period}`
+
+Block fees
+
+Get average total fees per block for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `BlockFeesEntry[]`
+
+#### GET `/api/v1/mining/blocks/predictions/{time_period}`
+
+Time-bucketed canonical audit match rates
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `[integer, Height, number][]`
+
+#### GET `/api/v1/mining/blocks/rewards/{time_period}`
+
+Block rewards
+
+Get average coinbase reward (subsidy + fees) per block for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `BlockRewardsEntry[]`
+
+#### GET `/api/v1/mining/blocks/sizes-weights/{time_period}`
+
+Block sizes and weights
+
+Get average block sizes and weights for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `BlockSizesWeights`
+
+#### GET `/api/v1/mining/difficulty-adjustments`
+
+Difficulty adjustments (all time)
+
+Every difficulty adjustment in the chain's history. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
+
+Returns: JSON `DifficultyAdjustmentEntry[]`
+
+#### GET `/api/v1/mining/difficulty-adjustments/{time_period}`
+
+Difficulty adjustments
+
+Get historical difficulty adjustments for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `DifficultyAdjustmentEntry[]`
+
+#### GET `/api/v1/mining/hashrate`
+
+Network hashrate (all time)
+
+Get network hashrate and difficulty data for all time. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
+
+Returns: JSON `HashrateSummary`
+
+#### GET `/api/v1/mining/hashrate/pools`
+
+All pools hashrate (all time)
+
+Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
+
+Returns: JSON `PoolHashrateEntry[]`
+
+#### GET `/api/v1/mining/hashrate/pools/{time_period}`
+
+All pools hashrate
+
+Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `PoolHashrateEntry[]`
+
+#### GET `/api/v1/mining/hashrate/{time_period}`
+
+Network hashrate
+
+Get network hashrate and difficulty data for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `HashrateSummary`
+
+#### GET `/api/v1/mining/pool/{slug}`
+
+Mining pool details
+
+Block counts and mining shares by time period for one pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
+
+Parameters:
+- `slug` (path, PoolSlug, required)
+
+Returns: JSON `PoolDetail`
+
+#### GET `/api/v1/mining/pool/{slug}/blocks`
+
+Mining pool blocks
+
+Get up to 100 recent blocks mined by a specific pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
+
+Parameters:
+- `slug` (path, PoolSlug, required)
+
+Returns: JSON `BlockInfoV1[]`
+
+#### GET `/api/v1/mining/pool/{slug}/blocks/{height}`
+
+Mining pool blocks before height
+
+Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
+
+Parameters:
+- `slug` (path, PoolSlug, required)
+- `height` (path, Height, required)
+
+Returns: JSON `BlockInfoV1[]`
+
+#### GET `/api/v1/mining/pool/{slug}/hashrate`
+
+Mining pool hashrate
+
+Get hashrate history for a specific mining pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrate)*
+
+Parameters:
+- `slug` (path, PoolSlug, required)
+
+Returns: JSON `PoolHashrateEntry[]`
+
+#### GET `/api/v1/mining/pools`
+
+List all mining pools
+
+Every known mining pool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
+
+Returns: JSON `PoolInfo[]`
+
+#### GET `/api/v1/mining/pools/{time_period}`
+
+Mining pool statistics
+
+Get mining pool statistics for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `PoolsSummary`
+
+#### GET `/api/v1/mining/reward-stats/{block_count}`
+
+Mining reward statistics
+
+Get mining reward statistics for the last N blocks including total rewards, fees, and transaction count. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-reward-stats)*
+
+Parameters:
+- `block_count` (path, integer, required): Number of recent blocks to include
+
+Returns: JSON `RewardStats`
+
+### Fees
+
+#### GET `/api/v1/fees/mempool-blocks`
+
+Projected mempool blocks
+
+Projected blocks for fee estimation, up to eight as mempool.space's. Every block, block 0 the next, is packed as Core's block assembler packs (whole CPFP chunks by feerate, in dependency order, within Core's default weight and sigop budgets), ranked by the node's signed modified fees (including `prioritisetransaction`), with paid fees in the statistics. The last holds whatever is left: more than a block when the mempool is busy. `GET /api/mempool-blocks/{index}` serves each with its transactions, except such a last one. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*
+
+Returns: JSON `MempoolBlock[]`
+
+#### GET `/api/v1/fees/precise`
+
+Recommended fee rates (precise)
+
+Recommended fee rates by confirmation target, with up to three decimal places and support for sub-sat/vB rates. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees-precise)*
+
+Returns: JSON `PreciseRecommendedFees`
+
+#### GET `/api/v1/fees/recommended`
+
+Recommended fees
+
+Recommended fee rates by confirmation target, in whole sat/vB. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
+
+Returns: JSON `RecommendedFees`
+
+### Mempool
+
+#### GET `/api/block-template`
+
+Next block template
+
+The next block's template (BIP 22), built by Bitview: projected block 0's transactions in its order, as `GET /api/mempool-blocks/0` serves them, every parent before its children. It holds `version`, `previousblockhash`, `transactions` (each with `data`, `txid`, `hash`, `depends`, `fee`, `sigops`, `weight`), `coinbasevalue` (the subsidy plus the transactions' fees), `target`, `bits`, `curtime`, `mintime` (the tip's median time past plus one, raised by BIP 94 and BIP 54 at a retarget's edges, as Bitcoin Core computes it), `height`, `default_witness_commitment` and the rest, the format pools and mining software read. A complete block once a miner adds a coinbase paying `coinbasevalue` and carrying `default_witness_commitment`. Built once per projection of block 0 and dated as the request arrives (`curtime`), always on the current tip: `503` for the moment after a new block, until block 0 is projected on it. Bitcoin Core doesn't validate it first: check it as any template from a third party. *[BIP 22](https://github.com/bitcoin/bips/blob/master/bip-0022.mediawiki)*
+
+Returns: JSON `BlockTemplate`
+
+#### GET `/api/mempool`
+
+Mempool statistics
+
+Current mempool backlog: transaction count, total virtual size, total fees, and fee histogram. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
+
+Returns: JSON `MempoolInfo`
+
+#### GET `/api/mempool-blocks/{index}`
+
+Projected mempool block
+
+A projected mempool block with its transactions in block order, each in esplora's light shape as `GET /api/mempool/recent` lists them (`txid`, `fee`, `vsize`, `value`: the whole body is at `GET /api/tx/{txid}`), and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, packed by Bitview as the rest are. The last one answers 404 while it holds more than a block (what's left of a busy mempool: only its stats are served), as does a block past the projection. The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
+
+Parameters:
+- `index` (path, MempoolBlockIndex, required)
+
+Returns: JSON `MempoolBlockContent`
+
+#### GET `/api/mempool-blocks/{index}/diff/{since}`
+
+Projected mempool block changes
+
+The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction in the same light shape as the block's, to place there, replacing what was known of its txid. Walk `order` once to rebuild, replace the cached `stats` with the response's, and evict what was cached for the txids in `removed`. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. A `since` this server doesn't hold (aged out, another server's, or from before a restart) is answered from no copy, with `since` `"0"`: every entry is new and `removed` is empty, so replace the copy and drop what was cached for txids not in `order`.
+
+Parameters:
+- `index` (path, MempoolBlockIndex, required)
+- `since` (path, MempoolBlockHash, required): The `hash` of the client's copy, from the block or a previous diff
+
+Returns: JSON `MempoolBlockDiff`
+
+#### GET `/api/mempool/recent`
+
+Recent mempool transactions
+
+Get the last 10 transactions to enter the mempool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*
+
+Returns: JSON `MempoolTxSummary[]`
+
+#### GET `/api/mempool/txids`
+
+Mempool transaction IDs
+
+Get all transaction IDs currently in the mempool. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-transaction-ids)*
+
+Returns: JSON `Txid[]`
+
+#### GET `/api/v1/fullrbf/replacements`
+
+Recent full-RBF replacements
+
+Same response shape as `GET /api/v1/replacements`, but limited to trees where at least one predecessor was non-signaling (full-RBF). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-fullrbf-replacements)*
+
+Returns: JSON `ReplacementNode[]`
+
+#### GET `/api/v1/replacements`
+
+Recent RBF replacements
+
+Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
+
+Returns: JSON `ReplacementNode[]`
+
+### Transactions
 
 #### POST `/api/tx`
 
@@ -1054,6 +886,17 @@ Broadcast transaction
 Submit a raw transaction as hexadecimal text (at most 800,000 request bytes, including whitespace: a standard transaction's largest size). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry. *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
 
 Request body: `string` (required)
+
+Returns: text `Txid`
+
+#### GET `/api/tx-index/{index}`
+
+Txid by index
+
+Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
+
+Parameters:
+- `index` (path, TxIndex, required): Global transaction index across the chain
 
 Returns: text `Txid`
 
@@ -1146,6 +989,28 @@ Parameters:
 
 Returns: JSON `TxStatus`
 
+#### GET `/api/v1/cpfp/{txid}`
+
+CPFP info
+
+Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
+
+Parameters:
+- `txid` (path, Txid, required)
+
+Returns: JSON `Cpfp`
+
+#### GET `/api/v1/transaction-times`
+
+Transaction first-seen times
+
+First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
+
+Parameters:
+- `txId[]` (query, Txid[], required): Transaction IDs to look up (max 100 per request).
+
+Returns: JSON `Timestamp[]`
+
 #### GET `/api/v1/tx/{txid}/rbf`
 
 RBF replacement history
@@ -1157,20 +1022,79 @@ Parameters:
 
 Returns: JSON `RbfResponse`
 
-### Tx Index
+### Oracle
 
-#### GET `/api/tx-index/{index}`
+#### GET `/api/oracle/blocks/{height}`
 
-Txid by index
+The oracle at a block
 
-Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
+How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
 
 Parameters:
-- `index` (path, TxIndex, required): Global transaction index across the chain
+- `height` (path, Height, required)
 
-Returns: text `Txid`
+Returns: JSON `OracleBlock`
 
-### Urpd
+#### GET `/api/oracle/live`
+
+The oracle now
+
+The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
+
+Returns: JSON `OracleBlock`
+
+#### GET `/api/oracle/payments/{start}`
+
+The oracle's payments, 144 blocks at a time
+
+For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
+
+Parameters:
+- `start` (path, Height, required): The first block's height.
+
+Returns: JSON `OraclePayments`
+
+#### GET `/api/oracle/price`
+
+Live BTC/USD price
+
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
+
+Returns: JSON `Dollars | null`
+
+### UTXO Set
+
+#### GET `/api/utxo-set`
+
+Latest UTXO set
+
+The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
+
+Returns: JSON `UtxoSet`
+
+#### GET `/api/utxo-set/{point}`
+
+UTXO set at block height or date
+
+The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+
+Parameters:
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
+
+Returns: JSON `UtxoSet`
+
+#### GET `/api/utxo-set/{point}/diff`
+
+UTXO set changes of a block or date
+
+What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+
+Parameters:
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
+
+Returns: JSON `UtxoSetDiff`
+
+### URPD
 
 #### GET `/api/urpd`
 
@@ -1207,58 +1131,102 @@ Parameters:
 
 Returns: JSON `Urpd`
 
-### Utxo Set
+### Silent Payments
 
-#### GET `/api/utxo-set`
+#### GET `/blindbit/mainnet/block-hash/{height}`
 
-Latest UTXO set
+Block hash
 
-The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
-
-Returns: JSON `UtxoSet`
-
-#### GET `/api/utxo-set/{point}`
-
-UTXO set at block height or date
-
-The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+The hash of the block at a height.
 
 Parameters:
-- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
+- `height` (path, Height, required)
 
-Returns: JSON `UtxoSet`
+Returns: JSON `BlindbitBlockHash`
 
-#### GET `/api/utxo-set/{point}/diff`
+#### GET `/blindbit/mainnet/block-height`
 
-UTXO set changes of a block or date
+Last indexed block
 
-What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+The height of the last indexed block.
 
-Parameters:
-- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
+Returns: JSON `BlindbitBlockHeight`
 
-Returns: JSON `UtxoSetDiff`
+#### GET `/blindbit/mainnet/filter/{kind}/{height}`
 
-### Validate Address
+Block filter
 
-#### GET `/api/v1/validate-address/{address}`
-
-Validate address
-
-Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
+A BIP158 Golomb-coded set (P = 19, M = 784,931, keyed by the block hash) of the block's new Taproot output keys (`new-utxos`, the x-only keys) or of its spends of Taproot outputs (`spent`, hashed as in `spent-index`). Repeated elements count once, as in BIP158 (BlindBit repeats them), which leaves every membership test's answer the same.
 
 Parameters:
-- `address` (path, string, required): Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130); anything else answers 400, as mempool.space does
+- `kind` (path, BlindbitFilterKind, required)
+- `height` (path, Height, required)
 
-Returns: JSON `AddressValidation`
+Returns: JSON `BlindbitFilter`
 
-### Version
+#### POST `/blindbit/mainnet/forward-tx`
 
-#### GET `/version`
+Broadcast transaction
 
-API version
+Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
 
-Returns: JSON `ServerVersion`
+Request body: `ForwardTx` (required)
+
+Returns: JSON `Txid`
+
+#### GET `/blindbit/mainnet/info`
+
+Server info
+
+The network, the last indexed block, and which tweak modes the server serves: the full index and cut-through, both taking a dust limit.
+
+Returns: JSON `BlindbitInfo`
+
+#### GET `/blindbit/mainnet/spent-index/{height}`
+
+Spent index
+
+The block's spends of Taproot outputs, each the first 8 bytes of `sha256(txid ‖ vout ‖ block hash)` in hex (the txid and this block's hash in internal byte order, the vout little-endian): a wallet hashes its own outpoints to find which this block spends. Always an object, even when empty (BlindBit then answers `[]`, which spdk can't read).
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlindbitSpentIndex`
+
+#### GET `/blindbit/mainnet/tweak-index/{height}`
+
+Tweak index
+
+The tweaks of a block's eligible transactions with a Taproot output of at least `dustLimit` sats, as compressed points in hex, in block order. A light wallet multiplies each by its scan key and tests the resulting output keys against the block's `filter/new-utxos`. `dustLimit` is optional and takes any value, as BlindBit takes it (0 when left out), but transactions whose Taproot outputs all hold less than 600 sats aren't held, so any limit below 600 answers as 600.
+
+Parameters:
+- `height` (path, Height, required)
+- `dustLimit` (query, integer, optional): Minimum Taproot output value in sats. Defaults to 0.
+
+Returns: JSON `Tweak[]`
+
+#### GET `/blindbit/mainnet/tweaks/{height}`
+
+Cut-through tweaks
+
+`tweak-index`'s tweaks of the transactions that still have an unspent Taproot output of at least `dustLimit` sats, as of the last indexed block: what a wallet restoring its balance alone scans. The wallet's limit applies to unspent outputs even below 600 sats.
+
+Parameters:
+- `height` (path, Height, required)
+- `dustLimit` (query, integer, optional): Minimum Taproot output value in sats. Defaults to 0.
+
+Returns: JSON `Tweak[]`
+
+#### GET `/blindbit/mainnet/utxos/{height}`
+
+Taproot outputs
+
+Every Taproot output of the block's eligible transactions (those `tweak-index` lists), in block order, each marked spent or not as of the last indexed block. `block_height` and `timestamp` are the block's (BlindBit sends 0 for the height, and for the time of spent outputs). An output whose key isn't a point on the curve is left out: it can't be a payment, and spdk refuses a whole block over one.
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `BlindbitUtxo[]`
 
 ## Schemas
 

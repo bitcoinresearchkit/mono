@@ -44,34 +44,18 @@ Traps:
 
 ## Other endpoints
 
-- `/health`
-- `/version`
-- `/api/server/disk`, `/api/server/logs`, `/api/server/sync`
-- `/api/series[/list|/count|/indexes|/{series}/{index}/len|/{series}/{index}/data|/{series}/{index}/version]`
-- `/api/urpd[/{cohort}|/{cohort}/{point}]`
-- `/api/v1/difficulty-adjustment`
-- `/api/v1/prices`
-- `/api/v1/historical-price`
-- `/api/address/{address}[/txs|/utxo|/txs/chain|/txs/mempool|/txs/chain/{after_txid}]`, `/api/address/hash-prefix/{address_type}/{prefix}`
-- `/api/v1/validate-address/{address}`
-- `/api/block/{hash}[/raw|/txs|/txids|/header|/status|/txid/{index}|/txs/{start_index}]`, `/api/v1/block/{hash}[/audit-summary|/tx/{txid}/audit]`
-- `/api/block-height/{height}`
-- `/api/v1/mining/pools[/{time_period}]`, `/api/v1/mining/hashrate[/pools|/{time_period}|/pools/{time_period}]`, `/api/v1/mining/pool/{slug}[/blocks|/hashrate|/blocks/{height}]`, `/api/v1/mining/blocks/audit/scores[/{height}]`, `/api/v1/mining/blocks/audit/{hash}`, `/api/v1/mining/difficulty-adjustments[/{time_period}]`, `/api/v1/mining/blocks/audit/score/{hash}`, `/api/v1/mining/blocks/fees/{time_period}`, `/api/v1/mining/reward-stats/{block_count}`, `/api/v1/mining/blocks/rewards/{time_period}`, `/api/v1/mining/blocks/timestamp/{timestamp}`, `/api/v1/mining/blocks/fee-rates/{time_period}[/precise]`, `/api/v1/mining/blocks/predictions/{time_period}`, `/api/v1/mining/blocks/sizes-weights/{time_period}`
-- `/api/blocks[/tip/hash|/{height}|/tip/height]`, `/api/v1/blocks[/{height}]`
-- `/api/v1/fees/precise`, `/api/v1/fees/recommended`, `/api/v1/fees/mempool-blocks`
-- `/api/mempool[/txids|/recent]`
-- `/api/v1/replacements`
-- `/api/v1/fullrbf/replacements`
-- `/api/mempool-blocks/{index}[/diff/{since}]`
-- `/api/block-template`
-- `/api/tx-index/{index}`
-- `/api/v1/cpfp/{txid}`
-- `/api/tx/{txid}[/hex|/raw|/status|/outspends|/merkle-proof|/outspend/{vout}|/merkleblock-proof]`, `/api/v1/tx/{txid}/rbf`
-- `/api/v1/transaction-times`
-- `/api/utxo-set[/{point}|/{point}/diff]`
-- `/blindbit/mainnet/info`, `/blindbit/mainnet/block-height`, `/blindbit/mainnet/utxos/{height}`, `/blindbit/mainnet/tweaks/{height}`, `/blindbit/mainnet/block-hash/{height}`, `/blindbit/mainnet/spent-index/{height}`, `/blindbit/mainnet/tweak-index/{height}`, `/blindbit/mainnet/filter/{kind}/{height}`
-- `/api/oracle/live`, `/api/oracle/price`, `/api/oracle/blocks/{height}`, `/api/oracle/payments/{start}`
-- `/openapi.json`
-- `/api.json`
+- Server: `/health`, `/version`, `/api.json`, `/openapi.json`, `/api/server/disk`, `/api/server/logs`, `/api/server/sync`
+- Series: `/api/series[/list|/count|/indexes|/{series}/{index}/len|/{series}/{index}/data|/{series}/{index}/version]`
+- General: `/api/v1/prices`, `/api/v1/historical-price`, `/api/v1/difficulty-adjustment`
+- Addresses: `/api/address/{address}[/txs|/utxo|/txs/chain|/txs/mempool|/txs/chain/{after_txid}]`, `/api/v1/validate-address/{address}`, `/api/address/hash-prefix/{address_type}/{prefix}`
+- Blocks: `/api/blocks[/tip/hash|/{height}|/tip/height]`, `/api/v1/blocks[/{height}]`, `/api/block/{hash}[/raw|/txs|/txids|/header|/status|/txid/{index}|/txs/{start_index}]`, `/api/v1/block/{hash}`, `/api/block-height/{height}`, `/api/v1/mining/blocks/timestamp/{timestamp}`
+- Mining: `/api/v1/mining/pools[/{time_period}]`, `/api/v1/mining/hashrate[/pools|/{time_period}|/pools/{time_period}]`, `/api/v1/mining/pool/{slug}[/blocks|/hashrate|/blocks/{height}]`, `/api/v1/block/{hash}/audit-summary`, `/api/v1/mining/blocks/audit/scores[/{height}]`, `/api/v1/mining/blocks/audit/{hash}`, `/api/v1/block/{hash}/tx/{txid}/audit`, `/api/v1/mining/difficulty-adjustments[/{time_period}]`, `/api/v1/mining/blocks/audit/score/{hash}`, `/api/v1/mining/blocks/fees/{time_period}`, `/api/v1/mining/reward-stats/{block_count}`, `/api/v1/mining/blocks/rewards/{time_period}`, `/api/v1/mining/blocks/fee-rates/{time_period}[/precise]`, `/api/v1/mining/blocks/predictions/{time_period}`, `/api/v1/mining/blocks/sizes-weights/{time_period}`
+- Fees: `/api/v1/fees/precise`, `/api/v1/fees/recommended`, `/api/v1/fees/mempool-blocks`
+- Mempool: `/api/mempool[/txids|/recent]`, `/api/block-template`, `/api/v1/replacements`, `/api/mempool-blocks/{index}[/diff/{since}]`, `/api/v1/fullrbf/replacements`
+- Transactions: `/api/tx/{txid}[/hex|/raw|/status|/outspends|/merkle-proof|/outspend/{vout}|/merkleblock-proof]`, `/api/v1/cpfp/{txid}`, `/api/tx-index/{index}`, `/api/v1/tx/{txid}/rbf`, `/api/v1/transaction-times`
+- Oracle: `/api/oracle/live`, `/api/oracle/price`, `/api/oracle/blocks/{height}`, `/api/oracle/payments/{start}`
+- UTXO Set: `/api/utxo-set[/{point}|/{point}/diff]`
+- URPD: `/api/urpd[/{cohort}|/{cohort}/{point}]`
+- Silent Payments: `/blindbit/mainnet/info`, `/blindbit/mainnet/block-height`, `/blindbit/mainnet/utxos/{height}`, `/blindbit/mainnet/tweaks/{height}`, `/blindbit/mainnet/block-hash/{height}`, `/blindbit/mainnet/spent-index/{height}`, `/blindbit/mainnet/tweak-index/{height}`, `/blindbit/mainnet/filter/{kind}/{height}`
 
 What each returns and takes: `references/endpoints.md`. Files under `references/` are also at https://bitview.space/.well-known/agent-skills/bitview/references/. The full reference with response schemas: https://bitview.space/llms-full.txt.
