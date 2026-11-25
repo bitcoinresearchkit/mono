@@ -135,7 +135,7 @@ const ICONS = {
   expand: svg('<path d="M2.25 6.25v-4h4M9.25 2.25h4v4M13.25 9.25v4h-4M6.25 13.25h-4v-4"/>'),
   shrink: svg('<path d="M6.25 2.25v4h-4M13.25 6.25h-4v-4M9.25 13.25v-4h4M2.25 9.25h4v4"/>'),
   select: svg('<path d="M4.75 2.25h-1.5a1 1 0 0 0-1 1v1.5M7.25 2.25h1M10.75 2.25h1.5a1 1 0 0 1 1 1v1.5M13.25 7.25v1M13.25 10.75v1.5a1 1 0 0 1-1 1h-1.5M7.25 13.25h1M4.75 13.25h-1.5a1 1 0 0 1-1-1v-1.5M2.25 7.25v1"/>'),
-  cursor: svg('<path d="M3.75 2.25v11l3-3h5Z"/>'),
+  cursor: svg('<path d="M3.75 2.25v11l3-3h5Z"/><path d="m7.75 10.25 2 4"/>'),
   opacity: svg('<circle cx="8" cy="8" r="5.75"/><path d="M8 4.5a3.5 3.5 0 0 1 0 7Z" fill="currentColor"/>'),
   weight: svg('<path d="M2.75 3.5h10.5" stroke-width="1"/><path d="M2.75 7h10.5" stroke-width="2"/><path d="M2.75 12h10.5" stroke-width="3"/>'),
   grip: svg(`${dot(6, 4)}${dot(10, 4)}${dot(6, 8)}${dot(10, 8)}${dot(6, 12)}${dot(10, 12)}`),
