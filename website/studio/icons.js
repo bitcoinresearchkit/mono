@@ -93,7 +93,7 @@ const ICONS = {
   folderOut: svg(`<path d="${FOLDER_CUT}"/><path d="M12.25 14.25v-4.5M10.25 11.75l2-2 2 2"/>`),
   // (A preset section's own, and a folder's to pick: see FOLDER_ICONS.)
   candles: svg('<path d="M5.25 2.25v2.5M5.25 10.75v3M10.75 3.25v3M10.75 11.75v2"/><rect x="3.75" y="4.75" width="3" height="6" rx="1"/><rect x="9.25" y="6.25" width="3" height="5.5" rx="1"/>'),
-  scale: svg('<path d="M7.75 4.25v9.5M4.75 13.75h6M2.25 4.25h11M3.25 4.25l-2 4h4zM12.25 4.25l-2 4h4z"/>'),
+  scale: svg('<path d="M7.75 2.25v11.5M4.75 13.75h6M2.25 4.25h11M3.25 4.25l-2 4h4zM12.25 4.25l-2 4h4z"/>'),
   coins: svg('<path d="M2.75 4.25C2.75 3.15 5 2.25 7.75 2.25s5 .9 5 2-2.25 2-5 2-5-.9-5-2ZM2.75 4.25v7c0 1.1 2.25 2 5 2s5-.9 5-2v-7M2.75 7.75c0 1.1 2.25 2 5 2s5-.9 5-2"/>'),
   people: svg('<circle cx="5.75" cy="4.75" r="2.5"/><path d="M2.25 13.75v-1a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1M10.75 2.75a2.5 2.5 0 0 1 0 5M13.75 13.75v-1a2 2 0 0 0-2-2"/>'),
   hourglass: svg('<path d="M3.75 2.25h8M3.75 13.25h8M4.75 2.25c0 2.5 1.75 3.25 1.75 5.5s-1.75 3-1.75 5.5M10.75 2.25c0 2.5-1.75 3.25-1.75 5.5s1.75 3 1.75 5.5"/>'),
