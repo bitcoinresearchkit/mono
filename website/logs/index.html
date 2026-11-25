@@ -735,8 +735,8 @@
           }
 
           svg {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
           }
         }
 
@@ -1512,7 +1512,7 @@
         add("h2", { textContent: l.path ?? (l.block ? `Block ${num(l.block)}` : l.text), tabIndex: -1 }, top);
         const close = add("button", { type: "button", className: "close" }, top);
         close.setAttribute("aria-label", "Close");
-        close.innerHTML = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+        close.innerHTML = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.25 4.25 7.5 7.5M11.75 4.25l-7.5 7.5"/></svg>`;
         close.addEventListener("click", unselect);
         add("p", { className: "when", textContent: moment(l.unix_ms) });
         if (l.status) {

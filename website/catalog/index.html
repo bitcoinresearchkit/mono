@@ -238,8 +238,8 @@
           position: absolute;
           top: 50%;
           left: 11px;
-          width: 15px;
-          height: 15px;
+          width: 16px;
+          height: 16px;
           translate: 0 -50%;
           color: var(--faint);
           pointer-events: none;
@@ -477,8 +477,8 @@
         }
 
         svg {
-          width: 14px;
-          height: 14px;
+          width: 16px;
+          height: 16px;
         }
       }
 
@@ -788,8 +788,8 @@
 
         svg {
           flex: none;
-          width: 14px;
-          height: 14px;
+          width: 16px;
+          height: 16px;
           color: var(--faint);
         }
 
@@ -871,8 +871,8 @@
         }
 
         svg {
-          width: 14px;
-          height: 14px;
+          width: 16px;
+          height: 16px;
         }
       }
 
@@ -1399,11 +1399,11 @@
     <header class="bar">
       <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="search" role="search" id="search-form">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.25" cy="7.25" r="4.5" /><path d="m10.5 10.5 3.25 3.25" /></svg>
         <label class="reach" for="q"></label>
         <input type="search" id="q" placeholder="Search every series" aria-label="Search every series" aria-controls="found-list" autocomplete="off" spellcheck="false" />
         <kbd>/</kbd>
-        <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></button>
+        <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.25 4.25 7.5 7.5M11.75 4.25l-7.5 7.5" /></svg></button>
       </form>
     </header>
     <main id="main"></main>
@@ -1420,13 +1420,13 @@
       const grouped = new Intl.NumberFormat("en-US");
 
       const ICON = {
-        chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>`,
-        folder: `<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" /></svg>`,
-        line: `<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 16 4.5-5 3.5 3 6.5-7.5" /><path d="M4 20h16" opacity=".45" /></svg>`,
-        back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>`,
-        copy: `<svg class="undone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>`,
-        copied: `<svg class="done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>`,
-        chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-6" /></svg>`,
+        chevron: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6.25 3.25 4.5 4.5-4.5 4.5" /></svg>`,
+        folder: `<svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 2.75h3.5l1.5 1.5h5.5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1v-8.5a1 1 0 0 1 1-1Z" /></svg>`,
+        line: `<svg class="glyph" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2.75 9.75 3-3 2.5 2.5 4-4" /><path d="M2.25 13.25h11.5" opacity=".45" /></svg>`,
+        back: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.75 3.25 5.25 7.75l4.5 4.5" /></svg>`,
+        copy: `<svg class="undone" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5.25" y="5.25" width="9" height="9" rx="2" /><path d="M9.75 1.75h-6a2 2 0 0 0-2 2v6" /></svg>`,
+        copied: `<svg class="done" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.25 8.25 3.5 3.5 6-6" /></svg>`,
+        chart: `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.75 2.75v10.5h10.5M5.25 10.75l2.5-2.5 2 2 3-3" /></svg>`,
       };
 
       // ── Words: keys and ids as people write them (Studio's rules) ──

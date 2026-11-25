@@ -24,9 +24,9 @@ export const STATES = /** @type {{ id: string, name: string, move: string, cycle
 export const stateOf = (/** @type {number} */ cycle, /** @type {number} */ local) => (1 - cycle) * 3 + (1 - local);
 /** The moods' three trends, by STATES' trend: bull, mixed, bear; each in its corner mood's colour. */
 export const TRENDS = [
-  { name: "Bull", color: "optimism", arrow: "M8 13V3M3.5 7.5 8 3l4.5 4.5" },
-  { name: "Mixed", color: "doubt", arrow: "M3 8h10M8.5 3.5 13 8l-4.5 4.5" },
-  { name: "Bear", color: "fear", arrow: "M8 3v10M3.5 8.5 8 13l4.5-4.5" },
+  { name: "Bull", color: "optimism", arrow: "M7.75 13.25v-10.5M3.75 6.75l4-4 4 4" },
+  { name: "Mixed", color: "doubt", arrow: "M2.75 7.75h10.5M9.25 3.75l4 4-4 4" },
+  { name: "Bear", color: "fear", arrow: "M7.75 2.75v10.5M3.75 9.25l4 4 4-4" },
 ];
 
 /** A day in milliseconds, and the day days are counted from. */
