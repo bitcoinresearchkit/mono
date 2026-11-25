@@ -234,7 +234,7 @@ const css = (name) => {
  */
 let stepShown = false;
 /** Motion reduced: as asked for (the system's setting, motion's one reading), or for a step shown already (see stepShown). */
-const reduced = { get matches() { return motionReduced() || stepShown; } };
+const reduced = () => motionReduced() || stepShown;
 let stillSteps = 0;
 /** A step from the history begun, the system's motion of it played or not (see stepShown). @param {boolean} shown */
 function stillStep(shown) {
@@ -2761,7 +2761,7 @@ function toggleSidebar() {
   prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
   savePrefs();
   // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
-  if (!reduced.matches) document.body.toggleAttribute("data-sliding", true);
+  if (!reduced()) document.body.toggleAttribute("data-sliding", true);
   // (Collapsed, the rail keeps only its icons (a group's head's too): a focus on what it puts away, a row's ⋯, a
   // folder's, on its toggle.)
   const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .list-head-name, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
@@ -2930,7 +2930,7 @@ function animateMark() {
   /** The frames asked for while it moves (its fill's cycle from `cycleFrom`); none at rest. */
   let looping = false, cycleFrom = performance.now();
   const wake = () => {
-    if (looping || phone.matches || reduced.matches) return;
+    if (looping || phone.matches || reduced()) return;
     looping = true;
     last = 0;
     requestAnimationFrame(frame);
@@ -2956,7 +2956,7 @@ function animateMark() {
   const frame = (now) => {
     now = clock(now);
     // (Out of sight, a phone's, or motion reduced: at rest, full.)
-    if (phone.matches || reduced.matches) {
+    if (phone.matches || reduced()) {
       looping = false;
       paths.forEach((path, i) => {
         const d = i ? "" : (rest.get(240) ?? (rest.set(240, draw(1, REST)), rest.get(240)));
@@ -3377,7 +3377,7 @@ async function draw(refit = false, fresh = false) {
   $("unreached").hidden = !unreached;
   $("navigator").classList.toggle("waiting", unreached);
   dataRevision++;
-  const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
+  const reveal = first && doc.layers.length > 0 && !reduced() && !fromHome;
   build(withLook(structuredClone(chart)), Object.assign(result, { key: asking.key, version, live }), refit);
   for (const wake of [...drawnWaiters]) wake();
   renderLayers();
@@ -3429,7 +3429,7 @@ function buildChart(doc, data, refit) {
   // (A pane added or taken away, the chart's own: the chart as it was fades out over it laid out anew (its panes
   // cut to their new heights), as everything here changes, never a cut.)
   const paneIds = (/** @type {string} */ shape) => shape.split(",").map((pane) => pane.split(":")[0]).join();
-  if (prior?.doc.id === doc.id && paneIds(priorShape) !== paneIds(panesShape) && !reduced.matches && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
+  if (prior?.doc.id === doc.id && paneIds(priorShape) !== paneIds(panesShape) && !reduced() && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
   const glidingTo = engine.controller.target;
   engine.controller.stop();
   const was = new Map(drawn);
@@ -3849,7 +3849,7 @@ function buildChart(doc, data, refit) {
     morphFrom = null;
     endReveal();
   }
-  if (sameView && !sameTimeline && priorTimes.length > 1 && data.times.length > 1 && !reduced.matches) {
+  if (sameView && !sameTimeline && priorTimes.length > 1 && data.times.length > 1 && !reduced()) {
     // Where the old first point sits in the new data (before its start, negative: the oldest let go).
     const offset = data.times[0] > priorTimes[0] ? -lowerBound(priorTimes, data.times[0]) : lowerBound(data.times, priorTimes[0]);
     morphFrom = { from: offset, to: offset + priorTimes.length - 1, ...overviewScale, at: performance.now() };
@@ -4818,7 +4818,7 @@ function renderBelt() {
   // (Its state as the belt's: a path being placed, its points are steps.)
   syncUndo();
   const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
-  const was = belt.hidden || belt.classList.contains("held") || reduced.matches ? null : belt.getBoundingClientRect();
+  const was = belt.hidden || belt.classList.contains("held") || reduced() ? null : belt.getBoundingClientRect();
   // (Its parts where they were, by their ids: kept ones move from there, see reshapeBelt.)
   const partsWere = was ? new Map(all$("[id]", belt).map((part) => [part.id, part.getBoundingClientRect()])) : null;
   const hide = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || magnifying || drawings.length || beltKeys);
@@ -6280,7 +6280,7 @@ function writeSideList(current) {
   // (What it lists changed (a chart opened, saved, closed or deleted, a group come): its rows glide to their places,
   // none jumping there, unless what changed it moves them itself (see movingSide). Where they were, read only then.)
   const list = $("chart-list"), drawn = listWritten.get(list), keys = (/** @type {[string, string][]} */ items) => items.map(([key]) => key).join("\n");
-  const was = drawn && !sideMoved && !reduced.matches && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
+  const was = drawn && !sideMoved && !reduced() && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
   // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
   if (writeList(list, parts)) fitSoon(list, true);
   if (was) glideList(list, was);
@@ -6399,7 +6399,7 @@ function applyTheme(/** @type {boolean} */ anyway = false) {
     // (Words being typed on the chart: in their tone on this surface.)
     if (writing) dressField(writing.drawing);
   };
-  if (document.startViewTransition && !reduced.matches) document.startViewTransition(swap);
+  if (document.startViewTransition && !reduced()) document.startViewTransition(swap);
   else swap();
 }
 deviceLight.addEventListener("change", () => applyTheme());
@@ -7845,7 +7845,7 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   // (Opened again as it leaves: it stays, put away no more.)
   if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
   // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
-  if (!isOpen(dialog)) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
+  if (!isOpen(dialog)) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced());
   // (Its second frame; frames not running (a tab put away as it opened), a moment on all the same: never left unseen.)
   // (This arrival's alone: ⌘K closed and opened again meanwhile, the next one's its own.)
   if (dialog.hasAttribute("data-arriving")) ((arrived) => (requestAnimationFrame(() => requestAnimationFrame(arrived)), setTimeout(arrived, 100)))(((arrival) => () => arrival === paletteArrivals && dialog.removeAttribute("data-arriving"))(++paletteArrivals));
@@ -9438,7 +9438,7 @@ function toast(text, action, done = true) {
   const redoes = action?.label === "Redo";
   // (One said as another shows: that one fading out as this one comes, each as wide as its words, never one cut to
   // the other.)
-  const replacing = element.classList.contains("visible") && !reduced.matches;
+  const replacing = element.classList.contains("visible") && !reduced();
   if (replacing) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }]);
   else cutFade(element);
   element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escapeHtml(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escapeHtml(action.label)}</button>` : ""}`;
@@ -9987,7 +9987,7 @@ const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @t
       const top = view.top + (parseFloat(getComputedStyle(list).scrollPaddingTop) || 0), bottom = Math.min(view.bottom, viewport.offsetTop + viewport.height) - 12;
       // (Taller than what shows, its top.)
       const by = box.bottom > bottom ? Math.min(box.bottom - bottom, box.top - top) : Math.min(0, box.top - top);
-      if (Math.abs(by) > 1) list.scrollBy({ top: by, behavior: reduced.matches ? "auto" : "smooth" });
+      if (Math.abs(by) > 1) list.scrollBy({ top: by, behavior: reduced() ? "auto" : "smooth" });
     });
   };
   const read = () => {

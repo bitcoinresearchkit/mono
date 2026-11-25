@@ -1307,7 +1307,7 @@ function glide(target, preset = null) {
   target = within(target);
   target = ontoData(target) ?? target;
   glided = { to: target, preset };
-  engine.controller.viewTo(target, reduced.matches ? 0 : MOTION.page);
+  engine.controller.viewTo(target, reduced() ? 0 : MOTION.page);
 }
 /** Whether the view still shows the chart's range preset: resizes keep it, pans and zooms leave it. */
 function showsPreset() {
@@ -1768,7 +1768,7 @@ function glides(list, { again = () => null, can = () => true } = {}) {
     if (row === lit && keyed === keyedNow) return;
     if (!row) {
       // (No fade to wait for: none at all, or none shown yet, a row grazed.)
-      const unseen = reduced.matches || getComputedStyle(list, "::before").opacity === "0";
+      const unseen = reduced() || getComputedStyle(list, "::before").opacity === "0";
       if (lit) list.dataset.glide = "off";
       lit = null;
       if (unseen) collapse();
@@ -1888,7 +1888,7 @@ function lightLegend(id, again = false, follow = false) {
   const tabs = bar?.getClientRects().length ? bar.getBoundingClientRect() : null;
   // (Along the foot (not a landscape phone's rail at its side).)
   const bottom = Math.min(box.bottom, tabs && tabs.width > tabs.height ? tabs.top : Infinity);
-  if (at.top < box.top || at.bottom > bottom) list.scrollBy({ top: at.top < box.top ? at.top - box.top - 8 : at.bottom - bottom + 8, behavior: reduced.matches ? "auto" : "smooth" });
+  if (at.top < box.top || at.bottom > bottom) list.scrollBy({ top: at.top < box.top ? at.top - box.top - 8 : at.bottom - bottom + 8, behavior: reduced() ? "auto" : "smooth" });
 }
 /**
  * The values, in the legends and the panel: under the crosshair while hovering, else the view's last; a dash where

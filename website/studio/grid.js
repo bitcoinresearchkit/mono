@@ -1341,7 +1341,7 @@ function renderHomeHead() {
     if (!top && started) fadeOut(own, [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease);
     else cutFade(own);
     own.hidden = !top;
-    if (top && started && !reduced.matches) own.animate({ opacity: [0, 1] }, { duration: MOTION.small, easing: MOTION.ease });
+    if (top && started && !reduced()) own.animate({ opacity: [0, 1] }, { duration: MOTION.small, easing: MOTION.ease });
   }
   const more = $("home-title-more");
   // (A folder's menu on its page; your Library's, its group's, on its own: as their ⋯ in the sidebar.)
@@ -1635,7 +1635,7 @@ const yoursShown = () => home && ("folder" in homeAt || "previews" in homeAt || 
  * neither. (Left again before its own way in began, held: whole as it's left, its copy no blank.)
  */
 function pageOut() {
-  if (reduced.matches) return;
+  if (reduced()) return;
   for (const animation of /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).getAnimations()) animation.finish();
   fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease, true);
 }
@@ -1645,7 +1645,7 @@ function pageOut() {
  * first frames (laid out, its tiles painted) took a tenth of a second or more, the fade all but over when it showed.
  */
 function pageIn() {
-  if (reduced.matches) return;
+  if (reduced()) return;
   const into = /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).animate({ opacity: [0, 1], translate: ["0 6px", "0 0"] }, { duration: MOTION.small, easing: MOTION.ease });
   beginOnTime(into, ...(fading.get(homeScroll())?.getAnimations() ?? []));
 }
@@ -1867,7 +1867,7 @@ function stepShelf(/** @type {HTMLElement} */ row, /** @type {number} */ dir) {
   if (!tile) return;
   // (Its tiles' width as laid out, a fraction of a pixel too: whole tiles counted, three where three show.)
   const gap = parseFloat(getComputedStyle(row).columnGap) || 0, unit = tile.getBoundingClientRect().width + gap, page = Math.max(1, Math.floor((row.clientWidth - 8 + gap) / unit + 0.01));
-  row.scrollTo({ left: (Math.round(row.scrollLeft / unit) + dir * page) * unit, behavior: reduced.matches ? "auto" : "smooth" });
+  row.scrollTo({ left: (Math.round(row.scrollLeft / unit) + dir * page) * unit, behavior: reduced() ? "auto" : "smooth" });
 }
 /** Every shelf's steps and edges, once the page's writes this frame are in (one layout, not one a write), before it's shown. */
 let shelvesFrame = 0;
@@ -2231,7 +2231,7 @@ function unscaled() {
 function morph(opening, update) {
   for (const animation of morphing) animation.cancel();
   // (Out of sight, no motion: a hidden page draws no frames, so it would never end, and a draw waits on it.)
-  if (reduced.matches || document.hidden) return (update(), Promise.resolve());
+  if (reduced() || document.hidden) return (update(), Promise.resolve());
   document.body.dataset.morph = "";
   const tile = update(), card = $("main"), at = card.getBoundingClientRect(), box = tile?.getBoundingClientRect();
   const ends = (/** @type {Keyframe[]} */ frames) => (opening ? frames : [...frames].reverse());
@@ -2327,7 +2327,7 @@ let leavings = 0;
 function leave(element) {
   if (!isOpen(element)) return;
   const shut = () => ((element.inert = false), delete element.dataset.leaving, element.hidePopover());
-  if (keepsLeaving || reduced.matches) return void shut();
+  if (keepsLeaving || reduced()) return void shut();
   if (element.dataset.leaving) return;
   const mine = String(++leavings);
   element.dataset.leaving = mine;
@@ -2496,7 +2496,7 @@ function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, spee
   // (A transition of its own transform, begun as a drag let go gave it back, gives way: run with the slide, iOS
   // showed neither, the sheet still where it was let go till both were over, then at its stop.)
   for (const animation of ownSlides(sheet)) animation.cancel();
-  if (reduced.matches || Math.abs(by) < 1) return;
+  if (reduced() || Math.abs(by) < 1) return;
   // (The layout's curve, as a sheet opens and closes, its start's slope the finger's speed in shares of the way a
   // duration: none still, at most 2.5.)
   const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
@@ -2563,7 +2563,7 @@ function slideAway(sheet, close, from, speed) {
     return { frames: [{ transform: `translateY(${from - top}px)` }, { transform: "translateY(calc(100% + 16px))" }], duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
   };
   // (A menu's sheet: closed at once, its copy sliding on (see fadeOut) from where it was let go, as fast.)
-  if (sheet === $("menu") && !reduced.matches) return void hideMenu(away());
+  if (sheet === $("menu") && !reduced()) return void hideMenu(away());
   if (!later) close();
   // (Typed into, let go of as it goes, the keyboard down with it: iOS draws a field's caret apart, left behind.)
   else if (sheet.contains(document.activeElement) && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
@@ -2571,7 +2571,7 @@ function slideAway(sheet, close, from, speed) {
   // The rest of its way out (its display, its visibility, kept till it's done) held to begin with the slide.)
   const own = sheet.getAnimations().filter((animation) => animation instanceof CSSTransition);
   for (const animation of own) if (/** @type {CSSTransition} */ (animation).transitionProperty === "transform") animation.cancel();
-  if (reduced.matches) return void (later && close());
+  if (reduced()) return void (later && close());
   const { frames, duration, easing } = away(), timing = /** @type {KeyframeAnimationOptions} */ ({ duration, easing, fill: "forwards" });
   const slide = sheet.animate(frames, timing);
   slide.id = "away";
@@ -3274,7 +3274,7 @@ function toggleSection(key) {
 function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolean} */ closing) {
   let head = find();
   // (On the rail, nothing unfolds: kept as it's set, shown once the sidebar's open.)
-  if (reduced.matches || !head || onRail()) return renderCharts();
+  if (reduced() || !head || onRail()) return renderCharts();
   // (A group's head turns its arrow, as its class says.)
   const glyph = head.querySelector(".folder-glyph");
   if (glyph) glyph.innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
@@ -3803,7 +3803,7 @@ const lifts = new WeakMap();
  * @param {{ moved?: string | null, fade?: boolean, pseudo?: string, layout?: boolean }} [options]
  */
 function slide(elements, key, was, { moved = null, fade = false, pseudo, layout = false } = {}) {
-  if (reduced.matches) return;
+  if (reduced()) return;
   const timing = { duration: layout ? MOTION.layout : MOTION.panel, easing: layout ? MOTION.easeLayout : MOTION.ease, ...(pseudo ? { pseudoElement: pseudo } : {}) };
   const come = elements.filter((element) => was.get(key(element)) === undefined), going = elements.filter((element) => was.get(key(element)) !== undefined);
   // (A glide still under way goes first: where it's laid out now is measured, not where it's being carried. All

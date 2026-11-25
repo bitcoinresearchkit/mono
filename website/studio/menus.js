@@ -428,7 +428,7 @@ function hideMenu(away = null) {
   menuTarget = null;
   // (A sheet's dim fades from what it shows as the sheet slides away, reaching nothing meanwhile; a popover's goes
   // with it. Put away already, its dim's going.)
-  if (!$("menu").hidden && $("menu").classList.contains("as-sheet") && menuScrim.isConnected && !reduced.matches) {
+  if (!$("menu").hidden && $("menu").classList.contains("as-sheet") && menuScrim.isConnected && !reduced()) {
     const fade = (scrimFade = menuScrim.animate({ opacity: 0 }, { duration: MOTION.layout, easing: MOTION.easeLayout }));
     menuScrim.style.pointerEvents = "none";
     const done = (/** @type {boolean} */ gone) => scrimFade === fade && ((scrimFade = null), (menuScrim.style.pointerEvents = ""), gone && menuScrim.remove());
@@ -640,7 +640,7 @@ function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html,
   sub.style.animation = "";
 }
 /** A menu shown again elsewhere (its rows changed), sliding there from where it was (`was`, its box then). @param {HTMLElement} menu @param {DOMRect} was */
-const slideFrom = (menu, was) => ((now) => reduced.matches || menu.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout }))(menu.getBoundingClientRect());
+const slideFrom = (menu, was) => ((now) => reduced() || menu.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout }))(menu.getBoundingClientRect());
 /**
  * A menu or a submenu as placed: a row's label or its title cut short, whole on hover (a row saying why it can't act
  * says that); its title held on top (see .menu-group), a row reached by keys scrolled in under it, not behind it.
@@ -709,7 +709,7 @@ function fadeOut(element, frames, duration = MOTION.micro, placed = false, easin
   if (element.hidden) return;
   cutFade(element);
   // (Not seen (no box, or hidden by what it's in): nothing to see go.)
-  if (reduced.matches || !element.checkVisibility({ visibilityProperty: true })) return;
+  if (reduced() || !element.checkVisibility({ visibilityProperty: true })) return;
   const copy = /** @type {HTMLElement} */ (element.cloneNode(true)), style = getComputedStyle(element), after = getComputedStyle(element, "::after");
   // (What moves in it, where it's scrolled (those of it scrolled: none else can be, not read one by one, a page's every
   // element) and how it shows, asked before its copy's put in: after, the copy would be styled and laid out at once

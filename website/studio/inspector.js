@@ -197,7 +197,7 @@ function paneLayers(/** @type {string} */ id) {
   showList();
   // (A focus on its legend, hidden under the list now: to that pane's first row.)
   keepFocus($("chart"), () => $("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"] [data-select]`));
-  requestAnimationFrame(() => /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"]`))?.scrollIntoView({ block: "start", behavior: reduced.matches ? "auto" : "smooth" }));
+  requestAnimationFrame(() => /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"]`))?.scrollIntoView({ block: "start", behavior: reduced() ? "auto" : "smooth" }));
 }
 /** The picks shown: the rows, the legends, the bar (drawings let go: one selection at a time). */
 function showPicks() {
@@ -489,7 +489,7 @@ function renderInspector() {
   // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: those
   // of this layer whose stop changes alone (reading one lays the page's style out first: an edit elsewhere, none read).
   const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
-  const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(sliderTrack(element), "::after").left, fill: getComputedStyle(sliderTrack(element), "::before").width }]));
+  const was = new Map(another || reduced() ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(sliderTrack(element), "::after").left, fill: getComputedStyle(sliderTrack(element), "::before").width }]));
   rewrite(panel, html);
   // (Its gradient's bar watched, its ticks fitted to its width: see gradientWidth.)
   gradientRoom.disconnect();
@@ -2381,7 +2381,7 @@ function addLevel() {
   editLayer((target) => withLevel(target, level));
   requestAnimationFrame(() => {
     const input = $(`level-${(layerById(selected)?.levels?.length ?? 1) - 1}`);
-    if (byTouch) return void input?.scrollIntoView({ block: "nearest", behavior: reduced.matches ? "auto" : "smooth" });
+    if (byTouch) return void input?.scrollIntoView({ block: "nearest", behavior: reduced() ? "auto" : "smooth" });
     input?.focus();
     input?.select();
   });

@@ -1373,7 +1373,7 @@ function turnPage(way) {
 /** ⌘K's list as it is, going (see turnPage). @param {1 | -1} way */
 const pageLeaves = (way) => isOpen($("palette")) && fadeOut(pageSide(), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-8 * way}px)` }], MOTION.micro, true);
 /** ⌘K's list as it's now, coming (see turnPage). @param {1 | -1} way */
-const pageComes = (way) => isOpen($("palette")) && !reduced.matches && pageSide().animate([{ opacity: 0, transform: `translateX(${8 * way}px)` }, { opacity: 1, transform: "none" }], { duration: MOTION.small, easing: MOTION.ease });
+const pageComes = (way) => isOpen($("palette")) && !reduced() && pageSide().animate([{ opacity: 0, transform: `translateX(${8 * way}px)` }, { opacity: 1, transform: "none" }], { duration: MOTION.small, easing: MOTION.ease });
 /** A page's side of ⌘K: its path and its list, turned together (the path comes and goes with a page, the list under it). */
 const pageSide = () => /** @type {HTMLElement} */ ($("palette-list").parentElement);
 /** Back up to `depth` pages (0: the search), on the row that led on. */
