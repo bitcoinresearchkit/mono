@@ -47,7 +47,8 @@ async function read() {
     const result = await made();
     void keep(result)?.catch(() => {});
     return JSON.parse(result.text);
-  } catch {
+  } catch (error) {
+    console.error("presets-worker.js: the presets are made on the page instead", error);
     const [{ studioPresets }, { BitviewClient }, { chainFacts }] = await Promise.all([import("/studio/presets.js"), import("/modules/bitview-client/index.js"), import("/studio/facts.js")]);
     return studioPresets(new BitviewClient(location.origin), await chainFacts(location.origin).catch(() => undefined));
   }

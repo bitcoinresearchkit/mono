@@ -1349,7 +1349,9 @@ const indexCatalog = (() => {
       try {
         const [index, lists, at, shared] = JSON.parse(data.text);
         found = { index: new Map(index), intervals: new Map(index.map((/** @type {[string, string]} */ [name], /** @type {number} */ i) => [name, lists[at[i]]])), sharedTops: new Set(shared) };
-      } catch {}
+      } catch (error) {
+        console.error("catalog-worker.js: its answer could not be read", data.error ?? error);
+      }
       found ? take(found) : here();
     };
     worker.onerror = worker.onmessageerror = () => (done(), here());
