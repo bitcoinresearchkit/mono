@@ -28,9 +28,8 @@ const STYLE = {
 /** Rules an icon is allowed to break, each with its reason. */
 const ICON_EXEMPT = /** @type {Record<string, { rules: string[], why: string }>} */ ({
   weight: { rules: ["stroke"], why: "it draws three stroke widths" },
-  star: { rules: ["angle", "gap"], why: "a five-point star's edges run at 36° and 72°, its tips narrower than 45°" },
-  nodes: { rules: ["gap"], why: "two lines leave each corner's ring at the triangle's angle, nearer each other than the gap where they meet it; the ring is what joins them" },
-  bolt: { rules: ["angle", "gap"], why: "a lightning bolt's diagonals lean 56° and its stroke turns back sharply at both tips; at the table's 45° or 63° it reads as a shuriken or a stack of parallels" },
+  star: { rules: ["angle"], why: "a five-point star's edges run at 36° and 72°" },
+  bolt: { rules: ["angle"], why: "a lightning bolt's diagonals lean 54° and its middle strokes are near vertical; at the table's 45° or 63° it reads as a shuriken or a stack of parallels" },
 });
 
 const svg = (body, attrs = `width="${STYLE.grid}" height="${STYLE.grid}"`) => `<svg viewBox="0 0 ${STYLE.grid} ${STYLE.grid}" ${attrs} fill="none" stroke="currentColor" stroke-width="${STYLE.stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
