@@ -1492,10 +1492,10 @@ function renderHorizon() {
     horizonDrawn = key;
     const W = 1000, H = 300, from = points[0][0], to = points[points.length - 1][0], values = points.map(([, value]) => value), lo = Math.min(...values), hi = Math.max(...values);
     const x = (/** @type {number} */ time) => ((time - from) / (to - from)) * W, y = (/** @type {number} */ value) => H * 0.12 + (1 - (value - lo) / (hi - lo)) * H * 0.88;
-    const line = points.map(([time, value]) => `${x(time).toFixed(1)},${y(value).toFixed(1)}`).join(" "), color = ink("orange");
+    const line = points.map(([time, value]) => `${x(time).toFixed(1)},${y(value).toFixed(1)}`), color = ink("orange");
     // (Each halving a rule from the price that week down to the floor.)
     const halvings = minedHalvings().filter((time) => time > from && time < to).map((time) => ((at) => `<line x1="${x(time).toFixed(1)}" x2="${x(time).toFixed(1)}" y1="${y(at).toFixed(1)}" y2="${H}" class="halving"/>`)((points.find(([when]) => when >= time) ?? points[points.length - 1])[1])).join("");
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="horizon-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".12"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient><linearGradient id="horizon-in" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff"/></linearGradient><mask id="horizon-mask"><rect width="${W}" height="${H}" fill="url(#horizon-in)"/></mask></defs><g mask="url(#horizon-mask)">${halvings}<polygon points="0,${H} ${line} ${W},${H}" fill="url(#horizon-fill)"/><polyline points="${line}" fill="none" stroke="${color}" stroke-opacity=".6" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></g></svg>`;
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs>${fadeDef("horizon-fill", color, ".12")}<linearGradient id="horizon-in" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff"/></linearGradient><mask id="horizon-mask"><rect width="${W}" height="${H}" fill="url(#horizon-in)"/></mask></defs><g mask="url(#horizon-mask)">${halvings}${areaUnder("horizon-fill", line, W, H)}${lineOver(line, color, 0.6)}</g></svg>`;
   }).catch(() => (horizonFailed = true));
 }
 /** Home's doors as last drawn (drawn again only changed: focus and hover stay). */
@@ -2775,6 +2775,14 @@ const chartMark = (doc) => {
 };
 /** The points of a run of a line's area: the run, closed down (or up) to `edge` under its ends. @param {string[]} part @param {number} edge */
 const areaPoints = (part, edge) => `${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${edge}`;
+/** A run's area as a small mark draws it: `areaPoints` filled in `color` at `opacity`. @param {string[]} part @param {number} edge @param {string} color */
+const areaOf = (part, edge, color, opacity = ".2") => `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity="${opacity}"/>`;
+/** A small chart's fill: `color` fading to none down a viewBox's height, as the area `id` names (see areaUnder). */
+const fadeDef = (/** @type {string} */ id, /** @type {string} */ color, /** @type {number | string} */ top) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escapeHtml(color)}" stop-opacity="${top}"/><stop offset="1" stop-color="${escapeHtml(color)}" stop-opacity="0"/></linearGradient>`;
+/** The area under a line (`points`, "x,y" pairs) down to the foot of a viewBox `w` by `h`, painted by the fade `id`. */
+const areaUnder = (/** @type {string} */ id, /** @type {string[]} */ points, /** @type {number} */ w, /** @type {number} */ h) => `<polygon points="0,${h} ${points.join(" ")} ${w},${h}" fill="url(#${id})"/>`;
+/** A small chart's line over `points` ("x,y" pairs), 1.5 px at any scale, round at its joints. */
+const lineOver = (/** @type {string[]} */ points, /** @type {string} */ stroke, opacity = 1) => `<polyline points="${points.join(" ")}" fill="none" stroke="${escapeHtml(stroke)}"${opacity < 1 ? ` stroke-opacity="${opacity}"` : ""} stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
 /** A mark not drawn yet: a faint line. @type {Pick<Thumb, "lines" | "washes" | "dots">} */
 const NO_MARK = { lines: [], washes: [], dots: [] };
 /** A mark drawn from a mini chart: its lines, a heatmap's wash under them, bubbles' dots over them. @param {Pick<Thumb, "lines" | "washes" | "dots">} mark */
@@ -2791,19 +2799,19 @@ const markOf = ({ lines, washes, dots }) => {
     if (kind === "dots") return byColor(ys.map((value, i) => (value === null || i % 2 ? null : { i, value })), ({ i }) => tintAt(i), false).map((piece) => `<path d="${piece.points.map(({ i, value }) => `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`).join("")}" stroke="${piece.color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
     if (dated) return byColor(ys.map((value, i) => (value === null ? null : { i, value })), ({ i }) => tintAt(i)).filter((piece) => piece.points.length > 1).map(({ color: stroke, points }) => {
       const part = points.map(({ i, value }) => `${x(i).toFixed(1)},${y(value).toFixed(1)}`);
-      return (kind === "area" ? `<polygon points="${areaPoints(part, base)}" fill="${stroke}" fill-opacity=".2"/>` : "") + polyline(part, stroke);
+      return (kind === "area" ? areaOf(part, base, stroke) : "") + polyline(part, stroke);
     }).join("");
     return runs(ys, x, y).map((part) => {
       if (kind === "baseline") {
         const { above, below: under } = sides(part, base);
         return [...above.map((piece) => polyline(piece.part, color)), ...under.map((piece) => polyline(piece.part, below))].join("");
       }
-      const fill = kind === "area" ? `<polygon points="${areaPoints(part, base)}" fill="${color}" fill-opacity=".2"/>` : "";
+      const fill = kind === "area" ? areaOf(part, base, color) : "";
       return fill + polyline(part, color);
     }).join("");
   }).join("");
   // (A heatmap's wash about its line, faint: its color over it, its other under it, to its band's top and foot.)
-  const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => `<polygon points="${areaPoints(part, y(top))}" fill="${escapeHtml(ink(over))}" fill-opacity=".2"/><polygon points="${areaPoints(part, y(bottom))}" fill="${escapeHtml(ink(under))}" fill-opacity=".2"/>`).join(""))(lines[k][1])).join("");
+  const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => areaOf(part, y(top), escapeHtml(ink(over))) + areaOf(part, y(bottom), escapeHtml(ink(under)))).join(""))(lines[k][1])).join("");
   // (Bubbles' largest, dots on their line, as a dots line's are.)
   const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escapeHtml(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
   return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${wash}${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}${dotted}</svg>`;
@@ -2853,7 +2861,7 @@ function seriesMark(layer) {
         const { above, below: under } = sides(part, y(level));
         return [...above.map((piece) => line(piece.part, color, piece.from)), ...under.map((piece) => line(piece.part, below, piece.from))].join("");
       }
-      return (layer.type === "area" ? `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity=".22"/>` : "") + line(part, color);
+      return (layer.type === "area" ? areaOf(part, edge, color, ".22") : "") + line(part, color);
     }).join("");
   }
   return `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
@@ -4001,13 +4009,13 @@ function retryPlots() {
   void drawGallery();
 }
 export {
-  aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
+  aheadOf, allShelfSteps, areaUnder, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
-  clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb,
+  clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, fadeDef,
   duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRow, folderRows,
   forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions,
   groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
-  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, markOf, morph,
+  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, lineOver, markOf, morph,
   morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,
   onChart, onClosed, onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf,
   pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey,

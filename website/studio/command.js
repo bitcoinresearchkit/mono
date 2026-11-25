@@ -48,8 +48,8 @@ import {
   shiftSpanError, unfitHere, VALUES,
 } from "/studio/formulas.js";
 import {
-  batch, chartCounts, chartKeys, chartMark, chartPick, childrenOf, clearPicks, derivedTitle, drawPreview, folderById,
-  folderChoices, folderPath, folderRows, giveUpUnframed, go, isOpen, moveToFolder, newChart, newFolder, outOf, pickChart,
+  areaUnder, batch, chartCounts, chartKeys, chartMark, chartPick, childrenOf, clearPicks, derivedTitle, drawPreview, fadeDef, folderById,
+  folderChoices, folderPath, folderRows, giveUpUnframed, go, isOpen, lineOver, moveToFolder, newChart, newFolder, outOf, pickChart,
   picked, placeNames, previewKey, previewSvg, seePaletteMarks, setTheme, stepChart, titleOf, treeOf,
 } from "/studio/grid.js";
 import {
@@ -912,10 +912,9 @@ function drawSpark(/** @type {Element} */ panel, values, unit, color = css("--in
   const [lo, hi] = rangeOf(scaled);
   const spots = columnsOf(scaled, 300).map(([i, value]) => ({ i, at: `${((i / (values.length - 1)) * 300).toFixed(1)},${(92 - ((value - lo) / (hi - lo || 1)) * 82).toFixed(1)}` })), points = spots.map((point) => point.at);
   // (Painted date by date: its line in pieces, each in its color.)
-  const line = (/** @type {string[]} */ part, /** @type {string} */ stroke) => `<polyline points="${part.join(" ")}" fill="none" stroke="${escapeHtml(stroke)}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />`;
-  const lines = tint ? byColor(spots, (point) => tint(point.i) ?? color).map((piece) => line(piece.points.map((point) => point.at), piece.color)).join("") : line(points, color);
+  const lines = tint ? byColor(spots, (point) => tint(point.i) ?? color).map((piece) => lineOver(piece.points.map((point) => point.at), piece.color)).join("") : lineOver(points, color);
   const fill = `spark-fill-${++sparksDrawn}`;
-  spark.innerHTML = `<defs><linearGradient id="${fill}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escapeHtml(color)}" stop-opacity=".22"/><stop offset="1" stop-color="${escapeHtml(color)}" stop-opacity="0"/></linearGradient></defs><polygon points="0,100 ${points.join(" ")} 300,100" fill="url(#${fill})"/>${lines}`;
+  spark.innerHTML = `<defs>${fadeDef(fill, color, ".22")}</defs>${areaUnder(fill, points, 300, 100)}${lines}`;
 }
 
 /** highlightMatch's pattern, by what's typed: made once a query, not for each row. */
