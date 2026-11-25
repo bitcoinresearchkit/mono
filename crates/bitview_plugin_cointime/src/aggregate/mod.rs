@@ -2,4 +2,4 @@ mod compute;
 mod import;
 mod vecs;
 
-pub use vecs::{AwakeVecs, CohortVecs, DormantVecs, Vecs};
+pub use vecs::{CohortVecs, DormantVecs, Vecs};

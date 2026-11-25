@@ -756,13 +756,6 @@ pub mod tree {
         investorness: SeriesPattern1<Option<Percent>> = "investorness",
         producerness: SeriesPattern1<Option<Percent>> = "producerness",
     } }
-    shape! { MobileCapital at "series().coinflow.cohorts.all.mobile.capital" {
-        total: SeriesPattern1<Option<Dollars>> = "*_capital",
-        realized_cap: SeriesPattern1<Option<Dollars>> = "*_realized_cap",
-    } }
-    shape! { MobileSupplyInLoss at "series().coinflow.cohorts.all.mobile.supply.in_loss" {
-        share: SeriesPattern1<Option<Percent>> = "*",
-    } }
     shape! { Velocity at "series().supply.velocity" {
         btc: SeriesPattern1<Option<Ratio>> = "*_btc",
         usd: SeriesPattern1<Option<Ratio>> = "*_usd",
@@ -821,7 +814,7 @@ pub mod tree {
         value: SeriesPattern1<Option<Dollars>> = "*",
         share: SeriesPattern1<Option<Percent>> = "*_share",
     } }
-    shape! { AllSupplyInLoss at "series().holders.all.supply.in_loss" {
+    shape! { SupplyInLoss at "series().holders.all.supply.in_loss" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*_supply_in_loss",
         usd: SeriesPattern1<Option<Dollars>> = "*_supply_in_loss_usd",
         market_cap: SeriesPattern1<Option<Dollars>> = "*_market_cap_in_loss",
@@ -897,11 +890,6 @@ pub mod tree {
         vaulted: SpotValue = "*",
         hodled_or_lost: SpotValue = "hodled_or_lost",
         active: SpotValue = "active",
-    } }
-    shape! { MobileSupply at "series().coinflow.cohorts.all.mobile.supply" {
-        total: SpotValue = "*",
-        in_loss: MobileSupplyInLoss = "*_supply_in_loss_share",
-        in_profit: MobileSupplyInLoss = "*_supply_in_profit_share",
     } }
     shape! { Side at "series().coinflow.age_ranges._10y_to_12y.immobile" {
         supply: SpotValue = "*",
@@ -991,28 +979,6 @@ pub mod tree {
         by_dollar: CostBasisByDollar = "*",
         supply_density: Density = "*_supply_density",
         capital_density: Density = "*_capital_density",
-    } }
-    shape! { Awake at "series().coinflow.cohorts.all.mobile" {
-        supply: MobileSupply = "*",
-        capital: MobileCapital = "*",
-        cost_basis: CostBasis = "*",
-    } }
-    shape! { CoinflowCohort at "series().coinflow.cohorts.all" {
-        mobile: Awake = "*_mobile",
-        immobile: Side = "*_immobile",
-    } }
-    shape! { CointimeCohort at "series().cointime.cohorts.all" {
-        awake: Awake = "*_awake",
-        dormant: Side = "*_dormant",
-    } }
-    shape! { AgeAggregate<A> at "series().coinflow.cohorts" {
-        all: A = "",
-        sth: A = "sth",
-        lth: A = "lth",
-        under_4m: A = "*_under_4m",
-        under_6m: A = "*_under_6m",
-        over_4m: A = "*_over_4m",
-        over_6m: A = "*_over_6m",
     } }
     shape! { HoldersCostBasis at "series().holders.all.cost_basis" {
         by_coin: CostBasisByCoin = "*",
@@ -1246,9 +1212,32 @@ pub mod tree {
     shape! { SharedSupply at "series().holders.lth.supply" {
         total: SpotValue = "*",
         in_profit: SupplyInProfit = "*",
-        in_loss: AllSupplyInLoss = "*",
+        in_loss: SupplyInLoss = "*",
         delta: Delta<Option<Bitcoin>> = "*_supply_delta",
         share: SeriesPattern1<Option<Percent>> = "*_supply_share",
+    } }
+    shape! { WeightedCohort at "series().coinflow.cohorts.all.mobile" {
+        supply: SharedSupply = "*",
+        capital: SharedCapital = "*",
+        unrealized: Unrealized = "*",
+        cost_basis: CostBasis = "*",
+    } }
+    shape! { CoinflowCohort at "series().coinflow.cohorts.all" {
+        mobile: WeightedCohort = "*_mobile",
+        immobile: Side = "*_immobile",
+    } }
+    shape! { CointimeCohort at "series().cointime.cohorts.all" {
+        awake: WeightedCohort = "*_awake",
+        dormant: Side = "*_dormant",
+    } }
+    shape! { AgeAggregate<A> at "series().coinflow.cohorts" {
+        all: A = "",
+        sth: A = "sth",
+        lth: A = "lth",
+        under_4m: A = "*_under_4m",
+        under_6m: A = "*_under_6m",
+        over_4m: A = "*_over_4m",
+        over_6m: A = "*_over_6m",
     } }
     shape! { Capital at "series().holders.all.capital" {
         total: SeriesPattern1<Option<Dollars>> = "*",
@@ -1260,7 +1249,7 @@ pub mod tree {
     shape! { HoldersSupply at "series().holders.all.supply" {
         total: HoldersSpotValue = "circulating_*",
         in_profit: SupplyInProfit = "",
-        in_loss: AllSupplyInLoss = "",
+        in_loss: SupplyInLoss = "",
         delta: Delta<Option<Bitcoin>> = "*_delta",
     } }
     shape! { CapitalViews at "series().addresses.capital" {

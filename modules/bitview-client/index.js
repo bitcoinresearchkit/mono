@@ -2793,26 +2793,6 @@ const _Caps = _s({
 
 /**
  * @typedef {{
- *   total: SeriesPattern1<?Dollars>,
- *   realizedCap: SeriesPattern1<?Dollars>,
- * }} MobileCapital
- */
-const _MobileCapital = _s({
-  total: [_i1, '*_capital'],
-  realizedCap: [_i1, '*_realized_cap'],
-});
-
-/**
- * @typedef {{
- *   share: SeriesPattern1<?Percent>,
- * }} MobileSupplyInLoss
- */
-const _MobileSupplyInLoss = _s({
-  share: [_i1, '*'],
-});
-
-/**
- * @typedef {{
  *   btc: SeriesPattern1<?Ratio>,
  *   usd: SeriesPattern1<?Ratio>,
  * }} Velocity
@@ -2957,9 +2937,9 @@ const _Part = _s({
  *   usd: SeriesPattern1<?Dollars>,
  *   marketCap: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- * }} AllSupplyInLoss
+ * }} SupplyInLoss
  */
-const _AllSupplyInLoss = _s({
+const _SupplyInLoss = _s({
   btc: [_i1, '*_supply_in_loss'],
   usd: [_i1, '*_supply_in_loss_usd'],
   marketCap: [_i1, '*_market_cap_in_loss'],
@@ -3151,19 +3131,6 @@ const _CointimeSupply = _s({
   vaulted: [_SpotValue, '*'],
   hodledOrLost: [_SpotValue, 'hodled_or_lost'],
   active: [_SpotValue, 'active'],
-});
-
-/**
- * @typedef {{
- *   total: SpotValue,
- *   inLoss: MobileSupplyInLoss,
- *   inProfit: MobileSupplyInLoss,
- * }} MobileSupply
- */
-const _MobileSupply = _s({
-  total: [_SpotValue, '*'],
-  inLoss: [_MobileSupplyInLoss, '*_supply_in_loss_share'],
-  inProfit: [_MobileSupplyInLoss, '*_supply_in_profit_share'],
 });
 
 /**
@@ -3372,64 +3339,6 @@ const _CostBasis = _s({
   byDollar: [_CostBasisByDollar, '*'],
   supplyDensity: [_Density, '*_supply_density'],
   capitalDensity: [_Density, '*_capital_density'],
-});
-
-/**
- * @typedef {{
- *   supply: MobileSupply,
- *   capital: MobileCapital,
- *   costBasis: CostBasis,
- * }} Awake
- */
-const _Awake = _s({
-  supply: [_MobileSupply, '*'],
-  capital: [_MobileCapital, '*'],
-  costBasis: [_CostBasis, '*'],
-});
-
-/**
- * @typedef {{
- *   mobile: Awake,
- *   immobile: Side,
- * }} CoinflowCohort
- */
-const _CoinflowCohort = _s({
-  mobile: [_Awake, '*_mobile'],
-  immobile: [_Side, '*_immobile'],
-});
-
-/**
- * @typedef {{
- *   awake: Awake,
- *   dormant: Side,
- * }} CointimeCohort
- */
-const _CointimeCohort = _s({
-  awake: [_Awake, '*_awake'],
-  dormant: [_Side, '*_dormant'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   all: A,
- *   sth: A,
- *   lth: A,
- *   under4m: A,
- *   under6m: A,
- *   over4m: A,
- *   over6m: A,
- * }} AgeAggregate
- */
-/** @type {_Make} */
-const _AgeAggregate = (c, b, f0) => _n(c, b, {
-  all: [f0, ''],
-  sth: [f0, 'sth'],
-  lth: [f0, 'lth'],
-  under4m: [f0, '*_under_4m'],
-  under6m: [f0, '*_under_6m'],
-  over4m: [f0, '*_over_4m'],
-  over6m: [f0, '*_over_6m'],
 });
 
 /**
@@ -4001,7 +3910,7 @@ const _SharedCapital = _s({
  * @typedef {{
  *   total: SpotValue,
  *   inProfit: SupplyInProfit,
- *   inLoss: AllSupplyInLoss,
+ *   inLoss: SupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
  * }} SharedSupply
@@ -4009,9 +3918,69 @@ const _SharedCapital = _s({
 const _SharedSupply = _s({
   total: [_SpotValue, '*'],
   inProfit: [_SupplyInProfit, '*'],
-  inLoss: [_AllSupplyInLoss, '*'],
+  inLoss: [_SupplyInLoss, '*'],
   delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
+});
+
+/**
+ * @typedef {{
+ *   supply: SharedSupply,
+ *   capital: SharedCapital,
+ *   unrealized: Unrealized,
+ *   costBasis: CostBasis,
+ * }} WeightedCohort
+ */
+const _WeightedCohort = _s({
+  supply: [_SharedSupply, '*'],
+  capital: [_SharedCapital, '*'],
+  unrealized: [_Unrealized, '*'],
+  costBasis: [_CostBasis, '*'],
+});
+
+/**
+ * @typedef {{
+ *   mobile: WeightedCohort,
+ *   immobile: Side,
+ * }} CoinflowCohort
+ */
+const _CoinflowCohort = _s({
+  mobile: [_WeightedCohort, '*_mobile'],
+  immobile: [_Side, '*_immobile'],
+});
+
+/**
+ * @typedef {{
+ *   awake: WeightedCohort,
+ *   dormant: Side,
+ * }} CointimeCohort
+ */
+const _CointimeCohort = _s({
+  awake: [_WeightedCohort, '*_awake'],
+  dormant: [_Side, '*_dormant'],
+});
+
+/**
+ * @template A
+ * @typedef {{
+ *   all: A,
+ *   sth: A,
+ *   lth: A,
+ *   under4m: A,
+ *   under6m: A,
+ *   over4m: A,
+ *   over6m: A,
+ * }} AgeAggregate
+ */
+/** @type {_Make} */
+const _AgeAggregate = (c, b, f0) => _n(c, b, {
+  all: [f0, ''],
+  sth: [f0, 'sth'],
+  lth: [f0, 'lth'],
+  under4m: [f0, '*_under_4m'],
+  under6m: [f0, '*_under_6m'],
+  over4m: [f0, '*_over_4m'],
+  over6m: [f0, '*_over_6m'],
 });
 
 /**
@@ -4035,14 +4004,14 @@ const _Capital = _s({
  * @typedef {{
  *   total: HoldersSpotValue,
  *   inProfit: SupplyInProfit,
- *   inLoss: AllSupplyInLoss,
+ *   inLoss: SupplyInLoss,
  *   delta: Delta<?Bitcoin>,
  * }} HoldersSupply
  */
 const _HoldersSupply = _s({
   total: [_HoldersSpotValue, 'circulating_*'],
   inProfit: [_SupplyInProfit, ''],
-  inLoss: [_AllSupplyInLoss, ''],
+  inLoss: [_SupplyInLoss, ''],
   delta: [_Delta, '*_delta'],
 });
 
@@ -7244,7 +7213,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "e6021df1f0f11a7501ca8ba0f2123188619085dc66cd44d87ad1030d909e71a8";
+  static HASH = "127b1dbc39c3eb5efe5a6445d7699b6ba1140a2cd6917508bfd8dd6ef3dfc041";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

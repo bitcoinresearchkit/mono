@@ -4,12 +4,28 @@ use bitview_cohort::{AgeAggregate, AgeRangeId};
 use bitview_primitives::{BoundedRatio, CentsSquaredSats};
 use brk_types::{Cents, CentsSats, Sats};
 
-/// Exact moments of disjoint age ranges, each under its own weight: their total supply, and
-/// their weighted supply, supply in loss, cap (creation price times satoshis) and capitalized
-/// cap (squared creation price times satoshis). Every published value derives from the unrounded
-/// moments, rounded once: the weighted supply to the nearest satoshi (the complement is the rest
-/// of the total), the realized cap and prices to the nearest cent. Unweighted moment totals fit
-/// in u128.
+/// One age range's additive amounts at one height, as the age plugin stores them: what its weight
+/// scales.
+#[derive(Clone, Copy)]
+pub(crate) struct BandAmounts {
+    pub(crate) supply: Sats,
+    pub(crate) loss_supply: Sats,
+    pub(crate) cap: CentsSats,
+    pub(crate) capitalized_cap: CentsSquaredSats,
+    pub(crate) unrealized_profit: Cents,
+    pub(crate) unrealized_loss: Cents,
+    pub(crate) capital_in_profit: Cents,
+    pub(crate) capital_in_loss: Cents,
+}
+
+/// Exact moments of disjoint age ranges, each under its own weight: their total supply, and the
+/// weighted sums of their supply, supply in loss, cap (creation price times satoshis),
+/// capitalized cap (squared creation price times satoshis), unrealized profit and loss, and
+/// capital in profit and in loss. Every published value derives from the unrounded moments,
+/// rounded once: supplies to the nearest satoshi (the complement is the rest of the total), caps,
+/// amounts and prices to the nearest cent. A weight of one adds each range's amount as it is, so
+/// the weighted sums at one are the plain sums of the ranges. Unweighted moment totals fit in
+/// u128.
 #[derive(Clone, Copy, Default)]
 pub struct WeightedCohortState {
     total_supply: Sats,
@@ -17,6 +33,10 @@ pub struct WeightedCohortState {
     loss_supply: WeightedSum,
     cap: WeightedSum,
     capitalized_cap: WeightedSum,
+    unrealized_profit: WeightedSum,
+    unrealized_loss: WeightedSum,
+    capital_in_profit: WeightedSum,
+    capital_in_loss: WeightedSum,
 }
 
 impl WeightedCohortState {
@@ -24,47 +44,44 @@ impl WeightedCohortState {
     /// the range) moves nothing: the coins stay on the unweighted side (dormant, immobile). The
     /// published weight itself stays undefined.
     #[inline]
-    pub(crate) fn new(
-        total_supply: Sats,
-        loss_supply: Sats,
-        cap: CentsSats,
-        capitalized_cap: CentsSquaredSats,
-        weight: BoundedRatio,
-    ) -> Self {
-        let weight = if weight.is_nan() {
-            BoundedRatio::ZERO
-        } else {
-            weight
-        };
+    pub(crate) fn new(band: BandAmounts, weight: BoundedRatio) -> Self {
+        let weight = defined(weight);
         let weighted = |value: u128| WeightedSum::new(value, weight);
+        let cents = |value: Cents| {
+            debug_assert!(!value.is_nan(), "undefined band amount");
+            weighted(u128::from(value.inner()))
+        };
         Self {
-            total_supply,
-            supply: weighted(total_supply.as_u128()),
-            loss_supply: weighted(loss_supply.as_u128()),
-            cap: weighted(cap.inner()),
-            capitalized_cap: weighted(capitalized_cap.inner()),
+            total_supply: band.supply,
+            supply: weighted(band.supply.as_u128()),
+            loss_supply: weighted(band.loss_supply.as_u128()),
+            cap: weighted(band.cap.inner()),
+            capitalized_cap: weighted(band.capitalized_cap.inner()),
+            unrealized_profit: cents(band.unrealized_profit),
+            unrealized_loss: cents(band.unrealized_loss),
+            capital_in_profit: cents(band.capital_in_profit),
+            capital_in_loss: cents(band.capital_in_loss),
         }
     }
 
     /// One range's supply on each side of `weight`, as its aggregates publish theirs.
     #[inline]
     pub fn split_supply(total: Sats, weight: BoundedRatio) -> (Sats, Sats) {
-        let state = Self::new(
-            total,
-            Sats::ZERO,
-            CentsSats::ZERO,
-            CentsSquaredSats::default(),
-            weight,
-        );
-        (state.weighted_supply(), state.complement_supply())
+        let weighted = round_sats(WeightedSum::new(total.as_u128(), defined(weight)));
+        (weighted, total - weighted)
     }
 
     pub fn weighted_supply(&self) -> Sats {
-        Sats::new(self.supply.div_round(1) as u64)
+        round_sats(self.supply)
     }
 
     pub fn complement_supply(&self) -> Sats {
         self.total_supply - self.weighted_supply()
+    }
+
+    /// The weighted supply in loss; at most the weighted supply, both rounded from exact sums.
+    pub fn supply_in_loss(&self) -> Sats {
+        round_sats(self.loss_supply)
     }
 
     pub fn realized_cap(&self) -> Cents {
@@ -81,10 +98,32 @@ impl WeightedCohortState {
         self.capitalized_cap.div_round_cents(self.cap)
     }
 
-    /// The weighted supply in loss per weighted supply; undefined (NaN) without weighted supply.
-    pub fn supply_in_loss_share(&self) -> BoundedRatio {
-        BoundedRatio::from(self.loss_supply.ratio(self.supply))
+    pub fn unrealized_profit(&self) -> Cents {
+        Cents::from(self.unrealized_profit.div_round(1))
     }
+
+    pub fn unrealized_loss(&self) -> Cents {
+        Cents::from(self.unrealized_loss.div_round(1))
+    }
+
+    pub fn capital_in_profit(&self) -> Cents {
+        Cents::from(self.capital_in_profit.div_round(1))
+    }
+
+    pub fn capital_in_loss(&self) -> Cents {
+        Cents::from(self.capital_in_loss.div_round(1))
+    }
+}
+
+/// An undefined weight moves nothing (see [`WeightedCohortState::new`]).
+#[inline]
+fn defined(weight: BoundedRatio) -> BoundedRatio {
+    if weight.is_nan() { BoundedRatio::ZERO } else { weight }
+}
+
+#[inline]
+fn round_sats(sum: WeightedSum) -> Sats {
+    Sats::new(sum.div_round(1) as u64)
 }
 
 impl AddAssign for WeightedCohortState {
@@ -95,6 +134,10 @@ impl AddAssign for WeightedCohortState {
         self.loss_supply += rhs.loss_supply;
         self.cap += rhs.cap;
         self.capitalized_cap += rhs.capitalized_cap;
+        self.unrealized_profit += rhs.unrealized_profit;
+        self.unrealized_loss += rhs.unrealized_loss;
+        self.capital_in_profit += rhs.capital_in_profit;
+        self.capital_in_loss += rhs.capital_in_loss;
     }
 }
 

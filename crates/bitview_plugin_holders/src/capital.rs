@@ -1,47 +1,23 @@
 use std::ops::Deref;
 
 use bitview_cohort::AgeAggregateId;
-use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
+use bitview_primitives::PartsPerMillion32;
+use bitview_distribution::metrics::holding;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlock, LazyRollingDeltasFiatFromHeight, PercentPerBlock, ops::Quotient,
 };
 use brk_error::Result;
-use brk_types::{Cents, CentsSigned, Version};
+use brk_types::{Cents, Version};
 use vecdb::{BinaryTransform, ComputeVec, Rw, StorageMode};
 
 use crate::{
-    part::Part,
+    part::import_part,
     section::{CohortCompute, Imports, Section},
 };
 
-/// The mirror of the supply: its outputs valued at their creation price.
-#[derive(Traversable)]
-pub struct Capital<M: StorageMode = Rw> {
-    /// Total capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
-    /// created.
-    #[traversable(
-        lead = "Capital: what these coins cost, in all, each at the price it last moved at."
-    )]
-    pub total: LazyFiatPerBlock<Cents>,
-    /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
-    /// created.
-    #[traversable(
-        lead = "Realized cap: what the bitcoin held cost, in all, each coin at the price it last moved at."
-    )]
-    pub realized_cap: LazyFiatPerBlock<Cents>,
-    /// Capital in profit: creation-date USD value of the outputs whose creation price is at or
-    /// below the current spot price.
-    #[traversable(lead = "Capital in profit: what the coins now in profit cost, in all.")]
-    pub in_profit: Part<LazyFiatPerBlock<Cents>, M>,
-    /// Capital in loss: creation-date USD value of the outputs whose creation price is above the
-    /// current spot price.
-    #[traversable(lead = "Capital in loss: what the coins now at a loss cost, in all.")]
-    pub in_loss: Part<LazyFiatPerBlock<Cents>, M>,
-    /// Change in the cohort's capital over a trailing window.
-    #[traversable(lead = "Capital change: the change in what the bitcoin held cost, in all.")]
-    pub delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
-}
+/// A holder group's capital, its parts' shares stored.
+pub type Capital<M = Rw> = holding::Capital<PercentPerBlock<PartsPerMillion32, M>>;
 
 /// The capital of a cohort but all, beside its share of all capital (all's is 100%).
 #[derive(Traversable)]
@@ -67,7 +43,7 @@ impl Section for Capital {
             LazyFiatPerBlock::from_cents_source(&id.metric_name(metric), v, source, mappings)
         };
         let part = |metric: &str, source| {
-            Part::import(
+            import_part(
                 db,
                 &id.metric_name(metric),
                 v,

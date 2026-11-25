@@ -15,7 +15,6 @@ mod realized;
 mod section;
 mod sources;
 mod supply;
-mod unrealized;
 
 pub use dependencies::Dependencies;
 pub use metrics::{All, Kind, Metrics, Old, Young};

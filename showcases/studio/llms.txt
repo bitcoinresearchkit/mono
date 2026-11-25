@@ -162,14 +162,14 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Outputs (103): https://bitview.space/studio/presets/network/outputs/index.html.md
   - OP_RETURN (350): https://bitview.space/studio/presets/network/op-return/index.html.md
   - Chain statistics (139): https://bitview.space/studio/presets/network/chain-statistics/index.html.md
-- Cointime (250): https://bitview.space/studio/presets/cointime/index.html.md
+- Cointime (258): https://bitview.space/studio/presets/cointime/index.html.md
   - Activity (8): https://bitview.space/studio/presets/cointime/activity/index.html.md
   - Value (6): https://bitview.space/studio/presets/cointime/value/index.html.md
   - Age bands (97): https://bitview.space/studio/presets/cointime/age-bands/index.html.md
-  - Awake coins (138): https://bitview.space/studio/presets/cointime/awake-coins/index.html.md
-- Coinflow (237): https://bitview.space/studio/presets/coinflow/index.html.md
+  - Awake coins (146): https://bitview.space/studio/presets/cointime/awake-coins/index.html.md
+- Coinflow (245): https://bitview.space/studio/presets/coinflow/index.html.md
   - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/index.html.md
-  - Mobile coins (138): https://bitview.space/studio/presets/coinflow/mobile-coins/index.html.md
+  - Mobile coins (146): https://bitview.space/studio/presets/coinflow/mobile-coins/index.html.md
 - Bedrock (23): https://bitview.space/studio/presets/bedrock/index.html.md
   - Compare (5): https://bitview.space/studio/presets/bedrock/compare/index.html.md
   - Awake (6): https://bitview.space/studio/presets/bedrock/awake/index.html.md

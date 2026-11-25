@@ -62,6 +62,10 @@ impl Vecs {
             &self.cohorts.all.capital.total.cents.height,
         )
     }
+    /// Each group's realized cap in cents, the whole its weighted coins' capital share divides.
+    pub fn realized_caps(&self) -> AgeAggregate<ReadableBoxedVec<Height, Cents>> {
+        AgeAggregate::from_fn(|id| id.select(&self.columns).cap.read_only_boxed_clone())
+    }
     pub fn all_market_cap(&self) -> &ReadableBoxedVec<Height, Cents> {
         &self.all_market_cap
     }

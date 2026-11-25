@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 
 use bitview_cohort::{AgeAggregateId, BuildMember, UpdateMember};
-use bitview_distribution::metrics::UtxoViews;
+use bitview_distribution::metrics::{UtxoViews, holding::Unrealized};
 use bitview_traversable::Traversable;
 use brk_error::{Error, Result};
 use brk_types::{Cents, Height};
@@ -15,7 +15,6 @@ use crate::{
     realized::Realized,
     section::{CohortCompute, Imports, Rest, Section},
     supply::{SharedSupply, Supply},
-    unrealized::Unrealized,
 };
 
 /// The sections that differ by holder group: what [`Metrics`] holds as its supply, capital and
@@ -104,7 +103,14 @@ where
             ),
             activity: Activity::import(db, id, v, c, mappings, windows)?,
             realized: Section::import(id, cx)?,
-            unrealized: Unrealized::new(id, v, c, mappings),
+            unrealized: Unrealized::new(
+                |metric| id.metric_name(metric),
+                v,
+                &c.unrealized_profit,
+                &c.unrealized_loss,
+                &c.nupl,
+                mappings,
+            ),
             cost_basis,
         })
     }
