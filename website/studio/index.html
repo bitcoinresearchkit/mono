@@ -16,19 +16,13 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- First: the face a first screen's words are in. -->
     <link rel="preload" href="/assets/fonts/InterVariable.first.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
     <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <meta name="color-scheme" content="light dark" />
-    <!-- (The bar over the page in its ground from the first frame, the device's scheme's; the script keeps it after: see
-         syncThemeColor.) -->
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f7" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
-    <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
-         knows where it is: see showAddress). -->
     <link rel="alternate" type="text/markdown" href="https://bitview.space/studio/llms.txt" title="Bitview Studio, for assistants" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview Studio" />
@@ -44,19 +38,14 @@
     <meta property="og:description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bitview Studio","url":"https://bitview.space/studio/","description":"Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://bitview.space/assets/cards/studio.jpg","publisher":{"@type":"Organization","name":"Bitview","url":"https://bitview.space"}}</script>
     <!-- /page-info-head -->
-    <!-- The app, a module of its own: fetched as the page's first bytes arrive, compiled off the page's thread as it
-         comes, and kept by the browser for every address (each preset's page is its own document). Run once the page is
-         parsed. It or its modules failing to load (the server lost mid-load): said as offline at load, Try again its way
-         out. -->
+    <!-- The app, a module of its own: fetched as the page's first bytes arrive, compiled off the page's thread, and kept by the browser for every address (each preset's page is its own document). -->
     <!-- The client's core, which the client imports: fetched beside the app, not after the client arrives. -->
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
     <!-- The presets, read (made in a worker on a first visit) while the app downloads: run before it, which imports it. -->
     <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
     <style>
-      /* Only what a first screen shows, in any state it starts in (theme, sidebar, panel, home), the server's page-info
-         too; what the rest builds is in rest.css. A rule for a first screen goes here: in rest.css it's missing till the
-         rest is in. rest.css comes after these: a rule here meant to win over one there, at equal specificity, loses. */
+      /* Only what a first screen shows, in any state it starts in, the server's page-info too; what the rest builds is in rest.css. A rule for a first screen goes here: in rest.css it's missing till the rest is in. rest.css comes after these: a rule here meant to win over one there, at equal specificity, loses. */
       /* craft rules */
       /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
          lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
@@ -145,19 +134,9 @@
         font-display: swap;
       }
 
-      /*
-       * Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks (the device's, System,
-       * the default; or light, or dark, as chosen), the chart and the canvases read them resolved (see css). The
-       * dark calibrated on the quiet end: a near-black page, one card a shade lighter, hairlines at 6% white, text in three
-       * greys. The light, the same turned over: a near-white page, the card white on it, hairlines in black a shade
-       * stronger (thin dark lines on white read lighter), shadows soft, tips and keys white as the menus. Color comes from
-       * the data (Bitview's in the theme's tone: see shownOklch): the chrome is monochrome, orange is the brand's.
-       */
+      /* Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks, the chart and the canvases read them resolved (see css). Hairlines are a shade stronger on the light (thin dark lines on white read lighter). Color comes from the data: the chrome is monochrome, orange is the brand's. */
       :root {
         color-scheme: light dark;
-        /* Sizes more than one rule (or the script) shares: the panel's width beside the chart, the tablet's floating panel's
-           height, a phone's sheet's two heights (fractions of the screen's: the script reads them too); a layer row's value
-           and change (the script measures their room at them). */
         --panel-width: 300px;
         --control-hit: 24px;
         --stage-foot-height: 44px;
@@ -165,7 +144,6 @@
         --row-change-size: 11px;
         --tablet-panel: 44dvh;
         --sheet-whole: 0.88;
-        /* (What an installed app's status bar takes at the top, for the script to read.) */
         --safe-top: env(safe-area-inset-top);
         --sheet-half: 0.56;
         /* (Their heights on whole pixels: a sheet's top between two, Safari can leave a pixel's row of it unpainted, the
@@ -183,17 +161,12 @@
         --faint: light-dark(#c4c7cc, #3e4147);
         /* How many, beside what's counted: muted (a step under it read under 4.5:1: 3.3-3.8 on the page). */
         --count: var(--muted);
-        /* Black over the light, white over the dark. A control's ground, three steps, one each and nothing between (five
-           greys a step apart, side by side, read as five, none as a step): a field's, every control's at rest (a text
-           field, a select, a segmented control's track, a chip, the navigator); a hover, that same step, a bare one
-           pointed at; a press, what's pressed, current or chosen, and a key; then an active, pressed again. */
+        /* A control's ground, three steps, one each and nothing between: five greys a step apart, side by side, read as five, none as a step. */
         --field: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
-        /* (A big field's ground and its square's: the field's, but Home's, see .home.) */
         --big-field: var(--field);
         --hover: var(--field);
         --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
         --press: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.07));
-        /* A segment chosen: a step up on the dark, a white chip lifted off its track on the light. */
         --chosen: light-dark(#ffffff, rgb(255 255 255 / 0.07));
         --line-strong: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.1));
         --active: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.12));
@@ -203,15 +176,11 @@
         /* (A dialog's dim: the page under it is inert (holdPage), so its muted words there aren't held to 4.5:1.) */
         --backdrop: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.3));
         --selection: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.2));
-        /* A dot's or a swatch's own edge; a loading row's sweep. */
         --ring: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.14));
         --sweep: light-dark(rgb(0 0 0 / 0.035), rgb(255 255 255 / 0.03));
-        /* A surface's top edge catching the light; a field typed in, its edge lit with a halo around. */
         --sheen-color: light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
         --sheen: inset 0 1px 0 var(--sheen-color);
         --field-focus: inset 0 0 0 1px var(--focus), 0 0 0 3px var(--line);
-        /* (The brand's orange: the chrome's one color, for where you are and what you're moving: the open chart's bar, a
-           resize bar pointed at or held, the chart's own separators too.) */
         --accent: oklch(64.34% 0.191 44.41);
         --up: light-dark(#096336, #3ccf7c);
         --live: var(--up);
@@ -221,13 +190,9 @@
         --crosshair: light-dark(rgb(0 0 0 / 0.25), rgb(255 255 255 / 0.2));
         --crosshair-faint: var(--line-strong);
         --crosshair-label: light-dark(#2b2d31, #26272b);
-        /* Tips and keys' hints, over the page: white in the light, as its menus. */
         --tip: light-dark(#ffffff, #1e1f23);
         --hint: light-dark(#ffffff, #2c2d30);
-        /* Shadows, each one shape, its colors by theme: what pops over the page, the card on it, a pressed tab lifted,
-           a key's hint. (What pops: its edge solid, the page's ground as a faint
-           ring made it, so over a chart's bright tags it's still its edge, not a gap: a submenu as close to its menu
-           everywhere.) */
+        /* Shadows, each one shape, its colors by theme. What pops: its edge solid, the page's ground as a faint ring, so over a chart's bright tags it's still its edge, not a gap. */
         --pop: inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.05)), 0 0 0 1px light-dark(color-mix(in srgb, var(--app), black 7%), color-mix(in srgb, var(--app), white 8%)), 0 24px 64px -12px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.7)), 0 8px 20px -8px light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.5));
         --card-shadow: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), transparent), 0 24px 60px -30px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
         /* (Its ring, around its edge: an outline, not a shadow's spread, which Firefox redraws dearly as the card resizes.) */
@@ -235,45 +200,34 @@
         --lift: 0 1px 3px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.3)), 0 0 0 1px light-dark(rgb(0 0 0 / 0.07), transparent);
         --hint-shadow: 0 0 0 1px light-dark(rgb(0 0 0 / 0.08), transparent), 0 4px 12px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.45));
         --sans: Inter, "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        /* The chart's own text (its axes, its value tags, the navigator): Inter a tad heavier (see chartFont). */
         --chart-sans: "Inter Chart", var(--sans);
         --mono: Lilex, "Lilex Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
-        /* Popovers come in quickly and leave at once; layout changes leave as they came. */
         --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
         --dur-micro: 120ms;
         --dur-small: 160ms;
         --dur-panel: 240ms;
-        /* Layout moves ease in and out, so even a long one starts without a leap. */
         --ease-layout: cubic-bezier(0.4, 0, 0.2, 1);
         --dur-layout: 280ms;
-        /* (A sliding sidebar's words: gone in its first third; back over its last part, once it's mostly open.) */
         --words-out: 90ms;
         --words-wait: 120ms;
         --words-in: 160ms;
         --dur-page: 380ms;
         /* A loading sweep's pass (text shimmering, a value's bar, a tile's): one rhythm, however many show at once. */
         --dur-sweep: 1.4s;
-        /* Corners by size: keys and chips, small controls, controls, popovers, cards and bars, sheets and dialogs. */
         --radius-xs: 4px;
         --radius-sm: 6px;
         --radius-md: 8px;
         --radius-lg: 10px;
         --radius-xl: 12px;
         --radius-2xl: 16px;
-        /* (Home's column's words, one inset: its field's, its live line's, its doors', those of ⌘K's rows on it (the
-           list's 10, a row's 10).) */
         --home-inset: 20px;
-        /* (⌘K's corners on Home, unrolled: concentric with its rows' (theirs and the list's 10); rolled up, its field's,
-           Home's (see .palette[data-on-home]).) */
         --home-radius: calc(var(--radius-md) + 10px);
         --side: 264px;
         --side-collapsed: 58px;
         scrollbar-color: var(--faint) transparent;
       }
 
-      /* More contrast asked for (iOS's and macOS's Increase Contrast): the greys a step stronger, the hairlines, fields and
-         grid read, focus in ink; the chart's text and grid follow (chartColors reads these). The same tokens, nothing
-         else changed. */
+      /* More contrast asked for: the same tokens, nothing else changed; the chart's text and grid follow (chartColors reads these). */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#16181c, #eef1f5);
@@ -282,7 +236,6 @@
           --faint: light-dark(#8a8f98, #6b7079);
           --line: light-dark(rgb(0 0 0 / 0.22), rgb(255 255 255 / 0.22));
           --line-strong: light-dark(rgb(0 0 0 / 0.32), rgb(255 255 255 / 0.3));
-          /* (Its three steps raised together: a field, then pressed, then active, each still a step apart.) */
           --field: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.08));
           --press: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.13));
           --active: light-dark(rgb(0 0 0 / 0.17), rgb(255 255 255 / 0.19));
@@ -291,7 +244,6 @@
         }
       }
 
-      /* The theme chosen: light, or dark (the device's, System, is the default above). */
       :root[data-theme="light"] {
         color-scheme: light;
       }
@@ -313,7 +265,6 @@
         height: 100%;
         /* (No pull to reload, no bounce: a page that pulled away would take its undo with it.) */
         overscroll-behavior: none;
-        /* (Wrapped text, everywhere, no word left alone on its last line.) */
         text-wrap-style: pretty;
       }
 
@@ -379,14 +330,12 @@
         color: inherit;
       }
 
-      /* (A button's words never selected, however fast it's pressed.) */
       button {
         cursor: pointer;
         -webkit-user-select: none;
         user-select: none;
       }
 
-      /* (Code in the face set for it, wherever it's written: the browser's own monospace is another's.) */
       code,
       pre {
         font-family: var(--mono);
@@ -397,7 +346,6 @@
         outline-offset: 1px;
       }
 
-      /* A field left by ↵ or esc gives the focus to the place that holds it: no ring, it's where the focus is, not a control. */
       :is(.card-head, #inspector, .home-tools, #panel)[tabindex="-1"]:focus-visible {
         outline: none;
       }
@@ -406,7 +354,6 @@
         color: inherit;
       }
 
-      /* Out of sight until it's tabbed to. */
       .skip {
         position: fixed;
         top: 8px;
@@ -425,14 +372,10 @@
         }
       }
 
-      /* Offline at load (see #offline): that, alone. */
       .offline {
         display: none;
       }
 
-      /* Before its first render (its client from bitview.space, its charts read), the page is its ground alone, never a
-         page half made; then it settles in at once, whole (body.boot). A first visit's wait, after a moment: that it's
-         connecting. */
       .booting {
         display: none;
       }
@@ -507,8 +450,6 @@
         --count: var(--soft);
       }
 
-      /* A link's picture alone (#image=): the page out of sight while the chart's made (as full screen lays it out), then
-         its picture, centered, a click opening the chart. */
       .picture {
         display: none;
       }
@@ -551,7 +492,6 @@
             max-height: calc(100dvh - 32px);
           }
 
-          /* (Out of sight till it's its turn: see pictureDrawing.) */
           #picture-note:not([data-shown]) {
             visibility: hidden;
           }
@@ -564,11 +504,6 @@
         display: none !important;
       }
 
-      /*
-       * Out of sight, for what reads the page's text: a screen reader's words (what the chart shows, the values read
-       * along it, a key's name), and what the page's links carry (the section first in main: what reads a page's main
-       * reads it first; a page without JavaScript shows it, see the noscript style).
-       */
       .vh,
       .about,
       /* A zero-width flex item loses its text in WebKit: the rail's words keep the same accessible hiding as any label. */
@@ -587,7 +522,6 @@
         font-family: system-ui, sans-serif;
       }
 
-      /* The plot, as the keys reach it: over it, its ring when it has the focus (the pointer goes through to the chart). */
       .plot-keys {
         position: absolute;
         z-index: 1;
@@ -599,7 +533,6 @@
         }
       }
 
-      /* A key, and a pill as one (the version): small, on the pressed ground. */
       :is(kbd, .pill) {
         display: inline-grid;
         min-width: 18px;
@@ -611,22 +544,17 @@
         background: var(--press);
         font: 510 11px/1 var(--sans);
 
-        /* A key's symbols drawn (see drawKeys), in line with its letters; their glyphs kept for a screen reader. */
         &:has(.key) {
           grid-auto-flow: column;
-          /* (Together in a key wider than they are: the sidebar's ⌘K.) */
           justify-content: center;
         }
 
-        /* (Its box's sides trimmed: as close to a letter as a font's symbol sits.) */
         .key {
           width: 1.1em;
           height: 1.1em;
           margin: 0 -1px;
         }
       }
-
-      /* ── Controls ─────────────────────────────────────────────────────────── */
 
       /*
        * Hover lights at once and leaves over the micro step (not inherited: ancestors under the pointer keep theirs).
@@ -642,8 +570,7 @@
         --fade: 0s;
       }
 
-      /* A button with words: a control's height and ground, edged as a field is (an inset ring, as every edged control:
-         a border made it a size of its own); the small one a small icon's (.cap.small). */
+      /* Edged as a field is: an inset ring, as every edged control (a border made it a size of its own). */
       .btn {
         display: inline-flex;
         align-items: center;
@@ -690,14 +617,12 @@
           }
         }
 
-        /* The compact one, in a line of text: a toast, an error, a caption. */
         &.small {
           height: 24px;
           padding: 0 8px;
         }
       }
 
-      /* Icon buttons are bare; a toggle that is on takes the pressed ground. */
       .cap {
         position: relative;
         display: inline-grid;
@@ -718,7 +643,6 @@
           background: var(--hover);
         }
 
-        /* Pressed, every control gives a little, like the buttons. */
         &:active:not(:disabled, [aria-disabled="true"]) {
           transform: scale(0.92);
         }
@@ -744,7 +668,6 @@
           }
         }
 
-        /* (Words for an icon: a list's All and None.) */
         &.words {
           width: auto;
           padding: 0 7px;
@@ -819,7 +742,6 @@
         flex: 1;
       }
 
-      /* Anything still loading: shimmering text, and a soft glow along the bottom edge. */
       .shimmer {
         color: transparent;
         background: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--ink) 50%, var(--muted) 65%, var(--muted) 100%) 0 0 / 250% 100%;
@@ -849,14 +771,11 @@
         animation: breathe 1.8s ease-in-out infinite;
       }
 
-      /* Breathing, for what waits (the glow). */
       @keyframes breathe {
         50% {
           opacity: 0.45;
         }
       }
-
-      /* ── Shell: the sidebar on the page, the chart on one card ───────────── */
 
       .app {
         /* WebKit can leave the document viewport shifted after an installed app rotates (related: WebKit bug 313800). */
@@ -868,7 +787,6 @@
         padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
       }
 
-      /* The sidebar's labels fade as it collapses (icons keep their places). */
       .sidebar {
         position: relative;
         z-index: 2;
@@ -880,13 +798,11 @@
         padding: 10px 8px 8px;
         transition: width var(--dur-layout) var(--ease-layout), margin-left var(--dur-layout) var(--ease-layout), visibility 0s;
 
-        /* Only the list gives way when the column runs out of room (and scrolls): every other row keeps its size. */
         > :not(.chart-list) {
           flex-shrink: 0;
         }
       }
 
-      /* Its brand on the card title's line (its search's top on the header's rule), its last row on the card foot's. */
       @media (min-width: 761px) and (min-height: 501px) {
         .sidebar {
           padding-top: 20px;
@@ -894,7 +810,6 @@
         }
       }
 
-      /* The brand (the theme, Home's: see .home-corner). */
       .side-head {
         position: relative;
         display: flex;
@@ -902,7 +817,6 @@
         justify-content: space-between;
       }
 
-      /* The foot's last row: Collapse (the theme and Shortcuts, Home's: see .home-corner). */
       .side-foot-row {
         display: flex;
         align-items: center;
@@ -921,11 +835,9 @@
         gap: 7px;
         height: 36px;
         border-radius: var(--radius-md);
-        /* (Its mark centered over the icons under it.) */
         padding: 0 8px 0 9px;
         text-decoration: none;
 
-        /* Bitview's mark: a glass cube, drawn (and moved) by the script. */
         .logo {
           position: relative;
           display: grid;
@@ -963,7 +875,6 @@
            slides, while theirs hold (see body[data-sliding] .chart-list); from this to the rail's square, as they go.) */
         width: calc(var(--side) - 16px);
         height: 32px;
-        /* (Over Home's row by a step (8), a field over a list.) */
         margin: 12px 0 8px;
         border: 0;
         border-radius: var(--radius-md);
@@ -995,8 +906,6 @@
           text-overflow: ellipsis;
         }
 
-        /* The way in to everything: its key as every key shows, as it's pointed at or reached by a key, and while ⌘ is
-           held (see data-hints); at rest, its words alone. */
         kbd {
           flex-shrink: 0;
           color: var(--muted);
@@ -1013,7 +922,6 @@
           opacity: 1;
         }
 
-        /* (Hidden with its layer: that layer's eye, faded as the row's mark is.) */
         > .cap.by > * {
           opacity: 0.4;
         }
@@ -1025,7 +933,6 @@
         place-items: center;
       }
 
-      /* A row (the sidebar's, a menu's, ⌘K's: 32 each, see the system's rows). */
       .nav-item {
         display: flex;
         align-items: center;
@@ -1073,9 +980,6 @@
         }
       }
 
-      /* A list's highlight, gliding from row to row as the pointer or the keys go along it (see glides): its ::before,
-         behind its rows (the list its own layer), at the lit row's box, in the list's --glide. A row lit its own way (the
-         open chart, a menu's open row) shows over it. */
       :where(.glides) {
         position: relative;
       }
@@ -1099,8 +1003,6 @@
           transition: opacity var(--dur-small) var(--ease), transform var(--dur-small) var(--ease), width var(--dur-small) var(--ease), height var(--dur-small) var(--ease);
         }
 
-        /* (Placed at once: come from none, there at once where it lands, with what the row shows as it's pointed at (its
-           ⋯, its way): nothing comes after it; its row written anew, it's there as it was.) */
         &[data-still]::before {
           transition: none;
         }
@@ -1118,25 +1020,21 @@
           box-shadow: inset 0 0 0 1px var(--edge);
         }
 
-        /* (A row pressed, where a press has a ground of its own: that alone, as before.) */
         &.menu:has(> button:active)::before,
         &.chart-list:has(:is(.chart-item, .folder-item):active)::before {
           opacity: 0;
         }
       }
 
-      /* (Carried, or the sidebar sliding, its rows changing shape under it: none.) */
       body:is(.carrying, [data-sliding]) .glides::before {
         opacity: 0;
       }
 
-      /* (A row of a group lit by its glide (see glideRows): its ground the glide's, pointed at; pressed, chosen, on, its own.) */
       :is(.side-foot > .nav-item, .head-actions > .cap, .home-undo > .cap, #interval, #window, #ranges > button, .palette-foot .foot-action, .layer-row, .layer-actions > .nav-item, .belt :is(.cap, .btn)):hover:where(.can-hover *):not(:active, [aria-pressed="true"], [aria-checked="true"], [aria-current], .selected, .picked, .lit) {
         background: none;
       }
 
       .chart-list {
-        /* (Its rows' gap, the same open and on the rail.) */
         --row-gap: 4px;
 
         /* (Each row reaching half the gap to the next, unseen: rows meet, none of the list between them pointed at, the
@@ -1152,7 +1050,6 @@
             inset: calc(var(--row-gap) / -2) 0;
           }
         }
-        /* (A row scrolled to clear of its edges' fade.) */
         scroll-padding-block: 28px;
         display: flex;
         flex: 0 1 auto;
@@ -1171,7 +1068,6 @@
         opacity: 1;
       }
 
-      /* Charts and New chart: a step apart as the charts are, a break under them before the list. */
       .side-action {
         flex-shrink: 0;
         color: var(--soft);
@@ -1208,8 +1104,6 @@
         padding-top: 8px;
       }
 
-      /* Live: a badge on the logo's corner, the logo the target: its name says the state (live, connecting, offline),
-         its tip the rest (where from, the price, the last block and when). */
       .live {
         position: absolute;
         right: -7px;
@@ -1227,13 +1121,11 @@
           height: 6px;
           border-radius: 50%;
           background: var(--live);
-          /* (Edged in the sidebar's ground, off the logo; still: a new block rings it once, see .block.) */
           outline: 2px solid var(--app);
           box-shadow: 0 0 8px var(--live);
         }
       }
 
-      /* Offline, or before bitview.space has answered: the dot stills and greys (the last block stays said). */
       .live:is(.offline, .waiting) i::before {
         background: var(--faint);
         box-shadow: none;
@@ -1308,8 +1200,6 @@
           }
         }
 
-        /* (Going, eased in and out, however it goes (closed, its transition's the closed one's; leaving first, in
-           Safari): out at once, it'd read as a cut.) */
         dialog:not(:popover-open),
         #quick:not(:popover-open),
         dialog[data-leaving],
@@ -1332,12 +1222,10 @@
           }
         }
 
-        /* (A rail has no New folder of its own: the grid's, as a phone's.) */
         body[data-sidebar="collapsed"] #home-new-folder {
           display: inline-grid;
         }
 
-        /* Collapsed, the sidebar is a rail: only its own icons stay (the panel's rows are left alone). */
         body[data-sidebar="collapsed"] .sidebar {
           width: var(--side-collapsed);
 
@@ -1346,7 +1234,6 @@
           .nav-item > :not([data-icon], .chart-mark) {
             opacity: 0;
             pointer-events: none;
-            /* (Going back to the rail, the words fade before its edge reaches them.) */
             transition: opacity var(--words-out) var(--ease);
           }
 
@@ -1354,8 +1241,6 @@
             flex: none;
           }
 
-          /* A group's head, its mark alone (the rest faded, out of reach: buttons), its rule short as Charts' is: at the
-             same height, nothing moves. */
           .list-head {
             :is(.head-name, .count, .turn, .chart-more, .chart-go) {
               visibility: hidden;
@@ -1382,7 +1267,6 @@
               background: var(--hover);
             }
 
-            /* (Its page shown: its mark's square lit, as Home's.) */
             .list-head-name[aria-current="page"] {
               background: none;
 
@@ -1392,12 +1276,10 @@
             }
           }
 
-          /* On the rail, the rule under Home is short, at the same height: nothing moves. */
           .side-rule {
             overflow: visible;
           }
 
-          /* (Centered under Home's icon.) */
           .side-rule::after {
             left: 11px;
             width: 20px;
@@ -1409,8 +1291,6 @@
             visibility: hidden;
           }
 
-          /* A row whose menu is open, lit as pointed at while it's open (a menu bar's title): which one it's of, the pointer
-             in it. */
           :is(.chart-row, .folder-row) > .nav-item[data-menu-open] {
             color: var(--ink);
             background: var(--glide, var(--hover));
@@ -1420,14 +1300,10 @@
             background: var(--glide, var(--hover));
           }
 
-          /* (The open chart, or closed over it: its bar against its icon's lit box.) */
           :is(:is(.folder-row, .list-head):is(.holds, .holds-page), .chart-row.active):not(.drop-before, .drop-after)::after {
             left: 3px;
           }
 
-          /* The rail's icons stay where the open sidebar puts them (collapsing and expanding move nothing). (The list's
-             rows that show it, the open chart's, a folder's charts coming into line, New chart: as it narrows; the others,
-             once it's a rail: see there.) */
           .search,
           :is(.chart-row, .folder-row):is(.active, .in-folder, .action-row) > :is(.chart-item, .folder-item),
           .side-action,
@@ -1443,21 +1319,17 @@
             padding: 0 0 0 4px;
           }
 
-          /* Holding ⌘ on the rail: each key takes the place of the icon or mini chart it opens. */
           body[data-hints] & {
             .search,
             .chart-item {
               position: relative;
             }
 
-            /* (Only where a key takes its place: a row with none, a preview's, a preset's, keeps its own.) */
             .search:has(> kbd.mod) > [data-icon],
             .chart-item:has(> kbd.mod) > .chart-mark {
               opacity: 0;
             }
 
-            /* Centered on its button (the rail's buttons are its column's width), sharp (its words' blur, see the rail, not
-               its). */
             :is(.search, .chart-item) > kbd.mod {
               position: absolute;
               top: 50%;
@@ -1471,15 +1343,11 @@
           }
         }
 
-        /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity alone,
-           what a screen draws cheapest, a long list of them at once). Only then: at rest, what a row shows as it's pointed
-           at (its count, its way, its keys) comes at once, with its highlight and its ⋯. (Closing, the rail's own: every
-           word, a row's and a head's, out at once, before its edge reaches it.) */
+        /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity alone, what a screen draws cheapest, a long list of them at once). */
         body[data-sliding]:not([data-sidebar="collapsed"]) .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .list-head :is(.head-name, .count)) {
           transition: opacity var(--words-in) var(--ease) var(--words-wait);
         }
 
-        /* (The widest words a little later, the search's: once there's nearly room for them.) */
         .sidebar .search > :not([data-icon]) {
           --words-wait: 170ms;
           --words-in: 110ms;
@@ -1497,8 +1365,6 @@
           }
         }
 
-        /* (The list's scrollbar while it's pointed at, as the system's own come as they're needed: not as the sidebar's
-           width changes, the list's size with it.) */
         .chart-list:not(:hover) {
           scrollbar-color: transparent transparent;
         }
@@ -1510,8 +1376,6 @@
           overflow-anchor: none;
         }
 
-        /* Collapsing and expanding, every part eases with the sidebar's width (the fields and rows to the rail's squares
-           and back, a folder's charts into line), its icons still all the way. */
         .sidebar {
           .brand,
           .nav-item {
@@ -1522,7 +1386,6 @@
             transition: width var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), box-shadow var(--fade), color var(--fade);
           }
 
-          /* (The list's rows that hold their shape: see above.) */
           .chart-list :is(.chart-row, .folder-row):not(.active, .in-folder, .action-row) > .nav-item {
             transition: background var(--fade), color var(--fade);
           }
@@ -1541,9 +1404,7 @@
         min-width: 0;
         min-height: 0;
         margin: 8px 8px 8px 0;
-        /* Its margins (and its inside's padding: a phone's sheet, full screen) move as the layout does, the chart sized
-           once for it (see sizeOnce); a breakpoint or a turned phone lands at once (--card-motion, see the resize
-           listener): it would resize the chart each frame. */
+        /* Its margins move as the layout does, the chart sized once for it (see sizeOnce); a breakpoint or a turned phone lands at once (--card-motion, see the resize listener): it would resize the chart each frame. */
         transition: margin var(--card-motion, var(--dur-layout)) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
@@ -1580,8 +1441,6 @@
         transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s;
       }
 
-      /* A head too narrow for its buttons' words (a phone's, an iPad's upright beside the sidebar): Share, a preview's Save
-         and a preset's Copy by their icons, as the others are: the title keeps its room (under it, it ran under them). */
       @container head (max-width: 40rem) {
         #share,
         #keep,
@@ -1611,7 +1470,6 @@
         }
       }
 
-      /* (Installed only: see below.) */
       .top-strip {
         display: none;
       }
@@ -1638,10 +1496,6 @@
         }
       }
 
-      /*
-       * Full screen: the chart alone. The sidebar slides off, the header up, the card out to the edges, all as the
-       * sidebar collapses; once gone, they're not drawn at all (the screen's whole, where the browser gives it).
-       */
       .app[data-full] {
         > #side-grip {
           display: none;
@@ -1657,7 +1511,6 @@
           margin: 0;
           border-color: transparent;
           border-radius: 0;
-          /* (On a phone, what the header and the tab bar kept clear: the notch, the home indicator.) */
         }
 
         .card-inner {
@@ -1671,7 +1524,6 @@
           transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s var(--dur-layout);
         }
 
-        /* (A phone's tab bar fading out of its way as for a selection's bar, not gone in a frame.) */
         .mobile-bar {
           visibility: hidden;
           opacity: 0;
@@ -1682,10 +1534,6 @@
         margin-left: calc(-1 * var(--side-collapsed));
       }
 
-      /*
-       * Quick Look: ⌘K's highlighted chart, big, over it (in it: its search keeps the keys), as a dialog pops: what it is
-       * and where, then its picture (drawn on its own: nothing behind it changes).
-       */
       #quick {
         inset: 0;
         width: min(1180px, calc(100vw - 96px));
@@ -1721,8 +1569,6 @@
         padding: 10px 10px 10px 18px;
       }
 
-      /* Its picture: the legend as a tile's (each value after its name), the chart as large as there's room for, its
-         scales' highs and lows, its dates along its foot. */
       .quick-picture {
         display: flex;
         flex: 1;
@@ -1744,7 +1590,6 @@
         }
       }
 
-      /* (A row that isn't a chart: said so, in its place.) */
       .quick-none {
         display: grid;
         flex: 1;
@@ -1787,10 +1632,7 @@
         min-width: 0;
       }
 
-      /* A path's steps (a page's way up, the open chart's place): each a button to its page, "›" between. */
       .crumbs {
-        /* (Its name cut short in a span of its own: the button itself unclipped, a finger's reach about it, see
-           pointer: coarse.) */
         > button:where(:not(.cap)) {
           display: flex;
           border: 0;
@@ -1818,18 +1660,13 @@
         }
       }
 
-      /* Where the chart is, before its name: the section or folder it's in, whole (the name gives way, down to its least;
-         then it too), its menu; where the name's room runs short, the name alone. As the name is set and boxed (its text
-         where the name's would be, one baseline), quieter. */
       .chart-path {
         display: flex;
         flex: none;
         max-width: calc(100% - 7rem);
         align-items: center;
-        /* (Kept wider than its words (see renderChartPath): they're at its end, by the name.) */
         justify-content: flex-end;
         color: var(--muted);
-        /* (A title's size, the system's: the chart's, Quick Look's.) */
         font-size: 15px;
         letter-spacing: -0.015em;
         line-height: 30px;
@@ -1890,8 +1727,6 @@
         }
       }
 
-      /* A tablet's header: the title's room first: the drawing tools and Add in its ⋯ (their keys as ever), Keep alone
-         saying it's a preview (its tip says so). */
       @media (760px < width <= 1100px) and (height > 500px) {
         .card-head :is(#draw-toggle, #add, .preview-said) {
           display: none;
@@ -1956,7 +1791,6 @@
         }
       }
 
-      /* The view linked, at the foot's end: a field as the interval and the ranges are, outlined at all times; on, filled. */
       #link-view {
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
@@ -1972,16 +1806,12 @@
         }
       }
 
-      /* One width for every interval, so the ranges beside it never shift. */
-      /* The interval, a field to pick from: its clock says it's one (beside the ranges, "3M" or "1Y" isn't one of them). */
-      /* (A select, a field: pointed at, its edge lit, as the search's, not its ground deepened, as a button's.) */
       .interval.btn {
         justify-content: flex-start;
         width: 74px;
         padding: 0 8px;
         font-variant-numeric: tabular-nums;
 
-        /* (A window's words are shorter: "30d".) */
         &#window {
           width: 64px;
         }
@@ -2037,7 +1867,6 @@
         /* (Sized ahead of a layout's motion, larger than its box till the motion's end: nothing past its edge.) */
         overflow: clip;
 
-        /* (Every layer hidden: an empty plot's scales would say nothing true.) */
         &:is(.waiting, .unseen) {
           visibility: hidden;
         }
@@ -2055,7 +1884,6 @@
           animation: wipe 1150ms cubic-bezier(0.32, 0.72, 0.2, 1) both;
         }
 
-        /* (A chart switched to: the same wipe, at a page's pace; the page's first, unhurried.) */
         &.reveal.quick::after {
           animation-duration: var(--dur-page);
         }
@@ -2075,7 +1903,6 @@
         cursor: crosshair;
       }
 
-      /* Over a drawing, it can be taken: a hand over it, a grip over one of its points, a box's corner resizes it. */
       .chart[data-over="drawing"] {
         cursor: pointer;
       }
@@ -2100,8 +1927,6 @@
         cursor: ew-resize;
       }
 
-      /* The magnifier's lens: round, the chart under it twice as large on the card's ground, ringed and lifted; the pointer
-         is its center (the cursor hidden over the chart). */
       .loupe {
         position: fixed;
         top: 0;
@@ -2123,12 +1948,10 @@
         }
       }
 
-      /* (The chart's own cursors too, on its axes and pane edges: the lens is the pointer; a button's stays.) */
       body[data-magnifying] :is(.chart, .chart :not(.legend, .legend *, button, button *)) {
         cursor: none !important;
       }
 
-      /* Held, the cursor it was taken with stays wherever the pointer goes (--held: grabbing, or a corner's resize). */
       body[data-held],
       body[data-held] * {
         cursor: var(--held) !important;
@@ -2144,10 +1967,6 @@
         }
       }
 
-      /*
-       * Where a scroller hides more, its edge fades (sideways on a strip or a shelf, up and down on the chart list), as deep as
-       * there's more beyond it, up to 28px: scrolling, it eases in and out with the content, gone at the very end.
-       */
       :is(.strip, .chart-list, .belt-row, .shelf-row).overflows {
         mask-image: linear-gradient(var(--along, to right), transparent, #000 var(--edge-start, 0px), #000 calc(100% - var(--edge-end, 0px)), transparent);
       }
@@ -2164,10 +1983,6 @@
         }
       }
 
-      /* A pane's legend (the library's, its items Studio's: see updateLegends): one row of its layers, each its mark,
-         name and value, scrolling sideways where they don't fit (a .strip: its edges fade, a wheel turns it, the layer
-         pointed at in the plot comes into view). The layers' panel shown, none: the panel names them, reads them, lights
-         the one pointed at (a picture's, every one named: see presentLegends). */
       @media (min-width: 761px) and (min-height: 501px) {
         body:is([data-panel="open"], [data-peek]) :is(.legend, .lens-switch) {
           display: none;
@@ -2207,7 +2022,6 @@
           touch-action: pan-x;
         }
 
-        /* (Room kept clear of its faded edges (see edges: 28px) for an item brought into view.) */
         scroll-padding-inline: 28px;
 
         /* (Its items each reached, as controls; their focus ring inside them: the row clips what's drawn outside.) */
@@ -2219,7 +2033,6 @@
           }
         }
 
-        /* (A caption before the items, a heatmap's scale: it reads them all.) */
         .bc-legend-summary {
           margin-right: 6px;
           color: var(--text);
@@ -2252,9 +2065,6 @@
           }
         }
 
-        /* A profile's key, beside its item: its groups each a square of its color by its name (a few), or a strip of them
-           named at its ends (many), its words edged as an item's are; a bar of one pointed at, the item the group's, its
-           key aside (see paintProfileItems). In a picture, on more lines where it's long (see presentLegends). */
         .profile-key {
           gap: 4px 10px;
           padding-left: 0;
@@ -2279,8 +2089,6 @@
           display: none;
         }
 
-        /* A cloud's key, beside its item: the colors of the layers it's drawn from (folded into it: see foldedInto), a
-           square each, as a profile's groups. */
         .cloud-key {
           gap: 2px;
           padding-left: 0;
@@ -2293,9 +2101,6 @@
           }
         }
 
-        /* An item: its mark and name, its value beside them in a slot as wide as it gets (nothing moves as it's read).
-           As wide as all that, whatever its row: one past the row's width scrolls it, as several do (a picture, its
-           rows wrapped, holds each to its line: see presentLegends). */
         button {
           display: flex;
           flex-shrink: 0;
@@ -2311,7 +2116,6 @@
           pointer-events: auto;
           transition: background var(--fade), color var(--fade);
 
-          /* (Its ground a hover's over the card, solid, its words edged in it, as a selected one's is.) */
           &:hover:where(.can-hover *),
           &.lit {
             --halo: light-dark(color-mix(in srgb, var(--card), #000 4%), color-mix(in srgb, var(--card), #fff 4%));
@@ -2352,8 +2156,6 @@
             filter: drop-shadow(0 0 1px var(--halo, var(--card))) drop-shadow(0 0 1px var(--halo, var(--card)));
           }
 
-          /* Its mark, the switch: pointed at, an eye in its place (a click hides it, and it leaves the legend; with ⌥, it
-             alone shown in its pane). Its own target, a little past the mark, for a finger. */
           .legend-eye {
             display: grid;
             flex-shrink: 0;
@@ -2385,7 +2187,6 @@
               visibility: hidden;
             }
 
-            /* (As its legend is: under the Charts page, where the chart's hidden, hidden too.) */
             .eye {
               visibility: inherit;
             }
@@ -2397,7 +2198,6 @@
             white-space: nowrap;
           }
 
-          /* As large as its name: the weight and the ink set it apart, not the size. */
           .legend-error,
           .legend-value {
             min-height: 18px;
@@ -2407,7 +2207,6 @@
             white-space: nowrap;
           }
 
-          /* (What's wrong cut short at its line's end, as its name is; a value never.) */
           .legend-error {
             min-width: 0;
             overflow: hidden;
@@ -2420,7 +2219,6 @@
             box-sizing: content-box;
             color: var(--ink);
 
-            /* (A named value: in its band's color, see .named.) */
             &.named {
               color: light-dark(color-mix(in oklab, var(--c), black 32%), var(--c));
             }
@@ -2508,14 +2306,6 @@
         }
       }
 
-      /*
-       * The drawing belt, over the plot: its grip, the tools, then what's in hand (a tool's next look, or the selected
-       * drawing's). Placed by script on a side of the plot: along the top or foot it lies (wrapping, if longer than the
-       * plot is wide), along the left or right it stands (.upright). While something's drawn or moved, the pointer goes
-       * through it.
-       */
-      /* (One line: its handle at the start, its tools wrapping beside it where they must, never the handle alone above
-         them.) */
       .belt {
         position: absolute;
         z-index: 3;
@@ -2528,7 +2318,6 @@
         background: var(--raise);
         box-shadow: var(--pop);
         transition: opacity var(--fade);
-        /* (Put away, a copy of it goes as it came, down a little as it fades: see fadeOut and renderBelt.) */
         animation: belt-in var(--dur-small) var(--ease);
 
         &.busy {
@@ -2574,7 +2363,6 @@
           height: 13px;
         }
 
-        /* A tool's key, shown once D is pressed: the next key picks it. */
         kbd {
           position: absolute;
           right: -2px;
@@ -2607,7 +2395,6 @@
         pointer-events: none;
       }
 
-      /* A text being typed on the chart: where it's drawn, as it's drawn, its box sized to it by script. */
       .draw-text {
         position: absolute;
         z-index: 3;
@@ -2626,7 +2413,6 @@
         white-space: pre;
         caret-color: var(--on);
 
-        /* (Empty, what it's for: "Text", "Label", faint in its words' color.) */
         &::placeholder {
           color: color-mix(in srgb, var(--on) 50%, transparent);
         }
@@ -2686,7 +2472,6 @@
         }
       }
 
-      /* Loading: a line sketching itself, shimmering words, the glow. */
       .loading-state {
         position: absolute;
         inset: 0;
@@ -2714,8 +2499,6 @@
         }
       }
 
-      /* Nothing came at all (the server not answering), every layer hidden: said once over the plot, with the way out
-         (loading, or not reached, said first). */
       :is(#loading, #unreached):not([hidden]) ~ #all-hidden {
         display: none;
       }
@@ -2766,7 +2549,6 @@
         letter-spacing: -0.026em;
       }
 
-      /* The page's head: its name (a folder of yours, its menu beside it). */
       .home-brand {
         display: none;
       }
@@ -2778,8 +2560,6 @@
         gap: 8px;
         margin-bottom: 24px;
 
-        /* A page's title, as an empty chart's heading is, and as its name typed in place (it had the browser's own: bold,
-           in the body's grey). */
         h1 {
           margin: 0;
           overflow: hidden;
@@ -2799,7 +2579,6 @@
           margin-left: auto;
         }
 
-        /* (Its name typed in place, as large.) */
         .folder-rename {
           inset: 0 auto 0 -8px;
           width: min(480px, 100%);
@@ -2817,8 +2596,6 @@
       .empty-inner {
         width: min(720px, 100%);
 
-        /* Its foot: on the left, a chart from a file; on the right, its way out (a new one, with a chart to go back to)
-           cancelled. Each in line with the page's words, its button's own room past them. */
         .empty-foot {
           display: flex;
           justify-content: space-between;
@@ -2835,7 +2612,6 @@
         }
       }
 
-      /* Or a chart already made: the recommended presets, each with its mini chart, name and place. */
       .starts {
         margin-top: 30px;
 
@@ -2865,8 +2641,6 @@
         padding: 3px;
       }
 
-      /* The big search fields: Home's, an empty chart's "Search" (buttons into ⌘K) and the grid's filter: the system's big
-         field, as ⌘K's own. */
       :is(.search-cta, .home-filter) {
         display: flex;
         align-items: center;
@@ -2913,9 +2687,6 @@
         }
       }
 
-      /* ── Inspector: a column of the card, sections ruled by hairlines ────── */
-
-      /* Opening and closing, it slides as the sidebar does: its width, its views held at full width inside. */
       .panel {
         --panel-ground: var(--card);
         display: flex;
@@ -2927,21 +2698,12 @@
         border-left: 1px solid var(--line);
         transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout);
 
-        /* (Its views at its own width, held to its inner edge: opening or shutting, they slide in and out with it, as a
-           drawer's, from beyond the card's edge.) */
         > .panel-view {
           min-width: calc(var(--panel-width) - 1px);
         }
       }
 
-      /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), the line between
-         them and the chart lit as it's pointed at or dragged (the accent: what you're moving), focused (the focus ring's):
-         the sidebar's a bar of its own beside the card (its edge round), the panel's its own edge (a line of its own,
-         inside it, sat beside it). Each handle sits outside its clipped view, across the seam: 7px inside the view, the
-         rest over the chart, short of the chart's foot and its controls. Side by side only (a rail, a floating panel, a
-         sheet: none).
-         (Separators: the drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid
-         it.) */
+      /* Each handle sits outside its clipped view, across the seam: 7px inside the view, the rest over the chart, short of the chart's foot and its controls. The drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid it. */
       .grip[role="separator"] {
         position: absolute;
         top: 0;
@@ -2982,7 +2744,6 @@
         --grip-line: 3px;
         grid-area: 1 / 1 / 2 / 2;
         right: calc(var(--grip-inner) - var(--grip-reach));
-        /* (The chart's foot and the card's 8px margin under it.) */
         bottom: calc(var(--stage-foot-height) + 8px);
       }
 
@@ -2999,7 +2760,6 @@
       }
 
       @media (min-width: 1101px) and (min-height: 501px) {
-        /* (Its width as kept, beside the chart only: floating or a sheet, as it comes.) */
         :root {
           --panel-width: var(--panel-kept, 300px);
         }
@@ -3019,7 +2779,6 @@
         }
       }
 
-      /* (Dragged, the widths follow the hand: no motion of their own.) */
       body[data-resizing] {
         cursor: col-resize;
         user-select: none;
@@ -3029,7 +2788,6 @@
         }
       }
 
-      /* Hidden by choice on wide screens, once it has slid shut; on phones the panel is a sheet and follows its own rule. */
       @media (min-width: 761px) and (min-height: 501px) {
         body[data-panel="closed"]:not([data-peek]) .panel {
           width: 0;
@@ -3050,12 +2808,9 @@
         min-height: 0;
         overflow-y: auto;
         scrollbar-width: thin;
-        /* (What's scrolled into view lands under its head.) */
         scroll-padding-top: 50px;
 
-        /* Its head (the list's, a layer's: ‹, its name, ×) stays at its top as it scrolls, on the panel's own ground
-           (over what passes under it, the color surface's ring too); a rule under it as something passes, as strong as
-           how far, whole by 16px (--scrolled: set as it scrolls), so a scroll about its top never flashes it on and off. */
+        /* Its head stays at its top as it scrolls, on the panel's own ground; a rule under it as something passes, whole by 16px (--scrolled), so a scroll about its top never flashes it on and off. */
         > :is(.panel-head, .inspector-head) {
           position: sticky;
           top: 0;
@@ -3071,7 +2826,6 @@
         animation: slide var(--dur-small) var(--ease);
       }
 
-      /* (The list, the panel's first, comes back from the left: a layer's settings went to the right.) */
       body:not([data-inspect]) #layers-view {
         animation-name: slide-back;
       }
@@ -3090,7 +2844,6 @@
           font: 590 13px/20px var(--sans);
         }
 
-        /* Inside the title, so it sits on the title's baseline. */
         .count {
           margin-left: 3px;
           color: var(--count);
@@ -3098,8 +2851,6 @@
           font-variant-numeric: tabular-nums;
         }
 
-        /* What the rows' changes are since, over them: the view's start, its edge theirs (clear of the rows' eyes, a cap
-           and its 2px). */
         .since {
           overflow: hidden;
           margin-right: 30px;
@@ -3111,7 +2862,6 @@
         }
       }
 
-      /* The call at the caret: its arguments (the one at the caret marked), what that one takes, what the call does. */
       .call-help {
         padding: 8px 10px;
         color: var(--soft);
@@ -3122,7 +2872,6 @@
           overflow-x: auto;
           color: var(--muted);
           font: 12px/1.6 var(--mono);
-          /* (A signature on one line, never broken between its arguments; a long one slides.) */
           white-space: nowrap;
           scrollbar-width: none;
 
@@ -3155,13 +2904,11 @@
         .call-error {
           color: var(--danger);
 
-          /* Being typed, as on the status line, it waits. */
           .typing & {
             color: var(--muted);
           }
         }
 
-        /* In ⌘K, a line under the field, one height for the guide and a call's help: nothing below it moves. */
         .palette > & {
           height: 75px;
           overflow: hidden;
@@ -3177,7 +2924,6 @@
             white-space: nowrap;
           }
 
-          /* (How formulas read, no call's help: its lines wrapped, read whole, in the same height, even.) */
           &:not(:has(.call-sig)) p {
             white-space: normal;
             text-wrap: balance;
@@ -3185,20 +2931,15 @@
         }
       }
 
-      /* A preset edited here (its edits kept, unlike a preview's): a small pencil, quiet as a count, where a preview's dot
-         would be (its row's, in a folder's count's place; its tile's, after its name). */
       :root {
         --edited-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10.5 2.5 3 3-8 8H2.5v-3z'/%3E%3Cpath d='m8.5 4.5 3 3'/%3E%3C/svg%3E");
       }
 
-      /* (A value older than the view's end: when it's from, after it, quieter: see asOf.) */
       [data-value][data-as-of]::after {
         content: " · " attr(data-as-of);
         color: var(--muted);
         font-weight: 400;
       }
-
-      /* ── Dialogs, menus, toasts, tooltips ────────────────────────────────── */
 
       dialog {
         border: 0;
@@ -3207,7 +2948,6 @@
         color: var(--text);
         background: var(--raise);
         box-shadow: var(--pop);
-        /* (Its dim, the page behind it.) */
         --dim: var(--scrim);
 
         &::backdrop {
@@ -3224,8 +2964,6 @@
         }
       }
 
-      /* Entrances: a dialog pops, a menu grows from its button, a bar or a sheet rises, a tip or a backdrop appears, a
-         panel's view slides in. */
       @keyframes pop {
         from {
           opacity: 0;
@@ -3267,14 +3005,11 @@
         }
       }
 
-      /* A dialog's head (the shortcuts', the guide's): its name and its ×, a rule under it, what scrolls kept apart. */
       .dialog-head {
         display: flex;
         align-items: center;
         gap: 6px;
         border-bottom: 1px solid var(--line);
-        /* (Its close button (a small one, 24, round 6) in the dialog's corner, concentric with it: 10 from its top and
-           side, its 6 and 10 the dialog's 16; by touch, its 44 reach whole inside.) */
         padding: 10px 10px 10px 20px;
 
         h2 {
@@ -3286,8 +3021,6 @@
         }
       }
 
-      /* The palette floats like a launcher, keys along the bottom. */
-      /* (Its handle a phone's sheet's alone; the shortcuts' and the guide's too.) */
       :is(.palette, .shortcuts) > .menu-handle {
         display: none;
       }
@@ -3315,7 +3048,6 @@
           display: flex;
         }
 
-        /* Looking clears the preview and backdrop to show the chart (search, list and foot stay solid to read). */
         &[data-looking] {
           background: none;
           --dim: transparent;
@@ -3332,16 +3064,8 @@
         }
       }
 
-      /* ⌘K opened on Home (see placeOnHome): ⌘K's list, all of it (its rows, headings, pages and folders), on Home's
-         search, part of the page (not dimmed): as wide as it, its field over it, as tall as its rows, at most 360 (less,
-         where the window's foot is nearer); no preview, no keys' foot (a row's actions by the row, see showActions), its
-         corners concentric with its rows' (their radius and the list's padding, 10 all round). Coming, it unrolls down from the field
-         as it fades in, from its second frame (`data-arriving` its first, see openPalette: the dialog's opening is the
-         heavy one, and a motion begun in it shows a third of the way on); going, it rolls back up
-         into it as it fades out (no pop: its field stays on Home's), Home's field fading out and back under it (never a
-         moment without a field; its corners are rounder than the field's). */
+      /* ⌘K opened on Home (see placeOnHome): coming, it unrolls down from the field as it fades in, from its second frame (data-arriving its first, see openPalette: the dialog's opening is the heavy one, and a motion begun in it shows a third of the way on); going, it rolls back up into it, Home's field fading out and back under it (never a moment without a field). */
       .palette[data-on-home] {
-        /* (Its height its own: a popover's held to the window's foot too.) */
         bottom: auto;
         width: var(--on-w);
         height: auto;
@@ -3349,8 +3073,6 @@
         margin: var(--on-y) 0 0 var(--on-x);
         border-radius: var(--home-radius);
         --dim: transparent;
-        /* (Shown whole, its shadow too; rolled up, its field alone. Unrolling, as a thing that resizes does (in and out,
-           the layout's time): gentle from its first frame, never most of it in one.) */
         clip-path: inset(-100px);
         transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
 
@@ -3358,9 +3080,6 @@
           animation: none;
         }
 
-        /* (Rolled up: its field's corners, Home's field's, rounding to its own as it unrolls.) */
-        /* (Rolled up, the field's box exactly, its corners (no shadow about it yet: it comes as it unrolls); its moving
-           foot's corners round, as the field's, none once it's whole, its own then.) */
         &:is(:not(:popover-open), [data-leaving], [data-arriving]) {
           transform: none;
           clip-path: inset(0 0 calc(100% - 48px) 0 round var(--radius-lg));
@@ -3393,8 +3112,6 @@
           border-right: 0;
         }
 
-        /* (Its field's words as far in as Home's; its list as far from its every edge, its first heading too (its room
-           above it is for the rows over it), its rows' icons and words under the field's.) */
         .palette-search {
           padding-left: var(--home-inset);
         }
@@ -3415,7 +3132,6 @@
         opacity: 0;
       }
 
-      /* (Its words as far in as Home's search's.) */
       .palette-search {
         display: flex;
         align-items: center;
@@ -3487,7 +3203,6 @@
         border-right: 1px solid var(--line);
       }
 
-      /* Nothing found: the list alone, across (no empty preview beside it). */
       .palette[data-none] {
         .palette-body {
           grid-template-columns: minmax(0, 1fr);
@@ -3502,8 +3217,6 @@
         }
       }
 
-      /* Where in the catalog: a crumb per level to go back to, the current one bright; too long, it loses levels
-         from the left behind "…". Its words start on the list's. */
       .path {
         display: flex;
         flex-shrink: 0;
@@ -3544,21 +3257,17 @@
           }
         }
 
-        /* Only when "… › current" alone doesn't fit does the current name shorten. */
         &.tight [aria-current] {
           flex-shrink: 1;
           min-width: 0;
         }
       }
 
-      /* Adding a formula: it's written in mono, as its pieces are named; a layer shows by its color. */
       .palette[data-mode="formula"] .palette-search input,
       .palette-list code {
         font-family: var(--mono);
       }
 
-      /* (Its scrollbar's room kept, where a scrollbar takes room: a page that scrolls and one that doesn't, its rows as
-         wide.) */
       .palette-list {
         flex: 1;
         --glide: var(--press);
@@ -3566,13 +3275,10 @@
         scrollbar-gutter: stable;
         margin: 0;
         padding: 6px;
-        /* (A row reached by the arrows stops as far from the edge as the first one sits.) */
         scroll-padding-block: 6px;
         list-style: none;
         scrollbar-width: thin;
 
-        /* (Its rows' names a step over the app's rows' (14): a launcher's list, read at a glance as it's typed in; their
-           asides, headings and keys as they are.) */
         li {
           display: flex;
           align-items: center;
@@ -3583,7 +3289,6 @@
           font-size: 14px;
           cursor: pointer;
 
-          /* (The row ↵ runs: on the list's highlight, edged, as a menu's row reached by keys is; see glides.) */
           &[aria-selected="true"] {
             > svg {
               color: var(--ink);
@@ -3594,7 +3299,6 @@
             }
           }
 
-          /* (Each in the chart mark's 16px column: labels start at one x.) */
           > svg {
             flex-shrink: 0;
             width: 16px;
@@ -3608,7 +3312,6 @@
             }
           }
 
-          /* (A folder's or a section's mark, in that column too: its glyph in its middle, not at its line's top.) */
           > span.chart-mark {
             display: inline-flex;
             flex-shrink: 0;
@@ -3621,13 +3324,10 @@
             flex-shrink: 0;
           }
 
-          /* (A row's keys, laid out as the row's own (a two-line row's, one cell beside both lines).) */
           .item-keys {
             display: contents;
           }
 
-          /* (A row's name before its aside, each its share of the row, see .item-meta; a name longer than its share, cut
-             at its end. What follows the name, at the row's end.) */
           .item-name {
             flex: 2 1 0;
             min-width: 0;
@@ -3638,8 +3338,6 @@
             white-space: nowrap;
           }
 
-          /* (By touch, a row's actions: its ⋯ at its end, as tall as a finger needs, past the row's own padding; its
-             keyboard in use, its foot's Actions instead, see keyboardKey.) */
           .row-more {
             flex-shrink: 0;
             align-self: stretch;
@@ -3731,14 +3429,12 @@
           font: 590 13px/1.45 var(--mono);
           overflow-wrap: anywhere;
 
-          /* (Its title as large as the list's rows, set apart by its weight.) */
           &.plain {
             font: 590 14px/1.35 var(--sans);
             letter-spacing: -0.01em;
           }
         }
 
-        /* A series' name in the API, under the one read. */
         .series-id {
           margin: 3px 0 0;
           color: var(--muted);
@@ -3829,7 +3525,6 @@
           height: 28px;
           margin: 0 -6px;
           border: 0;
-          /* (A control's: 28 tall, 8 round, as the system has them.) */
           border-radius: var(--radius-md);
           padding: 0 6px;
           color: inherit;
@@ -3866,39 +3561,30 @@
         }
       }
 
-      /* ⌘K's ×: only where its foot's Close isn't (by a finger, or a window too small for the foot to have it). */
       @media (min-width: 761px) and (min-height: 501px) and (hover: hover), (min-width: 761px) and (min-height: 501px) and (pointer: fine) {
         .palette-search > [data-action="close-palette"] {
           display: none;
         }
       }
 
-      /* ⌘K by a finger: no keyboard's foot (↵, actions, esc), no row lit before one's touched; a row's other actions,
-         held (as cards and layers are picked). */
       @media (hover: none) and (pointer: coarse) {
-        /* (Its keyboard in use (an iPad's), as anywhere: see keyboardKey.) */
         :root:not([data-keyboard]) .palette-foot {
           display: none;
         }
 
-        /* (A finger's: no highlight, the row it presses lit as it does.) */
         :root:not([data-keyboard]) .palette-list::before {
           display: none;
         }
       }
 
-      /* Single-key shortcuts off: their caps go too (the sheet keeps them, as it says what they'd be). */
       body[data-single-off] :is(kbd[data-single], .sequence:has(kbd[data-single])):not(.shortcuts *) {
         display: none !important;
       }
 
-      /* Grouped by what they act on, each action read first and its keys across from it. */
-      /* How links work: the guide, to read: a column of text (a line about 75 characters), its examples set apart. */
       .shortcuts.guide {
         width: min(560px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
       }
 
-      /* (Scrolled, the last rows fade under its edge, not cut there.) */
       .shortcuts::after {
         content: "";
         position: sticky;
@@ -3947,7 +3633,6 @@
           white-space: pre-wrap;
         }
 
-        /* An example in a line: the code's face, on a faint ground (broken over lines, each piece its own, ends and all). */
         code {
           border-radius: var(--radius-sm);
           padding: 1px 4px;
@@ -3959,7 +3644,6 @@
         }
       }
 
-      /* (Centered in what the screen leaves: on a phone, clear of its status bar and home indicator, its notch on its side.) */
       .shortcuts {
         inset: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         width: min(780px, calc(100vw - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
@@ -3979,7 +3663,6 @@
           padding: 0 20px 18px;
         }
 
-        /* Single-key shortcuts, on or off: a setting over the keys it turns. */
         .keys-setting {
           display: flex;
           align-items: center;
@@ -4036,7 +3719,6 @@
           font-size: 12px;
         }
 
-        /* (A phone's, on its side too: a column's width.) */
         @media (max-width: 760px), (max-height: 500px) {
           .key-groups {
             grid-template-columns: minmax(0, 1fr);
@@ -4051,7 +3733,6 @@
         min-width: 196px;
         max-height: calc(100dvh - 16px);
         overflow-y: auto;
-        /* (A panel's 12: its rows' 8 and the 4 between, concentric with them.) */
         border-radius: calc(var(--radius-md) + 4px);
         padding: 4px;
         scroll-padding-block: 4px;
@@ -4059,12 +3740,10 @@
         box-shadow: var(--pop);
         animation: menu var(--dur-small) var(--ease);
 
-        /* (Focused as a whole, opened by a finger: no ring around it.) */
         &:focus {
           outline: none;
         }
 
-        /* (A submenu over it, in its place for want of room beside: out of sight till it goes, see showSubmenu.) */
         &[data-covered] {
           visibility: hidden;
         }
@@ -4074,7 +3753,6 @@
           align-items: center;
           gap: 10px;
           width: 100%;
-          /* (No wider than this for its words: a long name (a chart's) cut, whole on hover, not the menu as wide as it.) */
           max-width: 22rem;
           height: 32px;
           border: 0;
@@ -4085,7 +3763,6 @@
           text-align: left;
           white-space: nowrap;
 
-          /* (Pointed at or reached by keys, its ground the menu's highlight, see glides; its submenu open, its own.) */
           &:hover:where(.can-hover *),
           &:focus-visible,
           &[aria-expanded="true"] {
@@ -4097,13 +3774,10 @@
             background: var(--press);
           }
 
-          /* (Its own ground only while its menu's highlight is out (the pointer gone into its submenu): lit, the highlight's
-             there, or gliding there, alone; its own at once with it, two grounds till it lands.) */
           &[aria-expanded="true"]:where(.menu:is([data-glide="on"], [data-glide="keyed"]) > *) {
             background: none;
           }
 
-          /* (Reached by keys: edged too, a tint alone too faint to find; the row keys act on, the highlight elsewhere or not.) */
           &:focus-visible {
             box-shadow: inset 0 0 0 1px var(--edge);
           }
@@ -4116,7 +3790,6 @@
             opacity: 0.35;
             cursor: default;
 
-            /* (Why it can't be picked, in a few words: its name read first, the reason whole in its tip.) */
             :is(span:not(.letter, .label, .chart-mark), kbd) {
               max-width: 14em;
             }
@@ -4137,8 +3810,6 @@
             color: var(--muted);
           }
 
-          /* (A folder's or a section's mark: its glyph in its middle (not at its line's top), in the icons' column (a
-             sheet's icons are wider: as wide as its glyph).) */
           > .chart-mark {
             display: inline-flex;
             flex-shrink: 0;
@@ -4151,8 +3822,6 @@
             color: var(--ink);
           }
 
-          /* At its end, an aside: the format it makes, where it goes, or its key (plain, not a keycap); cut if long. (A
-             layer's letter is its badge, as everywhere.) */
           > .label {
             overflow: hidden;
             min-width: 0;
@@ -4160,9 +3829,6 @@
             white-space: nowrap;
           }
 
-          /* (An aside: not its name, nor a mark (a folder's, a section's). As wide as the longest the app says there, a
-             scale's ("Indexed to 100 at the first value in view"): a menu as wide as it needs, no wider; a row that
-             can't be picked, less, see above.) */
           :is(span:not(.letter, .label, .chart-mark), kbd) {
             display: inline;
             overflow: hidden;
@@ -4199,7 +3865,6 @@
             margin-inline: 1px;
           }
 
-          /* (A folder's mark, a section's: as large as the icons beside it, its words where theirs are, as quiet.) */
           > :is(.folder-mark, .section-mark) {
             width: 16px;
             height: 16px;
@@ -4217,8 +3882,6 @@
           }
         }
 
-        /* The open chart's way down (the folder it's in at each level, the chart itself): the sidebar's bar at the row's
-           start, in the menu's edge. */
         > button:has(> .menu-holds) {
           position: relative;
         }
@@ -4226,7 +3889,6 @@
         .menu-holds {
           position: absolute;
           top: 50%;
-          /* (Against the row's lit box.) */
           left: -2px;
           width: 2px;
           height: 20px;
@@ -4235,14 +3897,11 @@
           translate: 0 -50%;
         }
 
-        /* In a checked list, where an unchecked item's check would be. */
         .menu-space {
           flex-shrink: 0;
           width: 16px;
         }
 
-        /* (Its title, on top: kept there as a long one scrolls, what it's of in sight (a row reached by keys scrolled in
-           under it: see showMenu); on a sheet, under its handle, held too.) */
         > .menu-group:first-child {
           position: sticky;
           top: -4px;
@@ -4257,8 +3916,6 @@
           color: var(--muted);
           font-size: 12px;
           font-weight: 510;
-          /* (As wide as its rows make the menu, not wider: a long name (a chart's, on top of its menu) cut, not the menu
-             as wide as it.) */
           width: 0;
           min-width: 100%;
           overflow: hidden;
@@ -4266,12 +3923,10 @@
           white-space: nowrap;
         }
 
-        /* A page of a menu, on a phone: its ‹ back to the menu it came from, then its name (as Custom's, a color's). */
         .menu-title {
           display: flex;
           align-items: center;
           gap: 4px;
-          /* (A row's height: its ‹'s reach, 44, all its own.) */
           min-height: 44px;
           padding: 2px 10px 2px 2px;
           color: var(--ink);
@@ -4280,7 +3935,6 @@
 
         .menu-row {
           display: grid;
-          /* (Three a row, unless a row says (--cols: a window's four short words, in one).) */
           grid-template-columns: repeat(var(--cols, 3), 1fr);
           gap: 3px;
           padding: 2px 6px 6px;
@@ -4335,13 +3989,11 @@
         bottom: 20px;
         left: 50%;
         z-index: 30;
-        /* (As wide as what it says, up to the window's: centered on its left, the room past that would cap it at half.) */
         width: max-content;
         max-width: calc(100vw - 24px);
         display: flex;
         align-items: center;
         gap: 14px;
-        /* (Its corners concentric with its buttons' (theirs and the 6 between): they sit in them.) */
         border-radius: calc(var(--radius-md) + 6px);
         padding: 6px 6px 6px 10px;
         color: var(--ink);
@@ -4389,7 +4041,6 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        /* (Its own width, measured wherever the last tip was left: one line where one fits.) */
         width: max-content;
         max-width: 280px;
         margin: 0;
@@ -4400,7 +4051,6 @@
         box-shadow: var(--pop);
         font-size: 12px;
         line-height: 1.35;
-        /* (A run with no space in it, a formula's, broken at its edge: never past it, nor a line of its own for it.) */
         overflow-wrap: anywhere;
         pointer-events: none;
         animation: appear var(--dur-micro) var(--ease);
@@ -4413,7 +4063,6 @@
           padding-right: 9px;
         }
 
-        /* (Its lines after the first, quieter: more about what the first names.) */
         .tip-more {
           display: block;
           margin-top: 2px;
@@ -4430,8 +4079,6 @@
           }
         }
       }
-
-      /* ── Keys on screen: while ⌘ is held, every visible control shows its key ── */
 
       .sidebar kbd.mod {
         width: 26px;
@@ -4461,16 +4108,10 @@
         pointer-events: none;
       }
 
-      /* The interface settles in once, as its first render's done. */
       html[data-ready] body.boot :is(.sidebar > *, .card, .home) {
         animation: rise var(--dur-page) var(--ease) backwards;
         animation-delay: calc(var(--i, 0) * 40ms);
       }
-
-      /* ── The Charts page (your Library and the presets, wherever in them): a page as "Start a chart" is, on the app
-         itself (no card around it: each chart is one), in the open chart's place, to its window's edges; the chart
-         under it laid out as it is, not drawn, to come back at once. While a chart grows out of a tile or shrinks back
-         into one (data-morph, see morph), both shown, the chart's card over the page. ── */
 
       :is(.card, .home) {
         grid-row: 1;
@@ -4478,11 +4119,8 @@
       }
 
       .home {
-        /* (The room over the page's first row: its top corner's row is placed by it too, see .home-top.) */
         --home-room: 56px;
         --home-top: var(--home-room);
-        /* (Its big fields and their squares on the light page's grey: white, as the cards on it, a field to type in where
-           the controls' grey read as one switched off. An empty chart's, on its card's white, keep the field's grey.) */
         --big-field: light-dark(var(--card), var(--field));
         position: relative;
         z-index: 1;
@@ -4513,7 +4151,6 @@
         position: absolute;
         inset: 0;
         overflow-y: auto;
-        /* Room all around; at the foot, for the selection's bar too. */
         --gutter: clamp(20px, 5vw, 64px);
         padding: var(--home-top) var(--gutter) 112px;
         scrollbar-width: thin;
@@ -4524,7 +4161,6 @@
         margin: 0 auto;
       }
 
-      /* What the sidebar's foot says (live), at the grid's foot: shown where there's no sidebar. */
       .home-device {
         display: none;
       }
@@ -4533,14 +4169,12 @@
         display: flex;
         gap: 8px;
 
-        /* (It gives the room the tools need, down to a phone's.) */
         .home-filter {
           flex: 1;
           min-width: 0;
         }
       }
 
-      /* (A big field's square beside it (New folder by the grid's filter): as tall.) */
       .field-cap {
         width: 48px;
         height: 48px;
@@ -4586,12 +4220,9 @@
         font-size: 15px;
       }
 
-      /* Home's horizon: the price's history under the page, its lower 60%, behind what's on it and out of reach (see
-         renderHorizon); the halvings faint rules. */
       .home-horizon {
         position: absolute;
         inset: auto 0 0;
-        /* (Its highest a little over the middle of the page, under Home's own.) */
         height: 60%;
         pointer-events: none;
 
@@ -4609,8 +4240,6 @@
         }
       }
 
-      /* Home's corners, over its horizon: at the top right, a row as the chart's head has (Undo and Redo, a rule, the
-         theme); at the bottom right, Studio's own (how links work, the shortcuts by keys, the version, a pill). */
       .home-corner {
         position: absolute;
         right: 12px;
@@ -4639,7 +4268,6 @@
         align-items: center;
         gap: 4px;
 
-        /* (As tall as the buttons beside it, their corners: one row.) */
         .pill {
           height: 24px;
           margin-left: 4px;
@@ -4653,17 +4281,13 @@
         }
       }
 
-      /* Home's question, what it's for, over its live line and its search. */
       .home-question {
         margin: 0 0 24px;
         color: var(--ink);
-        /* (A page's title, as every one's: see .home-head h1.) */
         font: 590 28px/1.2 var(--sans);
         letter-spacing: -0.026em;
       }
 
-      /* Over Home's search, with it: Bitcoin as it is, live, quietly: the chain at its left, the price at its right, as far
-         in as the field's own words and its doors' (see .home-doors). */
       .home-pulse {
         display: flex;
         justify-content: space-between;
@@ -4675,17 +4299,13 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* Under Home's search, from its left, its doors: a group each, the app's ghost button (its mark beside its name, as
-         the sidebar's; how many, after it); at its right, New chart (a phone's in its tab bar). */
       .home-doors {
         display: flex;
         align-items: flex-start;
         justify-content: space-between;
         gap: 4px;
-        /* (Their icons and words as far in as the field's: a button's own room, and this.) */
         padding: 0 calc(var(--home-inset) - 8px);
 
-        /* (Close set: all four on one line down to a 375-wide phone.) */
         .btn {
           gap: 4px;
           padding-inline: 8px;
@@ -4705,28 +4325,22 @@
         margin-top: 24px;
         border-radius: var(--radius-xl);
 
-        /* A drop off any folder's box: out of its folder. */
         &.drop-target {
           outline: 1px dashed var(--line-strong);
           outline-offset: 11px;
         }
       }
 
-      /* The presets' gallery: where it is (up a level, each level), then a section's own charts and a shelf for each
-         section under it, a row of its charts its name leads into; a phone's, a row swiped across (the next one showing
-         at its edge), to the window's edges. */
       .gallery-path {
         display: flex;
         align-items: center;
         gap: 4px;
         white-space: nowrap;
-        /* (In the room above the page's name: the name where it is on every page, the way up over it.) */
         height: 28px;
         margin: calc(-1 * min(36px, var(--home-room) - 8px)) 0 8px;
         color: var(--muted);
         font-size: 13px;
 
-        /* (The way up, its reach whole beside the first level's: 10px apart.) */
         > .cap {
           flex: none;
           margin: 0 6px 0 -6px;
@@ -4743,19 +4357,16 @@
       .shelf:is(:hover:where(.can-hover *), :has(:focus-visible)) .shelf-step {
         opacity: 1;
 
-        /* (At its row's end, as every control that can't act: dimmed.) */
         &[aria-disabled="true"] {
           opacity: 0.35;
         }
       }
 
-      /* (A phone's and a rail's: beside a whole sidebar, New folder is the sidebar's.) */
       #home-new-folder {
         display: none;
         flex-shrink: 0;
       }
 
-      /* At the grid's end, under a rule, the way elsewhere (they're kept in this browser): them all in one file, and back. */
       .home-foot {
         display: grid;
         justify-items: center;
@@ -4779,7 +4390,6 @@
         }
       }
 
-      /* A selection's bar, its selection cleared: it leaves as it came (down a little as it fades), out of reach meanwhile. */
       .pick-bar {
         transition: opacity var(--dur-small) var(--ease), translate var(--dur-small) var(--ease), visibility var(--dur-small), display var(--dur-small) allow-discrete;
 
@@ -4816,7 +4426,6 @@
         }
       }
 
-      /* What's picked, and what to do with it: over the foot of where it's picked (the grid's, the layers'). */
       .pick-bar {
         z-index: 2;
         display: flex;
@@ -4837,13 +4446,11 @@
           }
         }
 
-        /* (The layers' actions by their icons, their tips naming them; a phone names them under them.) */
         .cap .label {
           display: none;
         }
       }
 
-      /* (Over the page's tiles and shelves.) */
       .home-bar {
         position: absolute;
         z-index: 4;
@@ -4851,13 +4458,11 @@
         left: 50%;
         translate: -50% 0;
 
-        /* (Down a little as it goes, still centered.) */
         &[hidden] {
           translate: -50% 6px;
         }
       }
 
-      /* Under the layers, kept in sight as the list scrolls. */
       .layers-bar {
         position: sticky;
         bottom: 12px;
@@ -4866,8 +4471,6 @@
         margin: auto 0 12px;
       }
 
-      /* A selection's count and the × that ends it, one chip at the bar's start (as Linear's): what's picked, and letting go
-         of it, together. */
       .pick-count {
         display: inline-flex;
         flex: none;
@@ -4886,20 +4489,16 @@
         display: none;
       }
 
-      /* Tablets: the panel floats over the chart (closed at first; P, the toggle or a selection opens it). */
       @media (max-width: 1100px) {
         .panel .sheet-close {
           display: inline-grid;
           margin-left: auto;
         }
 
-        /* (Its close in the eyes' column: what the changes are since, beside it.) */
         .panel .since {
           margin-right: 2px;
         }
 
-        /* Floating over the plot, never over the time axis nor the foot under it; it slides in and out whole, from the
-           right. */
         .panel {
           position: absolute;
           top: 8px;
@@ -4923,9 +4522,6 @@
           }
         }
 
-        /* A tablet upright: the panel a sheet across the card's foot, the chart above it whole, every year and its axis
-           in sight while a layer's changed (as a phone's half sheet; closed by its ×); away, it slides down. Nothing
-           under it to float over: the card's own foot, flush, a line over it, not a framed box inside the card's frame. */
         @media (min-width: 761px) and (min-height: 501px) and (orientation: portrait) {
           .panel {
             inset: auto 0 0;
@@ -4947,15 +4543,10 @@
         }
       }
 
-      /* Only on phones, under their sheets (below). */
       .scrim {
         display: none;
       }
 
-      /*
-       * Phones: the chart is the page, charts the grid, layers and menus sheets (tabs at the foot, sized for a thumb,
-       * clear of the notch).
-       */
       @media (max-width: 760px), (max-height: 500px) {
         .app {
           grid-template-columns: minmax(0, 1fr);
@@ -4984,8 +4575,6 @@
         }
 
         .home {
-          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
-             bar is its own; no room there, nothing). */
           &::after {
             content: "";
             position: fixed;
@@ -5013,14 +4602,10 @@
           --bar-room: calc(var(--bar-y) + var(--bar-h) + 8px);
         }
 
-        /* Over the tab bar, not on it. */
         .toast {
           bottom: var(--bar-room);
         }
 
-        /* The header: the title (its name, read: Rename in ⋯ edits it), Undo (Save in its place for a preview, Copy for a
-           preset, till it's edited), Share, ⋯ (Redo in it, the drawing tools, a preset's Reset), each by its icon; "Saved"
-           said elsewhere, taking no room from the title (not saved, it stays: it lasts). */
         #saved:not(.error),
         #preset-reset,
         .card-head #draw-toggle,
@@ -5029,33 +4614,25 @@
           display: none;
         }
 
-        /* (Read, not edited, till Rename: a tap on it is nothing's.) */
         .title[readonly] {
           pointer-events: none;
         }
 
-        /* The navigator, upright, a row of its own over the interval and the ranges, the screen's width: a whole history
-           crossed in one drag (pinch and pan for the detail). */
         .navigator {
           order: -1;
           flex: 1 0 100%;
           height: 24px;
 
-          /* (Its drawing as tall as the row is, whatever the row: folding, cut by it, not drawn again, see below.) */
           canvas {
             bottom: auto;
             height: 24px;
           }
         }
 
-        /* (Its row moving as the foot's: the foot's children's fade, see the belt's, its own.) */
         .stage-foot .navigator {
           transition: height var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), opacity var(--dur-micro) var(--ease), visibility 0s;
         }
 
-        /* (Not over a half sheet: the chart above it, small then, has its room. Folded away with the sheet's motion, its
-           row, its margins and the gap over the ranges, as the card's foot moves (the chart sized once for it: see
-           sizeOnce); back the same way.) */
         body[data-sheet="panel"]:not([data-sheet-size="full"]) .navigator {
           height: 0;
           margin-block: 0 -8px;
@@ -5064,8 +4641,6 @@
           transition-delay: 0s, 0s, 0s, var(--dur-layout);
         }
 
-        /* The drawing belt: in the stage foot's place (see placeBelt), one row sliding sideways, its edges fading where
-           there's more past them (its caption, above it, outside the row). */
         .belt {
           flex-wrap: nowrap;
           border-radius: 0;
@@ -5083,8 +4658,6 @@
             align-items: center;
             gap: 2px;
             min-width: 0;
-            /* (Room about its buttons, above and under them and before the first and after the last, for their focus rings,
-               keys and a finger's reach: a row that slides cuts what passes it.) */
             margin: -8px;
             padding: 8px;
             scroll-padding-inline: 8px;
@@ -5098,15 +4671,11 @@
             flex-shrink: 0;
           }
 
-          /* (Its tools alone: across it, evenly, all of them in view; its way out the chart's ⋯, Hide the drawing tools.
-             A tool in hand, its looks after them: the row slides.) */
           .belt-row.spread > .belt-tools {
             flex: 1;
             justify-content: space-between;
             gap: 0;
 
-            /* (Each its share of the row, 36 at most (where there's room, apart as elsewhere), a finger's reach that
-               share: up to the next one's, not over it.) */
             .cap {
               flex: 1 1 0;
               max-width: 36px;
@@ -5125,30 +4694,24 @@
           opacity: 0;
         }
 
-        /* (Back as the belt's gone: faded in.) */
         .stage-foot > * {
           transition: opacity var(--dur-micro) var(--ease);
         }
 
-        /* (The header as an iOS bar: its controls, and 4px about them.) */
         .card-head {
           padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
         }
 
-        /* (Its text on the header's edge: the place's, else the name's.) */
         .head-title {
           margin-left: -6px;
         }
 
         .title {
           flex: 1;
-          /* (Room left for the header's actions on the narrowest phone: the title truncates first.) */
           min-width: 4rem;
           max-width: none;
         }
 
-        /* The layers (and a layer's settings): a sheet from the foot (half, the chart above it live; whole, over a dimmed
-           page), or a column at the side on a phone on its side; its handle drags it. */
         .panel {
           --panel-ground: var(--raise);
           position: fixed;
@@ -5179,7 +4742,6 @@
             transition: background var(--dur-small) var(--ease);
           }
 
-          /* (Held, its handle lit: the sheet's with the finger.) */
           &.pulled::before {
             background: var(--ink);
           }
@@ -5191,14 +4753,10 @@
           transition: transform var(--dur-layout) var(--ease-layout);
         }
 
-        /* Upright: half the screen, one height whatever it shows (its list, a layer's settings: no jumps), the chart
-           above it live and undimmed; dragged up by its top (or its handle tapped), whole: the page behind dimmed and out
-           of reach until it's back down. */
         @media not all and (max-height: 500px) and (min-width: 568px) {
           .panel {
             height: var(--sheet-half-height);
             max-height: none;
-            /* (Its height back to half once it's out of sight, not as it goes.) */
             transition: transform var(--dur-layout) var(--ease-layout), height 0s var(--dur-layout), visibility 0s var(--dur-layout);
           }
 
@@ -5206,39 +4764,31 @@
             height: var(--sheet-whole-height);
           }
 
-          /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
-             sheet whole, as it was behind the dim. Its legends a line each, as on a phone on its side.) */
           body[data-sheet="panel"] .card-inner {
             padding-bottom: var(--sheet-half-height);
           }
 
-          /* (The foot's controls their reach over it, clear of the sheet's top: half a reach under their middles.) */
           body[data-sheet="panel"] .stage-foot {
             padding-bottom: 8px;
           }
         }
 
-        /* (Focused as it opens, as a whole: no ring around the sheet.) */
         .panel:focus {
           outline: none;
         }
 
-        /* (The header's room is the title's: Keep alone says it's a preview.) */
         .preview-said {
           display: none;
         }
 
-        /* The grid's own New folder (the sidebar's isn't here). */
         #home-new-folder {
           display: inline-grid;
         }
 
-        /* (What scrolls under the pill: a row brought into view (focused, as by Tab) stops clear of it, not under it.) */
         :is(#inspector, .panel .layer-list, .home-scroll) {
           scroll-padding-bottom: var(--bar-room);
         }
 
-        /* (Its views' last rows scroll clear of the pill over them.) */
         #inspector::after {
           content: "";
           flex: none;
@@ -5249,8 +4799,6 @@
           padding-bottom: var(--bar-room);
         }
 
-        /* The panel's text grows for a phone (a screen at arm's length reads too small in a hand): its title, a layer's
-           name in its settings as the list's. */
         .panel-head h2,
         .inspector-head .label-input {
           font-size: 17px;
@@ -5265,8 +4813,6 @@
           --row-change-size: 12px;
         }
 
-        /* Its top drags it (the views below scroll on their own): held, no text selected, no callout (a field there, its
-           own). */
         .panel,
         .panel-head,
         .inspector-head {
@@ -5295,8 +4841,6 @@
           pointer-events: auto;
         }
 
-        /* The sheet half (upright) or a column (on its side): the chart beside it live and undimmed, a change in it
-           seen as it's made; whole, the page behind dimmed. */
         body[data-sheet]:not([data-sheet-size="full"]) .scrim {
           opacity: 0;
           pointer-events: none;
@@ -5307,7 +4851,6 @@
           margin-left: auto;
         }
 
-        /* ⌘K's foot on one line: Close left out (the search's × closes), and the count while a row's action shows. */
         .palette-foot:has(#palette-enter:not([hidden])) #palette-count,
         #palette-close-sep,
         #palette-close-sep + .foot-action {
@@ -5338,8 +4881,6 @@
             height: 21px;
           }
 
-          /* (Below the top, the way up in its row, as tall: the page's name where it is on every page; Bitview's
-             way back on the Charts page the way up leads to.) */
           &:has(+ .gallery-path:not([hidden])) {
             display: none;
           }
@@ -5350,30 +4891,24 @@
           margin: -10px 0 4px;
         }
 
-        /* (Its horizon a little lower than a wide screen's: clear of Home's doors, its column the screen's width.) */
         .home-horizon {
           height: 50%;
         }
 
-        /* (Home's foot over the tab bar, as clear of it as the page's own foot is.) */
         .home-help {
           bottom: calc(var(--bar-room) + 8px);
         }
 
-        /* (A phone's keys: none, nor its Shortcuts; nor the version, a build's name: ⌘K says it there.) */
         .home-help :is([data-action="shortcuts"], #home-version) {
           display: none;
         }
 
-        /* (A window too short for it beside Home's own (a phone on its side): it's in ⌘K.) */
         @media (max-height: 500px) {
           .home-help {
             display: none;
           }
         }
 
-        /* (Its top corner's row in the row of Bitview's way back, at its end, as tall: see .home-brand. Over the touch
-           rule's spacing: its buttons a finger's size already.) */
         :root .home-top {
           top: calc(var(--home-top) - 10px);
           right: 2px;
@@ -5405,16 +4940,10 @@
           }
         }
 
-        /* The tab bar, a phone's own: a pill floating over the page's foot, as wide as its content, its four tabs the same
-           everywhere, each named under its icon, where you are on a raised chip; over what scrolls under it (the grid,
-           the sheet), translucent. Room is kept for it at the card's foot. */
         .card-inner {
           padding-bottom: var(--bar-room);
         }
 
-        /* The chart's foot across its width, in line with the page: its interval, then its ranges sharing the rest (the
-           navigator a row of its own over them, upright: see .navigator); the tab bar right under it. */
-        /* (Its controls, 3px about them, a focus ring's room; the plot's dates 4px above, not 8.) */
         .chart {
           inset: 0 0 4px;
         }
@@ -5422,7 +4951,6 @@
         .stage-foot {
           flex-wrap: wrap;
           height: auto;
-          /* (One gap both ways: the navigator over its row as far as the interval is beside the ranges.) */
           gap: 8px;
           padding: 3px 12px;
           box-shadow: none;
@@ -5437,8 +4965,6 @@
           }
         }
 
-        /* The tab bar, a floating pill; a selection's bar in its place while there's a selection (a photo library's
-           toolbar, as it were): the same pill, its actions in reach. */
         :is(.mobile-bar, .pick-bar) {
           position: fixed;
           right: calc(12px + env(safe-area-inset-right));
@@ -5455,7 +4981,6 @@
         .mobile-bar {
           z-index: 13;
           display: grid;
-          /* (Plain fr: tracks a browser moves between, not jumps.) */
           grid-template-columns: 1fr 1fr 1fr 1fr;
           gap: 2px;
           padding: 4px;
@@ -5477,12 +5002,9 @@
             background: none;
             font: 510 10px/12px var(--sans);
             isolation: isolate;
-            /* (Moved along the bar by `--shift` (of its own length), see the Charts page's.) */
             translate: var(--shift, 0%) 0;
             transition: color var(--fade), translate var(--dur-layout) var(--ease-layout);
 
-            /* (Its chip, pressed or lit: a layer of its own, as long as its place in the bar (`--reach` past it at each
-               end, of its length: a tab moved to a longer place, see the Charts page's), growing with it as it moves.) */
             &::before {
               content: "";
               position: absolute;
@@ -5513,9 +5035,6 @@
           }
         }
 
-        /* (The Charts page's three, the bar's length between them: Layers, an open chart's, fades away as the page
-           comes, the others moving into thirds of it, each a quarter of it, its chip the third's: moved, not laid out
-           again, smooth whatever the page does meanwhile. Along the bar, whichever way it lies.) */
         body[data-home] .mobile-bar {
           > .tab {
             --reach: 16.667%;
@@ -5552,8 +5071,6 @@
           --keys: 0px;
         }
 
-        /* The keyboard up (see data-keys): the bars out of the way of the field; a sheet's list on to its top (--keys,
-           how much of the page's foot it covers), its last rows scrolled above it. */
         body[data-keys] {
           :is(.mobile-bar, .pick-bar) {
             display: none;
@@ -5606,7 +5123,6 @@
           border: 0;
           padding: 4px 6px 4px 8px;
           translate: none;
-          /* (In the tab bar's place: the one fades into the other, nothing moving.) */
           animation: appear var(--dur-small) var(--ease);
 
           &[hidden] {
@@ -5618,25 +5134,17 @@
           }
         }
 
-        /* (Picks said by the body (renderPicked, renderLayersBar): see .stage[data-belt-shown]. Several edited together,
-           their bar's in the list, out of sight: the tab bar stays.) */
         body[data-home][data-charts-picked] .mobile-bar,
         body[data-sheet="panel"][data-layers-picked]:not([data-inspect]) .mobile-bar {
           visibility: hidden;
           opacity: 0;
         }
 
-        /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
         .app[data-full] .card-inner {
           padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
         }
 
-        /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
-           stands at the left (the chart has the height's whole); sheets and menus a column on the right, not the screen's
-           width. */
         @media (max-height: 500px) and (min-width: 568px) {
-          /* (The card to the screen's edges, the insets its own room: no strip of the page's ground at either side; full
-             screen and the grid keep clear of them too.) */
           .app {
             padding-inline: 0;
           }
@@ -5652,7 +5160,6 @@
             padding-left: calc(var(--rail) + env(safe-area-inset-left));
           }
 
-          /* Share: its code beside its buttons, the sheet as short as the screen is. */
           .menu.as-sheet:has(> .share-pop) {
             display: grid;
             grid-template-columns: auto minmax(0, 1fr);
@@ -5663,7 +5170,6 @@
               grid-column: 1 / -1;
             }
 
-            /* (Its code at the left; what it says, then its buttons, at the right.) */
             > .share-pop {
               display: contents;
               text-align: left;
@@ -5707,9 +5213,6 @@
             margin: 0 env(safe-area-inset-right) 0 calc(var(--rail) + env(safe-area-inset-left));
           }
 
-          /* (One row there, as on a wide screen: the ranges their own width (the foot's whole would stretch each across a
-             screen), the navigator in what's left, to none where nothing is; the layers' column beside, the ranges a little
-             narrower, to fit (Max ran under the column).) */
           .stage-foot {
             flex-wrap: nowrap;
             height: 42px;
@@ -5734,7 +5237,6 @@
             height: 28px;
           }
 
-          /* (The tabs a rail there, a selection's bar floating over the foot: the rail stays.) */
           body[data-home][data-charts-picked] .mobile-bar,
           body[data-sheet="panel"][data-layers-picked]:not([data-inspect]) .mobile-bar {
             visibility: visible;
@@ -5753,7 +5255,6 @@
             translate: 0 -50%;
           }
 
-          /* (A rail: its tabs moved, and their chips reaching, down it.) */
           .mobile-bar > .tab {
             translate: 0 var(--shift, 0%);
 
@@ -5762,7 +5263,6 @@
             }
           }
 
-          /* (The grid's centered on what the rail leaves; the sheet's, in the sheet, at its foot.) */
           .pick-bar.home-bar {
             left: calc(50% + var(--rail) / 2);
           }
@@ -5788,8 +5288,6 @@
             bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
-          /* (The rail: the capsule's room at the left. The column as wide as leaves the chart 280px beside it, past the rail:
-             300 to 480.) */
           :root {
             --rail: 86px;
             --column: clamp(300px, 100vw - var(--rail) - 280px - env(safe-area-inset-left), 480px);
@@ -5805,28 +5303,21 @@
             width: min(480px, 100%);
           }
 
-          /* (Never dimmed on its side, one made whole upright and turned too: the chart beside it live.) */
           body[data-sheet] .scrim {
             opacity: 0;
             pointer-events: none;
           }
 
-          /* (The chart beside the column, in what it leaves, as above the upright half sheet: its latest values and its
-             axis in sight while they're changed.) */
           body[data-sheet="panel"] .card-inner {
             padding-right: var(--column);
           }
 
-          /* (Too narrow for both, the chart 280px beside the column (past the rail): the column over the chart's right,
-             not leaving it a strip.) */
           @media (max-width: 665px) {
             body[data-sheet="panel"] .card-inner {
               padding-right: env(safe-area-inset-right);
             }
           }
 
-          /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows. Its lists to the
-             screen's foot, the home indicator's room the end of their scroll, as ⌘K's: none cut short above it.) */
           #inspector::after {
             height: calc(12px + env(safe-area-inset-bottom));
           }
@@ -5843,7 +5334,6 @@
             bottom: calc(12px + env(safe-area-inset-bottom));
           }
 
-          /* (At the right, the left inset is the capsule's, not theirs.) */
           .panel {
             padding-left: 0;
           }
@@ -5853,13 +5343,11 @@
           }
         }
 
-        /* The grid: one chart a row (two on a phone on its side), as on a wide screen, legends and all. */
         .home-grid {
           gap: 14px;
           margin-top: 18px;
         }
 
-        /* (A phone's page starts at its top: its first row, Bitview's way back or a page's way up, is a finger high.) */
         .home {
           --home-room: 14px;
           --home-top: calc(var(--home-room) + env(safe-area-inset-top));
@@ -5874,9 +5362,6 @@
           margin-bottom: 18px;
         }
 
-        /* A selection's bars as the tab bar they stand in for: its count, then each action its icon over its name, sharing
-           what its names leave (each as wide as its name, at least: Download whole on the narrowest phone), Delete and
-           Remove in red, then the × that ends it. */
         .pick-bar {
           gap: 0;
 
@@ -5929,7 +5414,6 @@
             padding: 2px 2px 2px 10px;
           }
 
-          /* (On its side, where the bar is its own width: each action as wide as its name needs.) */
           @media (max-height: 500px) and (min-width: 568px) {
             :is([data-batch], [data-layers-batch]):not([hidden], [data-batch="clear"], [data-layers-batch="clear"]) {
               flex: none;
@@ -5938,25 +5422,18 @@
           }
         }
 
-        /* ⌘K a sheet, as every sheet here: from the foot, its top rounded and a gap above it (the page dimmed behind), its
-           handle dragging it. Upright, two heights as the layers sheet's, whole as it opens and half (the chart above in
-           sight). Its list to the screen's foot, the home indicator's room the end of its scroll: rows go on under it, none
-           cut short above an empty strip. */
         .palette {
           height: var(--sheet-whole-height);
           max-height: none;
           padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
         }
 
-        /* The shortcuts and the guide too, as tall as they need (as tall as ⌘K at most), their handle and head kept at
-           the top as they scroll, their last line clear of the home indicator. */
         .shortcuts {
           inset: auto 0 0;
           height: auto;
           max-height: var(--sheet-whole-height);
           padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 
-          /* (From the very top, held there.) */
           > .menu-handle {
             position: sticky;
             top: 0;
@@ -5969,7 +5446,6 @@
             padding-top: 2px;
           }
 
-          /* (Over the guide's own width, by coming later.) */
           &.guide {
             width: 100vw;
           }
@@ -5980,12 +5456,8 @@
           max-width: none;
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          /* (In from the foot, as the layers sheet; closed, it slides down before it's gone, its backdrop fading: where
-             the browser keeps a closing dialog over the page meanwhile, as it closes; in Safari, before (`data-leaving`:
-             see leave); let go of a drag, from there (see slideAway).) */
           transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease);
 
-          /* (Over a dialog's own pop.) */
           &:popover-open {
             animation: none;
           }
@@ -6031,12 +5503,9 @@
           }
         }
 
-        /* (A call's help, a phone's width: a parameter's or the guide's line on two, not cut short; a line taller for it,
-           one height still, nothing below it moving as it's typed.) */
         .palette > .call-help {
           height: 94px;
 
-          /* (Over the one-line rule's weight.) */
           p:not(.call-sig) {
             display: -webkit-box;
             overflow: hidden;
@@ -6045,8 +5514,6 @@
             -webkit-line-clamp: 2;
           }
 
-          /* (How formulas read, its first line on three, whole, its second on one, in the same height (narrower than a phone,
-             cut as a call's help is).) */
           &:not(:has(.call-sig)) p {
             -webkit-line-clamp: 3;
 
@@ -6056,8 +5523,6 @@
           }
         }
 
-        /* (On its side, the column's place and width, as the layers': the rail and the chart beside it; the screen's left
-           inset (its notch) not its: it's at the right.) */
         @media (max-height: 500px) and (min-width: 568px) {
           :is(.palette, .shortcuts, .shortcuts.guide) {
             width: var(--column);
@@ -6071,7 +5536,6 @@
           scroll-padding-bottom: calc(6px + env(safe-area-inset-bottom));
         }
 
-        /* A sheet's handle, a menu's, ⌘K's, the shortcuts', as the layers sheet's: dragged down, it goes (no scroll takes the drag). */
         :is(.menu.as-sheet, .palette, .shortcuts) > .menu-handle {
           display: grid;
           height: 20px;
@@ -6088,7 +5552,6 @@
           }
         }
 
-        /* (A menu's and ⌘K's in their top's room; the shortcuts' held at their top, see .shortcuts.) */
         :is(.menu.as-sheet, .palette) > .menu-handle {
           margin-top: -7px;
         }
@@ -6097,7 +5560,6 @@
           grid-template-columns: minmax(0, 1fr);
         }
 
-        /* (No pane beside the list: a series' is over its actions instead, see .menu-detail.) */
         #palette-preview {
           display: none;
         }
@@ -6129,7 +5591,6 @@
           --control-hit: 44px;
         }
 
-        /* (Its actions a reach tall, over its line.) */
         .palette-foot {
           height: calc(var(--control-hit) + 1px);
         }
@@ -6142,7 +5603,6 @@
           margin-block: 10px;
         }
 
-        /* (The search's reach over the list's top, and the list's heads 36 tall and 8 apart: their reaches meet.) */
         .sidebar .search {
           z-index: 1;
         }
@@ -6156,8 +5616,6 @@
           }
         }
 
-        /* (The rail's rows 44 apart, each one's reach meeting the next's and across the rail: its icons as they are, a
-           finger's room about them; its squares square, as a pointer's.) */
         body[data-sidebar="collapsed"] .sidebar {
           .chart-list {
             --row-gap: 12px;
@@ -6178,8 +5636,6 @@
           }
         }
 
-        /* (No reach takes another control's own: icons side by side 44 apart, each reach meeting the next's; beside a
-           field or a row's main part, room for half of it, or none that way.) */
         .head-actions,
         .belt-tools,
         .belt-context,
@@ -6196,7 +5652,6 @@
           min-height: var(--control-hit);
         }
 
-        /* (The second over the fields' own min-width: 0.) */
         .tabs button,
         :is(.field, .inspector section, .pair) > .tabs button {
           min-width: var(--control-hit);
@@ -6206,13 +5661,10 @@
           padding-right: 10px;
         }
 
-        /* (A segment's reach up and down only, its neighbors flush (⌘K's crumbs and its scope too); a row's eye's away
-           from the row, over its edge; a level's and a field head's button's, half the gap between them.) */
         :is(.tabs button, .path button, .crumbs button:not(.cap), .scope)::before {
           inset-inline: 0;
         }
 
-        /* (A tablet's bar of icons, as the header's.) */
         @media (min-width: 761px) and (min-height: 501px) {
           .pick-bar .cap + .cap {
             margin-left: 14px;
@@ -6239,14 +5691,12 @@
           -webkit-touch-callout: none;
           user-select: none;
 
-          /* (A name being typed: its own, as every field's.) */
           :is(input, textarea) {
             -webkit-touch-callout: default;
             user-select: text;
           }
         }
 
-        /* (A tile's tick once picking's begun: a long press, or Select in its ⋯.) */
         .home:not(.picking) .tile-check:not(:focus-visible) {
           opacity: 0;
           pointer-events: none;
@@ -6271,7 +5721,6 @@
           transition: none !important;
         }
 
-        /* (Connecting's waits kept: a delay isn't motion; it shows after them at once.) */
         html:not([data-ready]) .booting {
           animation: booting 1ms 0.8s both !important;
 
@@ -6280,7 +5729,6 @@
           }
         }
 
-        /* Still, what loads says so: its line drawn whole, the bar across. */
         .loading-state path {
           stroke-dashoffset: 0;
         }
@@ -6290,21 +5738,14 @@
         }
       }
 
-      /*
-       * Windows' high contrast (forced colors): what's chosen marked in the system's own colors (a row in ⌘K, a segment,
-       * a swatch, a range), what's a color by its nature (a swatch, a layer's mark and letter, the chart, the color
-       * surface) kept as it is, edges where a fill was the only one. Last in the sheet: over the rules it overrides.
-       */
+      /* Windows' high contrast (forced colors): last in the sheet, over the rules it overrides. */
       @media (forced-colors: active) {
-        /* (Grounds and shadows are gone here: a state shows as the system's selection, focus as an outline; never one
-           for the other.) */
         :is([aria-pressed="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"])) {
           forced-color-adjust: none;
           color: SelectedItemText !important;
           background: SelectedItem !important;
         }
 
-        /* (Its words too, which set their own: a layer's name, its value; not a color's mark.) */
         :is([aria-pressed="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"])) :not(.letter, .swatch, .series-mark, .chart-mark, .letter *, .swatch *) {
           color: SelectedItemText !important;
         }
@@ -6314,13 +5755,11 @@
           outline-offset: 2px;
         }
 
-        /* (A control edged by an inset ring, every one: the ring's a shadow, gone here; an outline in its place.) */
         :is(.btn:not(.ghost), .tabs, .search, .home-filter, .search-cta, .navigator, #link-view, .field-cap, .stepper-track, .number-input, .preset, .hex-box, .formula-editor, .pane-scale) {
           outline: 1px solid ButtonBorder;
           outline-offset: -1px;
         }
 
-        /* (Inside what clips them: a menu's rows, ⌘K's lit one, a field, the color editor's tabs and surface.) */
         :is(.menu > button, #palette [role="option"], #suggest [role="option"]):is(:focus-visible, [aria-selected="true"]),
         .color-editor :is(.color-source button, .plane):focus-visible,
         :is(input, textarea):focus {
@@ -6328,12 +5767,10 @@
           outline-offset: -2px;
         }
 
-        /* What floats over the page, edged (its shadow gone). */
         :is(.menu, .belt, .belt-caption, .key-hint, .assist, dialog, .loupe, #tip, #toast, #palette) {
           outline: 1px solid CanvasText;
         }
 
-        /* (The panel too where it floats: a tablet's, a phone's sheet.) */
         @media (max-width: 1100px), (max-height: 500px) {
           .panel {
             outline: 1px solid CanvasText;
@@ -6348,7 +5785,6 @@
           border: 1px solid CanvasText;
         }
 
-        /* (The legend's edge was the card's color: here, none.) */
         .legend button :is(.name, .legend-value, .legend-error) {
           -webkit-text-stroke: 0;
         }
@@ -6416,9 +5852,7 @@
   </head>
   <body class="boot">
     <article id="page-info"><!-- page-info-body --><!-- /page-info-body --></article>
-    <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
     <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? [document.getElementById('home-filter'), document.querySelector('.home-search')].find((field) => field.checkVisibility()) : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the content</a>
-    <!-- Bitview's client didn't load (it comes from Studio's server): said, plainly. -->
     <div class="booting" role="status"><p>Connecting…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
     <div id="offline" class="offline" role="alert">
       <h1>Bitview can't be reached</h1>
@@ -6444,33 +5878,23 @@
       // settles it, later, by the same rules); else they'd be seen moving into place.
       try {
         const prefs = JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}") ?? {};
-        // (A tablet's starts as a rail, its room the chart's, unless one was chosen.)
         if (prefs.sidebar === "collapsed" || (prefs.sidebar === undefined && matchMedia("(max-width: 1100px)").matches)) document.body.dataset.sidebar = "collapsed";
-        // (The panel the same: a tablet's starts closed unless one was chosen; else it'd be seen sliding away.)
         document.body.dataset.panel = prefs.panel === "open" || prefs.panel === "closed" ? prefs.panel : matchMedia("(max-width: 1100px)").matches ? "closed" : "open";
-        // (The sidebar's and the panel's widths, as kept: within their bounds, see applyWidths.)
         {
-          // (The chart left at least 500px beside both; the sidebar's first, the panel's by it.)
           const most = (min, share, cap, other) => Math.max(min, Math.min(cap, Math.round(innerWidth * share), innerWidth - 500 - other));
           const beside = matchMedia("(min-width: 1101px) and (min-height: 501px)").matches;
           const side = Number.isFinite(prefs.sideWidth) ? Math.min(Math.max(prefs.sideWidth, 264), most(264, 0.34, 480, !beside ? 0 : Number.isFinite(prefs.panelWidth) ? Math.max(prefs.panelWidth, 300) : 300)) : 264;
           if (Number.isFinite(prefs.sideWidth)) document.documentElement.style.setProperty("--side", `${side}px`);
           if (Number.isFinite(prefs.panelWidth)) document.documentElement.style.setProperty("--panel-kept", `${Math.min(Math.max(prefs.panelWidth, 300), most(300, 0.4, 560, side))}px`);
         }
-        // (The theme, as chosen: the stylesheet does the rest.)
         const theme = prefs.theme === "light" || prefs.theme === "dark" ? prefs.theme : "system";
         document.documentElement.dataset.theme = theme;
-        // (One chosen: the bar over the page in its ground, whichever the device's.)
         if (theme !== "system") {
           for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.media.includes(theme) ? meta.removeAttribute("media") : meta.remove();
         }
         const there = history.state;
-        // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
-        // (The Charts page where start() opens it: as the history or the last visit says; nothing kept yet, a first visit.)
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
-        // (An address of the presets': their page's or a section's, ending in a slash, the page; a preset's, without, its
-        // chart. Its server sends other spellings to these.)
         const routed = /^\/studio\/presets\/(?:.*\/)?$/.test(location.pathname) ? true : /^\/studio\/presets\//.test(location.pathname) ? false : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
@@ -6582,7 +6006,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <p>Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).</p>
           <p>An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://bitview.space/mcp, no sign-in), for the search and the data as tools.</p>
         </section>
-        <!-- A link's picture alone (#image=): the chart made out of sight, then its picture, nothing else. -->
         <div id="picture" class="picture"><p id="picture-note">Drawing the chart…</p><button id="picture-leave" class="btn small" type="button" hidden>Open Studio</button><a id="picture-open" class="picture-open" data-tip="Open the chart" hidden><img id="picture-img" alt="" /></a></div>
         <header class="card-head">
           <div class="head-title">
@@ -6642,15 +6065,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                     <div class="starts-head"><h2>Recommended</h2></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <!-- (Or a chart from a file (one, it opens here; several, they join your Library); its way out: a new one, with
-                       a chart to go back to, cancelled.) -->
                   <div class="empty-foot"><button class="btn ghost small" type="button" data-action="import" data-tip="A chart file, or a file of several charts exported together"><span data-icon="upload"></span><span>Import charts</span></button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div>
                 </div>
               </div>
             </div>
             <footer id="stage-foot" class="stage-foot">
               <button id="interval" class="btn interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
-              <!-- (A chart whose series are over one trailing window, its others: see chartWindow.) -->
               <button id="window" class="btn interval" type="button" aria-haspopup="menu" data-tip="Window: what each value sums or averages" hidden></button>
               <div id="ranges" class="tabs" role="group" aria-label="Visible range"></div>
               <div id="navigator" class="navigator" role="group" tabindex="0" aria-label="Overview of all history: ← → to move, ↑ ↓ to zoom, ⇧ for bigger steps" data-tip="Drag to pan, drag an edge to zoom, click to jump (or use the arrow keys)">
@@ -6661,7 +6081,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </footer>
           </section>
 
-          <!-- On a phone, under the layers' sheet (in the card's own layering, as the sheet is), over all else. -->
           <div id="scrim" class="scrim" data-action="close-sheet"></div>
           <aside id="panel" class="panel" aria-label="This chart" tabindex="-1">
             <section id="layers-view" class="panel-view" aria-label="Layers">
@@ -6691,21 +6110,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </main>
 
       <section id="home" class="home" role="main" style="--i: 2" aria-labelledby="home-title">
-        <!-- (Home's horizon, under what's on it: see renderHorizon. Over it, in the page's corners, Studio's own: the theme
-             at its top right; at its bottom right, how links work, the shortcuts (by keys), the version.) -->
         <div id="home-horizon" class="home-horizon" aria-hidden="true" hidden></div>
-        <!-- (Home's top corner: Undo and Redo, there at Home (see renderHomeHead), a rule, the theme.) -->
         <div id="home-top" class="home-corner home-top" hidden><span class="divider"></span><button id="home-theme" class="cap home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"></button></div>
         <div class="home-scroll">
           <div class="home-inner">
-            <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
             <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-            <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
             <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
             <div class="home-head">
               <h1 id="home-title" tabindex="-1">Charts</h1>
               <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
-              <!-- (Undo and Redo where a chart has them, its top right: what's done here, a toast's, undone there.) -->
               <span class="home-undo">
                 <button id="home-undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo" aria-disabled="true"></button>
                 <button id="home-redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
@@ -6719,20 +6132,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </label>
             <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
             </div>
-            <!-- (Home: under its question, Bitcoin as it is, live (as a phone's foot says it elsewhere); its search (⌘K's,
-                 in ⌘K's words); then its doors, see renderDoors.) -->
             <div id="home-start" class="home-start" hidden>
               <div class="home-over">
                 <h2 class="home-question">What do you want to chart?</h2>
                 <p id="home-pulse" class="home-pulse">Connecting</p>
               </div>
-              <!-- (No key of its own: ⌘K is ⌘K everywhere, see placeOnHome.) -->
               <button type="button" class="search-cta home-search" data-action="search" data-typing>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.25" cy="7.25" r="4.5" /><path d="m10.5 10.5 3.25 3.25" /></svg>
                 <span>Search series, charts and commands</span>
               </button>
             </div>
-            <!-- (Home's doors, a group each, and New chart: see renderDoors.) -->
             <div id="home-doors" class="home-doors" hidden></div>
             <div id="home-grid" class="home-grid"></div>
             <div id="gallery" class="gallery" hidden></div>
@@ -6745,7 +6154,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>
           </div>
         </div>
-        <!-- (Its bottom corner after what's on the page, as it's read: Tab reaches it last.) -->
         <nav id="home-help" class="home-corner home-help" aria-label="About Studio" hidden><button class="btn ghost small" type="button" data-action="guide">How links work</button><button class="btn ghost small" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button><span id="home-version" class="pill"></span></nav>
         <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
           <span class="pick-count"><span id="home-picked" aria-live="polite"></span><button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button></span>
@@ -6782,7 +6190,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         </div>
         <div id="palette-preview" class="palette-preview"></div>
       </div>
-      <!-- Quick Look: a picture of the highlighted row's chart, big, over ⌘K (in it: the search keeps the keys), drawn on its own. -->
       <div id="quick" class="quick" popover="manual" role="region" aria-label="Quick Look">
         <header class="quick-bar">
           <div class="quick-title"><h2 id="quick-name"></h2><p id="quick-where"></p></div>
@@ -6822,7 +6229,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <span><span id="single-keys-label">Single-key shortcuts</span><span id="single-keys-text">Shortcuts that are a single letter, digit or symbol. When off, only shortcuts with ⌘ or ⌥ work</span></span>
         <div class="tabs" role="group" aria-labelledby="single-keys-label" aria-describedby="single-keys-text"><button type="button" data-single-keys="off" aria-pressed="false">Off</button><button type="button" data-single-keys="on" aria-pressed="true">On</button></div>
       </div>
-      <!-- (Its lists made the first time it opens: see keyGroupsNow.) -->
       <template id="key-groups">
       <div class="key-groups">
         <div>
