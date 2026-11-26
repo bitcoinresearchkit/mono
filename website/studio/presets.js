@@ -263,7 +263,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const chart = (name, title, layers, options = {}) => {
     const was = options.was ?? ((keys) => (keys.length ? Object.fromEntries(keys.map((key) => [`${placeOf(name)}, ${spanLabel(key)}`, key])) : undefined))(options.windows ?? (options.window ? [options.window] : []));
     if (options.window) title = appended(title, windowSaid(options.window));
-    // Another form of the same subject: one folded companion pane, using the usual pane/visibility mechanism.
+    // Another form of the same subject: a pane of its own, its other view (see `as` and twoShown).
     if (options.absolute?.length) {
       const pane = Math.max(...layers.map((layer) => layer.pane ?? 1)) + 1;
       const names = new Set(layers.map((layer) => layer.label));
@@ -2051,17 +2051,19 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /**
    * Two panes as a preset opens, never a third: another form of the subject (its dollars, its percent, its net), its
    * chart's last pane named so (`as`), is the pane before it's second view ("Show as", see Lens), with its own scale.
-   * Else a pane past two shown is another subject (a preset of its own), and one that opens folded (every layer of it
-   * hidden: a strip of its names), but the price's, is such a form not named.
+   * Else a pane past two shown is another subject (a preset of its own), and one that opens hidden (every layer of it
+   * hidden: gone from the chart), but the price's, is such a form not named.
    * @param {Sketch} c @param {string[]} path @returns {Sketch}
    */
   const twoShown = (c, path) => {
     // (Names on a chart's last two panes (see chart's `as`), read here alone: a subject's and its other form's, under
     // the price's; on a chart of two panes, its price's and its subject's, said for nothing.)
-    const names = (c.panes ?? []).map((/** @type {any} */ pane) => pane.name), panes = (c.panes ?? []).map(({ name: _name, ...pane }) => pane), named = panes.length === 3 && names[2] !== undefined;
-    const shownAt = Array.from({ length: named ? 2 : panes.length }, (_, i) => c.layers.filter((layer) => (layer.pane ?? 1) === i + 1));
-    const shown = shownAt.filter((layers) => layers.some((layer) => !layer.hidden)).length, folded = shownAt.some((layers, i) => i > 0 && layers.every((layer) => layer.hidden));
-    if (shown > 2 || folded) throw new Error(`A preset opens with ${shown > 2 ? "three panes shown" : "a pane folded"}: two shown at most, none folded (another form of its subject is a view, see \`as\`): ${path.join(" / ")}`);
+    const names = (c.panes ?? []).map((/** @type {any} */ pane) => pane.name), panes = (c.panes ?? []).map(({ name: _name, ...pane }) => pane);
+    const shownIn = (/** @type {number} */ i) => c.layers.some((layer) => (layer.pane ?? 1) === i + 1 && !layer.hidden);
+    // (A named third pane is the second's other view only where showing it would make a third pane shown.)
+    const named = panes.length === 3 && names[2] !== undefined && shownIn(0) && shownIn(1), kept = named ? 2 : panes.length;
+    const shown = panes.slice(0, kept).filter((_, i) => shownIn(i)).length, hidden = panes.slice(1, kept).some((_, i) => !shownIn(i + 1));
+    if (shown > 2 || hidden) throw new Error(`A preset opens with ${shown > 2 ? "three panes shown" : "a pane hidden"}: two shown at most, none hidden but the price (another form of its subject is a view, see \`as\`): ${path.join(" / ")}`);
     if (!named) return { ...c, panes };
     const [price, subject, other] = panes;
     return { ...c, panes: [price, { ...(subject.size ? { size: subject.size } : {}), views: [subject, other].map(({ size: _size, ...fields }, k) => ({ name: names[k + 1], ...fields })) }], layers: c.layers.map((layer) => (layer.pane === 3 ? { ...layer, pane: 2, view: 2 } : layer)) };

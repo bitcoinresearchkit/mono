@@ -133,7 +133,7 @@ import {
 import {
   APART, apartFonts, apartLayout, canvasReadable, cascades, closedAt, closedOwner, contentOf, copyLink, cutFade,
   datedView, dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle,
-  fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf, showViews,
+  fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf, showLinkView,
   linksOf, measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade,
   openedImages, outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renderInterval,
   renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setRange, shareLink, showMenu,
@@ -10581,7 +10581,7 @@ const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run
  */
 function takeLinkLook(doc, look, made) {
   doc.range = look.range ?? made?.range ?? doc.range;
-  ((show) => show !== undefined && showViews(doc, show))(look.show ?? made?.show);
+  ((show) => show !== undefined && showLinkView(doc, show))(look.show ?? made?.show);
   // (A window it doesn't offer, as if it weren't said.)
   const offered = chartWindow(doc)?.offered ?? [], window = (look.window && windowNamed(look.window, offered)) || made?.window;
   if (window) atWindow(doc, window);

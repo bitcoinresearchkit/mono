@@ -31,7 +31,7 @@ import {
 } from "/studio/grid.js";
 import { goneSaid, hideLayers, keepFocus, layerById, modesFor, movers, paneMode } from "/studio/inspector.js";
 import {
-  contentOf, exportRows, fromSketch, keepCarriedView, lookFields, menuOf, renameInPlace, validate, viewsShown,
+  contentOf, exportRows, fromSketch, keepCarriedView, lookFields, menuOf, renameInPlace, validate, viewShown,
 } from "/studio/menus.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Landing } from "/studio/gestures.js" */
@@ -247,10 +247,10 @@ const presetIndex = (/** @type {Chart} */ doc) => {
 };
 /** A preset as edited here, if it is. */
 const editedPreset = (/** @type {number} */ i) => (presets ? library.presets.find((doc) => doc.preset === presetKey(i)) : undefined);
-/** What a preset opens with, how it's looked at: its own interval (day1 unless it says), its range, its trailing window, if it has one, and its views (see viewsShown). @param {number} i */
+/** What a preset opens with, how it's looked at: its own interval (day1 unless it says), its range, its trailing window, if it has one, and its views (see viewShown). @param {number} i */
 const presetLook = (i) => {
   const preset = /** @type {Preset[]} */ (presets)[i];
-  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window, show: viewsShown(doc) }))(freshPreset(i)));
+  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window, show: viewShown(doc) }))(freshPreset(i)));
   return /** @type {{ index: string, range: string, window?: string, show: string }} */ (madeLooks.get(preset));
 };
 /** Each preset's look as made (see presetLook): read once a preset. @type {WeakMap<Preset, { index: string, range: string, window?: string, show: string }>} */
@@ -784,10 +784,7 @@ function paneRows(/** @type {string} */ id, inPalette = false) {
   const i = chart.panes.findIndex((pane) => pane.id === id), many = chart.panes.length > 1;
   if (i < 0) return [];
   const layers = chart.layers.filter((layer) => layer.pane === id), shown = paneShows(chart, id);
-  // (Its other view (see Lens), in its menu; ⌘K's page of it has its own row, Show as.)
-  const lens = chart.panes[i].lens;
   return [
-    ...(lens && !inPalette ? [{ key: "view", icon: ICONS.swap, label: `Show as: ${lens.as[lens.at ? 0 : 1]}`, verb: "Show", run: () => setPaneView(id, lens.at ? 0 : 1) }] : []),
     ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: inPalette ? `Swaps with pane ${i}` : undefined, verb: "Move", stay: true, run: () => movePane(id, -1) }] : []),
     ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: inPalette ? `Swaps with pane ${i + 2}` : undefined, verb: "Move", stay: true, run: () => movePane(id, 1) }] : []),
     // (Its share of the height, chosen (a drag's own is hard to get just so by touch): in its menu and on ⌘K's page of it.)

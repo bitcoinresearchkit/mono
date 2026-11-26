@@ -993,7 +993,7 @@ const INTERVAL_OF_FIELD = Object.fromEntries(Object.entries(INTERVAL_LABEL).map(
 /**
  * How a link says to look at its chart, each a field of its own after its address or its chart, in the words of
  * Studio's own controls: `range` or the dates `from` and `to`, `interval`, and a preset's `window` ("24h", read
- * against the windows it offers where it's taken: see takeLinkLook) and `show` (its views: see viewsShown), in any case. What it doesn't know, as if it
+ * against the windows it offers where it's taken: see takeLinkLook) and `show` (its view: see viewShown), in any case. What it doesn't know, as if it
  * weren't there; `said`, the window an old address says (see routeOf), where its link doesn't.
  * @param {URLSearchParams} params @param {string} [said]
  */
@@ -1094,17 +1094,16 @@ function lookFields(doc, made) {
   const field = (/** @type {string} */ text) => text.replace(/:00Z$/, "");
   const look = [...(doc.range !== made.range ? [`range=${RANGES.find(([id]) => id === doc.range)?.[1] ?? doc.range}`] : []), ...(dates ? [`from=${field(dates.from)}`, ...(endsAtLatest(doc) ? [] : [`to=${field(dates.to)}`])] : [])];
   const window = made.window && chartWindow(doc)?.window;
-  const show = made.show !== undefined && viewsShown(doc);
+  const show = made.show !== undefined && viewShown(doc);
   return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : []), ...(window && window !== made.window ? [`window=${windowShort(window)}`] : []), ...(show !== false && show !== made.show ? [`show=${show}`] : [])].join("&");
 }
 /** A view's name as a link says it: "net", "aviv-nupl". @param {string} name */
 const viewKey = (name) => name.trim().toLowerCase().replace(/\s+/g, "-");
-/** The views a chart shows (see Lens) other than its panes' first, as a link says them ("net,dollars"; none, ""). @param {Chart} doc */
-const viewsShown = (doc) => doc.panes.flatMap((pane) => (pane.lens?.at ? [viewKey(pane.lens.as[1])] : [])).join(",");
-/** A chart at the views a link says (see viewsShown): each pane of two at the one named, else its first. @param {Chart} doc @param {string} said */
-function showViews(doc, said) {
-  const keys = said.toLowerCase().split(",");
-  for (const pane of doc.panes) if (pane.lens) showView(doc, pane.id, keys.includes(viewKey(pane.lens.as[1])) ? 1 : 0);
+/** The view a chart shows (see Lens) where it isn't its pane's first, as a link says it ("net"; none, ""). @param {Chart} doc */
+const viewShown = (doc) => ((pane) => (pane?.lens ? viewKey(pane.lens.as[1]) : ""))(doc.panes.find((pane) => pane.lens?.at));
+/** A chart at the view a link says (see viewShown): a pane of two at the one named, else its first. @param {Chart} doc @param {string} said */
+function showLinkView(doc, said) {
+  for (const pane of doc.panes) if (pane.lens) showView(doc, pane.id, viewKey(said) === viewKey(pane.lens.as[1]) ? 1 : 0);
 }
 /**
  * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
@@ -1778,6 +1777,6 @@ export {
   measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
   outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renameInPlace,
   renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setMenuOwner,
-  setRange, shareLink, showMenu, shownAs, showViews, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
-  titleReads, TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, viewsShown, walkMenu,
+  setRange, shareLink, showMenu, shownAs, showLinkView, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
+  titleReads, TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, viewShown, walkMenu,
 };
