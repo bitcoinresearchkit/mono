@@ -25,11 +25,11 @@ import {
 } from "/studio/format.js";
 import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
-  asideLayers, asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
   fittable, FLIP_APART, fromOf, HEAT_GRADIENTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, showView, signedMeasure, stretchResult,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, signedMeasure, stretchResult,
   toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, twoSided, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -66,7 +66,7 @@ import {
 } from "/studio/formulas.js";
 import { modeOf, labelOf, paneMode, layerById, stackOf, lineLook, STACK_WIDTH, fillOf, named, bandOf, lineAt, gradientTable, titleOf, seriesMark, derivedTitle, legendEntry, levelSteps, rangeOf } from "/studio/looks.js";
 import { renderRanges, fitTitle, titleReads, typedFrom, renderInterval, renderWindow, renderChartPath } from "/studio/toolbar.js";
-import { validate, linkLookOf, contentOf, showLinkView, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
+import { validate, linkLookOf, contentOf, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
 import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
 import { fitted, laidOver, wordsOn, dropOwnLayers, sketches, Sketch, ownLayers, repaintDrawings, rulerReading, tagShapes, plotBox, timeLine, onScreen, tickOn, hover } from "/studio/sketch.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
@@ -585,12 +585,12 @@ function chartWindow(doc) {
 function atWindow(doc, to) {
   const now = chartWindow(doc);
   if (!now || now.window === to || !now.offered.includes(to)) return doc;
-  const swap = (/** @type {string} */ name) => (now.at.get(name) ?? ((its) => (its?.window === now.window ? its.at : undefined))(seriesWindow(name)))?.get(to) ?? name;
+  const swap = (/** @type {string} */ name) => now.at.get(name)?.get(to) ?? name;
   // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
   // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
   // band's "1 day to under 1 week old".)
   const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`), windowSaid(to)).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
-  for (const layer of [...doc.layers, ...asideLayers(doc)]) {
+  for (const layer of doc.layers) {
     if (layer.series) {
       layer.series = swap(layer.series);
       delete layer.path;
@@ -608,16 +608,6 @@ function atWindow(doc, to) {
 
 /** @param {Chart} doc */
 function normalize(doc) {
-  // The shown view emptied: the other takes its place and no lens remains, so nothing is lost unsaid.
-  for (const pane of doc.panes) {
-    if (pane.lens && !doc.layers.some((layer) => layer.pane === pane.id)) showView(doc, pane.id, pane.lens.at ? 0 : 1);
-    if (!pane.lens) continue;
-    const { layers, drawings, ...fields } = pane.lens.other, aside = { ...doc, panes: [{ ...fields, id: pane.id }], layers, drawings };
-    normalize(aside);
-    const { id: _id, ...kept } = aside.panes[0];
-    if (aside.layers.length) pane.lens.other = { ...kept, layers: aside.layers, ...(aside.drawings ? { drawings: aside.drawings } : {}) };
-    else delete pane.lens;
-  }
   for (const layer of doc.layers) {
     if (layer.maxInterval && !INTERVAL_ORDER.includes(layer.maxInterval)) delete layer.maxInterval;
     if (!intervalFits(layer.maxInterval, doc.index)) doc.index = /** @type {string} */ (layer.maxInterval);
@@ -708,10 +698,6 @@ function normalize(doc) {
   const seen = new Set();
   for (const layer of doc.layers) {
     if (seen.has(layer.letter)) layer.letter = nextLetter({ ...doc, layers: doc.layers.filter((other) => other !== layer) });
-    seen.add(layer.letter);
-  }
-  for (const layer of asideLayers(doc)) {
-    if (seen.has(layer.letter)) layer.letter = nextLetter(doc);
     seen.add(layer.letter);
   }
   const order = new Map(doc.panes.map((pane, i) => [pane.id, i]));
@@ -3038,7 +3024,6 @@ function placeLegends() {
       const element = legend.element;
       if (!element.classList.contains("legend")) (element.classList.add("legend", "strip"), strip(element), legendWidth.observe(element));
       if (element.dataset.pane !== pane.id) (element.dataset.pane = pane.id), legendShown.delete(element);
-      placeLensSwitch(element, pane);
     });
   }
   if (!chartShown()) return;
@@ -3046,29 +3031,6 @@ function placeLegends() {
   sizePanes();
   marginsSet = "";
   relayout();
-}
-/** @param {HTMLElement} lens */
-const leadFor = (lens) => /** @type {HTMLElement | null} */ (lens.nextElementSibling)?.style.setProperty("--lead", `${lens.offsetWidth ? lens.offsetWidth + 6 : 0}px`);
-// (Its width changed later (a font come, a finger's wider buttons): on the next frame, not in the observer's round,
-// where the row it moves, watched too (see legendWidth), would loop it.)
-const lensWidth = new ResizeObserver((entries) => requestAnimationFrame(() => entries.forEach(({ target }) => leadFor(/** @type {HTMLElement} */ (target)))));
-/** @param {HTMLElement} legend @param {Pane} pane */
-function placeLensSwitch(legend, pane) {
-  let lens = /** @type {HTMLElement | null} */ (legend.previousElementSibling?.matches(".lens-switch") ? legend.previousElementSibling : null);
-  if (!pane.lens) return lens && (lens.remove(), legend.style.removeProperty("--lead"));
-  if (!lens) {
-    lens = Object.assign(document.createElement("div"), { className: "tabs lens-switch" });
-    lens.setAttribute("role", "group");
-    legend.before(lens);
-    lensWidth.observe(lens);
-  }
-  const { as, at } = pane.lens, key = `${pane.id} ${at} ${as.join(" ")}`;
-  if (lens.dataset.key !== key) {
-    lens.dataset.key = key;
-    lens.setAttribute("aria-label", `Pane ${chart.panes.indexOf(pane) + 1} shown as`);
-    lens.innerHTML = as.map((name, k) => `<button type="button" data-show-view="${k}" data-pane="${pane.id}" aria-pressed="${at === k}">${escapeHtml(name)}</button>`).join("");
-    leadFor(lens);
-  }
 }
 let bandLit = /** @type {string | null} */ (null);
 const submenus = [$("submenu")], subSetups = /** @type {((menu: HTMLElement) => void)[]} */ ([]);
@@ -5653,7 +5615,7 @@ function writeLayers() {
     const layers = chart.layers.filter((layer) => layer.pane === pane.id);
     /** @type {[string, string][]} */
     const rows = [["head:pane", `<div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${presetsEdit.paneChip(pane)}" data-tip="${pane.lens ? "Show as, scale" : "Scale"}, stack, order and average">${presetsEdit.paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${presetsEdit.paneChip(pane)}" data-tip="Scale, stack, order and average">${presetsEdit.paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
               ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} pane">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(paneShows(chart, pane.id))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
@@ -7974,8 +7936,6 @@ document.addEventListener("click", (event) => {
   if (check) return pickLayer(/** @type {string} */ (check.dataset.pickLayer), event.shiftKey);
   const marker = closest(event, "[data-markers]");
   if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : presetsEdit.toggleHalvings();
-  const view = closest(event, "[data-show-view]");
-  if (view) return presetsEdit.setPaneView(/** @type {string} */ (view.dataset.pane), /** @type {0 | 1} */ (Number(view.dataset.showView)));
   const paneEye = closest(event, "[data-pane-eye]");
   if (paneEye) return inspector.hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id), paneShows(chart, /** @type {string} */ (paneEye.dataset.paneEye)));
   if (closest(event, "#templates [data-gallery-retry]")) return retryPresets();
@@ -8589,11 +8549,10 @@ const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run
 /**
  * @param {Chart} doc
  * @param {ReturnType<typeof linkLookOf>} look
- * @param {{ index: string, range: string, window?: string, show?: string }} [made]
+ * @param {{ index: string, range: string, window?: string }} [made]
  */
 function takeLinkLook(doc, look, made) {
   doc.range = look.range ?? made?.range ?? doc.range;
-  ((show) => show !== undefined && showLinkView(doc, show))(look.show ?? made?.show);
   const offered = chartWindow(doc)?.offered ?? [], window = (look.window && windowNamed(look.window, offered)) || made?.window;
   if (window) atWindow(doc, window);
   doc.index = (look.index && menus.supportedIntervals(doc)(look.index) ? look.index : undefined) ?? made?.index ?? doc.index;

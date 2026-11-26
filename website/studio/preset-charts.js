@@ -10,13 +10,12 @@ import { shownStep } from "/studio/words.js";
 import { presets, presetLabels, homeAt, isPreview, chart, emptyYours, library, normalize, previews, home, started, ROUTED, tree, pendingRoute, chartWindow, atWindow, viewed, save, isDeleted, readOnly, rekey, chartAgain, histories, edits, refresh, toast, GROUP_OF, drafts, readPresetList } from "/studio/app.js";
 import { plural } from "/studio/format.js";
 import { hashOf, uid } from "/studio/math.js";
-import { showView } from "/studio/vocabulary.js";
 import { titleOf } from "/studio/looks.js";
 import { STUDIO_ORIGIN, presetInfo, sectionInfo, STUDIO_TITLE, STUDIO_DESCRIPTION, presetDataset, studioApplication } from "/studio/page-info.js";
 import { inSlices } from "/studio/timing.js";
 import { withRest } from "/studio/later.js";
 import { addressSteps } from "/studio/addresses.js";
-import { validate, fromSketch, viewShown, contentOf, lookFields } from "/studio/charts-read.js";
+import { validate, fromSketch, contentOf, lookFields } from "/studio/charts-read.js";
 import { isNamed } from "/studio/color.js";
 
 /** @typedef {{ name: string, at: Place }} Step */
@@ -205,21 +204,19 @@ const editedPreset = (/** @type {number} */ i) => (presets ? library.presets.fin
 /** @param {number} i */
 const presetLook = (i) => {
   const preset = /** @type {Preset[]} */ (presets)[i];
-  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window, show: viewShown(doc) }))(freshPreset(i)));
-  return /** @type {{ index: string, range: string, window?: string, show: string }} */ (madeLooks.get(preset));
+  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window }))(freshPreset(i)));
+  return /** @type {{ index: string, range: string, window?: string }} */ (madeLooks.get(preset));
 };
-/** @type {WeakMap<Preset, { index: string, range: string, window?: string, show: string }>} */
+/** @type {WeakMap<Preset, { index: string, range: string, window?: string }>} */
 const madeLooks = new WeakMap();
 /** @param {Chart} doc */
 const windowless = (doc) => ((w) => (w ? atWindow(structuredClone(doc), w.offered[0]) : doc))(chartWindow(doc));
-/** @param {Chart} doc */
-const firstViews = (doc) => (doc.panes.some((pane) => pane.lens?.at) ? ((copy) => (copy.panes.forEach((pane) => showView(copy, pane.id, 0)), copy))(structuredClone(doc)) : doc);
 /**
- * Looked at aside: its view, interval (as day1: every preset opened at day1 before its own), trailing window and views
+ * Looked at aside: its view, interval (as day1: every preset opened at day1 before its own) and trailing window
  * don't count, nor pane sizes: a separator dragged is a way of looking, not an edit.
  * @param {Chart} doc
  */
-const contentHash = (doc) => hashOf(contentOf(windowless(firstViews({ ...doc, range: "", index: "day1", panes: doc.panes.map(({ size, ...pane }) => pane) }))));
+const contentHash = (doc) => hashOf(contentOf(windowless({ ...doc, range: "", index: "day1", panes: doc.panes.map(({ size, ...pane }) => pane) })));
 const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
 /** @type {WeakMap<Preset, string>} */
 const templateHashes = new WeakMap();
@@ -410,5 +407,5 @@ function foldersAbove(folder) {
   return above;
 }
 const presetsSettled = () => readPresetList().then(() => {}, () => {});
-export { presetTree, presetRoot, presetName, presetNodeAt, placeNames, homeName, folderById, backToHome, asPlace, BASE, routeOf, showAddress, presetChart, presetLook, presetEdited, presetIndex, presetDoc, presetIdOf, keptPreset, pristine, looksOf, aFrame, idsNow, adoptPresets, prunePresets, addressesSoon, isLinkHash, presetLink, editedPreset, templateHash, templateHashes, freshPreset, contentHash, windowless, firstViews, presetKey, presetPlaces, templateDoc, presetDocs, fromPreset, madeLooks, presetShows, likeness, presetPlace, restampedFor, keptAsStored, presetIds, presetById, addressBook, addressDue, structuredFor, placeAddress, addressNow, CANONICAL_ORIGIN, addresses, presetShowing, chartPlace, stepsTo, foldersAbove, presetPathOf, presetsSettled
+export { presetTree, presetRoot, presetName, presetNodeAt, placeNames, homeName, folderById, backToHome, asPlace, BASE, routeOf, showAddress, presetChart, presetLook, presetEdited, presetIndex, presetDoc, presetIdOf, keptPreset, pristine, looksOf, aFrame, idsNow, adoptPresets, prunePresets, addressesSoon, isLinkHash, presetLink, editedPreset, templateHash, templateHashes, freshPreset, contentHash, windowless, presetKey, presetPlaces, templateDoc, presetDocs, fromPreset, madeLooks, presetShows, likeness, presetPlace, restampedFor, keptAsStored, presetIds, presetById, addressBook, addressDue, structuredFor, placeAddress, addressNow, CANONICAL_ORIGIN, addresses, presetShowing, chartPlace, stepsTo, foldersAbove, presetPathOf, presetsSettled
 };

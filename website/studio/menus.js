@@ -27,7 +27,7 @@ import { chartPathRows, isIn, sideKey, treeOf } from "/studio/grid.js";
 import { tick } from "/studio/presets-edit.js";
 import { labelOf, titleOf } from "/studio/looks.js";
 import { typedFrom } from "/studio/toolbar.js";
-import { flatOf, lookFields, linkDates, dateText, BASE32 } from "/studio/charts-read.js";
+import { lookFields, linkDates, dateText, BASE32 } from "/studio/charts-read.js";
 import { folderById, presetEdited, presetLink } from "/studio/preset-charts.js";
 /** @import { Chart, Layer } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
@@ -643,14 +643,13 @@ function portable(doc) {
   return { v: 3, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => ((one) => (one.gradient && !one.byGradient ? { ...one, byGradient: false } : one))(from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
 }
 
-/** @param {Chart} shown */
-function toSketch(shown) {
-  const doc = flatOf(shown);
+/** @param {Chart} doc */
+function toSketch(doc) {
   const place = (/** @type {string} */ id) => doc.panes.findIndex((pane) => pane.id === id) + 1;
   const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && Object.keys(pane).every((key) => key === "id" || key === "mode"));
   const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
-  if (shown === chart) saveView();
-  const dates = linkDates(shown);
+  if (doc === chart) saveView();
+  const dates = linkDates(doc);
   return {
     ...(doc.title ? { title: doc.title } : {}),
     ...(doc.index !== "day1" ? { index: doc.index } : {}),

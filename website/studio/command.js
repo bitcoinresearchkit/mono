@@ -69,7 +69,7 @@ import {
   supportedIntervals, switchInterval, switchWindow,
 } from "/studio/menus.js";
 import {
-  copyPreset, legendAction, LEGENDS, ordersOf, paneChip, paneRows, presetActions, setPaneView,
+  copyPreset, legendAction, LEGENDS, ordersOf, paneChip, paneRows, presetActions,
   presetPages, presetRow, presetsPage, resetPreset, scaleGroup, setFull, setLegend, setPaneMode, toggleHalvings,
 } from "/studio/presets-edit.js";
 import { fillOf, labelOf, layerById, lineLook, named, paneMode, derivedTitle, titleOf, faintOf, rangeOf } from "/studio/looks.js";
@@ -357,7 +357,6 @@ function commands() {
     ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
     ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
     ...((found) => (found?.offered ?? []).map((key) => ({ follows: windowShort(key), title: `Window: ${windowSaid(key)}`, text: `Each value its series over the ${windowSaid(key).replace(/^1 /, "")} before it.`, icon: "hourglass", ...(key === found?.window ? { current: true } : { run: () => switchWindow(key) }) })))(empty ? null : chartWindow(chart)),
-    ...(empty ? [] : chart.panes.flatMap((pane, i) => (pane.lens ? pane.lens.as.map((name, k) => ({ title: `Show as: ${name}`, text: `${chart.panes.length > 1 ? `Pane ${i + 1}` : "The chart"} as its ${pane.lens?.as.map((view) => view.toLowerCase()).join(" or its ")}, each on its own scale.`, icon: "swap", ...(pane.lens?.at === k ? { current: true } : { run: () => setPaneView(pane.id, /** @type {0 | 1} */ (k)) }) })) : []))),
     ...(empty || summed(scalePane()) ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
     ...(empty ? [] : [
       { title: beltUp() ? "Hide the drawing tools" : "Show the drawing tools", text: beltUp() ? "They show again while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: () => (beltUp() ? hideBelt() : showBelt()) },
@@ -1786,7 +1785,6 @@ function panePage(id) {
     if (i < 0) return [];
     const pane = chart.panes[i], layers = chart.layers.filter((layer) => layer.pane === id);
     return [
-      ...(pane.lens ? [{ key: "view", icon: ICONS.swap, label: "Show as", aside: pane.lens.as[pane.lens.at], group: "Pane", page: () => choicePage("Show as", () => scaleGroup(id, "Show as"), (panel) => previewPane(panel, id)) }] : []),
       ...(summed(pane) ? [] : [{ key: "scale", icon: ICONS.axis, label: "Scale", aside: MODES[paneMode(pane)].name, group: "Pane", page: () => choicePage("Scale", () => scaleGroup(id, "Scale"), (panel) => previewPane(panel, id)) }]),
       { key: "stack", icon: ICONS.charts, label: "Stack", aside: STACKS.find(([stack]) => stack === (pane.stack ?? ""))?.[1], group: "Pane", page: () => choicePage("Stack", () => scaleGroup(id, "Stack")) },
       ...(layers.length > 1 ? [{ key: "order", icon: ICONS.charts, label: "Order", aside: ordersOf(pane)[pane.reverse ? 1 : 0][1], group: "Pane", page: () => choicePage("Order", () => scaleGroup(id, "Order")) }] : []),
