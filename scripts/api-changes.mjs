@@ -6,7 +6,7 @@
 // written out, and those gone for good grouped by cohort and by measure. Run it before a release, both servers synced to
 // the same tip:
 //
-//   bun website/changes/diff.mjs [old server] [new server]   writes <old version>.json, and lists it on the page
+//   bun scripts/api-changes.mjs [old server] [new server]   writes <old version>.json, and lists it on the page
 //   ... --to VERSION                                                 the version about to be released (the old one's
 //                                                                    next minor, by default: 0.12.2 to 0.13.0)
 //   ... --cache                                                      keeps what it fetched in target/changes, for
@@ -24,15 +24,16 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
-import { index, read } from "./rules.js";
+import { index, read } from "../website/changes/rules.js";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
+const CHANGES = join(REPO, "website", "changes");
 const args = process.argv.slice(2);
 const toAt = args.indexOf("--to");
 const servers = args.filter((arg, i) => !arg.startsWith("--") && i !== toAt + 1);
 const OLD = (servers[0] ?? "https://bitview.space").replace(/\/$/, "");
 const NEW = (servers[1] ?? "https://next.bitview.space").replace(/\/$/, "");
-const CACHE = args.includes("--cache") ? join(HERE, "..", "..", "target", "changes") : null;
+const CACHE = args.includes("--cache") ? join(REPO, "target", "changes") : null;
 const OFFLINE = Boolean(CACHE) && args.includes("--offline");
 // (Requests at once, per server: gentle on a prod server that may be serving alone.)
 const AT_ONCE = 4;
@@ -414,7 +415,7 @@ for (const { from } of evidence) {
   const words = tokens(from);
   for (let k = 1; k < words.length; k++) bump(pairsOf, words.slice(0, k).join("_") + "_");
 }
-/** @type {import("./rules.js").Rename[]} */
+/** @type {import("../website/changes/rules.js").Rename[]} */
 const cohorts = [];
 for (const [now, all] of byCohortNow) {
   let rest = all, first = 0;
@@ -568,7 +569,7 @@ const candidates = (votes, least) =>
 // found where a cohort's coins are all in profit, would read every `supply_in_profit` as `supply`). Units first, then
 // words, then measures whole; again until none is added, as a rule may need another to read anything right (`ratio`,
 // by 100, needs `rate` read as `percent`).
-/** @type {import("./rules.js").Rules} */
+/** @type {import("../website/changes/rules.js").Rules} */
 const rules = { cohorts: cohortRules, measures: [], words: [], suffixes: [], ids: [] };
 let rulesIndex = index(rules);
 /** @param {number} a @param {number} b */
@@ -940,11 +941,11 @@ const changes = {
   changed,
 };
 const file = `${FROM}.json`;
-writeFileSync(join(HERE, file), format(changes) + "\n");
-const page = join(HERE, "index.html"), html = readFileSync(page, "utf8");
+writeFileSync(join(CHANGES, file), format(changes) + "\n");
+const page = join(CHANGES, "index.html"), html = readFileSync(page, "utf8");
 const listed = html.match(/const RELEASES = (\[.*\]);/);
 if (!listed) throw new Error(`${page} has no RELEASES list`);
 /** Each comparison as the page tabs it, newest first: from, to. @type {[string, string][]} */
 const releases = JSON.parse(listed[1]).filter((/** @type {[string, string]} */ [from]) => from !== FROM);
 writeFileSync(page, html.replace(listed[0], `const RELEASES = ${JSON.stringify([[FROM, TO], ...releases])};`));
-console.log(`Wrote ${join(HERE, file)}`);
+console.log(`Wrote ${join(CHANGES, file)}`);

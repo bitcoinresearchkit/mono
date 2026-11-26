@@ -791,7 +791,7 @@
       import { releases } from "./changelog.js";
 
       // The releases whose API was compared, newest first, each as from, to: `<from>.json` beside this page, written by
-      // diff.mjs from two servers, the one release's and the other's before it was released.
+      // scripts/api-changes.mjs from two servers, the one release's and the other's before it was released.
       const RELEASES = [["v0.12.2","v0.13.0"]];
       /** @type {Map<string, Promise<any>>} API comparisons, fetched once and shared by the tabs and id lookup. */
       const comparisons = new Map();
