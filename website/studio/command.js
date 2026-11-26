@@ -1,7 +1,7 @@
 // @ts-check
 // ⌘K: series search, its pages, colors looked at, go to a date.
 import { initialsRanges } from "/studio/initials.js";
-import { capitalized, holderName, inSentence, isLeaf, windowSaid, windowShort } from "/studio/words.js";
+import { capitalized, holderName, inSentence, isLeaf, windowMeaning, windowSaid, windowShort } from "/studio/words.js";
 import { startWorker } from "/studio/workers.js";
 import {
   acrossUnfit, answers, averageFor, byBlock, byKeys, canLook, canTravel, catalogIndex, changesOf, chart, chartById,
@@ -356,7 +356,7 @@ function commands() {
     ...THEMES.map(([id, name, icon, text]) => ({ title: `Theme: ${name}`, text, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
     ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
     ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
-    ...((found) => (found?.offered ?? []).map((key) => ({ follows: windowShort(key), title: `Window: ${windowSaid(key)}`, text: `Each value its series over the ${windowSaid(key).replace(/^1 /, "")} before it.`, icon: "hourglass", ...(key === found?.window ? { current: true } : { run: () => switchWindow(key) }) })))(empty ? null : chartWindow(chart)),
+    ...((found) => (found?.offered ?? []).map((key) => ({ follows: windowShort(key), title: `Window: ${windowSaid(key)}`, text: windowMeaning(key), icon: "hourglass", ...(key === found?.window ? { current: true } : { run: () => switchWindow(key) }) })))(empty ? null : chartWindow(chart)),
     ...(empty || summed(scalePane()) ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
     ...(empty ? [] : [
       { title: beltUp() ? "Hide the drawing tools" : "Show the drawing tools", text: beltUp() ? "They show again while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: () => (beltUp() ? hideBelt() : showBelt()) },

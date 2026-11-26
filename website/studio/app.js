@@ -6,7 +6,7 @@ import { createChart, press, picture as chartPicture, Candles, Gradient, Levels,
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
 import { hexToOklch, nameDistance, ofPalette, onCurve, pageInk, SWATCHES, TONE, warmLift, isColor } from "/studio/color.js";
-import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
+import { AGES, ALL_TIME, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowMeaning, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
@@ -101,6 +101,8 @@ export function whole(full) {
   EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
   LIVE = new Map([[tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats]]);
   knowCohorts(full.AGE_RANGE_NAMES);
+  // (A chart drawn before the tree came has its window only now.)
+  if (chart) renderWindow();
 }
 /** @param {string[]} path */
 function nodeAt(path) {
@@ -534,13 +536,20 @@ function followPool(layer) {
 
 /**
  * By its place in the catalog (its last window step), never by its name, which puts it anywhere
- * (`market_cap_delta_1y_percent`).
+ * (`market_cap_delta_1y_percent`). A sum's windows offer its running total too (ALL_TIME), the `cumulative` beside
+ * them or beside their `sum`.
  * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
  */
 function seriesWindow(name) {
-  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex(isWindowKey) : -1;
+  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex((step) => isWindowKey(step) || step === ALL_TIME) : -1;
   if (!steps || i < 0) return null;
-  const at = new Map(Object.keys(nodeAt(steps.slice(0, i)) ?? {}).filter(isWindowKey).flatMap((key) => ((other) => (other ? [[key, other]] : []))(nameAt([...steps.slice(0, i), key, ...steps.slice(i + 1)].join(".")))));
+  const head = steps.slice(0, i), tail = steps.slice(i + 1), total = steps[i] === ALL_TIME;
+  const windows = total && nodeAt([...head, "sum"]) ? [...head, "sum"] : head, holder = windows.at(-1) === "sum" ? windows.slice(0, -1) : windows;
+  const named = (/** @type {string[]} */ path) => nameAt([...path, ...tail].join("."));
+  const at = new Map(Object.keys(nodeAt(windows) ?? {}).filter(isWindowKey).flatMap((key) => ((other) => (other ? [[key, other]] : []))(named([...windows, key]))));
+  if (total && !at.size) return null;
+  const all = named([...holder, ALL_TIME]);
+  if (all) at.set(ALL_TIME, all);
   return { window: steps[i], at };
 }
 /** @param {Chart} doc */
@@ -561,7 +570,8 @@ function chartWindow(doc) {
   let found = windowsFound.get(key);
   if (found !== undefined) return found;
   found = null;
-  if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`)))) {
+  if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`) || part === ALL_TIME))) {
+    if (!tree) return null;
     indexCatalog();
     let window = "", offered = /** @type {string[] | null} */ (null);
     const at = new Map();
@@ -589,7 +599,7 @@ function atWindow(doc, to) {
   // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
   // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
   // band's "1 day to under 1 week old".)
-  const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`), windowSaid(to)).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
+  const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`, "i"), (_, at) => (at ? windowSaid(to) : capitalized(windowSaid(to)))).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
   for (const layer of doc.layers) {
     if (layer.series) {
       layer.series = swap(layer.series);
@@ -6869,7 +6879,7 @@ withRest(() => {
 });
 $("window").addEventListener("click", (event) => {
   const found = chartWindow(chart);
-  if (found) menus.showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(4, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">Each value is its series over the ${windowSaid(found.window).replace(/^1 /, "")} before it.</div>`, ({ window }) => menus.switchWindow(window));
+  if (found) menus.showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(5, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">${windowMeaning(found.window)}</div>`, ({ window }) => menus.switchWindow(window));
 });
 $("interval").addEventListener("click", (event) => {
   const supported = menus.supportedIntervals();
@@ -8579,8 +8589,10 @@ async function linked(written, shared, run, at = 0, base32 = false) {
       }
     })() : await fromLink(/** @type {string} */ (shared), base32);
     if (!doc.layers.length) throw new Error("it lists no layers");
+    const look = shared === null ? null : linkLookOf(new URLSearchParams(plain ? written.replace(/^.*(?:\}|%7d|%257d)/is, "") : location.hash.slice(1)));
+    if (look?.window) await import("/studio/client.js");
     if (!currentRead(run, at)) return null;
-    if (shared !== null) takeLinkLook(doc, linkLookOf(new URLSearchParams(plain ? written.replace(/^.*(?:\}|%7d|%257d)/is, "") : location.hash.slice(1))));
+    if (look) takeLinkLook(doc, look);
     const twin = twinOf(doc);
     const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
     if (shared !== null && !picturing) history.replaceState(home ? { ...(history.state?.home ? history.state : {}), ...homeState() } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
@@ -8961,6 +8973,8 @@ async function start() {
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
   if (asked) await loadPresets().catch(() => {});
   const routed = asked ? routeOf(asked) : null;
+  // (A window is read from the series tree, which a first chart doesn't otherwise wait for.)
+  if (routed && "preset" in routed && linkLookOf(new URLSearchParams(location.hash.slice(1)), routed.window).window) await import("/studio/client.js");
   chart = (routed && "preset" in routed ? presetByAddress(routed.preset, routed.window) : resumed) || chart;
   if (first && routed && "preset" in routed) {
     const draft = previewCharts.findIndex((doc) => drafts.has(doc));

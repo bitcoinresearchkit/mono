@@ -33,7 +33,7 @@
 
 /** @import { Facts } from "./facts.js" */
 import { HOLDER_COLORS, LANDSCAPE, SKY, holderColor, recencyColor, wheelColor } from "./palette.js";
-import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
+import { AGES, ALL_TIME, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 import { POWER_LAW } from "../modules/power-law/index.js";
 
@@ -199,27 +199,29 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /** @param {any} node */
   const windowsOf = (node) => entries(node).filter(([key, value]) => isWindowKey(key) && (isLeaf(value) || value.btc));
   /**
+   * A measure over trailing windows, one layer at its window (the month's, else its longest, unless `show` says): the
+   * page offers the others, and a sum's running total (see chartWindow), so none is drawn hidden.
    * @param {any} node
    * @param {string} what
-   * @param {{ pick?: (n: any) => any, show?: string[], pane?: number, extra?: Layer, around?: number, color?: string }} [options]
+   * @param {{ pick?: (n: any) => any, show?: string, pane?: number, extra?: Layer, around?: number, color?: string }} [options]
    * @returns {Layer[]}
    */
   const windows = (node, what, options = {}) => {
     const list = windowsOf(node), pick = options.pick ?? ((n) => n);
-    const shown = options.show ?? (list.some(([key]) => key === "_1m") ? ["_1m"] : [list.at(-1)?.[0]]);
-    return list.map(([key, value], i) => series(pick(value), what ? `${what}, ${windowSaid(key)}` : windowSaid(key), {
-      color: (shown.includes(key) && options.color) || WINDOW_COLORS[i % WINDOW_COLORS.length],
-      ...(shown.includes(key) ? {} : { hidden: true }),
+    const i = list.findIndex(([key]) => key === (options.show ?? (list.some(([key]) => key === "_1m") ? "_1m" : list.at(-1)?.[0])));
+    if (i < 0) return [];
+    const [key, value] = list[i];
+    return [series(pick(value), what ? `${what}, ${windowSaid(key)}` : windowSaid(key), {
+      color: options.color || WINDOW_COLORS[i % WINDOW_COLORS.length],
       ...(options.pane ? { pane: options.pane } : {}),
       ...options.extra,
-      ...(options.around === undefined ? {} : { ...around(options.around), ...(shown.includes(key) ? { color: "green", colorBelow: "red" } : shades(i, list.length)) }),
-    }));
+      ...(options.around === undefined ? {} : { ...around(options.around), color: "green", colorBelow: "red" }),
+    })];
   };
   /** @param {any} node @param {string} what @param {Layer} [extra] */
-  const sharesOf = (node, what, extra = {}) => [
-    ...(byDate(node.cumulative) ? [series(node.cumulative, `${what}, all time`, { color: "gray", ...extra })] : []),
-    ...windows(node.sum ?? node, what, { extra }),
-  ];
+  const sharesOf = (node, what, extra = {}) => windows(node.sum ?? node, what, { extra });
+  /** The place its all-time twin had: it opens this chart at All time now. @param {Name} name */
+  const allTimeWas = (name) => ({ [`${placeOf(name)}, all time`]: ALL_TIME });
   /** @param {any} n */
   const btc = (n) => (isLeaf(n) ? n : n?.btc);
   /** @param {any} n */
@@ -242,21 +244,14 @@ export function studioPresets(client, facts, report = (problem) => console.error
    */
   const flow = (node, name, title, { color, dollars = false } = {}) => {
     if (!node) return [];
-    const sums = node.sum ?? node, always = extended(name, ", all time"), sinceStart = appended(title, "all time");
-    const pair = windowsOf(sums).some(([, value]) => value.btc);
-    if (!pair) {
-      const layers = windows(sums, "", { color });
-      const scale = dollars ? { log: [1] } : {};
-      return [...(layers.length ? [chart(name, title, layers, scale)] : []), ...(byDate(node.cumulative) ? [chart(always, sinceStart, [series(node.cumulative, "All time", { color: color ?? SUM_COLOR })], scale)] : [])];
-    }
-    const charts = [chart(name, title, [...windows(sums, "Bitcoin", { pick: btc, color: color ?? "orange" }), ...windows(sums, "Dollars", { pick: usd, pane: 2, color: "green" })], { log: [2] })];
-    if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(always, sinceStart, [series(btc(node.cumulative), "Bitcoin", { color: color ?? "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])], { log: [2] }));
-    return charts;
+    const sums = node.sum ?? node, pair = windowsOf(sums).some(([, value]) => value.btc), scale = pair ? { log: [2] } : dollars ? { log: [1] } : {};
+    const layers = pair ? [...windows(sums, "Bitcoin", { pick: btc, color: color ?? "orange" }), ...windows(sums, "Dollars", { pick: usd, pane: 2, color: "green" })] : windows(sums, "", { color });
+    if (layers.length) return [chart(name, title, layers, { ...scale, ...(byDate(btc(node.cumulative)) ? { was: allTimeWas(name) } : {}) })];
+    return byDate(node.cumulative) ? [chart(extended(name, ", all time"), appended(title, "all time"), [series(node.cumulative, "All time", { color: color ?? SUM_COLOR })], scale)] : [];
   };
   /** @param {any} node @param {Name} name @param {string} things @param {any} [share] @returns {ChartNode[]} */
   const counted = (node, name, things, share = node.share) => [
-    chart(name, numberOf(things), [...windows(node.sum, ""), ...sharesOf(share, "Share", { pane: 2 })]),
-    chart(extended(name, ", all time"), appended(numberOf(things), "all time"), [series(node.cumulative, "All time", { color: SUM_COLOR })]),
+    chart(name, numberOf(things), [...windows(node.sum, ""), ...sharesOf(share, "Share", { pane: 2 })], { was: allTimeWas(name) }),
   ];
   /**
    * @param {[Name, string]} amounts
@@ -431,11 +426,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
           chart("Volume in profit and loss", titled("Transfer volume in profit and loss"), [
             ...windows(activity.transferVolume.inProfit.sum, "In profit", { pick: btc, extra: { color: "green" } }), ...windows(activity.transferVolume.inLoss.sum, "In loss", { pick: btc, extra: { color: "red" } }),
             ...windows(activity.transferVolume.inProfit.sum, "In profit, value", { pick: usd, pane: 2, extra: { color: "green" } }), ...windows(activity.transferVolume.inLoss.sum, "In loss, value", { pick: usd, pane: 2, extra: { color: "red" } }),
-          ]),
-          chart("Volume in profit and loss, all time", titled("Transfer volume in profit and loss, all time"), [
-            series(btc(activity.transferVolume.inProfit.cumulative), "In profit", { color: "green" }), series(btc(activity.transferVolume.inLoss.cumulative), "In loss", { color: "red" }),
-            series(usd(activity.transferVolume.inProfit.cumulative), "In profit, value", { color: "green", pane: 2 }), series(usd(activity.transferVolume.inLoss.cumulative), "In loss, value", { color: "red", pane: 2 }),
-          ]),
+          ], { was: allTimeWas("Volume in profit and loss") }),
         ] : []),
         ...flow(activity.coindaysDestroyed, "Coin days destroyed", titled("Coin days destroyed"), { color }),
         ...flow(activity.coindaysCreated, "Coin days created", titled("Coin days created"), { color }),
@@ -445,14 +436,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
         realized.profit && chart("Profit and loss", titled("Realized profit and loss"), [
           ...windows(realized.profit.sum, "Profit", { extra: { color: "green" } }), ...windows(realized.loss.sum, "Loss", { extra: { color: "red" } }),
           ...(realized.netPnl ? windows(realized.netPnl.sum, "Net", { pane: 2, around: 0 }) : []),
-        ], { log: [1] }),
+        ], { log: [1], was: allTimeWas("Profit and loss") }),
         ...flowShares(c, "Share of realized profit", who, color),
         ...flowShares(c, "Share of realized loss", who, color),
         realized.profit?.sum?._24h && realized.loss?.sum?._24h && measure(shownAs("Profit share", "Realized profit as a share of profit plus loss"), who, windows(Object.fromEntries(FLOW_WINDOWS.map(([key]) => [key, flowShare(rollingWindow(realized.profit.sum, key), realizedTotal(c, key))])), "", { color: color ?? "violet", extra: { levels: [{ value: 50, color: "gray", dash: 3 }] } })),
-        realized.profit && chart("Profit and loss, all time", titled("Realized profit and loss, all time"), [
-          series(realized.profit.cumulative, "Profit", { color: "green" }), series(realized.loss.cumulative, "Loss", { color: "red" }),
-          ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
-        ], { log: [1] }),
         realized.netPnl?.sum?._24h && chart("Profit and loss bubbles", titled("Net realized profit and loss bubbles"), [price(), series(realized.netPnl.sum._24h, "Net", { type: "bubbles", ref: "A", color: "green", colorBelow: "red" })]),
         urpd && realized.profit?.sum?._24h && chart("Profit and loss bubbles on the heatmap", titled("Realized and unrealized profit and loss"), [
           price(), series(realized.profit.sum._24h, "Profit", { type: "bubbles", ref: "A", color: "green", colors: 1 }), series(realized.loss.sum._24h, "Loss", { type: "bubbles", ref: "A", color: "red", colors: 1 }),
@@ -465,15 +452,15 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...flow(realized.peakRegret, "Peak regret", titled("Realized peak regret"), { color, dollars: true }),
         // Ratios around 1 on a log scale, as every ratio: 0.5× is as far under as 2× over, and an old group's spikes to
                 // 20× don't flatten the rest.
-        realized.sopr && chart("SOPR", titled("Spent output profit ratio (SOPR)"), windows(realized.sopr, "", { show: ["_1w"], around: 1 }), { log: [1] }),
+        realized.sopr && chart("SOPR", titled("Spent output profit ratio (SOPR)"), windows(realized.sopr, "", { show: "_1w", around: 1 }), { log: [1] }),
         realized.adjustedSopr && chart("Adjusted SOPR", titled("Adjusted SOPR (aSOPR)"), [
-          ...windows(realized.adjustedSopr, "", { show: ["_1w"], around: 1 }),
+          ...windows(realized.adjustedSopr, "", { show: "_1w", around: 1 }),
           ...windows(realized.adjustedSopr.valueCreated.sum, "Value created", { pane: 2, extra: { color: "green" } }),
           ...windows(realized.adjustedSopr.valueDestroyed.sum, "Value destroyed", { pane: 2, extra: { color: "red" } }),
         ], { log: [1, 2] }),
-        realized.adjustedSopr && chart("Adjusted value, all time", titled("Adjusted value created and destroyed, all time"), [
-          series(realized.adjustedSopr.valueCreated.cumulative, "Created", { color: "green" }), series(realized.adjustedSopr.valueDestroyed.cumulative, "Destroyed", { color: "red" }),
-        ], { log: [1] }),
+        realized.adjustedSopr && chart("Adjusted value", titled("Adjusted value created and destroyed"), [
+          series(realized.adjustedSopr.valueCreated.cumulative, "Created, all time", { color: "green" }), series(realized.adjustedSopr.valueDestroyed.cumulative, "Destroyed, all time", { color: "red" }),
+        ], { log: [1], was: allTimeWas("Adjusted value") }),
         realized.sellSideRiskRatio && chart("Sell-side risk ratio", titled("Sell-side risk ratio"), windows(realized.sellSideRiskRatio, "", { color }), { log: [1] }),
       ]),
       unrealized && section("Unrealized", [
@@ -1074,10 +1061,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ], { icon: "key" }),
     section("Mining", [
       section("Hashing", [
-        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { show: ["_1m"], extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
+        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
         // On a log scale: it has grown by decades with the hash rate.
-        chart("Block work", "Block work, the hashes expected to find the blocks", windows(blocks.work.sum, ""), { log: [1] }),
-        chart("Block work, all time", "Block work, all time (chainwork)", [series(blocks.work.cumulative, "All time", { color: SUM_COLOR })], { log: [1] }),
+        chart("Block work", "Block work, the hashes expected to find the blocks", windows(blocks.work.sum, ""), { log: [1], was: allTimeWas("Block work") }),
         // No marks where it crosses back: the averages cross too often to read.
         chart("Hash ribbons", "Hash ribbons", [
           price(),
@@ -1529,7 +1515,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...change(a.funded.delta, "Change", of("Funded address count change")),
         ...flow(a.new, "New", of(numberOf("new addresses"))),
         // Each block's distinct addresses, averaged over a window: not the distinct addresses of the window.
-        chart("Active per block", of("Average number of active addresses per block"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
+        chart("Active per block", of("Average number of active addresses per block"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { extra: { color: ramp(all.length)[i], ...(key === "active" ? {} : { hidden: true }) } }))),
       ]),
       ...addressKinds.map((kind) => {
         const k = a[kind.key], who = capitalized(kind.set);
