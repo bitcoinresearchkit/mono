@@ -126,10 +126,10 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Long-term holders (50): https://bitview.space/studio/presets/holders/long-term-holders/index.html.md
   - Under each age (729): https://bitview.space/studio/presets/holders/under-an-age/index.html.md
   - At or above each age (675): https://bitview.space/studio/presets/holders/over-an-age/index.html.md
-  - Entry price (70): https://bitview.space/studio/presets/holders/entry-price/index.html.md
   - Age bands (975): https://bitview.space/studio/presets/holders/age-bands/index.html.md
-  - Halving epochs (148): https://bitview.space/studio/presets/holders/halving-epochs/index.html.md
   - Vintages (486): https://bitview.space/studio/presets/holders/vintages/index.html.md
+  - Halving epochs (148): https://bitview.space/studio/presets/holders/halving-epochs/index.html.md
+  - Entry price (70): https://bitview.space/studio/presets/holders/entry-price/index.html.md
   - Profit bands (588): https://bitview.space/studio/presets/holders/profit-bands/index.html.md
   - Awake coins (218): https://bitview.space/studio/presets/holders/awake-coins/index.html.md
   - Mobile coins (218): https://bitview.space/studio/presets/holders/mobile-coins/index.html.md
