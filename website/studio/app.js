@@ -576,10 +576,12 @@ const windowsFound = new Map();
  * @param {Chart} doc @returns {ChartWindow | null}
  */
 function chartWindow(doc) {
-  const names = seriesOf(doc), key = names.join(" ");
+  // (By its layers as written: a series read for its change has no window, beside it alone it has.)
+  const key = doc.layers.map((layer) => `${layer.series ?? ""} ${layer.formula ?? ""}`).join("\n");
   let found = windowsFound.get(key);
   if (found !== undefined) return found;
   found = null;
+  const names = seriesOf(doc);
   if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`) || part === ALL_TIME))) {
     if (!tree) return null;
     indexCatalog();
