@@ -948,7 +948,9 @@ const rekey = (doc, id) => {
   const old = doc.id;
   doc.id = id;
   moveView(old, id);
-  for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, inspector.formulaDrafts])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
+  // (Formula drafts are the inspector's, loaded with the rest: before it, there are none. Presets reorganized as they
+  // arrive can come first.)
+  for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, ...(inspector ? [inspector.formulaDrafts] : [])])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
   if (chart === doc) library.active = id;
   if (displayed?.doc.id === old) (displayed.doc.id = id), (displayed.look = lookKey(displayed.doc));
   if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
@@ -5345,6 +5347,9 @@ function loadPresets() {
   return (presetsLoad ??= (async () => {
     presetsFailed = false;
     const list = await readPresetList();
+    // (An edited preset whose place is gone is adopted by what it shows, its windows folded, which takes the series'
+    // tree: read first, then.)
+    if (((places) => library.presets.some((doc) => doc.preset !== undefined && !places.has(doc.preset)))(new Set(list.map((preset) => JSON.stringify(preset.p))))) await import("/studio/client.js");
     // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
     await aFrame();
     presets = list;
