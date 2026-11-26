@@ -1,31 +1,19 @@
 // @ts-check
 // Studio's icons, and the small drawings of chart types, line shapes and marks, as SVG.
 
-/**
- * The style table every icon in the site is drawn to (icons-check.mjs measures all of them against it).
- * One grid: an icon is drawn at the size it is shown, 16 units for 16 px, so a unit is a pixel and nothing is scaled.
- * A 1.5 stroke has edges on whole pixels at 2× only when its centre sits on .25 or .75, so every straight edge does:
- * a drawing of lines alone is centred on 7.75, a framed one (FRAME) on 8, a quarter unit apart, the price of crisp edges.
- */
+// The style every icon is drawn to (scripts/icons-check.mjs measures them): a 16-unit grid, a unit a pixel, nothing scaled.
+// A 1.5 stroke has crisp edges at 2× only with its centre on .25 or .75: lines alone centre on 7.75, a framed drawing (FRAME) on 8.
 const STYLE = {
   grid: 16,
   stroke: 1.5,
-  /** Every point of a drawing is a multiple of this. */
   snap: 0.25,
-  /** Ink stays this far from the edge of the grid. */
   pad: 0.5,
-  /** Corner radii of rects and rounded paths: small parts, frames. */
   radii: [1, 2],
-  /** Clear space between the ink of two separate parts, so they don't merge at 16 px (parts that touch are one). */
   minGap: 1,
-  /** Straight lines run at these degrees from the horizontal: whole pixel steps, 1:1 and 2:1. */
   angles: [0, 26.565, 45, 63.435, 90],
-  /** The keyline circle's outer diameter; a drawing's longer side is at least `min`. */
   keyline: { circle: 13, min: 9 },
-  /** Ink as a multiple of the keyline circle's: past these an icon looks darker or fainter than its neighbours. A frame with three lines inside (table) is the heaviest, at 1.8; the next is 1.61. */
   weight: [0.15, 1.8],
 };
-/** Rules an icon is allowed to break, each with its reason. */
 const ICON_EXEMPT = /** @type {Record<string, { rules: string[], why: string }>} */ ({
   weight: { rules: ["stroke"], why: "it draws three stroke widths" },
   star: { rules: ["angle"], why: "a five-point star's edges run at 36° and 72°" },
@@ -33,7 +21,6 @@ const ICON_EXEMPT = /** @type {Record<string, { rules: string[], why: string }>}
 });
 
 const svg = (body, attrs = `width="${STYLE.grid}" height="${STYLE.grid}"`) => `<svg viewBox="0 0 ${STYLE.grid} ${STYLE.grid}" ${attrs} fill="none" stroke="currentColor" stroke-width="${STYLE.stroke}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${body}</svg>`;
-// Drawn once, shared: the frame of every panel, the lens of every search, the dot of every grip.
 const FRAME = '<rect x="2.25" y="2.75" width="11.5" height="10.5" rx="2"/>';
 const LENS = '<circle cx="7.25" cy="7.25" r="4.5"/><path d="m10.5 10.5 3.25 3.25"/>';
 const dot = (cx, cy, r = 1) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="currentColor" stroke="none"/>`;
@@ -60,7 +47,6 @@ const ICONS = {
   sidebar: svg(`${FRAME}<path d="M6.25 2.75v10.5"/>`),
   arrowUp: svg(ARROW.up),
   arrowDown: svg(ARROW.down),
-  // (Its page: a row's, View's wherever it's offered.)
   arrowRight: svg(ARROW.right),
   axis: svg('<path d="M12.75 2.75v10.5M12.75 5.25h1.5M12.75 8.25h1.5M12.75 11.25h1.5"/><path d="m2.25 10.75 3-3 2 2 3-3"/>'),
   swap: svg('<path d="M2.75 5.25h10.5M10.75 2.75l2.5 2.5-2.5 2.5"/><path d="M13.25 10.75H2.75M5.25 8.25l-2.5 2.5 2.5 2.5"/>'),
@@ -85,13 +71,11 @@ const ICONS = {
   chain: svg('<path d="M6.25 5.25h-2a2.75 2.75 0 0 0 0 5.5h2M9.75 5.25h2a2.75 2.75 0 0 1 0 5.5h-2M5.75 7.75h4.5"/>'),
   link: svg('<path d="M9.75 2.25h4v4M13.75 2.25l-6 6M6.25 3.25h-2a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h6.5a2 2 0 0 0 2-2v-2"/>'),
   trash: svg('<path d="M2.25 4.25h11.5M6.25 4.25v-1a1 1 0 0 1 1-1h1.5a1 1 0 0 1 1 1v1M3.75 4.25v8a2 2 0 0 0 2 2h4.5a2 2 0 0 0 2-2v-8"/>'),
-  // (Flipped: a shape and its mirror across a dotted axis, left for right, top for bottom.)
   flipX: svg('<path d="M1.75 4.25v7l3.5-3.5ZM13.75 4.25v7l-3.5-3.5ZM7.75 2.25v1M7.75 5.75v1M7.75 9.25v1M7.75 12.75v1"/>'),
   flipY: svg('<path d="M4.25 1.75h7l-3.5 3.5ZM4.25 13.75h7l-3.5-3.5ZM2.25 7.75h1M5.75 7.75h1M9.25 7.75h1M12.75 7.75h1"/>'),
   folder: svg('<path d="M2.75 2.75h3.5l1.5 1.5h5.5a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1v-8.5a1 1 0 0 1 1-1Z"/>'),
   folderOpen: svg('<path d="M13.25 7.25v-2a1 1 0 0 0-1-1H7.75L6.25 2.75h-3a1 1 0 0 0-1 1v3.5"/><path d="M2.25 13.25h8l3-6h-8Z"/>'),
   folderOut: svg(`<path d="${FOLDER_CUT}"/><path d="M12.25 14.25v-4.5M10.25 11.75l2-2 2 2"/>`),
-  // (A preset section's own, and a folder's to pick: see FOLDER_ICONS.)
   candles: svg('<path d="M5.25 2.25v2.5M5.25 10.75v3M10.75 3.25v3M10.75 11.75v2"/><rect x="3.75" y="4.75" width="3" height="6" rx="1"/><rect x="9.25" y="6.25" width="3" height="5.5" rx="1"/>'),
   scale: svg('<path d="M7.75 2.25v11.5M4.75 13.75h6M2.25 4.25h11M3.25 4.25l-2 4h4zM12.25 4.25l-2 4h4z"/>'),
   coins: svg('<path d="M2.75 4.25C2.75 3.15 5 2.25 7.75 2.25s5 .9 5 2-2.25 2-5 2-5-.9-5-2ZM2.75 4.25v7c0 1.1 2.25 2 5 2s5-.9 5-2v-7M2.75 7.75c0 1.1 2.25 2 5 2s5-.9 5-2"/>'),
@@ -122,7 +106,6 @@ const ICONS = {
   check: svg('<path d="m3.25 8.25 3.5 3.5 6-6"/>'),
   ruler: svg('<path d="m2.25 11.25 9-9 3 3-9 9ZM4.75 8.75l1 1M7.25 6.25l1 1M9.75 3.75l1 1"/>'),
   magnifier: svg(`${LENS}<path d="M5.25 7.25h4M7.25 5.25v4"/>`),
-  // (Zoom out: the magnifier's lens, its plus a minus.)
   zoomOut: svg(`${LENS}<path d="M5.25 7.25h4"/>`),
   draw: svg('<path d="M7.75 14.25 2.75 9.25v-4l2-4h6l2 4v4Z"/><circle cx="7.75" cy="7.75" r="1.5"/><path d="M7.75 9.25v5"/>'),
   ellipse: svg('<ellipse cx="7.75" cy="7.75" rx="6" ry="4.5"/>'),
@@ -150,16 +133,11 @@ const ICONS = {
   profile: svg('<g fill="currentColor" stroke="none"><rect x="8" y="1.5" width="6" height="2.5" rx="1"/><rect x="4" y="5" width="10" height="2.5" rx="1"/><rect x="2" y="8.5" width="12" height="2.5" rx="1" fill-opacity=".5"/><rect x="9" y="12" width="5" height="2.5" rx="1" fill-opacity=".5"/></g>'),
   heatmap: svg('<g fill="currentColor" stroke="none"><rect x="2" y="2" width="3" height="3" rx="1" fill-opacity=".25"/><rect x="6.5" y="2" width="3" height="3" rx="1" fill-opacity=".55"/><rect x="11" y="2" width="3" height="3" rx="1" fill-opacity=".9"/><rect x="2" y="6.5" width="3" height="3" rx="1" fill-opacity=".55"/><rect x="6.5" y="6.5" width="3" height="3" rx="1"/><rect x="11" y="6.5" width="3" height="3" rx="1" fill-opacity=".4"/><rect x="2" y="11" width="3" height="3" rx="1" fill-opacity=".9"/><rect x="6.5" y="11" width="3" height="3" rx="1" fill-opacity=".4"/><rect x="11" y="11" width="3" height="3" rx="1" fill-opacity=".2"/></g>'),
   cloud: svg('<path d="M1.5 6.25c2-2 4-2.25 6.25-1.25s4 1 6.25-1.25V8.75c-2.25 2.25-4 2.25-6.25 1.25s-4-.5-6.25 1.25Z" fill="currentColor" fill-opacity=".4" stroke="none"/><path d="M1.5 6.25c2-2 4-2.25 6.25-1.25s4 1 6.25-1.25M1.5 11.25c2-2 4-2.25 6.25-1.25s4 1 6.25-1.25"/>'),
-  // (A signal: a mark pointing down onto a line.)
   signal: svg('<path d="M1.5 13.25c2.5-1.5 4-3.5 6.25-3.5s4.25 1.75 6.25.75" stroke-opacity=".45"/><path d="M7.75 2.25v5M5.25 4.75l2.5 2.5 2.5-2.5"/>'),
   riding: svg('<path d="M1.5 6.25c2-2 4-2.25 6.25-1.25s4 1 6.25-1.25M1.5 11.25c2-2 4-2.25 6.25-1.25s4 1 6.25-1.25" stroke-opacity=".35"/><path d="M1.5 11.25c2-2 4-2.25 6.25-1.25M7.75 5c2.25 1 4 1 6.25-1.25"/>'),
   brush: svg('<path d="M11.75 2.25 13.75 4.25 9.25 8.75 7.25 6.75Z"/><path d="M8.25 7.75C6.5 7.25 4.75 8.25 4.5 10 4.25 11.25 3.75 12.5 2.5 13.25c2.5 1 5.5.25 6-1.75.25-1.25 0-2.5-.75-3.75Z"/>'),
 };
-/**
- * A key's symbols as keycaps draw them, one family with the icons (their stroke, their ends): a font draws each its
- * own way (⌘ thin, ⇧ and ↵ uneven, some from another font), unlike each other and the icons beside them. Sized in em
- * with the key's own text, so shown a little under 16 px.
- */
+// Drawn, not typeset: a font draws each key's symbol its own way (⌘ thin, ⇧ and ↵ uneven, some from another font).
 const KEY_GLYPHS = /** @type {Record<string, string>} */ ({
   "⌘": '<path d="M9.25 4.5V11a1.75 1.75 0 1 0 1.75-1.75H4.5A1.75 1.75 0 1 0 6.25 11V4.5A1.75 1.75 0 1 0 4.5 6.25H11A1.75 1.75 0 1 0 9.25 4.5"/>',
   "⇧": '<path d="m7.75 2.75-5 5h3v5.5h4v-5.5h3Z"/>',
@@ -173,12 +151,9 @@ const KEY_GLYPHS = /** @type {Record<string, string>} */ ({
   "↑": ARROW.up,
   "↓": ARROW.down,
 });
-/** A key's symbol, drawn: an svg as wide as the key's text is tall. */
 const keyGlyph = (/** @type {string} */ glyph) => (KEY_GLYPHS[glyph] ? svg(KEY_GLYPHS[glyph], 'class="key"') : "");
-/** The caret of a control that opens a list. */
 const CHEVRON = `<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1.25 1.25 5 5l3.75-3.75" fill="none" stroke="currentColor" stroke-width="${STYLE.stroke}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const glyphSvg = (/** @type {string} */ body) => `<svg class="glyph" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
-/** Each chart type, drawn on whole pixels at 16×12: crisp at any pixel density. Candles as on the chart: filled when falling, hollow when rising. */
 const glyph = (type) => {
   const body = {
     line: '<path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -191,17 +166,13 @@ const glyph = (type) => {
   }[type] ?? (type === "signal" ? markBody("above", "currentColor") : "");
   return glyphSvg(body);
 };
-/** A signal's mark, drawn at 16×12 as the chart has it: a dot resting on its layer (a faint line) from above, hanging under it, or on it; shaded, a band. */
 const markBody = (/** @type {string | undefined} */ place, /** @type {string} */ color) => {
   if (place === "shade") return `<rect x="4.5" y="1" width="7" height="10" rx="1" fill="${color}" fill-opacity=".4"/>`;
   const [line, dot] = place === "on" ? [6, 6] : place === "below" ? [2.5, 6.8] : [9.5, 5.2];
   return `<path d="M1.5 ${line}h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4"/><circle cx="8" cy="${dot}" r="3" fill="${color}"/>`;
 };
-/** A line shape, drawn on whole pixels at 16×12. */
 const shapeGlyph = (shape) => glyphSvg(`<path d="${{ straight: "M1.5 9.5l4-4 3 3 6-6", steps: "M1.5 9.5h3v-4h4v3h3v-6h3", curved: "M1.5 9.5C4 9.5 4 5 6.5 5s2.5 3.5 5 3.5 2-6 3-6" }[shape]}" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
-/** An outline: a line over its band. */
 const OUTLINE_GLYPH = glyphSvg('<path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="4" opacity=".3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
-/** A line style, its dashes drawn on whole pixels at 16×12. */
 const dashGlyph = (dash, gap) => glyphSvg(`${Array.from({ length: Math.floor((14 + gap) / (dash + gap)) }, (_, k) => `<rect x="${1 + k * (dash + gap)}" y="5" width="${dash}" height="2" fill="currentColor"/>`).join("")}`);
 
 export { CHEVRON, dashGlyph, glyph, glyphSvg, ICON_EXEMPT, ICONS, KEY_GLYPHS, keyGlyph, markBody, OUTLINE_GLYPH, shapeGlyph, STYLE };
