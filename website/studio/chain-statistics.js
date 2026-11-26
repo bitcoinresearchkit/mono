@@ -65,7 +65,7 @@ export function chainStatistics({ t, chart, ramp, flowWindow, underOneSatVb }) {
       line("Chainwork, in days at each day's hash rate", "Chainwork in days at the hash rate of each day", [["Days", `${work.name} / ${hashrate.name} / 86400`]], 7),
       line("Work per block", "Average work per block", [["Work", workPerBlock]], 1, { log: [1] }),
     ]],
-    ["Mining › Difficulty", [chart("Hash rate and difficulty", "Hash rate and difficulty", [{ formula: hashrate.name, label: "Hash rate", color: "orange" }, { formula: difficulty.name, label: "Difficulty", color: "sky", pane: 2 }], { log: [1, 2], average: { 1: "7d" } })]],
+    ["Mining › Difficulty", [chart("Hash rate and difficulty", "Hash rate and difficulty", [{ formula: hashrate.name, label: "Hash rate", color: "orange" }, { formula: difficulty.name, label: "Difficulty", color: "sky", pane: 2 }], { log: [1, 2], average: { 1: "7d" }, priceHidden: true })]],
     ["Mining › Rewards", [chart("Reward per block, subsidy and fees", "Average reward per block, subsidy and fees", (/** @type {const} */ ([["Subsidy", t.mining.rewards.subsidy], ["Fees", t.mining.rewards.fees]])).map(([label, node], i) => ({ formula: perBlock(perDay(node.cumulative.btc)), label, format: "btc", type: "area", color: ramp(2)[i] })), { stack: { 1: "stack" }, average: { 1: "7d" } })]],
     ["Mining › Pools", [
       centralization("Centralization, top pools' share", "Share of blocks mined by the top pools", t.pools.concentration),

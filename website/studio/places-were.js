@@ -18,7 +18,7 @@ const PLACES_WERE = [
   ["Valuation › Cointime caps", "Valuation › On-chain prices › Cointime caps"],
   ["Valuation › Cointime prices", "Valuation › On-chain prices › Cointime prices"],
   ["Valuation › Rarity meter › * › Bands", "Valuation › Rarity meter › *, bands"],
-  ["Valuation › Rarity meter › * › Level and score", "Valuation › Rarity meter › *, level and score"],
+  ["Valuation › Rarity meter › * › Level and score", "Valuation › Rarity meter › *, level"],
   ["Valuation › Rarity meter › Components › * › * › Bands", "Valuation › Rarity meter › Components › * › *, bands"],
   ["Valuation › Rarity meter › Components › * › * › Ratios", "Valuation › Rarity meter › Components › * › *, ratios"],
   ["Valuation › Rarity meter › Components › * › * › * › Bands", "Valuation › Rarity meter › Components › * › * › *, bands"],
@@ -47,8 +47,6 @@ const PLACES_WERE = [
   ["Cointime › Supply", "Supply › Vaulted and active"],
   ["Cointime › Activity", "Activity › Cointime"],
   ["Cointime › Value › Value *", "Activity › Cointime › Cointime value *"],
-  ["Mining › Halvings › Next halving", "Mining › Halvings, next halving"],
-  ["Mining › Halvings › Epoch", "Mining › Halvings, epoch"],
   // Fees, a subject of their own, from the miners' rewards and the transactions'.
   ["Mining › Rewards › Fees", "Fees › Fees paid"],
   ["Mining › Rewards › Fees per block", "Fees › Fees per block"],
@@ -231,8 +229,6 @@ const PLACES_WERE = [
   ["Coinflow › Age bands › * › Mobility", "Holders › Age bands › * › Activity › Mobility"],
   ["Coinflow › Age bands › * › Mobile and immobile", "Holders › Age bands › * › Activity › Mobile and immobile"],
   // A folder of two lifted (presets.js lift).
-  ["Holders › * › * › Unrealized › Profit and loss", "Holders › * › * › Unrealized, profit and loss"],
-  ["Holders › * › * › Unrealized › Relative to market cap", "Holders › * › * › Unrealized, relative to market cap"],
   ["Holders › Profit bands › * › * › Supply › Total", "Holders › Profit bands › * › * › Supply, total"],
   ["Holders › Profit bands › * › * › Supply › Share of *", "Holders › Profit bands › * › * › Supply, share of *"],
   ["Holders › Profit bands › * › * › Capital › Total", "Holders › Profit bands › * › * › Capital, total"],
@@ -251,6 +247,8 @@ const PLACES_WERE = [
   ["Holders › Awake coins › Age cutoffs › * › Cost basis › Realized price", "Holders › Awake coins › Age cutoffs › * › Realized price"],
   ["Holders › Mobile coins › * › Cost basis › Realized price", "Holders › Mobile coins › * › Realized price"],
   ["Holders › Mobile coins › Age cutoffs › * › Cost basis › Realized price", "Holders › Mobile coins › Age cutoffs › * › Realized price"],
+  // Each subject its own preset: a pair split in two.
+  ["Mining › Hashing › Hash price and value", "Mining › Hashing › Hash price"],
 ];
 
 /** @typedef {{ steps: string[], wild: number, row: number, window?: string }} Side */

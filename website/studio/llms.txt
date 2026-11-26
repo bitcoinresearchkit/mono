@@ -110,33 +110,34 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Moving averages, SMA (3): https://bitview.space/studio/presets/price/moving-averages-sma/index.html.md
   - Moving averages, EMA (2): https://bitview.space/studio/presets/price/moving-averages-ema/index.html.md
   - Technical (12): https://bitview.space/studio/presets/price/technical/index.html.md
-- Valuation (267): https://bitview.space/studio/presets/valuation/index.html.md
-  - On-chain prices (17): https://bitview.space/studio/presets/valuation/on-chain-prices/index.html.md
-  - Rarity meter (194): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
-  - Realized cap (3): https://bitview.space/studio/presets/valuation/realized-cap/index.html.md
+- Valuation (273): https://bitview.space/studio/presets/valuation/index.html.md
+  - On-chain prices (18): https://bitview.space/studio/presets/valuation/on-chain-prices/index.html.md
+  - Rarity meter (197): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
+  - Realized cap (4): https://bitview.space/studio/presets/valuation/realized-cap/index.html.md
   - Cost basis (15): https://bitview.space/studio/presets/valuation/cost-basis/index.html.md
   - Bedrock (23): https://bitview.space/studio/presets/valuation/bedrock/index.html.md
-- Profit and loss (14): https://bitview.space/studio/presets/profit-and-loss/index.html.md
-- Supply (8): https://bitview.space/studio/presets/supply/index.html.md
-- Activity (15): https://bitview.space/studio/presets/activity/index.html.md
-  - Cointime (8): https://bitview.space/studio/presets/activity/cointime/index.html.md
-- Holders (4235): https://bitview.space/studio/presets/holders/index.html.md
+- Profit and loss (16): https://bitview.space/studio/presets/profit-and-loss/index.html.md
+- Supply (10): https://bitview.space/studio/presets/supply/index.html.md
+- Activity (17): https://bitview.space/studio/presets/activity/index.html.md
+  - Cointime (9): https://bitview.space/studio/presets/activity/cointime/index.html.md
+- Holders (4536): https://bitview.space/studio/presets/holders/index.html.md
   - Compare (26): https://bitview.space/studio/presets/holders/compare/index.html.md
-  - Short-term holders (52): https://bitview.space/studio/presets/holders/short-term-holders/index.html.md
-  - Long-term holders (50): https://bitview.space/studio/presets/holders/long-term-holders/index.html.md
-  - Under each age (729): https://bitview.space/studio/presets/holders/under-an-age/index.html.md
-  - At or above each age (675): https://bitview.space/studio/presets/holders/over-an-age/index.html.md
-  - Age bands (975): https://bitview.space/studio/presets/holders/age-bands/index.html.md
-  - Vintages (486): https://bitview.space/studio/presets/holders/vintages/index.html.md
-  - Halving epochs (148): https://bitview.space/studio/presets/holders/halving-epochs/index.html.md
-  - Entry price (70): https://bitview.space/studio/presets/holders/entry-price/index.html.md
+  - Short-term holders (55): https://bitview.space/studio/presets/holders/short-term-holders/index.html.md
+  - Long-term holders (53): https://bitview.space/studio/presets/holders/long-term-holders/index.html.md
+  - Under each age (792): https://bitview.space/studio/presets/holders/under-an-age/index.html.md
+  - At or above each age (735): https://bitview.space/studio/presets/holders/over-an-age/index.html.md
+  - Age bands (1044): https://bitview.space/studio/presets/holders/age-bands/index.html.md
+  - Vintages (540): https://bitview.space/studio/presets/holders/vintages/index.html.md
+  - Halving epochs (163): https://bitview.space/studio/presets/holders/halving-epochs/index.html.md
+  - Entry price (76): https://bitview.space/studio/presets/holders/entry-price/index.html.md
   - Profit bands (588): https://bitview.space/studio/presets/holders/profit-bands/index.html.md
-  - Awake coins (218): https://bitview.space/studio/presets/holders/awake-coins/index.html.md
-  - Mobile coins (218): https://bitview.space/studio/presets/holders/mobile-coins/index.html.md
-- Mining (669): https://bitview.space/studio/presets/mining/index.html.md
-  - Hashing (9): https://bitview.space/studio/presets/mining/hashing/index.html.md
-  - Difficulty (4): https://bitview.space/studio/presets/mining/difficulty/index.html.md
-  - Rewards (6): https://bitview.space/studio/presets/mining/rewards/index.html.md
+  - Awake coins (232): https://bitview.space/studio/presets/holders/awake-coins/index.html.md
+  - Mobile coins (232): https://bitview.space/studio/presets/holders/mobile-coins/index.html.md
+- Mining (675): https://bitview.space/studio/presets/mining/index.html.md
+  - Hashing (11): https://bitview.space/studio/presets/mining/hashing/index.html.md
+  - Difficulty (6): https://bitview.space/studio/presets/mining/difficulty/index.html.md
+  - Halvings (3): https://bitview.space/studio/presets/mining/halvings/index.html.md
+  - Rewards (7): https://bitview.space/studio/presets/mining/rewards/index.html.md
   - Pools (648): https://bitview.space/studio/presets/mining/pools/index.html.md
 - Fees (43): https://bitview.space/studio/presets/fees/index.html.md
   - By fee rate (20): https://bitview.space/studio/presets/fees/by-fee-rate/index.html.md
@@ -148,12 +149,12 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Outputs (59): https://bitview.space/studio/presets/network/outputs/index.html.md
   - OP_RETURN (206): https://bitview.space/studio/presets/network/op-return/index.html.md
   - Inputs and outputs (11): https://bitview.space/studio/presets/network/inputs-and-outputs/index.html.md
-- UTXOs (1037): https://bitview.space/studio/presets/utxos/index.html.md
+- UTXOs (1063): https://bitview.space/studio/presets/utxos/index.html.md
   - By amount (285): https://bitview.space/studio/presets/utxos/by-amount/index.html.md
-  - At or above each UTXO amount (272): https://bitview.space/studio/presets/utxos/over-an-amount/index.html.md
-  - Under each UTXO amount (272): https://bitview.space/studio/presets/utxos/under-an-amount/index.html.md
+  - At or above each UTXO amount (285): https://bitview.space/studio/presets/utxos/over-an-amount/index.html.md
+  - Under each UTXO amount (285): https://bitview.space/studio/presets/utxos/under-an-amount/index.html.md
   - By type (206): https://bitview.space/studio/presets/utxos/by-type/index.html.md
-- Addresses (1023): https://bitview.space/studio/presets/addresses/index.html.md
+- Addresses (1049): https://bitview.space/studio/presets/addresses/index.html.md
   - Count (4): https://bitview.space/studio/presets/addresses/count/index.html.md
   - Reused addresses (11): https://bitview.space/studio/presets/addresses/reused/index.html.md
   - Addresses with more than one spent output (9): https://bitview.space/studio/presets/addresses/respent/index.html.md
@@ -162,5 +163,5 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/index.html.md
   - By type (160): https://bitview.space/studio/presets/addresses/by-type/index.html.md
   - By balance (287): https://bitview.space/studio/presets/addresses/by-balance/index.html.md
-  - At or above each address balance (271): https://bitview.space/studio/presets/addresses/over-a-balance/index.html.md
-  - Under each address balance (271): https://bitview.space/studio/presets/addresses/under-a-balance/index.html.md
+  - At or above each address balance (284): https://bitview.space/studio/presets/addresses/over-a-balance/index.html.md
+  - Under each address balance (284): https://bitview.space/studio/presets/addresses/under-a-balance/index.html.md
