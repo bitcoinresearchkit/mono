@@ -17,7 +17,7 @@ import { $, all$, escapeHtml } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
 import { monthYear, plural } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
-import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneGradient, rowsUnfit, STACKS, summed } from "/studio/vocabulary.js";
+import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneGradient, rowsUnfit, showView, STACKS, summed } from "/studio/vocabulary.js";
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
 import { isNamed } from "/studio/color.js";
 import { hashOf, uid } from "/studio/math.js";
@@ -31,7 +31,7 @@ import {
 } from "/studio/grid.js";
 import { goneSaid, hideLayers, keepFocus, layerById, modesFor, movers, paneMode } from "/studio/inspector.js";
 import {
-  contentOf, exportRows, fromSketch, keepCarriedView, lookFields, menuOf, renameInPlace, validate,
+  contentOf, exportRows, fromSketch, keepCarriedView, lookFields, menuOf, renameInPlace, validate, viewShown,
 } from "/studio/menus.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Landing } from "/studio/gestures.js" */
@@ -247,24 +247,27 @@ const presetIndex = (/** @type {Chart} */ doc) => {
 };
 /** A preset as edited here, if it is. */
 const editedPreset = (/** @type {number} */ i) => (presets ? library.presets.find((doc) => doc.preset === presetKey(i)) : undefined);
-/** What a preset opens with, how it's looked at: its own interval (day1 unless it says), its range and its trailing window, if it has one. @param {number} i */
+/** What a preset opens with, how it's looked at: its own interval (day1 unless it says), its range, its trailing window, if it has one, and its views (see viewShown). @param {number} i */
 const presetLook = (i) => {
   const preset = /** @type {Preset[]} */ (presets)[i];
-  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window }))(freshPreset(i)));
-  return /** @type {{ index: string, range: string, window?: string }} */ (madeLooks.get(preset));
+  if (!madeLooks.has(preset)) madeLooks.set(preset, ((doc) => ({ index: doc.index, range: doc.range, window: chartWindow(doc)?.window, show: viewShown(doc) }))(freshPreset(i)));
+  return /** @type {{ index: string, range: string, window?: string, show: string }} */ (madeLooks.get(preset));
 };
-/** Each preset's look as made (see presetLook): read once a preset. @type {WeakMap<Preset, { index: string, range: string, window?: string }>} */
+/** Each preset's look as made (see presetLook): read once a preset. @type {WeakMap<Preset, { index: string, range: string, window?: string, show: string }>} */
 const madeLooks = new WeakMap();
 /** A chart at its first trailing window (see chartWindow), as its content is told: a window picked isn't an edit. @param {Chart} doc */
 const windowless = (doc) => ((w) => (w ? atWindow(structuredClone(doc), w.offered[0]) : doc))(chartWindow(doc));
+/** A chart at each pane's first view (see Lens), as its content is told: a view shown isn't an edit. @param {Chart} doc */
+const firstViews = (doc) => (doc.panes.some((pane) => pane.lens?.at) ? ((copy) => (copy.panes.forEach((pane) => showView(copy, pane.id, 0)), copy))(structuredClone(doc)) : doc);
 /**
  * A chart's content as a fingerprint, how it's looked at aside: its view, as a preview's is, its interval, as
  * day1 (every preset opened at day1 before its own interval, an interval changed an edit: a stamp kept from before
- * is the same), its trailing window (see windowless), and its panes without their sizes: a separator dragged is a way
- * of looking, not an edit (the sizes stay with the copy, kept, but never tell it from its preset).
+ * is the same), its trailing window (see windowless), its views (see firstViews), and its panes without their sizes: a
+ * separator dragged is a way of looking, not an edit (the sizes stay with the copy, kept, but never tell it from its
+ * preset).
  * @param {Chart} doc
  */
-const contentHash = (doc) => hashOf(contentOf(windowless({ ...doc, range: "", index: "day1", panes: doc.panes.map(({ size, ...pane }) => pane) })));
+const contentHash = (doc) => hashOf(contentOf(windowless(firstViews({ ...doc, range: "", index: "day1", panes: doc.panes.map(({ size, ...pane }) => pane) }))));
 /** A preset's chart as made now, as an edit leaves a chart (normalized: nothing for an edit to change). */
 const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
 /**
@@ -720,8 +723,8 @@ function recommendedPage() {
 const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
 /** A menu item's mark: a check on the current one, the same room on the others. */
 const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
-/** A pane's chip: its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
-const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : pane.stack === "stack" ? "Stacked" : `${MODES[paneMode(pane)].chip}${pane.stack === "rows" ? " · Heatmap" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
+/** A pane's chip: the view it shows (see Lens), its scale, and its stack (a 100% one's scale is its own). @param {Pane} pane */
+const paneChip = (pane) => `${pane.lens ? `${pane.lens.as[pane.lens.at]} · ` : ""}${pane.stack === "percent" ? "100%" : pane.stack === "stack" ? "Stacked" : `${MODES[paneMode(pane)].chip}${pane.stack === "rows" ? " · Heatmap" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
 /** An edit to one pane, by its id: its scale (a mode), its stack ("" for none). @param {string} id @param {(pane: Pane) => void} edit */
 const editPane = (id, edit, look = false) => commit((doc) => {
   const pane = doc.panes.find((item) => item.id === id);
@@ -734,6 +737,8 @@ const setPaneOutline = (id, on) => editPane(id, (pane) => (on ? (pane.outline = 
 /** A heatmap pane's gradient, by its id (the first: none kept). @param {string} id @param {string} gradient */
 const setPaneGradient = (id, gradient) => editPane(id, (pane) => (gradient !== HEAT_GRADIENTS[0][0] ? (pane.gradient = gradient) : delete pane.gradient), true);
 const setPaneAverage = (id, average) => editPane(id, (pane) => (average ? (pane.average = average) : delete pane.average));
+/** A pane's other view shown (see Lens): a way of looking, as a window is, its dates kept. @param {string} id @param {0 | 1} at */
+const setPaneView = (id, at) => (saveView(), commit((doc) => showView(doc, id, at), { look: true }));
 /** A pane's two orders, named as it draws them: [reverse, its name]. @param {Pane} pane */
 const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack === "rows" ? "First at the top" : pane.stack ? "First at the foot" : "First in front"], [true, pane.stack === "rows" ? "Last at the top" : pane.stack ? "Last at the foot" : "Last in front"]]);
 const toggleLog = (id) => {
@@ -744,7 +749,7 @@ const toggleLog = (id) => {
 /** A pane's scale, stack, order, gradient, outline and average, from its chip. */
 const scaleMenu = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id) => menuOf(anchor, scaleChoices(id), null, "", { heads: true });
 /**
- * A pane's scale, stack, order and average as choices, those in effect ticked (its chip's menu, its ⌘K pages): a stack's
+ * A pane's view (see Lens), scale, stack, order and average as choices, those in effect ticked (its chip's menu, its ⌘K pages): a stack's
  * Percent and Indexed saying why not; a 100% one, no scale to choose; an order only for several layers.
  * @param {string} id @returns {Action[]}
  */
@@ -753,6 +758,7 @@ function scaleChoices(id) {
   if (!pane) return [];
   const current = averageFor(chart, pane), ticking = chart.layers.some((layer) => layer.pane === id && !layer.hidden && LIVE.has(layer.series ?? ""));
   return [
+    ...(pane.lens ? pane.lens.as.map((name, k) => ({ key: `view:${k}`, group: "Show as", label: name, current: pane.lens?.at === k, run: () => setPaneView(id, /** @type {0 | 1} */ (k)) })) : []),
     ...(summed(pane) ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a heatmap (use linear or log)` }), run: () => setPaneMode(id, m) }))),
     ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, ...(stack === "rows" && rowsUnfit(chart, pane) ? { disabled: rowsUnfit(chart, pane) } : {}), run: () => setPaneStack(id, stack) })),
     ...(chart.layers.filter((layer) => layer.pane === id).length > 1 ? ordersOf(pane).map(([reverse, name]) => ({ key: `order:${reverse ? "last" : "first"}`, group: "Order", label: name, current: Boolean(pane.reverse) === reverse, run: () => setPaneReverse(id, reverse) })) : []),
@@ -935,6 +941,6 @@ export {
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,
   prunePresets, RECOMMENDED, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleGroup, scaleMenu, setFull,
-  setLegend, setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slideLayers, slipsOf, tick, toggleHalvings,
+  setLegend, setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, setPaneView, showAddress, slideLayers, slipsOf, tick, toggleHalvings,
   toggleLog, vocabNow,
 };

@@ -307,10 +307,16 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
  *   in its color in place of the number (see bandOf; under them all, the layer's `underName`). A baseline's base draws
  *   one too (`baseLine`: gray, in sparse dots).
- * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" | "rows", reverse?: boolean, average?: string, outline?: true, gradient?: string }} Pane `reverse`:
+ * @typedef {{ id: string, mode: number, size?: number, stack?: "stack" | "percent" | "rows", reverse?: boolean, average?: string, outline?: true, gradient?: string, lens?: Lens }} Pane `reverse`:
  *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them. `outline`: a heatmap's
  *   region under its rows' level outlined (see rowsLevel), where that boundary is the question. `gradient`: its
  *   heatmap's (its rows without a level, a heatmap layer of an amount), one of HEAT_GRADIENTS' ids (none: the first)
+ *   `lens`: its two views ("Show as"), see Lens: what it shows, one of them; the other kept aside in it.
+ * @typedef {{ as: [string, string], at: 0 | 1, other: Omit<Pane, "id" | "size" | "lens"> & { layers: Layer[], drawings?: Drawing[] } }} Lens
+ *   A pane's two ways of showing its subject (a pair and its net, an amount and its dollars), each a view: its layers
+ *   and its own scale, stack, order and average. `as`: their names, in order; `at`: the one shown, whose layers are the
+ *   chart's own and whose fields the pane's; `other`: the other, whole, out of the chart (nothing draws, lists or
+ *   fetches it) till it's shown (see showView). Its ids and letters are none of the chart's.
  * @typedef {{ id: string, name: string, parent?: string, closed?: true, icon?: string }} Folder A folder of charts and folders, in
  *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
  * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
@@ -328,10 +334,31 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
 const letterAt = (n) => (n < 26 ? String.fromCharCode(65 + n) : String.fromCharCode(64 + Math.floor(n / 26)) + String.fromCharCode(65 + (n % 26)));
 /** @param {Chart} doc */
 function nextLetter(doc) {
-  // Letters still mentioned by a formula stay taken: a new layer never silently becomes what a formula reads.
-  const used = new Set(doc.layers.map((layer) => layer.letter));
-  for (const layer of doc.layers) for (const [ref] of (layer.formula ?? "").matchAll(/(?<![A-Za-z0-9_])[A-Z]{1,2}(?![A-Za-z0-9_])/g)) used.add(ref);
+  // Letters still mentioned by a formula stay taken: a new layer never silently becomes what a formula reads. (A view
+  // kept aside's too: shown again, it keeps its own.)
+  const layers = [...doc.layers, ...asideLayers(doc)], used = new Set(layers.map((layer) => layer.letter));
+  for (const layer of layers) for (const [ref] of (layer.formula ?? "").matchAll(/(?<![A-Za-z0-9_])[A-Z]{1,2}(?![A-Za-z0-9_])/g)) used.add(ref);
   for (let n = 0; ; n++) if (!used.has(letterAt(n))) return letterAt(n);
+}
+/** The layers of the views kept aside (see Lens), every pane's. @param {Chart} doc @returns {Layer[]} */
+const asideLayers = (doc) => doc.panes.flatMap((pane) => pane.lens?.other.layers ?? []);
+/**
+ * A pane's other view shown (see Lens), `at` its place: its layers where the pane's were, its fields the pane's (its
+ * size the slot's, kept: nothing moves), and the view it showed, with its drawings, kept aside in its place.
+ * @param {Chart} doc @param {string} id @param {0 | 1} at
+ */
+function showView(doc, id, at) {
+  const pane = doc.panes.find((item) => item.id === id), lens = pane?.lens;
+  if (!pane || !lens || lens.at === at) return;
+  const { id: _id, size, lens: _lens, ...fields } = pane, { layers, drawings = [], ...other } = lens.other;
+  const leaving = doc.layers.filter((layer) => layer.pane === id), gone = new Set(leaving.map((layer) => layer.id));
+  const place = Math.max(0, doc.layers.findIndex((layer) => layer.pane === id)), carried = (doc.drawings ?? []).filter((drawing) => gone.has(drawing.layer));
+  doc.layers = doc.layers.filter((layer) => layer.pane !== id);
+  doc.layers.splice(place, 0, ...layers.map((layer) => ({ ...layer, pane: id })));
+  doc.drawings = [...(doc.drawings ?? []).filter((drawing) => !gone.has(drawing.layer)), ...drawings];
+  if (!doc.drawings.length) delete doc.drawings;
+  for (const key of Object.keys(fields)) delete /** @type {Record<string, any>} */ (pane)[key];
+  Object.assign(pane, other, { lens: { as: lens.as, at, other: { ...fields, layers: leaving, ...(carried.length ? { drawings: carried } : {}) } } });
 }
 /** @param {Chart} doc */
 function nextColor(doc) {
@@ -390,13 +417,13 @@ const poolSeries = (/** @type {string} */ name) => POOLS_RENAMED.reduce((n, [fro
 const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from, to]) => (p.startsWith(`pools.${from}.`) ? `pools.${to}.${p.slice(from.length + 7)}` : p), path);
 
 export {
-  asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asideLayers, asRows, automaticZero, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, drawnInto, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, DEFAULT_ROWS, defaultOpacity, EDGES, edgesOf,
   failing, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST, GRADIENT_MOST, gradable, gradientOfLayer, heatGradient, HEAT_GRADIENTS,
   HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors,
   letterAt, LINE_STYLE, LINE_TYPE, LINED, lineTypeOf, LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_LEVELS,
   MAX_PANES, measured, measureOf, measureUnit, membersOf, MODES, modesOf, nameLayer, newPaneIn, nextColor, nextLetter, offScale,
   ONE_SCALE, oneScale, OPACITIES, ownGradient, opacityOf, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn, placeName, poolPath, poolSeries,
-  PROFILE_VIEWS, resultText, rowLayers, rowsLevel, rowsUnfit, seriesLooked, shapeKey, SHAPES, signedMeasure, STACKS, stretchResult, summed, toggleMember,
+  PROFILE_VIEWS, resultText, rowLayers, rowsLevel, rowsUnfit, seriesLooked, shapeKey, SHAPES, showView, signedMeasure, STACKS, stretchResult, summed, toggleMember,
   TREND_FLIP, TREND_SAYS, TWO_KEPT, TWO_OR_ONE, twoSided, typeName, TYPES, unfitted, WIDTHS,
 };
