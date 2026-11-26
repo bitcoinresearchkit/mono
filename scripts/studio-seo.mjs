@@ -5,10 +5,10 @@
 // its facts kept beside them, chain-facts.json) and the client's series, their titles checked against the rules every
 // title keeps (see TITLE_RULES), and written again whenever the presets, the guide or the client change:
 //
-//   bun website/studio/seo.mjs [server]          writes them, by the server's chain now
-//   bun website/studio/seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
+//   bun scripts/studio-seo.mjs [server]          writes them, by the server's chain now
+//   bun scripts/studio-seo.mjs --check           fails if the code makes them otherwise now (by the chain's facts
 //                                                  they were written by: what the chain did since fails nothing)
-//   bun website/studio/seo.mjs --drop [server]   writes them though charts have gone or old addresses changed (below)
+//   bun scripts/studio-seo.mjs --drop [server]   writes them though charts have gone or old addresses changed (below)
 //
 // And moved.txt: every address Studio once published and has no more, each with what it opens now, kept for good (the
 // server answers each with a redirect): a preset's old window address, that preset at it (see addresses.js), the build
@@ -18,31 +18,31 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { addressesOf } from "./addresses.js";
-import { CHAIN_STATISTICS } from "./chain-statistics.js";
-import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "./page-info.js";
-import { shownStep } from "./words.js";
+import { addressesOf } from "../website/studio/addresses.js";
+import { CHAIN_STATISTICS } from "../website/studio/chain-statistics.js";
+import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "../website/studio/page-info.js";
+import { shownStep } from "../website/studio/words.js";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+const STUDIO = join(dirname(fileURLToPath(import.meta.url)), "..", "website", "studio");
 const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
 const SERVER = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "http://127.0.0.1:3110";
 // (The address Studio's known by, on every domain it's served on: see ORIGIN in the page.)
 const ORIGIN = STUDIO_ORIGIN;
 
-const html = readFileSync(join(HERE, "index.html"), "utf8");
-const presetsEdit = readFileSync(join(HERE, "presets-edit.js"), "utf8");
-const { BitviewClient } = await import(pathToFileURL(join(HERE, "..", "modules", "bitview-client", "index.js")).href);
-const { studioPresets } = await import(pathToFileURL(join(HERE, "presets.js")).href);
-const { chainFacts, factsKey, factsOfKey } = await import(pathToFileURL(join(HERE, "facts.js")).href);
+const html = readFileSync(join(STUDIO, "index.html"), "utf8");
+const presetsEdit = readFileSync(join(STUDIO, "presets-edit.js"), "utf8");
+const { BitviewClient } = await import(pathToFileURL(join(STUDIO, "..", "modules", "bitview-client", "index.js")).href);
+const { studioPresets } = await import(pathToFileURL(join(STUDIO, "presets.js")).href);
+const { chainFacts, factsKey, factsOfKey } = await import(pathToFileURL(join(STUDIO, "facts.js")).href);
 const writtenBytes = (/** @type {string} */ name) => {
-  try { return readFileSync(join(HERE, name)); }
+  try { return readFileSync(join(STUDIO, name)); }
   catch (error) { if (error.code === "ENOENT") return Buffer.alloc(0); throw error; }
 };
 const written = (/** @type {string} */ name) => writtenBytes(name).toString("utf8");
 // (Checked, by the facts they were written by; written, by the server's now. Without them the presets would hold what
 // never happened: stopped.)
 const kept = written("chain-facts.json").trim();
-if (check && !kept) throw new Error("No chain-facts.json: write them first, bun website/studio/seo.mjs");
+if (check && !kept) throw new Error("No chain-facts.json: write them first, bun scripts/studio-seo.mjs");
 const facts = check ? factsOfKey(kept) : await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
@@ -118,10 +118,10 @@ const urls = ["/", ...book.sections.values(), ...book.presets];
 // every module they import (followed by their relative imports, as Bun reads them, each once), hashed, each by its path
 // from here (the same on every system): the page keys its presets' cache by it (with the client's own stamp, HASH, and
 // the chain's facts), so a change to any of them makes them again, with nothing read in the page to know it.
-const sources = new Set([join(HERE, "presets.js"), join(HERE, "facts.js")]), transpiler = new Bun.Transpiler({ loader: "js" }), sha = createHash("sha256");
+const sources = new Set([join(STUDIO, "presets.js"), join(STUDIO, "facts.js")]), transpiler = new Bun.Transpiler({ loader: "js" }), sha = createHash("sha256");
 for (const file of sources) {
   const text = readFileSync(file, "utf8");
-  sha.update(`${relative(HERE, file).replaceAll(sep, "/")}\0${text}\0`);
+  sha.update(`${relative(STUDIO, file).replaceAll(sep, "/")}\0${text}\0`);
   for (const { path } of transpiler.scanImports(text)) if (path.startsWith(".")) sources.add(join(dirname(file), path));
 }
 
@@ -199,7 +199,7 @@ const changed = rows.filter(([path, to]) => book.at.has(path) && opens(path) !==
 if (changed.length) {
   console.error(`Moved addresses that open another place now, or nothing, ${changed.length}:\n${changed.slice(0, 12).map(([path, to]) => `  ${path}: ${to} → ${opens(path)}`).join("\n")}${changed.length > 12 ? `\n  and ${changed.length - 12} more` : ""}`);
   if (!drop) {
-    console.error("Keep the places the presets had (a chart's `was`, presets.js), as their addresses are shared; meant to change: bun website/studio/seo.mjs --drop");
+    console.error("Keep the places the presets had (a chart's `was`, presets.js), as their addresses are shared; meant to change: bun scripts/studio-seo.mjs --drop");
     process.exit(1);
   }
 }
@@ -213,21 +213,21 @@ for (const [path, to] of rows) {
 const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&").slice(ORIGIN.length)).filter((path) => !live.has(path) && !moved.has(path));
 if (gone.length && !drop) {
   console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((path) => `  ${path} → ${successor(path)}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
-  console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun website/studio/seo.mjs --drop");
+  console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun scripts/studio-seo.mjs --drop");
   process.exit(1);
 }
 for (const path of gone) moved.set(path, successor(path));
 files["moved.txt"] = [...moved].sort(([a], [b]) => (a < b ? -1 : 1)).map(([path, to]) => `${path}\t${to}\n`).join("");
 const stale = [];
 for (const [name, text] of Object.entries(files)) {
-  if (!check) writeFileSync(join(HERE, name), text);
+  if (!check) writeFileSync(join(STUDIO, name), text);
   else {
     const kept = writtenBytes(name);
     if (name === "page-info.json.gz" ? !kept.length || gunzipSync(kept).toString("utf8") !== pageInfoText : !kept.equals(Buffer.from(text))) stale.push(name);
   }
 }
 if (stale.length) {
-  console.error(`Stale: ${stale.join(", ")}. Write them again: bun website/studio/seo.mjs`);
+  console.error(`Stale: ${stale.join(", ")}. Write them again: bun scripts/studio-seo.mjs`);
   process.exit(1);
 }
 console.log(`Page info: ${Object.keys(pageInfo).length} addresses, ${Buffer.byteLength(files["page-info.json.gz"])} bytes`);

@@ -35,7 +35,7 @@
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
   ])) document.head.append(Object.assign(document.createElement(tag), attributes));
   // Its icon: Bitview's cube in the app's colour, a file (assets/favicon/apps/, each made from app-icon.svg in its page's
-  // `data-color` by website/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
+  // `data-color` by scripts/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
   // left with the manifest's orange alone. The manifest made once the page is read, its description the page's own.
   const icon = asset(`favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`);
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));

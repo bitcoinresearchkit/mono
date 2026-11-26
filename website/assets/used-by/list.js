@@ -1,5 +1,5 @@
 // Who uses Bitview, each linking to its own website, its logo in this folder: the one list the README's "Used by",
-// the project page's strip (/dev/#used-by) and the API page's line are written from, by website/home.mjs, which
+// the project page's strip (/dev/#used-by) and the API page's line are written from, by scripts/home.mjs, which
 // also checks this list against the folder's files.
 //
 // Each logo fetched once, 2026-11-18, from the org's own site, trimmed to its ink and kept as published unless noted.

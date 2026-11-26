@@ -1,4 +1,4 @@
-// How a series id of one release reads in the next, shared by the page's lookup and diff.mjs, which finds the rules
+// How a series id of one release reads in the next, shared by the page's lookup and scripts/api-changes.mjs, which finds the rules
 // from the two servers and keeps only those this reads back exactly. An id is a cohort's prefix, then a measure, maybe
 // ending in a suffix (its unit): a prefix is renamed whole (`utxos_2y_to_3y_old_` to `age_2y_to_3y_`), a measure whole
 // or word by word (`addrs` to `address_count`), a suffix whole, its values maybe multiplied (`cents` to `usd`, by

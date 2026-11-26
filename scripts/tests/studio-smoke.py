@@ -4,7 +4,7 @@
 # dependencies = ["playwright>=1.49"]
 # ///
 """Smoke checks for what Studio can't undo: saved charts survive reloads, the page draws, a shared link opens, and what
-seo.mjs makes from the presets is current (presets.hash among it: returning browsers keep their presets by it).
+studio-seo.mjs makes from the presets is current (presets.hash among it: returning browsers keep their presets by it).
 
 Run before a Studio commit: uv run --script scripts/tests/studio-smoke.py [--base http://127.0.0.1:3110]
 """
@@ -462,11 +462,11 @@ OLD = {
 
 
 def check_made_files(run):
-    """What seo.mjs makes from the presets and the page (presets.hash, llms.txt, sitemap.xml) is as the code makes them now, by the chain's facts they were written by: what the chain did since fails nothing."""
-    done = subprocess.run(["bun", str(ROOT / "website" / "studio" / "seo.mjs"), "--check"], capture_output=True, text=True)
+    """What studio-seo.mjs makes from the presets and the page (presets.hash, llms.txt, sitemap.xml) is as the code makes them now, by the chain's facts they were written by: what the chain did since fails nothing."""
+    done = subprocess.run(["bun", str(ROOT / "scripts" / "studio-seo.mjs"), "--check"], capture_output=True, text=True)
     said = (done.stdout + done.stderr).strip().splitlines()
     if done.returncode:
-        raise Failure(next((line for line in reversed(said) if line.strip()), f"seo.mjs --check exited {done.returncode}"))
+        raise Failure(next((line for line in reversed(said) if line.strip()), f"studio-seo.mjs --check exited {done.returncode}"))
     return said[-1] if said else "up to date"
 
 

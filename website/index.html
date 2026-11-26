@@ -45,7 +45,7 @@
     <meta name="theme-color" content="#0d0c0b" />
     <title>Bitview</title>
     <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
-    <!-- (Its share card, the billboard's first picture with Bitview's name: made by website/home.mjs --pictures.) -->
+    <!-- (Its share card, the billboard's first picture with Bitview's name: made by scripts/home.mjs --pictures.) -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bitview" />
@@ -2356,7 +2356,7 @@
 
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
       <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
-           others. website/home.mjs checks it's FEATURED's first, as its own page names it.) -->
+           others. scripts/home.mjs checks it's FEATURED's first, as its own page names it.) -->
       <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
       <div class="feature">
         <div class="words" id="words" aria-live="off">
@@ -2464,7 +2464,7 @@
 
       // Each title: what this page says of it (its kind, its line, its way in; what it's made from, the data its app reads);
       // what its own page says of it (its name, its
-      // words), from FROM_APPS below, the apps' own pages read and written here by website/home.mjs, so a renamed or
+      // words), from FROM_APPS below, the apps' own pages read and written here by scripts/home.mjs, so a renamed or
       // reworded app is renamed and reworded here too: run it after changing one.
       /** @typedef {{ id: string, name: string, kind?: string, line: string, about: string, href: string, live?: boolean, made?: string, copy?: string, face?: string }} Title */
       /** @type {Title[]} */
