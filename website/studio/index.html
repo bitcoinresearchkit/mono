@@ -940,6 +940,7 @@
 
         /* Bitview's mark: a glass cube, drawn (and moved) by the script. */
         .logo {
+          position: relative;
           display: grid;
           flex-shrink: 0;
           width: 24px;
@@ -1711,6 +1712,11 @@
         > .cap:focus-visible {
           opacity: 1;
         }
+
+        /* (Hidden with its layer: that layer's eye, faded as the row's mark is.) */
+        > .cap.by > * {
+          opacity: 0.4;
+        }
       }
 
       /* Focused by keys, the ring around the row (its corners, its eye), not its main part alone. */
@@ -1978,11 +1984,12 @@
         padding-top: 8px;
       }
 
-      /* Live: a dot on the logo's corner, its words its tip (where from, the price, the last block and when). */
+      /* Live: a badge on the logo's corner, the logo the target: its name says the state (live, connecting, offline),
+         its tip the rest (where from, the price, the last block and when). */
       .live {
         position: absolute;
-        top: 19px;
-        left: 26px;
+        right: -7px;
+        bottom: -3px;
         display: grid;
         width: 14px;
         height: 14px;
@@ -3129,6 +3136,11 @@
         inset: 0;
         z-index: 4;
         margin: auto;
+
+        /* (Its reach up over the price scale's foot, not down: the chart clips there, at the time axis' foot.) */
+        &::before {
+          inset-block: calc(24px - var(--control-hit)) 0;
+        }
       }
 
       /* A pane's legend (the library's, its items Studio's: see updateLegends): one row of its layers, each its mark,
@@ -8063,9 +8075,10 @@
         color: var(--muted);
         font-size: 13px;
 
+        /* (The way up, its reach whole beside the first level's: 10px apart.) */
         > .cap {
           flex: none;
-          margin: 0 2px 0 -6px;
+          margin: 0 6px 0 -6px;
         }
       }
 
@@ -8878,18 +8891,20 @@
         }
 
         /* A tablet upright: the panel a sheet across the card's foot, the chart above it whole, every year and its axis
-           in sight while a layer's changed (as a phone's half sheet; closed by its ×); away, it slides down. */
+           in sight while a layer's changed (as a phone's half sheet; closed by its ×); away, it slides down. Nothing
+           under it to float over: the card's own foot, flush, a line over it, not a framed box inside the card's frame. */
         @media (min-width: 761px) and (min-height: 501px) and (orientation: portrait) {
           .panel {
-            top: auto;
-            left: 8px;
-            bottom: 8px;
+            inset: auto 0 0;
             width: auto;
             height: var(--tablet-panel);
+            border-top: 1px solid var(--line);
+            border-radius: 0 0 calc(var(--radius-xl) - 1px) calc(var(--radius-xl) - 1px);
+            box-shadow: none;
           }
 
           body:is([data-panel="open"], [data-peek]):not([data-empty]) .stage {
-            padding-bottom: calc(var(--tablet-panel) + 8px);
+            padding-bottom: var(--tablet-panel);
           }
 
           body[data-panel="closed"]:not([data-peek]) .panel {
@@ -9190,6 +9205,11 @@
           body[data-sheet="panel"] .card-inner {
             padding-bottom: var(--sheet-half-height);
           }
+
+          /* (The foot's controls their reach over it, clear of the sheet's top: half a reach under their middles.) */
+          body[data-sheet="panel"] .stage-foot {
+            padding-bottom: 8px;
+          }
         }
 
         /* (Focused as it opens, as a whole: no ring around the sheet.) */
@@ -9205,6 +9225,11 @@
         /* The grid's own New folder (the sidebar's isn't here). */
         #home-new-folder {
           display: inline-grid;
+        }
+
+        /* (What scrolls under the pill: a row brought into view (focused, as by Tab) stops clear of it, not under it.) */
+        :is(#inspector, .panel .layer-list, .home-scroll) {
+          scroll-padding-bottom: var(--bar-room);
         }
 
         /* (Its views' last rows scroll clear of the pill over them.) */
@@ -10311,6 +10336,11 @@
           --control-hit: 44px;
         }
 
+        /* (Its actions a reach tall, over its line.) */
+        .palette-foot {
+          height: calc(var(--control-hit) + 1px);
+        }
+
         :is(.legend, .tabs.lens-switch) {
           top: 11px;
         }
@@ -10447,7 +10477,7 @@
 
         /* (A segment's reach up and down only, its neighbors flush (⌘K's crumbs and its scope too); a row's eye's away
            from the row, over its edge; a level's and a field head's button's, half the gap between them.) */
-        :is(.tabs button, .path button, .crumbs button, .scope)::before {
+        :is(.tabs button, .path button, .crumbs button:not(.cap), .scope)::before {
           inset-inline: 0;
         }
 
@@ -10604,8 +10634,9 @@
           margin-right: 30px;
         }
 
+        /* (Its reach whole inside the tile: its middle 22px in from the tile's edge.) */
         .tile .tile-more {
-          right: 3px;
+          right: 5px;
         }
 
         .home.picking .tile .tile-more {
@@ -10915,11 +10946,10 @@
     <div class="app">
       <aside class="sidebar" id="sidebar" aria-label="Charts">
         <div class="side-head" style="--i: 0">
-          <a class="brand" href="/" data-tip="Bitview">
-            <span class="logo"><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
+          <a id="brand" class="brand" href="/" aria-label="Bitview Studio, connecting" data-tip="Bitview Studio&#10;Connecting">
+            <span class="logo"><span id="live" class="live waiting"><i></i></span><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
             <span class="brand-name"><b>Bitview</b> Studio</span>
           </a>
-          <span id="live" class="live waiting" role="img" tabindex="0" aria-label="Connecting" data-tip="Connecting"><i></i></span>
         </div>
         <button class="search" type="button" data-action="palette" data-tip="Search series, charts and commands" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search</span><kbd class="mod">⌘K</kbd></button>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>

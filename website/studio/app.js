@@ -49,7 +49,7 @@ import {
   chunkAt, chunked, chunks, Cloud, columnBy, crossHeld, crossOn, crossSet, cssColor, dailyOf, dashFor, dataKey,
   describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawRows, drawSeries, dropCross, endReveal,
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
-  fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldOf, hiddenPanes, paneShows, forget, forgetSpans, glide,
+  fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldOf, hiddenPanes, layerShows, paneShows, forget, forgetSpans, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
   intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, lookKey,
@@ -166,7 +166,6 @@ const client = new BitviewClient({ baseUrl: location.origin, timeout: 30_000, me
 /** The server the page draws from, as its words name it: its host, as written (a prefix too, if it has one). */
 const SERVER_HOST = new URL(client.baseUrl).host;
 for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
-/** @type {HTMLElement} */ (document.getElementById("live")).dataset.tip = SERVER_HOST;
 const tree = client.series;
 /**
  * The series at a path, by its current name (charts keep a series' dotted catalog path with its name, so a rename
@@ -3068,9 +3067,6 @@ resized.observe($("overview"));
 // The chart (bitview-charts): its timeline (`engine.time`), its panes, its drawing. On an element of its own in the
 // page's box, sized by the page (Studio sizes and pins it while a motion stretches its picture: see `resized`).
 const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })));
-// (Its date axis at least as high as a control's reach, a finger's by touch: it's dragged to scale time, and Full
-// screen in the corner beside it fits its reach there, never over the price scale. Before its first layout.)
-engine.timeHeight = Math.max(engine.timeHeight, parseFloat(css("--control-hit")));
 engine.theme = chartTheme();
 /** The right axis' width till it's drawn (then as its labels need: the library's), where a layer's on that side. */
 const RIGHT_AXIS = engine.axis;
@@ -7052,14 +7048,17 @@ function writeLayers() {
         const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : ["sub", ""];
         // (Its letter heading its second line, its mark leading the row: see .row-mark.)
         const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escapeHtml(result.detail)}"` : ""}><span class="sub-letter">${letterChip(layer)}</span>${escapeHtml(subText)}</span>`;
-        return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
+        // (Shown as the chart has it (a signal, by its layer too); one shown only but for its layer: that layer's eye, dimmed,
+        // a press showing it.)
+        const shows = layerShows(chart, layer), by = !shows && !layer.hidden ? chart.layers.find((item) => item.id === layer.ref) : undefined;
+        return `<div class="layer-row ${shows ? "" : "hidden"} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escapeHtml(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escapeHtml(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escapeHtml(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
                   <span class="row-mark" style="--c:${escapeHtml(ink(layer.color))}">${seriesMark(layer)}</span>
                   <span class="row-text"><span class="name">${escapeHtml(viewName(chart, layer))}</span>${sub}</span>
                   <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}<span class="row-note"></span></span>
                 </button>
-                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escapeHtml(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
+                ${by ? `<button type="button" class="cap small by" data-toggle="${by.id}" aria-label="Hidden with ${escapeHtml(labelOf(by))}: show ${escapeHtml(labelOf(by))}" data-tip="Hidden with its layer, ${escapeHtml(by.letter)}: show it">${ICONS.eye}</button>` : `<button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escapeHtml(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`}
               </div>`;
       })(layer)]))];
     return { key: pane.id, open: `<section class="pane-group" data-pane="${pane.id}">`, rows };
@@ -9609,13 +9608,13 @@ function updateStatus() {
     $("live").classList.remove("offline");
     $("live").classList.add("waiting");
     for (const line of [$("home-live"), $("home-pulse")]) line.textContent = "Connecting";
-    liveTip(`Connecting to ${SERVER_HOST}`);
+    liveTip("connecting", `Connecting to ${SERVER_HOST}`);
     return;
   }
   $("live").classList.toggle("offline", lost);
   $("live").classList.remove("waiting");
-  // (To a screen reader, as it connects, goes offline or comes back, in the live dot's words: not each price, as a
-  // live line (or the dot's own name, were it one) read whenever it changes would, each second.)
+  // (To a screen reader, as it connects, goes offline or comes back, in the live tip's words: not each price, as a
+  // live line read whenever it changes would, each second; the logo's name says the state alone.)
   const state = lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`;
   if (lost !== saidLost) (saidLost = lost), say(state);
   renderHorizon();
@@ -9634,15 +9633,19 @@ function updateStatus() {
     if (tip) half.dataset.tip = tip;
     return half;
   }));
-  liveTip(state, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
+  liveTip(lost ? "offline" : "live", state, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
 }
-/** The live dot's tip, a line each (its first, what it is), its name all of it: the one open, said again. @param {...string} lines */
-function liveTip(...lines) {
-  const said = lines.filter(Boolean).join("\n");
-  if ($("live").dataset.tip === said) return;
-  $("live").dataset.tip = said;
-  $("live").setAttribute("aria-label", lines.filter(Boolean).join(". "));
-  if (tipTarget === $("live") && !$("tip").hidden) showTip($("live"));
+/**
+ * The live state on the logo (its dot the badge, the logo the target, a finger's or a pointer's): its name Bitview
+ * Studio and the state in a word, its tip that name and the state's lines (where from, the price, the last block):
+ * the one open, said again. @param {string} state @param {...string} lines
+ */
+function liveTip(state, ...lines) {
+  const brand = $("brand"), said = ["Bitview Studio", ...lines].filter(Boolean).join("\n");
+  if (brand.dataset.tip === said) return;
+  brand.dataset.tip = said;
+  brand.setAttribute("aria-label", `Bitview Studio, ${state}`);
+  if (tipTarget === brand && !$("tip").hidden) showTip(brand);
 }
 
 // ── Rendering the page ────────────────────────────────────────────────────

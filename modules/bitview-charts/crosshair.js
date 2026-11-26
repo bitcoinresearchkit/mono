@@ -198,14 +198,15 @@ export class Crosshair {
     // (Its badges kept on its canvas (drawn from its plot's left): a long one slid in, not cut at an edge.)
     const within = this.#within;
     (within[0] = -left), (within[1] = this.width - left);
-    // (Its value on its pane's axis, over its tags (none hidden by it: each still read beside it). Written as nothing (a
-    // page's writer for a pane showing nothing): no badge.)
+    // (Its value on its pane's axis, over its tags (none hidden by it: each still read beside it), the labels it covers
+    // gone as under a line's tag (see Pane's cover). Written as nothing (a page's writer for a pane showing nothing): no
+    // badge.)
     if (pane && this.y >= pane.top && this.y <= pane.top + pane.height) {
       const value = pane.scale.value(this.y - pane.top), words = pane.axisLabel(value, pane.scale, pane.stepAt(value));
-      if (words) pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left", PILL, "", within);
+      if (words) pane.cover(g, 0, this.y - pane.top, pane.top, plot, pane.width - pane.plot, theme), pill(g, words, theme.badge, inkOn(theme.badge), plot, this.y, "left", PILL, "", within);
       // (Its value on the left axis too, where the pane has a left scale: against the plot, as the right one is.)
       const leftValue = pane.left && left ? pane.left.value(this.y - pane.top) : NaN, leftWords = pane.left && left ? pane.axisLabel(leftValue, pane.left, pane.stepAt(leftValue, pane.left)) : "";
-      if (leftWords) pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right", PILL, "", within);
+      if (leftWords) pane.cover(g, 1, this.y - pane.top, pane.top, -left, left, theme), pill(g, leftWords, theme.badge, inkOn(theme.badge), 0, this.y, "right", PILL, "", within);
     }
     // (Its date on the time axis, its point's; past the last, as the points' step goes on. Points less than a day apart
     // (the last one's from the one before it): its time too. Written as nothing (a page saying the date elsewhere): no

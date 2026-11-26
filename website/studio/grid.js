@@ -2808,15 +2808,18 @@ const markOf = ({ lines, washes, dots }) => {
 const profileMark = (colors) => [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => colors.map((color, c) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escapeHtml(color)}"/>`)(length / colors.length)).join("")).join("");
 /**
  * A layer's own mark in the legend: its shape across its history, in its color and drawn as its type (bars for a
- * histogram, a filled line for an area), from its chart's drawing; a faint line until there's one. Kept from the
- * last drawing while a new one is made, so an edit doesn't blank it.
+ * histogram, a filled line for an area), from its chart's drawing; its line straight across until there's one. Kept
+ * from the last drawing while a new one is made, so an edit doesn't blank it.
  */
 function seriesMark(layer) {
   const thumb = thumbs.get(chart.id), ys = thumb && Object.hasOwn(thumb.marks, layer.id) ? thumb.marks[layer.id] : undefined;
   const level = thumb?.bases && Object.hasOwn(thumb.bases, layer.id) ? thumb.bases[layer.id] : 0;
   const now = layer.type === "histogram" && layer.colors === 4 ? null : colorNow(layer), color = escapeHtml(ink(now ?? layer.color)), below = now ? color : escapeHtml(ink(belowOf(layer)));
   const span = (ys?.length ?? 2) - 1, x = (i) => 0.8 + (i / span) * 14.4, y = (value) => 11 - value * 10;
-  let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
+  // (Its line as the chart draws it: solid, or dashed as it is (where the type has a line style), in the mark's proportions.)
+  const [, , dash, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
+  const dashes = gap ? `stroke-dasharray="${+(dash * 0.8).toFixed(1)} ${+(gap * 0.8).toFixed(1)}" stroke-linecap="butt"` : 'stroke-linecap="round"';
+  let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-width="1.4" ${dashes}/>`;
   // (A gradient's, a bar of its colors, low to high, whatever its type.)
   const stops = gradientOfLayer(chart, layer);
   if (stops) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(table[placeIndex(k / 7, table.length)])}"/>`).join(""))(gradientTable(stops));
@@ -2836,9 +2839,6 @@ function seriesMark(layer) {
   } else if (ys && layer.type === "dots") {
     body = ys.map((value, i) => (value === null || i % 4 !== 1 ? "" : `<circle cx="${x(i).toFixed(1)}" cy="${y(value).toFixed(1)}" r="1.2" fill="${color}"/>`)).join("");
   } else if (ys) {
-    // Its line dashed as on the chart, in the mark's proportions (where the type has a line style).
-    const [, , dash, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
-    const dashes = gap ? `stroke-dasharray="${+(dash * 0.8).toFixed(1)} ${+(gap * 0.8).toFixed(1)}" stroke-linecap="butt"` : 'stroke-linecap="round"';
     // In steps, each value held until the next.
     const stepped = (part) => (layer.shape === "steps" && LINED.has(layer.type) ? part.flatMap((point, i) => (i ? [`${point.split(",")[0]},${part[i - 1].split(",")[1]}`, point] : [point])) : part);
     const edge = layer.fill === "above" ? 0.5 : 11.5;

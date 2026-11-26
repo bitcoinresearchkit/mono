@@ -40,6 +40,8 @@ function widen(series, a, b, positive, out, time) {
 }
 /** A tag's room on its axis: a pill and 2 pixels between two (CSS pixels). */
 const TAG = PILL;
+/** How near a tag an axis label isn't drawn (CSS pixels, middle to middle): half a tag, half its words' height and 4 pixels. */
+const COVER = TAG / 2 + 10;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
@@ -204,6 +206,8 @@ export class Pane {
     this.pageTags = [new Tags(), new Tags()];
     /** Each side's lines' tags as last drawn: each one's series and middle, and their height. @type {{ lines: Series[], at: Float64Array, step: number }[]} */
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
+    /** Each side's labels' middles as last drawn (from its top), for a tag drawn over the axis later (see cover). */
+    this.drawnLabels = [{ at: new Float64Array(16), count: 0 }, { at: new Float64Array(16), count: 0 }];
     /** What each side's axis needs as last drawn (CSS pixels): its widest tick label or tag, with their room (see the chart's). */
     this.axisNeed = [0, 0];
     /**
@@ -877,22 +881,25 @@ export class Pane {
     this.drawnTicks[slot].set(this.axisTicks.subarray(0, count));
     this.drawnTickCounts[slot] = count;
     const stepAt = (/** @type {number} */ v) => this.stepAt(v, scale);
-    // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
-    // 4 pixels: one touching a tag reads cramped against it).)
-    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
+    // (Its tags placed first: a tick's label none where one covers it (within COVER: one touching a tag reads cramped
+    // against it).)
+    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, page = this.pageTags[side], labels = this.drawnLabels[side];
     (page.count = 0), (page.length = this.height);
     for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale, stepAt);
     // (Each where it's drawn: within the pane (one out of it none, as a line's).)
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     const free = (/** @type {number} */ y) => {
-      if (!(y > 6 && y < this.height - 6) || page.covers(y, TAG / 2 + 10)) return false;
-      for (let t = 0; t < tags; t++) if (Math.abs(place[t] - y) < near) return false;
+      if (!(y > 6 && y < this.height - 6) || page.covers(y, COVER)) return false;
+      for (let t = 0; t < tags; t++) if (Math.abs(place[t] - y) < COVER) return false;
       return true;
     };
     // (Each label on its gridline, or none: one a tag covers is hidden, never moved off the line it names.)
+    if (labels.at.length < count) labels.at = new Float64Array(count * 2);
+    labels.count = 0;
     for (let k = 0; k < count; k++) {
       const y = scale.own(this.axisTicks[k]);
       if (!free(y)) continue;
+      labels.at[labels.count++] = y;
       const words = texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale);
       g.fillText(words, at, y);
       // (A label 8 pixels from the plot and from the edge.)
@@ -903,6 +910,23 @@ export class Pane {
     // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane, against the plot.)
     for (let k = 0; k < page.count; k++) this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width : x, page.at[k], side ? "right" : "left") + 4);
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
+  }
+
+  /**
+   * A tag drawn over its axis on `side` after it (the crosshair's, at `y` from its top): the labels it covers (as a
+   * line's tag covers them, within COVER) painted over with the ground on `g`, across `x` to `x + width` in g's own
+   * place for the axis, the pane's top at `top`. None shows cut beside it; nothing painted past the pane (its
+   * separator's line).
+   * @param {CanvasRenderingContext2D} g @param {number} side @param {number} y @param {number} top @param {number} x @param {number} width @param {Theme} theme
+   */
+  cover(g, side, y, top, x, width, theme) {
+    const labels = this.drawnLabels[side];
+    g.fillStyle = theme.background;
+    for (let k = 0; k < labels.count; k++) {
+      if (Math.abs(labels.at[k] - y) >= COVER) continue;
+      const from = Math.max(0, labels.at[k] - COVER / 2), to = Math.min(this.height, labels.at[k] + COVER / 2);
+      g.fillRect(x, top + from, width, to - from);
+    }
   }
 
   /**
@@ -983,11 +1007,11 @@ export class Pane {
 
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
-   * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view
-   * (a price line's tag too: its line alone at its last of all); one with nothing in view, none,
-   * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
-   * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
-   * the pane; on a relative scale, as it reads them.
+   * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view, a price
+   * line's at its line (its last of all: the two together, or neither); one with nothing in view, none,
+   * top to bottom, each at its line or just under the one over it, each whole in the pane (the first pushed past its foot
+   * and the lines under it, none), one where lines meet (as the chart library laid them), none for a line out of the
+   * pane; on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
@@ -1000,7 +1024,8 @@ export class Pane {
       const series = this.series[k], line = lineOf(series);
       if (!line || !line.tag || series.hidden || series.faint || series.overlay) continue;
       // (On a relative scale, one with no base has no reading.)
-      const base = relative ? line.first(from) : 1, i = line.lastBy(end, log);
+      // (A price line's at its line, whatever the view's end: never the line without its tag, another value tagged beside it.)
+      const base = relative ? line.first(from) : 1, i = line.priceLine ? line.last(log) : line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view.)
       if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
       if (i < from || !base || base !== base) continue;
@@ -1026,10 +1051,11 @@ export class Pane {
         (order[j] = order[j - 1]), (order[j - 1] = swap);
       }
     // (Top to bottom, each at its line, or just under the one over it where they'd overlap (as the chart library laid
-    // them): the first always at its line, each moving only as its own line or one over it does; past the axis' foot,
-    // cut off there (more under it, said), none starting under it. One where lines read the same (an empty band's top on
-    // the next one's); lines a hair apart, each its own (two prices a dollar apart). A line out of the pane (its scale dragged past it), none: a tag reads where its line is. A pane too short
-    // for one, none.)
+    // them): the first always at its line, each moving only as its own line or one over it does. Every one whole, none
+    // cut by the pane's foot: the first pushed past it ends them, the lowest lines' left out (their values still in the
+    // legend). One where lines read the same (an empty band's top on the next one's); lines a hair apart, each its
+    // own (two prices a dollar apart). A line out of the pane (its scale dragged past it), none: a tag reads where its
+    // line is. A pane too short for one, none.)
     const top = TAG / 2, foot = this.height - TAG / 2;
     this.tagStep = TAG;
     if (foot < top) return 0;
@@ -1039,7 +1065,7 @@ export class Pane {
       if (!(y0 > -0.5 && y0 < this.height + 0.5)) continue;
       if (Math.abs(y0 - last) < 1e-6) continue;
       const line = Math.min(Math.max(y0, top), foot), y = m ? Math.max(line, at[m - 1] + TAG) : line;
-      if (y - TAG / 2 >= this.height) break;
+      if (y > foot) break;
       (order[m] = order[k]), (at[m++] = y), (last = y0);
     }
     return m;

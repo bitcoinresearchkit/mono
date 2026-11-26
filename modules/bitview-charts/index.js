@@ -696,16 +696,36 @@ export class Chart {
     let tapAt = -Infinity, tapX = 0, tapY = 0, tapPane = /** @type {Pane | null} */ (null), tapSide = "";
     const plotX = (/** @type {number} */ clientX) => clientX - element.getBoundingClientRect().left - this.left;
     const signal = this.listening.signal;
+    /** A press taken from here on, its end told to ended. @param {PointerEvent} event */
+    const hold = (event) => {
+      const id = event.pointerId;
+      element.setPointerCapture(id);
+      return press(event, { captor: element, signal, end: (release, lost) => ended(id, release, lost) });
+    };
+    /** The separator over pane `on` dragged by a press. @param {PointerEvent} event @param {number} on */
+    const size = (event, on) => {
+      hold(event);
+      // (A drag, not a click: the one a browser may send on its lift is taken (WebKit's, at the press's start, on what
+      // slid under it there: a legend's item), any pointer; none past the next press, nor a key's (detail 0).)
+      const swallow = (/** @type {MouseEvent} */ click) => click.detail && (click.stopPropagation(), click.preventDefault());
+      addEventListener("click", swallow, { capture: true, once: true, signal });
+      addEventListener("pointerdown", () => removeEventListener("click", swallow, true), { capture: true, once: true, signal });
+      (sizing = [this.panes[on], this.panes[this.#next(on)]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), this.controller.stop(), this.#clearPointer();
+    };
+    /** The separator band's press that began on a page's own element (see take), till it goes up or down, or not. */
+    let banded = /** @type {{ id: number, x: number, y: number, on: number } | null} */ (null);
     const take = (/** @type {PointerEvent} */ event) => {
+      banded = null;
+      if (event.button || sizer >= 0) return;
+      const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
       // (A separator dragged: no other pointer does anything meanwhile. A press beginning on a page's own element in the
       // chart (a legend's button) is the page's: none of its canvases (wherever a page put them), not the chart's; one
-      // more during the chart's own (a second finger: a pinch), the chart's wherever it lands.)
-      if (event.button || sizer >= 0 || (!down.size && event.target !== element && !this.#owns(event.target))) return;
-      element.setPointerCapture(event.pointerId);
-      const id = event.pointerId, stop = press(event, { captor: element, signal, end: (release, lost) => ended(id, release, lost) });
+      // more during the chart's own (a second finger: a pinch), the chart's wherever it lands. In a separator's band, the
+      // separator's once it goes up or down (see banded): a tap, a sideways swipe, still the page's.)
+      if (!down.size && event.target !== element && !this.#owns(event.target)) return void (on >= 0 && (banded = { id: event.pointerId, x: event.clientX, y: event.clientY, on }));
       // (On a separator: it's dragged, nothing else.)
-      const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
-      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[this.#next(on)]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), this.controller.stop(), this.#clearPointer());
+      if (on >= 0) return size(event, on);
+      const id = event.pointerId, stop = hold(event);
       const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop });
       this.controller.grab();
@@ -734,6 +754,15 @@ export class Chart {
     };
     element.addEventListener("pointerdown", take, { signal });
     element.addEventListener("pointermove", (event) => {
+      // (A press in a separator's band on a page's element: gone up or down as far as a click can't, more than sideways, the
+      // separator's; sideways (a legend's row scrolled), the page's.)
+      if (banded?.id === event.pointerId) {
+        // (A mouse let go elsewhere: no press.)
+        const dx = Math.abs(event.clientX - banded.x), dy = Math.abs(event.clientY - banded.y), pressed = !fine(event) || event.buttons;
+        if (pressed && dy >= 6 && dy > dx) size(event, banded.on);
+        if (!pressed || dx >= 6 || dy >= 6) banded = null;
+        return;
+      }
       if (sizer === event.pointerId) return void (sizing && !this.#size(sizing[0], sizing[1], event.clientY - element.getBoundingClientRect().top) && stopSizing());
       // (Another pointer meanwhile (a mouse beside a finger): nothing while a separator's dragged.)
       if (this.resizing) return;
@@ -783,6 +812,7 @@ export class Chart {
       if (fine(event)) this.#follow(event);
       this.invalidate();
     }, { signal });
+    for (const type of ["pointerup", "pointercancel"]) element.addEventListener(type, (event) => banded?.id === event.pointerId && (banded = null), { signal });
     element.addEventListener("pointerleave", (event) => fine(event) && !down.size && !this.resizing && ((this.separatorLit = null), this.#clearPointer()), { signal });
     /**
      * A press's end (see press): its release, or none (`lost`: its touch proved gone).

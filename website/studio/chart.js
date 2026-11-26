@@ -1580,11 +1580,11 @@ function updateLegends() {
       const result = resolved?.results.get(layer.id);
       const value = result?.error && !said ? `<span class="legend-error"${result.detail ? ` data-tip="${escapeHtml(result.detail)}"` : ""}>${escapeHtml(result.error)}</span>`
         : fromUnfit(chart, layer) ? `<span class="legend-error">${fromUnfit(chart, layer)}</span>`
-        : layer.hidden || !(result?.values || result?.heat) || (layer.type === "signal" && !signalShown(layer)) ? ""
+        : !layerShows(chart, layer) || !(result?.values || result?.heat) ? ""
         // (A 100% stack's band: its share, as its axis reads (its amount, the panel's).)
         : pane?.stack === "percent" && bandsOf(pane).includes(layer) ? `<span class="legend-value" data-band-share="${layer.id}" style="min-width: ${widest(["100.0%"], 510, 12)}px"></span>`
         : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
-      return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""}" data-select="${layer.id}" style="--c:${escapeHtml(ink(colorNow(layer) ?? layer.color))}">
+      return `<button type="button" class="${layerShows(chart, layer) ? "" : "hidden"}" data-select="${layer.id}" style="--c:${escapeHtml(ink(colorNow(layer) ?? layer.color))}">
               <span class="legend-name">${legendNameHtml(layer)}</span>${value}
             </button>${layer.type === "profile" && !layer.hidden && layer.profile?.length ? profileKeyHtml(layer) : ""}${!layer.hidden ? cloudKeyHtml(layer) : ""}`;
     };
@@ -2903,7 +2903,7 @@ const pinCross = (pin) => ((crossSet = pin), cancelAnimationFrame(crossLater), (
  */
 function holdCross(settled = false) {
   const { price, time, layer } = /** @type {NonNullable<typeof crossSet>} */ (crossSet), series = drawn.get(layer), item = layerById(layer), i = indexOfTime(time);
-  if (!series || !item || item.hidden || (item.type === "signal" && !signalShown(item)) || seriesY(series, price) === null) return dropCross();
+  if (!series || !item || !layerShows(chart, item) || seriesY(series, price) === null) return dropCross();
   // (In view as the keys count it: see firstInView.)
   if (i < 0 || i < firstInView() || i > lastShown()) {
     if (settled) return dropCross();
@@ -3246,7 +3246,7 @@ export {
   crossSet, cssColor, cutsOf, dailyOf, dashFor, dataKey, datedIntervals, defaultSize, describePlot, dotLineOf,
   dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawRows, drawSeries, dropCross, edges, endReveal, EXACT_RANGE, fadedNow,
   fadeLayer, failedChunks, failure, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
-  fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldOf, hiddenPanes, paneShows, forget, forgetSpans, gapped, glide,
+  fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldOf, hiddenPanes, layerShows, paneShows, forget, forgetSpans, gapped, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
   keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads, lookKey,
