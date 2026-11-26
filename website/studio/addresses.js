@@ -1,15 +1,15 @@
 // @ts-check
-import { placeWas } from "./places-were.js";
 /** @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number, window?: string }>, clashes: string[] }} AddressBook */
 
 /**
  * Two under one place still alike are each tagged with a short hash of their name, so an address is the same whatever
  * else exists.
  * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build). One that
- * moved keeps its old addresses too (places-were.js), never over a place there now.
- * @param {{ p: string[], w?: Record<string, string> }[]} list @returns {Generator<void, AddressBook>}
+ * moved keeps its old addresses too, given where presets were (places-were.js), never over a place there now.
+ * @param {{ p: string[], w?: Record<string, string> }[]} list
+ * @param {typeof import("./places-were.js").placeWas} [placeWas] @returns {Generator<void, AddressBook>}
  */
-export function* addressSteps(list) {
+export function* addressSteps(list, placeWas) {
   const STEP = 200;
   let done = 0;
   const words = new Map();
@@ -62,7 +62,7 @@ export function* addressSteps(list) {
   const alias = (/** @type {string} */ address, /** @type {{ path: string[] } | { preset: number, window?: string }} */ to) => at.has(address) || at.set(address, to);
   // (A section gone opens the deepest section that holds all its charts now.)
   const goneSections = new Map();
-  for (const [i, preset] of list.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
+  if (placeWas) for (const [i, preset] of list.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
     alias(addressOf(old), folded ? { preset: i, window: folded } : { preset: i });
     // (A window's name as it was beside the chart (named after it, as the chart was then), or as it is now, the window's
     // place moved as the chart's was; a chart folded into this one had none of this one's.)
@@ -81,9 +81,9 @@ export function* addressSteps(list) {
   for (const { old, now } of goneSections.values()) alias(`${addressOf(old)}/`, { path: now });
   return { presets: presetsAt, sections, at, clashes };
 }
-/** @param {{ p: string[], w?: Record<string, string> }[]} list */
-export function addressesOf(list) {
-  const steps = addressSteps(list);
+/** @param {Parameters<typeof addressSteps>} args */
+export function addressesOf(...args) {
+  const steps = addressSteps(...args);
   let step = steps.next();
   while (!step.done) step = steps.next();
   return step.value;

@@ -67,7 +67,7 @@ import {
 import { modeOf, labelOf, paneMode, layerById, stackOf, lineLook, STACK_WIDTH, fillOf, named, bandOf, lineAt, gradientTable, titleOf, seriesMark, derivedTitle, legendEntry, levelSteps, rangeOf } from "/studio/looks.js";
 import { renderRanges, fitTitle, titleReads, typedFrom, renderInterval, renderWindow, renderChartPath } from "/studio/toolbar.js";
 import { validate, linkLookOf, contentOf, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
-import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
+import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, routeOrWas, wherePresetsWere, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
 import { fitted, laidOver, wordsOn, dropOwnLayers, sketches, Sketch, ownLayers, repaintDrawings, rulerReading, tagShapes, plotBox, timeLine, onScreen, tickOn, hover } from "/studio/sketch.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -5347,9 +5347,9 @@ function loadPresets() {
   return (presetsLoad ??= (async () => {
     presetsFailed = false;
     const list = await readPresetList();
-    // (An edited preset whose place is gone is adopted by what it shows, its windows folded, which takes the series'
-    // tree: read first, then.)
-    if (((places) => library.presets.some((doc) => doc.preset !== undefined && !places.has(doc.preset)))(new Set(list.map((preset) => JSON.stringify(preset.p))))) await import("/studio/client.js");
+    // (An edited preset whose place is gone, or the open one, is found by what it shows, its windows folded, which
+    // takes the series tree, and where it went: read first, then.)
+    if (((places) => [...library.presets, chart].some((doc) => doc?.preset !== undefined && !places.has(doc.preset)))(new Set(list.map((preset) => JSON.stringify(preset.p))))) await Promise.all([import("/studio/client.js"), wherePresetsWere()]);
     // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
     await aFrame();
     presets = list;
@@ -5371,9 +5371,10 @@ function loadPresets() {
     // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
     whenIdle(addressesSoon);
     withRest(() => whenIdle(command.ranksSoon));
-    if (pendingRoute && started) withRest(() => {
-      const asked = pendingRoute, route = routeOf(asked), here = Boolean(history.state?.route);
+    if (pendingRoute && started) withRest(async () => {
+      const asked = pendingRoute;
       pendingRoute = "";
+      const route = await routeOrWas(asked), here = Boolean(history.state?.route);
       const { route: _, ...state } = history.state ?? {};
       if (here) history.replaceState(state, "");
       if (here && route) "preset" in route ? grid.go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
@@ -6991,6 +6992,8 @@ $("import-file").addEventListener("change", async (event) => {
   await loadPresets().catch(() => {});
   try {
     const parsed = JSON.parse(await file.text());
+    // (Its edited presets are adopted by where they went.)
+    if (parsed?.presets?.length) await wherePresetsWere();
     if (Array.isArray(parsed?.charts)) {
       const folders = new Map(foldersOf(parsed.folders, []).map((folder) => [folder.id, { ...folder, id: uid() }]));
       /** @type {Map<string, Chart>} */
@@ -8978,7 +8981,7 @@ async function start() {
   const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
   if (asked) await loadPresets().catch(() => {});
-  const routed = asked ? routeOf(asked) : null;
+  const routed = asked ? await routeOrWas(asked) : null;
   // (A window is read from the series tree, which a first chart doesn't otherwise wait for.)
   if (routed && "preset" in routed && linkLookOf(new URLSearchParams(location.hash.slice(1)), routed.window).window) await import("/studio/client.js");
   chart = (routed && "preset" in routed ? presetByAddress(routed.preset, routed.window) : resumed) || chart;

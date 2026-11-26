@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { addressesOf } from "../website/studio/addresses.js";
+import { placeWas } from "../website/studio/places-were.js";
 import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "../website/studio/page-info.js";
 import { shownStep } from "../website/studio/words.js";
 
@@ -82,7 +83,7 @@ const places = new Set(presets.map((preset) => preset.p.join(" › ")));
 const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
-const book = addressesOf(presets);
+const book = addressesOf(presets, placeWas);
 
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
 if (!about) throw new Error("No about section in the page: llms.txt is made from it");
