@@ -1,12 +1,11 @@
 // @ts-check
 // Heatmaps (the URPD, a day a column) and bubbles.
 import { channels, columnWidth, Custom, placeIndex, press, Profile } from "/modules/bitview-charts/index.js";
-import { capitalized, inSentence } from "/studio/words.js";
 import {
-  boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
-  css, draft, edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatAt, heatCohort,
-  heatKnown, keepDrawing, keyTime, lensAt, light, moving, notice, picks, placing, profileColor, profileLit, renderBelt,
-  reshape, reshaped, resolved, startLabel, startTyping, syncUndo, takeUp, tool, toolKept, undoToast, writing, keepFocus, logRows, placingPath,
+  boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, commit, css, draft,
+  edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatCohort, heatKnown, keepDrawing,
+  keyTime, lensAt, light, moving, notice, picks, placing, profileColor, profileLit, renderBelt, reshape, reshaped,
+  resolved, startLabel, startTyping, syncUndo, takeUp, toolKept, undoToast, writing, keepFocus, logRows, placingPath,
 } from "/studio/app.js";
 import { $, escapeHtml, TOUCH, isOpen, onClosed } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
@@ -19,8 +18,8 @@ import {
 } from "/studio/vocabulary.js";
 import { BOXES, LINES, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS } from "/studio/tools.js";
 import {
-  alpha, crossSet, cssColor, drawn, fingerCross, glide, Heat, ink, lastShown, paneBox, PROFILE_DIM, seriesPane,
-  seriesValue, seriesY, shownSpan, valuesSoon,
+  alpha, cssColor, drawn, fingerCross, glide, Heat, ink, lastShown, paneBox, PROFILE_DIM, seriesPane, seriesValue,
+  seriesY, shownSpan, valuesSoon,
 } from "/studio/chart.js";
 import { bothOf, choicePage } from "/studio/command.js";
 import {

@@ -14,7 +14,7 @@ import {
   previousChart, quick, quickHide, quickShow, quickWorks, recentCharts, redoLast, reduced, renderPalette, reshape,
   resolved, revision, say, selected, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE,
   showGuide, showLook, showPalette, showShortcuts, signalShown, STACKED_ONLY, startTyping, studioVersion, tabletHead,
-  takeUp, THEMES, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, tree, trendShort, undoLast,
+  takeUp, THEMES, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, trendShort, undoLast,
   updatePaletteKeys, used, chartWindow, nodeAt, placingPath, fullOn,
 } from "/studio/app.js";
 import { aside, isSeriesName } from "/studio/catalog-walk.js";

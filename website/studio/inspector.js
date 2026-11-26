@@ -1,11 +1,11 @@
 // @ts-check
 // A layer's inspector: picking layers, their settings, gradients, adding layers.
-import { gradientTable as mixedTable, placeIndex, press, stack as stackColumns } from "/modules/bitview-charts/index.js";
+import { placeIndex, press } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
   acrossUnfit, afterHands, byBlock, byTouch, chart, chartById, chooseDrawings, chosen, clearLayerPicks, client,
-  cohortName, colorName, colorPane, commit, css, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit,
-  fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, layerPicks, light, layersBatch,
+  cohortName, colorName, colorPane, commit, DEFAULTS, dismissPalette, EXAMPLE, firstLook, formatName, formulaFit,
+  fromLetters, fromShort, fromUnfit, handsHeld, holding, home, indexCatalog, isOhlc, layerPicks, layersBatch,
   letterChip, markFor, markPicks, marksOf, memberable, minedHalvings, MOTION, notice, openPalette, ownerOf, panelShown,
   paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt, renderLayers,
   reshape, resolved, say, secondColor, select, selected, seriesCount, showList, shownOklch, signedSignal, SLIDERS,
@@ -21,18 +21,19 @@ import {
 import { CHEVRON, dashGlyph, glyph, glyphSvg, ICONS, markBody, shapeGlyph } from "/studio/icons.js";
 import {
   belowOf, DASHES, dashOf, EDGES, edgesOf, fittable, FLIP_APART, follows, FORMULA_MAX, fromOf, goesWith, GRADIENT_LEAST,
-  GRADIENT_MOST, heatLike, hollowOf, kindLook, layersColors, LINE_STYLE, LINED, makeLayer, MARK_PLACES,
-  markable, MAX_LEVELS, MAX_PANES, membersOf, MODES, modesOf, newPaneIn, ownGradient, nextColor, nextLetter, ONE_SCALE, oneScale,
-  drawnInto, gradable, HEAT_GRADIENTS, nameLayer, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn, placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS,
-  TWO_KEPT, TWO_OR_ONE, typeName, TYPES, WIDTHS,
+  GRADIENT_MOST, heatLike, hollowOf, kindLook, layersColors, LINED, makeLayer, MARK_PLACES, markable, MAX_LEVELS,
+  MAX_PANES, membersOf, MODES, modesOf, newPaneIn, ownGradient, nextColor, nextLetter, ONE_SCALE, oneScale, drawnInto,
+  gradable, HEAT_GRADIENTS, nameLayer, OUTLINED, OUTLINES, outlinable, PAIRS, paneGradient, placedBy, placedOn,
+  placeName, rowsUnfit, seriesLooked, SHAPES, STACKS, summed, toggleMember, TREND_FLIP, TREND_SAYS, TWO_KEPT,
+  TWO_OR_ONE, typeName, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   FINE, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, spanDays, SPANS, windowPoints,
 } from "/studio/intervals.js";
-import { gamma, hexToOklch, inside, limit, maxChroma, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
+import { gamma, inside, limit, maxChroma, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
 import {
-  baseOf, BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, idOf, info, ink, lastShown, noValues, oklchOf,
-  respot, retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
+  baseOf, BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, info, ink, lastShown, noValues, respot,
+  retryInfo, seriesIn, unitFor, units, updateLegends, valueAt,
 } from "/studio/chart.js";
 import {
   aboutOf, bothOf, choicePage, finder, findSeries, formulaError, formulaSide, listPage, loopError, palette,
@@ -43,18 +44,18 @@ import {
   argNames, FUNCTIONS, GENESIS, hasFunction, highlightFormula, parse, PERIODS_TAKEN, refsOf, turnsInto, unfitHere,
   VALUES,
 } from "/studio/formulas.js";
-import { fillSlot, recommendedCards } from "/studio/grid.js";
+import { recommendedCards } from "/studio/grid.js";
 import {
   heatGrid, heatPath, heatSection,
 } from "/studio/heatmaps.js";
 import { exportData, letGo, menuOf, showMenu } from "/studio/menus.js";
 import { ordersOf, refocus, slideLayers, tick } from "/studio/presets-edit.js";
-import { heatName, lineAt, lineLook, lineDefaults, named, modeOf, paneMode, labelOf, fromName, layerById, gradientTable, gradientCss, mixedOf, rangeOf, levelSteps, fadingOf, faintOf } from "/studio/looks.js";
+import { lineAt, lineLook, lineDefaults, named, modeOf, paneMode, labelOf, fromName, layerById, gradientCss, mixedOf, rangeOf, levelSteps, fadingOf, faintOf } from "/studio/looks.js";
 import { presetsSettled } from "/studio/preset-charts.js";
 import { readsOf } from "/studio/charts-read.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
-/** @import { Node, Vector } from "/studio/formulas.js" */
+/** @import { Node } from "/studio/formulas.js" */
 
 /** Whether a layer's pane stacks it. @param {Layer} layer */
 const stackedIn = (layer, doc = chart) => summed(doc.panes.find((pane) => pane.id === layer.pane));

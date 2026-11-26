@@ -2,21 +2,22 @@
 // The page's grid: tiles, mini charts, the presets' gallery, picking charts and moving them.
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
-import { columnWidth, indexed, PARTIAL as PARTIAL_SHARE, placeIndex, press } from "/modules/bitview-charts/index.js";
-import { capitalized, shownStep } from "/studio/words.js";
+import { columnWidth, indexed, PARTIAL as PARTIAL_SHARE, press } from "/modules/bitview-charts/index.js";
+import { capitalized } from "/studio/words.js";
 import {
   acrossUnfit, applyTheme, asThen, cardsSeen, chart, chartById, chartNow, css, deleteChart, deleteFolder, dialogsShown,
-  discard, dismissPalette, drafts, drawCards, drawGallery, drawPresetMarks, drawYours, emptyYours, engine, FOLDER_ICONS,
+  discard, dismissPalette, drawCards, drawGallery, drawPresetMarks, drawYours, emptyYours, engine, FOLDER_ICONS,
   folderAgain, folderMark, folderNow, fromUnfit, galleryAhead, galleryPlace, galleryShown, galleryTilesAhead,
   galleryTilesSeen, goTo, GROUP_OF, GROUPS, HEAT_PICTURE_AGG, HEAT_PICTURE_GRID, HEAT_PICTURE_ROWS, HEAT_TILE_COLUMNS,
-  heatKnown, heldUpright, home, homeAt, homeScroll, homeScroller, importCharts, inLibrary, isPreview, isYours,
-  keepSidePresets, keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith,
-  letterOf, library, libraryEdits, libraryStep, light, listedPreviews, listOwed, livePrice, loadPresets, minedHalvings,
-  mostBars, MOTION, newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs,
-  presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews,
-  previousChart, profileColor, railMenuKept, recentCharts, redoing, reduced, relayout, relist, renderCharts, save,
-  savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls, sideLight, sidePresets, started, storage,
-  THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit, THUMBS, PREVIEWS, SHELF, GALLERY_PAGE, MARK_VERSION, THUMB_POINTS,
+  heatKnown, heldUpright, home, homeAt, homeScroll, importCharts, inLibrary, isPreview, isYours, keepSidePresets,
+  keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, letterOf, library,
+  libraryEdits, libraryStep, light, listedPreviews, listOwed, livePrice, loadPresets, minedHalvings, mostBars, MOTION,
+  newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs, presetLabels,
+  presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart,
+  profileColor, railMenuKept, recentCharts, redoing, reduced, relayout, relist, renderCharts, save, savePrefs,
+  savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls, sideLight, sidePresets, started, storage, THEMES,
+  thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit, THUMBS, PREVIEWS, SHELF,
+  GALLERY_PAGE, MARK_VERSION, THUMB_POINTS,
 } from "/studio/app.js";
 import {
   $, all$, closest, composing, escapeHtml, holdPage, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing, focusKey, restoreFocus, isOpen, cutFade, fadeOut, fading,
@@ -24,18 +25,17 @@ import {
 import { inSlices, until, whenIdle } from "/studio/timing.js";
 import { clamp, hashOf, lowerBound, uid, onScale, onScaleAll } from "/studio/math.js";
 import { format, grouped, plural, precise } from "/studio/format.js";
-import { ICONS, markBody } from "/studio/icons.js";
+import { ICONS } from "/studio/icons.js";
 import {
-  belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cloudLayers, DASHES, dashOf, edgesOf, gradientOfLayer, heatGradient, heatLike, LINED, measureOf,
-  opacityOf, OUTLINED, PAIRS, placedOn, summed, unfitted,
+  belowOf, blankChart, BUBBLE_HIDE, BUBBLE_SIZE, cloudLayers, DASHES, dashOf, edgesOf, heatGradient, heatLike, LINED,
+  measureOf, opacityOf, OUTLINED, PAIRS, placedOn, summed, unfitted,
 } from "/studio/vocabulary.js";
 import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "/studio/intervals.js";
-import { isColor } from "/studio/color.js";
 import { stopCarrying, swallowClick } from "/studio/gestures.js";
 import {
-  asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldOf, hiddenPanes,
-  forget, gapped, info, ink, intervalsOf, load, loads, MIN_BAR_SPACING, paintOf, periodAmount, presetWindow, profiled, resolve,
-  retryInfo, rightGap, seriesIn, SIDES, unitFor, viewName,
+  asked, baseOf, byColor, colorChain, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldOf, hiddenPanes, forget,
+  gapped, info, ink, intervalsOf, load, loads, MIN_BAR_SPACING, paintOf, periodAmount, presetWindow, profiled, resolve,
+  retryInfo, rightGap, seriesIn, SIDES, unitFor,
 } from "/studio/chart.js";
 import {
   chartActions, choicePage, inputPage, openPage, renameChart, renameChartPage, searchCase, searchText, typedWords,
@@ -51,7 +51,7 @@ import {
 import {
   RECOMMENDED, refocus, vocabNow,
 } from "/studio/presets-edit.js";
-import { fillOf, labelOf, layerById, lineLook, modeOf, STACK_FILL, stackOf, gradientCss, gradientTable, derivedTitle, titleOf, seriesMark, barsOf, runs, sides, areaOf, legendEntry, fadingOf, levelSteps, rangeOf } from "/studio/looks.js";
+import { fillOf, labelOf, layerById, lineLook, modeOf, STACK_FILL, stackOf, derivedTitle, titleOf, seriesMark, barsOf, runs, sides, areaOf, legendEntry, fadingOf, levelSteps, rangeOf } from "/studio/looks.js";
 import { presetTree, presetRoot, presetName, presetNodeAt, placeNames, homeName, folderById, asPlace, editedPreset, fromPreset, keptPreset, presetById, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, pristine, showAddress, chartPlace, stepsTo } from "/studio/preset-charts.js";
 import { tickOn } from "/studio/sketch.js";
 import { keepCarriedView } from "/studio/charts-read.js";

@@ -1,5 +1,5 @@
 // @ts-check
-import { command, grid, heatmaps, inspector, menus, pen } from "/studio/later.js";
+import { command, heatmaps } from "/studio/later.js";
 // The chart: drawing a chart's layers and panes, its readouts, keys and navigator.
 import {
   Band, Bars, Candles, channels, columnWidth, Custom, DARK, Gradient, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,

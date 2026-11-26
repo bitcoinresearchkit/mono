@@ -1,41 +1,35 @@
 // @ts-check
 // Menus, the toolbar, sharing, importing and exporting.
-import { capitalized, windowSaid, windowShort } from "/studio/words.js";
 import {
-  atWindow, byTouch, chart, chartImage, chartShown, chartWindow, commit, css, engine, firstForm, firstLook, flowsAt,
-  hideTip, indexAt, isView, library, listedPreviews, loadPresets, measure, menuNameOf, MOTION, navigations, normalize,
-  notice, openingView, openView, phone, putViews, railMenu, reduced, resolved, revision, ROUTED, saveView,
-  SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast, UNREAD, viewsNow,
+  atWindow, byTouch, chart, chartImage, commit, css, engine, flowsAt, hideTip, library, listedPreviews, loadPresets,
+  measure, menuNameOf, MOTION, navigations, notice, openView, phone, railMenu, reduced, resolved, revision, ROUTED,
+  saveView, SHARES_IMAGES, shownView, showRange, storage, submenus, toast, UNREAD,
 } from "/studio/app.js";
-import { isCatalogPath, isSeriesName } from "/studio/catalog-walk.js";
-import { $, all$, closest, drawKeys, escapeHtml, holdPage, KEY_STEPS, keyText, stepIn, focusKey, keyOf, restoreFocus, cutFade, fadeOut, fixedOrigin, placeFixed } from "/studio/dom.js";
-import { clamp, uid } from "/studio/math.js";
-import { FORMATS, grouped, plural } from "/studio/format.js";
-import { CHEVRON, ICONS } from "/studio/icons.js";
+import { $, all$, closest, drawKeys, escapeHtml, holdPage, KEY_STEPS, keyText, stepIn, keyOf, restoreFocus, cutFade, fadeOut, fixedOrigin, placeFixed } from "/studio/dom.js";
+import { clamp } from "/studio/math.js";
+import { grouped, plural } from "/studio/format.js";
+import { ICONS } from "/studio/icons.js";
 import {
-  blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, DASHES, DEFAULT_MEASURE, defaultOpacity, EDGES,
-  FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENTS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
-  asideLayers, kindColor, letterAt, makeLayer, MARK_PLACES, markable, showView, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
+  EDGES, heatLike, letterAt,
 } from "/studio/vocabulary.js";
 import {
-  labelText, LINES, lookOfDrawing, MAX_DRAWINGS, MAX_STROKE, PAIRED, PEN_COLOR, pointOf, TOOLS,
+  PEN_COLOR,
 } from "/studio/tools.js";
 import {
-  AVERAGES, CADENCE, DEFAULT_RANGE, FINE, INTERVAL_LABEL, INTERVAL_ORDER, intervalFits, RANGES,
+  CADENCE, DEFAULT_RANGE, FINE, INTERVAL_ORDER, intervalFits,
 } from "/studio/intervals.js";
-import { isColor, PALETTE } from "/studio/color.js";
 import {
-  forgetSpans, inSubmenu, intervalsOf, lastShown, legends, levelOf, menuPicks, periodOf, pointLabel, presetFits, presetShown,
-  resolve, rightGap, seriesIn, settled, shownDates, shownRange, subAt, viewName, whenSubmenu,
+  inSubmenu, intervalsOf, lastShown, legends, levelOf, menuPicks, pointLabel, resolve, seriesIn, settled, shownDates,
+  subAt, viewName, whenSubmenu,
 } from "/studio/chart.js";
 import { headMenu, pageTitle } from "/studio/command.js";
 import { chartPathRows, isIn, sideKey, treeOf } from "/studio/grid.js";
 import { tick } from "/studio/presets-edit.js";
 import { labelOf, titleOf } from "/studio/looks.js";
 import { typedFrom } from "/studio/toolbar.js";
-import { validate, contentOf, flatOf, datedView, timeOfText, viewKey, fromSketch, lookFields, linkDates, dateText, BASE32 } from "/studio/charts-read.js";
+import { flatOf, lookFields, linkDates, dateText, BASE32 } from "/studio/charts-read.js";
 import { folderById, presetEdited, presetLink } from "/studio/preset-charts.js";
-/** @import { Chart, Layer, Lens, Level, Pane } from "/studio/vocabulary.js" */
+/** @import { Chart, Layer } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
 /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */

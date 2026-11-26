@@ -1,35 +1,27 @@
 // @ts-check
 // Drawing on the chart: lines, boxes, text and strokes.
-import { Custom, FAINT, indexed, inkOn } from "/modules/bitview-charts/index.js";
 import { capitalized } from "/studio/words.js";
 import {
-  beltStop, boxing, capturing, chart, chosen, commit, css, draft, drawingsHidden, drawVersion, engine, hideBelt, home,
-  indexAt, labelTyping, magnifying, measurer, measuring, minedHalvings, MOTION, moving, nextHalvings, phone, placing,
-  prefs, reduced, renderBelt, reshaped, resolved, revision, SANS, savePrefs, selected, selectingArea, shownDrawings,
-  shownOklch, takeUp, timeAt, tool, typingIn,
+  beltStop, chart, chosen, commit, engine, hideBelt, magnifying, MOTION, phone, prefs, reduced, renderBelt, resolved,
+  savePrefs, selected, selectingArea, shownDrawings, takeUp, timeAt, tool,
 } from "/studio/app.js";
 import { $, all$, escapeHtml, keyText, MAC } from "/studio/dom.js";
-import { clamp, lowerBound, uid } from "/studio/math.js";
-import { amount, dateLabel, duration, growth, precise } from "/studio/format.js";
+import { clamp, uid } from "/studio/math.js";
 import { glyphSvg, ICONS } from "/studio/icons.js";
 import { placedOn } from "/studio/vocabulary.js";
 import {
-  BACKS, BOXES, ENDS, LENS_SAYS, LINES, lookOfDrawing, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS,
+  BACKS, ENDS, LENS_SAYS, LINES, lookOfDrawing, MAX_DRAWINGS, pointOf, THROUGH, TOOLS,
 } from "/studio/tools.js";
-import { FINE } from "/studio/intervals.js";
-import { hexToOklch, oklchToHex } from "/studio/color.js";
 import {
-  alpha, built, cssColor, dashFor, drawn, fadedNow, firstInView, fitStrip, ink, layerFormats, paneBox, seriesPane, seriesScale, seriesValue, seriesY, shownIndex, shownSpan, unitFor, viewName,
+  built, cssColor, drawn, fitStrip, seriesValue, seriesY, shownIndex,
 } from "/studio/chart.js";
-import { nearestFinite, paneAt } from "/studio/formulas.js";
+import { paneAt } from "/studio/formulas.js";
 import { slider } from "/studio/inspector.js";
 import { showMenu } from "/studio/menus.js";
 import { refocus } from "/studio/presets-edit.js";
-import { layerById } from "/studio/looks.js";
-import { fitted, sketches, timeLine, hovering, reach, contrastOn, repaintDrawings, plotBox, calendarAt, PULL, REACH } from "/studio/sketch.js";
+import { sketches, timeLine, contrastOn, plotBox, calendarAt, PULL, REACH } from "/studio/sketch.js";
 /** @import { End } from "/studio/tools.js" */
-/** @import { Drawing, DrawingKind, Layer } from "/studio/vocabulary.js" */
-/** @import { Resolved, Result } from "/studio/chart.js" */
+/** @import { Drawing, DrawingKind } from "/studio/vocabulary.js" */
 
 /** A trend line's ends, drawn at 16×12: its line between its points, each end a dot, an arrowhead, or on past it. */
 const endsGlyph = (/** @type {End | "" | undefined} */ start, /** @type {End | "" | undefined} */ end) => {

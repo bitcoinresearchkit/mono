@@ -2,16 +2,11 @@
 // The presets: every one, its address, edited where it is.
 import { initialsWord } from "/studio/initials.js";
 import {
-  presetDataset, presetInfo, sectionInfo, STUDIO_DESCRIPTION, STUDIO_ORIGIN, STUDIO_TITLE, studioApplication,
-} from "/studio/page-info.js";
-import { addressSteps } from "/studio/addresses.js";
-import {
-  applyPanel, asThen, atWindow, averageFor, chart, chartAgain, chartWindow, commit, discard, dismissPalette,
-  drawingsHidden, editChart, edits, folderMark, folderNow, histories, home, homeAt, inLibrary, isDeleted,
-  keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, newDraft, nextHalvings, normalize, notice, openChart,
-  panelShown, pendingRoute, pickPreset, prefs, presetLabels, presetMarks, presets, presetsFailed, presetsMatching,
-  previews, previousChart, readOnly, readPresetList, refresh, rekey, relist, renderCharts, resolved, retryPresets,
-  ROUTED, save, saveView, sectionMark, showPalette, started, storage, thumbs, toast, tree, undoToast, viewed, VIEWED, keepFocus, fullOn,
+  applyPanel, asThen, averageFor, chart, commit, discard, dismissPalette, drawingsHidden, editChart, folderMark,
+  folderNow, home, inLibrary, keptAsEdited, leaveHome, leftView, library, LIVE, loadPresets, newDraft, nextHalvings,
+  notice, openChart, panelShown, pickPreset, prefs, presetMarks, presets, presetsFailed, presetsMatching, previews,
+  previousChart, relist, renderCharts, resolved, retryPresets, save, saveView, sectionMark, showPalette, storage,
+  thumbs, toast, undoToast, viewed, VIEWED, keepFocus, fullOn,
 } from "/studio/app.js";
 import { $, all$, escapeHtml, isOpen } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
@@ -19,8 +14,7 @@ import { monthYear, plural } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
 import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneGradient, rowsUnfit, showView, STACKS, summed } from "/studio/vocabulary.js";
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
-import { isNamed } from "/studio/color.js";
-import { hashOf, uid } from "/studio/math.js";
+import { uid } from "/studio/math.js";
 import { changeOver, defaultSize, figuresRoom, lastShown, paneShows } from "/studio/chart.js";
 import {
   choicePage, heightRow, layerRows, listPage, palette, plotIn, sizable, slipEdits, typedWords, viewRow,
@@ -33,9 +27,9 @@ import { goneSaid, hideLayers, modesFor, movers, } from "/studio/inspector.js";
 import {
   exportRows, menuOf, renameInPlace, } from "/studio/menus.js";
 import { layerById, paneMode, titleOf } from "/studio/looks.js";
-import { contentOf, validate, fromSketch, lookFields, viewShown, keepCarriedView } from "/studio/charts-read.js";
-import { placeNames, presetNodeAt, folderById, homeName, presetChart, presetEdited, presetIndex, presetDoc, presetIdOf, keptPreset, editedPreset, freshPreset, contentHash, presetKey, presetById } from "/studio/preset-charts.js";
-/** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
+import { keepCarriedView } from "/studio/charts-read.js";
+import { placeNames, presetNodeAt, folderById, presetChart, presetEdited, presetIndex, presetDoc, presetIdOf, keptPreset, editedPreset, freshPreset, contentHash, presetKey, presetById } from "/studio/preset-charts.js";
+/** @import { Chart, Pane } from "/studio/vocabulary.js" */
 /** @import { Landing } from "/studio/gestures.js" */
 /** @import { Action, Page } from "/studio/command.js" */
 
