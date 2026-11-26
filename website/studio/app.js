@@ -142,7 +142,7 @@ import {
 } from "/studio/menus.js";
 import {
   addressesSoon, adoptPresets, aFrame, BASE, copyPreset, dropLayers, fullOn,
-  idsNow, isLinkHash, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu,
+  idsNow, isLinkHash, keptAsStored, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu,
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
@@ -1059,9 +1059,9 @@ function read(stored) {
   if (typeof stored.base === "string" && /^[a-z0-9]{1,24}$/.test(stored.base)) doc.base = stored.base;
   if (stored.blank === true) doc.blank = true;
   doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
-  // (A preset's copy told as made or edited as it was stored, before it's normalized: a newer client moving its
-  // fields isn't an edit (see pristine); one as made is made anew once the presets are read, see prunePresets.)
-  if (doc.preset !== undefined) pristine(doc);
+  // (A preset's copy kept as it was stored, to be told as made or edited from that, before it's normalized: a newer
+  // client moving its fields isn't an edit (see pristine); one as made is made anew once the presets are read, see prunePresets.)
+  keptAsStored(doc);
   normalize(doc);
   return doc;
 }
@@ -1087,10 +1087,6 @@ function presetsOf(/** @type {any} */ stored) {
   for (const doc of (Array.isArray(stored) ? stored : []).flatMap(restore)) {
     if (typeof doc.preset !== "string" || library.deleted[doc.id] >= doc.updated) continue;
     delete doc.folder;
-    // (Whether it's as made, told as stored, before anything normalizes it: a copy left as it was stays so through a
-    // newer client's moving its fields (not an edit, see pristine), and is made anew once the presets are read, see
-    // prunePresets; told after, it would read as edited.)
-    pristine(doc);
     if (!((byKey.get(doc.preset)?.updated ?? -Infinity) > doc.updated)) byKey.set(doc.preset, doc);
   }
   return [...byKey.values()];

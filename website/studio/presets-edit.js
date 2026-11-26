@@ -300,16 +300,25 @@ const presetById = (/** @type {string} */ id) => {
   if (presetIds.for !== presets || presetIds.next < presets.length) idsNow();
   return presetIds.at.get(id) ?? -1;
 };
-/** Whether a preset's chart is as it was opened (none of its edits left), as last asked of its stamp. @type {WeakMap<Chart, { at: number, as: boolean }>} */
+/**
+ * Whether a preset's chart is as it was opened (none of its edits left), as last asked of its stamp; or, for a copy
+ * just read, its stored form, to be told from when it's first asked (see keptAsStored). @type {WeakMap<Chart, { at: number, as?: boolean, from?: Chart }>}
+ */
 const pristineSeen = new WeakMap();
+/**
+ * A copy just read from storage, kept as it was stored: whether it's as made is told from that, before anything
+ * normalizes it (a newer client moving its fields isn't an edit), but only once it's asked, never at start: telling
+ * it asks the catalog for the chart's window (see chartWindow), which the page's thread doesn't walk before it's needed.
+ */
+const keptAsStored = (/** @type {Chart} */ doc) => void (doc.base && pristineSeen.set(doc, { at: doc.updated, from: structuredClone(doc) }));
 function pristine(/** @type {Chart} */ doc) {
   if (!doc.base) return false;
-  const seen = pristineSeen.get(doc);
-  if (seen?.at === doc.updated) return seen.as;
-  const hash = contentHash(doc);
+  const seen = pristineSeen.get(doc), current = seen?.at === doc.updated ? seen : undefined;
+  if (current?.as !== undefined) return current.as;
+  const was = current?.from ?? doc, hash = contentHash(was);
   // (A stamp from before windows could be picked (till 2026-11), its content at the window it was made at: as made
   // all the same, stamped anew, however the copy came (kept here, another tab's, a backup's). Delete in 2027-11.)
-  if (hash !== doc.base && doc.base === hashOf(contentOf({ ...doc, range: "", index: "day1" }))) doc.base = hash;
+  if (hash !== doc.base && doc.base === hashOf(contentOf({ ...was, range: "", index: "day1" }))) doc.base = hash;
   const as = hash === doc.base;
   pristineSeen.set(doc, { at: doc.updated, as });
   return as;
@@ -921,7 +930,7 @@ const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefi
 ]);
 export {
   addressesSoon, adoptPresets, aFrame, BASE, copyPreset, dropLayers, editedPreset,
-  fromPreset, fullOn, idsNow, isLinkHash, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
+  fromPreset, fullOn, idsNow, isLinkHash, keptAsStored, keptPreset, layOutAlone, legendAction, LEGENDS, looksOf, markersHtml,
   missedSaid, openPreset, openPresetMenu, ordersOf, paneActions, paneChip, paneRows, presetActions, presetById,
   presetChart, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, presetLink, presetLook,
   presetPages, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage, presetsSettled, pristine,
