@@ -38,7 +38,7 @@ import { CADENCE, FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, RANGES } 
 import { isColor, oklchToHex, SWATCHES } from "/studio/color.js";
 import { lowerBound } from "/studio/math.js";
 import {
-  baseOf, BY_BLOCK, byColor, colorsAt, cssColor, dailyOf, defaultSize, drawnWaiters, failure, fineDrawn, foldedPanes,
+  baseOf, BY_BLOCK, byColor, colorsAt, cssColor, dailyOf, defaultSize, drawnWaiters, failure, fineDrawn, hiddenPanes,
   info, ink, known, lastUsed, loads, oklchOf, overviewSource, paintOf, periodOf, pointLabel, presetFits,
   presetShown, rangeAt, resolve, retryInfo, shownIndex, shownRange, shownSpan, unitFor, units, viewName, zoom,
 } from "/studio/chart.js";
@@ -2151,19 +2151,19 @@ const panesPage = () => ({ title: "Panes", placeholder: "Search this chart's pan
     ...PANE_HEIGHTS.map(({ key, label, text, verb, set }) => ({ kind: "row", key, icon: ICONS.pane, label, aside: text, verb, group: "Heights", stay: true, run: () => setPaneHeights(set) })),
   ] : []),
 ] });
-/** A pane's share of the chart's height, in percent, among those that show (folded, none: see foldedPanes). */
+/** A pane's share of the chart's height, in percent, among those that show (hidden, none: see hiddenPanes). */
 function shareOf(i) {
-  const folded = foldedPanes(chart), sizes = chart.panes.map((pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k)));
+  const hidden = hiddenPanes(chart), sizes = chart.panes.map((pane, k) => (hidden.has(pane.id) ? 0 : pane.size ?? defaultSize(k)));
   return Math.round((sizes[i] / sizes.reduce((sum, size) => sum + size, 0)) * 100);
 }
 /** Whether a pane's height can be chosen: it shows, and so does another. */
-const sizable = (/** @type {number} */ i) => ((folded) => !folded.has(chart.panes[i].id) && chart.panes.filter((pane) => !folded.has(pane.id)).length > 1)(foldedPanes(chart));
+const sizable = (/** @type {number} */ i) => ((hidden) => !hidden.has(chart.panes[i].id) && chart.panes.filter((pane) => !hidden.has(pane.id)).length > 1)(hiddenPanes(chart));
 /** A pane at a share of the chart's height, the others keeping theirs between them. */
 const setShare = (id, share) => commit((doc) => shareOn(doc, id, share));
 /** The same, on a doc as it is (a copy, to look at). @param {Chart} doc */
 function shareOn(doc, id, share) {
-  // (Among the panes that show: a folded one keeps its own, for when it opens.)
-  const folded = foldedPanes(doc), i = doc.panes.findIndex((pane) => pane.id === id), open = doc.panes.map((pane) => !folded.has(pane.id));
+  // (Among the panes that show: a hidden one keeps its own, for when it opens.)
+  const hidden = hiddenPanes(doc), i = doc.panes.findIndex((pane) => pane.id === id), open = doc.panes.map((pane) => !hidden.has(pane.id));
   const sizes = doc.panes.map((pane, k) => pane.size ?? defaultSize(k)), others = sizes.reduce((sum, size, k) => sum + (k !== i && open[k] ? size : 0), 0);
   if (i < 0 || !open[i] || !others) return;
   sizes[i] = (share * others) / (1 - share);
@@ -2181,7 +2181,7 @@ function heightRow(id) {
 function paneRow(id, i) {
   const pane = chart.panes[i], open = () => panePage(id);
   return {
-    kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${foldedPanes(chart).has(pane.id) ? " · Folded" : sizable(i) ? ` · ${shareOf(i)}%` : ""}`, verb: "Open", page: open,
+    kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${hiddenPanes(chart).has(pane.id) ? " · Hidden" : sizable(i) ? ` · ${shareOf(i)}%` : ""}`, verb: "Open", page: open,
     actions: () => [{ label: "Open", icon: ICONS.arrowRight, kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
     preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id),
   };
@@ -2212,11 +2212,11 @@ function previewPane(panel, id, share = /** @type {number | null} */ (null)) {
   const i = chart.panes.findIndex((pane) => pane.id === id), pane = chart.panes[i];
   if (!pane) return void (panel.innerHTML = "");
   const layers = chart.layers.filter((layer) => layer.pane === id);
-  // (A folded pane, a sliver: it shows only its legend.)
-  const folded = foldedPanes(chart), sizes = chart.panes.map((other, k) => (folded.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
+  // (A hidden pane takes no height.)
+  const hidden = hiddenPanes(chart), sizes = chart.panes.map((other, k) => (hidden.has(other.id) ? 0 : other.size ?? defaultSize(k))), others = sizes.reduce((sum, size, k) => sum + (k === i ? 0 : size), 0);
   if (share !== null) sizes[i] = (share * others) / (1 - share);
   panel.innerHTML = `<h4 class="plain">Pane ${i + 1}</h4>
-          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack === "rows" ? ", as a heatmap" : pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${folded.has(id) ? ", folded: every layer in it hidden" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
+          <p class="description">${escapeHtml(`${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name} scale${pane.stack === "rows" ? ", as a heatmap" : pane.stack ? ", stacked" : ""}`}${pane.reverse ? `, ${ordersOf(pane)[1][1].toLowerCase()}` : ""}${((average) => average.name ? `, ${average.name}` : "")(averageFor(chart, pane))}`)}${hidden.has(id) ? ", hidden: every layer in it is" : sizable(i) ? `, ${share !== null ? Math.round(share * 100) : shareOf(i)}% of the chart's height` : ""}.</p>
           <div class="pane-map" aria-hidden="true">${sizes.map((size, k) => `<i class="${k === i ? "on" : ""}" style="flex:${size ? size : "0 0 4px"}">${size ? k + 1 : ""}</i>`).join("")}</div>
           <div class="info"><h5>Layers</h5><dl>${layerRows(layers) || "<div><dt>None yet</dt><dd></dd></div>"}</dl></div>`;
 }

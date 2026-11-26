@@ -33,7 +33,7 @@ import { FINE, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, rangeDays } from "
 import { isColor } from "/studio/color.js";
 import { stopCarrying, swallowClick } from "/studio/gestures.js";
 import {
-  asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldedPanes, foldOf,
+  asked, baseOf, byColor, colorChain, colorNow, cutsOf, defaultSize, drawSeries, edges, fitStrip, foldOf, hiddenPanes,
   forget, gapped, info, ink, intervalsOf, load, loads, MIN_BAR_SPACING, paintOf, periodAmount, presetWindow, profiled, resolve,
   retryInfo, rightGap, seriesIn, SIDES, unitFor, viewName,
 } from "/studio/chart.js";
@@ -581,8 +581,8 @@ function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @typ
   const round = (value) => Math.round(value * 10) / 10;
   /** A date's place across; written in a path, once a picture (its layers' points all at its dates, by index). */
   const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), xTexts = new Array(n), xText = (/** @type {number} */ i) => xTexts[i] ?? (xTexts[i] = String(x(i)));
-  // (A folded pane takes no band: it shows nothing.)
-  const folded = foldedPanes(doc), sizeOf = (pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k));
+  // (A hidden pane takes no band: it shows nothing.)
+  const hidden = hiddenPanes(doc), sizeOf = (pane, k) => (hidden.has(pane.id) ? 0 : pane.size ?? defaultSize(k));
   const total = doc.panes.reduce((sum, pane, i) => sum + sizeOf(pane, i), 0), stacked = stackOf(doc, data);
   // (The layers bubbles shown are on.)
   const carried = new Set(doc.layers.filter((layer) => layer.type === "bubbles" && !layer.hidden && layer.ref).map((layer) => layer.ref));

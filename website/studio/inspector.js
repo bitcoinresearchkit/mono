@@ -217,9 +217,8 @@ function renderLayersBar() {
   cloud.setAttribute("aria-disabled", String(bases.length < 2 || Boolean(apart)));
   cloud.dataset.tip = bases.length < 2 ? "A cloud is between two layers or more" : apart || "A cloud between them";
 }
-/** Hides layers, in one step; all hidden already, shows them. @param {string[]} ids */
-function hideLayers(ids) {
-  const hide = chart.layers.some((layer) => ids.includes(layer.id) && !layer.hidden);
+/** Hides layers, in one step; all hidden already, shows them (`hide`: as told, a pane's by what it shows). @param {string[]} ids @param {boolean} [hide] */
+function hideLayers(ids, hide = chart.layers.some((layer) => ids.includes(layer.id) && !layer.hidden)) {
   commit((doc) => doc.layers.forEach((layer) => ids.includes(layer.id) && (layer.hidden = hide || undefined)), { look: true });
 }
 /** A layer alone in its pane (its signals with it): shown, the others there hidden; alone already, every one there shown again. */

@@ -624,7 +624,7 @@ export class Chart {
     };
     /** The separator under a height in the chart (the pane over it), or -1. @param {number} y @param {boolean} touch */
     const separator = (y, touch) => {
-      for (let k = 0; k < this.panes.length - 1; k++) if (Math.abs(this.panes[k].top + this.panes[k].height - y) <= (touch ? NEAR_TOUCH : NEAR_FINE)) return k;
+      for (let k = 0; k < this.panes.length; k++) if (this.#next(k) >= 0 && Math.abs(this.panes[k].top + this.panes[k].height - y) <= (touch ? NEAR_TOUCH : NEAR_FINE)) return k;
       return -1;
     };
     // (Over the plot, the crosshair where it points; over an axis, none: its tags are read there.)
@@ -705,7 +705,7 @@ export class Chart {
       const id = event.pointerId, stop = press(event, { captor: element, signal, end: (release, lost) => ended(id, release, lost) });
       // (On a separator: it's dragged, nothing else.)
       const touch = !fine(event), page = touch && this.embedded, y = event.clientY - element.getBoundingClientRect().top, on = down.size || page ? -1 : separator(y, touch);
-      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[on + 1]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), this.controller.stop(), this.#clearPointer());
+      if (on >= 0) return void ((sizing = [this.panes[on], this.panes[this.#next(on)]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), this.controller.stop(), this.#clearPointer());
       const box = element.getBoundingClientRect(), found = down.size ? null : axisAt(event.clientX - box.left, y), axis = page && found?.pane ? null : found;
       down.set(event.pointerId, { x: event.clientX, y: event.clientY, startX: event.clientX, startY: event.clientY, panning: !touch, moved: false, axis, pane: this.panes.find((pane) => y >= pane.top && y < pane.top + pane.height) ?? null, beside: down.size ? event : null, stop });
       this.controller.grab();
@@ -871,6 +871,11 @@ export class Chart {
     for (let l = 0; l < listeners.length; l++) listeners[l](index, pane, series, within, x);
   }
 
+  /** The pane under the one at `k` (past those with no height: a separator is between the panes shown), or -1 where it's the last or has none. @param {number} k */
+  #next(k) {
+    return this.panes[k].share > 0 ? this.panes.findIndex((pane, i) => i > k && pane.share > 0) : -1;
+  }
+
   /**
    * The separator between `over` and `under` dragged to `y` (CSS pixels in the chart): their shares moved between them,
    * their total kept, neither under LEAST; laid out and drawn at their new heights at each move (what's dragged is what
@@ -879,7 +884,7 @@ export class Chart {
    */
   #size(over, under, y) {
     const k = this.panes.indexOf(over);
-    if (k < 0 || this.panes[k + 1] !== under) return false;
+    if (k < 0 || this.panes[this.#next(k)] !== under) return false;
     const both = over.height + under.height;
     if (both < 2 * LEAST) return true;
     const height = Math.min(Math.max(y - over.top, LEAST), both - LEAST), shares = over.share + under.share;

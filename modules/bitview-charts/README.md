@@ -117,7 +117,7 @@ clears); avoid reflecting programmatic calls. A programmatic
 
 ## Panes
 
-- `addPane({ share, scale: { mode, top, bottom }, left, format })`: `share`, its part of the height; `mode`:
+- `addPane({ share, scale: { mode, top, bottom }, left, format })`: `share`, its part of the height (0: no height, no separator, the panes either side of it one's neighbours); `mode`:
   `"linear"`, `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it);
   `top` and `bottom`, room kept as shares of its height; `left`, its left scale's options; `format`, how its values are
   written: `format(v, step)`, a value on its axis (a tag, a level's, the crosshair's) given `step`, the step between its
@@ -138,7 +138,7 @@ clears); avoid reflecting programmatic calls. A programmatic
   sideways where its items don't fit (no scrollbar; the page makes it reachable and fades its edges); an optional
   `summary` caption before the items (words, or the page's own element: a color scale's key). The series pointed at is
   brought into view in it: the page's (`crosshair.pointed`, the crosshair on the plot or not: a tag, a row of its own),
-  else the one the crosshair's pointer is on. Hidden ones left out (none shown: each named). Its look the page's
+  else the one the crosshair's pointer is on. Hidden ones left out. Its look the page's
   stylesheet's, over a few rules of its own (`.bc-legend`, `.bc-legend-item`, `-key`, `-name`, `-value`, `-summary`), in
   the theme's `font`.
 

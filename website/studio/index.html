@@ -3167,6 +3167,13 @@
           pointer-events: auto;
         }
 
+        /* (A swipe along it scrolls it; a pinch on it is the chart's, never the page's: iOS takes a scroller's touch-action
+           from the row and its items alone, so the page root's would not reach it.) */
+        &,
+        > button {
+          touch-action: pan-x;
+        }
+
         /* (Room kept clear of its faded edges (see edges: 28px) for an item brought into view.) */
         scroll-padding-inline: 28px;
 
@@ -3280,15 +3287,6 @@
             background: var(--halo);
           }
 
-          /* Off: its mark faded, its words a grey a step down (still read). */
-          &.hidden {
-            color: var(--muted);
-
-            .series-mark {
-              opacity: 0.4;
-            }
-          }
-
           /* Its words edged in the card's color, 2px around: unseen on the plain plot, over a solid cloud what keeps them
              apart from it (bright enough that the edge never sits on grey), and a level's line or the data crossing them
              (a short pane's) stops short of them. */
@@ -3323,8 +3321,8 @@
             filter: drop-shadow(0 0 1px var(--halo, var(--card))) drop-shadow(0 0 1px var(--halo, var(--card)));
           }
 
-          /* Its mark, the switch: pointed at, an eye in its place (a click hides it; with ⌥, it alone shown in its pane);
-             hidden, a crossed eye always (a click brings it back). Its own target, a little past the mark, for a finger. */
+          /* Its mark, the switch: pointed at, an eye in its place (a click hides it, and it leaves the legend; with ⌥, it
+             alone shown in its pane). Its own target, a little past the mark, for a finger. */
           .legend-eye {
             display: grid;
             flex-shrink: 0;
@@ -3346,17 +3344,12 @@
               visibility: hidden;
             }
 
-            &.off .eye {
-              color: var(--muted);
-            }
-
             &:hover:where(.can-hover *) {
               background: var(--press);
             }
           }
 
-          &:hover:where(.can-hover *) .legend-eye,
-          .legend-eye.off {
+          &:hover:where(.can-hover *) .legend-eye {
             .series-mark {
               visibility: hidden;
             }
