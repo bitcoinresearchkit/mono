@@ -1,6 +1,6 @@
 // The pool logos in this folder, for every page that draws a pool: a page asks only for a logo there is, the default one
 // for a pool without (or its own stand-in, its initials). The two lists are written from the files here by
-// crates/bitview_primitives/pools.sh, and checked by website/home.mjs.
+// crates/bitview_primitives/pools.sh, and checked by scripts/home.mjs.
 
 /** The pools with a logo (`<slug>.svg`). */
 export const LOGOS = new Set([

@@ -12,10 +12,10 @@
 // the rows, every preloaded file there, fallback fonts kept inline in every page that uses them and the craft rules (balanced headings, pretty text, equal-width digits) in every page, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
 //
-//   bun website/home.mjs [server]              writes FROM_APPS, then checks
-//   bun website/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
-//   bun website/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
-//   bun website/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
+//   bun scripts/home.mjs [server]              writes FROM_APPS, then checks
+//   bun scripts/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
+//   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
+//   bun scripts/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
 //   ... --page FILE                              another page than website/index.html (a draft of it)
 //   ... --pictures --only ID                     that app's pictures, icon and card alone (a new app's), the front
 //                                                page's share card too if it's its picture
@@ -24,10 +24,11 @@ import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
+const REPO = join(dirname(fileURLToPath(import.meta.url)), "..");
+const SITE = join(REPO, "website");
 const args = process.argv.slice(2), flag = (/** @type {string} */ name) => args.includes(name);
 const check = flag("--check"), icons = flag("--icons"), pictures = flag("--pictures") && !icons;
-const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(HERE, "index.html");
+const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(SITE, "index.html");
 const onlyAt = args.indexOf("--only"), ONLY = onlyAt >= 0 ? args[onlyAt + 1] : null;
 const SERVER = args.find((arg, i) => !arg.startsWith("--") && args[i - 1] !== "--page" && args[i - 1] !== "--only") ?? "http://127.0.0.1:3110";
 
@@ -52,7 +53,7 @@ const attributes = (/** @type {string} */ tag) => Object.fromEntries([...tag.mat
 const tags = (/** @type {string} */ page, /** @type {string} */ name) => [...page.matchAll(new RegExp(`<${name}\\b([^>]*)>`, "gi"))].map(([, inside]) => attributes(inside));
 /** An app's own page, by its address on the front page ("/oracle/"): its name and its words. */
 function own(/** @type {string} */ href) {
-  const file = join(HERE, href, "index.html");
+  const file = join(SITE, href, "index.html");
   if (!existsSync(file)) return problems.push(`${href}: no such app (no ${file})`), null;
   const page = readFileSync(file, "utf8");
   const title = plain(/<title>([^<]*)<\/title>/i.exec(page)?.[1] ?? "", href);
@@ -76,41 +77,41 @@ const marked = /\/\* from the apps \*\/[\s\S]*?\/\* \/from the apps \*\//;
 if (!marked.test(html)) throw new Error(`No "/* from the apps */" block in ${PAGE}`);
 const written = html.replace(marked, () => block);
 if (written !== html) {
-  if (check) problems.push(`FROM_APPS isn't what the apps say now: run bun website/home.mjs`);
+  if (check) problems.push(`FROM_APPS isn't what the apps say now: run bun scripts/home.mjs`);
   else (writeFileSync(PAGE, written), (html = written), console.log(`FROM_APPS written: ${apps.length + dev.length} pages read`));
 }
 
 // ── The sitemap: the front page and every page in its rows (Studio's places in its own, studio/sitemap.xml) ──
 
 const ORIGIN = "https://bitview.space";
-const SITEMAP = join(HERE, "sitemap.xml");
+const SITEMAP = join(SITE, "sitemap.xml");
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${["/", ...apps, ...dev].map((href) => `<url><loc>${ORIGIN}${href}</loc></url>\n`).join("")}</urlset>\n`;
 if ((existsSync(SITEMAP) ? readFileSync(SITEMAP, "utf8") : "") !== sitemapXml) {
-  if (check) problems.push("sitemap.xml isn't the front page's rows now: run bun website/home.mjs");
+  if (check) problems.push("sitemap.xml isn't the front page's rows now: run bun scripts/home.mjs");
   else (writeFileSync(SITEMAP, sitemapXml), console.log(`sitemap.xml written: ${1 + apps.length + dev.length} pages`));
 }
 
 // ── Every app on it ──
 
 // (An app: a folder of the repository's with a page, its name not starting with "_", an unlisted one's.)
-const git = Bun.spawnSync(["git", "ls-files", "*/index.html"], { cwd: HERE });
+const git = Bun.spawnSync(["git", "ls-files", "*/index.html"], { cwd: SITE });
 if (git.exitCode !== 0) problems.push(`git ls-files failed (${new TextDecoder().decode(git.stderr).trim()}): the apps on the front page unchecked`);
 // (Every page git knows, but one deleted and not yet committed as such.)
-const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(HERE, file)));
+const pages = new TextDecoder().decode(git.stdout).split("\n").filter((file) => file && existsSync(join(SITE, file)));
 
 // ── Every page, read once: the front page (or its --page draft), every app's page and the 404 (a write below keeps its text current) ──
 
 /** Absolute path → text. */
 const sources = new Map();
-for (const at of new Set([resolve(PAGE), join(HERE, "index.html"), join(HERE, "404.html"), ...pages.map((file) => join(HERE, file))]))
+for (const at of new Set([resolve(PAGE), join(SITE, "index.html"), join(SITE, "404.html"), ...pages.map((file) => join(SITE, file))]))
   if (existsSync(at)) sources.set(at, at === resolve(PAGE) ? html : readFileSync(at, "utf8"));
-const label = (/** @type {string} */ at) => (at.startsWith(HERE) ? relative(HERE, at) : at);
+const label = (/** @type {string} */ at) => (at.startsWith(SITE) ? relative(SITE, at) : at);
 
 // ── Every file a page preloads, there (a font or module renamed would leave the hint asking for nothing) ──
 
 for (const [at, page] of sources)
   for (const { rel, href } of tags(page, "link"))
-    if ((rel === "preload" || rel === "modulepreload") && href?.startsWith("/") && !existsSync(join(HERE, href.split("?")[0]))) problems.push(`${label(at)}: preloads ${href}, no such file`);
+    if ((rel === "preload" || rel === "modulepreload") && href?.startsWith("/") && !existsSync(join(SITE, href.split("?")[0]))) problems.push(`${label(at)}: preloads ${href}, no such file`);
 // ── Metric-matched local faces, kept inline while the web fonts load ──
 
 const fallbackFonts = `/* fallback fonts */
@@ -181,7 +182,7 @@ for (const [at, was] of sources) {
     if (name === "craft rules" && !/<style>/.test(now)) problems.push(`${label(at)}: no <style> to hold the craft rules`);
   }
   if (now === was) continue;
-  if (check) problems.push(`${label(at)}: its inline blocks (fallback fonts, craft rules) are stale: run bun website/home.mjs`);
+  if (check) problems.push(`${label(at)}: its inline blocks (fallback fonts, craft rules) are stale: run bun scripts/home.mjs`);
   else (writeFileSync(at, now), sources.set(at, now), at === resolve(PAGE) && (html = now), console.log(`${label(at)}: inline blocks written`));
 }
 
@@ -226,14 +227,14 @@ if (!check) {
 // (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
 // screen takes one best; Bitview's also the MCP server's, MCP_ICON. Made with --pictures or --icons. A page without
 // a launch tag, as the footer's legal ones, links no icon, so has none.)
-const MCP_ICON = join(HERE, "..", "crates", "bitview_server", "mcp", "logo.png");
+const MCP_ICON = join(REPO, "crates", "bitview_server", "mcp", "logo.png");
 /** The touch icons at the root, Bitview's own icon: iOS asks for the precomposed one first, then the other, and link
  * previews for either. */
 const TOUCH_ICONS = ["apple-touch-icon.png", "apple-touch-icon-precomposed.png"];
 const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntries([
   ["bitview", undefined],
   ...folders.flatMap((name) => {
-    const launch = tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"));
+    const launch = tags(readFileSync(join(SITE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"));
     return launch ? [[name, launch["data-color"]]] : [];
   }),
 ]));
@@ -266,7 +267,7 @@ const CARDS = {
 // (next.bitview.space, someone's own server: one page, not copies); its preview named, described and pictured, the
 // picture its card, shown large. Studio's address is each place's, set as it opens, so its own isn't checked.)
 for (const href of [...apps, ...dev]) {
-  const file = join(HERE, href, "index.html");
+  const file = join(SITE, href, "index.html");
   if (!existsSync(file)) continue;
   const page = readFileSync(file, "utf8"), head = page.slice(0, page.indexOf("</head>")), url = `${ORIGIN}${href}`;
   const meta = Object.fromEntries(tags(head, "meta").map((tag) => [tag.property ?? tag.name, tag.content]));
@@ -278,15 +279,15 @@ for (const href of [...apps, ...dev]) {
   for (const key of ["og:type", "og:site_name", "og:title", "og:description", "og:image:alt"]) if (!meta[key]) wrong(`no ${key}`);
   if (meta["twitter:card"] !== "summary_large_image") wrong("its twitter:card isn't summary_large_image");
   if (meta["og:image:width"] !== "1200" || meta["og:image:height"] !== "630") wrong("its og:image isn't said 1200×630");
-  const image = meta["og:image"]?.startsWith(`${ORIGIN}/`) ? join(HERE, meta["og:image"].slice(ORIGIN.length)) : null;
+  const image = meta["og:image"]?.startsWith(`${ORIGIN}/`) ? join(SITE, meta["og:image"].slice(ORIGIN.length)) : null;
   const name = href.slice(1, -1);
   if (!(name in CARDS)) wrong("no card's making in CARDS");
-  else if (image !== join(HERE, "assets", "cards", `${name}.jpg`)) wrong(`its og:image isn't its card, ${ORIGIN}/assets/cards/${name}.jpg`);
+  else if (image !== join(SITE, "assets", "cards", `${name}.jpg`)) wrong(`its og:image isn't its card, ${ORIGIN}/assets/cards/${name}.jpg`);
 }
 
 // ── Every way into Studio a page has (this one's, and every other app's), in Studio's sitemap ──
 
-const sitemap = new Set([...readFileSync(join(HERE, "studio", "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*\/studio\/presets\/([^<]*)<\/loc>/g)].map(([, path]) => path));
+const sitemap = new Set([...readFileSync(join(SITE, "studio", "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*\/studio\/presets\/([^<]*)<\/loc>/g)].map(([, path]) => path));
 const topics = [...html.matchAll(/\["([a-z0-9-]+)", "[^"]+", "#[0-9a-f]{6}"(?:, "([a-z0-9_]+)")?\]/g)];
 // (Each address whole, to its quote, space, a sentence's comma or semicolon, or the view after its "#": a chart renamed by a
 // suffix isn't taken for its former self; one made in the page from a template, as the topics' are, read from TOPICS
@@ -301,8 +302,8 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
 // ── The pool logos every page draws from (assets/pools/logos.js, written by crates/bitview_primitives/pools.sh), the folder's ──
 
 {
-  const { LOGOS, LIGHT } = await import(join(HERE, "assets", "pools", "logos.js"));
-  const files = new Set(readdirSync(join(HERE, "assets", "pools")).filter((file) => file.endsWith(".svg")));
+  const { LOGOS, LIGHT } = await import(join(SITE, "assets", "pools", "logos.js"));
+  const files = new Set(readdirSync(join(SITE, "assets", "pools")).filter((file) => file.endsWith(".svg")));
   const listed = new Set([...[...LOGOS].map((slug) => `${slug}.svg`), ...[...LIGHT].map((slug) => `${slug}.light.svg`)]);
   if (files.symmetricDifference(listed).size) problems.push("assets/pools/logos.js isn't the folder's logos: run crates/bitview_primitives/pools.sh");
 }
@@ -311,8 +312,8 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
 // page's line; and the list checked against its folder's logos ──
 
 {
-  const FOLDER = join(HERE, "assets", "used-by");
-  const { USERS } = /** @type {typeof import("./assets/used-by/list.js")} */ (await import(join(FOLDER, "list.js")));
+  const FOLDER = join(SITE, "assets", "used-by");
+  const { USERS } = /** @type {typeof import("../website/assets/used-by/list.js")} */ (await import(join(FOLDER, "list.js")));
   const files = new Set(readdirSync(FOLDER).filter((file) => file !== "list.js" && !file.startsWith(".")));
   const listed = USERS.flatMap(({ logo, dark }) => (dark ? [logo, dark] : [logo]));
   /** A logo's width over its height, from its file: a PNG's header, an SVG's viewBox; NaN for anything else. */
@@ -366,12 +367,12 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
     const [a, b] = users.map((user) => escape(user.name));
     /** Each block replaced whole between its markers, exactly one of each in its file. @type {[string, string][]} */
     const blocks = [
-      [join(HERE, "..", "docs", "README.md"), `**Used by**\n\n${readme.join("&emsp;\n")}\n`],
-      [join(HERE, "dev", "index.html"), `<div class="used-by" id="used-by"><div class="head"><p class="label" id="used-by-label">Used by</p><button class="pause" type="button" aria-pressed="false" aria-label="Pause the logos" hidden></button></div><div class="strip"><div class="track" style="--users: ${users.length}"><ul aria-labelledby="used-by-label">${strip(false)}</ul><ul aria-hidden="true">${strip(true)}</ul></div></div></div>`],
-      [join(HERE, "api", "index.html"), `<template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by ${a}, ${b} and others →</a></p></template>`],
+      [join(REPO, "docs", "README.md"), `**Used by**\n\n${readme.join("&emsp;\n")}\n`],
+      [join(SITE, "dev", "index.html"), `<div class="used-by" id="used-by"><div class="head"><p class="label" id="used-by-label">Used by</p><button class="pause" type="button" aria-pressed="false" aria-label="Pause the logos" hidden></button></div><div class="strip"><div class="track" style="--users: ${users.length}"><ul aria-labelledby="used-by-label">${strip(false)}</ul><ul aria-hidden="true">${strip(true)}</ul></div></div></div>`],
+      [join(SITE, "api", "index.html"), `<template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by ${a}, ${b} and others →</a></p></template>`],
     ];
     for (const [at, block] of blocks) {
-      const file = relative(join(HERE, ".."), at), was = readFileSync(at, "utf8");
+      const file = relative(REPO, at), was = readFileSync(at, "utf8");
       // (Each marker on a line of its own; the block indented as the opening one is.)
       const marked = /^( *)<!-- used by -->\n[\s\S]*?^ *<!-- \/used by -->$/gm, found = [...was.matchAll(marked)];
       if (found.length !== 1 || was.split("<!-- used by -->").length !== 2) {
@@ -381,7 +382,7 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
       const indent = found[0][1], lines = [`<!-- used by -->`, ...block.trimEnd().split("\n"), `<!-- /used by -->`];
       const now = was.replace(marked, () => lines.map((line) => (line ? indent + line : line)).join("\n"));
       if (now === was) continue;
-      if (check) problems.push(`${file}: "Used by" isn't assets/used-by/list.js now: run bun website/home.mjs`);
+      if (check) problems.push(`${file}: "Used by" isn't assets/used-by/list.js now: run bun scripts/home.mjs`);
       else (writeFileSync(at, now), console.log(`${file}: "Used by" written`));
     }
   }
@@ -455,13 +456,13 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
 // ── Its share card, named in its head ──
 
 if (!/<meta property="og:image" content="https:\/\/bitview\.space\/assets\/home\/og\.jpg"/.test(html)) problems.push("The page's og:image isn't its share card, /assets/home/og.jpg");
-if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share card, assets/home/og.jpg: run with --pictures");
+if (!existsSync(join(SITE, "assets", "home", "og.jpg"))) problems.push("No share card, assets/home/og.jpg: run with --pictures");
 
 if (pictures || icons) await makePictures();
 // (Every app's icon there, the favicon, and every card, once any were made.)
-for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
-for (const file of ["favicon.ico", ...TOUCH_ICONS]) if (!existsSync(join(HERE, file))) problems.push(`No ${file}: run with --icons`);
-for (const name of Object.keys(CARDS)) if (!existsSync(join(HERE, "assets", "cards", `${name}.jpg`))) problems.push(`${name}: no card, assets/cards/${name}.jpg: run with --pictures --only ${name}`);
+for (const name of Object.keys(ICONS)) if (!existsSync(join(SITE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
+for (const file of ["favicon.ico", ...TOUCH_ICONS]) if (!existsSync(join(SITE, file))) problems.push(`No ${file}: run with --icons`);
+for (const name of Object.keys(CARDS)) if (!existsSync(join(SITE, "assets", "cards", `${name}.jpg`))) problems.push(`${name}: no card, assets/cards/${name}.jpg: run with --pictures --only ${name}`);
 
 if (problems.length) {
   console.error(`${problems.length} to see to:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
@@ -485,7 +486,7 @@ async function makePictures() {
       if (existsSync(join(profile, "DevToolsActivePort"))) port = readFileSync(join(profile, "DevToolsActivePort"), "utf8").split("\n")[0];
     }
     if (!port) return void problems.push("The Chromium for --pictures didn't start");
-    const out = join(HERE, "assets", "home");
+    const out = join(SITE, "assets", "home");
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
       if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number, number][]} */ ([
@@ -511,19 +512,19 @@ async function makePictures() {
       }
     }
     // (Each app's icon, at 512 px: a home screen's 180, a manifest's 512.)
-    const svg = readFileSync(join(HERE, "assets", "favicon", "app-icon.svg"), "utf8");
+    const svg = readFileSync(join(SITE, "assets", "favicon", "app-icon.svg"), "utf8");
     for (const [name, color] of Object.entries(pictures || icons ? ICONS : {})) {
       if (ONLY && name !== ONLY) continue;
       const icon = (color ? svg.replace(/--color: [^;"]+/, `--color: ${color}`) : svg).replace("<svg", '<svg width="512" height="512"');
       const tab = await screen(port, `${SERVER}/llms.txt`, [512, 512], 1, 300, undefined, `<style>body { margin: 0 } svg { display: block }</style>${icon}`);
       try {
         const shot = await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 512, height: 512, scale: 1 } });
-        writeFileSync(join(HERE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
+        writeFileSync(join(SITE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
         console.log(`made apps/${name}.png`);
         // (Bitview's is the MCP server's icon too: its page's and the MCP registry's; and the one at the root, for what asks
         // there rather than reading a page's, as iOS and link previews do.)
         if (name === "bitview") {
-          for (const file of [MCP_ICON, ...TOUCH_ICONS.map((icon) => join(HERE, icon))]) writeFileSync(file, Buffer.from(shot.data, "base64"));
+          for (const file of [MCP_ICON, ...TOUCH_ICONS.map((icon) => join(SITE, icon))]) writeFileSync(file, Buffer.from(shot.data, "base64"));
           console.log(`made the MCP server's logo.png, ${TOUCH_ICONS.join(" and ")}`);
         }
       } finally {
@@ -533,7 +534,7 @@ async function makePictures() {
     // (The favicon at /favicon.ico, for what asks there rather than reading a page's: favicon.svg at 16, 32 and 48 px,
     // clear around it, each a PNG in one ICO.)
     if (!ONLY || ONLY === "bitview") {
-      const svg = readFileSync(join(HERE, "assets", "favicon", "favicon.svg"), "utf8"), sizes = [16, 32, 48], pngs = [];
+      const svg = readFileSync(join(SITE, "assets", "favicon", "favicon.svg"), "utf8"), sizes = [16, 32, 48], pngs = [];
       for (const size of sizes) {
         const tab = await screen(port, `${SERVER}/llms.txt`, [64, 64], 1, 300, undefined, `<style>html, body { margin: 0; background: transparent } svg { display: block }</style>${svg.replace("<svg", `<svg width="${size}" height="${size}"`)}`);
         try {
@@ -543,7 +544,7 @@ async function makePictures() {
           await tab.close();
         }
       }
-      writeFileSync(join(HERE, "favicon.ico"), ico(sizes, pngs));
+      writeFileSync(join(SITE, "favicon.ico"), ico(sizes, pngs));
       console.log("made favicon.ico");
     }
     // (Every page's share card: its own screen, as it opens.)
@@ -555,7 +556,7 @@ async function makePictures() {
       try {
         if ("run" in recipe) await tab.send("Runtime.evaluate", { expression: recipe.run }), await Bun.sleep(1000);
         const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: 88, clip: { x: 0, y: 0, width, height, scale: 1200 / width / 2 } });
-        writeFileSync(join(HERE, "assets", "cards", `${name}.jpg`), Buffer.from(shot.data, "base64"));
+        writeFileSync(join(SITE, "assets", "cards", `${name}.jpg`), Buffer.from(shot.data, "base64"));
         console.log(`made cards/${name}.jpg`);
       } finally {
         await tab.close();
