@@ -983,8 +983,8 @@ export class Pane {
 
   /**
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
-   * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view
-   * (a price line's tag too: its line alone at its last of all); one with nothing in view, none,
+   * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view, a price
+   * line's at its line (its last of all: the two together, or neither); one with nothing in view, none,
    * top to bottom, each at its line or just under the one over it, each whole in the pane (the first pushed past its foot
    * and the lines under it, none), one where lines meet (as the chart library laid them), none for a line out of the
    * pane; on a relative scale, as it reads them.
@@ -1000,7 +1000,8 @@ export class Pane {
       const series = this.series[k], line = lineOf(series);
       if (!line || !line.tag || series.hidden || series.faint || series.overlay) continue;
       // (On a relative scale, one with no base has no reading.)
-      const base = relative ? line.first(from) : 1, i = line.lastBy(end, log);
+      // (A price line's at its line, whatever the view's end: never the line without its tag, another value tagged beside it.)
+      const base = relative ? line.first(from) : 1, i = line.priceLine ? line.last(log) : line.lastBy(end, log);
       // (Its last point before the view: nothing of it in view.)
       if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
       if (i < from || !base || base !== base) continue;
