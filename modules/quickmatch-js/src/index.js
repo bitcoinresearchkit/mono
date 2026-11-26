@@ -5,27 +5,18 @@ const DEFAULT_MIN_SCORE = 2;
 
 /** Item IDs, ascending. @typedef {number[] | Uint32Array} Ids */
 
-/**
- * Search configuration.
- *
- * Defaults work well for most use cases.
- * Tweak `trigramBudget` to trade speed for typo tolerance.
- */
+/** Tweak `trigramBudget` to trade speed for typo tolerance. */
 export class QuickMatchConfig {
-  /** Characters that separate words in items (e.g. "hash_rate" → ["hash", "rate"]).
-   * @type {string} */
+  /** Word separators in items. @type {string} */
   separators = DEFAULT_SEPARATORS;
 
-  /** Max results returned per query.
-   * @type {number} */
+  /** @type {number} */
   limit = DEFAULT_LIMIT;
 
-  /** How hard to try matching typos (0 = off, 3–6 = fast, 9–15 = thorough, max 20).
-   * @type {number} */
+  /** 0: off; max 20. @type {number} */
   trigramBudget = DEFAULT_TRIGRAM_BUDGET;
 
-  /** Min overlap required for a typo match. Higher = fewer false positives.
-   * @type {number} */
+  /** Higher: fewer false positives. @type {number} */
   minScore = DEFAULT_MIN_SCORE;
 
   /** Whether disjoint known words fall back to their union. */
@@ -37,39 +28,32 @@ export class QuickMatchConfig {
     return this;
   }
 
-  /** @param {number} n - Max results (default: 100, min: 1) */
+  /** @param {number} n */
   withLimit(n) {
     this.limit = Math.max(1, n);
     return this;
   }
 
-  /** @param {number} n - Trigram budget (0-20, default: 6) */
+  /** @param {number} n */
   withTrigramBudget(n) {
     this.trigramBudget = Math.max(0, Math.min(20, n));
     return this;
   }
 
-  /** @param {string} s - Separator characters (default: '_- :/') */
+  /** @param {string} s */
   withSeparators(s) {
     this.separators = s;
     return this;
   }
 
-  /** @param {number} n - Min trigram score (default: 2, min: 1) */
+  /** @param {number} n */
   withMinScore(n) {
     this.minScore = Math.max(1, n);
     return this;
   }
 }
 
-/**
- * Instant search over a list of strings.
- *
- * Supports exact words, prefixes ("dom" → "dominance"), joined words both ways
- * ("hashrate" → "hash_rate", "hash rate" → "hashrate"), and typo tolerance
- * ("suply" → "supply").
- * Results are ranked: exact matches first, then by specificity.
- */
+/** Instant search over a list of strings: exact words, prefixes, joined words both ways ("hashrate" ↔ "hash_rate"), typos. Exact first, then by specificity. */
 export class QuickMatch {
   /** @param {string[]} items - Searchable items (lowercase) @param {QuickMatchConfig} [config] */
   constructor(items, config = new QuickMatchConfig()) {
@@ -80,7 +64,6 @@ export class QuickMatch {
     this._scores = new Uint32Array(items.length);
     /** @type {number[]} */
     this._dirty = [];
-    // Merging lists marks each item once per merge.
     this._seen = new Uint32Array(items.length);
     this._stamp = 0;
     /** @type {Map<string, Uint32Array | null>} */
@@ -92,12 +75,7 @@ export class QuickMatch {
     let maxQueryLen = 0;
     let maxWords = 0;
     const sep = this._sepLookup;
-    // The items of each distinct word, and of each distinct joined pair of
-    // adjacent words (keyed by the first word's length, then the text), in
-    // ascending order. Prefixes and trigrams resolve against these at query
-    // time, matching the Rust crate's per-prefix and per-trigram lists
-    // exactly while keeping memory to one entry per word occurrence. Each
-    // item keeps its words too, as numbers, for ranking to read.
+    // Postings per word and per joined adjacent pair, matching the Rust crate's lists.
     /** @type {Map<string, number>} */
     const wordIds = new Map();
     /** @type {string[]} */
@@ -137,9 +115,7 @@ export class QuickMatch {
         itemWords.push(id);
         if (i === 0) continue;
         const previous = words[i - 1];
-        // A joined-word query ("hashrate") can be longer than any single
-        // word. Capping at the longest index key keeps the DDoS guard
-        // data-bounded while still letting it match.
+        // A joined-word query ("hashrate") can be longer than any word: capping at the longest index key keeps the DDoS guard data-bounded.
         if (previous.length + word.length > maxWordLen) maxWordLen = previous.length + word.length;
         addToIndex(compoundItems, `${previous.length}|${previous}${word}`, idx);
       }
@@ -148,7 +124,7 @@ export class QuickMatch {
       if (words.length > maxWords) maxWords = words.length;
     }
 
-    // Distinct words, sorted, so the words sharing a prefix sit together; items' words renumbered to match.
+    // Sorted, so the words sharing a prefix sit together.
     const order = wordTexts.map((_, id) => id).sort((a, b) => (wordTexts[a] < wordTexts[b] ? -1 : wordTexts[a] > wordTexts[b] ? 1 : 0));
     const renumbered = new Uint32Array(order.length);
     order.forEach((id, sorted) => (renumbered[id] = sorted));
@@ -162,7 +138,7 @@ export class QuickMatch {
         return /** @type {[string, number, string]} */ ([key.slice(bar + 1), Number(key.slice(0, bar)) + 1, key]);
       })
       .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-    /** Distinct joined pairs, sorted; each matches keys at least `from` long. */
+    /** Sorted; each matches keys at least `from` long. */
     this._compounds = compounds.map(([text]) => text);
     this._compoundFrom = Uint32Array.from(compounds, ([, from]) => from);
     this._compoundItems = compounds.map(([, , key]) => Uint32Array.from(/** @type {number[]} */ (compoundItems.get(key))));
@@ -173,20 +149,16 @@ export class QuickMatch {
         addToIndex(trigramWords, word[k] + word[k + 1] + word[k + 2], w);
       }
     });
-    /** The words holding each trigram. @type {Map<string, Uint32Array>} */
+    /** @type {Map<string, Uint32Array>} */
     this._trigramWords = new Map([...trigramWords].map(([tri, words]) => [tri, Uint32Array.from(words)]));
 
-    // (Each word typed in two, "hash rate", at most: a space more each.)
+    // A word may be typed as two ("hash rate"): a space more each.
     this.maxWordLen = maxWordLen + 4;
     this.maxQueryLen = maxQueryLen + maxWords + 6;
     this.maxWords = 2 * maxWords + 2;
   }
 
-  /**
-   * The items with a word, or a joined pair of adjacent words, starting with
-   * `key`: ascending and distinct, or null when there are none.
-   * @private @param {string} key @returns {Uint32Array | null}
-   */
+  /** @private @param {string} key @returns {Uint32Array | null} */
   _postings(key) {
     const cached = this._prefixCache.get(key);
     if (cached !== undefined) return cached;
@@ -203,21 +175,13 @@ export class QuickMatch {
     return remember(this._prefixCache, key, this._merge(lists));
   }
 
-  /**
-   * The items with a word that's `key` whole (a plural's word: not two
-   * joined), ascending; null when there are none.
-   * @private @param {string} key @returns {Uint32Array | null}
-   */
+  /** Whole word only (a plural's word, not two joined). @private @param {string} key @returns {Uint32Array | null} */
   _wordPostings(key) {
     const at = lowerBound(this._words, key);
     return this._words[at] === key ? this._wordItems[at] : null;
   }
 
-  /**
-   * The items with a word holding the trigram `tri`: ascending and distinct,
-   * or null when there are none.
-   * @private @param {string} tri @returns {Uint32Array | null}
-   */
+  /** @private @param {string} tri @returns {Uint32Array | null} */
   _trigramPostings(tri) {
     const cached = this._trigramCache.get(tri);
     if (cached !== undefined) return cached;
@@ -226,8 +190,6 @@ export class QuickMatch {
   }
 
   /**
-   * `wordMatch` for item `idx`, read from its indexed words; a query that
-   * splits words differently from the index reads the item itself.
    * @private @param {number} idx @param {string[]} qwords @param {Joins} joins @param {Uint8Array} sep @param {boolean} exact
    * @returns {[number, number, number]}
    */
@@ -243,8 +205,7 @@ export class QuickMatch {
       for (let k = from; k < to; k++) {
         const word = words[ids[k]], previous = k > from ? words[ids[k - 1]] : null;
         const letter = word.charCodeAt(0), letterBefore = previous === null ? -1 : previous.charCodeAt(0);
-        // (The word, or it joined to one beside it, "hash rate" as "hashrate": either fits a word starting as it does,
-        // or the one before it; most are passed by a letter.)
+        // Either fits a word starting as it does, or the one before it: most are passed by a letter.
         let how = letter === own || letterBefore === own ? fit(qw, word, previous, exact, 0) : 0;
         for (let p = 0; p < pairs.length; p++) {
           const pair = pairs[p];
@@ -256,7 +217,7 @@ export class QuickMatch {
             matched++;
             position = Math.min(position, how & JOINED ? k - from - 1 : k - from);
           }
-          // (Held only as a prefix so far: a word further on may hold it whole.)
+          // Held only as a prefix so far: a later word may hold it whole.
           if (how & WHOLE) {
             whole++;
             break;
@@ -267,13 +228,9 @@ export class QuickMatch {
     return [matched, whole, position];
   }
 
-  /**
-   * The distinct items of ascending lists, ascending; null for no lists.
-   * @private @param {Uint32Array[]} lists @returns {Uint32Array | null}
-   */
+  /** @private @param {Uint32Array[]} lists @returns {Uint32Array | null} */
   _merge(lists) {
     if (lists.length <= 1) return lists[0] ?? null;
-    // (Two, the most often: in one pass, side by side.)
     if (lists.length === 2) {
       const [a, b] = lists, merged = new Uint32Array(a.length + b.length);
       let i = 0, j = 0, n = 0;
@@ -322,9 +279,10 @@ export class QuickMatch {
       .map(([id, matched]) => [this.items[id], matched]);
   }
 
-  /** Original zero-based item IDs and matched query-word counts.
+  /**
    * @param {string} query @param {QuickMatchConfig} [config]
-   * @returns {[number, number][]} */
+   * @returns {[number, number][]}
+   */
   matchesWithIdsAndMatchedWords(query, config = this.config) {
     return this._matches(query, config, false);
   }
@@ -363,43 +321,36 @@ export class QuickMatch {
 
     const qwords = splitWords(q, sep, exactWords ? Infinity : this.maxWordLen);
     if (!qwords.length || qwords.length > this.maxWords) return [];
-    // (Every word asked for: one too long for anything to hold leaves nothing.)
     if (!exactWords && !config.unionFallback && splitWords(q, sep, Infinity).length !== qwords.length) return [];
 
     const known = [];
     const unknown = [];
-    // Every word of three letters or more the index doesn't hold: each must be
-    // a typo of a candidate's (the trigrams probe only some of them; shorter
-    // ones are left out, as they are when nothing's mistyped).
+    // Unindexed words of 3+ letters must each be a typo of a candidate's word: trigrams probe only some.
     const unmatched = [];
 
-    // Each word's items, and whether it's held only as a slip, not as a word of its own ("pice" past "pic"): its
-    // own, and those of it joined to the word before it ("hash rate" as "hashrate").
-    // (A pair the index holds nothing under fits nothing: left out; so are all, split otherwise than the index.)
+    // `slip`: held only by a word one letter shorter ("pice" past "pic"), not as a word of its own.
+    // A pair the index holds nothing under fits nothing, so none when split otherwise than the index.
     const joins = joinsOf(splitWords(q, sep, Infinity, true), qwords, (pair, from) => sep === this._sepLookup && (this._postings(pair) !== null || (!exactWords && pair.length >= 4 && pair.length - 1 > from && this._wordPostings(pair.slice(0, -1)) !== null)));
     const held = qwords.map((w, i) => {
       /** @type {Uint32Array[]} */
       const lists = [];
       let firm = false;
-      // (`from`: a plural of the two joined takes more than the first, "hash rates", not "tatmaspool h".)
+      // `from`: a plural of two joined takes more than the first ("hash rates", not "tatmaspool h").
       /** @type {[string, number][]} */
       const keys = [[w, 0]];
       for (const [pair, from, , second] of joins[i]) if (second) keys.push([pair, from]);
       for (const [key, from] of keys) {
         const own = this._postings(key);
         if (own) (firm = true), lists.push(own);
-        // (A word one letter past another's end, a plural or a slip there, "prices": that one's items too.)
         const shorter = !exactWords && key.length >= 4 && key.length - 1 > from ? this._wordPostings(key.slice(0, -1)) : null;
         if (shorter) lists.push(shorter);
       }
       const hits = this._merge(lists);
       return hits ? { hits, slip: !firm } : null;
     });
-    // A slip that leaves the words nothing in common, as the others have, is read as a typo instead ("pice" as
-    // "price", not as "pic…").
+    // A slip leaving the words nothing in common is read as a typo instead ("pice" as "price", not "pic…").
     const all = held.flatMap((h) => (h ? [h.hits] : [])), firm = held.flatMap((h) => (h && !h.slip ? [h.hits] : []));
     const slipsAsTypos = firm.length !== all.length && intersect(all)?.length === 0 && intersect(firm)?.length !== 0;
-    // (Read as typos, a slip's items still count toward the union fallback.)
     const slipLists = [];
     qwords.forEach((w, i) => {
       const h = held[i];
@@ -422,13 +373,10 @@ export class QuickMatch {
     }
 
     const pool = intersect(known);
-    // Disjoint known words: no fuzzy match can satisfy them all, so skip
-    // straight to the (optional) union fallback.
+    // Disjoint known words: no fuzzy match satisfies them all, so straight to the union fallback.
     const disjoint = pool !== null && pool.length === 0;
 
-    // A swapped pair often shares no trigrams ("prcie" → "price").
-    // Probe indexed corrections before the broader trigram fallback (every
-    // word asked for: only when each unheld word is probed).
+    // A swapped pair often shares no trigrams ("prcie" → "price"): probe indexed corrections first.
     if (!disjoint && unknown.length && trigramBudget && (config.unionFallback || unknown.length === unmatched.length)) {
       /** @type {Ids[][]} */
       const corrections = unknown.map(() => []);
@@ -454,7 +402,6 @@ export class QuickMatch {
       }
     }
 
-    // Try typo matching for unknown words
     if (!disjoint && unknown.length && trigramBudget) {
       const { _scores: scores, _dirty: dirty } = this;
 
@@ -469,13 +416,11 @@ export class QuickMatch {
         unknown,
         trigramBudget,
         pool !== null,
-        // From the distinct words, one separator apart: a repeated or spaced-out word
-        // doesn't raise the floor ("bitoin bitoin" finds what "bitoin" finds).
+        // A repeated or spaced-out word doesn't raise the floor ("bitoin bitoin" finds what "bitoin" finds).
         Math.max(0, qwords.reduce((len, w) => len + w.length, qwords.length - 1) - 3),
       );
       const minScore = Math.max(config.minScore, Math.ceil(hitCount / 2));
-      // Shared trigrams only nominate: each unknown word must be a typo of one
-      // of the item's words, not letters scattered across several.
+      // Shared trigrams only nominate: each unknown word must be a typo of one of the item's words, not letters scattered across several.
       const checks = unmatched.map((word) => new Typo(word)), indexed = sep === this._sepLookup;
       const typos = dirty.filter((i) => scores[i] >= minScore && checks.every((typo) => (indexed ? typo.ofIndexed(this, i) : typo.ofText(this.items[i], sep))));
       const result = this._rank(typos, minScore, qwords, joins, sep, limit, bestOnly);
@@ -486,10 +431,9 @@ export class QuickMatch {
       if (result.length > 0) return result;
     }
 
-    // Every word asked for (no union): one neither held nor a typo of anything's leaves nothing, not the others' matches.
+    // Every word is required: one neither held nor a typo of anything leaves nothing, not the others' matches.
     if (!config.unionFallback && unmatched.length) return [];
 
-    // Rank known candidates (intersection, or union as fallback)
     const candidates = pool?.length ? pool : config.unionFallback ? union([...known, ...slipLists]) : [];
     return candidates.length > 0
       ? this._rank(candidates, null, qwords, joins, sep, limit, bestOnly)
@@ -574,7 +518,7 @@ export class QuickMatch {
           wb - wa || // query words matched whole, desc ("1" holds "1" before "13")
           pa - pb ||
           items[a].length - items[b].length ||
-          (items[a] < items[b] ? -1 : items[a] > items[b] ? 1 : a - b), // item text, asc (total order)
+          (items[a] < items[b] ? -1 : items[a] > items[b] ? 1 : a - b),
       );
       const take = Math.min(bucket.length, limit - results.length);
       for (let i = 0; i < take; i++) results.push([bucket[i][0], ps]);
@@ -584,8 +528,6 @@ export class QuickMatch {
     return results;
   }
 }
-
-// --- Helpers ---
 
 /** @param {string} query */
 function normalize(query) {
@@ -613,7 +555,7 @@ function sepLookup(separators) {
 }
 
 /**
- * The words of `text`, once each and none longer than `maxLen`; or (`all`) every one, as written.
+ * `all`: every word as written, not once each within `maxLen`.
  * @param {string} text
  * @param {Uint8Array} sep
  * @param {number} maxLen
@@ -653,7 +595,7 @@ function addToIndex(index, key, value) {
   }
 }
 
-/** The first position in sorted `list` whose value is not below `key`. @param {string[]} list @param {string} key */
+/** @param {string[]} list @param {string} key */
 function lowerBound(list, key) {
   let lo = 0,
     hi = list.length;
@@ -666,8 +608,7 @@ function lowerBound(list, key) {
 }
 
 /**
- * Keeps a resolved list for the next lookups of the same key (a query looks
- * its words up more than once); a bounded few, so memory stays flat.
+ * Bounded, so memory stays flat.
  * @template T @param {Map<string, T>} cache @param {string} key @param {T} value
  */
 function remember(cache, key, value) {
@@ -692,7 +633,7 @@ function union(arrays) {
   return result;
 }
 
-/** The ids in every list (empty when they're disjoint), or null when there are no lists: no constraint. @param {Ids[]} arrays @returns {Ids|null} */
+/** Null when there are no lists (no constraint); empty when they're disjoint. @param {Ids[]} arrays @returns {Ids|null} */
 function intersect(arrays) {
   if (arrays.length <= 1) return arrays[0] || null;
 
@@ -731,9 +672,7 @@ function bsearch(arr, val) {
 }
 
 /**
- * Each query word's pairs: it joined to a word beside it as typed ("hash rate": "hashrate"), each with its first word's
- * length, its first letter, and whether the word's the second. Never across a word left out (too long), nor a word
- * with itself; one that can't fit (`live` says, by the pair and its first word's length) left out.
+ * Never across a word left out, nor a word with itself; `live` drops a pair that can't fit.
  * @typedef {[string, number, number, boolean][][]} Joins
  * @param {string[]} typed @param {string[]} qwords @param {(pair: string, from: number) => boolean} live @returns {Joins}
  */
@@ -750,13 +689,10 @@ function joinsOf(typed, qwords, live) {
 
 const FITS = 1, WHOLE = 2, JOINED = 4;
 /**
- * How a query word (or two joined, the first `from` letters long; else 0) fits an item word, or the item word joined to
- * the one before it: FITS, and WHOLE when it's not a prefix nor a plural, JOINED when it takes the word before; else 0.
- * (A plural of two joined takes more than the first: "hash rates", not "tatmaspool h".)
+ * WHOLE: not a prefix nor a plural; JOINED: takes the word before. `from`: the first word's length when `qw` is two joined, else 0.
  * @param {string} qw @param {string} word @param {string | null} previous @param {boolean} exact @param {number} from
  */
 function fit(qw, word, previous, exact, from) {
-  // (Too long for the word, a letter past it at most, and for it joined to the one before: most pairs are passed so.)
   if (word.length < qw.length - 1 && (previous === null || previous.length >= qw.length)) return 0;
   const rest = previous !== null && qw.length > previous.length && qw.startsWith(previous) ? qw.length - previous.length : -1;
   const joined = rest > 0 && (exact ? word.length === rest : word.length >= rest) && word.startsWith(qw.slice(qw.length - rest));
@@ -766,10 +702,8 @@ function fit(qw, word, previous, exact, from) {
 
 /**
  * @param {string} item @param {string[]} qwords @param {Uint8Array} sep
- * @param {boolean} [exact] Require whole words when validating typo corrections.
- * @returns {[number, number, number]} Query words matched in any order (including
- *   joined adjacent words), how many of them match a word (or a joined pair)
- *   whole, not a prefix nor a plural, and the first matching item-word position.
+ * @param {boolean} [exact] Whole words only: validates typo corrections.
+ * @returns {[number, number, number]} Query words matched, whole, and first item-word position.
  */
 function wordMatch(item, qwords, sep, exact = false) {
   const words = [];
@@ -791,7 +725,7 @@ function wordMatch(item, qwords, sep, exact = false) {
           matched++;
           position = Math.min(position, how & JOINED ? i - 1 : i);
         }
-        // (Held only as a prefix so far: a word further on may hold it whole.)
+        // Held only as a prefix so far: a later word may hold it whole.
         if (how & WHOLE) {
           whole++;
           break;
@@ -802,41 +736,35 @@ function wordMatch(item, qwords, sep, exact = false) {
   return [matched, whole, position];
 }
 
-/** Whether a query word runs one letter past an item word's end (four letters or more): a plural, a slip there. @param {string} qw @param {string} word */
+/** One letter past the word's end, from four letters: a plural, or a slip there. @param {string} qw @param {string} word */
 function past(qw, word) {
   return qw.length >= 4 && qw.length === word.length + 1 && qw.startsWith(word);
 }
 
 /**
- * A query word not in the index, checked against candidates: whether it's a
- * typo of a run of an item's adjacent words (one word, or several joined):
- * within one edit of the whole run (a swap counts as one; two from seven
- * letters), or, from five letters, within one edit of the run's start (a word
- * typed partway). Never letters scattered across words. Runs too short to be
- * close are skipped, longer ones stop growing, and (by an index's word ids)
- * each word and pair is compared once per query.
+ * Within `most` edits of a run of an item's adjacent words (a swap counts as one) or of its start; never letters scattered across words.
  */
 class Typo {
   /** @param {string} word */
   constructor(word) {
     this.codes = Int32Array.from(word, (c) => c.charCodeAt(0));
     this.most = word.length >= 7 ? 2 : 1;
-    /** One word's answer by its number: 0 not asked yet, 1 no, 2 yes. @type {Uint8Array | null} */
+    /** 0 not asked yet, 1 no, 2 yes, by word number. @type {Uint8Array | null} */
     this.single = null;
-    /** Pairs' answers, by their numbers. @type {Map<number, boolean>} */
+    /** @type {Map<number, boolean>} */
     this.runs = new Map();
-    /** Whether a word can start a close run (0 not asked yet, 1 no, 2 yes), by its number. @type {Uint8Array | null} */
+    /** As `single`. @type {Uint8Array | null} */
     this.starts = null;
   }
 
-  /** Whether `word` is within reach of some start of this one: else no run it begins is (its alignment, cut after it, costs no more). @param {string} word */
+  /** If no start of this one is within reach of `word`, no run it begins is (cut after it, its alignment costs no more). @param {string} word */
   startsRun(word) {
     if (letters.length < word.length) letters = new Int32Array(word.length * 2);
     for (let c = 0; c < word.length; c++) letters[c] = word.charCodeAt(c);
     return editsWithin(letters, word.length, this.codes, this.codes.length, this.most, true);
   }
 
-  /** In an index's own words, by their numbers. @param {QuickMatch} index @param {number} idx */
+  /** @param {QuickMatch} index @param {number} idx */
   ofIndexed(index, idx) {
     const words = index._words, ids = index._itemWords, from = index._itemOffsets[idx], to = index._itemOffsets[idx + 1];
     const n = this.codes.length, count = words.length, single = (this.single ??= new Uint8Array(count)), starts = (this.starts ??= new Uint8Array(count));
@@ -846,7 +774,6 @@ class Typo {
         if (single[id] === 0) single[id] = this.closeRun(words, ids, first, first, length) ? 2 : 1;
         if (single[id] === 2) return true;
       }
-      // (Longer runs from here: only from a word that can start one.)
       if (length > n || first + 1 === to) continue;
       if (starts[id] === 0) starts[id] = this.startsRun(words[id]) ? 2 : 1;
       if (starts[id] === 1) continue;
@@ -855,7 +782,7 @@ class Typo {
         if (len > n) break;
         len += words[ids[last]].length;
         if (len + this.most < n) continue;
-        // (Pairs remembered, by a key small enough to stay a small integer, and exact; longer runs are rare.)
+        // Pairs memoized by a key kept a small integer (exact); longer runs are rare.
         const key = last - first === 1 && count < 94906266 ? ids[first] * count + ids[last] : -1;
         let close = key >= 0 ? this.runs.get(key) : undefined;
         if (close === undefined) {
@@ -868,7 +795,7 @@ class Typo {
     return false;
   }
 
-  /** In an item's text, split on the caller's separators. @param {string} item @param {Uint8Array} sep */
+  /** @param {string} item @param {Uint8Array} sep */
   ofText(item, sep) {
     /** @type {string[]} */
     const words = [];
@@ -894,11 +821,7 @@ class Typo {
     return false;
   }
 
-  /**
-   * The run of words `ids[first..=last]` (`len` letters in all), cut to this word's length and `most` more: within reach
-   * of it whole, or of its start.
-   * @param {string[]} words @param {ArrayLike<number>} ids @param {number} first @param {number} last @param {number} len
-   */
+  /** @param {string[]} words @param {ArrayLike<number>} ids @param {number} first @param {number} last @param {number} len */
   closeRun(words, ids, first, last, len) {
     const n = this.codes.length, cut = Math.min(len, n + this.most);
     if (letters.length < cut) letters = new Int32Array(cut * 2);
@@ -911,17 +834,15 @@ class Typo {
   }
 }
 
-/** The letters compared, and the rows of their comparison: reused from one to the next. */
+/** Reused from one comparison to the next. */
 let letters = new Int32Array(32);
 let before = new Int32Array(32);
 let row = new Int32Array(32);
 let next = new Int32Array(32);
 
 /**
- * Whether the first `n` of `a` and the first `m` of `b` are at most `most`
- * edits apart (insertions, deletions, substitutions, adjacent swaps), giving up
- * as soon as they can't be; `start`: `a` against the closest start of `b`
- * instead (the last row's least, which no row lowers).
+ * Gives up as soon as `a` and `b` can't be within `most` edits (swaps count as one); `start`: `a` against the closest start of `b`
+ * (the last row's least, which no row lowers).
  * @param {Int32Array} a @param {number} n @param {Int32Array} b @param {number} m @param {number} most @param {boolean} start
  */
 function editsWithin(a, n, b, m, most, start) {
