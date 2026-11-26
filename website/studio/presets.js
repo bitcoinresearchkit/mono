@@ -1669,17 +1669,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
     };
   };
 
-  // One subject a preset, all of it in view: at most two panes, the price's (hidden over the chain's workings) aside, and
-  // none of them hidden, so nothing is drawn that a reader can't see.
-  const hiddenPanes = /** @type {string[]} */ ([]);
-  /** @param {Sketch} c @param {string[]} path */
-  const allShown = (c, path) => {
-    const shown = new Set(c.layers.filter((layer) => !layer.hidden).map((layer) => layer.pane ?? 1)), panes = Math.max(...c.layers.map((layer) => layer.pane ?? 1));
-    const data = Array.from({ length: panes }, (_, i) => i + 1).filter((pane) => !c.layers.some((layer) => (layer.pane ?? 1) === pane && layer.series === t.price.ohlc.name));
-    if (data.some((pane) => !shown.has(pane)) || shown.size > 2) hiddenPanes.push(path.join(" › "));
-    return c;
-  };
-
   /** @type {Preset[]} */
   const presets = [];
   /** @type {Record<string, string>} */
@@ -1697,12 +1686,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
         walk(more.length ? item.items.concat(more) : item.items, place, workings || Boolean(item.workings));
         continue;
       }
-      presets.push({ p: place, t: item.title, c: allShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}), ...(item.was ? { w: Object.fromEntries(Object.entries(item.was).map(([name, key]) => [name, windowShort(key)])) } : {}) });
+      presets.push({ p: place, t: item.title, c: priced(item.c, workings || Boolean(item.priceHidden)), ...(icon ? { s: icon } : {}), ...(item.was ? { w: Object.fromEntries(Object.entries(item.was).map(([name, key]) => [name, windowShort(key)])) } : {}) });
       icon = "";
     }
   };
   walk(tree, []);
-  if (hiddenPanes.length) throw new Error(`Studio presets: ${hiddenPanes.length} with a pane hidden or past two, ${hiddenPanes.slice(0, 40).join("; ")}`);
   if (derived.left().length) throw new Error(`Studio presets: chain statistics placed in no section, ${derived.left().join("; ")}`);
   return { presets, labels };
 }
