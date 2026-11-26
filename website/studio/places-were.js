@@ -25,6 +25,27 @@ const PLACES_WERE = [
   ["Bedrock", "Valuation › Bedrock"],
   ["Valuation › Cumulative destruction", "Valuation › On-chain prices › Cumulative destruction"],
   ["Valuation › Delta price", "Valuation › On-chain prices › Delta price"],
+  // The whole market at the top of its subjects; its totals and NUPL merged into the charts that were already there.
+  ["Holders › All coins › Supply › Total", "Supply › Circulating"],
+  ["Holders › All coins › Supply › In profit and loss", "Supply › In profit and loss"],
+  ["Holders › All coins › Supply › Share in profit", "Supply › Share in profit"],
+  ["Holders › All coins › Supply › Change", "Supply › Change"],
+  ["Holders › All coins › Capital › Total", "Valuation › Market and realized cap"],
+  ["Holders › All coins › Capital", "Valuation › Realized cap"],
+  ["Holders › All coins › Cost basis", "Valuation › Cost basis"],
+  ["Holders › All coins › Unrealized › NUPL", "Valuation › NUPL"],
+  ["Holders › All coins › Realized › Profit and loss", "Profit and loss › Realized profit and loss"],
+  ["Holders › All coins › Realized › *", "Profit and loss › *"],
+  ["Holders › All coins › Unrealized › Profit and loss", "Profit and loss › Unrealized profit and loss"],
+  ["Holders › All coins › Unrealized › Relative to market cap", "Profit and loss › Relative to market cap"],
+  ["Holders › All coins › UTXOs › Change", "Activity › UTXO change"],
+  ["Holders › All coins › UTXOs › Spent", "Activity › UTXOs spent"],
+  ["Holders › All coins › Activity › *", "Activity › *"],
+  ["Supply › Velocity", "Activity › Velocity"],
+  ["Coin age › Last moved", "Supply › Last moved"],
+  ["Cointime › Supply", "Supply › Vaulted and active"],
+  ["Cointime › Activity", "Activity › Cointime"],
+  ["Cointime › Value › Value *", "Activity › Cointime › Cointime value *"],
 ];
 
 /** @typedef {{ steps: string[], wild: number }} Side */
@@ -56,15 +77,9 @@ const match = (pattern, path) => {
   }
   return words;
 };
-/** @param {Map<string, [Side, Side][]>} table @param {string[]} path @returns {string[] | null} */
-const across = (table, path) => {
-  for (const row of table.get(path[0]) ?? []) {
-    const words = match(row[0].steps, path);
-    if (words) return [...row[1].steps.map((step) => (step.includes("*") ? step.replace("*", /** @type {string} */ (words.shift())) : step)), ...path.slice(row[0].steps.length)];
-  }
-  return null;
-};
-/** A place as it was, by the most specific row that names it now; null if it never moved. @param {string[]} path */
+/** Each row's other side for `path`, the most specific first. @param {Map<string, [Side, Side][]>} table @param {string[]} path */
+const across = (table, path) => (table.get(path[0]) ?? []).flatMap(([from, to]) => ((words) => (words ? [[...to.steps.map((step) => (step.includes("*") ? step.replace("*", /** @type {string} */ (words.shift())) : step)), ...path.slice(from.steps.length)]] : []))(match(from.steps, path)));
+/** The places a place was, a merged one's too, the most specific first (none if it never moved). @param {string[]} path */
 export const placeWas = (path) => across(toWas, path);
 /** A place moved since, where it is now; null if it never moved. @param {string[]} path */
-export const placeNow = (path) => across(toNow, path);
+export const placeNow = (path) => across(toNow, path)[0] ?? null;

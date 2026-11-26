@@ -628,10 +628,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /**
    * `disjoint`: the members split the whole (bands), so their amounts stack, and show as shares. `profile`: its members
    * (all coins aside) split the whole: their supply profiles stack in one chart. `inTime`: members are times (halving
-   * epochs, years), oldest first, colored as halving cycles and years are (recencyColor).
+   * epochs, years), oldest first, colored as halving cycles and years are (recencyColor). `wholeAbove`: all coins compared,
+   * their own charts placed elsewhere (see market).
    * @param {[string, any][]} all
    * @param {(key: string) => Naming | undefined} naming
-   * @param {{ each: string, within?: string, disjoint?: boolean, profile?: boolean, inTime?: boolean, of?: Whole, known?: Record<string, string>, weight?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
+   * @param {{ each: string, within?: string, disjoint?: boolean, profile?: boolean, wholeAbove?: boolean, inTime?: boolean, of?: Whole, known?: Record<string, string>, weight?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (all, naming, options) => {
@@ -715,7 +716,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ];
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
-      ...members.map(([key, c], i) => {
+      ...members.flatMap(([key, c], i) => {
+        if (options.wholeAbove && key === "all") return [];
         const n = nameOf(key), color = key === "all" ? undefined : colors[i];
         return member(n.name, cohort(c, n.who, { whole: key === "all" && !n.of, of: n.of ?? options.of, urpd: options.urpd?.(key), color, weight: options.weight, inWhole: n.inWhole, beside: n.beside }));
       }),
@@ -922,6 +924,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /** @param {boolean} years */
   const returnsWere = (years) => Object.fromEntries(windowsOf(m.returns).filter(([key]) => overYears(key) === years).map(([key]) => [spanLabel(key), key]));
 
+  // The whole market's charts at the top of their subjects, by its sections' names, each renamed there or left out
+  // (null): its totals and NUPL are those subjects' own charts already.
+  const marketSections = new Map(cohort(t.holders.all, holder("all").who, { whole: true, urpd: holderName("all").urpd }).map((item) => [placeOf(item.name), "items" in item ? item.items : [item]]));
+  /** @param {string} name @param {Record<string, string | null>} [renamed] */
+  const market = (name, renamed = {}) => (marketSections.get(name) ?? []).flatMap((item) => ((to) => (to === null ? [] : [to === undefined ? item : { ...item, name: to }]))(renamed[placeOf(item.name)]));
+
   const epoch = Math.floor((facts?.height ?? 840_000) / 210_000), year = facts?.year ?? new Date().getUTCFullYear();
   const tree = [
     section("Price", [
@@ -1011,6 +1019,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
           return [chart(window ? shownAs(`${measure}, ${window.slice(1)}`, said) : measure, `Rarity bands of ${what}`, [series(own(node), said, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1], window })];
         })]),
       ]),
+      section("Realized cap", market("Capital", { Total: null })),
+      section("Cost basis", market("Cost basis")),
       section("Bedrock", [
         section("Compare", entries(entries(t.bedrock)[0][1].floor).map(([key]) => chart(`${percentileLabel(percentile(key))} floor`, `Bedrock ${percentileLabel(percentile(key))} floor by mode`, [price(), ...entries(t.bedrock).map(([mode, node], i, all) => series(node.floor[key], modeName(mode), { color: ramp(all.length)[i] }))]))),
         ...entries(t.bedrock).map(([mode, node]) => {
@@ -1040,6 +1050,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
         }),
       ]),
     ], { icon: "scale" }),
+    section("Profit and loss", [
+      ...market("Realized", { "Profit and loss": "Realized profit and loss" }),
+      ...market("Unrealized", { "Profit and loss": "Unrealized profit and loss", NUPL: null }),
+    ], { icon: "percent" }),
     section("Supply", [
       chart("Circulating", "Circulating supply", [series(sup.circulating, "Supply", { color: "orange" }), series(sup.marketCap.value, "Market cap", { color: "green", pane: 2 })], { log: [2] }),
       chart("Inflation", "Inflation rate", [series(sup.inflationRate, "Inflation rate", { color: "orange" }), series(ct.adjusted.inflationRate, "Cointime-adjusted", { color: "violet" })], { log: [1], absolute: [
@@ -1047,14 +1061,29 @@ export function studioPresets(client, facts, report = (problem) => console.error
         series(shareAmount(ct.adjusted.inflationRate, btc(sup.circulating), "btc"), "Cointime-adjusted annual amount", { color: "violet" }),
       ], absoluteLog: true }),
       ...flow(sup.burned, "Burned", "Bitcoin burned"),
-      chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
+      ...market("Supply", { Total: null }),
+      lastMovedChart(),
+      // HODLed or lost is the vaulted supply by another name: one line.
+      chart("Vaulted and active", "Vaulted and active supply", [...[["vaulted", "Vaulted"], ["active", "Active"]].flatMap(([key, label]) => [series(ct.supply[key].btc, label, { color: PRICE_COLORS[key], type: "area" }), series(ct.supply[key].usd, `${label}, value`, { color: PRICE_COLORS[key], type: "area", pane: 2 })])], { stack: { 1: "stack", 2: "stack" } }),
     ], { icon: "coins" }),
+    section("Activity", [
+      chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
+      ...market("UTXOs", { Change: "UTXO change", Spent: "UTXOs spent" }),
+      ...market("Activity"),
+      section("Cointime", [
+        ...flow(ct.activity.coinblocksCreated, "Coin blocks created", "Coin blocks created"),
+        ...flow(ct.activity.coinblocksDestroyed, "Coin blocks destroyed", "Coin blocks destroyed"),
+        ...flow(ct.activity.coinblocksStored, "Coin blocks stored", "Coin blocks stored"),
+        chart("Liveliness", "Liveliness and vaultedness", [series(ct.activity.vaultedness, "Vaultedness", { color: PRICE_COLORS.vaulted, type: "area" }), series(ct.activity.liveliness, "Liveliness", { color: PRICE_COLORS.active, type: "area" }), series(ct.activity.livelinessToVaultedness, "Liveliness to vaultedness", { pane: 2, color: "orange" })], { stack: { 1: "stack" } }),
+        chart("Concurrent liveliness", "Concurrent liveliness", windows(ct.activity.concurrentLiveliness, "")),
+        ...entries(ct.value).flatMap(([key, node]) => flow(node, `Cointime value ${key}`, `Cointime value ${key}`)),
+      ]),
+    ], { icon: "swap" }),
     section("Holders", [
-      ...holderSets(entries(t.holders), (members, each, profile) => family(members, holder, { each, urpd: (key) => holderName(key).urpd, profile })),
+      ...holderSets(entries(t.holders), (members, each, profile) => family(members, holder, { each, urpd: (key) => holderName(key).urpd, profile, wholeAbove: true })),
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { each: "by entry price", disjoint: true, lookOf: (key) => (key === "discount" ? { color: "green" } : key === "premium" ? { color: "red" } : undefined) })),
     ], { icon: "people" }),
     section("Coin age", [
-      lastMovedChart(),
       // The oldest band has no upper edge: nothing ages out of it, its aged-out series are zeros by construction, so no
             // such charts.
       section("Age bands", family(entries(t.age.ranges).map(([key, c], i, all) => /** @type {[string, any]} */ (i === all.length - 1 ? [key, { ...c, supply: { ...c.supply, agedOut: undefined } }] : [key, c])), ageBand, { each: "by age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
@@ -1247,16 +1276,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
       chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
-      // HODLed or lost is the vaulted supply by another name: one line.
-      chart("Supply", "Vaulted and active supply", [...[["vaulted", "Vaulted"], ["active", "Active"]].flatMap(([key, label]) => [series(ct.supply[key].btc, label, { color: PRICE_COLORS[key], type: "area" }), series(ct.supply[key].usd, `${label}, value`, { color: PRICE_COLORS[key], type: "area", pane: 2 })])], { stack: { 1: "stack", 2: "stack" } }),
-      section("Activity", [
-        ...flow(ct.activity.coinblocksCreated, "Coin blocks created", "Coin blocks created"),
-        ...flow(ct.activity.coinblocksDestroyed, "Coin blocks destroyed", "Coin blocks destroyed"),
-        ...flow(ct.activity.coinblocksStored, "Coin blocks stored", "Coin blocks stored"),
-        chart("Liveliness", "Liveliness and vaultedness", [series(ct.activity.vaultedness, "Vaultedness", { color: PRICE_COLORS.vaulted, type: "area" }), series(ct.activity.liveliness, "Liveliness", { color: PRICE_COLORS.active, type: "area" }), series(ct.activity.livelinessToVaultedness, "Liveliness to vaultedness", { pane: 2, color: "orange" })], { stack: { 1: "stack" } }),
-        chart("Concurrent liveliness", "Concurrent liveliness", windows(ct.activity.concurrentLiveliness, "")),
-      ]),
-      section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),
       section("Age bands", cointimeBands(ct.ageRanges)),
       holderSection("awake", weightedSets(ct.cohorts, "awake", "wakefulness")),
     ], { icon: "clock" }),
