@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Self-hosting" data-color="#ff8a3d"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -10,7 +9,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0d0c" />
     <title>Bitview — self-hosted Bitcoin data server</title>
     <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/dev/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/dev/" />
@@ -38,8 +36,6 @@
         font-variant-numeric: tabular-nums;
       }
       /* /craft rules */
-      /* A datasheet for a server: graphite and paper, one accent (Bitview's orange), specs set as large numerals, labels
-         small in a monospace, hairline rules between parts. One file, system fonts: it's served on its own. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f4f3ef, #0d0d0c);
@@ -58,9 +54,7 @@
         --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      /* Written out in OKLab, so canvases get plain colours. */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#242421, #dddbd6);
@@ -138,16 +132,11 @@
         }
       }
 
-      /* A label: small, in the body face. */
       .label {
         color: var(--soft);
         font: 500 13px/1.4 var(--sans);
       }
 
-      /* ── The bar ── */
-
-      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
-         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
       .stars {
         white-space: nowrap;
       }
@@ -157,7 +146,6 @@
         color: var(--ink);
       }
 
-      /* (Where the bar has no room for them beside the way home and Run it: its words for screen readers alone, the star and the count shown.) */
       @media (width < 360px) {
         .bar .stars-words {
           position: absolute;
@@ -229,8 +217,6 @@
         }
       }
 
-      /* ── The hero: what it is, then its specs ── */
-
       .hero {
         padding-top: 40px;
 
@@ -262,10 +248,6 @@
         margin-top: 28px;
       }
 
-      /* Who uses Bitview: their logos, each a link to its site (written by scripts/home.mjs from
-         assets/used-by/list.js). Each logo is its shape alone in the page's ink, at one height (its list entry's scale
-         evens out how big it reads), lit to the ink on hover rather than the accent, so no logo takes a colour that isn't
-         its own. Still, it's one wrapped row; with motion allowed it drifts by, with a pause beside its label. */
       .used-by {
         margin-top: 40px;
 
@@ -280,10 +262,6 @@
           margin: 0;
         }
 
-        /* The drift's pause: a toggle button drawn as its icon (pause while it drifts, play once pressed), there only
-           while the strip can move and the page's script can work it (its own `hidden` until then). Its box (44 px to
-           a finger) overhangs the label's line rather than growing it (and above the strip it overhangs). Paused, a
-           walk through the logos by keyboard still leaves the strip at its start. */
         .pause {
           display: none;
           width: 28px;
@@ -311,7 +289,7 @@
             color: var(--ink);
           }
 
-          /* (The icon on its own layer: a mask on the button would clip its focus ring.) */
+          /* The icon on its own layer: a mask on the button would clip its focus ring. */
           &::before {
             content: "";
             display: block;
@@ -377,23 +355,16 @@
           background: currentColor;
           mask: var(--logo) center / contain no-repeat;
 
-          /* (Forced colours would paint the mask's ground as the page's, hiding it: kept, and set to the links' forced
-             colour, which the kept element no longer inherits.) */
+          /* Forced colours paint the mask's ground as the page's, hiding it: set to the links' forced colour. */
           @media (forced-colors: active) {
             forced-color-adjust: none;
             background: LinkText;
           }
         }
 
-        /* The drift: the list there twice, the track moved by half, so it loops without a seam; 9 s a user (written as
-           --users), so a longer list keeps about the same pace (a count, not the track's width, which CSS can't time
-           an animation by). It rests under the pointer. From the keyboard it stands still at its start and
-           shows one logo to a view, centred, so the next is always wholly out of view and focus scrolls to it: a browser
-           leaves a link half in view where it is, and a paused track can't bring back a link carried off its left edge
-           (both measured in Chromium and WebKit). */
+        /* Keyboard mode shows one logo per view, centred: a browser leaves a link half in view, and a paused track can't bring back one carried off its left edge. */
         @media (prefers-reduced-motion: no-preference) {
-          /* (Clipped, not hidden: a clip isn't a scroll container, so the offset the keyboard mode scrolled to is
-             dropped when focus leaves, rather than kept under the drift as a blank.) */
+          /* Clipped, not hidden: a clip isn't a scroll container, so keyboard mode's scroll offset drops on blur. */
           .pause:not([hidden]) {
             display: block;
           }
@@ -488,7 +459,6 @@
         }
       }
 
-      /* The specs: a row of measured numbers, each labeled, rules between. */
       .specs {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -496,7 +466,6 @@
         border-top: 1px solid var(--ink);
         border-bottom: 1px solid var(--rule);
 
-        /* (Three over two where five abreast would break a number; five from 1024px.) */
         @media (min-width: 760px) {
           grid-template-columns: repeat(6, minmax(0, 1fr));
         }
@@ -540,7 +509,6 @@
               padding-left: 16px;
             }
 
-            /* (Five: the last across both, none alone.) */
             &:last-child:nth-child(odd) {
               grid-column: 1 / -1;
               border-bottom: 0;
@@ -582,8 +550,6 @@
         font-size: 13px;
       }
 
-      /* ── Parts: a number and a title on the left, the part on the right ── */
-
       .part {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -613,7 +579,6 @@
         }
       }
 
-      /* The install: a terminal, its command copyable. */
       .terminal {
         position: relative;
         overflow-x: auto;
@@ -630,8 +595,6 @@
           user-select: none;
         }
 
-        /* (A command a line, wrapped where the block's too narrow, its turns indented past the prompt: read whole,
-           and copied whole by its button.) */
         .line {
           display: block;
           padding-left: 2ch;
@@ -639,13 +602,11 @@
           white-space: pre-wrap;
         }
 
-        /* (A word with hyphens kept whole: never "--" and "locked" on two lines.) */
         .w {
           white-space: nowrap;
         }
       }
 
-      /* Above the terminal: what it is, and a copy of its command. */
       .term-head {
         display: flex;
         align-items: center;
@@ -668,7 +629,6 @@
         }
       }
 
-      /* A spec table: a label, its value. */
       .table {
         margin: 22px 0 0;
         border-top: 1px solid var(--rule);
@@ -707,7 +667,6 @@
         }
       }
 
-      /* What it serves: four, each with what it looks like where there's a picture. */
       .serves {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -762,8 +721,6 @@
         }
       }
 
-      /* How it's built: a schematic, then the code of a plugin. */
-      /* (A phone: the same four steps as a list, the drawing too small to read.) */
       .steps {
         display: none;
         margin: 0;
@@ -856,7 +813,6 @@
         }
       }
 
-      /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
       .code {
         margin: 22px 0 0;
         border: 1px solid var(--rule);
@@ -871,7 +827,7 @@
           font: 13px/1.65 var(--mono);
         }
 
-        /* (Reached by keys to scroll it: the ring on the frame, the code's own clipped by it.) */
+        /* Reached by keys to scroll it: the ring on the frame, the code's own clipped by it. */
         &:has(pre:focus-visible) {
           outline: 2px solid var(--focus);
           outline-offset: 3px;
@@ -897,7 +853,7 @@
         font-size: 13px;
       }
 
-      /* (Its own class beside the shell's: the shell's margin would otherwise win over its own.) */
+      /* Its own class beside the shell's: the shell's margin would otherwise win over its own. */
       .site-foot.shell {
         margin-top: 96px;
         padding-bottom: 48px;
@@ -918,14 +874,12 @@
           flex-wrap: wrap;
           gap: 8px 18px;
 
-          /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
           @media (pointer: coarse) {
             row-gap: 24px;
           }
 
         }
       }
-      /* For screen readers only: the copy buttons' outcome. */
       .sr {
         position: absolute;
         width: 1px;
@@ -935,7 +889,6 @@
         white-space: nowrap;
       }
 
-      /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
       button[data-copy]:not([hidden]) {
         display: inline-flex;
         flex-direction: column;
@@ -949,12 +902,9 @@
           visibility: hidden;
         }
       }
-      /* (A finger's reach, unseen: the bar's and the foot's links, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
       :is(.bar a, button[data-copy], footer a, .button) {
         position: relative;
 
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -963,20 +913,16 @@
           }
         }
       }
-      /* (The bar's short links, too, a finger's width: into the gap between them.) */
       .bar a:not(.brand)::before {
         @media (pointer: coarse) {
           inset-inline: min(0px, calc((100% - 44px) / 2));
         }
       }
-      /* (The copy button's, further up than down: the terminal below it is drawn over what's under the button.) */
       button[data-copy]::before {
         @media (pointer: coarse) {
           inset-block: -16px -7px;
         }
       }
-      /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,
-         none.) */
       pre[data-cut="end"] {
         mask-image: linear-gradient(to left, transparent, #000 40px);
       }
@@ -1142,7 +1088,6 @@ fn main() -&gt; Result&lt;()&gt; {
     <p class="sr" id="copied" role="status"></p>
 
     <script>
-      // The install command, copied; where the page can't write the clipboard, no button: the text's there to select.
       for (const button of document.querySelectorAll("[data-copy]")) {
         button.hidden = !navigator.clipboard;
         button.addEventListener("click", async () => {
@@ -1152,14 +1097,12 @@ fn main() -&gt; Result&lt;()&gt; {
           } catch {
             said = "Failed";
           }
-          // (The button's word short, no wider than "Copied"; the whole said aloud.)
           button.textContent = said;
           copied.textContent = `${said === "Copied" ? "Copied" : "Copy failed"}: ${button.dataset.copy}`;
           setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
         });
       }
-      // A code block that scrolls sideways says where it's cut: data-cut start, end or both, read as it scrolls and as
-      // its box changes (none when it's whole).
+      // data-cut (start, end or both; none when whole) marks where a sideways-scrolling code block is cut; CSS fades those edges.
       for (const block of document.querySelectorAll("pre")) {
         const cuts = () => {
           const start = block.scrollLeft > 1, end = block.scrollLeft + block.clientWidth < block.scrollWidth - 1;
@@ -1170,8 +1113,6 @@ fn main() -&gt; Result&lt;()&gt; {
         block.addEventListener("scroll", cuts, { passive: true });
         new ResizeObserver(cuts).observe(block);
       }
-      // The logos' pause, a toggle (its pressed state is what the strip's CSS reads); without script, no button, and
-      // the strip still rests under the pointer.
       const pause = document.querySelector(".used-by .pause");
       pause.hidden = false;
       pause.addEventListener("click", () => {
