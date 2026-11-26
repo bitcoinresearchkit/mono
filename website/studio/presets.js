@@ -931,6 +931,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const market = (name, renamed = {}) => (marketSections.get(name) ?? []).flatMap((item) => ((to) => (to === null ? [] : [to === undefined ? item : { ...item, name: to }]))(renamed[placeOf(item.name)]));
 
   const epoch = Math.floor((facts?.height ?? 840_000) / 210_000), year = facts?.year ?? new Date().getUTCFullYear();
+  const derived = chainStatistics({ t, chart, ramp, flowWindow, underOneSatVb });
   const tree = [
     section("Price", [
       chart("In dollars", "Bitcoin price", [price()]),
@@ -1138,14 +1139,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })], { range: "3m" }),
         chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: SUM_COLOR, shape: "steps" })]),
       ]),
-      section("Halvings", [
-        chart("Next halving", "Until the next halving", [series(blocks.halving.blocksToHalving, "Blocks", { color: "sky" }), series(blocks.halving.daysToHalving, "Days", { color: "orange", pane: 2 })]),
-        chart("Epoch", "Halving epoch", [series(blocks.halving.epoch, "Halving epoch", { color: SUM_COLOR, shape: "steps" })]),
-      ]),
+      chart("Halvings, next halving", "Until the next halving", [series(blocks.halving.blocksToHalving, "Blocks", { color: "sky" }), series(blocks.halving.daysToHalving, "Days", { color: "orange", pane: 2 })]),
+      chart("Halvings, epoch", "Halving epoch", [series(blocks.halving.epoch, "Halving epoch", { color: SUM_COLOR, shape: "steps" })]),
       section("Rewards", [
         ...flow(mining.rewards.coinbase, "Coinbase", "Coinbase rewards"),
         ...flow(mining.rewards.subsidy, "Subsidy", "Block subsidy"),
-        ...flow(mining.rewards.fees, "Fees", "Transaction fees"),
         ...flow(mining.rewards.unclaimed, "Unclaimed", "Unclaimed rewards"),
         // The month's alone: two windows in one stack would add up to two wholes.
         ((parts) => chart("Subsidy and fee shares", "Subsidy's and fees' shares of rewards", [
@@ -1153,11 +1151,35 @@ export function studioPresets(client, facts, report = (problem) => console.error
           ...parts.map(([share, what, color]) => series(share.cumulative, `${what}, all time`, { color, pane: 2 })),
         ], { stack: { 1: "stack" } }))(/** @type {[any, string, string][]} */ ([[mining.rewards.fees.share, "Fees", "green"], [mining.rewards.subsidy.share, "Subsidy", "orange"]])),
         chart("Puell multiple", "Puell multiple", [price(), series(mining.rewards.puellMultiple, "Puell multiple", { pane: 2, ...around(1), levels: [{ value: 4, color: "red", dash: 3 }, { value: 0.5, color: "green", dash: 3 }] })], { log: [2] }),
-        ...perBlockFan(mining.rewards.fees, "Fees per block", "Fees per block", true, btc),
-        ...perBlockFan(mining.rewards.fees, "Fees per block in dollars", "Fees per block, in dollars", true, usd),
       ]),
       section("Pools", poolCharts(), { workings: true }),
     ], { icon: "pickaxe" }),
+    section("Fees", [
+      ...flow(mining.rewards.fees, "Fees paid", "Transaction fees"),
+      ...perBlockFan(mining.rewards.fees, "Fees per block", "Fees per block", true, btc),
+      ...perBlockFan(mining.rewards.fees, "Fees per block, in dollars", "Fees per block, in dollars", true, usd),
+      ...spread(tx.fees.effectiveFeeRate, "Fee rate", "transactions' effective fee rates", "orange", true),
+      ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
+        { ...price(), hidden: true },
+        { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
+        { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate", pane: 2, color: "orange", width: 2 },
+        { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
+        { cloud: ["B", "D"], label: "25th to 75th", color: "orange", opacity: 0.25, pane: 2 },
+        series(blocks.fullness.avg._1m, `Block fullness, ${windowAdjective("_1m")} average`, { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
+      ], { log: [2], average: { 2: "7d" }, size: { 1: 1, 2: 2, 3: 1.4 } })] : []),
+      section("By fee rate", feeRates(tx.fees.txCountByFeeRate, (said) => `transactions paying ${said}`, "fee rate", { disjoint: true, more: [
+        chart("Under 1 sat/vB, by month", "Transactions paying under 1 sat/vB, by month", [
+          { formula: `100 * (${underOneSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "histogram", color: "orange", format: "percent", maxInterval: "month1" },
+          { formula: `${step(blocks.weight)} / ${step(blocks.count)} / 40000`, label: "Block fullness", type: "line", color: "sky", width: 2, format: "percent", pane: 2, maxInterval: "month1", levels: [{ value: 100, color: "gray", dash: 3 }] },
+        ], { index: "month1", size: { 2: 1.5 } }),
+        chart("Under 0.1 sat/vB, by day", "Transactions paying under 0.1 sat/vB, by day", [
+          { formula: underTenthSatVb.map(step).join(" + "), label: "Transactions, zero-fee ones too", type: "histogram", color: "orange", format: "number", maxInterval: "day1" },
+          { formula: `100 * (${underTenthSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "line", color: "orange", format: "percent", pane: 2, maxInterval: "day1" },
+        ], { size: { 2: 1.5 } }),
+      ] }, tx.fees.zeroFee.txCount)),
+      section("Block space by effective fee rate", feeRates(tx.fees.vsizeByEffectiveFeeRate, (said) => `block space (vsize) at effective fee rates ${said}`, "effective fee rate", { what: "block space (vsize)", disjoint: true, count: false })),
+      ...spread(tx.fees.fee, "Fee per transaction", "transactions' fees", "amber"),
+    ], { workings: true, icon: "bolt" }),
     section("Network", [
       section("Blocks", [
         ...flow(blocks.count, "Count", numberOf("blocks mined")),
@@ -1176,30 +1198,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
       section("Transactions", [
         ...stats(tx.count, "Count", numberOf("transactions")),
         chart("Per second", "Transactions per second", windows(tx.perSecond, "")),
-        ...spread(tx.fees.effectiveFeeRate, "Fee rate", "transactions' effective fee rates", "orange", true),
-        ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
-          { ...price(), hidden: true },
-          { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
-          { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate", pane: 2, color: "orange", width: 2 },
-          { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
-          { cloud: ["B", "D"], label: "25th to 75th", color: "orange", opacity: 0.25, pane: 2 },
-          series(blocks.fullness.avg._1m, `Block fullness, ${windowAdjective("_1m")} average`, { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
-        ], { log: [2], average: { 2: "7d" }, size: { 1: 1, 2: 2, 3: 1.4 } })] : []),
-        section("By fee rate", feeRates(tx.fees.txCountByFeeRate, (said) => `transactions paying ${said}`, "fee rate", { disjoint: true, more: [
-          chart("Under 1 sat/vB, by month", "Transactions paying under 1 sat/vB, by month", [
-            { formula: `100 * (${underOneSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "histogram", color: "orange", format: "percent", maxInterval: "month1" },
-            { formula: `${step(blocks.weight)} / ${step(blocks.count)} / 40000`, label: "Block fullness", type: "line", color: "sky", width: 2, format: "percent", pane: 2, maxInterval: "month1", levels: [{ value: 100, color: "gray", dash: 3 }] },
-          ], { index: "month1", size: { 2: 1.5 } }),
-          chart("Under 0.1 sat/vB, by day", "Transactions paying under 0.1 sat/vB, by day", [
-            { formula: underTenthSatVb.map(step).join(" + "), label: "Transactions, zero-fee ones too", type: "histogram", color: "orange", format: "number", maxInterval: "day1" },
-            { formula: `100 * (${underTenthSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "line", color: "orange", format: "percent", pane: 2, maxInterval: "day1" },
-          ], { size: { 2: 1.5 } }),
-        ] }, tx.fees.zeroFee.txCount)),
-        section("Block space by effective fee rate", feeRates(tx.fees.vsizeByEffectiveFeeRate, (said) => `block space (vsize) at effective fee rates ${said}`, "effective fee rate", { what: "block space (vsize)", disjoint: true, count: false })),
-        ...spread(tx.fees.fee, "Fee", "transactions' fees", "amber"),
         ...spread(tx.vsize, "Size", "transactions' sizes (vsize)", "sky"),
         ...flow(tx.vsize, "Total size", "Total transaction size (vsize)"),
-        ...flow(tx.transferVolume, "Volume", "Transfer volume"),
         section("Payments", [
           ...flow(tx.payments.count, "Count", numberOf("payments, estimated from transaction outputs")),
           ...flow(tx.payments.segwitSpending, "SegWit inputs", numberOf("payments in transactions with SegWit inputs")),
@@ -1223,7 +1223,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
           ...entries(tx.versions).map(([key, node]) => section(versionName(key), kindCharts(node, key === "other" ? "transactions of other versions" : `version ${key.slice(1)} transactions`))),
         ]),
         section("Patterns", kinds(entries(tx.patterns), words, (key) => `${keyWords(key)} transactions`, "pattern")),
-        section("CPFP", [section("Parents", kindCharts(tx.fees.cpfpParent, "CPFP parent transactions")), section("Children", kindCharts(tx.fees.cpfpChild, "CPFP child transactions"))]),
+        section("CPFP, parents", kindCharts(tx.fees.cpfpParent, "CPFP parent transactions")),
+        section("CPFP, children", kindCharts(tx.fees.cpfpChild, "CPFP child transactions")),
         section("Inscriptions", [...kindCharts(tx.inscription, "inscription transactions"), ...flow(tx.inscription.fees, "Transaction fees", "Inscription transactions' fees"), chart("Fee share", "Inscription transactions' share of all fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
       ]),
       section("Inputs", [
@@ -1246,10 +1247,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Per second", "Outputs per second", windows(t.outputs.perSecond, "")),
         ...flow(t.outputs.nonOpReturnCount, "Non-OP_RETURN", numberOf("outputs created other than OP_RETURN")),
         section("By type", byType(t.outputs.types, "outputs", "creating", ["opReturn"])),
-        section("Coinbase", [
-          ...flow(t.outputs.coinbase.count, "Count", numberOf("coinbase outputs")),
-          section("By type", kinds(entries(t.outputs.coinbase.types), typeName, (key) => `coinbase ${inSentence(typeName(key))} outputs`, "type", { what: "coinbase outputs", disjoint: true })),
-        ]),
+        ...flow(t.outputs.coinbase.count, "Coinbase, count", numberOf("coinbase outputs")),
+        section("Coinbase, by type", kinds(entries(t.outputs.coinbase.types), typeName, (key) => `coinbase ${inSentence(typeName(key))} outputs`, "type", { what: "coinbase outputs", disjoint: true })),
         section("Public keys", publicKeys(t.outputs.pubkeys, "outputs")),
       ]),
       section("OP_RETURN", [
@@ -1273,7 +1272,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
           ...entries(t.opReturn.sizes).map(([key, node]) => section(spanLabel(key), opReturnCharts(node, (what) => `OP_RETURN ${what} with data ${spanLabel(key, true)}`))),
         ]),
       ]),
-      chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }),
+      // Chain statistics' alone (chain-statistics.js).
+      section("Inputs and outputs", []),
     ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       section("Age bands", cointimeBands(ct.ageRanges)),
@@ -1671,7 +1671,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
       if (typeof item.name !== "string") labels[JSON.stringify(place)] = item.name.shown;
       if ("items" in item) {
         if (!path.length) icon = item.icon ?? "";
-        walk(item.items, place, workings || Boolean(item.workings));
+        // (Chain statistics at the end of their sections.)
+        const more = derived.at(place.join(" › "));
+        walk(more.length ? item.items.concat(more) : item.items, place, workings || Boolean(item.workings));
         continue;
       }
       presets.push({ p: place, t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}), ...(item.was ? { w: Object.fromEntries(Object.entries(item.was).map(([name, key]) => [name, windowShort(key)])) } : {}) });
@@ -1679,6 +1681,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     }
   };
   walk(tree, []);
+  if (derived.left().length) throw new Error(`Studio presets: chain statistics placed in no section, ${derived.left().join("; ")}`);
   return { presets, labels };
 }
 

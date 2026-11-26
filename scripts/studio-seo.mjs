@@ -19,7 +19,6 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { addressesOf } from "../website/studio/addresses.js";
-import { CHAIN_STATISTICS } from "../website/studio/chain-statistics.js";
 import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "../website/studio/page-info.js";
 import { shownStep } from "../website/studio/words.js";
 
@@ -66,14 +65,12 @@ const TITLE_RULES = [
   ["a month that isn't an age", (text) => /(?<!\b(?:by|per|each) )\bmonths?\b(?![^,:]*\bold\b)/.test(text)],
   ["all addresses", (text) => /\ball addresses\b/i.test(text)],
 ];
-// (Chain statistics' charts keep the names of the site they reproduce: no rule of these is theirs.)
-const ruled = presets.filter((preset) => !preset.p.includes(CHAIN_STATISTICS));
 /** Every step of every place, once, by its key. @type {Map<string, string[]>} */
 const steps = new Map();
-for (const preset of ruled) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
+for (const preset of presets) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
 /** Every name shown, each with whether it's a title and its place: titles, legends, the tree's steps as shown. @type {[string, boolean, string[]][]} */
 const shown = [
-  ...ruled.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
+  ...presets.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
   ...[...steps.values()].map((path) => [shownStep(labels, path), false, path]),
 ];
 const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
@@ -209,10 +206,11 @@ if (changed.length) {
     process.exit(1);
   }
 }
-// The rest kept, each opening its place while that's there, else its place's successor (a new page at one takes it).
+// The rest kept, each opening its place while that's there, else where its place moved (its own window kept), else its
+// place's successor (a new page at one takes it).
 for (const [path, to] of rows) {
-  const place = to.split("#")[0];
-  if (!moved.has(path) && !live.has(path)) moved.set(path, live.has(place) ? to : successor(place));
+  const [place, state] = to.split("#"), now = live.has(place) ? place : moved.get(place) ?? successor(place);
+  if (!moved.has(path) && !live.has(path)) moved.set(path, state === undefined ? now : `${now.split("#")[0]}#${state}`);
 }
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
 // word (its layer reads nothing, so it isn't made). Named, and each sent to its successor only when meant (--drop).

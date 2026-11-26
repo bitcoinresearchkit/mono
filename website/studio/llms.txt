@@ -136,14 +136,14 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - All coins (196): https://bitview.space/studio/presets/profitability/all-coins/index.html.md
   - Short-term holders (196): https://bitview.space/studio/presets/profitability/short-term-holders/index.html.md
   - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/index.html.md
-- UTXOs (1036): https://bitview.space/studio/presets/utxos/index.html.md
+- UTXOs (1037): https://bitview.space/studio/presets/utxos/index.html.md
   - By amount (285): https://bitview.space/studio/presets/utxos/by-amount/index.html.md
   - At or above each UTXO amount (272): https://bitview.space/studio/presets/utxos/over-an-amount/index.html.md
   - Under each UTXO amount (272): https://bitview.space/studio/presets/utxos/under-an-amount/index.html.md
-  - By type (205): https://bitview.space/studio/presets/utxos/by-type/index.html.md
-- Addresses (1022): https://bitview.space/studio/presets/addresses/index.html.md
+  - By type (206): https://bitview.space/studio/presets/utxos/by-type/index.html.md
+- Addresses (1023): https://bitview.space/studio/presets/addresses/index.html.md
   - Count (4): https://bitview.space/studio/presets/addresses/count/index.html.md
-  - Reused addresses (10): https://bitview.space/studio/presets/addresses/reused/index.html.md
+  - Reused addresses (11): https://bitview.space/studio/presets/addresses/reused/index.html.md
   - Addresses with more than one spent output (9): https://bitview.space/studio/presets/addresses/respent/index.html.md
   - Addresses with exposed keys or scripts (3): https://bitview.space/studio/presets/addresses/exposed/index.html.md
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/index.html.md
@@ -152,19 +152,21 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - By balance (287): https://bitview.space/studio/presets/addresses/by-balance/index.html.md
   - At or above each address balance (271): https://bitview.space/studio/presets/addresses/over-a-balance/index.html.md
   - Under each address balance (271): https://bitview.space/studio/presets/addresses/under-a-balance/index.html.md
-- Mining (664): https://bitview.space/studio/presets/mining/index.html.md
-  - Hashing (5): https://bitview.space/studio/presets/mining/hashing/index.html.md
-  - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/index.html.md
-  - Halvings (2): https://bitview.space/studio/presets/mining/halvings/index.html.md
-  - Rewards (8): https://bitview.space/studio/presets/mining/rewards/index.html.md
-  - Pools (646): https://bitview.space/studio/presets/mining/pools/index.html.md
-- Network (681): https://bitview.space/studio/presets/network/index.html.md
-  - Blocks (12): https://bitview.space/studio/presets/network/blocks/index.html.md
-  - Transactions (183): https://bitview.space/studio/presets/network/transactions/index.html.md
-  - Inputs (84): https://bitview.space/studio/presets/network/inputs/index.html.md
-  - Outputs (57): https://bitview.space/studio/presets/network/outputs/index.html.md
+- Mining (669): https://bitview.space/studio/presets/mining/index.html.md
+  - Hashing (9): https://bitview.space/studio/presets/mining/hashing/index.html.md
+  - Difficulty (4): https://bitview.space/studio/presets/mining/difficulty/index.html.md
+  - Rewards (6): https://bitview.space/studio/presets/mining/rewards/index.html.md
+  - Pools (648): https://bitview.space/studio/presets/mining/pools/index.html.md
+- Fees (43): https://bitview.space/studio/presets/fees/index.html.md
+  - By fee rate (20): https://bitview.space/studio/presets/fees/by-fee-rate/index.html.md
+  - Block space by effective fee rate (16): https://bitview.space/studio/presets/fees/block-space-by-effective-fee-rate/index.html.md
+- Network (548): https://bitview.space/studio/presets/network/index.html.md
+  - Blocks (17): https://bitview.space/studio/presets/network/blocks/index.html.md
+  - Transactions (159): https://bitview.space/studio/presets/network/transactions/index.html.md
+  - Inputs (96): https://bitview.space/studio/presets/network/inputs/index.html.md
+  - Outputs (59): https://bitview.space/studio/presets/network/outputs/index.html.md
   - OP_RETURN (206): https://bitview.space/studio/presets/network/op-return/index.html.md
-  - Chain statistics (139): https://bitview.space/studio/presets/network/chain-statistics/index.html.md
+  - Inputs and outputs (11): https://bitview.space/studio/presets/network/inputs-and-outputs/index.html.md
 - Cointime (292): https://bitview.space/studio/presets/cointime/index.html.md
   - Age bands (74): https://bitview.space/studio/presets/cointime/age-bands/index.html.md
   - Awake coins (218): https://bitview.space/studio/presets/cointime/awake-coins/index.html.md

@@ -62,10 +62,11 @@ export function* addressSteps(list) {
   const alias = (/** @type {string} */ address, /** @type {{ path: string[] } | { preset: number, window?: string }} */ to) => at.has(address) || at.set(address, to);
   // (A section gone opens the deepest section that holds all its charts now.)
   const goneSections = new Map();
-  for (const [i, preset] of list.entries()) for (const old of placeWas(preset.p)) {
-    alias(addressOf(old), { preset: i });
-    // (A window's name as it was beside the chart, or as it is now, the window's place moved as the chart's was.)
-    for (const [name, window] of Object.entries(preset.w ?? {})) for (const place of [[...old.slice(0, -1), name], ...placeWas([...preset.p.slice(0, -1), name])]) alias(addressOf(place), { preset: i, window });
+  for (const [i, preset] of list.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
+    alias(addressOf(old), folded ? { preset: i, window: folded } : { preset: i });
+    // (A window's name as it was beside the chart, or as it is now, the window's place moved as the chart's was; a chart
+    // folded into this one had none of this one's.)
+    if (!folded) for (const [name, window] of Object.entries(preset.w ?? {})) for (const place of [[...old.slice(0, -1), name], ...placeWas([...preset.p.slice(0, -1), name]).map((was) => was.path)]) alias(addressOf(place), { preset: i, window });
     for (let depth = 1; depth < old.length; depth++) {
       const key = JSON.stringify(old.slice(0, depth));
       if (sections.has(key)) continue;
