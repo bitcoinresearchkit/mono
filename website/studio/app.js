@@ -14,7 +14,7 @@ import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, MEDIA, NAMED_KEY, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport, focusKey, restoreFocus, isOpen, onClosed, fadeOut, cutFade, fading, scrolled,
+  MAC, MEDIA, NAMED_KEY, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport, focusKey, restoreFocus, isOpen, onClosed, fadeOut, cutFade, fading, scrolled, fixedOrigin, placeFixed,
 } from "/studio/dom.js";
 import { motionClock } from "/modules/motion/clock.js";
 import { reduced as motionReduced, whenReduced } from "/modules/motion/reduced.js";
@@ -4014,7 +4014,7 @@ function crossMoved(param) {
   else if (crossSet) return void ((engine.crosshair.pointed = dotLineOf(crossSet.layer)), !crossHeld && !exporting && holdCross());
   const time = param.time === undefined ? null : /** @type {number} */ (param.time);
   // (The profiles whose bars it's among: not a picture's, see presentLegends.)
-  const profiles = heatmaps.heatLooks.size && !exporting ? heatmaps.profilesUnder(param) : [];
+  const profiles = heatmaps?.heatLooks.size && !exporting ? heatmaps.profilesUnder(param) : [];
   // (A finger's kept where it is: on a profile's bars, or past the data (the slots after its last point), on the
   // view's last day, the one they show.)
   const kept = time ?? ((profiles.length || (param.logical ?? -1) >= engine.time.length) && resolved ? resolved.times[lastShown()] ?? null : null);
@@ -4044,7 +4044,7 @@ function crossMoved(param) {
   // (Where it is in its pane: a binned layer reads the price there, see hoveredIn; gone, read again, back at rest.)
   const wasAt = heatAt;
   heatAt = param.point && param.pane !== undefined ? { pane: param.pane, y: param.point.y } : null;
-  if (heatmaps.heatLooks.size && (heatAt || wasAt)) valuesSoon();
+  if (heatmaps?.heatLooks.size && (heatAt || wasAt)) valuesSoon();
   // (The bar under it lit, the frontmost profile's.)
   const point = param.point;
   if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof heatmaps.profileHit>} */ hit, layer) => hit ?? heatmaps.profileHit(layer, point), null) : null);
@@ -8003,7 +8003,8 @@ let byTouch = false;
 addEventListener("keydown", (event) => ((byKeys = true), (byTouch = false), TOUCH && command.keyboardKey(event) && command.keyed(true)), true);
 // (A touch heard at all, as WebKit needs to show a control pressed, :active, under a finger.)
 addEventListener("touchstart", () => {}, { passive: true });
-addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch"), command.keyed(false)), true);
+// (A press isn't held for the rest: till it's in, there's no ⌘K to tell.)
+addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch"), command?.keyed(false)), true);
 addEventListener("resize", () => isOpen($("palette")) && ((trailDrawn = ""), command.renderPath()));
 $("palette-scope").addEventListener("click", () => {
   if (command.palette.path.length) {
@@ -9322,7 +9323,7 @@ let tipPointed = /** @type {Element | null} */ (null);
 let described = /** @type {HTMLElement | null} */ (null);
 function tipWanted(/** @type {HTMLElement} */ target) {
   // (On the rail, a row its menu names as the pointer rests on it: no tip before it. Reached by a key, its tip.)
-  if (menus.railed() && tipPointed && target.matches("#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])")) return false;
+  if (menus?.railed() && tipPointed && target.matches("#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])")) return false;
   // (A tip of two lines, a row's name and its second line: repeating only while both are shown whole.)
   const name = target.querySelector(".name, .label, .head-name, .tile-name"), sub = target.querySelector(".sub"), [head, ...more] = (target.dataset.tip ?? "").split("\n");
   const whole = (/** @type {Element | null} */ words) => Boolean(words) && /** @type {Element} */ (words).scrollWidth <= /** @type {Element} */ (words).clientWidth;
@@ -9330,10 +9331,10 @@ function tipWanted(/** @type {HTMLElement} */ target) {
   const subText = sub ? [...sub.childNodes].filter((node) => !(node instanceof Element && node.classList.contains("sub-letter"))).map((node) => node.textContent).join("").trim() : "";
   const repeats = whole(name) && name?.textContent?.trim() === head && (!more.length || (whole(sub) && subText === more.join("\n")));
   const keys = Boolean(target.dataset.kbd && answers(target.dataset.kbd));
-  return !repeats || (target.closest(".sidebar") ? menus.railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
+  return !repeats || (target.closest(".sidebar") ? menus?.railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
 }
 function showTip(target) {
-  if (!target.isConnected || (menus.ownerNow() === target && !$("menu").hidden)) return;
+  if (!target.isConnected || (menus?.ownerNow() === target && !$("menu").hidden)) return;
   // A tip names what only an icon or a value shows, or gives its keys: words shown whole, the same, nothing more
   // to say. The open sidebar names its items: there, an item's icon pointed at says it (as the rail does), its
   // name pointed at doesn't, unless it's cut short.
@@ -9364,8 +9365,8 @@ function showTip(target) {
     left = $("sidebar").getBoundingClientRect().right + 6;
     top = rect.top + rect.height / 2 - box.height / 2;
   } else if (top + box.height > innerHeight - 8) top = rect.top - box.height - 8;
-  const origin = menus.fixedOrigin(tip);
-  menus.placeFixed(tip, origin, clamp(left, 8, innerWidth - box.width - 8), clamp(top, 8, innerHeight - box.height - 8));
+  const origin = fixedOrigin(tip);
+  placeFixed(tip, origin, clamp(left, 8, innerWidth - box.width - 8), clamp(top, 8, innerHeight - box.height - 8));
 }
 function hideTip() {
   clearTimeout(tipTimer);

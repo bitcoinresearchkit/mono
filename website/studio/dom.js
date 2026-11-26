@@ -313,11 +313,30 @@ function fadeOut(element, frames, duration = MOTION.micro, placed = false, easin
   fading.set(element, copy);
   return copy.animate([shows, ...frames.slice(1)], { duration, easing, fill: "forwards" }).finished.then(gone, gone);
 }
+/**
+ * Where a fixed element's 0, 0 lands: the viewport's corner, or, inside a dialog that's the frame for fixed elements
+ * (a blur or a transform makes it one), that dialog's. Positions in the viewport then come out right in either.
+ */
+function fixedOrigin(element) {
+  element.style.left = element.style.top = "0px";
+  const { left: x, top: y } = element.getBoundingClientRect();
+  return { x, y };
+}
+/**
+ * A fixed element put at `left`, `top` in the viewport (from its `origin`, see fixedOrigin), on whole device pixels:
+ * its text drawn the same wherever it's drawn (on a layer of its own as it opens or a highlight glides in it, or
+ * not), not a pixel's fraction off once it's painted again (Chromium).
+ */
+function placeFixed(/** @type {HTMLElement} */ element, /** @type {{ x: number, y: number }} */ origin, /** @type {number} */ left, /** @type {number} */ top) {
+  const onPixels = (/** @type {number} */ value) => Math.round(value * devicePixelRatio) / devicePixelRatio;
+  element.style.left = `${onPixels(left) - origin.x}px`;
+  element.style.top = `${onPixels(top) - origin.y}px`;
+}
 /** What's on its way out, by what it's a copy of (see fadeOut). @type {Map<HTMLElement, HTMLElement>} */
 const fading = new Map();
 /** Shown again (or on to a neighbor's, as a tip), its copy going is gone at once: one, never two. @param {HTMLElement} element */
 const cutFade = (element) => (fading.get(element)?.remove(), fading.delete(element));
 export {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, MEDIA, NAMED_KEY, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport, focusKey, keyOf, restoreFocus, isOpen, onClosed, cutFade, fadeOut, fading, scrolled, outOfSight, twinIn,
+  MAC, MEDIA, NAMED_KEY, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport, focusKey, keyOf, restoreFocus, isOpen, onClosed, cutFade, fadeOut, fading, scrolled, outOfSight, twinIn, fixedOrigin, placeFixed,
 };

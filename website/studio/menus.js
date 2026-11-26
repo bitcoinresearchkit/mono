@@ -8,7 +8,7 @@ import {
   SHARES_IMAGES, shownView, showRange, storage, submenus, takeView, timeAt, toast, UNREAD, viewsNow,
 } from "/studio/app.js";
 import { isCatalogPath, isSeriesName } from "/studio/catalog-walk.js";
-import { $, all$, closest, drawKeys, escapeHtml, holdPage, KEY_STEPS, keyText, stepIn, focusKey, keyOf, restoreFocus, cutFade, fadeOut } from "/studio/dom.js";
+import { $, all$, closest, drawKeys, escapeHtml, holdPage, KEY_STEPS, keyText, stepIn, focusKey, keyOf, restoreFocus, cutFade, fadeOut, fixedOrigin, placeFixed } from "/studio/dom.js";
 import { clamp, uid } from "/studio/math.js";
 import { FORMATS, grouped, plural } from "/studio/format.js";
 import { CHEVRON, ICONS } from "/studio/icons.js";
@@ -494,25 +494,6 @@ function placeMenu(menu, host, anchor, point, side = "") {
   menu.style.transformOrigin = `${clamp(rect.left + (side ? rect.width : Math.min(rect.width, 24)) / 2 - left, 0, width)}px ${below ? "0" : "100%"}`;
   void menu.offsetWidth;
   menu.style.animation = "";
-}
-/**
- * Where a fixed element's 0, 0 lands: the viewport's corner, or, inside a dialog that's the frame for fixed elements
- * (a blur or a transform makes it one), that dialog's. Positions in the viewport then come out right in either.
- */
-function fixedOrigin(element) {
-  element.style.left = element.style.top = "0px";
-  const { left: x, top: y } = element.getBoundingClientRect();
-  return { x, y };
-}
-/**
- * A fixed element put at `left`, `top` in the viewport (from its `origin`, see fixedOrigin), on whole device pixels:
- * its text drawn the same wherever it's drawn (on a layer of its own as it opens or a highlight glides in it, or
- * not), not a pixel's fraction off once it's painted again (Chromium).
- */
-function placeFixed(/** @type {HTMLElement} */ element, /** @type {{ x: number, y: number }} */ origin, /** @type {number} */ left, /** @type {number} */ top) {
-  const onPixels = (/** @type {number} */ value) => Math.round(value * devicePixelRatio) / devicePixelRatio;
-  element.style.left = `${onPixels(left) - origin.x}px`;
-  element.style.top = `${onPixels(top) - origin.y}px`;
 }
 /**
  * The menu put away (its backdrop tapped, Back; `back`, a key: Tab, esc): the focus back on what opened it, if it was
@@ -1237,10 +1218,10 @@ async function drawMarks(pieces) {
 export {
   anythingKept, APART, apartFonts, apartLayout, canvasReadable, cascades, chartsFile, closedAt, closedOwner, 
   copyLink, dismissMenu, download, downloadAll, downloadChart, downloadFolder, drawMarks, exportAs,
-  exportData, exportRows, fieldOpener, FIELDS, fixedOrigin, flyout, focusMenu,
+  exportData, exportRows, fieldOpener, FIELDS, flyout, focusMenu,
   hideMenu, hideSubmenu, leaveTitle, letGo, linksOf, 
   measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
-  outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, renameInPlace,
+  outlineMenuTarget, ownerNow, pinFlyout, portable, qrCode, railed, renameInPlace,
   switchWindow, setApart, setMenuBack, setMenuOwner,
   setRange, shareLink, showMenu, shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
   TOO_SMALL, toSketch, UNREADABLE, viewDates, walkMenu,
