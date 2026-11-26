@@ -2,7 +2,9 @@
 // Where presets were before they moved: each row a place then and the place it is now, a chart's or a section's (and
 // so of everything under it). A "*" in a step stands for any words there, the same on both sides, in order. A chart
 // folded into another opens that one at a window: "#window=" and its short name after the place now. Old addresses
-// keep opening them (addresses.js), and charts saved from them find them (adoptPresets); a row is kept for good.
+// keep opening them (moved.txt, made from these by the site build), and charts saved from them find them
+// (adoptPresets); a row is kept for good.
+// Rows are only ever added, at the end: an older place is followed through the rows before its own.
 
 const CS = "Network › Chain statistics";
 /** @type {[string, string][]} */
