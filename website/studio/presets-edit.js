@@ -21,7 +21,7 @@ import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneG
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
 import { isNamed } from "/studio/color.js";
 import { hashOf, uid } from "/studio/math.js";
-import { changeOver, defaultSize, figuresRoom, lastShown } from "/studio/chart.js";
+import { changeOver, defaultSize, figuresRoom, lastShown, paneShows } from "/studio/chart.js";
 import {
   choicePage, heightRow, layerRows, listPage, palette, plotIn, sizable, slipEdits, typedWords, viewRow,
 } from "/studio/command.js";
@@ -762,19 +762,19 @@ const scaleGroup = (/** @type {string} */ id, /** @type {string} */ group) => sc
 /** A pane's menu (its ⋯, a right-click on its head). */
 const paneActions = (/** @type {HTMLElement} */ anchor, /** @type {string} */ id, /** @type {{ x: number, y: number } | undefined} */ point = undefined) => menuOf(anchor, paneRows(id), point ?? null);
 /**
- * A pane's actions (its menu; ⌘K's page of it, after its settings: `inPalette`, with asides and its eye).
+ * A pane's actions (its menu; ⌘K's page of it, after its settings: `inPalette`, with asides): hiding it (every layer in it) or, all hidden, showing it.
  * @returns {Action[]}
  */
 function paneRows(/** @type {string} */ id, inPalette = false) {
   const i = chart.panes.findIndex((pane) => pane.id === id), many = chart.panes.length > 1;
   if (i < 0) return [];
-  const layers = chart.layers.filter((layer) => layer.pane === id), shown = layers.some((layer) => !layer.hidden);
+  const layers = chart.layers.filter((layer) => layer.pane === id), shown = paneShows(chart, id);
   return [
     ...(i > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: inPalette ? `Swaps with pane ${i}` : undefined, verb: "Move", stay: true, run: () => movePane(id, -1) }] : []),
     ...(i < chart.panes.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", aside: inPalette ? `Swaps with pane ${i + 2}` : undefined, verb: "Move", stay: true, run: () => movePane(id, 1) }] : []),
     // (Its share of the height, chosen (a drag's own is hard to get just so by touch): in its menu and on ⌘K's page of it.)
     ...(sizable(i) ? [heightRow(id)] : []),
-    ...(inPalette ? [{ key: "eye", icon: shown ? ICONS.eyeOff : ICONS.eye, label: shown ? "Hide every layer" : "Show every layer", aside: shown && many ? "The pane folds to its names" : undefined, verb: shown ? "Hide" : "Show", stay: true, run: () => hideLayers(layers.map((layer) => layer.id)) }] : []),
+    { key: "eye", icon: shown ? ICONS.eyeOff : ICONS.eye, label: shown ? "Hide pane" : "Show pane", verb: shown ? "Hide" : "Show", stay: true, run: () => hideLayers(layers.map((layer) => layer.id), shown) },
     { key: "remove", icon: ICONS.trash, label: many ? "Remove the pane" : "Remove every layer", aside: plural(layers.length, "layer"), verb: "Remove", danger: true, run: () => removePane(id) },
   ];
 }

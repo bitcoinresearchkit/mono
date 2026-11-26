@@ -1,8 +1,8 @@
 // @ts-check
 // A pane's legend, over its plot's top left (`pane.setLegend`): one row of its items in their order, each its series'
 // key, name and value, scrolling sideways where they don't fit (the page makes it reachable and fades its edges); the
-// item pointed at (`point`: the crosshair's series, or the page's) is brought into view. Hidden items are left to the
-// page's list of them, unless none is shown (each is then named, so the way to show one again is there). Items the
+// item pointed at (`point`: the crosshair's series, or the page's) is brought into view. Hidden items are left out
+// (the page's list of them is where they come back). Items the
 // page's own elements (a key, a name, a value it writes), or made here from a series (its color's key, its name, its
 // value at the crosshair, else its last in view, as its tag writes it). Looked as the page's stylesheet says, over a few
 // rules of its own (`:where`, so any of the page's wins).
@@ -107,16 +107,16 @@ export class Legend {
     }
   }
 
-  /** The shown items; hidden ones only where none is shown (each named). */
+  /** The shown items: hidden ones are left out. */
   #show() {
-    const shown = this.items.filter((item) => !item.hidden);
+    const first = this.items.findIndex((item) => !item.hidden);
     let refocus = false;
     for (const [n, item] of this.items.entries()) {
-      const off = shown.length > 0 && Boolean(item.hidden);
+      const off = Boolean(item.hidden);
       if (off && this.laid[n].some((element) => element.contains(document.activeElement))) refocus = true;
       for (const element of this.laid[n]) setHidden(element, off);
     }
-    if (refocus) this.laid[this.items.indexOf(/** @type {LegendItem} */ (shown[0]))]?.[0]?.focus({ preventScroll: true });
+    if (refocus) this.laid[first]?.[0]?.focus({ preventScroll: true });
   }
 
   /** Gone with its pane. */

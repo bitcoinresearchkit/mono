@@ -45,7 +45,7 @@ import {
 } from "/studio/heatmaps.js";
 import {
   bandOf, fadingOf, focusKey, gradientTable, labelOf, layerById, levelSteps, modeOf,
-  named, paneMode, rangeOf, restoreFocus, stackOf, upToDatePlaces,
+  keepFocus, named, paneMode, rangeOf, restoreFocus, stackOf, upToDatePlaces,
 } from "/studio/inspector.js";
 import { renderRanges } from "/studio/menus.js";
 /** @import { Levels } from "/modules/bitview-charts/index.js" */
@@ -885,7 +885,7 @@ const valueFormatOf = (units) => (units.length && units.every((unit) => SI_UNITS
 const SHARE_FORMAT = { value: (/** @type {number} */ value) => (value > 100.5 || value < -0.5 ? "" : precise(value, "%")), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%").map((label, i) => (values[i] > 100.5 || values[i] < -0.5 ? "" : label)) };
 /** How a % or indexed scale writes its changes: in percent. */
 const PERCENT_FORMAT = { value: (/** @type {number} */ value) => precise(value, "%"), ticks: (/** @type {number[]} */ values) => axisTicks(values, "%") };
-/** A folded pane's: nothing written (its layers all hidden, its scale held by hand still reads nothing). */
+/** What a pane written as rows has for values and ticks: none. */
 const NO_FORMAT = { value: () => "", ticks: (/** @type {number[]} */ values) => values.map(() => "") };
 /** Studio's scale modes (a pane's `mode`) as the library's. @type {import("/modules/bitview-charts/scale.js").ScaleMode[]} */
 const SCALE_MODES = ["linear", "log", "percent", "indexed"];
@@ -1218,35 +1218,23 @@ function reveal(/** @type {number} */ join, /** @type {-1 | 1} */ outward) {
 }
 
 const defaultSize = (i) => (i === 0 ? 3 : 1.4);
+/** Whether a layer is drawn: a signal when it and its layer both are. */
+const layerShows = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => (layer.type === "signal" ? signalShown(layer, doc) : !layer.hidden);
+/** Whether anything in a pane is drawn: the one rule for the chart, the layers sheet, the pane's menu and ⌘K. */
+const paneShows = (/** @type {Chart} */ doc, /** @type {string} */ id) => doc.layers.some((layer) => layer.pane === id && layerShows(doc, layer));
 /**
- * The panes folded: those with nothing shown (every layer in them hidden: as a preset opens some, or as
- * hidden one by one), while another shows something (or all, with `empty`). On screen a folded pane keeps only its
- * legend's height: its layers' names, there to be shown again; showing one opens it as tall as it was.
+ * The panes hidden: those with nothing shown (every layer in them hidden: as a preset opens some, or as hidden one by
+ * one), while another shows something (or all, with `empty`). A hidden pane is gone from the chart: no height, no
+ * names (the layers sheet brings it back); showing a layer in it opens it as tall as it was.
  */
-function foldedPanes(/** @type {Chart} */ doc, empty = false) {
-  // (A signal shows nothing of its own: its marks are its layer's.)
-  const showing = new Set(doc.layers.filter((layer) => !layer.hidden && layer.type !== "signal").map((layer) => layer.pane));
-  return new Set(showing.size || empty ? doc.panes.filter((pane) => !showing.has(pane.id)).map((pane) => pane.id) : []);
+function hiddenPanes(/** @type {Chart} */ doc, empty = false) {
+  const showing = doc.panes.filter((pane) => paneShows(doc, pane.id));
+  return new Set(showing.length || empty ? doc.panes.filter((pane) => !showing.includes(pane)).map((pane) => pane.id) : []);
 }
-/** Each pane's share of the height: as kept (else the first tall, the others shorter); a folded one's, its legend's height in pixels. */
+/** Each pane's share of the height: as kept (else the first tall, the others shorter); a hidden one's, none. */
 function paneFactors(/** @type {Chart} */ doc, picture = exporting) {
-  if (picture) {
-    const folded = foldedPanes(doc, true);
-    return doc.panes.map((pane, i) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(i)));
-  }
-  const folded = foldedPanes(doc), count = engine.panes.length, reach = folded.size ? parseFloat(css("--control-hit")) : 0;
-  // (Its legend's names: hidden, its layers have no values under them; an error, if one has one.)
-  const strip = (pane) => {
-    const legend = $("chart").querySelector(`.legend[data-pane="${pane.id}"]`), top = legend?.parentElement?.getBoundingClientRect().top ?? 0;
-    return Math.max(28, ...[...(legend?.querySelectorAll(":scope > button") ?? [])].map((button) => {
-      const box = button.getBoundingClientRect();
-      return Math.ceil(box.bottom - top) + Math.max(5, (reach - box.height) / 2);
-    }));
-  };
-  const total = (chartHeight || $("chart").clientHeight) - engine.timeHeight - (count - 1);
-  const strips = doc.panes.reduce((sum, pane) => sum + (folded.has(pane.id) ? strip(pane) : 0), 0);
-  const open = doc.panes.reduce((sum, pane, i) => sum + (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(i)), 0);
-  return doc.panes.map((pane, i) => (folded.has(pane.id) ? (open * strip(pane)) / Math.max(1, total - strips) : pane.size ?? defaultSize(i)));
+  const hidden = hiddenPanes(doc, picture);
+  return doc.panes.map((pane, i) => (hidden.has(pane.id) ? 0 : pane.size ?? defaultSize(i)));
 }
 /**
  * The panes' sizes as last laid on them: which chart's (the chart itself: a new id is the same chart), on which of the
@@ -1554,7 +1542,7 @@ function paintProfileItems() {
  */
 const viewName = (doc, layer, name = labelOf(layer)) => ((average) => average.name ? `${name} · ${average.name}` : name)(averageFor(doc, doc.panes.find((pane) => pane.id === layer.pane)));
 /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
-const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escapeHtml(viewName(chart, layer, name))}</span>`;
+const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye" data-toggle="${layer.id}" data-tip="Hide${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${ICONS.eye}</span></span><span class="name">${escapeHtml(viewName(chart, layer, name))}</span>`;
 /**
  * The layers folded into a cloud's legend item, by id (to the cloud's): a cloud by its layers' (byLayers), its lines
  * in its pane (what it's drawn from, Compass's percentiles and averages, many a group): listed as its key's colors,
@@ -1579,8 +1567,14 @@ function updateLegends() {
   if (!chart) return;
   // (Nothing reached, the plot says so once: no layer's legend says it again.)
   const said = !$("unreached").hidden;
-  for (const element of legends()) {
-    const pane = chart.panes.find((item) => item.id === element.dataset.pane);
+  // (Each legend is shown or not here: a hidden pane's is gone with the pane, and comes back written as it is; the focus
+  // in one going goes to the next legend's first item, else the pane's eye in the layers sheet.)
+  const hidden = hiddenPanes(chart), all = [...$("chart").querySelectorAll(".legend")];
+  for (const [at, element] of all.entries()) {
+    const pane = chart.panes.find((item) => item.id === element.dataset.pane), focused = element.contains(document.activeElement);
+    element.hidden = chart.legend === "off" || Boolean(pane && hidden.has(pane.id));
+    if (element.hidden && focused) keepFocus(element, ...[...all.slice(at + 1), ...all.slice(0, at)].map((legend) => () => legend.hidden ? null : legend.querySelector(":scope > button:not([hidden])")), () => document.querySelector(`[data-pane-eye="${element.dataset.pane}"]`));
+    if (element.hidden) continue;
     /** A layer's item: its mark and name, its value beside them (or what's wrong). @param {Layer} layer */
     const item = (layer) => {
       const result = resolved?.results.get(layer.id);
@@ -1596,8 +1590,8 @@ function updateLegends() {
     };
     // (A reversed stack's, in its order: its key's cells as its bands lie. A cloud's layers, folded into it: see
     // foldedInto.)
-    const folded = foldedInto(chart);
-    const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane && !folded.has(layer.id));
+    const cloudMembers = foldedInto(chart);
+    const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane && !cloudMembers.has(layer.id));
     const html = (drawnInto(chart, pane) && pane?.reverse ? mine.reverse() : mine).map(item).join("");
     // (Its focus kept: written again as what it shows changes (a layer renamed, recolored, hidden; a selection only
     // marks it, see markLegends).)
@@ -1614,7 +1608,7 @@ function updateLegends() {
       const id = /** @type {string} */ (button.dataset.select);
       // (The series it's read on: its own, its edge; a cloud's folded layers' too: one pointed at names it.)
       const readOn = (/** @type {string} */ layer) => ((series) => [series?.engine, series?.edge])(drawn.get(layer));
-      const members = [...folded].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
+      const members = [...cloudMembers].filter(([, cloud]) => cloud === id).flatMap(([member]) => readOn(member));
       return { id, elements: [button, ...(button.nextElementSibling?.classList.contains("legend-key") ? [/** @type {HTMLElement} */ (button.nextElementSibling)] : [])], series: [...readOn(id), ...members].filter(Boolean), hidden: button.classList.contains("hidden") };
     }), (pane && asRows(chart, pane) && rowPanes.get(pane.id)?.scale) || "");
     element.setAttribute("role", "group");
@@ -3073,13 +3067,13 @@ const keepPaneSizes = () => setTimeout(() => {
   if (lookDoc || !settled() || panesLaid.doc !== chart || panes.length !== chart.panes.length || panes.length !== laid.length || panes.some((pane, i) => pane !== panesLaid.panes[i])) return;
   // (None dragged: as laid on.)
   if (panes.every((pane, i) => Math.abs(pane.share - laid[i]) <= 1e-6)) return;
-  // (A folded pane dragged open goes back: it opens when a layer in it shows.)
-  const folded = foldedPanes(chart);
-  if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].share - laid[i]) > 1e-6)) return sizePanes(chart, true);
+  // (A hidden pane's height, dragged from none, goes back: it opens when a layer in it shows.)
+  const hidden = hiddenPanes(chart);
+  if (chart.panes.some((pane, i) => hidden.has(pane.id) && Math.abs(panes[i].share - laid[i]) > 1e-6)) return sizePanes(chart, true);
   // (To a thousandth: laid on again, a size kept rounder would move the separator a pixel from where it was let go.)
   const sizes = chart.panes.map((_, i) => Math.round(panes[i].share * 1000) / 1000);
-  if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 1000) / 1000)) return;
-  commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { quiet: true });
+  if (sizes.every((size, i) => hidden.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 1000) / 1000)) return;
+  commit((doc) => doc.panes.forEach((pane, i) => !hidden.has(pane.id) && (pane.size = sizes[i])), { quiet: true });
   // (Laid on as kept: what an undo puts back is then another size, laid on in its turn.)
   sizePanes(chart);
   fitMargins();
@@ -3252,7 +3246,7 @@ export {
   crossSet, cssColor, cutsOf, dailyOf, dashFor, dataKey, datedIntervals, defaultSize, describePlot, dotLineOf,
   dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawRows, drawSeries, dropCross, edges, endReveal, EXACT_RANGE, fadedNow,
   fadeLayer, failedChunks, failure, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView, fitDots,
-  fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, gapped, glide,
+  fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldOf, hiddenPanes, paneShows, forget, forgetSpans, gapped, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal, inSubmenu, intervalsOf,
   keepPaneSizes, keyPoint, known, lastShown, lastUsed, latestChunk, layerFormats, layerOfSeries, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, load, loads, lookKey,

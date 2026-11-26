@@ -49,7 +49,7 @@ import {
   chunkAt, chunked, chunks, Cloud, columnBy, crossHeld, crossOn, crossSet, cssColor, dailyOf, dashFor, dataKey,
   describePlot, dotLineOf, dotRadius, dotted, drawLayers, drawn, drawnWaiters, drawRows, drawSeries, dropCross, endReveal,
   EXACT_RANGE, fadedNow, fadeLayer, failedChunks, figuresRoom, fillBox, fineDrawn, fingerCross, fingers, firstInView,
-  fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldedPanes, foldOf, forget, forgetSpans, glide,
+  fitDots, fitSeries, fitSoon, fitSpacing, fitStrip, foldedInto, foldOf, hiddenPanes, paneShows, forget, forgetSpans, glide,
   glideRows, glides, gone, Heat, hexCache, holdCross, idOf, indexOfTime, info, ink, inReveal,
   intervalsOf, keepPaneSizes, keyPoint, known, lastShown, latestChunk, layerFormats, layerOfSeries, legends,
   legendShown, levelOf, levelsKept, levelTags, lightBubble, lightLegend, lightRows, litLayer, liveColumn, lookKey,
@@ -3745,16 +3745,14 @@ function buildChart(doc, data, refit) {
   const panes = engine.panes;
   // (A pane's shade is on a scale of its own: no side's.)
   const sides = new Set(doc.layers.flatMap((layer) => (edgesOf(layer).length > 1 ? [] : [layer.side])));
-  const folded = foldedPanes(doc);
   doc.panes.forEach((pane, i) => {
     if (!panes[i]) return;
     // A side shows in every pane once any layer uses it: the plots line up.
-    // A stack sits on its floor (a band's height is its value): no margin under it. (Folded, a pane's scale reads
-    // nothing: it has nothing shown (none of its ticks, as its scale's empty; written nowhere where it's held).)
+    // A stack sits on its floor (a band's height is its value): no margin under it.
     // (Its values written as its layers' are, on a side with a series of its scale (none on a scale of its own): a
     // 100% stack's in percent; a side with none, the library's own. A % or indexed scale's changes in percent.)
-    const fixed = folded.has(pane.id) ? NO_FORMAT : shares.has(pane.id) ? SHARE_FORMAT : null;
-    panes[i].setPercentFormat(folded.has(pane.id) ? NO_FORMAT.value : PERCENT_FORMAT.value, folded.has(pane.id) ? NO_FORMAT.ticks : PERCENT_FORMAT.ticks);
+    const fixed = shares.has(pane.id) ? SHARE_FORMAT : null;
+    panes[i].setPercentFormat(PERCENT_FORMAT.value, PERCENT_FORMAT.ticks);
     for (const side of SIDES) {
       // (A side's ticks in the letters of its layers' unit, SI's for bytes and hash rates.)
       // (A heatmap: its rows' names on their axis (see drawRows), no values written.)
@@ -3857,7 +3855,7 @@ function layOutLegends() {
   if (!legendsDue) return;
   legendsDue = false;
   // (Mid-drag, the panes as they were: their legends kept, their contents written again.)
-  if (holding && legends().length === chart.panes.length) updateLegends();
+  if (holding && legends().length === chart.panes.length - hiddenPanes(chart).size) updateLegends();
   else placeLegends();
   setGap();
 }
@@ -3878,8 +3876,6 @@ function placeLegends() {
   // Until this chart is drawn, its panes don't exist yet: no legends to place (none at all, turned off).
   if (chartShown()) placeFull();
   if (chartShown()) {
-    // (Turned off, none; but a folded pane's, its names all it shows.)
-    const folded = chart.legend === "off" ? foldedPanes(chart) : null;
     chart.panes.forEach((pane, i) => {
       // The library's, over its plot: a row that scrolls where its items don't fit.
       const legend = engine.panes[i]?.setLegend();
@@ -3887,8 +3883,6 @@ function placeLegends() {
       const element = legend.element;
       if (!element.classList.contains("legend")) (element.classList.add("legend", "strip"), strip(element), legendWidth.observe(element));
       if (element.dataset.pane !== pane.id) (element.dataset.pane = pane.id), legendShown.delete(element);
-      // (Turned off, none; but a folded pane's, its names all it shows.)
-      element.hidden = Boolean(folded && !folded.has(pane.id));
     });
   }
   if (!chartShown()) return;
@@ -7009,7 +7003,7 @@ function writeLayers() {
     const rows = [["head:pane", `<div class="pane-head">
               <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack, order and average">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
-              ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
+              ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} pane">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(paneShows(chart, pane.id))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
         const result = resolved?.results.get(layer.id);
         const loading = layer.series && !result;
@@ -9090,7 +9084,7 @@ function pictureTitle(/** @type {string} */ text, /** @type {number} */ width) {
 /**
  * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer named (a
  * long legend wraps onto more lines within its pane: a picture can't be pointed at; past two, set apart under the
- * plot), a hidden layer and a folded pane's legend left out,
+ * plot), a hidden layer and a hidden pane's legend left out,
  * none lit or selected.
  * @returns {() => void}
  */
@@ -9098,13 +9092,13 @@ function presentLegends() {
   const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
   const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
   const keys = all$("#chart .legend .legend-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
-  const folded = foldedPanes(chart, true), lit = profileLit;
+  const hidden = hiddenPanes(chart, true), lit = profileLit;
   // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
   if (lit) (profileLit = null), paintProfileItems();
   // (Every layer as it is, none faded by the spotlight: lit again after.)
   const spot = spotlit;
   spotlight(null);
-  for (const [legend] of strips) Object.assign(legend.style, { display: folded.has(legend.dataset.pane ?? "") ? "none" : "flex", flexWrap: "wrap", overflow: "visible", maskImage: "none", rowGap: "2px", height: "auto" });
+  for (const [legend] of strips) Object.assign(legend.style, { display: hidden.has(legend.dataset.pane ?? "") ? "none" : "flex", flexWrap: "wrap", overflow: "visible", maskImage: "none", rowGap: "2px", height: "auto" });
   // (A profile's key onto more lines where it's longer than its pane is wide.)
   for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
   for (const [button] of buttons) {
@@ -9811,7 +9805,7 @@ document.addEventListener("click", (event) => {
   const marker = closest(event, "[data-markers]");
   if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : toggleHalvings();
   const paneEye = closest(event, "[data-pane-eye]");
-  if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id));
+  if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id), paneShows(chart, /** @type {string} */ (paneEye.dataset.paneEye)));
   if (closest(event, "#templates [data-gallery-retry]")) return retryPresets();
   const template = closest(event, "[data-template]");
   const card = template && recommendedCards[Number(template.dataset.template)];
