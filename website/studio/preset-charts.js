@@ -308,8 +308,9 @@ const presetPlace = (/** @type {Chart} */ doc) => {
 };
 /** @param {Chart} doc @returns {((i: number) => boolean)[]} */
 const likeness = (doc) => ((title, place = []) => {
-  const list = /** @type {Preset[]} */ (presets), name = place.at(-1) ?? "", now = placeNow(place)?.join(" › ");
-  return [(i) => list[i].p.join(" › ") === now, (i) => Object.hasOwn(list[i].w ?? {}, name) && list[i].p.length === place.length && place.slice(0, -1).every((step, k) => list[i].p[k] === step), (i) => windowless(freshPreset(i)).title === title, (i) => list[i].p.at(-1) === name, () => true];
+  // (A window once beside its chart, as "Supply, all time", is that chart's in the folder's place now, moved or not.)
+  const list = /** @type {Preset[]} */ (presets), name = place.at(-1) ?? "", now = placeNow(place)?.join(" › "), folder = place.slice(0, -1), folderNow = (placeNow(folder) ?? folder).join(" › ");
+  return [(i) => list[i].p.join(" › ") === now, (i) => Object.hasOwn(list[i].w ?? {}, name) && list[i].p.slice(0, -1).join(" › ") === folderNow, (i) => windowless(freshPreset(i)).title === title, (i) => list[i].p.at(-1) === name, () => true];
 })(windowless(doc).title, presetPlace(doc));
 /** @param {Chart} doc */
 function presetShowing(doc) {

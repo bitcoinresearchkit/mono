@@ -221,6 +221,9 @@ const PLACES_WERE = [
   ["Coinflow › Mobile coins", "Holders › Mobile coins"],
   ["Cointime › Age bands › Compare", "Holders › Age bands › Compare"],
   ["Coinflow › Age bands › Compare", "Holders › Age bands › Compare"],
+  // (Before the bands: Compare isn't one of them.)
+  ["Cointime › Age bands › Compare › *", "Holders › Age bands › Compare › *"],
+  ["Coinflow › Age bands › Compare › *", "Holders › Age bands › Compare › *"],
   ["Cointime › Age bands › * › Coin days consumed", "Holders › Age bands › * › Activity › Coin days consumed"],
   ["Cointime › Age bands › * › Wakefulness", "Holders › Age bands › * › Activity › Wakefulness"],
   ["Cointime › Age bands › * › Awake and dormant", "Holders › Age bands › * › Activity › Awake and dormant"],
