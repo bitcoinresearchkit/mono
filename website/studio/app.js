@@ -1312,8 +1312,6 @@ const stampEdit = (doc) => (doc.updated = Math.max(Date.now(), doc.updated + 1, 
 const isDeleted = (doc) => library.deleted[doc.id] >= doc.updated;
 /** Whether a chart stays in the library: not deleted since its last edit, or open (it goes once another is). @param {{ id: string, updated: number }} doc */
 const alive = (doc) => doc.id === chart?.id || !isDeleted(doc);
-/** The later copy of a chart; at the same millisecond the one whose text sorts later, the same in every tab. @template {{ updated: number }} T @param {T} a @param {T} b @returns {T} */
-const laterCopy = (a, b) => (a.updated !== b.updated ? (a.updated > b.updated ? a : b) : JSON.stringify(a) >= JSON.stringify(b) ? a : b);
 /** @returns {Chart | undefined} */
 const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? library.presets.find((doc) => doc.id === id) ?? previewCharts.find((doc) => doc.id === id);
 /** Whether a chart is one of yours (the Library's). @param {Chart} doc */
@@ -1682,7 +1680,7 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   /** A chart's later copy, in its folder as the arrangement has it. @param {Chart | undefined} own @param {Chart | undefined} other */
   const later = (own, other) => {
     if (!own || !other) return /** @type {Chart} */ (own ?? other);
-    const doc = laterCopy(own, other), by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
+    const doc = own.updated >= other.updated ? own : other, by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
     if (by.folder) doc.folder = by.folder;
     else delete doc.folder;
     return doc;
@@ -1711,7 +1709,7 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   const theirPresets = presetsOf(stored.presets), ourPresets = new Set(library.presets), byPreset = /** @type {Map<string, Chart>} */ (new Map());
   for (const doc of [...library.presets, ...theirPresets]) {
     const have = byPreset.get(/** @type {string} */ (doc.preset));
-    byPreset.set(/** @type {string} */ (doc.preset), have ? laterCopy(have, doc) : doc);
+    if (!have || doc.updated > have.updated) byPreset.set(/** @type {string} */ (doc.preset), doc);
   }
   library.presets = [...byPreset.values()].filter(alive);
   for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
