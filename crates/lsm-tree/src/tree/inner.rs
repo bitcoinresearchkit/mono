@@ -1,6 +1,6 @@
 use std::sync::{
     Mutex,
-    atomic::{AtomicBool, AtomicU32, Ordering},
+    atomic::{AtomicU32, Ordering},
 };
 
 use crate::{
@@ -25,8 +25,6 @@ pub struct Inner {
     pub compaction_state: Mutex<CompactionState>,
     /// Immutable tree configuration.
     pub config: Config,
-    /// Whether compaction is deferred ([`crate::Tree::defer_compaction`]).
-    pub deferred: AtomicBool,
 }
 
 impl Inner {
@@ -42,7 +40,6 @@ impl Inner {
             versions: Set::new(version),
             compaction_state: Mutex::new(CompactionState::default()),
             config,
-            deferred: AtomicBool::new(false),
         })
     }
 
@@ -67,7 +64,6 @@ impl Inner {
             versions: Set::new(version),
             compaction_state: Mutex::new(CompactionState::default()),
             config,
-            deferred: AtomicBool::new(false),
         }
     }
 
