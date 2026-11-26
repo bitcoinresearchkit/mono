@@ -8889,18 +8889,20 @@
         }
 
         /* A tablet upright: the panel a sheet across the card's foot, the chart above it whole, every year and its axis
-           in sight while a layer's changed (as a phone's half sheet; closed by its ×); away, it slides down. */
+           in sight while a layer's changed (as a phone's half sheet; closed by its ×); away, it slides down. Nothing
+           under it to float over: the card's own foot, flush, a line over it, not a framed box inside the card's frame. */
         @media (min-width: 761px) and (min-height: 501px) and (orientation: portrait) {
           .panel {
-            top: auto;
-            left: 8px;
-            bottom: 8px;
+            inset: auto 0 0;
             width: auto;
             height: var(--tablet-panel);
+            border-top: 1px solid var(--line);
+            border-radius: 0 0 calc(var(--radius-xl) - 1px) calc(var(--radius-xl) - 1px);
+            box-shadow: none;
           }
 
           body:is([data-panel="open"], [data-peek]):not([data-empty]) .stage {
-            padding-bottom: calc(var(--tablet-panel) + 8px);
+            padding-bottom: var(--tablet-panel);
           }
 
           body[data-panel="closed"]:not([data-peek]) .panel {
