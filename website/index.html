@@ -160,6 +160,14 @@
         font-display: swap;
       }
 
+      /* (Bedrock's name: the letters of "Bedrock" alone, the file its page uses.) */
+      @font-face {
+        font-family: "Bricolage Grotesque";
+        src: url("/assets/fonts/BricolageGrotesque-ExtraBold.bedrock.woff2") format("woff2");
+        font-weight: 800;
+        font-display: swap;
+      }
+
       /* Bitview's home screen, as a streaming service's: a billboard that turns through the featured titles on its own;
          under it shelves of things to open, each a way straight in (an app, a chart, a block, a pool), sliding sideways;
          each with an i for what it is. Dark where the pictures are, in either scheme. */
@@ -972,8 +980,8 @@
       /* Each app's title in its own app's face, on the billboard, its cover and its sheet, as a streaming title's logo:
          Studio and Stack in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
          The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
-         a made-up bold); Compass in it upright, as its states are named. Over those titles' own weight and spacing,
-         wherever those are set. */
+         a made-up bold); Compass in it upright, as its states are named; Bedrock in Bricolage Grotesque, extra bold, as
+         its page sets it. Over those titles' own weight and spacing, wherever those are set. */
       :is(.billboard .title, .tile .name, .about h3) {
         &[data-face="oracle"] {
           font-family: var(--mono);
@@ -998,6 +1006,12 @@
         &[data-face="compass"] {
           font-family: Instrument, Georgia, serif;
           font-weight: 400;
+          letter-spacing: -0.01em;
+        }
+
+        &[data-face="bedrock"] {
+          font-family: "Bricolage Grotesque", var(--sans);
+          font-weight: 800;
           letter-spacing: -0.01em;
         }
       }
@@ -2479,6 +2493,7 @@
         { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/", made: "Every unspent coin, by the price it last moved at" },
         { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/", made: "The daily price, Bedrock's floors, what young coins cost" },
         { id: "compass", kind: "Market", line: "Where the market stands, and which way it's heading.", href: "/compass/", made: "The price, and long- and short-term holders' cost basis" },
+        { id: "bedrock", kind: "Floors", line: "The ground under the price, and how rarely it's reached.", href: "/bedrock/", made: "Every day's share of active coins in profit, ranked against the days before" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
         { id: "miners", kind: "Mining", line: "Which pool did each new thing first, and which left coins unclaimed.", href: "/miners/", made: "Each block's mining pool, version and coinbase" },
       ]);
@@ -2503,6 +2518,7 @@
         "/trail/": { "name": "The Satoshi Trail", "about": "A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution." },
         "/stack/": { "name": "Stack", "about": "Dollar-cost averaging that saves from each all-time high and buys bitcoin from the cycle's floor: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." },
         "/compass/": { "name": "Compass", "about": "Where Bitcoin's market stands, day by day since 2011: price against its long-term and short-term holders' cost basis: nine moods from Fear to Optimism, in three trends, and how long each has lasted." },
+        "/bedrock/": { "name": "Bedrock", "about": "How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank the day, and turn the rarest ranks back into prices." },
         "/calendar/": { "name": "Calendar", "about": "Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." },
         "/miners/": { "name": "Miners", "about": "What Bitcoin's miners have done: which pool first spent or created each new kind of output, which signal an upgrade, and every block that left coins unclaimed." },
         "/api/": { "about": "Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account." },
