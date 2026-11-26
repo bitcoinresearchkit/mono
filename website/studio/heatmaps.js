@@ -176,7 +176,8 @@ const heatSoon = () => void (heatFrame ||= requestAnimationFrame(() => {
 }));
 /** @type {Set<() => void>} */
 const heatWaiters = new Set();
-// A tab drawing no frames draws none, so asks for none: as it is. One with no price to draw on, or `undrawable` (the library had nothing on its scale to draw it on), is as it is.
+// A tab drawing no frames draws none, so asks for none: as it is. One with no price to draw on, or `undrawable` (the
+// library had nothing on its scale to draw it on), is as it is.
 const heatIn = () => document.hidden || shownHeats().every((look) => (look.undrawable && !look.drawn) || (look.drawn && !heatWants.has(look.id) && ![...(look.keep ?? [])].some((key) => heatDays.get(key)?.pending)));
 /** @type {Set<{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }>} */
 const heatExtras = new Set();
@@ -239,7 +240,8 @@ function heatTrim() {
   }
 }
 const HEAT_DECADES = 4;
-// Cells in view are mostly within a decade or two of the strongest: a straight scale lit nearly all of them (nothing standing out); this leaves the weaker in the dark and the clusters lit (measured: 2 left the bed muddy, 3 lost it).
+// Cells in view are mostly within a decade or two of the strongest: a straight scale lit nearly all of them (nothing
+// standing out); this leaves the weaker in the dark and the clusters lit (measured: 2 left the bed muddy, 3 lost it).
 const HEAT_CURVE = 2.5;
 const HEAT_FADE = 0.3;
 /** @param {number} value @param {number} most */
@@ -259,7 +261,9 @@ const amountsOf = (day, measure) => (measure === "capital" ? day.capital : measu
 /** @param {any} day @param {string} measure */
 const heatMost = (day, measure) => (day.most ??= {})[measure] ??= amountsOf(day, measure).reduce((most, value) => Math.max(most, Math.abs(value)), 0);
 /**
- * Strength on a log scale over `HEAT_DECADES`, felt as `HEAT_CURVE` says, against the map's reference (the open day's largest cell, the same for every day and view), not each day's own: a day with one big cluster dimmed its whole column, and earlier eras' smaller amounts must still read.
+ * Strength on a log scale over `HEAT_DECADES`, felt as `HEAT_CURVE` says, against the map's reference (the open day's
+ * largest cell, the same for every day and view), not each day's own: a day with one big cluster dimmed its whole
+ * column, and earlier eras' smaller amounts must still read.
  * @param {number} value
  * @param {number} most
  * @param {{ up: number[], down: number[], opacity: number, gradient: number[][] | null }} look
@@ -282,7 +286,8 @@ const heatLooks = new Map();
 /** @type {WeakMap<number[], { g: Int32Array, days: string[] }>} */
 const heatCalendars = new WeakMap();
 /**
- * The last bar, the open one, is "latest" where the timeline reaches the latest (`live`), else its own date, a step on from its start (a chunk of history ends in the past).
+ * The last bar, the open one, is "latest" where the timeline reaches the latest (`live`), else its own date, a step on
+ * from its start (a chunk of history ends in the past).
  * @param {{ times: number[], live?: boolean }} data
  */
 function heatCalendar({ times, live = true }) {
@@ -318,7 +323,8 @@ const heatDayHeld = (key) => {
   return heatDays.has(key);
 };
 /**
- * Its own day once it's come, else the coarser blocks' over it meanwhile; none (or its own failed), null. Drawn and read alike.
+ * Its own day once it's come, else the coarser blocks' over it meanwhile; none (or its own failed), null. Drawn and
+ * read alike.
  * @param {HeatLook} heat
  * @param {number} owner
  * @param {number} step
@@ -354,7 +360,8 @@ function profileAt(look, { y, price, row }) {
 /** @param {ChartPoint} param @returns {Layer[]} */
 function profilesUnder(param) {
   if (keyTime !== null || !param.point || param.pane === undefined) return [];
-  // Left of the widest column a profile draws (a pixel's slack: its bars' edge on the device's pixels, its curves' stroke), none asked.
+  // Left of the widest column a profile draws (a pixel's slack: its bars' edge on the device's pixels, its curves'
+    // stroke), none asked.
   const x = param.point.x, plot = engine.time.width;
   if (x < plot - columnWidth(plot) - 1) return [];
   const mine = chart.layers.filter((layer) => {
@@ -439,7 +446,10 @@ function profileDays(look, g) {
 /** @param {ReturnType<typeof profileDays>} shown */
 const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
 /**
- * A row the close falls in counts as far as the close is into it (its coins taken as even across it): a row doesn't say which of its coins are under the close, and one side by its middle moved the share by points with the density (2024-07-08: 9.3% at 100 rows a ×10, 12.9% at 200, 11.7% at 500; this: 12.3, 12.4, 12.2, the published 11.9). Kept while its days, grid and close are the same.
+ * A row the close falls in counts as far as the close is into it (its coins taken as even across it): a row doesn't say
+ * which of its coins are under the close, and one side by its middle moved the share by points with the density
+ * (2024-07-08: 9.3% at 100 rows a ×10, 12.9% at 200, 11.7% at 500; this: 12.3, 12.4, 12.2, the published 11.9). Kept
+ * while its days, grid and close are the same.
  * @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} close
  */
 function profileShare(heat, shown, close) {
@@ -461,7 +471,8 @@ function viewProfile(heat, profile) {
   heat.drawn = true;
   if (heatWaiters.size) queueMicrotask(() => { for (const wake of [...heatWaiters]) wake(); });
   const grid = heat.grid;
-  // Its shares as drawn, for its axis: where they change, drawn again (the chart paints its axes before its series: theirs read on the next frame).
+  // Its shares as drawn, for its axis: where they change, drawn again (the chart paints its axes before its series:
+    // theirs read on the next frame).
   const shown = (/** @type {{ close: number, share: number } | undefined} */ next) => {
     const was = heat.shares;
     // As written: a live tick moving the share past what it says draws nothing again.
@@ -586,9 +597,12 @@ function noteDrawn(/** @type {string} */ state, /** @type {{ kind: DrawingKind, 
   drawnSteps.set(state, drawn);
   for (const key of drawnSteps.keys()) if (drawnSteps.size > 200) drawnSteps.delete(key);
 }
-// By the step itself: its tool, and how many times you had picked one then (`picks`: a tool put down after a drawing, or taken up or down by an undo, isn't a pick). `undoTook`: the tool an undo took up again, none once one's picked otherwise.
+// By the step itself: its tool, and how many times you had picked one then (`picks`: a tool put down after a drawing,
+// or taken up or down by an undo, isn't a pick). `undoTook`: the tool an undo took up again, none once one's picked
+// otherwise.
 const drawnSteps = /** @type {Map<string, { kind: DrawingKind, picks: number }>} */ (new Map());
-// By its body, every one selected with it follows; by one of its points, it alone (a line by an end, a box by a corner, the opposite held; a stroke, line or path by a corner or side of its box, scaled from the opposite).
+// By its body, every one selected with it follows; by one of its points, it alone (a line by an end, a box by a corner,
+// the opposite held; a stroke, line or path by a corner or side of its box, scaled from the opposite).
 function moveTo(event) {
   const at = plotPoint(event.clientX, event.clientY, moving.rect), { originals, target, handle } = moving, line = timeLine();
   if (!moving.moved && Math.hypot(at.x - moving.start.x, at.y - moving.start.y) < 3) return;
@@ -654,7 +668,8 @@ function duplicateDrawings(/** @type {string[]} */ ids) {
   });
   addDrawings(copies);
 }
-// Across, by their places on the timeline; up and down, as they show on their pane (a log scale's too), each pane's apart. A line across keeps its value flipped left for right, a line down its date top for bottom.
+// Across, by their places on the timeline; up and down, as they show on their pane (a log scale's too), each pane's
+// apart. A line across keeps its value flipped left for right, a line down its date top for bottom.
 function flipDrawings(/** @type {string[]} */ ids, /** @type {boolean} */ across) {
   const drawings = /** @type {Drawing[]} */ (ids.map(drawingById).filter(Boolean)), flipped = new Map();
   const moves = (/** @type {Drawing} */ drawing) => drawing.kind !== (across ? "hline" : "vline");

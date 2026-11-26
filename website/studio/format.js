@@ -107,7 +107,8 @@ function axisLabel(value, suffix = "", unit = "") {
   const letters = lettersOf(unit), key = `${value}${suffix}${letters[1]}`, known = axisLabels.get(key);
   if (known !== undefined) return known;
   if (axisLabels.size > 4000) axisLabels.clear();
-  // The library steps its ticks by subtraction: the zero one can come out as 6e-17. Below the scales' least move it's 0.
+  // The library steps its ticks by subtraction: the zero one can come out as 6e-17. Below the scales' least move it's
+    // 0.
   const shown = Math.abs(value) < 5e-10 ? 0 : value, sign = shown < 0 ? "−" : "";
   const label = `${sign}${compact(Math.abs(shown), 3, AXIS_CHARS - suffix.length, letters)}${suffix}`;
   axisLabels.set(key, label);

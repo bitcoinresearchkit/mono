@@ -73,7 +73,8 @@ function gradientOf(/** @type {any} */ input) {
   for (let k = stops.length - 1; k >= 0; k--) stops[k][0] = Math.min(stops[k][0], k < stops.length - 1 ? stops[k + 1][0] - 1 : 100);
   return stops;
 }
-// lag( becomes shift( where that still fits (a cut one would break). A function, not a const: charts are read before the script below runs.
+// lag( becomes shift( where that still fits (a cut one would break). A function, not a const: charts are read before
+// the script below runs.
 function formulaNow(/** @type {string} */ formula) {
   const now = formula.replace(/(?<![A-Za-z0-9_])lag(?=\s*\()/g, "shift");
   return now.length <= FORMULA_MAX ? now : formula;

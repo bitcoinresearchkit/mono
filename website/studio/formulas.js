@@ -48,7 +48,8 @@ function fromStart(x, run) {
   return out;
 }
 /**
- * Sums run over differences from an origin in the window, made again from scratch every `n` points and once the spread falls far below what passed through: a small spread on a large level (a hash rate) keeps its digits.
+ * Sums run over differences from an origin in the window, made again from scratch every `n` points and once the spread
+ * falls far below what passed through: a small spread on a large level (a hash rate) keeps its digits.
  * @param {Vector} x @param {number} n @returns {WindowStats}
  */
 function rolling(x, n, partial = false) {
@@ -60,7 +61,8 @@ function rolling(x, n, partial = false) {
   }
   const mean = new Float64Array(x.length).fill(NaN), variance = new Float64Array(x.length).fill(NaN), counts = new Float64Array(x.length).fill(NaN), totals = new Float64Array(x.length).fill(NaN);
   let origin = NaN, sum = 0, squares = 0, count = 0, peak = 0, first = -1;
-  // Hot: finite as `v - v === 0`, NaN as `origin !== origin`, no call per value (a fifth of the time here on a phone without a JIT), results the same to the bit.
+  // Hot: finite as `v - v === 0`, NaN as `origin !== origin`, no call per value (a fifth of the time here on a phone
+    // without a JIT), results the same to the bit.
   const add = (/** @type {number} */ value, /** @type {number} */ sign) => {
     if (origin !== origin) origin = value;
     const d = value - origin;
@@ -198,7 +200,8 @@ const stochrsiKOf = (x, n) => rolling(stochrsiOf(x, n), 3).mean;
 const macdOf = (x, n, partial = false) => ((fast, slow) => fast.map((value, i) => value - slow[i]))(emaOf(x, Math.max(1, Math.round((n * 12) / 26)), partial), emaOf(x, n, partial));
 /** @param {Vector} x */
 function volatilityOf(x, n, partial, step) {
-  // Each log return with the points it spans (a gap's, more than one): over a window, drift and variance per point as time measures them (a return across a gap counts as long as it is):
+  // Each log return with the points it spans (a gap's, more than one): over a window, drift and variance per point as
+  // time measures them (a return across a gap counts as long as it is):
   // variance = (Σ r²/k − (Σ r)² / Σ k) / (returns − 1). A steady growth reads as none, gaps or not.
   const len = x.length, r = new Float64Array(len).fill(NaN), k = new Float64Array(len);
   let prev = NaN, at = -1, first = -1;
@@ -247,7 +250,9 @@ function cagrOf(x, n, step) {
   return out;
 }
 /**
- * From 1× at the period's first value; a gap in it (a Feb 29 a year's shift leaves) doesn't start it again. Moved onto another period, none where x has no value at its first point: laid over another, its 1× would be a later one's (the price's first cycle, from Jul 2010, over the second).
+ * From 1× at the period's first value; a gap in it (a Feb 29 a year's shift leaves) doesn't start it again. Moved onto
+ * another period, none where x has no value at its first point: laid over another, its 1× would be a later one's (the
+ * price's first cycle, from Jul 2010, over the second).
  * @param {Vector} x @param {Vector} periods @param {number} n @param {number | undefined} at
  */
 /** @type {WeakSet<Vector>} */
@@ -281,7 +286,8 @@ function yearsOf(times) {
   return out;
 }
 /**
- * A year's and a halving's own lengths vary, so a span is read as written, not as a window's days; null for anything else (a series, a sum).
+ * A year's and a halving's own lengths vary, so a span is read as written, not as a window's days; null for anything
+ * else (a series, a sum).
  * @param {any} node @returns {{ v: number, unit: keyof typeof SPAN_DAYS, text: string } | null}
  */
 const shiftSpan = (node) =>
@@ -292,7 +298,9 @@ const shiftSpanError = (span) => {
   return span.unit === "month" || span.unit === "year" || span.unit === "halving" ? (Number.isInteger(span.v) ? "" : `shift(x, by): ${span.text} isn't whole: months, years and halvings count whole ones (18mo, not 1.5y)`) : "";
 };
 /**
- * By points (hours, days, weeks); to the same date (months, years: one with none there, as Feb 29 a year on, dropped), placed at the point nearest it within half a step; or as far into the halving cycle as into its own (day for day, what runs past that cycle's end cut). Nothing past the data.
+ * By points (hours, days, weeks); to the same date (months, years: one with none there, as Feb 29 a year on, dropped),
+ * placed at the point nearest it within half a step; or as far into the halving cycle as into its own (day for day,
+ * what runs past that cycle's end cut). Nothing past the data.
  * @param {Vector} x
  * @param {{ v: number, unit: keyof typeof SPAN_DAYS }} span
  * @param {Vector | null} times
@@ -331,7 +339,8 @@ function shiftOf(x, span, times, epochs, step) {
   return out;
 }
 /**
- * Kept through what's worked out point by point (signs, arithmetic, comparisons, when, min and max, log and the like), not through a window, a shift or a drawdown.
+ * Kept through what's worked out point by point (signs, arithmetic, comparisons, when, min and max, log and the like),
+ * not through a window, a shift or a drawdown.
  * @type {WeakMap<Vector, Uint8Array>}
  */
 const restarts = new WeakMap();
@@ -380,7 +389,9 @@ function rebaseOf(x, by, moved = false) {
   if (marks) restarts.set(out, marks);
   return out;
 }
-// Per day by the days each period holds, so a day, a week or a month give the same rate; the point still open has its change so far over the time elapsed. The first value's change is from nothing only where the data is all of history, else none: a chunk starts from a total it doesn't hold.
+// Per day by the days each period holds, so a day, a week or a month give the same rate; the point still open has its
+// change so far over the time elapsed. The first value's change is from nothing only where the data is all of history,
+// else none: a chunk starts from a total it doesn't hold.
 function perDayOf(x, times, index, partial) {
   const out = new Float64Array(x.length).fill(NaN), now = Date.now() / 1000;
   let before = -1;
@@ -405,7 +416,9 @@ function shifted(x, n, f) {
   return out;
 }
 /**
- * Where the data is all of history (1D and up), a window at its start holds what there is (`partial`); on a finer interval only part of history loads, so a window waits to be full. A window is the last argument, run as the interval's points (`step`: the days a point is).
+ * Where the data is all of history (1D and up), a window at its start holds what there is (`partial`); on a finer
+ * interval only part of history loads, so a window waits to be full. A window is the last argument, run as the
+ * interval's points (`step`: the days a point is).
  * @type {Record<string, [number, string, string, ((x: Vector, n: number, p: number, partial: boolean, step: number) => Vector) | null, boolean?, number?]>}
  */
 const FUNCTIONS = {
@@ -507,7 +520,8 @@ const BINARY = { "|": 2, "&": 4, "<": 6, ">": 6, "<=": 6, ">=": 6, "==": 6, "!="
 const plainOperators = (source) => source.replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/≠/g, "!=");
 const isBandSum = (/** @type {string} */ f) => f === "over" || f === "under";
 /**
- * A band without the series (0-sat outputs have no supply) adds nothing; added from the far end in: each cutoff is the one beyond it plus a band, a part they share (see parts). What can't be added (a price, a percent) isn't.
+ * A band without the series (0-sat outputs have no supply) adds nothing; added from the far end in: each cutoff is the
+ * one beyond it plus a band, a part they share (see parts). What can't be added (a price, a percent) isn't.
  * @param {Extract<Node, { k: "call" }>} node @returns {Node}
  */
 function bandSum(node) {
@@ -582,7 +596,8 @@ function parseAnew(source) {
       const precedence = BINARY[token.v];
       if (precedence === undefined || precedence < min) return left;
       at++;
-      // Two comparisons in a row say nothing (1 < A < 3 is (1 < A) < 3): join them with & or |; one in parentheses, compared, is meant: (A > 1) > 0.
+      // Two comparisons in a row say nothing (1 < A < 3 is (1 < A) < 3): join them with & or |; one in parentheses,
+            // compared, is meant: (A > 1) > 0.
       if (COMPARES.has(token.v) && compared) throw new Error("Join comparisons with & or |: A > 1 & A < 3");
       compared = COMPARES.has(token.v);
       const a = left, b = expression(token.v === "^" ? precedence : precedence + 1);
@@ -669,7 +684,9 @@ function unitOfNode(node, unitOfRef) {
 }
 
 /**
- * Keyed by operation and inputs by identity (see idOf): the same inputs, the same array, never made twice and never out of date (an input that changes is another array). Arrays are shared, so never written to: what changes one copies it first (see liveCopy). Most recently used.
+ * Keyed by operation and inputs by identity (see idOf): the same inputs, the same array, never made twice and never out
+ * of date (an input that changes is another array). Arrays are shared, so never written to: what changes one copies it
+ * first (see liveCopy). Most recently used.
  * @type {Map<string, Vector | number>}
  */
 const parts = new Map();
@@ -776,7 +793,8 @@ function evaluateAnew(node, length, ref, index, inWindow) {
           if (TWO_POINTS.has(node.f) && points < 2) throw failing(`${node.f}: its window is one point at ${INTERVAL_LABEL[index]}, and it needs two at least (a longer span, or a finer interval)`, "Span too short");
           const out = fromStart(x, (from) => run(from, points, /** @type {number} */ (p), !FINE.has(index), INTERVAL_DAYS[index]));
           if (node.f === "cagr" && !out.some(Number.isFinite) && !outreaches(x, points === Infinity ? 1 : points)) throw new Error("cagr: growth needs positive values, two at least");
-          // Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice (an RSI's stochastic, MACD's signal) reach twice as far.
+          // Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice (an
+                    // RSI's stochastic, MACD's signal) reach twice as far.
           const reach = node.f.startsWith("stochrsi") ? points * 2 + (node.f === "stochrsi_d" ? 3 : node.f === "stochrsi_k" ? 1 : -1) : ["macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
           if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "cagr", "rsi", "stochrsi", "stochrsi_k", "stochrsi_d", "chop"].includes(node.f)) && outreaches(x, reach)) {
             const written = spanned ? node.args[arity - 1] : null;

@@ -64,7 +64,8 @@ function onScreen(drawing, series, line) {
   const bars = pointBars(drawing.points);
   return drawing.points.map(([, value], i) => ({ x: line.at + bars[i] * line.step, y: seriesY(series, value) ?? NaN }));
 }
-// Kept until the chart's times change. A drawing's points are only ever added to (a stroke being drawn): those added are placed alone.
+// Kept until the chart's times change. A drawing's points are only ever added to (a stroke being drawn): those added
+// are placed alone.
 const placedBars = new WeakMap();
 function pointBars(points) {
   let kept = placedBars.get(points);
@@ -451,7 +452,8 @@ function axisTag(at, text, color) {
 const NONE = /** @type {AxisTag[]} */ ([]);
 /** @param {Layer} layer */
 const fills = (layer) => layer.type === "cloud" || ["area", "baseline", "histogram", "candles"].includes(layer.type);
-// Found once for all the sketches a draw brings up to the view: each finding them itself walked the chart's layers for each.
+// Found once for all the sketches a draw brings up to the view: each finding them itself walked the chart's layers for
+// each.
 let hostsFound = /** @type {{ at: string, byPane: Map<string | undefined, { fill: Layer | undefined, host: Layer | null, back: Layer | null }>, lowest: string | undefined } | null} */ (null);
 function halvingHosts() {
   const at = `${revision}:${drawVersion}:${drawn.size}`;
@@ -489,7 +491,9 @@ class Sketch {
     this.priceTags = null;
     /** @type {AxisTag[] | null} */
     this.timeTags = null;
-    // Layers on its series' pane: halvings under every series (no fill to draw them over) or just over its frontmost fill; a trend's ends just over its series; the halvings' names and its drawings over everything, the crosshair too.
+    // Layers on its series' pane: halvings under every series (no fill to draw them over) or just over its frontmost
+        // fill; a trend's ends just over its series; the halvings' names and its drawings over everything, the crosshair
+        // too.
     const size = { width: 0, height: 0 }, sizeOf = (/** @type {{ time: { width: number }, scale: { height: number } }} */ at) => ((size.width = at.time.width), (size.height = at.scale.height), size);
     const under = new Custom({ draw: (g, at) => void (this.fresh().markOrder === "bottom" && this.marks.length && paintHalvings(g, sizeOf(at), this.marks)) }, { behind: true });
     const beside = new Custom({
@@ -624,7 +628,8 @@ function repaintDrawings() {
   $("belt").classList.toggle("busy", Boolean(placing?.held || moving?.moved || boxing));
 }
 let hovering = { id: "", handle: -1, over: "" };
-// `boxed`: as the chart will lie in its box once a layout's motion ends (its size held meanwhile: see sizeHeld), following the box as it moves; else what shows of it.
+// `boxed`: as the chart will lie in its box once a layout's motion ends (its size held meanwhile: see sizeHeld),
+// following the box as it moves; else what shows of it.
 function plotBox(boxed = false) {
   const first = paneBox(0), last = paneBox(engine.panes.length - 1);
   if (!first || !last) return null;

@@ -37,7 +37,8 @@ function onHold(container, selector, start) {
   container.addEventListener("contextmenu", (event) => TOUCH && closest(event, selector) && event.preventDefault());
 }
 /**
- * By touch the item is picked by holding still first (a quick swipe still scrolls). A hold that began picking and then carried its item off picked nothing: `unpick` ends it.
+ * By touch the item is picked by holding still first (a quick swipe still scrolls). A hold that began picking and then
+ * carried its item off picked nothing: `unpick` ends it.
  * @param {HTMLElement} list
  * @param {{ item: string, idOf: (item: HTMLElement) => string, carried?: (id: string) => string[],
  *   pick?: (id: string) => void, picking?: () => boolean, unpick?: () => void, refuse?: (event: PointerEvent) => boolean, still?: () => boolean, sticky?: boolean,
@@ -223,7 +224,8 @@ function dragToReorder(list, how) {
 let carrying = null;
 let swallowUntil = 0;
 const swallowClick = () => (swallowUntil = performance.now() + 600);
-// A press clicks what it pressed: a control that slid from under a still pointer (a fold above it, a glide) is still the one clicked. The browser's click, its release elsewhere, goes to what holds both: taken back, this one given.
+// A press clicks what it pressed: a control that slid from under a still pointer (a fold above it, a glide) is still
+// the one clicked. The browser's click, its release elsewhere, goes to what holds both: taken back, this one given.
 let pressStart = /** @type {{ target: Element, x: number, y: number, box: DOMRect } | null} */ (null);
 let slidFrom = /** @type {Element | null} */ (null);
 const clickSlid = (/** @type {MouseEvent} */ { clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail }) => ((target) => ((slidFrom = null), target?.isConnected && target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail: detail || 1 }))))(slidFrom);

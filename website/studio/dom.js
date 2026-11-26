@@ -107,7 +107,8 @@ function drawKeys(/** @type {ParentNode} */ root) {
   for (const key of root.querySelectorAll("kbd")) {
     const text = key.textContent ?? "";
     key.toggleAttribute("data-single", !NAMED_KEY.test(text));
-    // A key on a control isn't part of its name: said as its shortcut ("Collapse", not "Collapse backslash"), except where it isn't the control's own (a drawing tool's comes after D).
+    // A key on a control isn't part of its name: said as its shortcut ("Collapse", not "Collapse backslash"), except
+        // where it isn't the control's own (a drawing tool's comes after D).
     const control = !key.hasAttribute("aria-hidden") ? key.closest('button, a, [role="option"], [role="menuitem"]') : null;
     if (control) {
       key.setAttribute("aria-hidden", "true");
@@ -159,7 +160,9 @@ function restoreFocus(container, key) {
   /** @type {HTMLElement | null | undefined} */ (match)?.focus();
 }
 /**
- * Popovers in the top layer, not modal dialogs (Safari's AutoFill measures a modal's whole page as ⌘K's field takes focus); what a modal does is done here: the page behind inert (holdPage), keys kept in, esc, a click beside it, Back on a phone.
+ * Popovers in the top layer, not modal dialogs (Safari's AutoFill measures a modal's whole page as ⌘K's field takes
+ * focus); what a modal does is done here: the page behind inert (holdPage), keys kept in, esc, a click beside it, Back
+ * on a phone.
  * @param {Element} element
  */
 function isOpen(element) {
@@ -175,7 +178,8 @@ function onClosed(element, then, once = false) {
   element.addEventListener("toggle", heard);
 }
 /**
- * Scrolled elements, as their scroll events say (the event comes at the next frame): only they can be anywhere but at their start.
+ * Scrolled elements, as their scroll events say (the event comes at the next frame): only they can be anywhere but at
+ * their start.
  * @type {Set<Element>}
  */
 const scrolled = new Set();
@@ -207,7 +211,8 @@ function twinIn(copy, of, element) {
   return way.reduceRight((into, i) => into.children[i], copy);
 }
 /**
- * Firefox doesn't play `display` out and would drop the thing at once: a copy plays the way out, the thing itself is gone at once.
+ * Firefox doesn't play `display` out and would drop the thing at once: a copy plays the way out, the thing itself is
+ * gone at once.
  * @param {HTMLElement} element @param {Keyframe[]} frames @returns {Promise<void> | undefined}
  */
 function fadeOut(element, frames, duration = MOTION.micro, placed = false, easing = MOTION.easeLayout, prune = false) {
@@ -220,7 +225,8 @@ function fadeOut(element, frames, duration = MOTION.micro, placed = false, easin
   for (const source of scrolled) if (element.contains(source) && (source.scrollTop || source.scrollLeft)) scrolls.push([source, source.scrollTop, source.scrollLeft]);
   const shows = /** @type {Keyframe} */ ({ ...frames[0] });
   for (const property of ["opacity", "transform", "translate", "scale"]) if (property in shows) shows[property] = style.getPropertyValue(property);
-  // `prune` (the Charts page's step): a page of tiles copied whole had every one styled and laid out again for its way out, so parts wholly out of sight are copied as empty boxes of their size.
+  // `prune` (the Charts page's step): a page of tiles copied whole had every one styled and laid out again for its way
+    // out, so parts wholly out of sight are copied as empty boxes of their size.
   const unseen = prune && (style.overflowX !== "visible" || style.overflowY !== "visible") ? outOfSight(element, copy, new Set(moving.map((animation) => /** @type {KeyframeEffect | null} */ (animation.effect)?.target ?? null))) : [];
   const seen = (/** @type {Element} */ source) => !unseen.some(([part]) => part.contains(source));
   for (const [, twin, held] of unseen) {
@@ -255,7 +261,8 @@ function fixedOrigin(element) {
   const { left: x, top: y } = element.getBoundingClientRect();
   return { x, y };
 }
-// Whole device pixels: text drawn the same wherever it's drawn, not a pixel's fraction off once painted again (Chromium).
+// Whole device pixels: text drawn the same wherever it's drawn, not a pixel's fraction off once painted again
+// (Chromium).
 function placeFixed(/** @type {HTMLElement} */ element, /** @type {{ x: number, y: number }} */ origin, /** @type {number} */ left, /** @type {number} */ top) {
   const onPixels = (/** @type {number} */ value) => Math.round(value * devicePixelRatio) / devicePixelRatio;
   element.style.left = `${onPixels(left) - origin.x}px`;

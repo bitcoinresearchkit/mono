@@ -118,7 +118,8 @@ function dockBelt(/** @type {"top" | "bottom" | "left" | "right"} */ side) {
 let beltSize = { width: 0, height: 0 };
 let beltPressedSeen = "";
 function placeBelt(glide = false, stay = false) {
-  // Where the plot will be: through a layout's motion the belt goes along with the chart's box, not the chart held meanwhile (it'd jump at the motion's end).
+  // Where the plot will be: through a layout's motion the belt goes along with the chart's box, not the chart held
+    // meanwhile (it'd jump at the motion's end).
   const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox(true);
   if (!plot) return;
   // Measured at rest: a glide still going ends where it was going (its coming in, a fade and 4px, isn't one: it plays).
@@ -247,7 +248,8 @@ function drawingAt(clientX, clientY, reach = REACH) {
   if (!pane || !id) return null;
   const at = plotPoint(clientX, clientY, pane.rect);
   if (at.x < 0 || at.x > engine.time.width) return null;
-  // Top as painted: the pane's first layer over the others, then the later added; a point of a drawing (a corner, an end) over any body.
+  // Top as painted: the pane's first layer over the others, then the later added; a point of a drawing (a corner, an
+    // end) over any body.
   const inPane = chart.layers.filter((layer) => layer.pane === id);
   const order = new Map((chart.panes[pane.index].reverse ? inPane : inPane.reverse()).map((layer, i) => [layer.id, i])), score = (hit) => (hit.handle >= 0 && hit.over !== "ew" && hit.over !== "ns" ? MAX_DRAWINGS * (chart.layers.length + 1) : 0) + (order.get(hit.drawing.layer) ?? 0) * MAX_DRAWINGS + shownDrawings.indexOf(hit.drawing);
   let found = null;

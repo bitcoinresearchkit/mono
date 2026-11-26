@@ -81,7 +81,10 @@ import { readsOf } from "/studio/charts-read.js";
 /** @import { Place } from "/studio/preset-charts.js" */
 /** @import { Preset } from "/studio/presets-edit.js" */
 
-/** Questions wait for the index to be built; one given up (typing went on) leaves the line, so the latest is never stuck behind stale ones. */
+/**
+ * Questions wait for the index to be built; one given up (typing went on) leaves the line, so the latest is never stuck
+ * behind stale ones.
+ */
 const finder = {
   started: false,
   ready: false,
@@ -251,7 +254,10 @@ function paletteKeys(select = false) {
   input.focus();
   if (select) input.select();
 }
-/** A key only a keyboard sends (not a phone's letters): a touch device's keyboard in use, said by `data-keyboard` till a finger's down again. */
+/**
+ * A key only a keyboard sends (not a phone's letters): a touch device's keyboard in use, said by `data-keyboard` till a
+ * finger's down again.
+ */
 const keyboardKey = (/** @type {KeyboardEvent} */ event) => event.metaKey || event.ctrlKey || event.altKey || /^(Arrow|Tab$|Escape$|Page|Home$|End$|F\d)/.test(event.key);
 const keyed = (/** @type {boolean} */ on) => on !== keyboard() && document.documentElement.toggleAttribute("data-keyboard", on);
 const keyboard = () => !TOUCH || document.documentElement.hasAttribute("data-keyboard");
@@ -995,7 +1001,10 @@ function textWords(/** @type {string} */ lower) {
   textWordsKept.set(lower, made);
   return made;
 }
-/** Three rows taken in turn, each one's least kept as it's made: no call, spread or destructuring swap, which a phone without a JIT pays for. */
+/**
+ * Three rows taken in turn, each one's least kept as it's made: no call, spread or destructuring swap, which a phone
+ * without a JIT pays for.
+ */
 function editsBetween(a, b, most) {
   if (Math.abs(a.length - b.length) > most) return most + 1;
   const n = b.length;
@@ -1018,7 +1027,8 @@ function editsBetween(a, b, most) {
   return row[n];
 }
 /**
- * Past a stem the two share, one edit at most: an ending put in another's place isn't a slip ("monthly" isn't "months"; "addresess" is "addresses"); nor is the stem itself where they have it with another ending too.
+ * Past a stem the two share, one edit at most: an ending put in another's place isn't a slip ("monthly" isn't "months";
+ * "addresess" is "addresses"); nor is the stem itself where they have it with another ending too.
  * @param {string} word @param {string} other @param {{ has(word: string): boolean, keys(): Iterable<string> }} words
  */
 function slipEdits(word, other, words) {
@@ -1284,7 +1294,10 @@ function settingRows() {
     }),
   })));
 }
-/** Kept while ⌘K stays open and the chart, its data, view width and colors are the same: found anew at each keystroke they were half its time on a phone with 30 layers (~40 ms a key). */
+/**
+ * Kept while ⌘K stays open and the chart, its data, view width and colors are the same: found anew at each keystroke
+ * they were half its time on a phone with 30 layers (~40 ms a key).
+ */
 let settingsKept = { key: /** @type {any[]} */ ([]), rows: /** @type {any[]} */ ([]), choices: /** @type {Map<string, { said: string, choices: any[] }>} */ (new Map()) };
 function settingsNow() {
   const key = [paletteOpenings, chart.id, revision, chart.updated, resolved, home, presetShown, engine.time.width, document.documentElement.dataset.theme, tokensMedia.map((media) => media.matches).join()];

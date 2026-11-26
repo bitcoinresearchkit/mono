@@ -34,7 +34,8 @@ import { placeNames, presetNodeAt, folderById, presetChart, presetEdited, preset
 /** @import { Action, Page } from "/studio/command.js" */
 
 /**
- * `p`: its place in the tree (sections, then its own name); `t`: title; `c`: chart as a link writes it; `w`: its places when it was one a window (see presets.js).
+ * `p`: its place in the tree (sections, then its own name); `t`: title; `c`: chart as a link writes it; `w`: its places
+ * when it was one a window (see presets.js).
  * @typedef {{ p: string[], t: string, c: { layers: any[], panes?: any[], index?: string, range?: string }, s?: string, w?: Record<string, string> }} Preset
  */
 // seo.mjs checks each is a preset.
@@ -82,7 +83,8 @@ const revealNearest = (preset, id) => requestAnimationFrame(() => {
 });
 
 /**
- * Its copies in other tabs, older, are let go of as a deleted chart's are, even once this one, as made, is let go of here (see prunePresets).
+ * Its copies in other tabs, older, are let go of as a deleted chart's are, even once this one, as made, is let go of
+ * here (see prunePresets).
  * @param {Chart} doc
  */
 function resetPreset(doc) {
@@ -108,7 +110,8 @@ function copyPreset(/** @type {number} */ i, /** @type {string | undefined} */ f
   const drawn = previews.get(from.id), mark = thumbs.get(from.id);
   if (drawn) previews.set(copy.id, { ...drawn, key: "" });
   if (mark) (thumbs.set(copy.id, mark), saveThumbs());
-  // Listed first and opened at once (its toast then answers ⌘Z): Undo goes back to the preset, the copy gone; Redo lists and opens that same copy again, so its own steps and every Library step that knew it find it.
+  // Listed first and opened at once (its toast then answers ⌘Z): Undo goes back to the preset, the copy gone; Redo
+    // lists and opens that same copy again, so its own steps and every Library step that knew it find it.
   const preset = presetIdOf(presetKey(i));
   library.charts.unshift(copy);
   const openCopy = () => {
@@ -144,7 +147,8 @@ function copyChoices(/** @type {number} */ i) {
   ];
 }
 /**
- * One step, one Undo for both; no Redo (the folder made again would need its name and place: a path of its own for a rare step).
+ * One step, one Undo for both; no Redo (the folder made again would need its name and place: a path of its own for a
+ * rare step).
  * @param {number} i
  */
 function copyToNewFolder(i) {
@@ -180,7 +184,8 @@ function presetActions(i, where) {
     ...(doc && presetEdited(doc) ? [{ key: "reset", icon: ICONS.undo, label: "Reset", aside: "Discard your edits", apart: !head, run: () => resetPreset(doc) }] : []),
   ];
 }
-// Made a slice at a time in idle moments (no long task on a phone without a JIT), the rest at once when a search needs them first.
+// Made a slice at a time in idle moments (no long task on a phone without a JIT), the rest at once when a search needs
+// them first.
 let presetVocab = { of: /** @type {string[] | null} */ (null), counts: /** @type {Map<string, number>} */ (new Map()), making: /** @type {Generator<void, Map<string, number>> | null} */ (null) };
 function* vocabMaking(/** @type {string[]} */ texts) {
   const counts = new Map();
@@ -355,7 +360,9 @@ function markersHtml() {
           </div>` : ""}</section>`;
 }
 
-// Whole screen where the browser gives it, asked in the same click (it must be); not when the window is the screen already or says so (Mullvad's does). A browser's own way out (Firefox's Escape, a held one in Chromium) leaves it too.
+// Whole screen where the browser gives it, asked in the same click (it must be); not when the window is the screen
+// already or says so (Mullvad's does). A browser's own way out (Firefox's Escape, a held one in Chromium) leaves it
+// too.
 function setFull(on = !fullOn()) {
   if (on === fullOn()) return;
   layOutAlone(on);
@@ -386,7 +393,8 @@ const LEGENDS = /** @type {const} */ ([["off", "Off", "No legend over the panes"
 const legendAction = (group = "") => ({ key: "legend", icon: ICONS.legend, label: "Legend", aside: LEGENDS.find(([id]) => id === (chart.legend ?? ""))?.[1], group, page: () => choicePage("Legend", () => LEGENDS.map(([id, text, , note]) => ({ key: id || "on", icon: ICONS.legend, label: text, aside: note, current: (chart.legend ?? "") === id, run: () => setLegend(id) }))) });
 const setLegend = (/** @type {string} */ mode) => (chart.legend ?? "") !== mode && commit((doc) => (mode === "off" ? (doc.legend = "off") : delete doc.legend), { look: true });
 /**
- * Measured ahead while the list is behind (a phone's sheet put away): its opening doesn't wait for them (slow on a phone without a JIT), a layer at a time in idle moments.
+ * Measured ahead while the list is behind (a phone's sheet put away): its opening doesn't wait for them (slow on a
+ * phone without a JIT), a layer at a time in idle moments.
  * @param {{ timeRemaining: () => number }} deadline
  */
 function roomsAhead(deadline, from = 0) {

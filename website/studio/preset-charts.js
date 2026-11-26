@@ -62,7 +62,8 @@ const asPlace = (/** @type {any} */ at) => (typeof at?.folder === "string" ? { f
 const backToHome = () => (isPreview(chart) || emptyYours(chart)) && history.state?.fromHome === true && history.state.chart === chart.id;
 const folderById = (/** @type {string | undefined} */ id) => library.folders.find((folder) => folder.id === id);
 /**
- * A shade (a color not named) is the series' place in a family (a comparison's member, a window, a percentile): a layer in one says nothing of its look, but a baseline's base.
+ * A shade (a color not named) is the series' place in a family (a comparison's member, a window, a percentile): a layer
+ * in one says nothing of its look, but a baseline's base.
  * @param {Preset[]} list @returns {Map<string, Partial<Layer>>}
  */
 function looksOf(list) {
@@ -87,7 +88,8 @@ function aFrame() {
  */
 const fromPreset = (preset) => ((doc) => (normalize(doc), doc))(validate(fromSketch({ ...preset.c, title: preset.t }), true));
 /**
- * Made once looked at, its id stable so its drawing is kept; the most recently looked at stay (a gallery's page of them).
+ * Made once looked at, its id stable so its drawing is kept; the most recently looked at stay (a gallery's page of
+ * them).
  * @type {Map<number, Chart>}
  */
 const presetDocs = new Map();
@@ -128,7 +130,8 @@ const addressesSoon = (deadline) => {
   inSlices(deadline, () => ((step) => (step.done && (addressBook.book = step.value), Boolean(step.done)))(steps.next()), addressesSoon);
 };
 /**
- * As written: the server sends the other spellings (the slash the other way, an old /chart/ one) to it. A preset once had an address per window (…/sma/200-days): that opens the preset at that window.
+ * As written: the server sends the other spellings (the slash the other way, an old /chart/ one) to it. A preset once
+ * had an address per window (…/sma/200-days): that opens the preset at that window.
  * @param {string} pathname @returns {{ path: string[] } | { preset: number, window?: string } | null}
  */
 const routeOf = (pathname) => addresses()?.at.get(pathname.slice(BASE.length)) ?? null;
@@ -142,7 +145,8 @@ function addressNow() {
 }
 const CANONICAL_ORIGIN = STUDIO_ORIGIN;
 function showAddress() {
-  // Once what's being done is done: a step of the history pushed after the page is drawn has the address, not the one before it.
+  // Once what's being done is done: a step of the history pushed after the page is drawn has the address, not the one
+    // before it.
   if (addressDue) return;
   addressDue = true;
   queueMicrotask(() => ((addressDue = false), placeAddress()));
@@ -211,7 +215,8 @@ const windowless = (doc) => ((w) => (w ? atWindow(structuredClone(doc), w.offere
 /** @param {Chart} doc */
 const firstViews = (doc) => (doc.panes.some((pane) => pane.lens?.at) ? ((copy) => (copy.panes.forEach((pane) => showView(copy, pane.id, 0)), copy))(structuredClone(doc)) : doc);
 /**
- * Looked at aside: its view, interval (as day1: every preset opened at day1 before its own), trailing window and views don't count, nor pane sizes: a separator dragged is a way of looking, not an edit.
+ * Looked at aside: its view, interval (as day1: every preset opened at day1 before its own), trailing window and views
+ * don't count, nor pane sizes: a separator dragged is a way of looking, not an edit.
  * @param {Chart} doc
  */
 const contentHash = (doc) => hashOf(contentOf(windowless(firstViews({ ...doc, range: "", index: "day1", panes: doc.panes.map(({ size, ...pane }) => pane) }))));
@@ -226,7 +231,8 @@ function templateHash(/** @type {number} */ i) {
 }
 const presetIdOf = (/** @type {string} */ key) => `p${hashOf(key)}`;
 /**
- * Made a slice at a time in idle moments (every preset's path is hashed: no long task on a phone without a JIT); the rest at once where one's asked for first.
+ * Made a slice at a time in idle moments (every preset's path is hashed: no long task on a phone without a JIT); the
+ * rest at once where one's asked for first.
  */
 let presetIds = /** @type {{ for: Preset[] | null, at: Map<string, number>, next: number }} */ ({ for: null, at: new Map(), next: 0 });
 function idsNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
@@ -279,7 +285,8 @@ function presetChart(/** @type {number} */ i) {
 /** @type {Preset[] | null} */
 let restampedFor = null;
 function prunePresets(/** @type {Chart | null} */ keep) {
-  // Migration for copies stamped while panes' sizes counted as an edit: stamped anew, remove after the release past v0.13.0.
+  // Migration for copies stamped while panes' sizes counted as an edit: stamped anew, remove after the release past
+    // v0.13.0.
   const resized = presets && restampedFor !== presets ? library.presets.filter((doc) => !pristine(doc) && presetIndex(doc) >= 0 && contentHash(doc) === templateHash(presetIndex(doc))) : [];
   restampedFor = presets;
   for (const doc of resized) (doc.base = templateHash(presetIndex(doc))), pristineSeen.delete(doc);
@@ -311,7 +318,8 @@ function presetShowing(doc) {
   const set = presetShows(doc), alike = /** @type {Preset[]} */ (presets).flatMap((_, i) => (presetShows(freshPreset(i)) === set ? [i] : []));
   return likeness(doc).map((like) => alike.find(like)).find((i) => i !== undefined) ?? -1;
 }
-// Nothing lost, nothing hidden: edits move to the preset that now shows the same series, else the chart is kept in the Library; said once.
+// Nothing lost, nothing hidden: edits move to the preset that now shows the same series, else the chart is kept in the
+// Library; said once.
 function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = true) {
   // One another tab placed already (deleted here, kept only while it's open) is that tab's.
   const lost = among.filter((doc) => presetIndex(doc) < 0 && !pristine(doc) && !isDeleted(doc));

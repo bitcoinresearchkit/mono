@@ -21,8 +21,10 @@ export function presetsKept() {
 }
 
 /**
- * Kept in this browser by what made them (presets.js, facts.js and their imports by presets.hash; the client by its HASH stamp), the
- * chain's facts kept beside them and looked at again behind. Made in a worker so the page's thread is free (Firefox took a fifth of a second).
+ * Kept in this browser by what made them (presets.js, facts.js and their imports by presets.hash; the client by its
+ * HASH stamp), the
+ * chain's facts kept beside them and looked at again behind. Made in a worker so the page's thread is free (Firefox
+ * took a fifth of a second).
  * Without the Cache API (Lockdown Mode's Safari), made at each start.
  * @returns {Promise<Presets>}
  */

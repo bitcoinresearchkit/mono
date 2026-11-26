@@ -27,7 +27,8 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
   const rest = (all, parts) => `${all} - ${parts.map((part) => `(${part})`).join(" - ")}`;
   /** @param {Name} name @param {string[][]} lines @param {number} days @param {{ title?: string, format?: string, log?: number[], was?: Record<string, string> }} [options] */
   const line = (name, lines, days, { title = typeof name === "string" ? name : name.shown, format, log, was } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}), ...(was ? { was } : {}) });
-  // One whose lines aren't all published is left out whole: a comparison missing a line would read as that line at zero.
+  // One whose lines aren't all published is left out whole: a comparison missing a line would read as that line at
+    // zero.
   const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, { weekly = true, ...options } = /** @type {{ weekly?: boolean, log?: number[] }} */ ({})) => {
     /** @type {string[][]} */
     const lines = [];

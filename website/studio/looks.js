@@ -28,7 +28,8 @@ const profileName = (layer, grouped = true) => ((groups) => `${measureName(layer
 // inspector, the grid's tiles): a layer's name, look, fill and stack, a pane's scale, a chart's title, a series' mark.
 const STACK_FILL = 0.35, STACK_WIDTH = 1;
 /**
- * Stacked or filled above is even: a band fading by price would read lighter the lower it sits, and above a high line all but vanish.
+ * Stacked or filled above is even: a band fading by price would read lighter the lower it sits, and above a high line
+ * all but vanish.
  * @param {Layer} layer @param {boolean} stacked @returns {[number, number]}
  */
 function fillOf(layer, stacked) {
@@ -38,13 +39,15 @@ function fillOf(layer, stacked) {
 }
 let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, foot: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()), times: /** @type {unknown} */ (null) };
 /**
- * `foot`: the stack under it (a share, in a 100% one); `scale`: the factor a 100% one's sums took, for its own values there (a candle's open, high, low, close); `group`: its stack (pane and side); `rank`: its place there (foot 0).
+ * `foot`: the stack under it (a share, in a 100% one); `scale`: the factor a 100% one's sums took, for its own values
+ * there (a candle's open, high, low, close); `group`: its stack (pane and side); `rank`: its place there (foot 0).
  * @param {Chart} doc
  * @param {{ results: Map<string, any>, times?: number[] }} data
  * @returns {Map<string, { values: Float64Array, foot: Float64Array, scale: Float64Array | null, group: string, rank: number }>}
  */
 function stackOf(doc, data, kept = true) {
-  // Kept while what they're made of is the same, so an edit elsewhere (a color, a width) finds the same totals and their series aren't set again. Marks' own, from other data, aren't kept.
+  // Kept while what they're made of is the same, so an edit elsewhere (a color, a width) finds the same totals and
+    // their series aren't set again. Marks' own, from other data, aren't kept.
   const key = kept && doc.id === chart?.id ? doc.panes.filter(summed).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
     const shown = data.results.get(layer.id)?.values;
     return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${layer.from ?? ""}.${placedOn(layer) ? 1 : 0}.${shown ? idOf(shown) : "-"}`;
@@ -79,7 +82,9 @@ function sameVector(a, b) {
 /** @param {Chart} doc */
 const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
 /**
- * A stack is linear (on log a band's height says nothing of its amount); a heatmap linear or log (percent change or indexed would start each row from its own first value). The kept scale never changes with the stack, so switching back and forth leaves the chart as it was.
+ * A stack is linear (on log a band's height says nothing of its amount); a heatmap linear or log (percent change or
+ * indexed would start each row from its own first value). The kept scale never changes with the stack, so switching
+ * back and forth leaves the chart as it was.
  * @param {Pane} [pane]
  */
 const paneMode = (pane) => (!pane || summed(pane) || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
@@ -112,7 +117,8 @@ const gradientTables = new Map();
 const INK_DARK = "#f7f8f8";
 const GRADIENT_STEPS = 64;
 /**
- * Toned in the theme after mixing: the curve bends, so toning the stops first would draw another gradient. With any other color than the palette's on either side, each stop is as the theme shows it and the mix a hex.
+ * Toned in the theme after mixing: the curve bends, so toning the stops first would draw another gradient. With any
+ * other color than the palette's on either side, each stop is as the theme shows it and the mix a hex.
  * @param {[number, string][]} stops @returns {string[]}
  */
 function mixedOf(stops) {

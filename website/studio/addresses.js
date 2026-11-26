@@ -2,7 +2,8 @@
 /** @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number, window?: string }>, clashes: string[] }} AddressBook */
 
 /**
- * Two under one place still alike are each tagged with a short hash of their name, so an address is the same whatever else exists.
+ * Two under one place still alike are each tagged with a short hash of their name, so an address is the same whatever
+ * else exists.
  * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build).
  * @param {{ p: string[], w?: Record<string, string> }[]} list @returns {Generator<void, AddressBook>}
  */

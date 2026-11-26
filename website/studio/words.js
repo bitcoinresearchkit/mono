@@ -122,7 +122,8 @@ export const dimensionBand = (key, d) => {
 };
 
 /**
- * `place`: where its places keep an older name (the groups at least 4 and 6 months old, from when they said "over"); `urpd`: its URPD cohort, none for the weighted ones.
+ * `place`: where its places keep an older name (the groups at least 4 and 6 months old, from when they said "over");
+ * `urpd`: its URPD cohort, none for the weighted ones.
  * @typedef {{ before?: string, noun: "coins" | "holders", after?: string, place?: string, urpd?: string }} Holder
  * @type {Readonly<Record<string, Holder>>}
  */

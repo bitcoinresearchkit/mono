@@ -456,7 +456,8 @@ body.carrying * {
   position: relative;
   display: flex;
   align-items: center;
-  /* Its size its own (its lines' and their padding, see .row-main; the list's width): a reading written lays out its row alone, not the page. */
+  /* Its size its own (its lines' and their padding, see .row-main; the list's width): a reading written lays out its
+       row alone, not the page. */
   contain: size layout;
   contain-intrinsic-block-size: calc(var(--row-line) + var(--row-under) + 2 * var(--row-pad));
   border-radius: var(--radius-md);
@@ -743,7 +744,8 @@ body.carrying * {
     transition: none;
   }
 
-  /* Other rows hold their shape while the sidebar slides: laid out once, not each frame (a long list, every frame's cost). */
+  /* Other rows hold their shape while the sidebar slides: laid out once, not each frame (a long list, every frame's
+       cost). */
   body[data-sidebar="collapsed"]:not([data-sliding]) .sidebar :is(.chart-row, .folder-row) > :is(.chart-item, .folder-item) {
     width: 32px;
     margin-left: 5px;
@@ -3066,7 +3068,8 @@ body[data-home] #charts-nav[aria-current="page"] {
   background: var(--press);
 }
 
-/* Marked on what scrolls, not on the page: a copy of it fading out as another page comes in keeps its own look (see goTo). */
+/* Marked on what scrolls, not on the page: a copy of it fading out as another page comes in keeps its own look (see
+   goTo). */
 .home-scroll.at-home {
   .home-inner {
     display: flex;
@@ -3528,7 +3531,8 @@ svg.plot {
   position: relative;
   display: block;
 
-  /* Waiting for its drawing: a light sweeping across, moved (not repainted: the compositor runs it, off the page's thread); only while the tile is in sight (data-seen): out of it, no motion and no layer of its own. */
+  /* Waiting for its drawing: a light sweeping across, moved (not repainted: the compositor runs it, off the page's
+       thread); only while the tile is in sight (data-seen): out of it, no motion and no layer of its own. */
   &.pending {
     overflow: hidden;
     border-radius: var(--radius-sm);

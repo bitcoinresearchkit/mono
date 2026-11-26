@@ -48,7 +48,8 @@ function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | nu
   menusShown++;
   if (cascadeRow && !menu.hidden) return showSubmenu(cascadeRow, html, onPick);
   if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
-  // Shown for another (a flyout moving on to the next row): one menu moving to this one's, not one fading as another comes. See showSubmenu.
+  // Shown for another (a flyout moving on to the next row): one menu moving to this one's, not one fading as another
+    // comes. See showSubmenu.
   const was = !menu.hidden && !phone.matches && !point ? menu.getBoundingClientRect() : null;
   if (was) for (const motion of menu.getAnimations()) motion.finish();
   hideSubmenu();
@@ -60,7 +61,8 @@ function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | nu
   menu.classList.toggle("as-sheet", phone.matches);
   if (phone.matches) menu.insertAdjacentHTML("afterbegin", '<div class="menu-handle" aria-hidden="true"></div>');
   if (phone.matches) {
-    // A dim kept where it is (a page of the menu, one opened as it fades), back to whole: put in again, it'd show in again from none.
+    // A dim kept where it is (a page of the menu, one opened as it fades), back to whole: put in again, it'd show in
+        // again from none.
     if (scrimFade) {
       const shows = Number(getComputedStyle(menuScrim).opacity);
       scrimFade.cancel();
@@ -86,7 +88,8 @@ function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | nu
     menu.style.animation = "none";
     slideFrom(menu, was);
   }
-  // A flyout leaves the focus be; a finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on from there.
+  // A flyout leaves the focus be; a finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on
+    // from there.
   const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled, [data-menu-back])"));
   settleMenu(menu);
   if (!flyout) (byTouch ? menu : first)?.focus({ preventScroll: true });
@@ -104,7 +107,8 @@ function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ poi
     const choice = row.current !== undefined;
     return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escapeHtml(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escapeHtml(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escapeHtml(row.label)}</span>${row.marked ? '<i class="menu-holds" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escapeHtml(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escapeHtml(row.disabled || row.aside || "")}</span>` : ""}</button>`;
   }).join("");
-  // What it's for, named on top wherever its name is out of sight: a row's on the rail, anything's on a phone. Not a submenu's.
+  // What it's for, named on top wherever its name is out of sight: a row's on the rail, anything's on a phone. Not a
+    // submenu's.
   if (!title && !cascadeRow && (phone.matches || (onRail() && anchor.closest("#chart-list")))) title = menuNameOf(anchor);
   const head = back ? `<div class="menu-group menu-title"><button type="button" class="cap small" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>${escapeHtml(title)}</div>` : title ? `<div class="menu-group">${escapeHtml(title)}</div>` : "";
   showMenu(anchor, `${head}${html}`, ({ pick: key, menuBack: backed }) => {
@@ -118,7 +122,8 @@ function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ poi
   }, point, side, asFlyout, named || title);
   menuBack = back ?? null;
 }
-// Picked by a key, the focus was in them: back on what opened them (its like, once redrawn), unless something took it or a menu the pick opened has it.
+// Picked by a key, the focus was in them: back on what opened them (its like, once redrawn), unless something took it
+// or a menu the pick opened has it.
 function menuPicked(/** @type {HTMLElement} */ button, /** @type {(data: DOMStringMap) => void} */ onPick) {
   const menu = $("menu"), owner = ownerNow(), key = owner && keyOf(owner), scope = owner?.parentElement?.closest("[id]"), target = menuTarget;
   hideMenu();
@@ -166,7 +171,10 @@ function hideSubmenu(from = 1) {
   for (const menu of [$("menu"), ...submenus].slice(from - 1)) menu.removeAttribute("data-covered");
   if (had && back?.isConnected) back.focus({ preventScroll: true });
 }
-// A row's submenu opens a moment after the pointer comes onto it (a pass over it opens none); one open, another row with one switches it at once (a gap, a rule or a row without one closes it a moment later: crossing a rule doesn't close and open again). Heading for the open one, what's under the pointer waits while it's on its way, then shows its own; leaving the triangle switches at once.
+// A row's submenu opens a moment after the pointer comes onto it (a pass over it opens none); one open, another row
+// with one switches it at once (a gap, a rule or a row without one closes it a moment later: crossing a rule doesn't
+// close and open again). Heading for the open one, what's under the pointer waits while it's on its way, then shows its
+// own; leaving the triangle switches at once.
 function startCascade() {
   let last = { x: 0, y: 0 }, toward = false, headedAt = -Infinity;
   const inTriangle = (/** @type {number[]} */ [px, py], /** @type {number[][]} */ [[ax, ay], [bx, by], [cx, cy]]) => {
@@ -180,14 +188,16 @@ function startCascade() {
     cascadeWait = null;
     row && cascades(row) ? openCascade(/** @type {HTMLElement} */ (row)) : hideSubmenu(level);
   };
-  // Scrolled, rows pass under a pointer held still: a wait begun goes, and a browser's own moves after it aren't the pointer moving (as the rail's, see pointedAt).
+  // Scrolled, rows pass under a pointer held still: a wait begun goes, and a browser's own moves after it aren't the
+    // pointer moving (as the rail's, see pointedAt).
   let seen = { x: NaN, y: NaN };
   const moves = (/** @type {HTMLElement} */ menu) => menu.addEventListener("pointermove", (event) => {
     if (event.pointerType !== "mouse" || phone.matches || (event.clientX === seen.x && event.clientY === seen.y)) return;
     seen = { x: event.clientX, y: event.clientY };
     const level = levelOf(menu) + 1, next = submenus[level - 1], open = next && !next.hidden ? next : null;
     const row = /** @type {HTMLElement | null} */ (closest(event, "button:not(:disabled)")), at = [event.clientX, event.clientY];
-    // Heading for the open submenu: judged over a few pixels (a hand's tremor doesn't turn it), toward it and a row past each end (a curved path still counts).
+    // Heading for the open submenu: judged over a few pixels (a hand's tremor doesn't turn it), toward it and a row
+        // past each end (a curved path still counts).
     const box = open?.getBoundingClientRect(), far = Math.hypot(at[0] - last.x, at[1] - last.y) >= 5;
     if (!box) toward = false;
     else if (far) {
@@ -206,7 +216,8 @@ function startCascade() {
       return void (cascadeTimer = window.setTimeout(waited, 300));
     }
     if (opens && open) return void (clearTimeout(cascadeTimer), (cascadeWait = null), openCascade(/** @type {HTMLElement} */ (row)));
-    // A first submenu: a moment from coming onto its row. A gap or a row without one: a moment from the first, the open one closed then.
+    // A first submenu: a moment from coming onto its row. A gap or a row without one: a moment from the first, the open
+        // one closed then.
     if (cascadeWait && !cascadeWait.heading && (cascadeWait.row === row || !opens)) return void (cascadeWait.row = row);
     clearTimeout(cascadeTimer);
     cascadeWait = { row, heading: false, level };
@@ -214,7 +225,8 @@ function startCascade() {
   });
   moves($("menu"));
   whenSubmenu(moves);
-  // Left, or scrolled: what it was about to do, it doesn't; the point it was at is forgotten, so back on it, it's a move.
+  // Left, or scrolled: what it was about to do, it doesn't; the point it was at is forgotten, so back on it, it's a
+    // move.
   const calm = () => (clearTimeout(cascadeTimer), (cascadeWait = null));
   const left = () => (calm(), (seen = { x: NaN, y: NaN }));
   for (const type of ["wheel", "scroll"]) $("menu").addEventListener(type, calm, { passive: true });
@@ -226,7 +238,8 @@ let openingByHover = false;
 let flyout = false;
 const pinFlyout = () => (flyout = false);
 const focusMenu = () => /** @type {HTMLElement | null | undefined} */ ([$("menu"), ...submenus].find((menu) => !menu.hidden && !menu.hasAttribute("data-covered"))?.querySelector("button:not(:disabled, [data-menu-back])"))?.focus({ preventScroll: true });
-// Hover to look, press to keep (a mouse): gone as the pointer leaves the menu and what opened it, a moment after (time enough to cross to the flyout).
+// Hover to look, press to keep (a mouse): gone as the pointer leaves the menu and what opened it, a moment after (time
+// enough to cross to the flyout).
 function startFlyouts() {
   let flyTimer = 0, from = /** @type {HTMLElement | null} */ (null);
   const sidebar = $("sidebar");
@@ -237,7 +250,8 @@ function startFlyouts() {
     from = null;
     flyout = false;
   };
-  // `warm`: one shown this way already, its place taken (as a tip's): the next at once, no fading out, no growing in again.
+  // `warm`: one shown this way already, its place taken (as a tip's): the next at once, no fading out, no growing in
+    // again.
   const lookSoon = (/** @type {HTMLElement} */ element, /** @type {number} */ wait, /** @type {() => void} */ open, ready = async () => true, warm = false) => {
     clearTimeout(flyTimer);
     flyTimer = window.setTimeout(async () => {
@@ -255,7 +269,9 @@ function startFlyouts() {
     clearTimeout(flyTimer);
     flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !submenus.some((sub) => sub.matches(":hover")) && !from?.matches(":hover") && shut(), HOVER.go);
   };
-  // Scrolled, rows pass under a pointer held still: none is pointed at, nor about to be, till it moves. From the wheel's turn: a browser tells of the row come under the pointer before it tells of the scroll; its own moves after a scroll aren't the pointer moving.
+  // Scrolled, rows pass under a pointer held still: none is pointed at, nor about to be, till it moves. From the
+    // wheel's turn: a browser tells of the row come under the pointer before it tells of the scroll; its own moves after
+    // a scroll aren't the pointer moving.
   let still = false, at = { x: NaN, y: NaN };
   for (const type of ["wheel", "scroll"]) $("chart-list").addEventListener(type, () => (still = true), { passive: true });
   $("chart-list").addEventListener("pointermove", (event) => {
@@ -271,7 +287,8 @@ function startFlyouts() {
     const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])"));
     if (row && row === from && flyout) return clearTimeout(flyTimer);
     clearTimeout(flyTimer);
-    // A chart just pressed: opened, its row written anew under the pointer, not its menu again till another is pointed at or the list is left.
+    // A chart just pressed: opened, its row written anew under the pointer, not its menu again till another is pointed
+        // at or the list is left.
     if (row && pressed && chartKey(row) === pressed) return;
     if (!row) return void (from && goSoon());
     pressed = "";
@@ -301,7 +318,8 @@ function startFlyouts() {
     focusMenu();
     return true;
   };
-  // A row pressed: its menu as pressed takes the flyout's place (its own already showing, kept; a chart, opened, none). A ⋯'s own menu, shown by its click as the pointer rests on it, is the flyout.
+  // A row pressed: its menu as pressed takes the flyout's place (its own already showing, kept; a chart, opened, none).
+    // A ⋯'s own menu, shown by its click as the pointer rests on it, is the flyout.
   $("chart-list").addEventListener("click", (event) => {
     const item = /** @type {HTMLElement | null} */ (closest(event, ":is(.chart-row, .folder-row, .list-head) > :is(.chart-item, .folder-item, .list-head-name)"));
     if (!item) return;
@@ -365,7 +383,8 @@ function placeMenu(menu, host, anchor, point, side = "") {
   const own = point ? new DOMRect(point.x, point.y, 0, 0) : anchor.getBoundingClientRect();
   // A row's menu opens beside the list: under its ⋯ it hid the rows below.
   if (!side && !point && anchor.closest("#chart-list")) side = "right";
-  // A belt's popover opens from the belt's edge, a rail's menu from its icons' column, not their button's: as far from it as a menu from what opened it, whichever row.
+  // A belt's popover opens from the belt's edge, a rail's menu from its icons' column, not their button's: as far from
+    // it as a menu from what opened it, whichever row.
   const strip = side && !point ? (anchor.closest("#belt") ?? (railed() ? anchor.closest(".sidebar")?.querySelector(".search") : null))?.getBoundingClientRect() : null;
   const rect = !strip ? own : side === "left" || side === "right" ? new DOMRect(strip.left, own.top, strip.width, own.height) : new DOMRect(own.left, strip.top, own.width, strip.height);
   const gap = point ? 2 : 6;
@@ -443,13 +462,16 @@ function walkMenu(/** @type {KeyboardEvent} */ event, /** @type {HTMLElement} */
   items[stepIn(items.indexOf(/** @type {HTMLElement} */ (document.activeElement)), Number(KEY_STEPS[event.key]), items.length, true)]?.focus();
   return true;
 }
-// Pointed at a moment (heading for it, inside the triangle from where the pointer was to its near edge, the rows crossed on the way don't switch it), pressed, or → from the row; ← or esc closes it. Color's Custom isn't one: it's a page of the same popover.
+// Pointed at a moment (heading for it, inside the triangle from where the pointer was to its near edge, the rows
+// crossed on the way don't switch it), pressed, or → from the row; ← or esc closes it. Color's Custom isn't one: it's a
+// page of the same popover.
 const cascades = (/** @type {Element} */ button) => !phone.matches && button.getAttribute("aria-haspopup") === "menu" && !button.hasAttribute("data-pick-custom");
 /** @type {(HTMLElement | undefined)[]} */
 const subRows = [];
 function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html, /** @type {(data: DOMStringMap) => void} */ onPick) {
   const own = /** @type {HTMLElement} */ (row.closest("#menu, .submenu")), level = levelOf(own) + 1, sub = subAt(level);
-  // Shown for another row of its menu: one submenu moving to this one's, not one fading as another comes (a sweep down the rows would flash a row).
+  // Shown for another row of its menu: one submenu moving to this one's, not one fading as another comes (a sweep down
+    // the rows would flash a row).
   const was = sub.hidden ? null : sub.getBoundingClientRect(), had = sub.contains(document.activeElement);
   for (const motion of sub.getAnimations()) motion.finish();
   // Its menu still moving (gliding to another row, growing in): there first, this placed beside where it stays.
@@ -461,7 +483,8 @@ function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html,
   sub.hidden = false;
   subRows[level]?.removeAttribute("aria-expanded");
   (subRows[level] = row).setAttribute("aria-expanded", "true");
-  // Beside the menu it's from, its first row level with the row; no room that way, over that menu (hidden till this goes), titled, ‹ back to it: never over the menus before it, the way back to each kept.
+  // Beside the menu it's from, its first row level with the row; no room that way, over that menu (hidden till this
+    // goes), titled, ‹ back to it: never over the menus before it, the way back to each kept.
   const parent = own.getBoundingClientRect(), at = row.getBoundingClientRect(), bounds = host === document.body ? new DOMRect(0, 0, innerWidth, innerHeight) : host.getBoundingClientRect();
   sub.style.maxHeight = host === document.body ? "" : `${bounds.height - 16}px`;
   sub.style.maxWidth = "";
@@ -502,7 +525,8 @@ function settleMenu(/** @type {HTMLElement} */ menu) {
   const top = menu.querySelector(":scope > :is(.menu-group:first-child, .menu-handle + .menu-group)");
   menu.style.scrollPaddingTop = top instanceof HTMLElement ? `${top.offsetTop + top.offsetHeight}px` : "";
 }
-// A rest long enough that a pass down the list opens none, no longer (as macOS's submenus wait); after leaving, time to cross to the menu.
+// A rest long enough that a pass down the list opens none, no longer (as macOS's submenus wait); after leaving, time to
+// cross to the menu.
 const HOVER = { row: 200, button: 200, go: 260 };
 
 const fieldOpener = /** @type {WeakMap<Element, HTMLElement>} */ (new WeakMap());
@@ -547,7 +571,8 @@ function setRange(range) {
 
 function leaveTitle() {
   const field = /** @type {HTMLInputElement} */ ($("title")), title = field.value.trim();
-  // Only what was typed: one focused and left as it was isn't an edit (another tab's rename, taken in meanwhile, stays).
+  // Only what was typed: one focused and left as it was isn't an edit (another tab's rename, taken in meanwhile,
+    // stays).
   if (title !== chart.title && field.value !== typedFrom.get(field)) commit((doc) => (doc.title = title), { coalesce: "title" });
   // Left, it's untouched again: a rename taken in while it's not focused shows.
   typedFrom.set(field, field.value);
@@ -581,7 +606,8 @@ async function copyLink(link) {
   }
 }
 let qrModule = /** @type {Promise<{ generate: (text: string) => { size: number, get(x: number, y: number): boolean } }> | null} */ (null);
-// The most a QR code holds (lowest correction, alphanumeric mode: a QR link's base32): a longer link isn't tried, a shorter one that still doesn't fit the library refuses.
+// The most a QR code holds (lowest correction, alphanumeric mode: a QR link's base32): a longer link isn't tried, a
+// shorter one that still doesn't fit the library refuses.
 const QR_MOST = 4296;
 async function qrCode(/** @type {string} */ text) {
   if (new TextEncoder().encode(text).length > QR_MOST) return null;
@@ -600,7 +626,8 @@ async function qrCode(/** @type {string} */ text) {
         d += `M${from + pad} ${y + pad}h${x - from + 1}v1h${from - x - 1}z`;
       }
     }
-    // A module whole device pixels, two at least: a finer dense code doesn't scan, so the popover grows; as tall as a sheet shows, a phone on its side's too.
+    // A module whole device pixels, two at least: a finer dense code doesn't scan, so the popover grows; as tall as a
+        // sheet shows, a phone on its side's too.
     const room = Math.min(phone.matches ? Math.min(256, innerWidth * 0.72) : 208, innerHeight * 0.7 - 24);
     const per = Math.max(2, Math.floor((room * devicePixelRatio) / side)), width = (side * per) / devicePixelRatio;
     return `<svg class="share-qr" viewBox="0 0 ${side} ${side}" width="${width}" height="${width}" shape-rendering="crispEdges" role="img" aria-label="A QR code of this chart's link"><rect width="${side}" height="${side}" fill="#fff"/><path fill="#000" d="${d}"/></svg>`;
@@ -639,7 +666,8 @@ function toSketch(shown) {
       ...(colorFrom ? { colorFrom: doc.layers.find((item) => item.id === colorFrom)?.letter ?? colorFrom } : {}),
       ...(ordered ? {} : { letter }),
       ...rest,
-      // A series' type always: left out, it's read as the series is mostly drawn, which one tab knows and another doesn't yet (a line opened as a baseline, or candles).
+      // A series' type always: left out, it's read as the series is mostly drawn, which one tab knows and another
+            // doesn't yet (a line opened as a baseline, or candles).
       ...((type !== "line" || series !== undefined) && !from && !heatLike({ type }) ? { type } : {}),
       ...(all.gradient && !byGradient ? { byGradient: false } : {}),
       ...(width !== 1.5 && type !== "cloud" ? { width } : {}),
@@ -659,10 +687,12 @@ function toSketch(shown) {
   };
 }
 
-// Only what a link or a chat would break on is encoded: brackets and braces too (a chat cuts a trailing "]}" off), a "+" (read as a space by what decodes forms), an "&" (a title's "&chart=" never reads as a field).
+// Only what a link or a chat would break on is encoded: brackets and braces too (a chat cuts a trailing "]}" off), a
+// "+" (read as a space by what decodes forms), an "&" (a title's "&chart=" never reads as a field).
 const linkText = (/** @type {Chart} */ doc) => JSON.stringify(toSketch(doc)).replace(/[\s"<>`%#\\{}[\]+&]/g, (char) => encodeURIComponent(char));
 /**
- * Links Studio writes are compressed; a link written out as JSON is read too (an assistant's, which can't compress it). Compressing failed: written out.
+ * Links Studio writes are compressed; a link written out as JSON is read too (an assistant's, which can't compress it).
+ * Compressing failed: written out.
  * @param {Chart} doc @param {Promise<Uint8Array>} [bytes]
  */
 const shareLink = (doc, bytes = packedBytes(doc), look = chartLook(doc)) => bytes.then((packed) => `${pageBase()}#chart=${toBase64url(packed)}${look}`, () => `${pageBase()}#chart=${linkText(doc)}`);
@@ -692,7 +722,8 @@ function toBase32(/** @type {Uint8Array} */ bytes) {
 }
 
 function linksOf(doc = chart) {
-  // A preset as made but for how it's looked at: its address and that, once the presets are read. Edited, gone from them, or none: the chart.
+  // A preset as made but for how it's looked at: its address and that, once the presets are read. Edited, gone from
+    // them, or none: the chart.
   const address = doc.preset !== undefined ? loadPresets().then(() => presetLink(doc), () => null) : Promise.resolve(null);
   const links = address.then((at) => {
     if (at) return { copy: `${ORIGIN}${at}`, short: `${ORIGIN}${at}` };
@@ -785,7 +816,8 @@ function exportAs(kind) {
 const pngOf = (canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png"));
 /** @param {unknown} error */
 const imageTrouble = (error) => (error instanceof Error && (error.message === UNREADABLE || error.message === TOO_SMALL) ? error.message : "Couldn't make the image");
-// Its address is kept as long as this page is: dropped sooner, saving it fails. The tab opens at once, while the click counts: one opened once it's drawn is blocked.
+// Its address is kept as long as this page is: dropped sooner, saving it fails. The tab opens at once, while the click
+// counts: one opened once it's drawn is blocked.
 function openImage() {
   const tab = window.open("", "_blank");
   if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
@@ -821,7 +853,8 @@ function copyImage() {
   const png = chartImage(pictureSize()).then(pngOf);
   navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Copied the image: paste it anywhere"), () => notice("Couldn't copy the image"));
 }
-// Some browsers give noise instead of the page's own drawing unless the site's allowed (a privacy setting, as Mullvad's and Tor's): asked each time, allowed since, it's given.
+// Some browsers give noise instead of the page's own drawing unless the site's allowed (a privacy setting, as Mullvad's
+// and Tor's): asked each time, allowed since, it's given.
 function canvasReadable() {
   try {
     // Many pixels of many colors, as a chart's are: a randomizer spares a single pixel and a plain color.
@@ -842,7 +875,8 @@ function canvasReadable() {
 }
 const UNREADABLE = "A privacy setting in this browser blocks reading the chart's image. Allow it for this site to export images";
 const TOO_SMALL = "Its legends don't fit a picture this size: make it larger";
-// As the chart shows in a window wide enough; narrower, or upright (a phone's), a picture's own, 16:9, as one's shared: not a strip as tall as the screen.
+// As the chart shows in a window wide enough; narrower, or upright (a phone's), a picture's own, 16:9, as one's shared:
+// not a strip as tall as the screen.
 const pictureSize = () => ((box) => (box.width >= 640 && box.width > box.height ? {} : { width: 1200, height: 675 }))($("chart").getBoundingClientRect());
 const shownAs = () => `${chart.id} ${revision} ${navigations}`;
 // Each written whole, as "Values on" writes its own: the navigator's tight form (’18) beside a whole 2026 reads as two.
@@ -861,7 +895,8 @@ function measureLegends(scale) {
     return { x: (rect.left - origin.left) * scale, y: (rect.top - origin.top) * scale, width: rect.width * scale, height: rect.height * scale };
   };
   const pieces = [];
-  // Words the page cuts (wider than their box) are cut in the picture too; the others whole, however a canvas measures them (a hair wider than the page lays them).
+  // Words the page cuts (wider than their box) are cut in the picture too; the others whole, however a canvas measures
+    // them (a hair wider than the page lays them).
   const cutOff = (/** @type {HTMLElement} */ element) => element.scrollWidth > element.clientWidth;
   /** @param {HTMLElement} key @param {boolean} faded */
   const keyPieces = (key, faded) => {
@@ -886,7 +921,8 @@ function measureLegends(scale) {
         if (!element?.textContent?.trim() || !element.getClientRects().length) continue;
         const style = getComputedStyle(element), inset = parseFloat(style.paddingLeft) * scale, at = box(element);
         const text = element.textContent.trim(), after = getComputedStyle(element, "::after");
-        // A value older than the view's end: its date after it as the page shows it (its ::after, not in its text), quieter.
+        // A value older than the view's end: its date after it as the page shows it (its ::after, not in its text),
+                // quieter.
         const asOf = element.dataset.asOf && after.content !== "none" && after.display !== "none" ? element.dataset.asOf : "";
         const range = asOf ? document.createRange() : null;
         range?.selectNodeContents(element);

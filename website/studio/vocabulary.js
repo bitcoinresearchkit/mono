@@ -58,7 +58,8 @@ const MARK_PLACES = /** @type {[string, string, string][]} */ ([["above", "Above
 /** @param {string} place */
 const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
 /**
- * That layer's change over it, up; the opposite, down (the state was right: more); none for one of neither, one begun before a change, or a value not above 0 (or not finite: a formula's division by 0).
+ * That layer's change over it, up; the opposite, down (the state was right: more); none for one of neither, one begun
+ * before a change, or a value not above 0 (or not finite: a formula's division by 0).
  * @param {{ at: number, was: number, since: number }} change @param {Result | null | undefined} reference
  */
 const stretchResult = (change, reference) => {
@@ -78,7 +79,8 @@ const PROFILE_VIEWS = /** @type {[string, string][]} */ ([["bars", "Bars"], ["cu
 const HEAT_ROWS = [100, 200, 500], DEFAULT_ROWS = 200;
 const GRADIENT_MOST = 4, GRADIENT_LEAST = 2;
 /**
- * Made-of-layers kinds (a cloud, a trend, a signal, bubbles) are kinds of their own, added as such, not a look to switch to.
+ * Made-of-layers kinds (a cloud, a trend, a signal, bubbles) are kinds of their own, added as such, not a look to
+ * switch to.
  * @type {[string, string][]}
  */
 const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -109,14 +111,16 @@ const SHAPES = [["straight", "Straight", LINE_TYPE.Simple], ["steps", "Steps", L
 const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LINE_TYPE.Simple;
 const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], candles: ["Rising", "Falling"], trend: ["Resistance", "Support"], signal: ["Up", "Down"], bubbles: ["Above zero", "Below zero"] };
 /**
- * A baseline's are its two; candles' two, rising and falling (their one, a choice); four: bars', MACD's own per side, paler where a bar falls back toward the base.
+ * A baseline's are its two; candles' two, rising and falling (their one, a choice); four: bars', MACD's own per side,
+ * paler where a bar falls back toward the base.
  * @type {Record<string, string[]>}
  */
 const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], bubbles: ["sides", "one"], signal: ["one"] };
 const COLORED_FROM = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("from")));
 const BY_LEVELS = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("levels")));
 /**
- * A cloud's two colors (which of its two is over) only between two layers alone (no "the other one" with a third); its layers' only where it has some. A heatmap row has its one color; a heatmap layer's cells take its pane's gradient.
+ * A cloud's two colors (which of its two is over) only between two layers alone (no "the other one" with a third); its
+ * layers' only where it has some. A heatmap row has its one color; a heatmap layer's cells take its pane's gradient.
  * @param {Layer} layer @param {Chart} doc
  */
 const modesOf = (layer, doc) => (layer.type === "heatmap" ? [] : heatmapRow(doc, layer) ? ["one"] : COLOR_MODES[layer.type] ?? ["one"]).filter((mode) => layer.type !== "cloud" || (mode === "sides" ? cloudLayers(layer).length === 2 && !edgesOf(layer).length : mode !== "layers" || cloudLayers(layer).length > 0));
@@ -136,7 +140,8 @@ const summed = (pane) => pane?.stack === "stack" || pane?.stack === "percent";
 /** @param {Chart} doc @param {Pane} pane */
 const rowLayers = (doc, pane, all = false) => ((rows) => (pane.reverse ? rows.reverse() : rows))(doc.layers.filter((layer) => layer.pane === pane.id && (all || !layer.hidden) && layer.type !== "candles" && layer.type !== "cloud" && !layer.from && !placedOn(layer) && !heatLike(layer)));
 /**
- * Finer than a day is a point a pixel of the image: too many. Needs two layers of its own on one scale (two units don't fit).
+ * Finer than a day is a point a pixel of the image: too many. Needs two layers of its own on one scale (two units don't
+ * fit).
  * @param {Chart} doc @param {Pane} pane
  */
 const rowsUnfit = (doc, pane) => ((rows) => (FINE.has(doc.index) ? "A heatmap needs a daily or coarser interval" : rows.length < 2 ? "A heatmap needs two layers of their own in the pane" : rows.some((layer) => layer.side !== rows[0].side) ? "A heatmap needs the pane's layers on one scale" : ""))(rowLayers(doc, pane, true));
@@ -189,40 +194,19 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
  *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
  *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
  *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: string[], cumulative?: true, cohortColors?: Record<string, string>, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
- *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
- *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
- *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
- *   or the highest, flipping when its reference (`ref`: a layer's id, one of one value, not one of them) touches it
- *   (see trendOf). Short of what it needs, it says so.
- *   A signal ("signal"): a formula read as a state, up (above 0), down (below) or off (0; a condition is up where
- *   true), marked on another layer (`ref`, the first that can carry marks if none) where it turns up or down, `place`
- *   (above it, unset; below; on it: an up mark's, a down one's mirrored), or shaded while up or down ("shade"); up
- *   in its color, down in its second (`colorBelow`, red unset). `results`: each stretch's result on the mark that ends it (see
- *   stretchResult).
- *   Bubbles ("bubbles"): its values as bubbles on another layer (`ref`, the first that can carry them if none;
- *   none, "": along its pane's middle), each date's at that layer's value there, its area its own value's size (see
- *   Bubbles): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
- *   sized against all of its history (unset: what's in view); above zero in its color, below in its second
- *   (`colorBelow`, red unset; `colors` 1, its one).
- *   `short`: its name where room is tight (a heatmap's row), as its set says it (an age band's "1w-1m"); none, its label.
- *   `fit` "zero": a linear axis includes zero; false: its axis framed without it (see fittable), drawn where its values are, past the plot's edge if
- *   they're far: a spike, a far tail.
- *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
- *   bars', a cloud's or a trend's (not a baseline's, nor candles').
- *   `byLevels`: colored by its levels instead: above each, that level's color; under them all, its own (a line's,
- *   dots', an area's or bars'; never with `colorFrom`). A line or an area by height, parted where it crosses a level
- *   (stacked, at its total, date by date); dots and bars each by their own value.
- *   `byGradient`: colored by its value instead, date by date, along its `gradient`: its stops (2 to 4, each where it
- *   is from 0% to 100% of the way from its lowest value to its highest, and its color), mixed between them; past its
- *   outer ones, theirs. Its lowest and highest of all its history (at a fine interval, of what it holds), or
- *   (`upToDate`) of its history up to each date (no hindsight). Its gradient kept while it's colored otherwise (a
- *   heatmap's is its pane's: see heatGradient). Never with `colorFrom`, `byLevels`, `byLayers`.
- *   `byLayers`: a cloud's, colored by its layers: each one's own where it's over, following them (its `color` and
- *   `colorBelow` theirs, see layersColors; never with `colorFrom`).
- *   `colors`: bars' (their two, above and below their base, unset): 1, their one; 4, MACD's, each side's own where a
- *   bar grows from the base, fainter where it fades back toward it (`colorFading` above, `colorBelowFading` below;
- *   unset, each side's color fainter: see fadingOf). A trend's or a cloud's 1: its one, its second (`colorBelow`) kept. Colors
- *   picked stay, whichever way it's colored.
+ *   `from`: the ids of the layers it's made of, by its type: "cloud" (filled between its two, `color` where the first is
+ *   over, `colorBelow` where the second is), "trend" (the lowest or highest of two or more, flipping when its `ref`
+ *   touches it: see trendOf), "signal" (a formula read as a state, up above 0, down below, off at 0, marked on `ref` where
+ *   it turns, `place`d above, below or on it, or shaded: "shade"; `results`: each stretch's on the mark that ends it),
+ *   "bubbles" (values as bubbles on `ref`, none: along its pane's middle; `size`, `hide`, `scaleTo` "all": all history).
+ *   Short of what it needs, it says so. `short`: its name where room is tight, none, its label. `fit` "zero": a linear
+ *   axis includes zero; false: framed without it, so a spike or a far tail draws past the plot's edge (see fittable).
+ *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt). `byLevels`: colored by its
+ *   levels (never with `colorFrom`). `byGradient`: by its value along its `gradient` (2 to 4 stops; `upToDate`: of its
+ *   history up to each date, no hindsight; a heatmap's is its pane's, see heatGradient); never with `colorFrom`,
+ *   `byLevels`, `byLayers`. `byLayers`: a cloud's, by its layers (see layersColors). `colors`: bars' two (above and
+ *   below their base): 1, their one; 4, MACD's, each side's own where a bar grows, fainter where it fades back
+ *   (`colorFading`, `colorBelowFading`: see fadingOf). Colors picked stay, whichever way it's colored.
  * @typedef {{ value: number, color?: string, dash?: number, line?: false, tag?: boolean, name?: string }} Level A line
  *   across at a value: its color (else its layer's) and its line style (else long dashes; `line` false, none: its band
  *   alone); its value on the axis only with `tag`; `name`, what a value from it up (to the next level) is called, read
@@ -255,7 +239,8 @@ const failing = (/** @type {string} */ detail, /** @type {string} */ short) => O
 const letterAt = (n) => (n < 26 ? String.fromCharCode(65 + n) : String.fromCharCode(64 + Math.floor(n / 26)) + String.fromCharCode(65 + (n % 26)));
 /** @param {Chart} doc */
 function nextLetter(doc) {
-  // Letters a formula still mentions stay taken: a new layer never silently becomes what the formula reads (a view kept aside's too).
+  // Letters a formula still mentions stay taken: a new layer never silently becomes what the formula reads (a view kept
+    // aside's too).
   const layers = [...doc.layers, ...asideLayers(doc)], used = new Set(layers.map((layer) => layer.letter));
   for (const layer of layers) for (const [ref] of (layer.formula ?? "").matchAll(/(?<![A-Za-z0-9_])[A-Z]{1,2}(?![A-Za-z0-9_])/g)) used.add(ref);
   for (let n = 0; ; n++) if (!used.has(letterAt(n))) return letterAt(n);
@@ -322,7 +307,8 @@ function newPaneIn(doc) {
 function blankChart(title = "") {
   return { id: uid(), title, index: "day1", range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
 }
-// Pools mempool renamed (old slug, new): key and series ids both change, so neither finds the other (see app.js's followPool).
+// Pools mempool renamed (old slug, new): key and series ids both change, so neither finds the other (see app.js's
+// followPool).
 const POOLS_RENAMED = /** @type {[string, string][]} */ ([["btccom", "cloverpool"]]);
 const poolSeries = (/** @type {string} */ name) => POOLS_RENAMED.reduce((n, [from, to]) => (n.startsWith(`pool_${from}_`) ? `pool_${to}_${n.slice(from.length + 6)}` : n), name);
 const poolPath = (/** @type {string} */ path) => POOLS_RENAMED.reduce((p, [from, to]) => (p.startsWith(`pools.${from}.`) ? `pools.${to}.${p.slice(from.length + 7)}` : p), path);

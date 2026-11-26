@@ -64,7 +64,8 @@ const stackedIn = (layer, doc = chart) => summed(doc.panes.find((pane) => pane.i
 const modesFor = (pane) => (summed(pane) ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
 
 /**
- * Safari on iOS sends some views whose content is replaced back to their top (a layer's settings, at each edit, on iOS 26.5).
+ * Safari on iOS sends some views whose content is replaced back to their top (a layer's settings, at each edit, on iOS
+ * 26.5).
  * @param {HTMLElement} container @param {string} html
  */
 function rewrite(container, html) {
@@ -126,7 +127,8 @@ function moveLayers(asked, into) {
   commit((doc) => {
     const pane = into ? doc.panes.find((item) => item.id === into) : newPaneIn(doc);
     if (!pane) return;
-    // Those that go where these go (bubbles on one, a cloud between them) go along, where they were among them: what's drawn over what, as it was.
+    // Those that go where these go (bubbles on one, a cloud between them) go along, where they were among them: what's
+        // drawn over what, as it was.
     const along = new Set(ids);
     for (let more = true; more; ) {
       more = false;
@@ -213,7 +215,8 @@ function renderInspector() {
     inspected = "";
     return;
   }
-  // While typing into this layer's formula or name (or a number of it: its base, a level, a gradient's place), keep the field and its caret as it is.
+  // While typing into this layer's formula or name (or a number of it: its base, a level, a gradient's place), keep the
+    // field and its caret as it is.
   const active = document.activeElement;
   const shape = fieldsShape(layer);
   const typed = !panel.dataset.pressed;
@@ -317,7 +320,8 @@ function renderInspector() {
             ${outlinable(chart, layerPane) ? `<div class="field"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${OUTLINES.map(([on, name]) => `<button type="button" data-pane-outline="${layer.pane}" data-outline="${on ? 1 : ""}" aria-pressed="${Boolean(layerPane.outline) === on}">${name}</button>`).join("")}</div></div>` : ""}
           </section>`}
           ${(actionsShown = actionsOf(layer))}`;
-  // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: only those of this layer whose stop changes alone (reading one lays the page's style out first).
+  // The sliders' handles and fills as they are on screen (maybe mid-glide), for the redrawn ones to go on from: only
+    // those of this layer whose stop changes alone (reading one lays the page's style out first).
   const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
   const was = new Map(another || reduced() ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(sliderTrack(element), "::after").left, fill: getComputedStyle(sliderTrack(element), "::before").width }]));
   rewrite(panel, html);
@@ -496,7 +500,9 @@ function stopAt(id, clientX) {
   if (!box.width) return undefined;
   return stops[clamp(Math.round(((clientX - box.left - 3) / (box.width - 6)) * (stops.length - 1)), 0, stops.length - 1)];
 }
-// By touch (in what scrolls, a sheet), as a finger on a page means: a tap picks where it's lifted, a drag clearly across picks along it, a drag up or down scrolls (the browser's) and picks nothing (a slider scrolled past keeps its value).
+// By touch (in what scrolls, a sheet), as a finger on a page means: a tap picks where it's lifted, a drag clearly
+// across picks along it, a drag up or down scrolls (the browser's) and picks nothing (a slider scrolled past keeps its
+// value).
 function pickPress(event, element, cursor, move) {
   if (holding) return;
   if (event.pointerType !== "touch") return track(event, element, cursor, move);
@@ -629,7 +635,9 @@ function setColorMode(/** @type {Layer} */ layer, /** @type {string} */ mode, fr
 /** @returns {[number, string][]} */
 const gradientFor = () => [[0, "blue"], [100, "red"]];
 
-// The surface, one plane: down, lightness, each given its room (from the dark tones still seen to the palest tints, little at the very ends, where everything reads as black or white), one smooth curve, no seams. Across, the hues over HUES of the width; past them chroma eases away into the grays at the right.
+// The surface, one plane: down, lightness, each given its room (from the dark tones still seen to the palest tints,
+// little at the very ends, where everything reads as black or white), one smooth curve, no seams. Across, the hues over
+// HUES of the width; past them chroma eases away into the grays at the right.
 const HUES = 0.86;
 const smoothstep = (from, to, x) => {
   const s = clamp((x - from) / (to - from), 0, 1);
@@ -685,7 +693,8 @@ function withoutLevel(layer, i) {
   if (!layer.levels) delete layer.underName;
 }
 /**
- * Each level without a color of its own gets one (by value, lowest first, from LEVEL_COLORS), so its bands show at once and don't follow its own color under them.
+ * Each level without a color of its own gets one (by value, lowest first, from LEVEL_COLORS), so its bands show at once
+ * and don't follow its own color under them.
  * @param {Layer} layer
  */
 function colorLevels(layer) {
@@ -749,7 +758,8 @@ const readyPage = (id, /** @type {any} */ preview = null) => ((both) => choicePa
 }, preview))(bothOf(id));
 /** @param {string} id */
 function reverseGradient(id) {
-  // Drawn again whole, as after a press in it: a place's field in focus (⌘K's, closed, gives it back) is no place being typed.
+  // Drawn again whole, as after a press in it: a place's field in focus (⌘K's, closed, gives it back) is no place being
+    // typed.
   const pressed = () => ($("inspector").dataset.pressed = "1");
   pressed();
   editById(id, (item) => {
@@ -760,17 +770,21 @@ function reverseGradient(id) {
   if (id === selected) pressed(), renderInspector();
 }
 /**
- * Round steps from its lowest to its highest, each its place (0 to 100) and its label's left on the bar as laid out (`width` across); the strongest kept where two would come closer than a gap, the color in hand's own worth (at `hand`: `own`) first.
+ * Round steps from its lowest to its highest, each its place (0 to 100) and its label's left on the bar as laid out
+ * (`width` across); the strongest kept where two would come closer than a gap, the color in hand's own worth (at
+ * `hand`: `own`) first.
  * @param {Layer} layer @param {number} width @param {number} [hand] @returns {[number, string, number, boolean][]}
  */
 function gradientTicks(layer, width, hand) {
   if (!width) return [];
   const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), ticks = /** @type {[number, number][][]} */ ([]), worth = hand === undefined ? null : gradientWorth(layer, hand);
   const [low, high] = rangeOf(result?.values ?? []), rough = (high - low) / 4, step = ((ten) => [1, 2, 5, 10].map((k) => k * ten).find((size) => size >= rough) ?? 10 * ten)(10 ** Math.floor(Math.log10(rough)));
-  // Eleven at most, counted apart from the values: a step too small to move one (a range of a few ulps) still ends, its ticks as one, the overlaps dropped below.
+  // Eleven at most, counted apart from the values: a step too small to move one (a range of a few ulps) still ends, its
+    // ticks as one, the overlaps dropped below.
   for (let i = 0, first = Math.ceil(low / step); high > low && i <= 10 && first + i <= Math.floor(high / step); i++) ticks.push([[(((first + i) * step - low) / (high - low)) * 100, (first + i) * step]]);
   ticks.sort((a, b) => Math.abs(b[0][1]) - Math.abs(a[0][1]));
-  // Kept, the first first, while its label is a gap clear of those kept; those under the color in hand's worth give way alone.
+  // Kept, the first first, while its label is a gap clear of those kept; those under the color in hand's worth give way
+    // alone.
   const GAP = 12, label = (/** @type {number} */ at, /** @type {string} */ text, own = false) => ((size) => /** @type {[number, string, number, number, boolean]} */ ([at, text, clamp((at / 100) * width - size / 2, 0, width - size), size, own]))(widest([text], own ? 510 : 400, 11));
   const clear = (/** @type {[number, string, number, number, boolean]} */ [, , left, size], /** @type {[number, string, number, number, boolean][]} */ others) => others.every(([, , other, room]) => left >= other + room + GAP || left + size <= other - GAP);
   const own = worth && hand !== undefined ? [label(hand, worth, true)] : [], kept = [...own];
@@ -905,7 +919,10 @@ function penColors(/** @type {HTMLElement} */ button) {
     refocus(`#${button.id}`);
   }, () => ((now) => now && penColors(now))($(button.id)));
 }
-// sRGB's limit bends sharply at its primaries (blue's chroma nearly doubles within 5° of hue), which would crease the surface: taken at its lowest, then averaged over 12° of hue and 0.03 of lightness around each point, it has no creases and never leaves sRGB, and a soft minimum eases CHROMA into it without a seam. Built once on a grid, read between its points.
+// sRGB's limit bends sharply at its primaries (blue's chroma nearly doubles within 5° of hue), which would crease the
+// surface: taken at its lowest, then averaged over 12° of hue and 0.03 of lightness around each point, it has no
+// creases and never leaves sRGB, and a soft minimum eases CHROMA into it without a seam. Built once on a grid, read
+// between its points.
 let vividGrid = /** @type {Float64Array | null} */ (null);
 const VIVID_ROWS = Math.round(1 / 0.005) + 1;
 const vividWork = (function* () {
@@ -965,13 +982,16 @@ function* fold(source, lowest) {
   }
   return out;
 }
-// Made in idle moments, a few lines at a time: folded whole in one go it held a phone without its JIT (Lockdown Mode) half a second. Only once a color can be picked soon (a layer's settings shown, a color menu open), not at every start.
+// Made in idle moments, a few lines at a time: folded whole in one go it held a phone without its JIT (Lockdown Mode)
+// half a second. Only once a color can be picked soon (a layer's settings shown, a color menu open), not at every
+// start.
 let vividStarted = false;
 const vividAhead = () => !vividGrid && !vividStarted && ((vividStarted = true), whenIdle(vividSoon));
 function vividSoon(/** @type {{ timeRemaining: () => number }} */ deadline) {
   inSlices(deadline, () => Boolean(vividGrid || (vividWork.next(), vividGrid)) && (drawPlanes(), true), vividSoon);
 }
-// Made sooner when a surface is showing and waiting: a few lines each frame, not in idle moments (Safari has none to say: its are a slice every 40 ms, seconds of them for this).
+// Made sooner when a surface is showing and waiting: a few lines each frame, not in idle moments (Safari has none to
+// say: its are a slice every 40 ms, seconds of them for this).
 let vividRushing = false;
 function vividNow() {
   if (vividGrid || vividRushing) return;
@@ -999,10 +1019,12 @@ const drawPlanes = () => all$(".plane").forEach(drawPlane);
 function drawPlane(/** @type {HTMLElement} */ plane) {
   const canvas = /** @type {HTMLCanvasElement | null} */ (plane.querySelector("canvas"));
   if (!canvas || !plane.clientWidth) return;
-  // Its grid not made yet: what it's in shows at once, the surface faded in as it's made (made at once, a phone without its JIT held half a second first). A pick reads the grid at once.
+  // Its grid not made yet: what it's in shows at once, the surface faded in as it's made (made at once, a phone without
+    // its JIT held half a second first). A pick reads the grid at once.
   plane.toggleAttribute("data-waiting", !vividGrid);
   if (!vividGrid) return void vividNow();
-  // Worked out at half its size, stretched: a smooth field, the same to the eye, a quarter of the work. A pick reads the grid, not the canvas.
+  // Worked out at half its size, stretched: a smooth field, the same to the eye, a quarter of the work. A pick reads
+    // the grid, not the canvas.
   const width = Math.ceil(plane.clientWidth / 2), height = Math.ceil(plane.clientHeight / 2), key = `${width}x${height}`;
   canvas.width = width;
   canvas.height = height;
@@ -1067,7 +1089,8 @@ function pickPoint(/** @type {string} */ name, u, t) {
   const color = colorAt(u, t), place = { u: clamp(u, 0, 1), t: clamp(t, 0, 1) }, plane = planeOf(name);
   if (pickedAt.size > 500) pickedAt.clear();
   pickedAt.set(color, place);
-  // The ring follows at once, even along white or black, where the color stays the same as it moves (in a popover nothing redraws it: its color too).
+  // The ring follows at once, even along white or black, where the color stays the same as it moves (in a popover
+    // nothing redraws it: its color too).
   plane?.style.setProperty("--x", String(place.u));
   plane?.style.setProperty("--y", String(place.t));
   plane?.querySelector(".ring")?.setAttribute("style", `--c:${cssColor(color)}`);
@@ -1219,7 +1242,8 @@ function updateFormula(layer) {
   if (label) label.placeholder = labelOf({ ...layer, label: "" });
 }
 /**
- * Shown again with its error when its layer opens (the layer keeps the last that read), till it reads and is applied, esc lets it go, or the layer's formula is changed otherwise (`over`: the formula it was typed over; see pruneDrafts).
+ * Shown again with its error when its layer opens (the layer keeps the last that read), till it reads and is applied,
+ * esc lets it go, or the layer's formula is changed otherwise (`over`: the formula it was typed over; see pruneDrafts).
  * @type {Map<string, Map<string, { text: string, over: string }>>}
  */
 const formulaDrafts = new Map();
@@ -1243,7 +1267,9 @@ function applyFormulaLeft() {
 }
 function formulaFieldLeft(/** @type {HTMLTextAreaElement} */ field) {
   $("formula-editor")?.classList.remove("typing");
-  // After the press that left it, if one did: the panel drawn anew now would lose the control pressed. Before anything leaves the chart, though (see leaveField). Left with the window too: one that reads is applied, else kept as typed, a draft.
+  // After the press that left it, if one did: the panel drawn anew now would lose the control pressed. Before anything
+    // leaves the chart, though (see leaveField). Left with the window too: one that reads is applied, else kept as typed,
+    // a draft.
   formulaLeft = { id: selected, text: field.value };
   formulaTyped++;
   afterPress(applyFormulaLeft);
@@ -1257,7 +1283,8 @@ function applyFormula(/** @type {string} */ id, /** @type {string} */ text) {
   formulaDrafts.get(chart.id)?.set(id, { text, over: layer.formula });
   const field = /** @type {HTMLTextAreaElement | null} */ ($("formula"));
   if (!field || selected !== id || document.activeElement === field) return;
-  // Typing done: no draw of what was typed left to come, nor the field's own input run. The panel drawn anew meanwhile (a click that left it, on a style) shows it again.
+  // Typing done: no draw of what was typed left to come, nor the field's own input run. The panel drawn anew meanwhile
+    // (a click that left it, on a style) shows it again.
   formulaTyped++;
   field.value = text;
   updateFormula(layer);
@@ -1275,7 +1302,8 @@ function leaveFormula(/** @type {HTMLTextAreaElement} */ field, /** @type {boole
   letGo(field);
 }
 let formulaTyped = 0;
-// Drawn once it's one to draw: it reads, its layers are here, its series are Bitview's (this machine's catalog says; before it's up, as soon as it reads). Till then the chart keeps the last one that was.
+// Drawn once it's one to draw: it reads, its layers are here, its series are Bitview's (this machine's catalog says;
+// before it's up, as soon as it reads). Till then the chart keeps the last one that was.
 async function drawWhenReady(/** @type {string} */ id, /** @type {string} */ text) {
   const turn = ++formulaTyped, layer = layerById(id);
   if (formulaError(text) || (layer && loopError(layer, text))) return;
@@ -1461,7 +1489,9 @@ function fitsAt(/** @type {string} */ text, /** @type {number} */ caret, self, e
 }
 
 /**
- * One layer each, but where it's a pair by its nature (a band's two edges, MACD's line and signal), named so and said as two (no surprise: a percentile is one line, the 95th; another is an edit of its formula away). Each is a formula like any, its window to change in it.
+ * One layer each, but where it's a pair by its nature (a band's two edges, MACD's line and signal), named so and said
+ * as two (no surprise: a percentile is one line, the 95th; another is an edit of its formula away). Each is a formula
+ * like any, its window to change in it.
  * @type {{ id: string, label: string, text: string, formulas: string[], over: boolean }[]}
  */
 const STARTERS = [
@@ -1518,7 +1548,8 @@ function drawCallHelp() {
     if (!element) continue;
     const typing = field?.id === id && (id === "formula" ? !assistAway() : palette.formula);
     let help = typing && field ? callHelp(field.value, field.selectionStart ?? 0) : "";
-    // Over the inspector's status line, it says what that line would: the formula's error (one that only says it isn't finished, inside a call still open, it doesn't).
+    // Over the inspector's status line, it says what that line would: the formula's error (one that only says it isn't
+        // finished, inside a call still open, it doesn't).
     const status = $("formula-status");
     if (help && id === "formula" && status?.classList.contains("error") && !isUnfinished(field?.value ?? "")) help += `<p class="call-error">${escapeHtml(status.textContent ?? "")}</p>`;
     const html = help || (id === "palette-input" && isOpen($("palette")) && palette.formula ? FORMULA_GUIDE : "");
@@ -1570,7 +1601,9 @@ const editLayer = (/** @type {(item: any, doc: Chart) => void} */ edit, /** @typ
 /** @param {string} name */
 const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Copied the series name"), () => notice("Couldn't copy the series name"));
 
-// A number as typed or pasted from the app ("−2", "1,250.5"): its minus any dash, its spaces none; commas group thousands, but one with no dot and not followed by three digits is the decimal one ("2,4", "1,25"); nothing typed, or not a number, NaN.
+// A number as typed or pasted from the app ("−2", "1,250.5"): its minus any dash, its spaces none; commas group
+// thousands, but one with no dot and not followed by three digits is the decimal one ("2,4", "1,25"); nothing typed, or
+// not a number, NaN.
 const readNumber = (/** @type {string} */ text) => {
   const typed = text.replace(/[\s\u00a0\u2009\u202f]/g, "").replace(/^[−–—]/, "-");
   if (!typed) return NaN;
@@ -1698,7 +1731,8 @@ function lineLookOn(doc, id, key, part, value) {
   else line[part] = value;
   if (key === "base" && !Object.keys(line).length) delete target.baseLine;
 }
-// Round, off the line (on it, it'd hide under it), never one it has: the next multiple at the size of its latest value, above that value (82,416: 90,000; 1.54: 2), then the next free one above.
+// Round, off the line (on it, it'd hide under it), never one it has: the next multiple at the size of its latest value,
+// above that value (82,416: 90,000; 1.54: 2), then the next free one above.
 function levelValue(/** @type {Layer} */ layer) {
   const value = valueAt(layer, { at: lastShown(), rest: true }), taken = new Set((layer.levels ?? []).map((level) => level.value));
   const step = Number.isFinite(value) && value !== 0 ? 10 ** Math.floor(Math.log10(Math.abs(value))) : 1;
@@ -1869,13 +1903,17 @@ function addFormulaLayer(formula, pane = /** @type {string | null} */ (null), si
 }
 
 /**
- * `over`: this one over the ones before it, all of history (rebase(shift(A, 1halving), halving_epoch): each line broken where it starts anew), as far back as it has values whole, three at most (more cross into a tangle), the oldest first.
+ * `over`: this one over the ones before it, all of history (rebase(shift(A, 1halving), halving_epoch): each line broken
+ * where it starts anew), as far back as it has values whole, three at most (more cross into a tangle), the oldest
+ * first.
  * @param {Layer} layer @param {"cycles" | "years"} which @returns {{ formula: string, label: string }[]}
  */
 function periodsOf(layer, which, over = false) {
   const year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear(), cycles = which === "cycles";
   const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, first = resolved && at >= 0 ? resolved.times[at] : GENESIS;
-  // Laid over each other, whole ones alone: those it has a value at the first point of, as rebase reads a moved one (one begun later has no 1× at its start). Years not before the first year() takes: a week's or a month's first point can be dated before the genesis block.
+  // Laid over each other, whole ones alone: those it has a value at the first point of, as rebase reads a moved one
+    // (one begun later has no 1× at its start). Years not before the first year() takes: a week's or a month's first
+    // point can be dated before the genesis block.
   const times = resolved?.times ?? [], whole = (/** @type {number} */ start, /** @type {number} */ end) => {
     const i = lowerBound(times, start);
     return values !== undefined && i < times.length && times[i] < end && (i > 0 || times[0] <= start) && Number.isFinite(values[i]) && values[i] !== 0;
@@ -1899,7 +1937,8 @@ function periodsOf(layer, which, over = false) {
 /** @param {"cycles" | "years"} which */
 const overShort = (which) => (which === "cycles" ? "No whole halving cycle before this one" : "No whole year before this one");
 const cloudable = () => chart.layers.some((layer) => !layer.from && !placedOn(layer));
-// A cloud goes behind them (after the last of them there), a trend in front (a line over what it follows); in a pane whose last is in front, the other way round.
+// A cloud goes behind them (after the last of them there), a trend in front (a line over what it follows); in a pane
+// whose last is in front, the other way round.
 function addFrom(/** @type {"cloud" | "trend"} */ type, /** @type {string[]} */ ids) {
   const members = fromOf(chart, ids, type);
   const short = type === "cloud" && membersOf(chart, ids, true).length < 2 ? "Pick what it's between" : fromShort({ type, from: members });
@@ -1922,7 +1961,8 @@ function addFrom(/** @type {"cloud" | "trend"} */ type, /** @type {string[]} */ 
   toast(`Added the ${labelOf(added).replace(/^(Cloud|Trend)/, (noun) => noun.toLowerCase())}${unfit ? `, but ${unfit === "Not in a stack" ? "stacked panes don't draw it" : "this pane's scale can't draw it"}` : ""}`, editAdded(added));
 }
 /**
- * Behind the price's layers, in dollars as they are, on a log scale as the price is; a pane with nothing in it gets the price as its candles (what it's read against).
+ * Behind the price's layers, in dollars as they are, on a log scale as the price is; a pane with nothing in it gets the
+ * price as its candles (what it's read against).
  * @param {string} cohort @param {string[]} [profile]
  */
 function addHeatmap(cohort, profile = undefined) {
