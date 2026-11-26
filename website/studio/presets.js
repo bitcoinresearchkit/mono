@@ -1662,7 +1662,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
     // Layers are named by their place, A first: a chart that names one would be read wrong with another before it.
     if (at > 0 || c.layers.some((layer) => layer.cloud || /\b[A-Z]{1,2}\b/.test(layer.formula ?? ""))) throw new Error(`A preset names its layers by place without the price first: ${c.layers.map((layer) => layer.label).join(", ")}`);
     const panes = c.panes ?? [{ mode: 0 }], first = panes[0], own = hidden ? c.layers : c.layers.filter((layer) => (layer.pane ?? 1) === 1);
-    if (globalThis.TRIMMED && own.length < c.layers.length) globalThis.TRIMMED.push(c.layers.filter((layer) => !own.includes(layer)).map((layer) => layer.label));
     return {
       ...c,
       layers: [{ ...price(), ...(hidden ? { hidden: true } : {}) }, ...own.map((layer) => ({ ...layer, pane: (layer.pane ?? 1) + 1 }))],
