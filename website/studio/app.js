@@ -146,7 +146,7 @@ import {
   paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
   presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
   presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
-  setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, showAddress, slipsOf, toggleHalvings, toggleLog,
+  setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, setPaneView, showAddress, slipsOf, toggleHalvings, toggleLog,
 } from "/studio/presets-edit.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -3896,6 +3896,7 @@ function placeLegends() {
       const element = legend.element;
       if (!element.classList.contains("legend")) (element.classList.add("legend", "strip"), strip(element), legendWidth.observe(element));
       if (element.dataset.pane !== pane.id) (element.dataset.pane = pane.id), legendShown.delete(element);
+      placeLensSwitch(element, pane);
     });
   }
   if (!chartShown()) return;
@@ -3903,6 +3904,32 @@ function placeLegends() {
   sizePanes();
   marginsSet = "";
   relayout();
+}
+/** A switch's width keeps its legend's row clear of it (none hidden). @param {HTMLElement} lens */
+const leadFor = (lens) => /** @type {HTMLElement | null} */ (lens.nextElementSibling)?.style.setProperty("--lead", `${lens.offsetWidth ? lens.offsetWidth + 6 : 0}px`);
+// (Its width changed later (a font come, a finger's wider buttons): on the next frame, not in the observer's round,
+// where the row it moves, watched too (see legendWidth), would loop it.)
+const lensWidth = new ResizeObserver((entries) => requestAnimationFrame(() => entries.forEach(({ target }) => leadFor(/** @type {HTMLElement} */ (target)))));
+/**
+ * A pane's two views' switch, at the start of its legend's row, which scrolls beside it (only a pane with two views):
+ * named as its preset names them, shown and hidden with its legend (see .lens-switch). @param {HTMLElement} legend @param {Pane} pane
+ */
+function placeLensSwitch(legend, pane) {
+  let lens = /** @type {HTMLElement | null} */ (legend.previousElementSibling?.matches(".lens-switch") ? legend.previousElementSibling : null);
+  if (!pane.lens) return lens && (lens.remove(), legend.style.removeProperty("--lead"));
+  if (!lens) {
+    lens = Object.assign(document.createElement("div"), { className: "tabs lens-switch" });
+    lens.setAttribute("role", "group");
+    legend.before(lens);
+    lensWidth.observe(lens);
+  }
+  const { as, at } = pane.lens, key = `${pane.id} ${at} ${as.join(" ")}`;
+  if (lens.dataset.key !== key) {
+    lens.dataset.key = key;
+    lens.setAttribute("aria-label", `Pane ${chart.panes.indexOf(pane) + 1} shown as`);
+    lens.innerHTML = as.map((name, k) => `<button type="button" data-show-view="${k}" data-pane="${pane.id}" aria-pressed="${at === k}">${escapeHtml(name)}</button>`).join("");
+    leadFor(lens);
+  }
 }
 /** The band the pointer's on, in a stacked pane (see bandAt): kept while the pointer's on its legend. */
 let bandLit = /** @type {string | null} */ (null);
@@ -9103,7 +9130,7 @@ function pictureTitle(/** @type {string} */ text, /** @type {number} */ width) {
  */
 function presentLegends() {
   const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
-  const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
+  const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.cssText]));
   const keys = all$("#chart .legend .legend-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
   const hidden = hiddenPanes(chart, true), lit = profileLit;
   // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
@@ -9115,11 +9142,13 @@ function presentLegends() {
   // (A profile's key onto more lines where it's longer than its pane is wide.)
   for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
   for (const [button] of buttons) {
+    // (Its rows wrapped, none scrolling: an item no wider than its line, its name cut short past that, never its value.)
+    button.style.maxWidth = "100%";
     if (button.classList.contains("hidden")) button.style.display = "none";
     button.classList.remove("selected", "lit");
   }
   return () => {
-    for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
+    for (const [button, className, cssText] of buttons) (button.className = className), (button.style.cssText = cssText);
     for (const [legend, cssText] of strips) legend.style.cssText = cssText;
     for (const [key, cssText] of keys) key.style.cssText = cssText;
     if (lit && !profileLit) (profileLit = lit), paintProfileItems();
@@ -9817,6 +9846,8 @@ document.addEventListener("click", (event) => {
   if (check) return pickLayer(/** @type {string} */ (check.dataset.pickLayer), event.shiftKey);
   const marker = closest(event, "[data-markers]");
   if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : toggleHalvings();
+  const view = closest(event, "[data-show-view]");
+  if (view) return setPaneView(/** @type {string} */ (view.dataset.pane), /** @type {0 | 1} */ (Number(view.dataset.showView)));
   const paneEye = closest(event, "[data-pane-eye]");
   if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id), paneShows(chart, /** @type {string} */ (paneEye.dataset.paneEye)));
   if (closest(event, "#templates [data-gallery-retry]")) return retryPresets();

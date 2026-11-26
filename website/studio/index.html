@@ -3136,14 +3136,36 @@
          pointed at in the plot comes into view). The layers' panel shown, none: the panel names them, reads them, lights
          the one pointed at (a picture's, every one named: see presentLegends). */
       @media (min-width: 761px) and (min-height: 501px) {
-        body:is([data-panel="open"], [data-peek]) .legend {
+        body:is([data-panel="open"], [data-peek]) :is(.legend, .lens-switch) {
           display: none;
         }
       }
 
       @media (max-width: 760px), (max-height: 500px) {
-        body[data-sheet="panel"] .legend {
+        body[data-sheet="panel"] :is(.legend, .lens-switch) {
           display: none;
+        }
+      }
+
+      /* A pane's two views' switch, at the start of its legend's row (see placeLensSwitch): the row scrolls beside it
+         (its width the row's --lead), its ground the card's under the field's, as the plot's lines run under it. */
+      .tabs.lens-switch {
+        position: absolute;
+        top: 4px;
+        left: 15px;
+        z-index: 3;
+        padding: 1px;
+        background: linear-gradient(var(--field), var(--field)) var(--card);
+
+        /* (Its legend hidden (turned off), it is too.) */
+        &:has(+ .legend[hidden]) {
+          display: none;
+        }
+
+        button {
+          height: 20px;
+          padding: 0 7px;
+          pointer-events: auto;
         }
       }
 
@@ -3155,7 +3177,7 @@
         position: absolute;
         top: 4px;
         right: 8px;
-        left: 15px;
+        left: calc(15px + var(--lead, 0px));
         z-index: 3;
         display: flex;
         gap: 2px;
@@ -3261,12 +3283,11 @@
         }
 
         /* An item: its mark and name, its value beside them in a slot as wide as it gets (nothing moves as it's read).
-           Never wider than its line (a phone's): past that, its name cut short, never its value; what's beside it (a
-           key) cut off at the line's end. */
+           As wide as all that, whatever its row: one past the row's width scrolls it, as several do (a picture, its
+           rows wrapped, holds each to its line: see presentLegends). */
         button {
           display: flex;
           flex-shrink: 0;
-          max-width: 100%;
           align-items: center;
           gap: 6px;
           border: 0;
@@ -3308,7 +3329,6 @@
             min-width: 0;
             align-items: center;
             gap: 6px;
-            max-width: 16rem;
             height: 18px;
           }
 
@@ -10291,7 +10311,7 @@
           --control-hit: 44px;
         }
 
-        .legend {
+        :is(.legend, .tabs.lens-switch) {
           top: 11px;
         }
 
