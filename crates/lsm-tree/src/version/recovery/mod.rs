@@ -6,7 +6,7 @@ use xxhash_rust::xxh3;
 
 use crate::{
     Error, Result,
-    file::{CURRENT_VERSION_FILE, MAGIC_BYTES},
+    file::{CURRENT_VERSION_FILE, MAGIC_BYTES, TIERED_MAGIC_BYTES},
     version::DEFAULT_LEVEL_COUNT,
 };
 
@@ -28,7 +28,7 @@ impl Recovery {
         let magic = bytes
             .get(..MAGIC_BYTES.len())
             .ok_or(Error::Unrecoverable("manifest shorter than its magic"))?;
-        if magic != MAGIC_BYTES {
+        if magic != MAGIC_BYTES && magic != TIERED_MAGIC_BYTES {
             let version = magic
                 .last()
                 .copied()

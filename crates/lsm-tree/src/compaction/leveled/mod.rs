@@ -83,6 +83,10 @@ impl Strategy {
     const L0_THRESHOLD: usize = 4;
     const TARGET_SIZE: u64 = 64 * 1_024 * 1_024;
     const LEVEL_RATIO: u64 = 10;
+    /// Runs a deferred level gathers before they are merged into the level below: a read checks
+    /// fewer than this many runs per level, and a record is rewritten once per level it passes
+    /// (under two for the few hundred ingestions of a sync from zero).
+    const FAN_IN: usize = 16;
 
     /// Each level's target size, counted from the last level up: a `LEVEL_RATIO`th of the level
     /// below it, so the last level holds about nine tenths of the tree whatever its size, and a
@@ -91,11 +95,18 @@ impl Strategy {
     /// A level whose target is under one table isn't in use (target 0): what it holds moves down.
     /// The last level takes whatever reaches it.
     fn level_targets(version: &Version) -> [u64; 7] {
+        Self::targets_over(
+            version
+                .iter_levels()
+                .last()
+                .map_or(0, |level| bytes(level.iter().flat_map(|run| run.iter()))),
+        )
+    }
+
+    /// [`Self::level_targets`] over a last level of `last` bytes.
+    fn targets_over(last: u64) -> [u64; 7] {
         let mut targets = [0, 0, 0, 0, 0, 0, u64::MAX];
-        let mut target = version
-            .iter_levels()
-            .last()
-            .map_or(0, |level| bytes(level.iter().flat_map(|run| run.iter())));
+        let mut target = last;
 
         for slot in targets.iter_mut().skip(1).rev().skip(1) {
             target /= Self::LEVEL_RATIO;
@@ -130,8 +141,15 @@ impl Strategy {
         clippy::too_many_lines,
         reason = "the asserted seven-level invariant guarantees every level exists and its index fits in u8"
     )]
-    pub fn choose(version: &Version, state: &CompactionState) -> Choice {
+    pub fn choose(version: &Version, state: &CompactionState, deferred: bool) -> Choice {
         assert!(version.level_count() == 7, "should have exactly 7 levels");
+
+        if deferred {
+            return Self::tier(version, state);
+        }
+        if version.is_tiered() {
+            return Self::merge_all(version, state);
+        }
 
         // Trivial move into Lmax
         'trivial_lmax: {
@@ -376,5 +394,48 @@ impl Strategy {
             return Choice::Move(choice);
         }
         Choice::Merge(choice)
+    }
+
+    /// Deferred compaction: the first level holding [`Self::FAN_IN`] runs, all of them merged into
+    /// one, the newest run of the level below. Every level is newer than the levels below it, so
+    /// reads keep finding the newest record first. Down to the second-last level only: a merge
+    /// into the last one drops tombstones whose older records may sit in its other runs.
+    #[expect(clippy::cast_possible_truncation, reason = "seven levels")]
+    fn tier(version: &Version, state: &CompactionState) -> Choice {
+        (0..version.level_count() - 2)
+            .find(|&idx| {
+                version.level(idx).is_some_and(|level| level.run_count() >= Self::FAN_IN)
+                    && !version.level_is_busy(idx, state.hidden_set())
+            })
+            .and_then(|idx| {
+                let level = version.level(idx)?;
+                Some(Choice::Merge(CompactionInput {
+                    table_ids: level.list_ids(),
+                    dest_level: idx as u8 + 1,
+                    // Read rarely while deferred: a deeper level's layout, with nothing pinned.
+                    canonical_level: idx as u8 + 2,
+                    target_size: Self::TARGET_SIZE,
+                }))
+            })
+            .unwrap_or(Choice::DoNothing)
+    }
+
+    /// Every table merged into one run of the last level, laid out as leveled compaction lays out
+    /// a last level of that size. Runs ingested meanwhile stay ahead of it.
+    #[expect(clippy::cast_possible_truncation, reason = "seven levels")]
+    fn merge_all(version: &Version, state: &CompactionState) -> Choice {
+        if state.hidden_set().is_blocked(version.iter_tables().map(Table::id)) {
+            return Choice::DoNothing;
+        }
+        let levels_in_use = Self::targets_over(bytes(version.iter_tables()))
+            .iter()
+            .filter(|&&target| target > 0)
+            .count();
+        Choice::Merge(CompactionInput {
+            table_ids: version.iter_tables().map(Table::id).collect(),
+            dest_level: (version.level_count() - 1) as u8,
+            canonical_level: levels_in_use as u8,
+            target_size: Self::TARGET_SIZE,
+        })
     }
 }

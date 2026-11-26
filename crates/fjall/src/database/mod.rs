@@ -87,6 +87,33 @@ impl Database {
     /// Panics if a keyspace lock is poisoned.
     #[must_use]
     pub fn disk_space(&self) -> u64 {
+        self.open_keyspaces().iter().map(Keyspace::disk_space).sum()
+    }
+
+    /// Ends the deferral of every keyspace opened deferred
+    /// ([`KeyspaceCreateOptions::defer_compaction`]) and queues its merge, once; the others are
+    /// left as they are.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a keyspace lock is poisoned.
+    pub fn resume_compaction(&self) {
+        self.open_keyspaces().iter().for_each(Keyspace::resume_compaction);
+    }
+
+    /// Whether some keyspace still holds runs that deferral stacked: until their merge after
+    /// [`Self::resume_compaction`] is published.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a keyspace lock is poisoned.
+    #[must_use]
+    pub fn is_tiered(&self) -> bool {
+        self.open_keyspaces().iter().any(Keyspace::is_tiered)
+    }
+
+    /// Every keyspace open in this process.
+    fn open_keyspaces(&self) -> Vec<Keyspace> {
         let keyspaces = self
             .inner
             .keyspaces
@@ -94,11 +121,8 @@ impl Database {
             .expect("keyspace registry lock is poisoned");
         keyspaces
             .values()
-            .filter_map(|slot| {
-                let keyspace = slot.lock().expect("keyspace slot lock is poisoned");
-                keyspace.as_ref().map(Keyspace::disk_space)
-            })
-            .sum()
+            .filter_map(|slot| slot.lock().expect("keyspace slot lock is poisoned").clone())
+            .collect()
     }
 
     /// Opens or creates `name` using the supplied immutable-table policy.

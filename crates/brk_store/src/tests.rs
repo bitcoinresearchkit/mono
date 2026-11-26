@@ -17,7 +17,7 @@ use brk_error::{Error, Result};
 use brk_types::{Sats, StoreValue, TxIndex, Unit, Version};
 use fjall::{Database, RecordBytes};
 
-use crate::{AnyStore, Kind, Store, StoreView, open_database};
+use crate::{AnyStore, Compaction, Kind, Store, StoreView, open_database};
 
 const VERSION: Version = Version::new(1);
 /// Keys' high halves, one prefix each; the scan ends of 0x00FF and 0xFFFF carry (to 0x01, to none).
@@ -110,7 +110,7 @@ where
     /// One open of the store: version checks on the first reopen, then the batches.
     fn round(&mut self, db: &Database, path: &Path, round: usize) {
         let (name, kind) = (self.name, self.kind);
-        let import = |version| Store::<TxIndex, V>::import(db, path, name, version, kind);
+        let import = |version| Store::<TxIndex, V>::import(db, path, name, version, kind, Compaction::Eager);
         if round == 1 {
             // A changed version, or records without one, are refused.
             assert!(matches!(
