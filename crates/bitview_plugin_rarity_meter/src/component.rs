@@ -13,6 +13,8 @@ use vecdb::{AnyVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode
 
 use super::{Band, BlockDecayPercentiles, START_HEIGHT, component_price::ComponentPrice};
 
+// Its percentile tables are boxed: inline, the meter's ~90 components make one value too large for an
+// import thread's 8 MiB stack.
 #[derive(Traversable)]
 pub struct Component<M: StorageMode = Rw> {
     #[traversable(flatten)]
@@ -28,11 +30,11 @@ pub struct Component<M: StorageMode = Rw> {
     /// observation. Each price band equals the reference price multiplied by its
     /// historical ratio percentile.
     #[traversable(lead = "Rarity bands: prices as rare, against that reference price, as each percentile of its history, the low ones cheap, the high ones dear.")]
-    pub bands: RarityPercentiles<Band>,
+    pub bands: Box<RarityPercentiles<Band>>,
 
     /// The stored ratio percentiles behind `bands`, in parts per million.
     #[traversable(hidden)]
-    ratios: RarityPercentiles<CachedSeries<PartsPerMillion32, M>>,
+    ratios: Box<RarityPercentiles<CachedSeries<PartsPerMillion32, M>>>,
 
     price: M::WriteOnly<ComponentPrice>,
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
@@ -80,8 +82,8 @@ impl Component {
         });
 
         Ok(Component {
-            bands,
-            ratios,
+            bands: Box::new(bands),
+            ratios: Box::new(ratios),
             price: component_price,
             block_decay_pct: BlockDecayPercentiles::default(),
         })

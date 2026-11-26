@@ -94,7 +94,8 @@ const FEATURE_PHRASES = {
 const sighashName = (/** @type {string} */ key) => key.replace(/^(\w+?)(AnyoneCanPay)?$/, (_, type, anyone) => `SIGHASH_${type.toUpperCase()}${anyone ? "|SIGHASH_ANYONECANPAY" : ""}`);
 
 /** Each price keeps its own color wherever it's drawn (a chart of its own, among others, a meter's reference). */
-const PRICE_COLORS = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ realizedPrice: "orange", capitalizedPrice: "green", trueMarketMean: "sky", cointime: "violet", vaulted: "teal", active: "red" }));
+const PRICE_COLORS = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ realizedPrice: "orange", capitalizedPrice: "green", trueMarketMean: "sky", cointime: "violet", vaulted: "teal", active: "red", cvdd: "emerald", balanced: "cyan", delta: "purple" }));
+const PRICE_NAMES = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ cvdd: "CVDD" }));
 /** A count summed since the start: its month's color, not gray, which reads as off. */
 const SUM_COLOR = "blue";
 const PER_BLOCK_COLOR = "sky";
@@ -584,7 +585,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const list = entries(node), weighted = (/** @type {string} */ k) => k === "awake" || k === "mobile";
     const who = kind ? capitalized(holderName(cohort).of(kind)) : holderName(cohort).who;
     return [
-      ...list.filter(([k]) => !weighted(k)).map(([k, v]) => component(v, words(k), who, referenceOf(cohort, kind, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")])),
+      ...list.filter(([k]) => !weighted(k)).map(([k, v]) => component(v, PRICE_NAMES[k] ?? words(k), who, referenceOf(cohort, kind, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")])),
       ...list.filter(([k]) => weighted(k)).map(([k, v]) => section(capitalized(k), rarityComponents(cohort, v, k))),
     ];
   };
@@ -596,6 +597,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
       capitalizedPrice: [cost?.byDollar.capitalizedPrice, cost?.byDollar.avg.ratio],
       vaultedPrice: [ct.prices.vaulted.value, ct.prices.vaulted.ratio],
       trueMarketMean: [ct.prices.trueMarketMean.value, ct.prices.trueMarketMean.ratio],
+      cointimePrice: [ct.prices.cointime.value, ct.prices.cointime.ratio],
+      activePrice: [ct.prices.active.value, ct.prices.active.ratio],
     })[key];
   };
   /** @param {any} node @param {(v: any) => any} pick @param {(p: number) => boolean} [shown] */
@@ -997,8 +1000,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
       chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: PRICE_COLORS.realizedPrice }), series(ct.prices.trueMarketMean.value, "True market mean", { color: PRICE_COLORS.trueMarketMean }), series(ct.prices.cointime.value, "Cointime price", { color: PRICE_COLORS.cointime }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: PRICE_COLORS.capitalizedPrice })]),
       // (Woo's and Puell's 2019 lines from coin days destroyed, each valued at its block's price: terminal for the tops,
       // the rest under the price at the lows.)
-      chart("Cumulative destruction", "CVDD, balanced, transferred and terminal prices", [price(), series(ct.prices.cvdd, "CVDD", { color: "green" }), series(ct.prices.balanced, "Balanced price", { color: "sky" }), series(ct.prices.transferred, "Transferred price", { color: "gray" }), series(ct.prices.terminal, "Terminal price", { color: "red" })]),
-      chart("Delta price", "Delta price and realized price", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: PRICE_COLORS.realizedPrice }), series(ct.prices.delta, "Delta price", { color: "violet" })]),
+      chart("Cumulative destruction", "CVDD, balanced, transferred and terminal prices", [price(), series(ct.prices.cvdd, PRICE_NAMES.cvdd, { color: PRICE_COLORS.cvdd }), series(ct.prices.balanced, "Balanced price", { color: PRICE_COLORS.balanced }), series(ct.prices.transferred, "Transferred price", { color: "gray" }), series(ct.prices.terminal, "Terminal price", { color: "red" })]),
+      chart("Delta price", "Delta price and realized price", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: PRICE_COLORS.realizedPrice }), series(ct.prices.delta, "Delta price", { color: PRICE_COLORS.delta })]),
       cloudsChart(),
       section("Compass", compassCharts()),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", PRICE_COLORS.active, PRICE_COLORS.vaulted, PRICE_COLORS.cointime][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1], as: ["Caps", "Shares"] }),

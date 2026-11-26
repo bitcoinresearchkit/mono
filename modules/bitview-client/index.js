@@ -2392,9 +2392,9 @@ const _P0_1 = _s({
  *   p99: P99,
  *   p99_5: P99_5,
  *   p99_9: P99_9,
- * }} MedianComponent
+ * }} LazyComponent
  */
-const _MedianComponent = _s({
+const _LazyComponent = _s({
   value: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
   p0_1: [_P0_1, '*'],
@@ -2467,23 +2467,23 @@ const _RarityPercentiles = _s({
  * @typedef {{
  *   realizedPrice: RarityPercentiles,
  *   capitalizedPrice: RarityPercentiles,
- *   medianRealizedPrice: MedianComponent,
- *   medianCapitalizedPrice: MedianComponent,
+ *   medianRealizedPrice: LazyComponent,
+ *   medianCapitalizedPrice: LazyComponent,
  * }} CohortComponents
  */
 const _CohortComponents = _s({
   realizedPrice: [_RarityPercentiles, '*_realized_price'],
   capitalizedPrice: [_RarityPercentiles, '*_capitalized_price'],
-  medianRealizedPrice: [_MedianComponent, '*_median_realized_price'],
-  medianCapitalizedPrice: [_MedianComponent, '*_median_capitalized_price'],
+  medianRealizedPrice: [_LazyComponent, '*_median_realized_price'],
+  medianCapitalizedPrice: [_LazyComponent, '*_median_capitalized_price'],
 });
 
 /**
  * @typedef {{
  *   realizedPrice: RarityPercentiles,
  *   capitalizedPrice: RarityPercentiles,
- *   medianRealizedPrice: MedianComponent,
- *   medianCapitalizedPrice: MedianComponent,
+ *   medianRealizedPrice: LazyComponent,
+ *   medianCapitalizedPrice: LazyComponent,
  *   awake: CohortComponents,
  *   mobile: CohortComponents,
  * }} BySupply
@@ -2491,8 +2491,8 @@ const _CohortComponents = _s({
 const _BySupply = _s({
   realizedPrice: [_RarityPercentiles, '*_realized_price'],
   capitalizedPrice: [_RarityPercentiles, '*_capitalized_price'],
-  medianRealizedPrice: [_MedianComponent, '*_median_realized_price'],
-  medianCapitalizedPrice: [_MedianComponent, '*_median_capitalized_price'],
+  medianRealizedPrice: [_LazyComponent, '*_median_realized_price'],
+  medianCapitalizedPrice: [_LazyComponent, '*_median_capitalized_price'],
   awake: [_CohortComponents, '*_awake'],
   mobile: [_CohortComponents, '*_mobile'],
 });
@@ -2501,23 +2501,33 @@ const _BySupply = _s({
  * @typedef {{
  *   realizedPrice: RarityPercentiles,
  *   capitalizedPrice: RarityPercentiles,
- *   medianRealizedPrice: MedianComponent,
- *   medianCapitalizedPrice: MedianComponent,
+ *   medianRealizedPrice: LazyComponent,
+ *   medianCapitalizedPrice: LazyComponent,
  *   awake: CohortComponents,
  *   mobile: CohortComponents,
  *   vaultedPrice: RarityPercentiles,
  *   trueMarketMean: RarityPercentiles,
+ *   cointimePrice: RarityPercentiles,
+ *   activePrice: RarityPercentiles,
+ *   cvdd: LazyComponent,
+ *   balancedPrice: LazyComponent,
+ *   deltaPrice: LazyComponent,
  * }} AllComponents
  */
 const _AllComponents = _s({
   realizedPrice: [_RarityPercentiles, 'realized_*'],
   capitalizedPrice: [_RarityPercentiles, 'capitalized_*'],
-  medianRealizedPrice: [_MedianComponent, 'median_realized_*'],
-  medianCapitalizedPrice: [_MedianComponent, 'median_capitalized_*'],
+  medianRealizedPrice: [_LazyComponent, 'median_realized_*'],
+  medianCapitalizedPrice: [_LazyComponent, 'median_capitalized_*'],
   awake: [_CohortComponents, 'awake'],
   mobile: [_CohortComponents, 'mobile'],
   vaultedPrice: [_RarityPercentiles, 'vaulted_*'],
   trueMarketMean: [_RarityPercentiles, 'true_market_mean'],
+  cointimePrice: [_RarityPercentiles, 'cointime_*'],
+  activePrice: [_RarityPercentiles, 'active_*'],
+  cvdd: [_LazyComponent, 'cvdd'],
+  balancedPrice: [_LazyComponent, 'balanced_*'],
+  deltaPrice: [_LazyComponent, 'delta_*'],
 });
 
 /**
@@ -7223,7 +7233,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "2ecec561cd42659f8562358a5bc884d95e2116bae84ae2b36acdb01d86e69c3c";
+  static HASH = "de9ce0b3512447769ddb225022bb80c70d41dfa817396756d74f0e22960d4735";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

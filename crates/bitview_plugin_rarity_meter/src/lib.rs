@@ -9,7 +9,7 @@ mod extreme;
 mod extremes;
 mod import;
 mod inner;
-mod median_component;
+mod lazy_component;
 
 pub use dependencies::Dependencies;
 

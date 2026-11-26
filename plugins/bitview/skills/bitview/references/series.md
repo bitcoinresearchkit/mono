@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31550 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31743 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -220,7 +220,7 @@
 
 ### rarity_meter
 
-- `rarity_meter.components` (3352): `realized_price_ratio_rarity_p0_1`, `realized_price_rarity_p0_1`, `realized_price_ratio_rarity_p0_5`, `realized_price_rarity_p0_5`, `realized_price_ratio_rarity_p1`
+- `rarity_meter.components` (3548): `realized_price_ratio_rarity_p0_1`, `realized_price_rarity_p0_1`, `realized_price_ratio_rarity_p0_5`, `realized_price_rarity_p0_5`, `realized_price_ratio_rarity_p1`
 - `rarity_meter.extremes` (100): `supply_in_loss`, `supply_in_loss_rarity_p0_1`, `supply_in_loss_rarity_p0_5`, `supply_in_loss_rarity_p1`, `supply_in_loss_rarity_p2`
 - `rarity_meter.full` (21): `rarity_meter_p0_1`, `rarity_meter_p0_5`, `rarity_meter_p1`, `rarity_meter_p2`, `rarity_meter_p5`
 
@@ -288,7 +288,8 @@ Each member holds the family's series, its ids built on the member's base (`key 
 - `profitability` (175 series each): `all` → (none), `sth` → `sth`, `lth` → `lth`
 - `rarity_meter` (21 series each): `full` → `rarity_meter`, `local` → `local_rarity_meter`, `cycle` → `cycle_rarity_meter`
 - `rarity_meter.components` (468 series each): `sth` → `sth`, `lth` → `lth`, `under_4m` → `age_under_4m`, `under_6m` → `age_under_6m`, `over_4m` → `age_over_4m`, `over_6m` → `age_over_6m`
-- `rarity_meter.components.all` (38 series each): `realized_price` → `realized_price`, `capitalized_price` → `capitalized_price`, `vaulted_price` → `vaulted_price`, `true_market_mean` → `true_market_mean`
+- `rarity_meter.components.all` (38 series each): `realized_price` → `realized_price`, `capitalized_price` → `capitalized_price`, `vaulted_price` → `vaulted_price`, `true_market_mean` → `true_market_mean`, `cointime_price` → `cointime_price`, `active_price` → `active_price`
+- `rarity_meter.components.all` (40 series each): `median_realized_price` → `median_realized_price`, `median_capitalized_price` → `median_capitalized_price`, `cvdd` → `cvdd`, `balanced_price` → `balanced_price`, `delta_price` → `delta_price`
 - `rarity_meter.extremes` (20 series each): `supply_in_loss` → `supply_in_loss`, `realized_profit_sum_24h` → `realized_profit_sum_24h`, `realized_loss_sum_24h` → `realized_loss_sum_24h`, `realized_peak_regret_sum_24h` → `realized_peak_regret_sum_24h`, `sell_side_risk_ratio_24h` → `sell_side_risk_ratio_24h`
 - `supply.burned.sum` (2 series each): `24h` → `burned_sum_24h`, `1w` → `burned_sum_1w`, `1m` → `burned_sum_1m`, `1y` → `burned_sum_1y`
 - `transactions.count` (4 series each): `sum` → `tx_count_sum`, `avg` → `tx_count_avg`, `min` → `tx_count_min`, `max` → `tx_count_max`, `p10` → `tx_count_p10`, `p25` → `tx_count_p25`, `median` → `tx_count_median`, `p75` → `tx_count_p75`, `p90` → `tx_count_p90`

@@ -3231,7 +3231,7 @@ class P0_1(_Node):
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_rarity_p0_1')
 
 
-class MedianComponent(_Node):
+class LazyComponent(_Node):
     value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
     p0_1: P0_1 = _at(P0_1, '*')
@@ -3280,15 +3280,15 @@ class RarityPercentiles(_Node):
 class CohortComponents(_Node):
     realized_price: RarityPercentiles = _at(RarityPercentiles, '*_realized_price')
     capitalized_price: RarityPercentiles = _at(RarityPercentiles, '*_capitalized_price')
-    median_realized_price: MedianComponent = _at(MedianComponent, '*_median_realized_price')
-    median_capitalized_price: MedianComponent = _at(MedianComponent, '*_median_capitalized_price')
+    median_realized_price: LazyComponent = _at(LazyComponent, '*_median_realized_price')
+    median_capitalized_price: LazyComponent = _at(LazyComponent, '*_median_capitalized_price')
 
 
 class BySupply(_Node):
     realized_price: RarityPercentiles = _at(RarityPercentiles, '*_realized_price')
     capitalized_price: RarityPercentiles = _at(RarityPercentiles, '*_capitalized_price')
-    median_realized_price: MedianComponent = _at(MedianComponent, '*_median_realized_price')
-    median_capitalized_price: MedianComponent = _at(MedianComponent, '*_median_capitalized_price')
+    median_realized_price: LazyComponent = _at(LazyComponent, '*_median_realized_price')
+    median_capitalized_price: LazyComponent = _at(LazyComponent, '*_median_capitalized_price')
     awake: CohortComponents = _at(CohortComponents, '*_awake')
     mobile: CohortComponents = _at(CohortComponents, '*_mobile')
 
@@ -3296,12 +3296,17 @@ class BySupply(_Node):
 class AllComponents(_Node):
     realized_price: RarityPercentiles = _at(RarityPercentiles, 'realized_*')
     capitalized_price: RarityPercentiles = _at(RarityPercentiles, 'capitalized_*')
-    median_realized_price: MedianComponent = _at(MedianComponent, 'median_realized_*')
-    median_capitalized_price: MedianComponent = _at(MedianComponent, 'median_capitalized_*')
+    median_realized_price: LazyComponent = _at(LazyComponent, 'median_realized_*')
+    median_capitalized_price: LazyComponent = _at(LazyComponent, 'median_capitalized_*')
     awake: CohortComponents = _at(CohortComponents, 'awake')
     mobile: CohortComponents = _at(CohortComponents, 'mobile')
     vaulted_price: RarityPercentiles = _at(RarityPercentiles, 'vaulted_*')
     true_market_mean: RarityPercentiles = _at(RarityPercentiles, 'true_market_mean')
+    cointime_price: RarityPercentiles = _at(RarityPercentiles, 'cointime_*')
+    active_price: RarityPercentiles = _at(RarityPercentiles, 'active_*')
+    cvdd: LazyComponent = _at(LazyComponent, 'cvdd')
+    balanced_price: LazyComponent = _at(LazyComponent, 'balanced_*')
+    delta_price: LazyComponent = _at(LazyComponent, 'delta_*')
 
 
 class RarityMeterAgeAggregate(_Node):
