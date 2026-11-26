@@ -2,7 +2,7 @@
 // Menus, the toolbar, sharing, importing and exporting.
 import {
   atWindow, byTouch, chart, chartImage, commit, css, engine, flowsAt, hideTip, library, listedPreviews, loadPresets,
-  measure, menuNameOf, MOTION, navigations, notice, openView, phone, railMenu, reduced, resolved, revision, ROUTED,
+  measure, menuNameOf, MOTION, navigations, notice, onRail, openView, phone, railed, railMenu, reduced, resolved, revision, ROUTED,
   saveView, SHARES_IMAGES, shownView, showRange, storage, submenus, toast, UNREAD,
 } from "/studio/app.js";
 import { $, all$, closest, drawKeys, escapeHtml, holdPage, KEY_STEPS, keyText, stepIn, keyOf, restoreFocus, cutFade, fadeOut, fixedOrigin, placeFixed } from "/studio/dom.js";
@@ -630,10 +630,6 @@ function settleMenu(/** @type {HTMLElement} */ menu) {
   const top = menu.querySelector(":scope > :is(.menu-group:first-child, .menu-handle + .menu-group)");
   menu.style.scrollPaddingTop = top instanceof HTMLElement ? `${top.offsetTop + top.offsetHeight}px` : "";
 }
-/** Whether the sidebar is a rail of icons. */
-const railed = () => document.body.dataset.sidebar === "collapsed";
-/** Whether the sidebar's list shows as the rail (a phone's is a sheet, whole). */
-const onRail = () => railed() && !phone.matches;
 /**
  * A pointer's rest before a menu shows for it (ms), on a sidebar's row or a button: long enough that a pass down the
  * list opens none, no longer (as macOS's submenus wait). And after it's left, before the menu goes: time to cross to it.
@@ -1214,8 +1210,8 @@ export {
   copyLink, dismissMenu, download, downloadAll, downloadChart, downloadFolder, drawMarks, exportAs,
   exportData, exportRows, fieldOpener, FIELDS, flyout, focusMenu,
   hideMenu, hideSubmenu, leaveTitle, letGo, linksOf, 
-  measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
-  outlineMenuTarget, ownerNow, pinFlyout, portable, qrCode, railed, renameInPlace,
+  measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, openCascade, openedImages,
+  outlineMenuTarget, ownerNow, pinFlyout, portable, qrCode, renameInPlace,
   switchWindow, setApart, setMenuBack, setMenuOwner,
   setRange, shareLink, showMenu, shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
   TOO_SMALL, toSketch, UNREADABLE, viewDates, walkMenu,

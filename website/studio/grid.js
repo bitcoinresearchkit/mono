@@ -12,9 +12,9 @@ import {
   heatKnown, heldUpright, home, homeAt, homeScroll, importCharts, inLibrary, isPreview, isYours, keepSidePresets,
   keepsLeaving, keptAsEdited, keysNow, layoutCurve, layoutOwed, leaveHome, leftView, leftWith, letterOf, library,
   libraryEdits, libraryStep, light, listedPreviews, listOwed, livePrice, loadPresets, minedHalvings, mostBars, MOTION,
-  newDraft, notice, openChart, openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs, presetLabels,
+  newDraft, notice, onRail, openChart, openView, paletteMarksSeen, phone, pickPreset, placeGallery, prefs, presetLabels,
   presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart,
-  profileColor, railMenuKept, recentCharts, redoing, reduced, relayout, relist, renderCharts, save, savePrefs,
+  profileColor, railed, railMenuKept, recentCharts, redoing, reduced, relayout, relist, renderCharts, save, savePrefs,
   savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls, sideLight, sidePresets, started, storage, THEMES,
   thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit, THUMBS, PREVIEWS, SHELF,
   GALLERY_PAGE, MARK_VERSION, THUMB_POINTS,
@@ -46,7 +46,7 @@ import {
   heatMost, heatPump, mostIn, rowsOf,
 } from "/studio/heatmaps.js";
 import {
-  anythingKept, chartsFile, closedOwner, download, downloadAll, downloadChart, downloadFolder, hideMenu, menuOf, onRail, ownerNow, railed, setMenuOwner, supportedIntervals,
+  anythingKept, chartsFile, closedOwner, download, downloadAll, downloadChart, downloadFolder, hideMenu, menuOf, ownerNow, setMenuOwner, supportedIntervals,
 } from "/studio/menus.js";
 import {
   RECOMMENDED, refocus, vocabNow,

@@ -204,6 +204,10 @@ function stillStep(shown) {
 /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
 const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout"), wordsWait: parseFloat(css("--words-wait")), wordsIn: parseFloat(css("--words-in")) };
 const phone = matchMedia(MEDIA.phone);
+/** Whether the sidebar is a rail of icons. */
+const railed = () => document.body.dataset.sidebar === "collapsed";
+/** Whether the sidebar's list shows as the rail (a phone's is a sheet, whole). */
+const onRail = () => railed() && !phone.matches;
 /** Whether the sidebar's list is owed: not written while the layout's a phone's, where it never shows (see renderCharts; here, as charts are listed at the start). */
 let listOwed = false;
 /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
@@ -2001,11 +2005,14 @@ function changed(announce, keepMenu = false) {
   announce &&= !isPreview(chart);
   revision++;
   if (!chartChanged) (chartChanged = true), queueMicrotask(() => (chartChanged = false));
-  if (!keepMenu) menus.hideMenu();
+  // (Before the rest, no menu is open, no formula unfinished, no drawing chosen.)
+  withRest(() => {
+    if (!keepMenu) menus.hideMenu();
+    // (A formula left unfinished over one that's since changed (⌘K, an undo, the layer gone): let go for good.)
+    inspector.pruneDrafts();
+    chosen = new Set([...chosen].filter((id) => pen.drawingById(id)));
+  });
   if (!layerById(selected)) selected = "";
-  // (A formula left unfinished over one that's since changed (⌘K, an undo, the layer gone): let go for good.)
-  inspector.pruneDrafts();
-  chosen = new Set([...chosen].filter((id) => pen.drawingById(id)));
   for (const id of layerPicks) if (!layerById(id)) layerPicks.delete(id);
   if (!layerById(layerPickLast)) layerPickLast = [...layerPicks][0] ?? "";
   if (!layerById(pickHead)) pickHead = layerPickLast;
@@ -3979,7 +3986,7 @@ const sidePoint = (/** @type {PointerEvent} */ event) => {
   const at = `${event.clientX},${event.clientY}`;
   if (sideHeld && at === sidePointer) return;
   (sidePointer = at), (sideHeld = false);
-  const row = closest(event, menus.railed() ? ".chart-row, .folder-row" : ".chart-row, .folder-row, .list-head");
+  const row = closest(event, railed() ? ".chart-row, .folder-row" : ".chart-row, .folder-row, .list-head");
   // (Rows meet, each reaching half the gap to the next (see .chart-list): off them, by a group's rule or past the
   // list's ends, none lit, not one left lit without its row's own (its count, its way, its ⋯).)
   sideLight(row ? row.querySelector(":scope > :is(.chart-item, .folder-item, .list-head-name)") : null);
@@ -6366,7 +6373,7 @@ function writeSideList(current) {
   // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
   // a chart, till something's in it.)
   // (On the rail, folders never open: each a door to what's in it, see railMenu.)
-  const listed = listedPreviews(), counts = grid.chartCounts(), rail = menus.onRail(), recents = recentCharts();
+  const listed = listedPreviews(), counts = grid.chartCounts(), rail = onRail(), recents = recentCharts();
   // (Recent reordered (a chart opened): the rows slid under the pointer, none of them pointed at: its highlight put
   // away till the pointer moves, see sidePoint.)
   const recentOrder = recents.map((item) => item.id).join();
@@ -6684,7 +6691,7 @@ withRest(() => {
       const onto = under && places.includes(under) ? under : null;
       /** (At its row's level; after the last row of a folder, as far out as the pointer is, to the next row's level.) @param {Landing | null} at */
       const level = (at) => {
-        if (!at || !("item" in at) || menus.railed()) return at;
+        if (!at || !("item" in at) || railed()) return at;
         const depth = grid.depthOf(at.item), next = places[places.indexOf(at.item) + 1], low = next ? grid.depthOf(next) : 0;
         if (!at.after || low >= depth) return { ...at, depth };
         return { ...at, depth: clamp(Math.floor((x - at.item.getBoundingClientRect().left - 13) / 16), low, depth) };
@@ -6693,7 +6700,7 @@ withRest(() => {
         const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height, folder = folderById(onto.dataset.folderRow);
         const first = places[places.indexOf(onto) + 1], inside = first && folder && grid.parentOf(/** @type {Chart | Folder} */ (grid.itemOf(grid.sideId(first)))) === folder.id ? first : null;
         if (share < 0.25) return level({ item: onto, after: false });
-        if (share > 0.75) return folder?.closed || menus.onRail() ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
+        if (share > 0.75) return folder?.closed || onRail() ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
         return { zone: onto };
       }
       return level(grid.landingIn(places, y, grid.sideId, ids));
@@ -6714,7 +6721,7 @@ withRest(() => {
   });
   // A row's menu by touch: held, the one its ⋯ shows (by touch out of sight, the list kept quiet: see the rows' ⋯).
   // (On the rail, a press shows it already.)
-  gestures.onHold($("chart-list"), ".nav-item, .list-head-name", (row) => ((more) => (more && !menus.railed() ? () => (more.click(), true) : null))(/** @type {HTMLElement | null} */ (row.parentElement?.querySelector(':scope > .chart-more[aria-haspopup="menu"]') ?? null)));
+  gestures.onHold($("chart-list"), ".nav-item, .list-head-name", (row) => ((more) => (more && !railed() ? () => (more.click(), true) : null))(/** @type {HTMLElement | null} */ (row.parentElement?.querySelector(':scope > .chart-more[aria-haspopup="menu"]') ?? null)));
   gestures.dragToReorder($("home-grid"), {
     item: "[data-home-card]",
     label: grid.chartLabel,
@@ -7800,7 +7807,7 @@ withRest(() => {
     // (The browser's own, after the menu key opened a row's menu: that one's open.)
     if (event.isTrusted && performance.now() - grid.keyMenuAt < 500 && closest(event, "#chart-list")) return void event.preventDefault();
     // (A row on the rail: its one menu, as pointing at it or pressing it shows (see railMenu).)
-    const railItem = menus.onRail() && !closest(event, ".row-rename, .folder-rename") ? /** @type {HTMLElement | null} */ (closest(event, "#chart-list > *")?.querySelector(":scope > :is([data-open-chart], [data-open-preset], [data-folder-item], [data-section-item], [data-group-item])") ?? null) : null;
+    const railItem = onRail() && !closest(event, ".row-rename, .folder-rename") ? /** @type {HTMLElement | null} */ (closest(event, "#chart-list > *")?.querySelector(":scope > :is([data-open-chart], [data-open-preset], [data-folder-item], [data-section-item], [data-group-item])") ?? null) : null;
     if (railItem) {
       event.preventDefault();
       return railMenuKept(railItem);
@@ -7823,12 +7830,12 @@ withRest(() => {
     const groupAt = closest(event, "#chart-list [data-group]");
     if (groupAt) {
       event.preventDefault();
-      return menus.menuOf(/** @type {HTMLElement} */ (groupAt.querySelector(menus.railed() ? ".list-head-name" : "[data-group-menu]")), grid.groupRows(/** @type {Group} */ (groupAt.dataset.group)), { x: event.clientX, y: event.clientY });
+      return menus.menuOf(/** @type {HTMLElement} */ (groupAt.querySelector(railed() ? ".list-head-name" : "[data-group-menu]")), grid.groupRows(/** @type {Group} */ (groupAt.dataset.group)), { x: event.clientX, y: event.clientY });
     }
     const sectionRow = closest(event, "[data-section-row]");
     if (sectionRow) {
       event.preventDefault();
-      return menus.menuOf(/** @type {HTMLElement} */ (sectionRow.querySelector(menus.railed() ? ".folder-item" : "[data-section-menu]")), grid.sectionRows(/** @type {string} */ (sectionRow.dataset.sectionRow)), { x: event.clientX, y: event.clientY });
+      return menus.menuOf(/** @type {HTMLElement} */ (sectionRow.querySelector(railed() ? ".folder-item" : "[data-section-menu]")), grid.sectionRows(/** @type {string} */ (sectionRow.dataset.sectionRow)), { x: event.clientX, y: event.clientY });
     }
     const folderRow = closest(event, "[data-folder-row], [data-grid-folder]");
     if (folderRow && !closest(event, ".folder-rename")) {
@@ -7836,7 +7843,7 @@ withRest(() => {
       // (Yours, all of them: no menu of its own.)
       // (Its ⋯, out of sight on the rail: the row it's on there.)
       const more = /** @type {HTMLElement | null} */ (folderRow.querySelector("[data-folder-menu]"));
-      return more ? grid.folderActions(menus.railed() && folderRow.matches("[data-folder-row]") ? /** @type {HTMLElement} */ (folderRow.querySelector(".folder-item")) : more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY }) : undefined;
+      return more ? grid.folderActions(railed() && folderRow.matches("[data-folder-row]") ? /** @type {HTMLElement} */ (folderRow.querySelector(".folder-item")) : more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY }) : undefined;
     }
     const previewRow = closest(event, "[data-preview-row]:not(:has(.row-rename))");
     const previewed = previewRow && chartById(/** @type {string} */ (/** @type {HTMLElement} */ (previewRow).dataset.previewRow));
@@ -9327,7 +9334,7 @@ let tipPointed = /** @type {Element | null} */ (null);
 let described = /** @type {HTMLElement | null} */ (null);
 function tipWanted(/** @type {HTMLElement} */ target) {
   // (On the rail, a row its menu names as the pointer rests on it: no tip before it. Reached by a key, its tip.)
-  if (menus?.railed() && tipPointed && target.matches("#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])")) return false;
+  if (railed() && tipPointed && target.matches("#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])")) return false;
   // (A tip of two lines, a row's name and its second line: repeating only while both are shown whole.)
   const name = target.querySelector(".name, .label, .head-name, .tile-name"), sub = target.querySelector(".sub"), [head, ...more] = (target.dataset.tip ?? "").split("\n");
   const whole = (/** @type {Element | null} */ words) => Boolean(words) && /** @type {Element} */ (words).scrollWidth <= /** @type {Element} */ (words).clientWidth;
@@ -9335,7 +9342,7 @@ function tipWanted(/** @type {HTMLElement} */ target) {
   const subText = sub ? [...sub.childNodes].filter((node) => !(node instanceof Element && node.classList.contains("sub-letter"))).map((node) => node.textContent).join("").trim() : "";
   const repeats = whole(name) && name?.textContent?.trim() === head && (!more.length || (whole(sub) && subText === more.join("\n")));
   const keys = Boolean(target.dataset.kbd && answers(target.dataset.kbd));
-  return !repeats || (target.closest(".sidebar") ? menus?.railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
+  return !repeats || (target.closest(".sidebar") ? railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
 }
 function showTip(target) {
   if (!target.isConnected || (menus?.ownerNow() === target && !$("menu").hidden)) return;
@@ -10000,15 +10007,15 @@ document.addEventListener("click", (event) => {
   const page = closest(event, "#chart-list .chart-go");
   if (page) return goTo(asPlace(JSON.parse(/** @type {string} */ (page.dataset.place))));
   const folderItem = closest(event, "[data-folder-item]");
-  if (folderItem) return menus.railed() ? railMenu(folderItem) : grid.toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
+  if (folderItem) return railed() ? railMenu(folderItem) : grid.toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
   const sectionMenu = closest(event, "[data-section-menu]");
   if (sectionMenu) return menus.menuOf(sectionMenu, grid.sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
   const groupItem = closest(event, "[data-group-item]");
-  if (groupItem) return menus.railed() ? railMenu(groupItem) : grid.toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
+  if (groupItem) return railed() ? railMenu(groupItem) : grid.toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
   const groupMenu = closest(event, "[data-group-menu]");
   if (groupMenu) return menus.menuOf(groupMenu, grid.groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
   const sectionItem = closest(event, "[data-section-item]");
-  if (sectionItem) return menus.railed() ? railMenu(sectionItem) : grid.toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
+  if (sectionItem) return railed() ? railMenu(sectionItem) : grid.toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
   const sidePreset = closest(event, "#chart-list [data-open-preset]");
   if (sidePreset) return pickPreset(Number(sidePreset.dataset.openPreset));
   const recentItem = closest(event, "[data-open-recent]");
@@ -11354,7 +11361,7 @@ export {
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,
   menuNameOf, minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, navBar, navigations, newDraft, nextHalvings,
   normalize, noteUse, notice, ontoData, openChart, openingView, openPalette, openView, ownerOf, paintNavigator,
-  paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending, pendingRoute, phone,
+  onRail, railed, paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending, pendingRoute, phone,
   pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels, presetMarks, presets,
   presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, profileLit,
   putViews, quick, quickHide, quickShow, quickWorks, railMenu, railMenuKept, reaching, readOnly, readPresetList, recent,
