@@ -2497,7 +2497,7 @@ function closePreview(doc = chart) {
 const closedPreviews = new Map();
 /** The preview the toast up says was closed (its Undo brings it back). @type {Chart | null} */
 let closedToast = null;
-/** The previews kept aside, this tab's and others' (a preset as made, which opened beside its edited copy till 2026-11, kept only if edited: read as the ordinary preview it is now; delete that in 2027-11). @returns {Chart[]} */
+/** The previews kept aside, this tab's and others' (migration, remove after the release following 2026-11-26 (the next past v0.13.0): a preset as made, once kept beside its edited copy, is read as the ordinary preview it is now). @returns {Chart[]} */
 const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored.filter((doc) => typeof doc?.id === "string" && !(doc.made !== undefined && doc.untouched === true)) : []))(storage.get(PREVIEW_ASIDE, null));
 /** Previews kept, by their ids aside (and when last edited): let go of there once saved with your charts (see persist). @type {Map<string, number>} */
 const keptPreviews = new Map();

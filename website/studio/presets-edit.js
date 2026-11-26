@@ -388,8 +388,7 @@ let restampedFor = null;
  * made anew). (Nothing to record: another tab's copy back is as it was, and goes the same way.)
  */
 function prunePresets(/** @type {Chart | null} */ keep) {
-  // (A copy stamped while its panes' sizes counted as an edit (till 2026-11) is as made all the same where they were its
-  // only change: stamped anew, its sizes kept, once the presets are read. Delete in 2027-11.)
+  // (Migration, remove after the release following 2026-11-26 (the next past v0.13.0): a copy stamped while its panes' sizes counted as an edit is as made where they were its only change, stamped anew.)
   const resized = presets && restampedFor !== presets ? library.presets.filter((doc) => !pristine(doc) && presetIndex(doc) >= 0 && contentHash(doc) === templateHash(presetIndex(doc))) : [];
   restampedFor = presets;
   for (const doc of resized) (doc.base = templateHash(presetIndex(doc))), pristineSeen.delete(doc);
