@@ -13,7 +13,6 @@ use crate::{
 /// Immutable-table configuration for a keyspace.
 pub struct CreateOptions {
     pub(super) compaction: fn(&Tree) -> TreeResult<()>,
-    pub(super) deferred: bool,
     data_block_restart_interval_policy: RestartIntervalPolicy,
     data_block_compression: CompressionType,
     index_block_pinning_policy: PinningPolicy,
@@ -28,7 +27,6 @@ impl Default for CreateOptions {
     fn default() -> Self {
         Self {
             compaction: Tree::compact,
-            deferred: false,
             // Shorter scans in recent tables; keep denser indexes in deeper levels.
             data_block_restart_interval_policy: RestartIntervalPolicy::new([4, 4, 16]),
             data_block_compression: CompressionType::Lz4,
@@ -53,13 +51,6 @@ impl CreateOptions {
     #[must_use]
     pub fn compaction_records<K: RecordBytes, V: RecordBytes>(mut self) -> Self {
         self.compaction = Tree::compact_as::<K, V>;
-        self
-    }
-
-    /// Opens the keyspace with its compaction deferred (until [`crate::Database::resume_compaction`]).
-    #[must_use]
-    pub fn defer_compaction(mut self) -> Self {
-        self.deferred = true;
         self
     }
 

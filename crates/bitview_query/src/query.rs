@@ -193,12 +193,6 @@ impl Query {
     /// The published index, from one safely published snapshot, against the node's tip as last
     /// recorded.
     pub fn sync_status(&self) -> Result<SyncStatus> {
-        // Updating until the indexer's stores end their one merge after a catch-up: what waits for
-        // the tip before it sends public traffic here waits for it too, while the
-        // routes read the stores as they stand.
-        if self.indexer().stores().merge_pending() {
-            return Err(Error::updating());
-        }
         let guard = self.pin_safe_lengths()?;
         let indexed_height = guard.lengths().last_height().ok_or_else(|| Error::updating())?;
         // An update can publish past the last record: the tip is never below what is indexed.

@@ -65,7 +65,6 @@ impl Keyspace {
         lock: LockedFileGuard,
     ) -> Result<Self> {
         let compaction = options.compaction;
-        let deferred = options.deferred;
         let tree = options
             .tree_config(path, database)
             .open()
@@ -85,10 +84,6 @@ impl Keyspace {
             }),
         };
 
-        // Before the first request, so it chooses as deferred.
-        if deferred {
-            keyspace.inner.tree.defer_compaction();
-        }
         if keyspace.inner.tree.l0_run_count() > 0 {
             keyspace.request_compaction();
         }
@@ -155,20 +150,6 @@ impl Keyspace {
     /// The bytes of this keyspace's published tables.
     pub(crate) fn disk_space(&self) -> u64 {
         self.inner.tree.disk_space()
-    }
-
-    /// Ends the deferral the keyspace was opened with ([`CreateOptions::defer_compaction`])
-    /// and queues what it held back, once.
-    pub(crate) fn resume_compaction(&self) {
-        if self.inner.tree.resume_compaction() {
-            self.request_compaction();
-        }
-    }
-
-    /// Whether runs that deferral stacked are still unmerged ([`lsm_tree::Tree::is_tiered`]).
-    #[must_use]
-    pub(crate) fn is_tiered(&self) -> bool {
-        self.inner.tree.is_tiered()
     }
 
     /// Runs leveled compaction until no eligible work remains.

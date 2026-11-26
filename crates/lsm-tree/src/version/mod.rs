@@ -125,13 +125,6 @@ pub struct Version {
 
 // TODO: impl using generics so we can easily unit test Version transformation functions
 impl Version {
-    /// Whether a level below L0 holds several runs: what deferred compaction stacks, and leveled
-    /// compaction never leaves.
-    #[must_use]
-    pub fn is_tiered(&self) -> bool {
-        self.iter_levels().skip(1).any(|level| level.run_count() > 1)
-    }
-
     /// Returns the version ID.
     pub fn id(&self) -> u64 {
         self.id

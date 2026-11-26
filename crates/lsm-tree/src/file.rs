@@ -22,13 +22,6 @@ use std::{thread, time::Duration};
 
 pub const MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'M', FORMAT_VERSION];
 
-/// The manifest's magic while a level below L0 holds several runs (deferred compaction's tiers): a
-/// build without deferral compacts such a level by its first run alone, which would put newer
-/// records under older ones, so it must refuse the tree. It does, as with any magic not its own, and
-/// rebuilds the data instead. The format byte is the same as [`MAGIC_BYTES`]'s: a format change
-/// refuses tiered manifests of the old format too.
-pub const TIERED_MAGIC_BYTES: [u8; 4] = [b'L', b'S', b'T', FORMAT_VERSION];
-
 pub const TABLES_FOLDER: &str = "tables";
 pub const CURRENT_VERSION_FILE: &str = "current";
 

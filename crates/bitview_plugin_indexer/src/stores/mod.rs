@@ -10,9 +10,7 @@ use bitview_primitives::{
     AddrHash, AddrTypeId, BlockHashPrefix, ByAddrType, Index40, TxOutIndex, TypeIndex,
 };
 use brk_error::{Error, OptionData, Result};
-use brk_store::{
-    AnyStore, Compaction, Kind, PendingIngest, Ready, Store, StoreView, open_database,
-};
+use brk_store::{AnyStore, Kind, PendingIngest, Ready, Store, StoreView, open_database};
 use brk_types::{Height, OutPoint, OutputType, TxIndex, TxidPrefix, Unit, Version, Vout};
 use fjall::Database;
 use rustc_hash::FxHashSet;
@@ -145,10 +143,7 @@ impl Stores {
 
         let db = &database;
 
-        // Every store owns an independent keyspace, so all 28 recover in parallel. Those the
-        // indexer never reads defer their compaction until the first steady-state update
-        // ([`Self::resume_compaction`]).
-        use Compaction::{Deferred, Eager};
+        // Every store owns an independent keyspace, so all 28 recover in parallel.
         let (
             addr_hashes,
             addr_tx_indexes,
@@ -159,18 +154,18 @@ impl Stores {
             utxo_values,
         ) = parallel_import! {
             addr_hashes = ByAddrType::par_try_from_fn(|id: AddrTypeId| {
-                Store::import(db, path, &format!("h2i{}", id as usize), version, Kind::Random, Eager)
+                Store::import(db, path, &format!("h2i{}", id as usize), version, Kind::Random)
             }),
             addr_tx_indexes = ByAddrType::par_try_from_fn(|id: AddrTypeId| {
-                Store::import(db, path, &format!("a2t{}", id as usize), version, Kind::Vec, Deferred)
+                Store::import(db, path, &format!("a2t{}", id as usize), version, Kind::Vec)
             }),
             addr_unspent_outpoints = ByAddrType::par_try_from_fn(|id: AddrTypeId| {
-                Store::import(db, path, &format!("a2u{}", id as usize), version, Kind::Vec, Deferred)
+                Store::import(db, path, &format!("a2u{}", id as usize), version, Kind::Vec)
             }),
-            blockhashes = Store::import(db, path, "blockhash_prefix_to_height", version, Kind::Random, Eager),
-            txids = Store::import(db, path, "txid_prefix_to_tx_index", version, Kind::Recent, Deferred),
-            utxos = Store::import(db, path, "utxos", version, Kind::Recent, Eager),
-            utxo_values = Store::import(db, path, "utxo_values", version, Kind::Recent, Eager),
+            blockhashes = Store::import(db, path, "blockhash_prefix_to_height", version, Kind::Random),
+            txids = Store::import(db, path, "txid_prefix_to_tx_index", version, Kind::Recent),
+            utxos = Store::import(db, path, "utxos", version, Kind::Recent),
+            utxo_values = Store::import(db, path, "utxo_values", version, Kind::Recent),
         };
 
         Ok(Self {
@@ -232,19 +227,6 @@ impl Stores {
                 .values_mut()
                 .map(|s| s as &mut dyn AnyStore),
         )
-    }
-
-    /// Lets the stores opened [`Compaction::Deferred`] (those the indexer never reads: the API reads
-    /// them) compact: a catch-up merges them once instead of level by level all along, in a sync
-    /// from zero 57% of the compaction bytes. Once only; later calls do nothing.
-    pub fn resume_compaction(&self) {
-        self.db.resume_compaction();
-    }
-
-    /// Whether a deferred store still waits for its merge (see [`Self::resume_compaction`]).
-    #[must_use]
-    pub fn merge_pending(&self) -> bool {
-        self.db.is_tiered()
     }
 
     /// Ingests every store's pending writes, each published once `ready` returns `Ok`.
