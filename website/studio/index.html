@@ -9223,6 +9223,11 @@
           display: inline-grid;
         }
 
+        /* (What scrolls under the pill: a row brought into view (focused, as by Tab) stops clear of it, not under it.) */
+        :is(#inspector, .panel .layer-list, .home-scroll) {
+          scroll-padding-bottom: var(--bar-room);
+        }
+
         /* (Its views' last rows scroll clear of the pill over them.) */
         #inspector::after {
           content: "";
