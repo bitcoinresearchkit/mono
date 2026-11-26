@@ -166,7 +166,7 @@ if (book.clashes.length) {
 const opens = (path) => {
   const to = book.at.get(path);
   if (!to) return "nothing";
-  if (!("preset" in to)) return path;
+  if (!("preset" in to)) return /** @type {string} */ (book.sections.get(JSON.stringify(to.path)));
   return to.window ? `${book.presets[to.preset]}#window=${to.window}` : book.presets[to.preset];
 };
 const live = new Set(urls), before = writtenBytes("page-info.json.gz");
@@ -192,10 +192,16 @@ const successor = (address) => {
   }
   return best?.hits.includes(true) ? best.chart : section;
 };
-const moved = new Map();
-for (const [path, to] of book.at) if ("window" in to) moved.set(path, opens(path));
 const rows = written("moved.txt").split("\n").filter(Boolean).map((line) => line.split("\t"));
-const changed = rows.filter(([path, to]) => book.at.has(path) && opens(path) !== to);
+// An old address another opens now, kept once it's been one: a place moved (see places-were.js) has old addresses for
+// what's under it now too, never had.
+const sitemapBefore = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&").slice(ORIGIN.length));
+const known = new Set([...sitemapBefore, ...rows.map(([path]) => path)]);
+const moved = new Map();
+for (const [path] of book.at) if (known.has(path) && opens(path) !== path) moved.set(path, opens(path));
+// (What a row opened is followed: a chart moved since opens at its new address, its window or state kept.)
+const followed = (/** @type {string} */ to) => ((place, state) => (state === undefined ? opens(place) : `${opens(place).split("#")[0]}#${state}`))(...to.split("#"));
+const changed = rows.filter(([path, to]) => book.at.has(path) && opens(path) !== followed(to));
 if (changed.length) {
   console.error(`Moved addresses that open another place now, or nothing, ${changed.length}:\n${changed.slice(0, 12).map(([path, to]) => `  ${path}: ${to} → ${opens(path)}`).join("\n")}${changed.length > 12 ? `\n  and ${changed.length - 12} more` : ""}`);
   if (!drop) {
@@ -210,7 +216,7 @@ for (const [path, to] of rows) {
 }
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
 // word (its layer reads nothing, so it isn't made). Named, and each sent to its successor only when meant (--drop).
-const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&").slice(ORIGIN.length)).filter((path) => !live.has(path) && !moved.has(path));
+const gone = sitemapBefore.filter((path) => !live.has(path) && !moved.has(path));
 if (gone.length && !drop) {
   console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((path) => `  ${path} → ${successor(path)}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
   console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun scripts/studio-seo.mjs --drop");

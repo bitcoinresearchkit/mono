@@ -1,10 +1,12 @@
 // @ts-check
+import { placeWas } from "./places-were.js";
 /** @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number, window?: string }>, clashes: string[] }} AddressBook */
 
 /**
  * Two under one place still alike are each tagged with a short hash of their name, so an address is the same whatever
  * else exists.
- * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build).
+ * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build). One that
+ * moved keeps its old addresses too (places-were.js), never over a place there now.
  * @param {{ p: string[], w?: Record<string, string> }[]} list @returns {Generator<void, AddressBook>}
  */
 export function* addressSteps(list) {
@@ -56,6 +58,24 @@ export function* addressSteps(list) {
     else clashes.push(`${address}, once ${preset.p.join(" › ")} at ${window}`);
     if (++done % STEP === 0) yield;
   }
+  const addressOf = (/** @type {string[]} */ path) => `/presets/${path.map(word).join("/")}`;
+  const alias = (/** @type {string} */ address, /** @type {{ path: string[] } | { preset: number, window?: string }} */ to) => at.has(address) || at.set(address, to);
+  // (A section gone opens the deepest section that holds all its charts now.)
+  const goneSections = new Map();
+  for (const [i, preset] of list.entries()) {
+    const old = placeWas(preset.p);
+    if (!old) continue;
+    alias(addressOf(old), { preset: i });
+    for (const [name, window] of Object.entries(preset.w ?? {})) alias(addressOf([...old.slice(0, -1), name]), { preset: i, window });
+    for (let depth = 1; depth < old.length; depth++) {
+      const key = JSON.stringify(old.slice(0, depth));
+      if (sections.has(key)) continue;
+      const now = goneSections.get(key), parent = preset.p.slice(0, -1);
+      goneSections.set(key, { old: old.slice(0, depth), now: now ? now.now.slice(0, now.now.findIndex((step, d) => step !== parent[d]) >>> 0) : parent });
+    }
+    if (++done % STEP === 0) yield;
+  }
+  for (const { old, now } of goneSections.values()) alias(`${addressOf(old)}/`, { path: now });
   return { presets: presetsAt, sections, at, clashes };
 }
 /** @param {{ p: string[], w?: Record<string, string> }[]} list */

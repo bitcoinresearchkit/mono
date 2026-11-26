@@ -910,7 +910,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length)), long = node._200d;
     if (!long?.ratio) throw new Error(`Moving averages: no 200-day ${kind} with its ratio`);
     const over = (/** @type {string} */ name, /** @type {Layer} */ ratio, /** @type {string} */ title, /** @type {boolean} */ mayer) => chart(name, title, [price(), series(own(long), `200-day ${kind}`, { color: colors[list.findIndex(([key]) => key === "_200d")] }), { ...ratio, pane: 2, ...around(1) }], { log: [2], was: Object.fromEntries(list.filter(([, value]) => Boolean(value.mayerMultiple) === mayer).map(([key]) => [spanLabel(key), key])) });
-    return section(kind, [
+    return section(`Moving averages, ${kind}`, [
       chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
       over("Price ratio", series(long.ratio, "Price ratio"), `200-day ${kind}`, false),
       long.mayerMultiple && over("Mayer multiple", series(long.mayerMultiple, "Mayer multiple", { levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }), `200-day ${kind} and the Mayer multiple`, true),
@@ -927,10 +927,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
     section("Price", [
       chart("In dollars", "Bitcoin price", [price()]),
       chart("Sats per dollar", "Sats per dollar", [series(t.price.satsPerDollar, "Sats per dollar", { color: "orange" })], { log: [1] }),
-      section("All-time high", [
-        chart("Drawdown", "Price drawdown from its all-time high", [price(), series(m.ath.high, "All-time high", { color: "green" }), series(m.ath.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })]),
-        chart("Days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.daysBetweenMax, "Longest between", { color: "gray" })]),
-      ]),
+      chart("All-time high, drawdown", "Price drawdown from its all-time high", [price(), series(m.ath.high, "All-time high", { color: "green" }), series(m.ath.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })]),
+      chart("All-time high, days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.daysBetweenMax, "Longest between", { color: "gray" })]),
       section("Returns", [
         chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !overYears(key)).map(([key, value], i, all) => series(value, windowSaid(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
         // Over years, returns run from −80% to millions of percent: growth multiples on a log scale, 1× no change.
@@ -939,10 +937,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Return", "30-day price return", [price(), series(m.returns._1m, "30-day return", { pane: 2, ...baseline })], { was: returnsWere(false) }),
         chart("Growth", "4-year price growth", [price(), { formula: `1 + ${m.returns._4y.name} / 100`, label: "4-year growth", format: "ratio", pane: 2, ...around(1) }], { log: [2], was: returnsWere(true) }),
       ]),
-      section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
-      section("Range", [
-        chart("High and low", "Price's 30-day high and low", [price(), series(m.range.max._1m, "High", { color: "green" }), series(m.range.min._1m, "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }], { was: Object.fromEntries(entries(m.range.max).map(([key]) => [`${adjective(spanLabel(key))} high and low`, key])) }),
-      ]),
+      averages(m.sma, "SMA"),
+      averages(m.ema, "EMA"),
+      chart("Range", "Price's 30-day high and low", [price(), series(m.range.max._1m, "High", { color: "green" }), series(m.range.min._1m, "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }], { was: Object.fromEntries(entries(m.range.max).map(([key]) => [`${adjective(spanLabel(key))} high and low`, key])) }),
       section("Technical", [
         chart("RSI", "Relative strength index of the price", [price(), { formula: "rsi(A)", label: "RSI", pane: 2, color: "violet", levels: [{ value: 30, color: "green", dash: 3 }, { value: 70, color: "red", dash: 3 }] }]),
         chart("Stochastic RSI", "Stochastic RSI of the price (14, 14, 3, 3)", [price(), { formula: "stochrsi_k(A)", label: "%K", pane: 2, color: "sky", levels: [{ value: 20, color: "green", dash: 3 }, { value: 80, color: "red", dash: 3 }] }, { formula: "stochrsi_d(A)", label: "%D", pane: 2, color: "orange" }]),

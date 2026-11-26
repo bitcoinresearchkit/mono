@@ -106,10 +106,9 @@ An assistant without web access can't look names up: whoever uses it can, or can
 Each section's page lists its charts; each chart's own address is in https://bitview.space/studio/sitemap.xml. Every page is also there as Markdown, at its address and .md (after a section's, which ends in a slash, index.html.md), as below.
 
 - Price (27): https://bitview.space/studio/presets/price/index.html.md
-  - All-time high (2): https://bitview.space/studio/presets/price/all-time-high/index.html.md
   - Returns (5): https://bitview.space/studio/presets/price/returns/index.html.md
-  - Moving averages (5): https://bitview.space/studio/presets/price/moving-averages/index.html.md
-  - Range (1): https://bitview.space/studio/presets/price/range/index.html.md
+  - Moving averages, SMA (3): https://bitview.space/studio/presets/price/moving-averages-sma/index.html.md
+  - Moving averages, EMA (2): https://bitview.space/studio/presets/price/moving-averages-ema/index.html.md
   - Technical (12): https://bitview.space/studio/presets/price/technical/index.html.md
 - Valuation (226): https://bitview.space/studio/presets/valuation/index.html.md
   - Compass (5): https://bitview.space/studio/presets/valuation/compass/index.html.md

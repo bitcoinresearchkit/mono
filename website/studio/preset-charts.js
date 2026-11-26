@@ -15,6 +15,7 @@ import { STUDIO_ORIGIN, presetInfo, sectionInfo, STUDIO_TITLE, STUDIO_DESCRIPTIO
 import { inSlices } from "/studio/timing.js";
 import { withRest } from "/studio/later.js";
 import { addressSteps } from "/studio/addresses.js";
+import { placeNow } from "/studio/places-were.js";
 import { validate, fromSketch, contentOf, lookFields } from "/studio/charts-read.js";
 import { isNamed } from "/studio/color.js";
 
@@ -307,8 +308,8 @@ const presetPlace = (/** @type {Chart} */ doc) => {
 };
 /** @param {Chart} doc @returns {((i: number) => boolean)[]} */
 const likeness = (doc) => ((title, place = []) => {
-  const list = /** @type {Preset[]} */ (presets), name = place.at(-1) ?? "";
-  return [(i) => Object.hasOwn(list[i].w ?? {}, name) && list[i].p.length === place.length && place.slice(0, -1).every((step, k) => list[i].p[k] === step), (i) => windowless(freshPreset(i)).title === title, (i) => list[i].p.at(-1) === name, () => true];
+  const list = /** @type {Preset[]} */ (presets), name = place.at(-1) ?? "", now = placeNow(place)?.join(" › ");
+  return [(i) => list[i].p.join(" › ") === now, (i) => Object.hasOwn(list[i].w ?? {}, name) && list[i].p.length === place.length && place.slice(0, -1).every((step, k) => list[i].p[k] === step), (i) => windowless(freshPreset(i)).title === title, (i) => list[i].p.at(-1) === name, () => true];
 })(windowless(doc).title, presetPlace(doc));
 /** @param {Chart} doc */
 function presetShowing(doc) {
