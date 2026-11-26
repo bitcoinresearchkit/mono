@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="API" data-color="#af4000"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>API · Bitview</title>
@@ -10,7 +9,6 @@
       name="description"
       content="Free Bitcoin on-chain analytics API: thousands of time series, blocks, transactions, addresses, the mempool and mining. No key, no account."
     />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/api/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/api/" />
@@ -103,7 +101,6 @@
         font-display: swap;
       }
 
-      /* The front page's ground, ink and two faces; one grey apart, below. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f3f1ec, #0d0c0b);
@@ -112,7 +109,7 @@
         --ink: light-dark(#16130f, #f6f3ee);
         --text: light-dark(#3a342d, #d6cfc4);
         --soft: light-dark(#625a50, #a1988a);
-        /* (Dark a shade lighter than the front page's #8a8175: this page sets it on --well too, 4.33:1 there; #8e8579 is 4.57.) */
+        /* A shade lighter than the front page's: it is set on --well here, which needs the contrast. */
         --muted: light-dark(#6f665b, #8e8579);
         --line: light-dark(rgb(22 19 15 / 0.09), rgb(246 243 238 / 0.08));
         --line-strong: light-dark(rgb(22 19 15 / 0.16), rgb(246 243 238 / 0.14));
@@ -136,7 +133,6 @@
         }
       }
 
-      /* Increase Contrast (prefers-contrast: more), as every page: the greys toward the ink, the hairlines stronger. */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#27231d, #e6e1d9);
@@ -147,7 +143,6 @@
         }
       }
 
-      /* ── The bar: the way home, the developers' pages, the stars ── */
       .bar {
         position: sticky;
         top: 0;
@@ -186,7 +181,6 @@
           }
         }
 
-        /* (The pages, in the front page's order; the one read in ink.) */
         .pages {
           display: flex;
           gap: 4px 22px;
@@ -221,7 +215,6 @@
           }
         }
 
-        /* (Its button, where the pages have no room in the bar: they open under it.) */
         .more {
           display: none;
           box-sizing: border-box;
@@ -275,7 +268,6 @@
               padding: 9px 12px;
               color: var(--text);
 
-              /* (A finger's reach: 44px tall.) */
               @media (pointer: coarse) {
                 padding-block: 10px;
               }
@@ -296,7 +288,6 @@
           }
         }
 
-        /* (Wide enough for the pages in the bar: no popover there, shown as they are.) */
         @media (min-width: 1100px) {
           .pages {
             position: static;
@@ -310,8 +301,7 @@
         }
       }
 
-      /* A finger's reach, unseen: on touch, each small control at least 44px each way whatever its size (an absolute box
-         measures from the padding box, inside any border). Outranking nothing, so a control placed absolute stays so. */
+      /* Touch reach: at least 44px each way; an absolute box measures from the padding box. Zero specificity, so a control placed absolute stays so. */
       @media (pointer: coarse) {
         :where(.bar :is(.brand, .stars, .more), .small, .foot a, .crumbs a, .about a, .used-by a, .op h2 a, .fields summary) {
           position: relative;
@@ -324,7 +314,6 @@
         }
       }
 
-      /* Said to a screen reader only. */
       .sr {
         position: absolute;
         width: 1px;
@@ -334,7 +323,6 @@
         white-space: nowrap;
       }
 
-      /* ── Code: a block that scrolls sideways in its frame, its copy button on its top edge ── */
       .code {
         position: relative;
         border: 1px solid var(--line);
@@ -366,7 +354,6 @@
 
       }
 
-      /* (A small button: Copy, Run. As wide from the start as its longest word, "Selected": saying it moves nothing.) */
       .small {
         position: relative;
         display: inline-grid;
@@ -394,7 +381,6 @@
         }
       }
 
-      /* ── The foot ── */
       .foot {
         display: flex;
         flex-wrap: wrap;
@@ -426,7 +412,6 @@
         }
       }
 
-      /* ── The page: its ground and type ── */
       html {
         scroll-padding-top: calc(var(--bar) + 24px);
         -webkit-text-size-adjust: 100%;
@@ -457,7 +442,6 @@
         font: inherit;
       }
 
-      /* (Words.) */
       h1,
       h2,
       h3 {
@@ -516,7 +500,6 @@
         overflow-wrap: anywhere;
       }
 
-      /* ── The reference: endpoints by group in a rail, the group read beside it ── */
       .frame {
         display: grid;
         grid-template-columns: 272px minmax(0, 1fr);
@@ -569,14 +552,12 @@
             font: 12px var(--mono);
           }
 
-          /* (A finger's reach: each row 44px tall, the rows being stacked with no room between.) */
           @media (pointer: coarse) {
             align-items: center;
             min-height: 44px;
           }
         }
 
-        /* (The group read: its endpoints under its name, on a line down their side.) */
         #groups ul {
           margin: 2px 0 8px 10px;
           border-left: 1px solid var(--line-strong);
@@ -589,7 +570,6 @@
           }
         }
 
-        /* (A phone: the search alone, on the page under the bar; the groups are the first page's own list.) */
         @media (max-width: 999px) {
           position: static;
           height: auto;
@@ -667,7 +647,6 @@
         }
       }
 
-      /* (What a search found: each endpoint's address over its name.) */
       #found {
         a {
           display: block;
@@ -704,13 +683,12 @@
           padding-top: 20px;
         }
 
-        /* (Focused only so Tab goes on from the page drawn: a ring round all of it says nothing.) */
+        /* Focused only so Tab goes on from the page drawn: a ring round all of it says nothing. */
         &:focus-visible {
           outline: none;
         }
       }
 
-      /* (A phone's way back to the groups, the rail's being out of sight.) */
       .crumbs {
         display: none;
         margin-bottom: 14px;
@@ -728,7 +706,6 @@
         font-size: 16.5px;
       }
 
-      /* (Under the title: its version, the specification in its forms, and the line to who uses Bitview.) */
       .about,
       .used-by {
         display: flex;
@@ -738,14 +715,12 @@
         color: var(--muted);
         font-size: 13px;
 
-        /* (On touch, its rows and the line under them stand as far apart as their links' reach needs.) */
         @media (pointer: coarse) {
           row-gap: 24px;
           margin-top: 24px;
         }
       }
 
-      /* A description as written in the specification. */
       .md {
         max-width: 68ch;
 
@@ -773,7 +748,6 @@
         }
       }
 
-      /* Words on the left, the request on the right, held in sight while its words are read. */
       .split {
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(0, 440px);
@@ -784,17 +758,14 @@
           grid-template-columns: minmax(0, 1fr);
         }
 
-        /* (Pinned, it never stands taller than the screen under the bar: it scrolls in itself.) */
         > .try {
           position: sticky;
           top: calc(var(--bar) + 24px);
           max-height: calc(100dvh - var(--bar) - 48px);
           overflow-y: auto;
-          /* (Room inside its scroll for the focus rings at its edges.) */
           margin: -6px;
           padding: 6px;
 
-          /* (Unpinned, the answer scrolls in its own box instead; pinned, one scroll box, the panel's.) */
           @media (max-width: 1239px) {
             position: static;
             max-width: 68ch;
@@ -813,7 +784,6 @@
         margin-top: 28px;
       }
 
-      /* The groups, on the first page: each a line, its name, how many, what they answer. */
       .index {
         margin: 16px 0 0;
         border-top: 1px solid var(--line);
@@ -859,7 +829,6 @@
         margin-top: 56px;
       }
 
-      /* A group's endpoints by address, each a way to it below. */
       .paths {
         max-width: 68ch;
         margin: 24px 0 0;
@@ -894,7 +863,6 @@
         font-family: var(--mono);
       }
 
-      /* (Always before a path: the one gap between them.) */
       .method {
         flex: none;
         min-width: 2.6em;
@@ -908,7 +876,6 @@
         }
       }
 
-      /* An endpoint. */
       .op {
         margin-top: 56px;
         border-top: 1px solid var(--line);
@@ -940,7 +907,6 @@
         }
       }
 
-      /* Parameters and a response's fields: a name, its type, what it is; what's inside it a press away. */
       .fields {
         max-width: 68ch;
         margin: 8px 0 0;
@@ -983,7 +949,6 @@
             display: none;
           }
 
-          /* (Its choices, each a chip: lines far enough apart that the chips don't touch.) */
           .one-of {
             line-height: 1.9;
           }
@@ -1027,7 +992,6 @@
         }
       }
 
-      /* (Every other answer, one line each.) */
       .answers {
         max-width: 68ch;
         margin: 8px 0 0;
@@ -1044,7 +1008,6 @@
         }
       }
 
-      /* The request: what it takes, as fields; its command; Run; what came back, or an example of it. */
       .try {
         min-width: 0;
 
@@ -1113,7 +1076,6 @@
           }
         }
 
-        /* (JSON, lightly: names in ink, numbers in the brand's, the rest as text.) */
         .n {
           color: var(--ink);
         }
@@ -1132,7 +1094,6 @@
       <nav class="pages" id="pages" popover aria-label="Developers"><a href="/api/" aria-current="page">API</a><a href="/catalog/">Catalog</a><a href="/changes/">Changes</a><a href="/dev/">Run your own</a><a href="/logs/">Logs</a><a href="/benchmarks/">Benchmarks</a><a href="/brk/">BRK</a><a href="/mcp">MCP</a></nav>
       <a class="stars" href="https://github.com/bitcoinresearchkit/mono"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.1 9.79 6.03l5.25.18-4.14 3.23 1.45 5.05L8 11.55l-4.35 2.94 1.45-5.05L.96 6.21l5.25-.18Z" /></svg><b class="stars-count">170+</b><span> GitHub stars</span></a>
     </header>
-    <!-- The line to who uses Bitview, drawn with the introduction (written by scripts/home.mjs). -->
     <!-- used by -->
     <template id="used-by"><p class="used-by"><a href="/dev/#used-by">Used by Sparrow Wallet, Look Into Bitcoin and others →</a></p></template>
     <!-- /used by -->
@@ -1164,8 +1125,6 @@
     <p class="sr" id="said" role="status"></p>
 
     <script type="module">
-      // The reference, drawn from the specification of the server that serves this page: every endpoint by group, what
-      // each takes and answers, and its request run from here (the API takes no key).
 
       const byId = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const main = byId("main"), groups = byId("groups"), found = byId("found"), said = byId("said");
@@ -1177,13 +1136,11 @@
 
       const escape = (/** @type {string} */ text) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] ?? c);
 
-      /** What kept the reference from being drawn, said on the page in its place (and thrown on, for the console). */
       function fail(/** @type {unknown} */ error, /** @type {string} */ advice = "") {
         main.innerHTML = `<h1>API</h1><p class="about" role="alert">The reference could not be drawn: ${escape(error instanceof Error ? error.message : String(error))}.${advice && ` ${escape(advice)}`}</p>`;
         throw error;
       }
 
-      /** The specification. */
       let spec;
       try {
         const response = await fetch("/openapi.json");
@@ -1193,9 +1150,7 @@
         fail(error, "Reload to try again.");
       }
 
-      // ── Words: a description's markdown, as the specification writes it ──
-
-      /** A line's code, links, bold and italics (code kept aside first: nothing inside it is read as anything else). */
+      /** Code is kept aside first: nothing inside it is read as anything else. */
       function inline(/** @type {string} */ text) {
         /** @type {string[]} */ const codes = [];
         return escape(text)
@@ -1205,12 +1160,9 @@
           .replace(/\[((?:[^\]]|\](?!\())+)\]\(((?:https?:\/\/|\/(?!\/))[^)\s]*)\)/g, '<a href="$2">$1</a>')
           .replace(/\u0000(\d+)\u0000/g, (_, i) => `<code>${codes[i]}</code>`);
       }
-      /** Text that wraps, where it must, after its slashes (an address, a command); copied, it's the text alone. */
       const breakable = (/** @type {string} */ text) => escape(text).replaceAll("/", "/<wbr>");
-      /** A path, in a box of its own (so its breaks stay in one flex item), in the code face. */
       const pathBox = (/** @type {string} */ path) => `<span class="path">${breakable(path)}</span>`;
       const block = (/** @type {string} */ code) => `<div class="code"><pre>${escape(code)}</pre><button class="small" type="button" data-copy>Copy</button></div>`;
-      /** Paragraphs, headings, lists and fenced code. */
       function markdown(/** @type {string | undefined} */ text) {
         const out = [], lines = (text ?? "").split("\n");
         /** @type {string[]} */ let paragraph = [];
@@ -1232,7 +1184,6 @@
             close();
             out.push(`<h3>${inline(line.replace(/^#+ /, ""))}</h3>`);
           } else if (/^\s*[-*] /.test(line)) {
-            // (A bullet under a bullet: an item of its own.)
             if (paragraph.length) close();
             (list ??= []).push(line.trimStart().slice(2));
           } else if (!line.trim()) close();
@@ -1243,9 +1194,6 @@
         return out.join("");
       }
 
-      // ── Types: a schema in a few words, its fields, the example the specification gives ──
-
-      /** A schema, parameter or answer with its references followed (`named` after the last) and its `allOf` folded in. */
       function resolve(/** @type {Schema} */ schema) {
         for (let hops = 0; schema?.$ref || schema?.allOf; hops++) {
           if (hops > 8) throw new Error(`references that go round: ${schema.$ref ?? "allOf"}`);
@@ -1254,7 +1202,7 @@
             if (!target) throw new Error(`no ${$ref} in the specification`);
             schema = { ...target, named: at.at(-1), ...own };
           } else {
-            // (One schema with words of its own beside it, as this server writes them; more would need a merge.)
+            // One schema with words of its own beside it, as this server writes them; more would need a merge.
             const { allOf, ...own } = schema;
             if (allOf.length > 1) throw new Error(`an allOf of ${allOf.length} schemas, which this page doesn't merge`);
             schema = { ...resolve(allOf[0]), ...own };
@@ -1262,13 +1210,10 @@
         }
         return schema ?? {};
       }
-      /** The alternatives a schema allows, without `null`; and whether `null` is one. */
       function choices(/** @type {Schema} */ schema) {
         const list = (schema.anyOf ?? schema.oneOf ?? (Array.isArray(schema.type) ? schema.type.map((/** @type {string} */ type) => ({ ...schema, type })) : [schema])).map(resolve);
         return { some: list.filter((/** @type {Schema} */ s) => s.type !== "null"), nullable: list.some((/** @type {Schema} */ s) => s.type === "null") };
       }
-      /** A type in a few words: `integer`, `array of BlockInfo`, `string or null`, `map of TreeNode` (a type met again
-       * inside itself said by its name). */
       function kind(/** @type {Schema} */ schema, /** @type {string[]} */ seen = []) {
         const resolved = resolve(schema);
         if (seen.includes(resolved.named)) return resolved.named;
@@ -1280,10 +1225,7 @@
         });
         return [...new Set(names)].join(" or ") + (nullable ? " or null" : "");
       }
-      /** An object of any keys, each holding one kind of value. */
       const isMap = (/** @type {Schema} */ s) => !s.properties && typeof s.additionalProperties === "object";
-      /** The objects with named fields a schema holds: its own, its items', a map's values', each alternative's (none
-       * reached again through itself). */
       function inside(/** @type {Schema} */ schema, /** @type {string[]} */ seen = []) {
         const resolved = resolve(schema);
         if (seen.includes(resolved.named)) return [];
@@ -1291,27 +1233,22 @@
         return choices(resolved).some.flatMap((/** @type {Schema} */ one) =>
           one.type === "array" ? inside(one.items ?? {}, within) : one.properties ? [one] : isMap(one) ? inside(one.additionalProperties, within) : []);
       }
-      /** The values a schema lists, `null` aside. */
       const listed = (/** @type {Schema} */ schema) => (schema.enum ?? choices(schema).some.flatMap((/** @type {Schema} */ s) => s.enum ?? [])).filter((/** @type {unknown} */ v) => v !== null);
-      /** The example the specification gives, if it gives one: a parameter's or a media type's own, else its schema's. */
       function exampleOf(/** @type {Schema} */ holder) {
         const own = holder.example ?? (holder.examples && Object.values(holder.examples)[0]?.value);
         if (own !== undefined) return own;
         const schema = resolve(holder.schema ?? {});
         return schema.examples?.[0] ?? schema.example ?? schema.default ?? schema.const ?? schema.enum?.[0];
       }
-      /** Objects' fields a press away, each under its name. */
       function nestedFields(/** @type {Schema[]} */ objects, /** @type {string[]} */ within = []) {
         return objects.map((o) => {
           const count = Object.keys(o.properties).length, name = o.named ? `${escape(o.named)} · ` : "";
           return `<details><summary>${name}${count} field${count === 1 ? "" : "s"}</summary>${fields(o, within)}</details>`;
         }).join("");
       }
-      /** A row of a list of fields: a name, its type and marks, its words. */
       const row = (/** @type {string} */ name, /** @type {string} */ type, /** @type {string} */ marks, /** @type {string} */ text) =>
         `<div><dt><code>${escape(name)}</code><span>${escape(type)}</span>${marks}</dt><dd>${text}</dd></div>`;
       const OPTIONAL = "<span>optional</span>", REQUIRED = '<span class="must">required</span>';
-      /** The fields of an object: each its name, type and words; an object inside one folded under it (none opened twice). */
       function fields(/** @type {Schema} */ schema, /** @type {string[]} */ within = []) {
         const inner = schema.named ? [...within, schema.named] : within;
         const rows = Object.entries(schema.properties).map(([name, field]) => {
@@ -1320,41 +1257,32 @@
         });
         return `<dl class="fields">${rows.join("")}</dl>`;
       }
-      /**
-       * One thing sent or answered, as a row: its name (a media type, a status), its type, its words, its fields.
-       * @param {string} name @param {Schema | undefined} schema @param {string} [type] @param {string} [description]
-       */
+      /** @param {string} name @param {Schema | undefined} schema @param {string} [type] @param {string} [description] */
       function schemaRow(name, schema, type, description) {
         const resolved = schema && resolve(schema);
         const words = markdown(description ?? resolved?.description) + (resolved ? listedValues(resolved) + nestedFields(inside(resolved)) : "");
         return `<dl class="fields">${row(name, [type, resolved && kind(resolved)].filter(Boolean).join(" · "), "", words)}</dl>`;
       }
-      /** The values a schema lists, said, if it lists them. */
       function listedValues(/** @type {Schema} */ schema) {
         const values = listed(schema);
         return values.length ? `<p class="one-of">One of ${values.map((/** @type {unknown} */ v) => `<code>${escape(String(v))}</code>`).join(" ")}</p>` : "";
       }
-      /** What a parameter may be, where its type alone doesn't say: its choices, its default. */
       function allowed(/** @type {Schema} */ schema) {
         return listedValues(schema) + (schema.default !== undefined && schema.default !== "" ? `<p>Default <code>${escape(String(schema.default))}</code></p>` : "");
       }
 
-      // ── The groups: each tag's endpoints, in the specification's order ──
-
       const METHODS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
       const slug = (/** @type {string} */ name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       /** @type {Group[]} */ let GROUPS = [];
-      /** Every operation, by its address on this page. @type {Map<string, Operation>} */ const OPERATION = new Map();
+      /** @type {Map<string, Operation>} */ const OPERATION = new Map();
       try {
         GROUPS = spec.tags.map((/** @type {Schema} */ tag) => ({ ...tag, slug: slug(tag.name), operations: [] }));
         for (const [path, item] of Object.entries(spec.paths))
           for (const [method, operation] of Object.entries(item)) {
-            if (!METHODS.has(method)) continue; // (The path's own words and parameters, not an operation of it.)
+            if (!METHODS.has(method)) continue;
             const tagged = GROUPS.find((g) => g.name === operation.tags?.[0]);
             if (!tagged) throw new Error(`${method} ${path}: no group named ${operation.tags?.[0]}`);
-            // (Its address on this page: a group's, then the method and path, as links to the reference have always been.)
             const id = `tag/${tagged.slug}/${method.toUpperCase()}${path}`;
-            // (What the path gives every operation on it, then the operation's own, either one perhaps a reference.)
             const parameters = [...(item.parameters ?? []), ...(operation.parameters ?? [])].map(resolve);
             const haystack = [method, path, operation.summary, operation.operationId, tagged.name, operation.description].filter(Boolean).join(" ").toLowerCase();
             /** @type {Operation} */ const one = { ...operation, method, path, id, parameters, haystack };
@@ -1365,17 +1293,12 @@
         fail(error);
       }
 
-      // ── An endpoint: its words, what it takes, what it answers; beside them, its request ──
-
-      /** The 2xx answer of an operation: its status, its media types, and the entry (schema, any example) of the one
-       * shown, JSON where it's one of them. */
       function answer(/** @type {Operation} */ operation) {
         const status = Object.keys(operation.responses).find((code) => code.startsWith("2"));
         if (!status) throw new Error(`${operation.method} ${operation.path}: no 2xx answer`);
         const content = resolve(operation.responses[status]).content ?? {}, types = Object.keys(content), type = types.find((t) => t.includes("json")) ?? types[0];
         return { status, types: types.join(" or "), type, media: content[type] ?? {}, schema: content[type]?.schema };
       }
-      /** What an operation is sent, if anything: its media type and that type's entry. */
       function bodyOf(/** @type {Operation} */ operation) {
         const asked = resolve(operation.requestBody ?? {}), type = Object.keys(asked.content ?? {})[0];
         return type && { type, description: asked.description, schema: asked.content[type].schema };
@@ -1389,8 +1312,6 @@
         });
         return `<h3>${title}</h3><dl class="fields">${rows.join("")}</dl>`;
       }
-      /** The request as a form: a field per parameter (one it must have holding the specification's example, if it gives
-       * one), the command, Run, and the answer: the specification's example of it until Run, if it gives one. */
       function request(/** @type {Operation} */ operation) {
         const inputs = operation.parameters.filter((p) => p.in === "path" || p.in === "query").map((p) => {
           const schema = resolve(p.schema ?? {}), values = listed(schema), example = exampleOf(p), name = escape(`${p.in}:${p.name}`);
@@ -1402,7 +1323,6 @@
         });
         const { type, media } = answer(operation), sample = exampleOf(media);
         const shown = sample === undefined ? "" : type?.includes("json") ? paint(JSON.stringify(sample, null, 2)) : escape(String(sample));
-        // (The answer's own example, or its type's: "An example Height" says which.)
         const example = media.example !== undefined || media.examples ? "An example of its answer" : `An example ${resolve(media.schema ?? {}).named ?? kind(media.schema ?? {})}`;
         const runs = operation.method === "get";
         return `<form class="try" data-id="${escape(operation.id)}">
@@ -1412,7 +1332,6 @@
           <div class="code"${shown ? "" : " hidden"}><pre class="answer" tabindex="0" role="group" aria-label="${escape(`The answer of ${operation.summary ?? operation.path}`)}">${shown}</pre></div>
         </form>`;
       }
-      /** An operation's method, as a mark beside its path. */
       const chip = (/** @type {Operation} */ o) => `<b class="method ${o.method}">${o.method.toUpperCase()}</b> `;
       function endpoint(/** @type {Operation} */ operation) {
         const { status, types, schema } = answer(operation), body = bodyOf(operation);
@@ -1433,8 +1352,6 @@
           </div>
         </article>`;
       }
-
-      // ── Pages: the introduction, or a group ──
 
       function introduction() {
         const [lede, ...rest] = spec.info.description.split("\n\n");
@@ -1458,14 +1375,12 @@
           <ul class="paths">${g.operations.map((o) => `<li><a class="to" href="#${escape(o.id)}">${chip(o)}${pathBox(o.path)}</a></li>`).join("")}</ul>
           ${g.operations.map(endpoint).join("")}`;
       }
-      /** The rail: every group, the one read open on its endpoints. */
       function rail(/** @type {Group | undefined} */ open, /** @type {string} */ at) {
         groups.innerHTML = `<li><a href="#"${open ? "" : ' aria-current="page"'}>Introduction</a></li>` + GROUPS.map((g) =>
           `<li><a href="#tag/${g.slug}"${g === open && at === `tag/${g.slug}` ? ' aria-current="page"' : ""}>${escape(g.name)}<small>${g.operations.length}</small></a>${
             g === open ? `<ul>${g.operations.map((o) => `<li><a href="#${escape(o.id)}"${o.id === at ? ' aria-current="true"' : ""}>${o.summary ? escape(o.summary) : pathBox(o.path)}</a></li>`).join("")}</ul>` : ""
           }</li>`).join("");
       }
-      /** The place the address names (a malformed one names none: the introduction). */
       function addressed() {
         try {
           return decodeURIComponent(location.hash.slice(1));
@@ -1475,8 +1390,7 @@
       }
       /** The page drawn: none yet (null), the introduction (undefined) or a group. @type {Group | undefined | null} */
       let drawn = null;
-      /** The page the address names, drawn when it's another group's and brought to the place named. Within a page drawn
-       * already, the browser itself goes to the place named, or back to where Back left it. */
+      /** Only another group is drawn: within a page the browser goes to the place itself, or back to where Back left it. */
       function show() {
         const at = addressed(), open = GROUPS.find((g) => at === `tag/${g.slug}` || at.startsWith(`tag/${g.slug}/`));
         try {
@@ -1497,22 +1411,17 @@
       }
       addEventListener("hashchange", () => {
         show();
-        // (Going to a place leaves the focus nowhere, or on a link drawn anew: it goes on to the place named, its
-        // endpoint's own link, else the page, so Tab goes on from there.)
+        // Focus is left nowhere or on a redrawn link: it goes to the named place, so Tab goes on from there.
         if (document.activeElement !== document.body) return;
         const place = document.getElementById(addressed())?.querySelector("a.to");
         (/** @type {HTMLElement | null} */ (place) ?? main).focus({ preventScroll: true });
       });
 
-      // ── A request: its command as its fields are filled; Run asks the server and shows what it said ──
-
-      /** The address a form's fields make: its path's placeholders filled, its query's given fields. */
       function address(/** @type {HTMLFormElement} */ form) {
         const operation = /** @type {Operation} */ (OPERATION.get(form.dataset.id ?? "")), query = new URLSearchParams();
         let path = operation.path;
         for (const [name, value] of new FormData(form)) {
           const [where, key] = String(name).split(":"), text = String(value).trim();
-          // (A quote encoded too, as the command quotes the address.)
           if (where === "path") path = path.replace(`{${key}}`, text ? encodeURIComponent(text).replaceAll("'", "%27") : `{${key}}`);
           else if (text) query.set(key, text);
         }
@@ -1521,34 +1430,29 @@
       }
       function command(/** @type {HTMLFormElement} */ form) {
         const { operation, url } = address(form), body = bodyOf(operation);
-        // (A body is sent from a file of one's own.)
         const data = body ? ` -H 'content-type: ${body.type}' --data-binary @body.${body.type.includes("json") ? "json" : "txt"}` : "";
         /** @type {Element} */ (form.querySelector(".command")).innerHTML = breakable(`curl -s${operation.method === "get" ? "" : ` -X ${operation.method.toUpperCase()}`} '${url}'${data}`);
       }
-      /** JSON as text, its names and numbers marked. */
       const paint = (/** @type {string} */ json) =>
         escape(json).replace(/(&quot;(?:[^&\\]|\\.|&(?!quot;))*&quot;)(\s*:)?|(?<![\w.])(-?\d[\d.eE+-]*|true|false|null)\b/g, (_, text, colon, value) =>
           text ? (colon ? `<span class="n">${text}</span>${colon}` : text) : `<span class="v">${value}</span>`);
-      /** An answer's start, a screen or so: JSON laid out and marked, the rest counted. */
       function preview(/** @type {string} */ text, /** @type {boolean} */ json) {
         let whole = text;
         if (json) {
           try {
             whole = JSON.stringify(JSON.parse(text), null, 2);
           } catch {
-            json = false; // (Said to be JSON but not: shown as it came.)
+            json = false;
           }
         }
         const kept = whole.split("\n", 200).join("\n").slice(0, 20000);
         return (json ? paint(kept) : escape(kept)) + (kept.length < whole.length ? `\n<span class="c">… ${(whole.length - kept.length).toLocaleString("en")} more characters</span>` : "");
       }
-      /** What a form is waiting on: a new Run stops the one before. */
       const asking = new WeakMap();
       main.addEventListener("input", (event) => {
         const form = /** @type {HTMLFormElement | null} */ (/** @type {HTMLElement} */ (event.target).closest("form"));
         if (!form) return;
         command(form);
-        // (A run's answer was to the address before: it goes, and a run still waiting is stopped.)
         asking.get(form)?.abort();
         if (asking.delete(form)) {
           /** @type {HTMLElement} */ (form.querySelector("output")).textContent = "";
@@ -1558,7 +1462,7 @@
       main.addEventListener("submit", async (event) => {
         event.preventDefault();
         const form = /** @type {HTMLFormElement} */ (event.target);
-        if (address(form).operation.method !== "get") return; // (Enter in a field of one that writes: not sent from here.)
+        if (address(form).operation.method !== "get") return;
         const out = /** @type {HTMLOutputElement} */ (form.querySelector("output"));
         const pre = /** @type {HTMLElement} */ (form.querySelector(".answer")), frame = /** @type {HTMLElement} */ (pre.parentElement);
         asking.get(form)?.abort();
@@ -1583,9 +1487,6 @@
         }
       });
 
-      // ── Copy: the block's text ──
-
-      /** Each button's way back to "Copy", one at a time. */
       const resets = new WeakMap();
 
       document.addEventListener("click", async (event) => {
@@ -1596,7 +1497,7 @@
         try {
           await navigator.clipboard.writeText(code.textContent ?? "");
         } catch {
-          // (No clipboard here, as on a server reached over plain http: the text selected, for the keyboard's copy.)
+          // No clipboard (plain http): the text is selected for the keyboard's copy.
           getSelection()?.selectAllChildren(code);
           word = "Selected";
         }
@@ -1608,8 +1509,6 @@
         }, 1500));
       });
 
-      // ── Search: every endpoint whose address, name or words hold each word typed ──
-
       /** @type {Operation[]} */ let hits = [];
       function search() {
         const terms = find.value.toLowerCase().split(/\s+/).filter(Boolean);
@@ -1620,7 +1519,6 @@
           return;
         }
         const matched = [...OPERATION.values()].filter((o) => terms.every((term) => o.haystack.includes(term)));
-        // (Those whose address or summary holds what was typed, before those that only mention it.)
         const named = (/** @type {Operation} */ o) => terms.every((term) => `${o.path} ${o.summary}`.toLowerCase().includes(term));
         hits = [...matched.filter(named), ...matched.filter((o) => !named(o))];
         found.innerHTML = hits.length
@@ -1637,7 +1535,7 @@
         if (event.key === "Enter" && hits.length && find.value.trim()) {
           location.hash = hits[0].id;
           clearSearch();
-          find.blur(); // (The focus then goes on to the endpoint, as from any link to it; a phone's keyboard goes.)
+          find.blur();
         } else if (event.key === "Escape") {
           clearSearch();
           find.blur();
@@ -1646,7 +1544,6 @@
       found.addEventListener("click", (event) => {
         if (/** @type {HTMLElement} */ (event.target).closest("a")) clearSearch();
       });
-      // (/ or ⌘K from anywhere but a field: to the search.)
       addEventListener("keydown", (event) => {
         const typing = /** @type {HTMLElement} */ (event.target).matches("input, select, textarea");
         if ((event.key === "/" && !typing) || (event.key === "k" && (event.metaKey || event.ctrlKey))) {
