@@ -533,7 +533,9 @@ async function resolve(doc, fresh = false, signal = /** @type {AbortSignal | und
   // (A heatmap's: no values a date (its days, many each, are drawn apart: see Heat), its measure's unit; the
   // price's closes, its scale's (see Heat).)
   const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
-  // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
+  // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.
+  // The groups come with the whole client: waited for after the data, not before.)
+  if (layers.some(heatLike)) await import("/studio/client.js");
   for (const layer of layers) if (heatLike(layer)) results.set(layer.id, { unit: measureUnit(measureOf(layer)), heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
   /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
   const bySeries = new Map();
