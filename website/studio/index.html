@@ -38,14 +38,17 @@
     <meta property="og:description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
     <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bitview Studio","url":"https://bitview.space/studio/","description":"Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://bitview.space/assets/cards/studio.jpg","publisher":{"@type":"Organization","name":"Bitview","url":"https://bitview.space"}}</script>
     <!-- /page-info-head -->
-    <!-- The app, a module of its own: fetched as the page's first bytes arrive, compiled off the page's thread, and kept by the browser for every address (each preset's page is its own document). -->
+    <!-- The app, a module of its own: fetched as the page's first bytes arrive, compiled off the page's thread, and
+             kept by the browser for every address (each preset's page is its own document). -->
     <!-- The client's core, which the client imports: fetched beside the app, not after the client arrives. -->
     <link rel="modulepreload" href="/modules/bitview-client/core.js" />
     <!-- The presets, read (made in a worker on a first visit) while the app downloads: run before it, which imports it. -->
     <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
     <style>
-      /* Only what a first screen shows, in any state it starts in, the server's page-info too; what the rest builds is in rest.css. A rule for a first screen goes here: in rest.css it's missing till the rest is in. rest.css comes after these: a rule here meant to win over one there, at equal specificity, loses. */
+      /* Only what a first screen shows, in any state it starts in, the server's page-info too; what the rest builds
+               is in rest.css. A rule for a first screen goes here: in rest.css it's missing till the rest is in. rest.css
+               comes after these: a rule here meant to win over one there, at equal specificity, loses. */
       /* craft rules */
       /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
          lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
@@ -134,7 +137,9 @@
         font-display: swap;
       }
 
-      /* Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks, the chart and the canvases read them resolved (see css). Hairlines are a shade stronger on the light (thin dark lines on white read lighter). Color comes from the data: the chrome is monochrome, orange is the brand's. */
+      /* Two themes from one set of tokens, each a light-dark() pair: the page's color-scheme picks, the chart and
+               the canvases read them resolved (see css). Hairlines are a shade stronger on the light (thin dark lines on
+               white read lighter). Color comes from the data: the chrome is monochrome, orange is the brand's. */
       :root {
         color-scheme: light dark;
         --panel-width: 300px;
@@ -161,7 +166,8 @@
         --faint: light-dark(#c4c7cc, #3e4147);
         /* How many, beside what's counted: muted (a step under it read under 4.5:1: 3.3-3.8 on the page). */
         --count: var(--muted);
-        /* A control's ground, three steps, one each and nothing between: five greys a step apart, side by side, read as five, none as a step. */
+        /* A control's ground, three steps, one each and nothing between: five greys a step apart, side by side, read
+                   as five, none as a step. */
         --field: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
         --big-field: var(--field);
         --hover: var(--field);
@@ -192,7 +198,8 @@
         --crosshair-label: light-dark(#2b2d31, #26272b);
         --tip: light-dark(#ffffff, #1e1f23);
         --hint: light-dark(#ffffff, #2c2d30);
-        /* Shadows, each one shape, its colors by theme. What pops: its edge solid, the page's ground as a faint ring, so over a chart's bright tags it's still its edge, not a gap. */
+        /* Shadows, each one shape, its colors by theme. What pops: its edge solid, the page's ground as a faint
+                   ring, so over a chart's bright tags it's still its edge, not a gap. */
         --pop: inset 0 1px 0 light-dark(transparent, rgb(255 255 255 / 0.05)), 0 0 0 1px light-dark(color-mix(in srgb, var(--app), black 7%), color-mix(in srgb, var(--app), white 8%)), 0 24px 64px -12px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.7)), 0 8px 20px -8px light-dark(rgb(0 0 0 / 0.1), rgb(0 0 0 / 0.5));
         --card-shadow: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), transparent), 0 24px 60px -30px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
         /* (Its ring, around its edge: an outline, not a shadow's spread, which Firefox redraws dearly as the card resizes.) */
@@ -227,7 +234,8 @@
         scrollbar-color: var(--faint) transparent;
       }
 
-      /* More contrast asked for: the same tokens, nothing else changed; the chart's text and grid follow (chartColors reads these). */
+      /* More contrast asked for: the same tokens, nothing else changed; the chart's text and grid follow
+               (chartColors reads these). */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#16181c, #eef1f5);
@@ -1200,6 +1208,7 @@
           }
         }
 
+        /* Eased out, however it goes: cut at once it would read as a cut. */
         dialog:not(:popover-open),
         #quick:not(:popover-open),
         dialog[data-leaving],
@@ -1343,7 +1352,8 @@
           }
         }
 
-        /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity alone, what a screen draws cheapest, a long list of them at once). */
+        /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity
+                   alone, what a screen draws cheapest, a long list of them at once). */
         body[data-sliding]:not([data-sidebar="collapsed"]) .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .list-head :is(.head-name, .count)) {
           transition: opacity var(--words-in) var(--ease) var(--words-wait);
         }
@@ -1404,7 +1414,8 @@
         min-width: 0;
         min-height: 0;
         margin: 8px 8px 8px 0;
-        /* Its margins move as the layout does, the chart sized once for it (see sizeOnce); a breakpoint or a turned phone lands at once (--card-motion, see the resize listener): it would resize the chart each frame. */
+        /* Its margins move as the layout does, the chart sized once for it (see sizeOnce); a breakpoint or a turned
+                   phone lands at once (--card-motion, see the resize listener): it would resize the chart each frame. */
         transition: margin var(--card-motion, var(--dur-layout)) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
         border: 1px solid var(--line);
         border-radius: var(--radius-xl);
@@ -2703,7 +2714,9 @@
         }
       }
 
-      /* Each handle sits outside its clipped view, across the seam: 7px inside the view, the rest over the chart, short of the chart's foot and its controls. The drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid it. */
+      /* Each handle sits outside its clipped view, across the seam: 7px inside the view, the rest over the chart,
+               short of the chart's foot and its controls. The drawing belt's handle, a grip too, keeps its place in its
+               row: laid over its first tool, it hid it. */
       .grip[role="separator"] {
         position: absolute;
         top: 0;
@@ -2810,7 +2823,8 @@
         scrollbar-width: thin;
         scroll-padding-top: 50px;
 
-        /* Its head stays at its top as it scrolls, on the panel's own ground; a rule under it as something passes, whole by 16px (--scrolled), so a scroll about its top never flashes it on and off. */
+        /* Its head stays at its top as it scrolls, on the panel's own ground; a rule under it as something passes,
+                   whole by 16px (--scrolled), so a scroll about its top never flashes it on and off. */
         > :is(.panel-head, .inspector-head) {
           position: sticky;
           top: 0;
@@ -3064,7 +3078,10 @@
         }
       }
 
-      /* ⌘K opened on Home (see placeOnHome): coming, it unrolls down from the field as it fades in, from its second frame (data-arriving its first, see openPalette: the dialog's opening is the heavy one, and a motion begun in it shows a third of the way on); going, it rolls back up into it, Home's field fading out and back under it (never a moment without a field). */
+      /* ⌘K opened on Home (see placeOnHome): coming, it unrolls down from the field as it fades in, from its second
+               frame (data-arriving its first, see openPalette: the dialog's opening is the heavy one, and a motion begun
+               in it shows a third of the way on); going, it rolls back up into it, Home's field fading out and back under
+               it (never a moment without a field). */
       .palette[data-on-home] {
         bottom: auto;
         width: var(--on-w);

@@ -109,7 +109,8 @@ function shapeOf(values, mode, bars = false, base = 0) {
 const place = (points, lo, hi, bottom = 0, height = 1) => points.map((value) => (value === null || !Number.isFinite(value) ? null : clamp(Math.round((bottom + ((value - lo) / (hi - lo || 1)) * height) * 100) / 100, 0, 1)));
 
 /**
- * A failed fetch leaves nothing behind, no blank drawing and no cached failure. A series the server doesn't have, or not at this interval, isn't a failure to retry: it's drawn without.
+ * A failed fetch leaves nothing behind, no blank drawing and no cached failure. A series the server doesn't have, or
+ * not at this interval, isn't a failure to retry: it's drawn without.
  * @param {Resolved} data @param {string} index
  */
 function retryFailed(data, index) {
@@ -121,7 +122,8 @@ function retryFailed(data, index) {
 }
 /** @param {Chart} doc @returns {Promise<Thumb | null>} */
 async function drawThumb(doc) {
-  // The open chart's own data, or any chart's all in memory: asked once, not again at another interval. Not a finer interval's: only part of its history loads.
+  // The open chart's own data, or any chart's all in memory: asked once, not again at another interval. Not a finer
+    // interval's: only part of its history loads.
   const held = !FINE.has(doc.index) && (doc.id === chart?.id || drawSeries(doc).every((name) => loads.has(`${name}@${doc.index}`)));
   const index = held ? doc.index : await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
   const data = await resolve({ ...doc, index, layers: doc.layers.map(layer => ({ ...layer, hidden: false })), ...(held ? { id: `${doc.id}:mark` } : {}) });
@@ -257,7 +259,10 @@ const rangeStart = (/** @type {Chart} */ doc, /** @type {ArrayLike<number>} */ t
   const days = rangeDays(doc.range);
   return days && times.length ? lowerBound(times, times[times.length - 1] - days * 86400) : 0;
 };
-/** Kept within a budget: they're a cache, drawn again when missing, so they never crowd out the charts themselves. Written oldest first, as they're read back: the last drawn last again. */
+/**
+ * Kept within a budget: they're a cache, drawn again when missing, so they never crowd out the charts themselves.
+ * Written oldest first, as they're read back: the last drawn last again.
+ */
 function savePreviews() {
   const drawn = new Map([...previews.keys()].map((id, k) => [id, k]));
   const kept = /** @type {[string, Preview & { key: string }][]} */ ([]), when = (/** @type {string} */ id) => (id.startsWith("recommended:") ? Infinity : chartById(id)?.updated ?? (id.startsWith("preset:") ? /** @type {number} */ (drawn.get(id)) : -Infinity));
@@ -270,7 +275,9 @@ function savePreviews() {
   storage.set(PREVIEWS, Object.fromEntries(kept.reverse()));
 }
 /**
- * A shown profile's room after the latest as the chart leaves it (see rightGap): a quarter of the picture where it ends at the latest. A view's edges as the chart shows it (the library's range is its screen's edges); a range's from its first bar's left edge to its last's right edge (its window is by their middles: half a bar more each side).
+ * A shown profile's room after the latest as the chart leaves it (see rightGap): a quarter of the picture where it ends
+ * at the latest. A view's edges as the chart shows it (the library's range is its screen's edges); a range's from its
+ * first bar's left edge to its last's right edge (its window is by their middles: half a bar more each side).
  * @param {Chart} doc @param {{ times: number[] }} data @param {number} most
  */
 const previewShown = (doc, data, most) => {
@@ -279,7 +286,9 @@ const previewShown = (doc, data, most) => {
   return left ? range : { from: range.from - 0.5, to: range.to + 0.5 };
 };
 /**
- * A day's sum read once a week is one day in seven: its largest days, the bubbles that read, would be missed, so each point takes the largest by size (sign kept) of the chart's own over its span, as the chart's buckets keep theirs. Null when a fetch failed: the picture isn't kept, asked again (see retryFailed).
+ * A day's sum read once a week is one day in seven: its largest days, the bubbles that read, would be missed, so each
+ * point takes the largest by size (sign kept) of the chart's own over its span, as the chart's buckets keep theirs.
+ * Null when a fetch failed: the picture isn't kept, asked again (see retryFailed).
  * @param {Chart} doc
  * @param {{ times: number[], results: Map<string, any> }} data
  * @param {string} index
@@ -352,7 +361,8 @@ async function heatSamples(doc, data, most, columns) {
   }
 }
 /**
- * Against the chart's reference (its open day's largest row, at its density); not come yet, the open day's largest cell here: brighter, the gaps between its rows filled.
+ * Against the chart's reference (its open day's largest row, at its density); not come yet, the open day's largest cell
+ * here: brighter, the gaps between its rows filled.
  * @param {Chart} doc
  * @param {Layer} layer
  * @param {Resolved | { times: number[], results: Map<string, any> }} data
@@ -369,7 +379,8 @@ function heatPicture(doc, layer, data, sample, priceAt, top, bottom) {
   canvas.width = columns;
   canvas.height = height;
   const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(columns, height), pixels = image.data;
-  // Each pixel row's cell once; a cell's color once a day, copied down the pixel rows it covers. None where the price isn't over zero: NaN.
+  // Each pixel row's cell once; a cell's color once a day, copied down the pixel rows it covers. None where the price
+    // isn't over zero: NaN.
   const cells = new Float64Array(height);
   for (let p = 0; p < height; p++) {
     const price = priceAt(top + (p + 0.5) / 2);
@@ -393,7 +404,8 @@ function heatPicture(doc, layer, data, sample, priceAt, top, bottom) {
   return canvas.toDataURL("image/png");
 }
 /**
- * The next picture of the same look from the same data keeps each pane drawn from the same: a live price, which gives its own layer a new result alone, redraws its pane, not a stack's 23 bands.
+ * The next picture of the same look from the same data keeps each pane drawn from the same: a live price, which gives
+ * its own layer a new result alone, redraws its pane, not a stack's 23 bands.
  * @type {WeakMap<object, { look: string, times: ArrayLike<number>, panes: { from: any[], marks: any[], scales: any[] }[] }>}
  */
 const panesDrawn = new WeakMap();
@@ -474,12 +486,14 @@ function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @typ
         let base = NaN;
         for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
         const scaled = onScale(mode, base), inView = onScaleAll(values, mode, base, first, last);
-        // Each bucket's low and high, in the order they came, and the latest value last: at up to four bars a pixel the chart shows every bar, so its peaks and troughs show; an average would round them off.
+        // Each bucket's low and high, in the order they came, and the latest value last: at up to four bars a pixel the
+                // chart shows every bar, so its peaks and troughs show; an average would round them off.
         const lows = new Float64Array(B).fill(Infinity), highs = new Float64Array(B).fill(-Infinity), lowAt = new Float64Array(B), highAt = new Float64Array(B);
         let latest = -1, latestIn = -1;
         const breaks = data.results.get(layer.id)?.breaks, cut = breaks ? new Uint8Array(B) : null;
         for (let i = first; i <= last; i++) {
-          // The point at the view's very end is its last bucket's, not past it. Its bucket by a truncation, no call; a point before the view's start has its place under 0 but never under -1: none.
+          // The point at the view's very end is its last bucket's, not past it. Its bucket by a truncation, no call; a
+                    // point before the view's start has its place under 0 but never under -1: none.
           const value = inView[i], at = ((i - shown.from) / span) * B, edge = i <= shown.to ? B - 1 : B, b = at < 0 ? -1 : (at | 0) < edge ? at | 0 : edge;
           if (cut && breaks?.[i] && b >= 0 && b < B) cut[b] = 1;
           if (value - value !== 0 || b < 0 || b >= B) continue;
@@ -529,7 +543,8 @@ function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @typ
         const parts = baseOf(layer);
         return { layer, unseen: Boolean(layer.hidden || fromUnfit(doc, layer)), mode, from: base, scaled, values, inView, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([middleOf(b), value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
       });
-      // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it, so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
+      // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it, so
+            // their edges never cross, and none loses its peaks (a 100% stack's top is flat).
       const stack = shaped.filter((item) => item.stack);
       if (stack.length > 1) {
         // Finite by a subtraction, by loops: no call per point.
@@ -561,7 +576,9 @@ function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @typ
               if (top > most) (most = top), (high = i);
             }
             shared[b] = start < 0 ? [] : flat || least === most ? (start === end ? [start] : [start, end]) : low < high ? [low, high] : [high, low];
-            // A band with values in the bucket but not at each place its top's taken (one starting, ending or there for a while within it) takes its first and last there too, else it would be a point there or gone. Told against where the top's taken alone: another's added there could hide it again.
+            // A band with values in the bucket but not at each place its top's taken (one starting, ending or there for
+                        // a while within it) takes its first and last there too, else it would be a point there or gone. Told
+                        // against where the top's taken alone: another's added there could hide it again.
             const taken = shared[b], more = [];
             if (start >= 0) for (const item of stack) {
               if (taken.every((i) => item.inView[i] - item.inView[i] === 0)) continue;
@@ -835,13 +852,15 @@ function dateTicks(/** @type {ArrayLike<number>} */ times, /** @type {number} */
   });
 }
 /**
- * Its ids are its place's (`place`: a tile's, a card's, ⌘K's, Quick Look's), the same each time: the same chart can show twice at once, and a tile drawn again is unchanged.
+ * Its ids are its place's (`place`: a tile's, a card's, ⌘K's, Quick Look's), the same each time: the same chart can
+ * show twice at once, and a tile drawn again is unchanged.
  * @param {Preview} drawn @param {string} place
  */
 function previewSvg(drawn, place, size = PREVIEW) {
   const { width: W, height: H } = size, id = place.replace(/[^\w-]/g, "-"), defs = [];
   const body = drawn.seps.map((y) => `<path class="sep" d="M0 ${y}H${W}"/>`);
-  // Fills, then bands, then lines, as the chart draws them: a band of one of its colors is never over another's line; a band whole, as the chart's ground is, its layer's opacity on its fill and line alone.
+  // Fills, then bands, then lines, as the chart draws them: a band of one of its colors is never over another's line; a
+    // band whole, as the chart's ground is, its layer's opacity on its fill and line alone.
   const parts = drawn.marks.map((mark, n) => {
     const c = escapeHtml(ink(mark.c)), c2 = escapeHtml(ink(mark.c2 ?? mark.c)), g = `${id}-${n}`, dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : "";
     const halo = (/** @type {string | undefined} */ d, kind = "") => (mark.o && d ? `<path class="halo${kind}"${dash} d="${d}"/>` : "");
@@ -854,7 +873,9 @@ function previewSvg(drawn, place, size = PREVIEW) {
     else if (mark.k === "band") under = `<path class="fill" style="fill:${c}" d="${mark.d}"/>`;
     else if (mark.k === "bars") (band = `${halo(mark.d, " of-bars")}${halo(mark.d2, " of-bars")}`), (over = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`);
     else if (mark.k === "dots") (band = halo(mark.d, " of-dots")), (over = `<path class="dots" stroke="${c}" d="${mark.d}"/>`);
-    // Bubbles of a size: each its edge's dot, its fill's dot a pixel in over it, both mixed with the ground (the chart's are see-through); a dot keeps its size as the frame stretches, so each is round. Outlined: a ring of the ground under each size's, over the larger ones', as the chart rings each in turn.
+    // Bubbles of a size: each its edge's dot, its fill's dot a pixel in over it, both mixed with the ground (the
+        // chart's are see-through); a dot keeps its size as the frame stretches, so each is round. Outlined: a ring of the
+        // ground under each size's, over the larger ones', as the chart rings each in turn.
     else if (mark.k === "bubble") (defs.push(`<clipPath id="${g}c"><rect y="${mark.top}" width="${W}" height="${/** @type {number} */ (mark.bottom) - /** @type {number} */ (mark.top)}"/></clipPath>`), (ring = mark.o ? `<g clip-path="url(#${g}c)">${[mark.d, mark.d2].map((d) => (d ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) + 2}px;stroke:var(--plot-ground, var(--card))" d="${d}"/>` : "")).join("")}</g>` : ""), (over = `<g clip-path="url(#${g}c)">${[[c, mark.d], [c2, mark.d2]].map(([color, d]) => (d ? `<path class="bubble" style="stroke-width:${mark.w}px;stroke:color-mix(in srgb, ${color} 80%, var(--plot-ground, var(--card)))" d="${d}"/>${(mark.w ?? 0) > 3 ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) - 2}px;stroke:color-mix(in srgb, ${color} 40%, var(--plot-ground, var(--card)))" d="${d}"/>` : ""}` : "")).join("")}</g>`));
     else if (mark.k === "baseline") {
       const y0 = /** @type {number} */ (mark.y0), f = closedTo(mark.d, y0);
@@ -900,7 +921,11 @@ let drawingsNumbered = 0;
 const drawingId = (/** @type {object} */ drawn) => drawingIds.get(drawn) ?? (drawingIds.set(drawn, ++drawingsNumbered), drawingsNumbered);
 /** @type {Map<string, { framed: string, drawn: Promise<(Preview & { key: string }) | null>, stop: AbortController }>} */
 const plotsDrawing = new Map();
-/** Drawings under way with no frame of their chart left in the page, nor a slot for their tile, are given up, with the fetches no other asker wants (see cachedLoad). Out of the map before it's aborted: an ask meanwhile (the tile back) draws anew rather than joining one that will paint nothing. */
+/**
+ * Drawings under way with no frame of their chart left in the page, nor a slot for their tile, are given up, with the
+ * fetches no other asker wants (see cachedLoad). Out of the map before it's aborted: an ask meanwhile (the tile back)
+ * draws anew rather than joining one that will paint nothing.
+ */
 function giveUpUnframed() {
   for (const [ask, { framed, stop }] of plotsDrawing) if (!document.querySelector(framed)) plotsDrawing.delete(ask), stop.abort();
 }
@@ -911,7 +936,8 @@ function paint(id, drawn, all = false) {
     if (!all && !frame.classList.contains("pending")) continue;
     frame.classList.remove("pending");
     if (drawn) (frame.innerHTML = previewSvg(drawn, `${frame.classList[0]}-${id}`)), (frame.dataset.drawn = String(drawingId(drawn)));
-    // None, with no picture before it: said, not a blank that reads as no data; asked for again (see retryPlots). One from before stays: a sketch of the same chart.
+    // None, with no picture before it: said, not a blank that reads as no data; asked for again (see retryPlots). One
+        // from before stays: a sketch of the same chart.
     frame.classList.toggle("failed", !drawn && !frame.querySelector("svg"));
   }
 }
@@ -1144,6 +1170,7 @@ function renderYours() {
   for (const id of [...picked]) if (!ids.has(id)) picked.delete(id);
   if (!picked.has(pickedLast)) pickedLast = [...picked].at(-1) ?? "";
   const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".tile-open")?.closest(".tile") ?? null)?.dataset.chart;
+  // Only the tiles that changed are drawn again: a click on another, under way, isn't lost; focus and hover stay.
   const html = visible.map((doc) => ((i) => (i === undefined ? tileHtml(doc) : i < 0 ? WAITING_TILE : presetTileHtml(i, doc)))(presetTiles.get(doc))), tiles = all$(".tile", grid);
   const idOf = (/** @type {Chart} */ doc) => ((i) => (i === undefined || i < 0 ? doc.id : presetIdOf(presetKey(i))))(presetTiles.get(doc));
   const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length, ((folder) => (folder ? folderMark(folder) : ""))(folderById(part.folder ?? ""))] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : [part.kind, part.html])));
@@ -1174,7 +1201,10 @@ const folderShelfHtml = ({ name, place, folder, count }, tiles) => `<section cla
 const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`) ?? ((slot) => slot && fillSlot(slot))(/** @type {HTMLElement | null} */ ($("home").querySelector(`.tile-slot[data-slot="${presetById(id)}"]`))));
 const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
 
-/** Each page's place as it was left, by its step's key. A step left by Back or Forward can't be written any more (its place, in it, only when left otherwise): kept here, it's where it was last. */
+/**
+ * Each page's place as it was left, by its step's key. A step left by Back or Forward can't be written any more (its
+ * place, in it, only when left otherwise): kept here, it's where it was last.
+ */
 const leftPlaces = /** @type {Map<string, { top: number, rows: Record<string, number>, shown: number }>} */ (new Map());
 const yoursShown = () => home && ("folder" in homeAt || "previews" in homeAt || "recent" in homeAt);
 function pageOut() {
@@ -1182,7 +1212,10 @@ function pageOut() {
   for (const animation of /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).getAnimations()) animation.finish();
   fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease, true);
 }
-/** Its way in and the page left's way out (see goTo) begin once frames come on time: on a phone the new page's first frames (laid out, its tiles painted) took a tenth of a second or more, the fade all but over when it showed. */
+/**
+ * Its way in and the page left's way out (see goTo) begin once frames come on time: on a phone the new page's first
+ * frames (laid out, its tiles painted) took a tenth of a second or more, the fade all but over when it showed.
+ */
 function pageIn() {
   if (reduced()) return;
   const into = /** @type {HTMLElement} */ ($("home").querySelector(".home-inner")).animate({ opacity: [0, 1], translate: ["0 6px", "0 0"] }, { duration: MOTION.small, easing: MOTION.ease });
@@ -1224,12 +1257,17 @@ function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) 
 let listsDrawn = 0;
 const listAt = () => listsDrawn++;
 /**
- * Its first tile written (every row as tall as it), the others a slot each, written once near sight (see nearTiles): a search typed writes what shows, not sixty.
+ * Its first tile written (every row as tall as it), the others a slot each, written once near sight (see nearTiles): a
+ * search typed writes what shows, not sixty.
  * @param {number[]} list @param {number} [total]
  */
 const presetGridHtml = (list, total = list.length) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map((i, k) => (k ? slotHtml(i) : presetTileHtml(i))).join("")}</div>${total > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, total - galleryShown))} more</button>` : ""}`;
 const WAITING_TILE = '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending" data-seen></span></span></div>';
-/** A shelf writes this many tiles as it's drawn; the rest a slot each, written as it comes near (see tilesNear) or a keyboard's focus comes into its row: a page of shelves (the presets' fourteen) writes what can show, not every shelf's twelve. */
+/**
+ * A shelf writes this many tiles as it's drawn; the rest a slot each, written as it comes near (see tilesNear) or a
+ * keyboard's focus comes into its row: a page of shelves (the presets' fourteen) writes what can show, not every
+ * shelf's twelve.
+ */
 const SHELF_WRITTEN = 3;
 const shelfTilesHtml = (/** @type {number[]} */ list) => list.slice(0, SHELF).map((i, k) => (k < SHELF_WRITTEN ? presetTileHtml(i) : slotHtml(i))).join("");
 const slotHtml = (/** @type {number} */ i) => `<div class="tile-slot" data-slot="${i}"></div>`;
@@ -1327,7 +1365,8 @@ let galleryPlain = false, galleryAside = /** @type {{ drawn: string, lists: numb
 /** @type {(value?: unknown) => void} */
 let endGalleryWait = () => {};
 /**
- * Between a search's grids it isn't ended, so a key typed meanwhile asks for no tile of the grids it passes. Only drawGallery waits, one tile at a time (it's serial): each wait takes the one slot.
+ * Between a search's grids it isn't ended, so a key typed meanwhile asks for no tile of the grids it passes. Only
+ * drawGallery waits, one tile at a time (it's serial): each wait takes the one slot.
  * @param {Promise<unknown>} drawn
  */
 const galleryWait = (drawn) => Promise.race([drawn, new Promise((done) => (endGalleryWait = done))]);
@@ -1353,12 +1392,16 @@ function allShelfSteps() {
 }
 /** @type {WeakMap<HTMLElement, IntersectionObserver>} */
 const rowsNear = new WeakMap();
-/** Shelves two screens' height from sight in the page's own scroller (the window's would see them only once in it, clipped by it), made again as that height changes (a margin's percentage is of its width). */
+/**
+ * Shelves two screens' height from sight in the page's own scroller (the window's would see them only once in it,
+ * clipped by it), made again as that height changes (a margin's percentage is of its width).
+ */
 let shelvesNear = /** @type {IntersectionObserver | null} */ (null), nearReach = 0;
 /** @type {IntersectionObserver | null} */
 let slotsNear = null;
 /**
- * In time for a step or a fling, never one shown blank: an observer's first word comes a frame on, so those in sight are written at once.
+ * In time for a step or a fling, never one shown blank: an observer's first word comes a frame on, so those in sight
+ * are written at once.
  * @param {HTMLElement[]} rows
  */
 function nearTiles(rows) {
@@ -1391,7 +1434,8 @@ function swapTile(tile, html) {
   tile.replaceWith(/** @type {HTMLElement} */ (made.content.firstElementChild));
 }
 /**
- * An observer's first word comes a frame on, and a page scrolled fast is past a screen's height by then, so the slots two rows' widths from sight are written at once; the others as the row scrolls.
+ * An observer's first word comes a frame on, and a page scrolled fast is past a screen's height by then, so the slots
+ * two rows' widths from sight are written at once; the others as the row scrolls.
  * @param {HTMLElement} row @param {{ at: number, room: number, unit: number }} size
  */
 function tilesNear(row, { at, room, unit }) {
@@ -1421,11 +1465,15 @@ const presetOf = (/** @type {Element} */ frame) => Number(/** @type {HTMLElement
 
 /** @param {Element} frame */
 const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
-// At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.
+// At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
+// finger down on it; a pan's pointer is cancelled, not let go: its scroll's end says it's over.
 let galleryResting = true;
 let galleryScrolling = false;
 let galleryMoves = 0;
-/** A wheel's ticks each end a scroll, so between them it's at rest; a trip always sees one of them. Its first ask, at rest, is enough (a landing's scroll to a section isn't a wheel's). */
+/**
+ * A wheel's ticks each end a scroll, so between them it's at rest; a trip always sees one of them. Its first ask, at
+ * rest, is enough (a landing's scroll to a section isn't a wheel's).
+ */
 function stillness() {
   let seen = -1;
   return () => {
@@ -1441,7 +1489,8 @@ const galleryRests = () => {
 function startGalleryRest() {
   $("home").addEventListener("scroll", () => (galleryResting = false, galleryScrolling = true, galleryMoves++), { capture: true, passive: true });
   $("home").addEventListener("scrollend", () => ((galleryScrolling = false), galleryRests()), { capture: true });
-  // A press keeps the grid from rest till its release; a press cancelled or lost, till the next frame unless a scroll's begun by then, whose end then says.
+  // A press keeps the grid from rest till its release; a press cancelled or lost, till the next frame unless a scroll's
+    // begun by then, whose end then says.
   $("home").addEventListener("pointerdown", (event) => {
     galleryResting = false;
     press(event, {
@@ -1521,7 +1570,8 @@ function batch(action, button = null, /** @type {string[] | null} */ ids = null)
     return;
   }
   if (action === "delete") {
-    // The focus then goes to the tile that takes the first one's place; none left, to the toast's Undo (never a field: there ⌘Z would undo its typing, not this).
+    // The focus then goes to the tile that takes the first one's place; none left, to the toast's Undo (never a field:
+        // there ⌘Z would undo its typing, not this).
     const at = shownCharts().findIndex((doc) => docs.includes(doc));
     if (!ids) clearPicks();
     deleteCharts(docs);
@@ -1628,11 +1678,18 @@ function gridActions() {
   ];
 }
 /**
- * The card grows out of a tile over the page (`opening`) or shrinks back into it, the page under it all along; with no tile it fades. Shown over the tile only near its size (in over the first 8% as it grows: the ease is quick at first; out over the last 30% as it shrinks), the live tile under it meanwhile. Moved and clipped only (the compositor's work), its chart drawing as it goes.
+ * The card grows out of a tile over the page (`opening`) or shrinks back into it, the page under it all along; with no
+ * tile it fades. Shown over the tile only near its size (in over the first 8% as it grows: the ease is quick at first;
+ * out over the last 30% as it shrinks), the live tile under it meanwhile. Moved and clipped only (the compositor's
+ * work), its chart drawing as it goes.
  * @param {boolean} opening @param {() => HTMLElement | null} update
  */
 let morphing = /** @type {Animation[]} */ ([]);
-/** The library measures its element as it is drawn (its box scaled by the card's motion) and lays out at every pane, price axis or share it changes: the first build of a page that started on the grid lies in that. The card's own size never changed, so nothing measures the chart again: once the motion's over, it's laid out against its box. */
+/**
+ * The library measures its element as it is drawn (its box scaled by the card's motion) and lays out at every pane,
+ * price axis or share it changes: the first build of a page that started on the grid lies in that. The card's own size
+ * never changed, so nothing measures the chart again: once the motion's over, it's laid out against its box.
+ */
 function unscaled() {
   const { offsetWidth: width, offsetHeight: height } = engine.element;
   if (Math.abs(engine.width - width) >= 1 || Math.abs(engine.height - height) >= 1) engine.layout();
@@ -1667,7 +1724,8 @@ let goes = 0, goingCard = /** @type {HTMLElement | null} */ (null);
 function go(doc, push = true) {
   if (!doc) return;
   if (!home) return void (doc !== chart && openChart(doc));
-  // Its card pressed first, drawn before the chart's made (a while on a slow phone): the tap answered at once. Two asked for meanwhile, the last one.
+  // Its card pressed first, drawn before the chart's made (a while on a slow phone): the tap answered at once. Two
+    // asked for meanwhile, the last one.
   const mine = ++goes;
   goingCard?.classList.remove("opening");
   const card = (goingCard = cardOf(doc.id));
@@ -1690,7 +1748,9 @@ function showDialog(dialog) {
 const closeDialogs = () => all$("dialog:popover-open").forEach((dialog) => dialog.hidePopover());
 let leavings = 0;
 /**
- * Where the browser keeps it drawn while closed, the style plays its way out; elsewhere (Safari: closed, gone at once), its closed look is played first (`data-leaving`), out of reach, then closed. Opened again meanwhile (arrive), it stays.
+ * Where the browser keeps it drawn while closed, the style plays its way out; elsewhere (Safari: closed, gone at once),
+ * its closed look is played first (`data-leaving`), out of reach, then closed. Opened again meanwhile (arrive), it
+ * stays.
  * @param {HTMLElement} element
  */
 function leave(element) {
@@ -1707,7 +1767,9 @@ function leave(element) {
 /** @param {HTMLElement} element */
 const arrive = (element) => ((element.inert = false), delete element.dataset.leaving);
 /**
- * `pulls`: whether its content pulls it too, as a phone's sheets: a finger on it going down past a tap's move (SLOP), every list it's on at its top (or on what doesn't scroll), takes the sheet, not the list; up, or a list scrolled, it scrolls as ever. The tap a pull ends on isn't one.
+ * `pulls`: whether its content pulls it too, as a phone's sheets: a finger on it going down past a tap's move (SLOP),
+ * every list it's on at its top (or on what doesn't scroll), takes the sheet, not the list; up, or a list scrolled, it
+ * scrolls as ever. The tap a pull ends on isn't one.
  * @param {HTMLElement} element
  * @param {{ grab: (event: PointerEvent | null) => boolean, move: (by: number) => void, release: (by: number, speed: number) => void, back: () => void, pulls: () => boolean }} how
  */
@@ -1732,13 +1794,16 @@ function dragSheet(element, { grab, move, release, back, pulls }) {
     pull = { y: event.clientY, pointer: event.pointerId, trail: [{ y: event.clientY, at: performance.now() }] };
     element.classList.add("pulled");
     move(0);
-    // Held by what was pressed, the handle or the head: the click after a drag is its, not the sheet's own, which in ⌘K is its backdrop's and would close it.
+    // Held by what was pressed, the handle or the head: the click after a drag is its, not the sheet's own, which in ⌘K
+        // is its backdrop's and would close it.
     const held = /** @type {Element} */ (event.target), pointer = event.pointerId;
     held.setPointerCapture(pointer);
     const mine = () => pull?.pointer === pointer;
     press(event, { captor: held, move: (moved) => mine() && follow(moved.clientY), end: (release) => mine() && (release ? end(release.clientY) : ((pull = null), letGo())) });
   });
-  // A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events go to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data) leaves it out, heard there then.
+  // A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events go
+    // to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data) leaves
+    // it out, heard there then.
   let touch = /** @type {{ id: number, x: number, y: number, at: number, target: Element, taken: boolean } | null} */ (null);
   const own = (/** @type {TouchEvent} */ event) => (touch ? [...event.changedTouches].find((point) => point.identifier === touch?.id) : undefined);
   const moved = (/** @type {TouchEvent} */ event) => {
@@ -1802,7 +1867,9 @@ function dragSheet(element, { grab, move, release, back, pulls }) {
   element.addEventListener("touchcancel", heard(cancelled, true));
 }
 /**
- * Held at their start till frames come on time: begun in a frame the page's work stalls, WebKit shows one already well on in the first frame it draws (iOS 26.5: a sheet's first 80% at once, or all of it). 300 ms of frames on, they begin anyway (a tab out of sight draws none: they wait for it). One taken over meanwhile is left as it is.
+ * Held at their start till frames come on time: begun in a frame the page's work stalls, WebKit shows one already well
+ * on in the first frame it draws (iOS 26.5: a sheet's first 80% at once, or all of it). 300 ms of frames on, they begin
+ * anyway (a tab out of sight draws none: they wait for it). One taken over meanwhile is left as it is.
  * @param {Animation[]} animations
  */
 function beginOnTime(...animations) {
@@ -1822,7 +1889,10 @@ const slides = new WeakMap();
 /** @param {Element} sheet */
 const ownSlides = (sheet) => sheet.getAnimations().filter((animation) => animation instanceof CSSTransition && animation.transitionProperty === "transform");
 /**
- * Moves from where it showed by its transform alone, which the screen moves on its own, the page busy or not (its height, laid out each frame, stalled with it). Taller, it's so at once, slid up from there; shorter, as tall as it showed, slid down, then so. Never as the screen's own height changes (a keyboard, a turn). It starts at `speed`, so a drag goes on as it went; from still, gently, never the start's frames skipped as a jump (iOS draws a motion's first frame some 40 ms into it: a curve fast at its start loses half its way there).
+ * Moves by its transform alone, which the screen runs on its own, the page busy or not (its height, laid out each
+ * frame, stalled with it). Taller, it's so at once, slid up from there; shorter, slid down, then so. Never as the
+ * screen's own height changes (a keyboard, a turn). It starts at `speed` so a drag goes on as it went; from still,
+ * gently: iOS draws a motion's first frame some 40 ms in, and a curve fast at its start loses half its way there.
  * @param {HTMLElement} sheet @param {() => void} change @param {number} [from] @param {number} [speed]
  */
 function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, speed = 0) {
@@ -1830,7 +1900,8 @@ function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, spee
   sheet.style.height = sheet.style.maxHeight = "";
   change();
   const height = sheet.getBoundingClientRect().height, by = document.documentElement.clientHeight - height - from;
-  // A transition of its own transform, begun as a drag let go gave it back, gives way: run with the slide, iOS showed neither, the sheet still where it was let go till both were over.
+  // A transition of its own transform, begun as a drag let go gave it back, gives way: run with the slide, iOS showed
+    // neither, the sheet still where it was let go till both were over.
   for (const animation of ownSlides(sheet)) animation.cancel();
   if (reduced() || Math.abs(by) < 1) return;
   const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
@@ -1842,7 +1913,8 @@ function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, spee
 }
 let keysWaiting = /** @type {(() => void) | null} */ (null), keysTimer = 0;
 /**
- * As the keyboard comes, iOS's screen stalls (150 ms on iOS 26.5), a motion's start lost to it; or 400 ms on, none having come (a keyboard of keys).
+ * As the keyboard comes, iOS's screen stalls (150 ms on iOS 26.5), a motion's start lost to it; or 400 ms on, none
+ * having come (a keyboard of keys).
  * @param {() => void} run
  */
 function onceKeys(run) {
@@ -1856,7 +1928,11 @@ function keysCame() {
   clearTimeout(keysTimer);
   run?.();
 }
-/** Where something thrown, let go `at` (px) moving at `speed` (px/ms), would come to rest, slowing as iOS's own lists do (0.998 of its speed kept each millisecond): how a native sheet or window reads a flick, a short fast one as far as a long slow drag. */
+/**
+ * Where something thrown, let go `at` (px) moving at `speed` (px/ms), would come to rest, slowing as iOS's own lists do
+ * (0.998 of its speed kept each millisecond): how a native sheet or window reads a flick, a short fast one as far as a
+ * long slow drag.
+ */
 const restOf = (/** @type {number} */ at, /** @type {number} */ speed) => at + (speed * 0.998) / (1 - 0.998);
 /** @template P @param {(P & { at: number })[]} trail @param {(point: P) => number} along */
 const speedOf = (trail, along) => {
@@ -1867,7 +1943,9 @@ const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @t
 const stretched = (/** @type {number} */ past) => (1 - 1 / ((past * 0.55) / innerHeight + 1)) * innerHeight;
 const unstretched = (/** @type {number} */ shown) => ((1 / (1 - Math.min(shown, innerHeight - 1) / innerHeight) - 1) * innerHeight) / 0.55;
 /**
- * A dialog is slid first, once out of sight: closed in Safari it's gone at once (no `overlay` there), so its backdrop fades with the slide. Opened or closed meanwhile otherwise (esc, ×, Back, another menu), the slide stops, a dialog never closed later. A dialog pressed as it slides stays where it's caught, open (see sheetTaken).
+ * Slid first, once out of sight: closed in Safari it's gone at once (no `overlay` there), so its backdrop fades with
+ * the slide. Opened or closed meanwhile (esc, ×, Back, another menu), the slide stops, never closed later. A dialog
+ * pressed as it slides stays where it's caught (see sheetTaken).
  * @param {HTMLElement} sheet @param {() => void} close @param {number} from @param {number} speed
  */
 function slideAway(sheet, close, from, speed) {
@@ -1881,7 +1959,8 @@ function slideAway(sheet, close, from, speed) {
   if (!later) close();
   // Typed into, let go of as it goes, the keyboard down with it: iOS draws a field's caret apart, left behind.
   else if (sheet.contains(document.activeElement) && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
-  // Its own way, back as the drag let go of it or out as it closed, gives way: a transition outranks an animation. The rest of its way out (its display, its visibility, kept till it's done) is held to begin with the slide.
+  // Its own way, back as the drag let go of it or out as it closed, gives way: a transition outranks an animation. The
+    // rest of its way out (its display, its visibility, kept till it's done) is held to begin with the slide.
   const own = sheet.getAnimations().filter((animation) => animation instanceof CSSTransition);
   for (const animation of own) if (/** @type {CSSTransition} */ (animation).transitionProperty === "transform") animation.cancel();
   if (reduced()) return void (later && close());
@@ -1917,7 +1996,8 @@ function sheetTaken(sheet) {
   return new DOMMatrix(getComputedStyle(sheet).transform).m42 + (away ? shown - sheet.getBoundingClientRect().top : 0);
 }
 /**
- * Up past whole, it stretches, less and less. Let go upright, it stops at whole, half or gone, the nearest to where it'd come to rest (restOf), never back against a flick.
+ * Up past whole, it stretches, less and less. Let go upright, it stops at whole, half or gone, the nearest to where
+ * it'd come to rest (restOf), never back against a flick.
  * @param {HTMLElement} sheet
  * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement, pulls: () => boolean }} how
  */
@@ -2087,7 +2167,8 @@ function sectionKeys(/** @type {number} */ i) {
 }
 
 /**
- * Made from the tree after the presets are read, a slice at a time in idle moments (none of it at the start, nor a long task: see searchNow), the rest at once when a search comes first.
+ * Made from the tree after the presets are read, a slice at a time in idle moments (none of it at the start, nor a long
+ * task: see searchNow), the rest at once when a search comes first.
  * @typedef {{ shown: string[], texts: string[], initials: string[], titles: { title: string, initials: string, name: string, subject: string }[], rank: Int32Array, order: Int32Array, exact: Map<string, number[]> }} PresetSearch
  * @param {Preset[]} list
  * @param {PresetNode} root
@@ -2163,13 +2244,17 @@ const seePaletteMarks = (rows) => {
   }
 };
 const presetMarksAsked = /** @type {Set<number>} */ (new Set());
-/** The sections the open preset is in are opened in the sidebar while it's the one open (less any closed there): shown, never kept (`presetsOpen`). */
+/**
+ * The sections the open preset is in are opened in the sidebar while it's the one open (less any closed there): shown,
+ * never kept (`presetsOpen`).
+ */
 let revealed = { at: -1, keys: /** @type {Set<string>} */ (new Set()) };
 const sectionShown = (/** @type {string} */ key) => prefs.presetsOpen.includes(key) || revealed.keys.has(key);
 /** @returns {[string, string][]} */
 function presetParts() {
   const root = presetTree();
-  // Not read yet: as they were last drawn, with the same sections open, from the first frame, not come in after the rest.
+  // Not read yet: as they were last drawn, with the same sections open, from the first frame, not come in after the
+    // rest.
   if (!root || !presets) return sidePresets && !presetsFailed && !onRail() && !groupShut("presets") && sidePresets.open === JSON.stringify(prefs.presetsOpen) ? sidePresets.parts.map(([key, html]) => [key, html.replace(/^<div /, "<div inert ")]) : [sideHead("presets", null, false)];
   const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
   if (at !== revealed.at) revealed = { at, keys: new Set(holding) };
@@ -2375,11 +2460,17 @@ function rowsUnder(/** @type {HTMLElement} */ head) {
   }
   return under;
 }
-/** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
+/**
+ * Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others
+ * short).
+ */
 let closings = 0;
 
 /**
- * One edge moving down from the one above (or back up to it) on the layout's curve: each row opened (its gap, then itself) as the edge passes it, its words in place, fading in over its own height; what's below moves with the edge. One under way turns back from where its edge is. All measured first, then all moved (a long folder: one layout, not one a row).
+ * One edge moving down from the one above (or back up to it) on the layout's curve: each row opened (its gap, then
+ * itself) as the edge passes it, its words in place, fading in over its own height; what's below moves with the edge.
+ * One under way turns back from where its edge is. All measured first, then all moved (a long folder: one layout, not
+ * one a row).
  * @param {HTMLElement[]} elements @param {boolean} closing @param {(row: HTMLElement) => number | undefined} was
  */
 function foldRows(elements, closing, was = () => undefined) {
@@ -2398,7 +2489,8 @@ function foldRows(elements, closing, was = () => undefined) {
     y += gap + full;
     return { element, gap, full, top, at: at[i], now: Math.min(showing[i] ?? (closing ? gap + full : 0), gap + full) };
   });
-  // As far as it shows: past the list's visible end, rows open at the last frame (out of sight by then) and fold at the first; the edge's time all spent in sight, so a long group's isn't run through in a blink.
+  // As far as it shows: past the list's visible end, rows open at the last frame (out of sight by then) and fold at the
+    // first; the edge's time all spent in sight, so a long group's isn't run through in a blink.
   const list = elements[0]?.parentElement, room = list ? Math.max(0, list.getBoundingClientRect().bottom - first) : 0;
   const past = (/** @type {{ top: number, at: number }} */ row) => row.top >= room && row.at >= room, near = rows.filter((row) => !past(row));
   const reach = Math.min(y, Math.max(room, ...near.map((row) => row.top + row.gap + row.full))), steps = Math.max(2, Math.ceil(MOTION.layout / 16));
@@ -2469,7 +2561,8 @@ function setFolderIcon(/** @type {string} */ id, /** @type {string | undefined} 
 function nameFolder(/** @type {string} */ id, /** @type {string} */ name, first = false) {
   const folder = folderById(id), was = folder?.name;
   if (!folder || !name || name === was) return;
-  // A new folder's first name (`first`: the field New folder opened), while its making is the last step: its making's, undone and made again with it; once. Undone, only if it's still the name it was given.
+  // A new folder's first name (`first`: the field New folder opened), while its making is the last step: its making's,
+    // undone and made again with it; once. Undone, only if it's still the name it was given.
   const making = libraryEdits.past.at(-1);
   if (first && !redoing && making?.folder && folderNow(making.folder) === id) delete making.folder;
   else libraryStep(`Renamed “${was}”`, () => ((now) => folderById(now)?.name === name && (nameFolder(now, /** @type {string} */ (was)), () => folderById(folderNow(id))?.name === was && nameFolder(folderNow(id), name)))(folderNow(id)), "Name put back");
@@ -2544,7 +2637,8 @@ function placeAs(was, items) {
     const at = order.lastIndexOf(key), before = order.slice(0, Math.max(0, at)).map(itemOf);
     setChildren(placedAfter(childrenOf(into).filter((item) => item !== now), now, before));
   }
-  // Saved only if it moved anything (the sidebar's tree, not how its order's written): an undo that moved nothing did nothing, see undoLibrary.
+  // Saved only if it moved anything (the sidebar's tree, not how its order's written): an undo that moved nothing did
+    // nothing, see undoLibrary.
   const moved = tree() !== was0;
   if (moved) save();
   else library.order = order0;
@@ -2571,6 +2665,7 @@ function moveToFolder(/** @type {string[]} */ keys, /** @type {string | null} */
   const hadFocus = Boolean(document.activeElement?.closest("#chart-list, #menu, .submenu"));
   if (id) placeItems(moving.map(sideKey), id, null, { quiet });
   else {
+    // By the folder each was in before any moved: one moved up into another's isn't moved again.
     const was = arrangement(), from = new Map(moving.map((item) => [item, parentOf(item)]));
     for (const folder of new Set(from.values())) {
       const out = folderById(folder), siblings = out ? childrenOf(out.parent) : [], next = out ? siblings[siblings.indexOf(out) + 1] : undefined;
@@ -2719,7 +2814,9 @@ function groundOf(element) {
 /** @type {WeakMap<Element, object>} */
 const lifts = new WeakMap();
 /**
- * `moved` passes over the others, on its ground, so their words never cross; with `fade`, one that wasn't there fades in. `layout`: at a layout's pace (with a box resizing: the sidebar's width), each moving one passing over the others on its ground (its list's gaps too). Nothing moves under reduced motion.
+ * `moved` passes over the others, on its ground, so their words never cross; with `fade`, one that wasn't there fades
+ * in. `layout`: at a layout's pace (with a box resizing: the sidebar's width), each moving one passing over the others
+ * on its ground (its list's gaps too). Nothing moves under reduced motion.
  * @param {HTMLElement[]} elements
  * @param {(element: HTMLElement) => string | undefined} key
  * @param {Map<string | undefined, number>} was
@@ -2729,7 +2826,8 @@ function slide(elements, key, was, { moved = null, fade = false, pseudo, layout 
   if (reduced()) return;
   const timing = { duration: layout ? MOTION.layout : MOTION.panel, easing: layout ? MOTION.easeLayout : MOTION.ease, ...(pseudo ? { pseudoElement: pseudo } : {}) };
   const come = elements.filter((element) => was.get(key(element)) === undefined), going = elements.filter((element) => was.get(key(element)) !== undefined);
-  // A glide still under way goes first: where it's laid out now is measured, not where it's being carried. All cancelled, then all read, then all moved: a read between writes would lay a long list out again for each row.
+  // A glide still under way goes first: where it's laid out now is measured, not where it's being carried. All
+    // cancelled, then all read, then all moved: a read between writes would lay a long list out again for each row.
   for (const element of going) for (const animation of element.getAnimations()) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.getKeyframes().some((frame) => "transform" in frame)) animation.cancel();
   const tops = going.map((element) => element.getBoundingClientRect().top);
   const lifted = (/** @type {HTMLElement} */ element) => layout || (moved !== null && key(element) === moved);
@@ -2778,7 +2876,8 @@ function placesFor(ids) {
     return !ids.includes(key) && item !== undefined && !carried.some((id) => isIn(parentOf(item), id));
   });
 }
-// The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's), those picked together. Found by the filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
+// The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's), those picked together. Found by the
+// filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
 const reorderable = () => !$("home-filter").value.trim() && ("folder" in homeAt);
 const rowKeyOf = (/** @type {Element | null} */ row) => (row instanceof HTMLElement ? Object.entries(row.dataset).map(([key, value]) => `${key}:${value}`).join(" ") || row.className : "");
 function roveList() {
@@ -2788,7 +2887,10 @@ function roveList() {
   const stop = /** @type {HTMLElement | null | undefined} */ (row?.querySelector(".nav-item, .list-head-name"));
   if (stop) stop.tabIndex = 0;
 }
-/** The sidebar's list is one stop for Tab (not two a row: a long Library, a hundred): the row last on (by its key), else the open chart's, else the first. */
+/**
+ * The sidebar's list is one stop for Tab (not two a row: a long Library, a hundred): the row last on (by its key), else
+ * the open chart's, else the first.
+ */
 let listStop = "", keyMenuAt = 0;
 function startListKeys() {
   $("chart-list").addEventListener("focusin", (event) => {
@@ -2804,7 +2906,8 @@ function startListKeys() {
     const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item, .list-head-name"));
     const level = (/** @type {HTMLElement} */ each) => (each.classList.contains("list-head") ? -1 : depthOf(each));
     if (!row) return;
-    // The menu key and ⇧F10 open its menu as a right-click does, the focus back on the row as it closes; the browser's own right-click from the same key, after it, isn't a second one.
+    // The menu key and ⇧F10 open its menu as a right-click does, the focus back on the row as it closes; the browser's
+        // own right-click from the same key, after it, isn't a second one.
     if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
       const button = /** @type {HTMLElement | null} */ (row.querySelector(".nav-item, .list-head-name"));
       if (!button) return;

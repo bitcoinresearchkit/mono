@@ -86,10 +86,14 @@ function prune(cache, most, held = /** @type {((key: string) => boolean) | undef
   const holds = held ?? holder(), loose = [...cache.keys()].filter((key) => !holds(key));
   for (const key of loose.slice(0, Math.max(0, loose.length - most))) cache.delete(key);
 }
-/** The block a series' latest points were last asked at: asked, not answered, so a server that's down isn't asked again on each edit. */
+/**
+ * The block a series' latest points were last asked at: asked, not answered, so a server that's down isn't asked again
+ * on each edit.
+ */
 const askedAt = new Map();
 /**
- * The first poll that answers asks again, as a first load's failure is; not each edit, which a server that's down would meet again and again.
+ * The first poll that answers asks again, as a first load's failure is; not each edit, which a server that's down would
+ * meet again and again.
  * @type {Set<string>}
  */
 const behind = new Set();
@@ -112,10 +116,14 @@ function stale(doc) {
 const KEPT_LOADS = 100;
 /** @type {Map<string, Promise<{ start: number, data: readonly any[], times: number[], version: number }>>} */
 const loads = new Map();
-/** The points at a series' end a new block can still change, by interval (the server's margins: `cache_class` in crates/bitview_primitives/src/index.rs); one at the others. */
+/**
+ * The points at a series' end a new block can still change, by interval (the server's margins: `cache_class` in
+ * crates/bitview_primitives/src/index.rs); one at the others.
+ */
 const MUTABLE = { minute10: 8, minute30: 3, hour1: 2, hour4: 2, hour12: 2, day1: 2, day3: 2, week1: 2 };
 /**
- * Null without one to join to, or once the server has computed the series anew (its version moved on): then it comes whole.
+ * Null without one to join to, or once the server has computed the series anew (its version moved on): then it comes
+ * whole.
  * @param {any} endpoint
  * @param {string} index
  * @param {{ start: number, data: readonly any[], version: number } | null} held
@@ -143,7 +151,9 @@ function load(name, index, fresh = false, span = /** @type {Span | null} */ (nul
 /** @type {WeakMap<Promise<unknown>, { stop: AbortController, wanting: Set<AbortSignal> }>} */
 const underWay = new WeakMap();
 /**
- * A first load that fails stays (`failed` notes it), so each edit doesn't ask again. A first one asked with a `signal` is given up, its fetch aborted and out of the cache, once every asker's signal has; never once one without a signal has asked for it.
+ * A first load that fails stays (`failed` notes it), so each edit doesn't ask again. A first one asked with a `signal`
+ * is given up, its fetch aborted and out of the cache, once every asker's signal has; never once one without a signal
+ * has asked for it.
  * @template T
  * @param {Map<string, Promise<T>>} cache
  * @param {(cached: Promise<T> | undefined, stop?: AbortSignal) => Promise<T>} make
@@ -180,7 +190,8 @@ function want(going, signal) {
   going.wanting.add(signal);
   signal.addEventListener("abort", () => going.wanting.delete(signal) && !going.wanting.size && going.stop.abort(), { once: true });
 }
-// Fine intervals, by chunk: each chart holds a span (`spans`), the latest two at first; the view reaching either end loads the next out. Older chunks are final, the latest two fetched again as blocks come.
+// Fine intervals, by chunk: each chart holds a span (`spans`), the latest two at first; the view reaching either end
+// loads the next out. Older chunks are final, the latest two fetched again as blocks come.
 
 /** @typedef {{ from: number, to: number, live: boolean, rest?: number, floor?: { at: number, of: string } }} Span the chunks a chart holds, `live` while they reach the latest; `rest`: no reaching out before then (nothing came from there); `floor`: the oldest with points for the series it was found with (those before it came empty: they start later) */
 const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
@@ -245,7 +256,8 @@ function loadSpan(name, index, { from, to, live }, fresh, signal = /** @type {Ab
     let first = end;
     while (first > 0 && settled[first - 1].status === "fulfilled") first--;
     const loaded = settled.slice(first, end + 1).map((part) => /** @type {PromiseFulfilledResult<{ start: number, data: any[], version: number }>} */ (part).value).filter((part) => part.data.length);
-    // Chunks of two computations of the series: all of it again, once; still two (a cache can go on serving the older for a while), an error to retry, never one series of both.
+    // Chunks of two computations of the series: all of it again, once; still two (a cache can go on serving the older
+        // for a while), an error to retry, never one series of both.
     if (new Set(loaded.map((part) => part.version)).size > 1) {
       if (again) throw Object.assign(new Error("Being recomputed"), { recomputing: true });
       forget(name, index);
@@ -365,7 +377,8 @@ async function resolve(doc, fresh = false, signal = /** @type {AbortSignal | und
   if (fresh) for (const name of seriesIn(drawing)) retryInfo(name);
   /** @param {string} name @returns {Promise<any>} */
   const fetchSeries = async (name) => {
-    // Not in the client's catalog: not on Bitview, said here (a name half typed in a formula is never asked for). Until the catalog is indexed, Bitview is asked.
+    // Not in the client's catalog: not on Bitview, said here (a name half typed in a formula is never asked for). Until
+        // the catalog is indexed, Bitview is asked.
     if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
     const lacking = intervalsOf(name)?.includes(doc.index) === false;
     const [about, series] = await Promise.allSettled([info(name, signal), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc), signal)]);
@@ -377,11 +390,13 @@ async function resolve(doc, fresh = false, signal = /** @type {AbortSignal | und
     return { meta, data: series.value };
   };
   const fetched = new Map(await Promise.all(seriesIn(drawing).map(async (name) => /** @type {[string, any]} */ ([name, await fetchSeries(name)]))));
-  // Kept from the last resolve of this chart that read the same data: its series keep their identity, and with them what's computed from them, so an edit to one layer redoes that layer only.
+  // Kept from the last resolve of this chart that read the same data: its series keep their identity, and with them
+    // what's computed from them, so an edit to one layer redoes that layer only.
   const datas = [...fetched.values()].flatMap(({ data }) => (data ? [data] : []));
   const frameKey = `${doc.id}@${doc.index}`;
   let frame = frames.has(frameKey) ? lastUsed(frames, frameKey, frames.get(frameKey)) : undefined;
-  // A series added whose every point is on the timeline already keeps the timeline, and with it the others' series: only the new one is set.
+  // A series added whose every point is on the timeline already keeps the timeline, and with it the others' series:
+    // only the new one is set.
   if (frame && frame.datas.every((data) => datas.includes(data))) {
     const { lo, position } = frame;
     const fits = (data) => data.start >= lo && data.start + data.times.length <= lo + position.length && position.subarray(data.start - lo, data.start - lo + data.times.length).every((at) => at >= 0);
@@ -529,7 +544,8 @@ async function resolve(doc, fresh = false, signal = /** @type {AbortSignal | und
         const target = byLetter.get(name);
         return !target || target.type === "cloud" ? null : computed(target)?.unit ?? null;
       }) ?? "number";
-      // No value anywhere with all of history loaded: said rather than a blank layer; its none-at-each-date is kept apart (`blank`) for a formula reading it alone (an "or" of it decides by its other side).
+      // No value anywhere with all of history loaded: said rather than a blank layer; its none-at-each-date is kept
+            // apart (`blank`) for a formula reading it alone (an "or" of it decides by its other side).
       const blanks = [...refsOf(node)].filter((letter) => ((target) => target && target !== layer && target.type !== "cloud" && computed(target)?.blank)(byLetter.get(letter)));
       if (!FINE.has(doc.index) && !values.some(Number.isFinite)) return { blank: new Float64Array(values.length).fill(NaN), unit, ...(blanks.length ? { error: `${blanks[0]} has no data`, detail: `${blanks.join(", ")} ${blanks.length > 1 ? "have" : "has"} no value at any date` } : unstarted.has(values) ? { error: "Not from its start", detail: "What it reads begins later in this period, so it can't be read from 1× at the period's start" } : { error: "No values", detail: "It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere" }) };
       const breaks = ((marks) => marks && breaksAt(values, marks))(restarts.get(values));
@@ -678,10 +694,13 @@ function setReserve(/** @type {number} */ width = engine.time.width) {
 }
 const MIN_BAR_SPACING = 0.25;
 function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars, /** @type {{ from: number, to: number } | null} */ held = displayed?.doc.id === doc.id && displayed.doc.index === doc.index ? shownSpan() : null) {
-  // By the chart's own width, its price scales at their widest: not the plot's, which varies with a scale's labels and would set it again as the view moves; a spacing set again is applied a frame later and undoes a zoom made since.
+  // By the chart's own width, its price scales at their widest: not the plot's, which varies with a scale's labels and
+    // would set it again as the view moves; a spacing set again is applied a frame later and undoes a zoom made since.
   const sides = (engine.axis ? 1 : 0) + (engine.panes.some((pane) => pane.left) ? 1 : 0);
   const width = engine.time.width ? chartWidth() - sides * axisWidth() : 0;
   const fitted = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
+  // Never closer than the view's own bars: one kept at a narrower width (a layout's motion) isn't squeezed. `held`: a
+    // view about to be shown, its own.
   const range = held, spacing = Math.min(fitted, range ? engine.time.width / (range.to - range.from) : Infinity);
   if (spacing !== engine.time.minSpacing) (engine.time.minSpacing = spacing), engine.invalidate(true);
 }
@@ -704,7 +723,11 @@ function axisWidth() {
 function chartTheme() {
   return { background: chartGround(), text: css("--chart-text"), grid: css("--chart-grid"), crosshair: css("--crosshair"), across: css("--crosshair-faint"), badge: css("--crosshair-label"), separator: css("--line"), active: css("--accent"), font: `${CHART_TEXT}px ${chartSans}` };
 }
-/** The ground under the chart: its box's and its ancestors' backgrounds up to the first that isn't see-through, laid over each other. Worked out, not drawn and read back: a browser resisting fingerprinting (Mullvad) gives a read pixel noise. */
+/**
+ * The ground under the chart: its box's and its ancestors' backgrounds up to the first that isn't see-through, laid
+ * over each other. Worked out, not drawn and read back: a browser resisting fingerprinting (Mullvad) gives a read pixel
+ * noise.
+ */
 function chartGround() {
   /** @type {string[]} */
   const layers = [];
@@ -800,7 +823,9 @@ function stretchAcross(/** @type {number} */ run, /** @type {number} */ shown, /
 }
 const stretchNow = () => drawnStretch && stretchDrawn($("chart").getBoundingClientRect().width);
 /**
- * By `translate`, apart from a stretch's `transform` (see stretchDrawn). It moves with what's under it (the card's foot) rather than hiding under it or waiting at its end, set as the box is laid out (see resized): after layout, not a frame behind.
+ * By `translate`, apart from a stretch's `transform` (see stretchDrawn). It moves with what's under it (the card's
+ * foot) rather than hiding under it or waiting at its end, set as the box is laid out (see resized): after layout, not
+ * a frame behind.
  * @param {number} height
  */
 function placeFoot(height) {
@@ -808,7 +833,8 @@ function placeFoot(height) {
   for (const item of [engine.timeAxis.canvas, engine.corner]) Object.assign(item.style, { translate: moved ? `0 ${by}px` : "", background: moved ? engine.theme.background : "" });
 }
 /**
- * Scaled on the box's layout this frame: the browser's own animations of a transform can run a frame or two off the box's.
+ * Scaled on the box's layout this frame: the browser's own animations of a transform can run a frame or two off the
+ * box's.
  * @param {number | null} shown
  */
 function stretchDrawn(shown) {
@@ -962,7 +988,11 @@ function paneFactors(/** @type {Chart} */ doc, picture = exporting) {
   const hidden = hiddenPanes(doc, picture);
   return doc.panes.map((pane, i) => (hidden.has(pane.id) ? 0 : pane.size ?? defaultSize(i)));
 }
-/** The panes' sizes as last laid on them, laid on again only as what's meant changes or is asked again: sizes the panes took otherwise (a separator dragged) stay. Put back each layout, a drag jumped back a frame at a time and was lost if let go just then. */
+/**
+ * The panes' sizes as last laid on them, laid on again only as what's meant changes or is asked again: sizes the panes
+ * took otherwise (a separator dragged) stay. Put back each layout, a drag jumped back a frame at a time and was lost if
+ * let go just then.
+ */
 let panesLaid = { doc: /** @type {Chart | null} */ (null), meant: "", panes: /** @type {any[]} */ ([]), factors: /** @type {number[]} */ ([]) };
 function sizePanes(doc = lookDoc ?? chart, again = false, picture = exporting) {
   const panes = engine.panes;
@@ -1072,7 +1102,9 @@ function asOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean
   return point.rest && at >= 0 && times && (at < point.at - 1 || at < firstInView()) ? pointLabel(times[at]) : "";
 }
 /**
- * Only an amount over each calendar period (a flow() of a running total) whose last period is still running: drawn partial, read "so far". Not a level, a trailing window's sum (the server's day, week or month is a whole window ending at its last block), or a running total.
+ * Only an amount over each calendar period (a flow() of a running total) whose last period is still running: drawn
+ * partial, read "so far". Not a level, a trailing window's sum (the server's day, week or month is a whole window
+ * ending at its last block), or a running total.
  * @param {Layer} layer
  */
 function periodAmount(layer) {
@@ -1095,7 +1127,10 @@ function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: bool
 const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend:not([hidden])")]);
 /** @type {WeakMap<HTMLElement, string>} */
 const legendShown = new WeakMap();
-/** What an element was last given to hold, by its HTML as written (the page reads it back as another string: an SVG's `<path/>` reads `<path></path>`), so the same again writes nothing. */
+/**
+ * What an element was last given to hold, by its HTML as written (the page reads it back as another string: an SVG's
+ * `<path/>` reads `<path></path>`), so the same again writes nothing.
+ */
 const htmlWritten = new WeakMap();
 const writeHtml = (/** @type {Element} */ element, /** @type {string} */ html) => void (htmlWritten.get(element) !== html && (htmlWritten.set(element, html), (element.innerHTML = html)));
 
@@ -1274,7 +1309,8 @@ function fitStrip(element, down = false) {
   edges(element, at, size, full, down ? undefined : cutsOf(element));
 }
 /**
- * A faded edge says there's more where something's cut, not where the edge falls between two (a shelf stepped to its next tiles, each whole: a fade there read as the last one cut off). Read before what's written.
+ * A faded edge says there's more where something's cut, not where the edge falls between two (a shelf stepped to its
+ * next tiles, each whole: a fade there read as the last one cut off). Read before what's written.
  * @param {HTMLElement} element
  */
 function cutsOf(element) {
@@ -1294,7 +1330,9 @@ function edges(element, /** @type {number} */ at, /** @type {number} */ size, /*
   element.style.setProperty("--edge-end", `${overflows && cut.end ? clamp(full - size - at, 0, 28) : 0}px`);
 }
 /**
- * Come from none, it shows where it lands (no slide from where it last was). None lit, it fades where it is, then takes no room: an empty box still counts in what the list scrolls. A row written anew is found by `again`, so the highlight is there at once, shown as it was.
+ * Come from none, it shows where it lands (no slide from where it last was). None lit, it fades where it is, then takes
+ * no room: an empty box still counts in what the list scrolls. A row written anew is found by `again`, so the highlight
+ * is there at once, shown as it was.
  * @param {HTMLElement} list
  * @param {{ again?: (gone: HTMLElement) => HTMLElement | null, can?: (row: HTMLElement) => boolean }} [how]
  */
@@ -1331,7 +1369,8 @@ function glides(list, { again = () => null, can = () => true } = {}) {
       if (unseen) collapse();
       return;
     }
-    // Reached by keys, it's there at once, as a step is: gliding, it'd cross the rows between (a pointer's moves glide, as the pointer does).
+    // Reached by keys, it's there at once, as a step is: gliding, it'd cross the rows between (a pointer's moves glide,
+        // as the pointer does).
     place(row, !shown || dropped || keyed);
     list.dataset.glide = keyed ? "keyed" : "on";
     (lit = row), (keyedNow = keyed), (shown = true), (dropped = false);
@@ -1421,7 +1460,8 @@ function lightLegend(id, again = false, follow = false) {
   const items = again ? findLitItems() : [...of(litLayer), ...of(id)];
   litLayer = id;
   for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
-  // Lit from the chart (`follow`), its row is kept in sight in the panel: it glides there, each glide taken over by the next as a sweep crosses many; not while the view moves (bands sweep under a still pointer).
+  // Lit from the chart (`follow`), its row is kept in sight in the panel: it glides there, each glide taken over by the
+    // next as a sweep crosses many; not while the view moves (bands sweep under a still pointer).
   const row = id && follow && !viewMoving && panelShown() ? of(id).find((item) => item.matches(".layer-row")) : undefined, list = row && $("layer-list");
   if (!row || !list) return;
   const box = list.getBoundingClientRect(), at = row.getBoundingClientRect(), bar = /** @type {HTMLElement | null} */ (document.querySelector(".mobile-bar"));
@@ -1465,7 +1505,8 @@ function updateReadout() {
   }
 }
 /**
- * Its one text node's, where it has one: its children are kept, so nothing that reads them (:empty, :has) matches again.
+ * Its one text node's, where it has one: its children are kept, so nothing that reads them (:empty, :has) matches
+ * again.
  * @param {Element} element @param {string} text
  */
 function writeText(element, text) {
@@ -1474,7 +1515,9 @@ function writeText(element, text) {
   return element.textContent !== text && ((element.textContent = text), true);
 }
 /**
- * A touch: of an OHLC series a bar's wick (its low on a support, its high on a resistance), else its value at or past the line: from that date on, the other side. `breaks`: each touch, the old side's last point, so nothing is drawn up or down between.
+ * A touch: of an OHLC series a bar's wick (its low on a support, its high on a resistance), else its value at or past
+ * the line: from that date on, the other side. `breaks`: each touch, the old side's last point, so nothing is drawn up
+ * or down between.
  * @param {Vector} low @param {Vector} high @param {Result} ref
  */
 function trendOf(low, high, ref) {
@@ -1722,7 +1765,11 @@ class Shading {
     engine.invalidate();
   }
 }
-/** Run by run: a gap in its data is a gap in it, a point alone a sliver. Where its two cross it's pinched to the crossing point, a color of its own from there. By its layers (`banded`) it is several clouds of two, each always between its own two, so a color is never on what its layer doesn't bound. */
+/**
+ * Run by run: a gap in its data is a gap in it, a point alone a sliver. Where its two cross it's pinched to the
+ * crossing point, a color of its own from there. By its layers (`banded`) it is several clouds of two, each always
+ * between its own two, so a color is never on what its layer doesn't bound.
+ */
 class Cloud {
   /** @param {number} pane @param {"left" | "right"} side @param {boolean} own */
   constructor(pane, side, own) {
@@ -1891,7 +1938,8 @@ class Cloud {
         }
         const now = ya < yb || (ya === yb && over === a) ? a : b, here = time.snap(time.x(i), h) * h, paint = look.bands[now < 0 ? (now === a ? b : a) : now] ?? look.color;
         if (k && xs[k - 1] === here) {
-          // Bars narrower than a pixel: one column, as high and as low as any of them. Kept in the run, the run took the new color whole from wherever it began: a stretch's color changing as the zoom put its bars in columns.
+          // Bars narrower than a pixel: one column, as high and as low as any of them. Kept in the run, the run took
+                    // the new color whole from wherever it began: a stretch's color changing as the zoom put its bars in columns.
           highs[k - 1] = Math.min(highs[k - 1], ya, yb);
           lows[k - 1] = Math.max(lows[k - 1], ya, yb);
           if (now !== over) split = true;
@@ -1914,7 +1962,11 @@ class Cloud {
     }
   }
 }
-/** Zoomed out, a heatmap draws a day in so many (a column `HEAT_COLUMN` pixels wide at least), each column its block's last day, the days between never asked for; a day not come yet shows the coarser one over it meanwhile: the map comes coarse, then sharpens (see viewHeat, heatShown). */
+/**
+ * Zoomed out, a heatmap draws a day in so many (a column `HEAT_COLUMN` pixels wide at least), each column its block's
+ * last day, the days between never asked for; a day not come yet shows the coarser one over it meanwhile: the map comes
+ * coarse, then sharpens (see viewHeat, heatShown).
+ */
 class Heat {
   /** @param {number} pane @param {"left" | "right"} side @param {string} id @param {boolean} profile */
   constructor(pane, side, id, profile) {
@@ -2147,7 +2199,11 @@ function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @t
 }
 /** @param {Layer} layer */
 const binnedAt = (layer) => [0.01234, 888_888].map((value) => (layer.type === "profile" ? heatmaps.priceSpan(value, value) : format(value, "usd")));
-/** The room the legend and the panel keep for a value, so values change on hover without moving anything: its lowest, highest, latest and a sample across its history written out, the longest measured at the size in semibold tabular figures, in whole pixels. */
+/**
+ * The room the legend and the panel keep for a value, so values change on hover without moving anything: its lowest,
+ * highest, latest and a sample across its history written out, the longest measured at the size in semibold tabular
+ * figures, in whole pixels.
+ */
 function valueSlot(layer, size, lines = false) {
   if (heatLike(layer)) {
     const key = `${layer.type}:${measureOf(layer)}:${Boolean(layer.cumulative)}:${size}:${lines}`, measured = binnedSlots;
@@ -2176,7 +2232,9 @@ function valueSlot(layer, size, lines = false) {
   measured.set(key, width);
   return width;
 }
-/** Relative when the series stays positive across the view, else a difference, the same way for every point of a view. */
+/**
+ * Relative when the series stays positive across the view, else a difference, the same way for every point of a view.
+ */
 function changeOver(layer, point) {
   if (layer.type === "signal") return null;
   const span = changeWindow(layer);
@@ -2219,7 +2277,10 @@ function rescan(/** @type {ArrayLike<number>} */ values, /** @type {number} */ a
   if (finite && value && at < scan.nonZero) scan.nonZero = at;
   for (let i = at; i < values.length; i++) scan.below[i + 1] = scan.below[i] + (Number.isFinite(values[i]) && values[i] < 0 ? 1 : 0);
 }
-/** From the view's first value; relatively from its first non-zero one when the series stays positive across the view (the price before 2010 starts at zero). */
+/**
+ * From the view's first value; relatively from its first non-zero one when the series stays positive across the view
+ * (the price before 2010 starts at zero).
+ */
 function changeWindow(layer) {
   const range = shownSpan();
   if (!resolved || !range || !resolved.times.length) return null;
@@ -2247,11 +2308,21 @@ function changeWindow(layer) {
 const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", "8y": "past 8 years", max: "whole history" };
 const periodOf = (/** @type {string} */ id) => (id === "max" && FINE.has(chart.index) ? "most that fits" : PERIODS[id]);
 
-/** A finger's crosshair (held, then dragged): lifted, it stays till the next touch on the plot (a tap: gone, taking no line or drawing; a drag pans). Not while drawing: a tool's points are the finger's. */
+/**
+ * A finger's crosshair (held, then dragged): lifted, it stays till the next touch on the plot (a tap: gone, taking no
+ * line or drawing; a drag pans). Not while drawing: a tool's points are the finger's.
+ */
 const fingerCross = { at: /** @type {{ price: number, time: number, series: any } | null} */ (null), kept: /** @type {number | null} */ (null), dismissing: false };
-/** The crosshair set here (a finger's kept, the keys'): when the view, the data or the size changes under it, the chart draws it again at its place, not its date and price, reading whatever is there. It's put back on its date and price (see holdCross). */
+/**
+ * The crosshair set here (a finger's kept, the keys'): when the view, the data or the size changes under it, the chart
+ * draws it again at its place, not its date and price, reading whatever is there. It's put back on its date and price
+ * (see holdCross).
+ */
 let crossSet = /** @type {{ price: number, time: number, layer: string } | null} */ (null);
-/** While the chart's built, what it says of the crosshair set here is left mid-way (its date may be out of view a moment, its layer not drawn yet): put back once that's done (see build). */
+/**
+ * While the chart's built, what it says of the crosshair set here is left mid-way (its date may be out of view a
+ * moment, its layer not drawn yet): put back once that's done (see build).
+ */
 let crossHeld = false;
 /** @typedef {{ point?: { x: number, y: number }, time?: number, logical?: number, pane?: number, input: boolean, layer: string | null }} ChartPoint */
 /** @param {number} index @param {number} pane @param {number} x @param {number} y @param {boolean} input @param {number} hit @returns {ChartPoint} */
@@ -2267,7 +2338,10 @@ const NO_CROSS = { input: false, layer: null };
 let crossLater = 0;
 /** @param {typeof crossSet} pin */
 const pinCross = (pin) => ((crossSet = pin), cancelAnimationFrame(crossLater), (crossLater = 0));
-/** Its date out of view may be a moment's (a box resized, then its view kept; a range set): it's judged a frame on (`settled`), none shown meanwhile. Where it can't be put back (its layer gone or hidden, nothing drawn), let go. */
+/**
+ * Its date out of view may be a moment's (a box resized, then its view kept; a range set): it's judged a frame on
+ * (`settled`), none shown meanwhile. Where it can't be put back (its layer gone or hidden, nothing drawn), let go.
+ */
 function holdCross(settled = false) {
   const { price, time, layer } = /** @type {NonNullable<typeof crossSet>} */ (crossSet), series = drawn.get(layer), item = layerById(layer), i = indexOfTime(time);
   if (!series || !item || !layerShows(chart, item) || seriesY(series, price) === null) return dropCross();
@@ -2369,19 +2443,22 @@ const amountOn = (/** @type {Layer} */ layer, /** @type {number} */ value) => fo
 /** @param {Layer} layer */
 const paneRect = (layer) => paneBox(chart.panes.findIndex((pane) => pane.id === layer.pane)) ?? undefined;
 /**
- * The legend's height, not a share of the pane (on a log scale a span of decades would grow with it); a little under the lines, none under a stack: it sits on its floor.
+ * The legend's height, not a share of the pane (on a log scale a span of decades would grow with it); a little under
+ * the lines, none under a stack: it sits on its floor.
  * @param {Chart} doc @param {Pane} pane @param {number} i
  */
 function marginsOf(doc, pane, i) {
   const height = engine.panes[i]?.height || chartHeight / Math.max(1, doc.panes.length) || 400;
   const legend = /** @type {HTMLElement | null} */ ($("chart").querySelector(`.legend[data-pane="${pane.id}"]`));
-  // A pane new to this build has no legend yet, placed a frame later: the room one took, every legend being one row, so its lines don't start under it and move down.
+  // A pane new to this build has no legend yet, placed a frame later: the room one took, every legend being one row, so
+    // its lines don't start under it and move down.
   if (legend) legendRoom = legend.offsetTop + legend.offsetHeight + 10;
   const room = doc.legend === "off" ? 14 : legendRoom;
   return { top: clamp(room / height, 0.03, exporting ? 0.6 : 0.35), bottom: drawnInto(doc, pane) ? 0 : clamp(14 / height, 0.02, 0.08) };
 }
 let legendRoom = 40;
-// Pane separators resize panes (the library's own drag); their sizes stay with the chart, kept as a press ends (a moment later: the library's last move in). Only the open chart's, drawn, no look on it.
+// Pane separators resize panes (the library's own drag); their sizes stay with the chart, kept as a press ends (a
+// moment later: the library's last move in). Only the open chart's, drawn, no look on it.
 const keepPaneSizes = () => setTimeout(() => {
   const panes = engine.panes, laid = panesLaid.factors;
   if (lookDoc || !settled() || panesLaid.doc !== chart || panes.length !== chart.panes.length || panes.length !== laid.length || panes.some((pane, i) => pane !== panesLaid.panes[i])) return;
@@ -2511,6 +2588,10 @@ function prefetch() {
   }
 }
 const chunked = (name, index) => !(catalogIndex && !catalogIndex.has(name)) && intervalsOf(name)?.includes(index) !== false;
+/**
+ * At a fine interval, the view near either end of what's loaded, at rest: drawn mid-gesture, the view would leap. The
+ * next chunk out; only where the view is taken (not while a preset shows or a glide runs).
+ */
 function reachOut() {
   const span = chart && FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
   const range = shownSpan();
