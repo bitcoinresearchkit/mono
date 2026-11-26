@@ -546,9 +546,9 @@
 
         img {
           position: absolute;
-          inset: 0;
+          inset: var(--art-drop, 0px) 0 0;
           width: 100%;
-          height: 100%;
+          height: calc(100% - var(--art-drop, 0px));
           object-fit: cover;
           /* (Its height in view, a third of the way down, where a picture doesn't say its own.) */
           object-position: 70% var(--art-y, 35%);
@@ -560,15 +560,18 @@
             opacity: 1;
           }
 
-          /* (Studio's chart fills its picture's top half, over its dark ground: the top in view; in a phone's band, its
-             top 57% as tall as the band.) */
-          &[src$="/studio.jpg"] {
-            --art-y: 10%;
-            --art-top: 0.57;
+          /* (Its price runs above its waves: its top in view, the picture dropped below the nav (32px at one row, 90 at two), so the line and the crests both show.) */
+          &[src$="/studio.webp"] {
+            --art-drop: 32px;
+            --art-y: 0%;
+
+            @media (max-width: 899px) {
+              --art-drop: 90px;
+            }
           }
 
           /* (Oracle's chart sits across its picture's middle: lowered, it sinks into the words' fade; kept at the top.) */
-          &[src$="/oracle.jpg"] {
+          &[src$="/oracle.webp"] {
             --art-drop: 0px;
           }
         }
@@ -597,7 +600,7 @@
           /* (A picture whose subject is its top: that top the band's height, the rest under it cut.) */
           img {
             bottom: auto;
-            height: calc(100% / var(--art-top, 1));
+            height: calc(100% / var(--art-top, 1) - var(--art-drop, 0px));
 
             /* (Installed on iOS, the page runs up under the status bar: the picture starts under it, where it did, and
                its own top, mirrored, fills the strip above, its colours carried up to the screen's edge.) */
@@ -2357,7 +2360,7 @@
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
       <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
            others. scripts/home.mjs checks it's FEATURED's first, as its own page names it.) -->
-      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
+      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.webp" srcset="/assets/home/banners/studio.webp 1900w, /assets/home/banners/studio@2x.webp 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
       <div class="feature">
         <div class="words" id="words" aria-live="off">
           <div>
@@ -2418,7 +2421,7 @@
       // @ts-check
       import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const banner = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/banners/${id}.jpg`), poster = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/covers/${id}.jpg`);
+      const banner = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/banners/${id}.webp`), poster = (/** @type {string} */ id) => import.meta.resolve(`/assets/home/covers/${id}.webp`);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
       const mouse = matchMedia("(pointer: fine)");
       /** An element: its tag, its properties, its children. @template {keyof HTMLElementTagNameMap} K */
@@ -2570,7 +2573,7 @@
       const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "" })) : first));
       const fetchPicture = (/** @type {number} */ i) => {
         const p = pictures[i], src = banner(FEATURED[i].id);
-        if (!p.src) Object.assign(p, { sizes: first.sizes, srcset: `${src} 1900w, ${src.replace(".jpg", "@2x.jpg")} 2880w`, src });
+        if (!p.src) Object.assign(p, { sizes: first.sizes, srcset: `${src} 1900w, ${src.replace(".webp", "@2x.webp")} 2880w`, src });
       };
       const pages = FEATURED.map((t, i) => {
         const button = el("button", { type: "button", ariaLabel: t.name }, el("span"));
@@ -2697,7 +2700,7 @@
         if (t.face) name.dataset.face = t.face;
         // (Drawn as wide as its tile from a desk's 1,100 px, 1.2 times it below, where tiles are 4:3: the 720 one for
         // phones up to a 1440 desk at 2×.)
-        const picture = el("img", { alt: "", loading: "lazy", srcset: `${poster(t.id).replace(".jpg", "@720.jpg")} 720w, ${poster(t.id)} 960w`, sizes: "(min-width: 1100px) calc(25vw - 40px), (min-width: 720px) calc(30vw - 36px), calc(60vw - 26px)", src: poster(t.id) });
+        const picture = el("img", { alt: "", loading: "lazy", srcset: `${poster(t.id).replace(".webp", "@720.webp")} 720w, ${poster(t.id)} 960w`, sizes: "(min-width: 1100px) calc(25vw - 40px), (min-width: 720px) calc(30vw - 36px), calc(60vw - 26px)", src: poster(t.id) });
         const a = el("a", { className: "tile named", href: t.href }, picture, name);
         a.dataset.open = t.id;
         return el("li", {}, a, info(t));

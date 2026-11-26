@@ -90,6 +90,7 @@ fn content_type(path: &Path) -> &'static str {
         "woff2" => "font/woff2",
         "png" => "image/png",
         "jpg" | "jpeg" => "image/jpeg",
+        "webp" => "image/webp",
         "svg" => "image/svg+xml",
         "ico" => "image/x-icon",
         "webmanifest" => "application/manifest+json",
