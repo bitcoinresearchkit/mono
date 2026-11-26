@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Calendar" data-color="#b3261e"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
@@ -10,7 +9,6 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
     <title>Calendar · Bitview</title>
     <meta name="description" content="Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/calendar/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/calendar/" />
@@ -23,7 +21,6 @@
     <meta property="og:image:alt" content="Calendar's year: each day its leading mining pool's logo, the year's leading pools and its notes beside it" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
-    <!-- (The serif the year's caption is set in, asked for at once, so the caption doesn't re-wrap when it arrives.) -->
     <link rel="preload" href="/assets/fonts/InstrumentSerif-Italic.woff2" as="font" type="font/woff2" crossorigin />
     <style>
       /* craft rules */
@@ -110,11 +107,8 @@
         font-display: swap;
       }
 
-      /* An almanac: a printed year on warm paper, or its ink by night, its months set in an italic serif; each day its
-         leading pool's own mark; a red letter for today, for the notes and for what's picked. */
       :root {
         color-scheme: light dark;
-        /* (A phone's and a touch screen's room between days: their months' width and each day's reach read it.) */
         --day-gap: 8px;
         --app: light-dark(#f3ede2, #14120f);
         --plate: light-dark(#fbf8f2, #1c1915);
@@ -133,9 +127,7 @@
         --gutter: max(20px, env(safe-area-inset-left));
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      /* Increase Contrast: greys toward the ink, mixed in OKLab and written out so the canvases read plain colours. */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#2c261f, #e4dbce);
@@ -165,7 +157,6 @@
         font-feature-settings: "cv11", "ss01";
         -webkit-font-smoothing: antialiased;
 
-        /* (The paper's grain, over everything, touching nothing.) */
         &::after {
           content: "";
           position: fixed;
@@ -198,7 +189,6 @@
         outline-offset: 2px;
       }
 
-      /* (Read aloud only.) */
       .sr {
         position: absolute;
         width: 1px;
@@ -213,9 +203,6 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* An almanac's headings: the italic serif. */
-      /* Headings in three steps: a section's title in the full ink; the months in it too, a size smaller; the year's
-         caption, faint. */
       .kicker {
         margin: 0;
         color: var(--ink);
@@ -235,8 +222,6 @@
         }
       }
 
-      /* (Until the script has framed where we are, a year or a day from a link, what's laid out by it unseen: its first
-         frame comes after the page's, which knows neither. It first shows in place, after 4s whatever happens.) */
       .page:has(#current:empty) :is(.stepper, .sheet) {
         visibility: hidden;
         animation: shown 0s 4s forwards;
@@ -248,7 +233,6 @@
         }
       }
 
-      /* ── Header: the brand, the page, the year (or day) and a step either way; the totals ── */
       .top {
         display: flex;
         flex-wrap: wrap;
@@ -257,7 +241,6 @@
         min-height: 64px;
         font-size: 13px;
 
-        /* (Wrapped on a phone, its totals under it: room above, and under the status bar.) */
         @media (max-width: 640px) {
           padding: max(14px, env(safe-area-inset-top)) 0 4px;
         }
@@ -277,7 +260,6 @@
 
       }
 
-      /* (A day's year, the way back to it: a crumb before the day's stepper.) */
       .up {
         position: relative;
         margin-left: 10px;
@@ -299,7 +281,6 @@
           color: var(--ink);
         }
 
-        /* (A finger's reach, unseen.) */
         &::before {
           content: "";
           position: absolute;
@@ -340,7 +321,6 @@
           }
         }
 
-        /* (Where we are, between its steps: a year, or a day.) */
         .current {
           display: grid;
           place-items: center;
@@ -376,7 +356,6 @@
           font-weight: 500;
         }
 
-        /* (A line of its own on a phone, held while it's empty, so the totals come in without moving the page.) */
         @media (max-width: 640px) {
           width: 100%;
           min-height: 1lh;
@@ -384,7 +363,6 @@
         }
       }
 
-      /* ── The sheet: the year (or the day) and beside it its pools and its notes (under it, on a phone) ── */
       .sheet {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -413,9 +391,7 @@
           margin-bottom: 10px;
         }
 
-        /* (A year on a desk: as wide as a whole year in a screen allows, its label over it.) */
         @media (min-width: 1024px) {
-          /* (Held while it's still empty, before its months are drawn, so they come without moving it.) */
           > .year:is(:has(> #view > .months), :has(> #view:empty)) {
             width: 100%;
             max-width: calc((100svh - 150px) * 1.15);
@@ -424,12 +400,8 @@
         }
       }
 
-      /* The months: one or two a row on a phone, each day a finger's size with its date, four abreast on a desk, each day its leader's mark, a whole year in a screen. */
       .months {
         display: grid;
-        /* (A phone, and any touch screen: as many months a row as fit with tiles a finger's size, 36px at least (a
-           narrower screen's one month, as at 320px, less), their reach 44 with the gap. A pointer's screen: the year
-           packed, four abreast on a desk.) */
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 7 * 36px + 6 * var(--day-gap)), 1fr));
         gap: 20px clamp(16px, 2vw, 28px);
 
@@ -448,8 +420,6 @@
         font-size: 12px;
       }
 
-      /* (A phone's and a touch screen's month no wider than tiles of 42px, past that they'd only grow heavier; on a
-         touch screen's wider rows, centred in its column, so the year has no ragged edge.) */
       .month {
         @media (max-width: 639px), (pointer: coarse) {
           max-width: calc(7 * 42px + 6 * var(--day-gap));
@@ -475,13 +445,11 @@
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 2px;
 
-        /* (A phone's: room between its tiles, so a month reads as days, not a slab.) */
         @media (max-width: 639px), (pointer: coarse) {
           gap: var(--day-gap);
         }
       }
 
-      /* (Its width read by its tiles: whether they've room to say their date.) */
       .days {
         container: days / inline-size;
       }
@@ -506,7 +474,6 @@
         cursor: pointer;
         transition: opacity 0.2s;
 
-        /* (Its leader's share of its blocks, as a shade: a sixth or less untinted, half the day and more the darkest.) */
         background: rgb(from var(--ink) r g b / calc(clamp(0, (var(--won, 0) - 0.16) / 0.34, 1) * 0.3));
 
         &:hover:not(:disabled) {
@@ -520,19 +487,16 @@
           min-height: 0;
         }
 
-        /* (Today, in the orange, pointed at too.) */
         &.today,
         &.today:hover:not(:disabled) {
           box-shadow: inset 0 0 0 1.5px var(--answer);
         }
 
-        /* (A day still to come, or before the chain: its date, faintly, not to be opened.) */
         &:disabled {
           opacity: 0.6;
           cursor: default;
         }
 
-        /* (A tie: its first two pools, side by side.) */
         &.tied {
           display: flex;
           justify-content: center;
@@ -544,18 +508,14 @@
           }
         }
 
-        /* (A phone's tiles: the logo centered, a size down; and where there's room (36px and more), the date small in
-           the corner. Smaller, as at 320px or two months a row, the logo alone.) */
         @media (max-width: 639px), (pointer: coarse) {
-          /* (A finger's reach, unseen: a clear border grown into the gap round it, half the gap, so each reach meets the
-             next's: 44px from a tile drawn at 36, more from a wider one; its ring 2px off what's drawn.) */
+          /* A clear border grown into the gap, half each side, so each reach meets the next's. */
           --reach: calc(var(--day-gap) / 2);
           border: var(--reach) solid transparent;
           margin: calc(-1 * var(--reach));
           background-clip: padding-box;
           outline-offset: calc(2px - var(--reach));
 
-          /* (A phone's logo in proportion with its type, whatever its tile's size.) */
           .logo {
             width: 40%;
             height: 40%;
@@ -584,7 +544,6 @@
               color: var(--answer);
             }
 
-            /* (A day no pool led, still to come, or before the chain: its date alone, in the same corner.) */
             &:not([data-pool]) {
               place-items: start;
               padding: 3px 4px;
@@ -595,7 +554,6 @@
         }
         }
 
-        /* (A day with a note: a dot in the corner.) */
         &.noted::after {
           content: "";
           position: absolute;
@@ -608,7 +566,6 @@
         }
       }
 
-      /* (One pool lit: the other days' marks faded, its days' ringed in the orange.) */
       .lit [data-pool]:not(.led) .logo {
         opacity: 0.15;
       }
@@ -617,7 +574,7 @@
         box-shadow: inset 0 0 0 1px var(--answer);
       }
 
-      /* (Today's ring steps back with the other days' marks, unless the pool lit led it: two rings alike read as one.) */
+      /* Today's ring steps back with the other days' marks unless the pool lit led it: two rings alike read as one. */
       .lit .day.today:not(.led) {
         box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--answer) 25%, transparent);
       }
@@ -626,8 +583,7 @@
         aspect-ratio: 1;
       }
 
-      /* (Its picture, its pool's: the light ground's, or the dark's; printed too, as a picture would be, the calendar
-         being its logos.) */
+      /* Printed too, as a picture would be: the calendar is its logos. */
       .logo {
         display: block;
         background: var(--light) center / contain no-repeat;
@@ -638,7 +594,6 @@
           background-image: var(--dark);
         }
 
-        /* (A pool with no logo: its initials.) */
         &.initials {
           display: grid;
           place-items: center;
@@ -651,7 +606,6 @@
         }
       }
 
-      /* ── Its pools, most days (or blocks) first, and its notes ── */
       .leaders {
         margin: 0;
         padding: 0;
@@ -694,7 +648,6 @@
             white-space: nowrap;
           }
 
-          /* (Its share, a hairline under it.) */
           i {
             grid-column: 2 / -1;
             grid-row: 2;
@@ -759,7 +712,6 @@
         }
       }
 
-      /* ── The day: a dial of its 24 hours, a tick a block; every block, in height order ── */
       .dial {
         max-width: 420px;
         margin: 0 auto 28px;
@@ -819,7 +771,6 @@
         }
       }
 
-      /* (A pool lit on the dial: its ticks in the orange, the others faint.) */
       .lit .dial [data-pool]:not(.led) .tick {
         stroke-opacity: 0.15;
       }
@@ -925,12 +876,9 @@
           transition: none !important;
         }
       }
-      /* (A finger's reach, unseen: the brand, the steps, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
       :is(a.brand, .stepper button) {
         position: relative;
 
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
         @media (pointer: coarse) {
           &::before {
             content: "";
@@ -940,7 +888,6 @@
         }
       }
 
-      /* (The steps' reach sideways too, only into the year or day between them, never out over a neighbour.) */
       @media (pointer: coarse) {
         .stepper #back::before {
           right: min(0px, calc(100% - 44px));
@@ -968,8 +915,6 @@
         <dl class="totals" id="totals"></dl>
       </header>
 
-      <!-- In reading order: the year (or the day), its pools, its notes (so on a phone the data comes first, and the pools,
-           as they come, push nothing above them); on a desk the pools and notes in a column beside. -->
       <main class="sheet">
         <div class="year">
           <p class="kicker" id="lede"></p>
@@ -990,18 +935,14 @@
     <script type="module">
       // @ts-check
       import { LOGOS, logo as poolLogo } from "/assets/pools/logos.js";
-      // Every day of a year, the pool that found the most blocks (its logo on the day); a day, every block in height
-      // order. All from the server that serves the page: the blocks' times and pools by height, the pools' names, and,
-      // for a day, each pool's count so far (its nth block ever).
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const DAY = 86_400_000, GENESIS = "2009-01-03";
       const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      /** One formatter: a number's toLocaleString makes one per call. */
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
       const iso = (/** @type {number} */ time) => new Date(time).toISOString().slice(0, 10);
-      /** A block's UTC day from its time in seconds, each day's written once (a year's blocks share 365). */
       const dayNames = /** @type {Map<number, string>} */ (new Map());
       const dayOf = (/** @type {number} */ seconds) => {
         const k = Math.floor(seconds / 86_400);
@@ -1018,17 +959,13 @@
       };
       const ordinal = (/** @type {number} */ n) => `${grouped(n)}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" })[/** @type {1 | 2 | 3} */ (n % 10)] ?? "th"}`;
 
-      /** A block: its height, its UTC day and second on the chain's clock (monotonic: it never goes back), its pool; with
-       * times, what its miner wrote; in a day, its pool's count that day and ever.
-       * @typedef {{ height: number, day: string, at: number, pool: string, time?: number, nth?: number, ever?: number }} Block */
+      /** @typedef {{ height: number, day: string, at: number, pool: string, time?: number, nth?: number, ever?: number }} Block */
 
       const names = new Map([["unknown", "Unknown"]]);
       const name = (/** @type {string} */ slug) => names.get(slug) ?? slug;
-      /** A pool's logo, the one drawn for the ground in use (a pool without one: its initials): one element, its picture
-       * its background, by a rule written once for its pool (a year's tiles draw some 700, each a picture, a source and
-       * an image before: the phone's layout and paint of a year a third longer). */
+      // One element with its picture as background, by a rule per pool: an img per tile made a year's layout and paint slower.
       const logoRules = /** @type {CSSStyleSheet} */ (document.head.appendChild(document.createElement("style")).sheet);
-      /** The pools whose logo rule is written. @type {Set<string>} */
+      /** @type {Set<string>} */
       const ruled = new Set();
       function logo(/** @type {string} */ slug) {
         const mark = Object.assign(document.createElement("span"), { className: "logo" });
@@ -1040,9 +977,6 @@
         }
         return mark;
       }
-      /** A pool with no logo of its own: its initials, so two such pools still look apart. (Two words, or a word's two
-       * humps, their first letters: BTC Guild BG, BitMinter BM, BWPool BW; one, its first letter and its next consonant:
-       * Bixin BX.) */
       function initials(/** @type {HTMLElement} */ mark, /** @type {string} */ slug) {
         const words = name(slug).replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
         const one = words[0] ?? "?";
@@ -1053,14 +987,12 @@
 
       const json = (/** @type {string} */ path, /** @type {AbortSignal} */ signal) =>
         fetch(path, { signal }).then((response) => (response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body?.error?.message ?? `The server answered ${response.status}.`)), () => Promise.reject(new Error(`The server answered ${response.status}.`)))));
-      /** Series by height, as of a range of days (an open end: up to the latest block). */
       async function byHeight(/** @type {string[]} */ series, /** @type {string} */ from, /** @type {string | null} */ to, /** @type {AbortSignal} */ signal) {
         const query = new URLSearchParams({ series: series.join(","), index: "height", start: from, ...(to ? { end: to } : {}) });
         return /** @type {{ start: number, end: number, data: any[] }[]} */ (await json(`/api/series/bulk?${query}`, signal));
       }
-      /** Quarters already read that are over, by their bounds. @type {Map<string, Promise<{ start: number, end: number, data: any[] }[]>>} */
+      /** @type {Map<string, Promise<{ start: number, end: number, data: any[] }[]>>} */
       const quarters = new Map();
-      /** A span of days' blocks, a quarter at a time (each answer kept under the server's size limit). */
       async function blocksOf(/** @type {string} */ from, /** @type {string} */ to, /** @type {AbortSignal} */ signal, withTimes = false) {
         const ranges = [];
         for (let start = from < GENESIS ? GENESIS : from; start < to && start <= today(); ) {
@@ -1073,8 +1005,7 @@
           const key = `${start}/${end}/${withTimes}`, known = quarters.get(key);
           if (known) return known;
           const series = ["timestamp_monotonic", "block_pool", ...(withTimes ? ["timestamp"] : [])];
-          // (Over a day before today, it won't change (a block just past midnight can still fall on the day before):
-          // read on its own, no view's abort ending it, and kept.)
+          // Over a day before today it won't change: read on its own, no view's abort ending it, and kept.
           if (!(end && end <= shift(today(), -1))) return byHeight(series, /** @type {string} */ (start), end, signal);
           const part = byHeight(series, /** @type {string} */ (start), end, new AbortController().signal);
           quarters.set(key, part.catch((error) => (quarters.delete(key), Promise.reject(error))));
@@ -1084,23 +1015,18 @@
           days.data.map((time, i) => /** @type {Block} */ ({ height: days.start + i, day: dayOf(time), at: time, pool: pools.data[i], ...(times ? { time: times.data[i] } : {}) })),
         ).filter((block) => block.day >= from && block.day < to);
       }
-      /** Pools' names in order, the reader's as localeCompare's (one collator for every comparison: a string's own
-       * localeCompare makes one each call). */
+      // One collator for every comparison: localeCompare makes one per call.
       const byName = new Intl.Collator().compare;
-      /** A day's leaders: the known pools that found the most of its blocks, every one tied for first (Unknown isn't a pool);
-       * with every known pool's count that day, and how many blocks it had. */
       function leadersOf(/** @type {Block[]} */ blocks) {
         const known = ranked(blocks.filter((block) => block.pool !== "unknown")), count = known[0]?.count ?? 0;
         return { pools: known.filter((pool) => pool.count === count).map((pool) => pool.pool).sort((a, b) => byName(name(a), name(b))), count, known, total: blocks.length };
       }
-      /** Pools by blocks found, the most first (a tie, by name). */
       function ranked(/** @type {Block[]} */ blocks) {
         const counts = new Map();
         for (const block of blocks) counts.set(block.pool, (counts.get(block.pool) ?? 0) + 1);
         return [...counts].map(([pool, count]) => ({ pool, count })).sort((a, b) => b.count - a.count || byName(name(a.pool), name(b.pool)));
       }
 
-      // ── Where we are: a year, or a day (in the address, for links and Back) ──
       /** @type {{ view: "year" | "day", date: string }} */
       let at = read();
       function read() {
@@ -1112,7 +1038,7 @@
       function go(/** @type {{ view: "year" | "day", date: string }} */ to) {
         at = to;
         history.pushState(null, "", `?${new URLSearchParams(to)}`);
-        // (To the top before the new view is built: after, scrolling would lay out what was just built, at once.)
+        // To the top before the new view is built: after, scrolling would lay out what was just built.
         scrollTo({ top: 0 });
         load();
       }
@@ -1121,7 +1047,6 @@
       const year = () => Number(at.date.slice(0, 4));
       $("back").addEventListener("click", () => go(at.view === "year" ? { view: "year", date: `${year() - 1}-12-31` } : { view: "day", date: shift(at.date, -1) }));
       $("forward").addEventListener("click", () => go(at.view === "year" ? { view: "year", date: `${year() + 1}-01-01` } : { view: "day", date: shift(at.date, 1) }));
-      /** A day left for its year by keys: focus goes on to that day's tile once the year is drawn. */
       let backTo = "";
       const up = (/** @type {boolean} */ byKeys) => {
         backTo = byKeys ? at.date : "";
@@ -1129,7 +1054,6 @@
       };
       $("up").addEventListener("click", (event) => up(event.detail === 0));
 
-      // ── The grid by keys: one tab stop, ← → a day, ↑ ↓ a week (across months), Home and End the month's ends ──
       $("view").addEventListener("keydown", (event) => {
         const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".day"));
         if (!tile?.dataset.date) return blockKeys(event);
@@ -1143,19 +1067,16 @@
         if (!target) return;
         move(target);
       });
-      /** The focus to another tile, scrolled to first (the tip goes where it ends up). */
       function move(/** @type {HTMLElement} */ to) {
         to.scrollIntoView({ block: "nearest", behavior: "instant" });
         to.focus({ preventScroll: true });
       }
-      // (A day or a block focused, by keys, a tap or put back after a refresh: the tab stop of its kind.)
       $("view").addEventListener("focusin", (event) => {
         const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".day, .block"));
         if (!tile || tile.tabIndex === 0) return;
         for (const other of $("view").querySelectorAll(tile.classList.contains("day") ? ".day" : ".block")) /** @type {HTMLElement} */ (other).tabIndex = -1;
         tile.tabIndex = 0;
       });
-      // (The day's blocks: one tab stop, ← → a block, ↑ ↓ a row, Home and End the first and last.)
       function blockKeys(/** @type {KeyboardEvent} */ event) {
         const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".block"));
         if (!tile) return;
@@ -1166,16 +1087,13 @@
         event.preventDefault();
         if (tiles[to]) move(tiles[to]);
       }
-      // (A block tapped or clicked: focused, so its tip shows, on a phone too.)
       $("view").addEventListener("click", (event) => {
         const target = /** @type {Element} */ (event.target);
-        // (A year's day opens it (one listener for the grid's 365); a day's block takes the focus, its tip with it.)
         const day = /** @type {HTMLButtonElement | null} */ (target.closest?.(".day"));
         if (day?.dataset.date && !day.disabled) return go({ view: "day", date: day.dataset.date });
         /** @type {HTMLElement | null} */ (target.closest?.(".block"))?.focus({ preventScroll: true });
       });
 
-      // ── What a tile says, beside it (pointed at or focused) ──
       const tip = $("tip");
       let tipByPointer = false, tipTile = /** @type {HTMLElement | null} */ (null);
       function showTip(/** @type {HTMLElement | null} */ tile, byPointer = false) {
@@ -1193,7 +1111,6 @@
       const tileOf = (/** @type {Event} */ event) => /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.("[data-tip]"));
       $("view").addEventListener("pointerover", (event) => /** @type {PointerEvent} */ (event).pointerType === "mouse" && showTip(tileOf(event), true));
       $("view").addEventListener("pointerleave", () => showTip(null));
-      // (A tile's tip put away by Escape stays away while it's the focused one, put back after a refresh too.)
       let dismissed = "";
       const tileKey = (/** @type {HTMLElement | null} */ tile) => tile?.dataset.date ?? tile?.dataset.height ?? "";
       $("view").addEventListener("focusin", (event) => {
@@ -1203,21 +1120,16 @@
         showTip(tile);
       });
       $("view").addEventListener("focusout", () => showTip(null));
-      // (Scrolled: a pointer's tip goes, a focused tile's follows it.)
       addEventListener("scroll", () => !tip.hidden && showTip(tipByPointer ? null : tipTile), { passive: true });
       addEventListener("keydown", (event) => {
-        // (Escape: a tip put away first, else a day's view back to its year.)
         if (event.key === "Escape" && tip.hidden && at.view === "day" && !event.defaultPrevented) return up(true);
         if (event.key !== "Escape" || tip.hidden) return;
-        // (The focused tile's tip stays away, whether it or a pointer showed the one put away.)
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-tip]") ?? null);
         if (focused) dismissed = tileKey(focused);
         showTip(null);
       });
 
-      // ── Loading: one at a time (a newer one stops the last), kept a minute ──
-      // (When what's shown was read: until that's after its day or year has settled, it's read again. Nothing shown,
-      // nothing read again: a view that failed waits for its "Try again".)
+      // Read again until what's shown was read after its day or year settled; a failed view waits for "Try again".
       let loading = new AbortController(), loaded = "", readAt = Infinity;
       /** @type {Map<string, { at: number, blocks: Block[] }>} */
       const kept = new Map();
@@ -1226,20 +1138,16 @@
         loading = new AbortController();
         const signal = loading.signal, key = at.view === "year" ? String(year()) : at.date;
         if (!again) readAt = Infinity;
-        // (A new view: no tip, and no tile's tip put away.)
         if (!again) {
           showTip(null);
           dismissed = "";
         }
         frame();
-        // (A new view read in the last minute is drawn from what's kept, at once, without a placeholder first; else its
-        // placeholder while it's read (a refresh: only when something else is shown). One decision, for both.)
         const known = again || !fresh(key) ? undefined : kept.get(key);
         if (again ? loaded !== key : !known) placeholder();
         try {
           const [{ blocks, at: asked }] = await Promise.all([known ?? fetchBlocks(key, signal), poolNames()]);
           if (signal.aborted) return;
-          // (A refresh keeps the focus where it was, on what it was drawn again as; a new view takes none from the last.)
           const focused = again ? /** @type {HTMLElement | null} */ (document.activeElement?.closest("[data-date], [data-leader], [data-note], [data-height]") ?? null) : null;
           if (at.view === "year") drawYear(blocks);
           else drawDay(blocks);
@@ -1257,7 +1165,7 @@
           const message = Object.assign(document.createElement("div"), { className: "message" });
           const retry = Object.assign(document.createElement("button"), { type: "button", textContent: "Try again" });
           retry.addEventListener("click", () => load());
-          // (A fetch that never reached the server fails as a TypeError, in the browser's words: said in the page's.)
+          // A fetch that never reached the server fails as a TypeError, in the browser's words: said in the page's.
           message.append(Object.assign(document.createElement("p"), { textContent: error instanceof TypeError ? "This server couldn't be reached." : /** @type {Error} */ (error).message }), retry);
           $("view").replaceChildren(message);
           $("leaders").replaceChildren();
@@ -1266,7 +1174,6 @@
           if (!signal.aborted) $("view").setAttribute("aria-busy", "false");
         }
       }
-      /** A year's or day's blocks read in the last minute, kept. */
       const fresh = (/** @type {string} */ key) => Date.now() - (kept.get(key)?.at ?? -Infinity) < 60_000;
       async function fetchBlocks(/** @type {string} */ key, /** @type {AbortSignal} */ signal) {
         const asked = Date.now(), blocks = at.view === "year" ? await blocksOf(`${key}-01-01`, `${Number(key) + 1}-01-01`, signal) : await ordinals(await blocksOf(key, shift(key, 1), signal, true), signal);
@@ -1275,7 +1182,6 @@
         if (kept.size > 6) kept.delete(/** @type {string} */ (kept.keys().next().value));
         return read;
       }
-      /** A day's blocks, each with its pool's count that day and ever (from the pools' running counts). */
       async function ordinals(/** @type {Block[]} */ blocks, /** @type {AbortSignal} */ signal) {
         if (!blocks.length) return blocks;
         const pools = [...new Set(blocks.map((block) => block.pool))], first = blocks[0].height, chunks = [];
@@ -1298,20 +1204,16 @@
         });
         return namesLoaded;
       }
-      // (The year that's still going, or today: again every minute, unless a tile's pointed at, until it's read an hour
-      // after it ends: a block's time can fall a little before it's found, and the tab may have been away.)
+      // A block's time can fall a little before it's found: a year is read again until an hour after it ends.
       const settles = () => (at.view === "year" ? Date.UTC(year() + 1, 0, 1) : Date.parse(`${shift(at.date, 1)}T00:00:00Z`)) + 3_600_000;
       setInterval(() => {
         if (readAt < settles() && !document.hidden && !(tipByPointer && !tip.hidden)) load(true);
       }, 60_000);
 
-      // ── Drawing ──
-      /** The header and the head, for where we are. */
       function frame() {
         const y = year(), day = at.view === "day";
         $("back").textContent = "‹";
         $("forward").textContent = "›";
-        // (Where we are in the middle, a year or a day; a day's year before it, the way back.)
         $("current").textContent = day ? `${Number(at.date.slice(8, 10))} ${MONTHS[Number(at.date.slice(5, 7)) - 1].slice(0, 3)}` : String(y);
         $("up").hidden = !day;
         $("up").textContent = String(y);
@@ -1338,7 +1240,6 @@
         drawNotes([]);
         if (at.view === "year") drawYear(null);
         else {
-          // (The dial's place and a day's tiles, at their size, so nothing moves when they come.)
           const dial = Object.assign(document.createElement("div"), { className: "dial" });
           dial.innerHTML = `<svg viewBox="-10 -10 420 420" aria-hidden="true"></svg>`;
           const list = Object.assign(document.createElement("ul"), { className: "blocks loading" });
@@ -1347,15 +1248,9 @@
         }
       }
 
-      /** The year: its months, each day its leader; null, its frame (loading). */
-      /** Each year as drawn, by the read it was drawn from: the same read again (going back to a year seen in the last
-       * minute, the same day) shows the same drawing, not every day worked out and made again; a new day redraws it (its
-       * ring, its days and months to come).
-       * @typedef {{ day: string, months: HTMLElement, notes: { when: string, text: string, open?: string, key?: string }[], pairs: [string, string][], leaders: { pool: string, label: string, share: number }[] }} Drawn
+      /** @typedef {{ day: string, months: HTMLElement, notes: { when: string, text: string, open?: string, key?: string }[], pairs: [string, string][], leaders: { pool: string, label: string, share: number }[] }} Drawn
        * @type {WeakMap<Block[], Drawn>} */
       const drawnYears = new WeakMap();
-      /** A year drawn, put in place: its grid (its one tab stop where it was, else today, else its first day), its notes,
-       * totals and pools. */
       function showYear(/** @type {Drawn} */ { months, notes, pairs, leaders }) {
         const stop = /** @type {HTMLElement | null} */ ($("view").querySelector('.day[tabindex="0"]'))?.dataset.date;
         for (const tile of months.querySelectorAll('.day[tabindex="0"]')) tile.setAttribute("tabindex", "-1");
@@ -1375,13 +1270,11 @@
         const led = new Map();
         /** @type {Map<string, string[]>} */
         const leaderOf = new Map();
-        /** Each day's leaders, as worked out for its tile, for the notes; and the known pools' blocks over the year, from
-         * each day's counts. @type {Map<string, ReturnType<typeof leadersOf>>} */
+        /** @type {Map<string, ReturnType<typeof leadersOf>>} */
         const leads = new Map(), yearCounts = /** @type {Map<string, number>} */ (new Map());
         for (let month = 0; month < 12; month++) {
           const card = document.createElement("section"), days = Object.assign(document.createElement("div"), { className: "days" });
           card.className = "month";
-          // (A month still to come: its name, nothing to read in it yet.)
           if (iso(Date.UTC(y, month, 1)) > now) {
             card.classList.add("future");
             card.append(Object.assign(document.createElement("h2"), { textContent: MONTHS[month] }), Object.assign(document.createElement("p"), { textContent: "To come" }));
@@ -1406,17 +1299,14 @@
             tile.dataset.n = String(d);
             const when = `${WEEKDAYS[(utc(date).getUTCDay() + 6) % 7]} ${d} ${MONTHS[month]}`;
             if (lead.pools.length) {
-              // (A tie: every pool in it led the day, each counted; the tile shows the first two.)
               for (const pool of lead.pools) led.set(pool, (led.get(pool) ?? 0) + 1);
               leaderOf.set(date, lead.pools);
               tile.dataset.pool = lead.pools.join(" ");
               tile.dataset.tip = `${when}${date === now ? " (so far)" : ""}\n${lead.pools.map(name).join(" and ")}: ${lead.count} of ${dayBlocks.length} blocks${lead.pools.length > 1 ? " each, tied" : ""}`;
               tile.classList.toggle("tied", lead.pools.length > 1);
-              // (How much of the day it took: the cell's shade, darker the bigger its share.)
               tile.style.setProperty("--won", (lead.count / dayBlocks.length).toFixed(3));
               tile.append(...lead.pools.slice(0, 2).map(logo));
             } else {
-              // (A day no known pool led, as printed: its date.)
               tile.textContent = String(d);
               if (blocks && !outside) tile.dataset.tip = `${when}\n${dayBlocks.length ? `No known pool: ${plural(dayBlocks.length, "block")}` : "No blocks"}`;
             }
@@ -1426,7 +1316,6 @@
           card.append(Object.assign(document.createElement("h2"), { textContent: MONTHS[month] }), week, days);
           months.append(card);
         }
-        // (Loading: its placeholder grid alone, as it'll be, nothing kept.)
         if (!blocks) return showYear({ day: now, months, notes: [], pairs: [], leaders: [] });
         const notes = yearNotes(blocks, byDay, leaderOf, leads);
         const noted = new Set(notes.map((note) => note.date));
@@ -1434,9 +1323,7 @@
           const date = /** @type {HTMLElement} */ (tile).dataset.date ?? "";
           tile.classList.toggle("noted", noted.has(date));
         }
-        // (A leader's share of the year's blocks: only known pools lead, so their counts are all it needs.)
         const share = new Map([...yearCounts].map(([pool, count]) => [pool, count / blocks.length]));
-        // (Its bar: its share of the days led; beside it, its share of the blocks.)
         const daysLed = [...led.values()].reduce((a, b) => a + b, 0) || 1;
         /** @type {Drawn} */
         const made = {
@@ -1452,13 +1339,9 @@
 
       const plural = (/** @type {number} */ n, /** @type {string} */ word) => `${grouped(n)} ${word}${n === 1 ? "" : "s"}`;
       const shortDate = (/** @type {string} */ date) => `${Number(date.slice(8, 10))}\u00a0${MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)}`;
-      /**
-       * What an almanac would note of a year: its halvings (the blocks themselves), its busiest and quietest whole days,
-       * the longest run of days one pool led, and the most blocks one pool found in a day.
-       * @param {Block[]} blocks @param {Map<string, Block[]>} byDay @param {Map<string, string[]>} leaderOf
-       * @param {Map<string, ReturnType<typeof leadersOf>>} leads each day's, as its tile has them
-       * @returns {{ key: string, date: string, text: string }[]}
-       */
+      /** @param {Block[]} blocks @param {Map<string, Block[]>} byDay @param {Map<string, string[]>} leaderOf
+       * @param {Map<string, ReturnType<typeof leadersOf>>} leads
+       * @returns {{ key: string, date: string, text: string }[]} */
       function yearNotes(blocks, byDay, leaderOf, leads) {
         const notes = [], y = year();
         for (const block of blocks) {
@@ -1466,14 +1349,12 @@
           const n = block.height / 210_000;
           notes.push({ key: `halving-${n}`, date: block.day, text: `The ${ordinal(n)} halving, at block ${grouped(block.height)}: the reward falls to ₿${50 / 2 ** n}` });
         }
-        // (The whole days so far, an empty one too: from the year's first, or the chain's, to yesterday.)
         const whole = [];
         for (let date = `${y}-01-01` < GENESIS ? GENESIS : `${y}-01-01`; date < today() && date < `${y + 1}-01-01`; date = shift(date, 1)) whole.push([date, byDay.get(date)?.length ?? 0]);
         if (whole.length > 1) {
           const busiest = whole.reduce((a, b) => (b[1] > a[1] ? b : a)), quietest = whole.reduce((a, b) => (b[1] < a[1] ? b : a));
           notes.push({ key: "busiest", date: busiest[0], text: `The busiest day: ${plural(busiest[1], "block")}` }, { key: "quietest", date: quietest[0], text: `The quietest day: ${quietest[1] ? plural(quietest[1], "block") : "no blocks"}` });
         }
-        // (The longest run of days one pool led, a tie counting for each in it.)
         /** @type {Map<string, { pool: string, start: string, end: string, days: number }>} */
         let runs = new Map();
         /** @type {{ pool: string, start: string, end: string, days: number } | null} */
@@ -1487,7 +1368,6 @@
           }
           runs = next;
         }
-        // (A run at the year's edge may go on beyond it, unseen: said as the year's first or last days.)
         if (best && best.days > 1) {
           const first = best.start === `${y}-01-01` && y > 2009, last = best.end === `${y}-12-31`;
           const text = first && last ? "led every day of the year" : first ? `led the year's first ${best.days} days, to ${shortDate(best.end)}` : last ? `led the year's last ${best.days} days` : `led ${best.days} days in a row, to ${shortDate(best.end)}`;
@@ -1498,7 +1378,7 @@
         if (biggest.count) notes.push({ key: "most", date: biggest.date, text: `The most by one pool in a day: ${biggest.pools.map(name).join(" and ")}, ${biggest.count} of ${biggest.total} blocks${biggest.pools.length > 1 ? " each" : ""}` });
         return notes.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
       }
-      /** The margin's notes: when, what; a note of a day opens it (and keeps the focus by its key). @param {{ when: string, text: string, open?: string, key?: string }[]} notes */
+      /** @param {{ when: string, text: string, open?: string, key?: string }[]} notes */
       function drawNotes(notes) {
         $("notes").hidden = !notes.length;
         $("note-list").replaceChildren(...notes.map(({ when, text, open, key }) => {
@@ -1518,15 +1398,12 @@
         }));
       }
 
-      /** The pools that led, most days first: pointed at, their days lit; picked, kept lit (picked again, let go). */
       let picked = "";
       function drawLeaders(/** @type {{ pool: string, label: string, share: number }[]} */ leaders) {
-        // (A pool lit: whatever's its in the view (a year's days, a day's ticks and blocks) marked, the rest faded.)
         const light = (/** @type {string} */ pool) => {
           $("view").classList.toggle("lit", Boolean(pool));
           for (const mark of $("view").querySelectorAll("[data-pool]")) mark.classList.toggle("led", Boolean(pool) && (/** @type {HTMLElement} */ (mark).dataset.pool ?? "").split(" ").includes(pool));
         };
-        // (The pick is kept across views; lit only where it has something to light.)
         $("leaders").replaceChildren(...leaders.map(({ pool, label, share }) => {
           const item = document.createElement("li"), button = Object.assign(document.createElement("button"), { type: "button" });
           button.dataset.leader = pool;
@@ -1553,7 +1430,6 @@
       };
       const clock = (/** @type {number} */ seconds) => new Date(seconds * 1000).toISOString().slice(11, 16);
 
-      /** The day: a dial of its 24 hours with every block where it fell, every block; its pools and notes beside it. */
       function drawDay(/** @type {Block[]} */ blocks) {
         if (!blocks.length) {
           drawLeaders([]);
@@ -1564,9 +1440,8 @@
         }
         const pools = ranked(blocks);
         totals([["Blocks", grouped(blocks.length)], ["Pools", grouped(pools.filter(({ pool }) => pool !== "unknown").length)]]);
-        // Its notes: the longest wait, the quickest pair, the busiest hour.
         const gaps = blocks.slice(1).map((block, i) => ({ after: blocks[i], block, gap: block.at - blocks[i].at }));
-        // (The quickest among real gaps: the chain's clock never runs back, so blocks whose miners' clocks did share a second.)
+        // The quickest among real gaps: the chain's clock never runs back, so blocks whose miners' clocks did share a second.
         const apart = gaps.filter(({ gap }) => gap > 0);
         const longest = gaps.reduce((a, b) => (b.gap > a.gap ? b : a), gaps[0]), quickest = apart.reduce((a, b) => (b.gap < a.gap ? b : a), apart[0]);
         const hours = new Array(24).fill(0);
@@ -1578,7 +1453,6 @@
           ...(quickest ? [{ when: clock(quickest.after.at), text: `The quickest: ${span(quickest.gap)} between blocks ${grouped(quickest.after.height)} and ${grouped(quickest.block.height)}` }] : []),
           { when: `${String(busiest).padStart(2, "0")}:00`, text: `The busiest hour: ${hours[busiest]} ${hours[busiest] === 1 ? "block" : "blocks"}` },
         ].sort((a, b) => (a.when < b.when ? -1 : a.when > b.when ? 1 : 0)));
-        // The dial: noon at the bottom, midnight at the top; a tick a block, in its pool's ink; the longest wait, an arc.
         const C = 200, inner = 132, outer = 168, start = Date.parse(`${at.date}T00:00:00Z`) / 1000;
         const angle = (/** @type {number} */ time) => ((time - start) / 86_400) * Math.PI * 2 - Math.PI / 2;
         const point = (/** @type {number} */ time, /** @type {number} */ r) => `${(C + r * Math.cos(angle(time))).toFixed(1)},${(C + r * Math.sin(angle(time))).toFixed(1)}`;
@@ -1597,7 +1471,6 @@
         dial.innerHTML = `<svg viewBox="-10 -10 420 420" role="img" aria-label="The day's ${blocks.length} blocks on a 24-hour dial, midnight at the top"><circle class="face" cx="${C}" cy="${C}" r="${outer + 4}"/>${hourTicks}${hourLabels}${arc}${ticks}<text class="count" x="${C}" y="${C - 6}">${blocks.length}</text><text class="unit" x="${C}" y="${C + 26}">blocks</text></svg>`;
         const list = Object.assign(document.createElement("ul"), { className: "blocks" });
         list.setAttribute("aria-label", "Blocks in height order");
-        // (One tab stop: where it was, else the first block; arrows from there.)
         const stop = /** @type {HTMLElement | null} */ ($("view").querySelector('.block[tabindex="0"]'))?.dataset.height;
         const stopAt = Math.max(0, blocks.findIndex((block) => String(block.height) === stop));
         list.append(...blocks.map((block, i) => {
@@ -1605,8 +1478,6 @@
           const tile = Object.assign(document.createElement("li"), { className: "block", tabIndex: i === stopAt ? 0 : -1 });
           tile.dataset.pool = block.pool;
           tile.dataset.height = String(block.height);
-          // (Its time once where the chain's clock and its miner's agree to the minute; both where they don't, the
-          // miner's day too when it isn't the block's.)
           const minerAt = /** @type {number} */ (block.time), minerDay = new Date(minerAt * 1000).toISOString().slice(0, 10);
           const wrote = Math.floor(minerAt / 60) === Math.floor(block.at / 60) ? time : `${minerDay === block.day ? "" : `${shortDate(minerDay)} `}${clock(minerAt)}`;
           tile.dataset.tip = `Block ${grouped(block.height)}\n${block.pool === "unknown" ? "Unknown pools'" : `${name(block.pool)}'s`} ${ordinal(/** @type {number} */ (block.nth))} that day, ${ordinal(/** @type {number} */ (block.ever))} ever\n${wrote === time ? `At ${time} UTC` : `At ${time} UTC by the chain's clock, ${wrote} by its miner's`}`;
@@ -1615,7 +1486,6 @@
           return tile;
         }));
         $("view").replaceChildren(dial, list);
-        // Its pools, beside it: pointed at or picked, their ticks and blocks lit.
         drawLeaders(pools.map(({ pool, count }) => ({ pool, share: count / blocks.length, label: `${count} · ${((count / blocks.length) * 100).toFixed(1)}%` })));
       }
 
