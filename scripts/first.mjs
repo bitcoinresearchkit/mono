@@ -25,10 +25,10 @@ const APPLIED = new Set(["calt", "ccmp", "clig", "liga", "locl", "rclt", "rlig",
 // ── Reading WOFF2 (https://www.w3.org/TR/WOFF2/) ──
 const KNOWN = "cmap head hhea hmtx maxp name OS/2 post cvt_ fpgm glyf loca prep CFF_ VORG EBDT EBLC gasp hdmx kern LTSH PCLT VDMX vhea vmtx BASE GDEF GPOS GSUB EBSC JSTF MATH CBDT CBLC COLR CPAL SVG_ sbix acnt avar bdat bloc bsln cvar fdsc feat fmtx fvar gvar hsty just lcar mort morx opbd prop trak Zapf Silf Glat Gloc Feat Sill".split(" ").map((tag) => tag.replace("_", " "));
 
-/** The font's tables, by tag, as an OpenType font has them (glyf and loca too, their transform undone). @param {Uint8Array} file */
+/** The font's tables, by tag, as its stream holds them, and which of them are transformed. @param {Uint8Array} file */
 function readWoff2(file) {
   const view = new DataView(file.buffer, file.byteOffset, file.byteLength);
-  if (view.getUint32(0) !== 0x774f4632) throw new Error(`${SOURCE}: not WOFF2`);
+  if (view.getUint32(0) !== 0x774f4632) throw new Error("not WOFF2");
   const count = view.getUint16(12);
   let at = 48;
   const base128 = () => {
@@ -53,11 +53,7 @@ function readWoff2(file) {
     tables.set(entry.tag, data.subarray(offset, offset + entry.length));
     offset += entry.length;
   }
-  // (The core face's is transformed, as fontTools wrote it.)
-  if (!entries.find((entry) => entry.tag === "glyf")?.transformed) throw new Error(`${SOURCE}: its glyf isn't transformed`);
-  tables.set("glyf", glyphsOf(tables.get("glyf")));
-  tables.delete("loca");
-  return tables;
+  return { tables, transformed: new Set(entries.filter((entry) => entry.transformed).map((entry) => entry.tag)) };
 }
 
 /** A 255UInt16 (WOFF2's), read from a stream. */
@@ -476,7 +472,11 @@ function writeWoff2(tables) {
 }
 
 // ── The cut ──
-const tables = readWoff2(readFileSync(SOURCE));
+const { tables, transformed } = readWoff2(readFileSync(SOURCE));
+// (The core face's glyf is transformed, as fontTools wrote it: undone, its loca with it.)
+if (!transformed.has("glyf")) throw new Error(`${SOURCE}: its glyf isn't transformed`);
+tables.set("glyf", glyphsOf(tables.get("glyf")));
+tables.delete("loca");
 const cmap = cmapOf(tables.get("cmap")), wanted = new Map();
 for (const [start, end] of FIRST) for (let cp = start; cp <= end; cp++) {
   if (!cmap.has(cp)) throw new Error(`${SOURCE} has no U+${cp.toString(16).toUpperCase()}`);
@@ -494,9 +494,13 @@ const out = new Map(tables);
 out.set("head", head), out.set("glyf", glyf.done()), out.set("loca", loca.done()), out.set("cmap", cmapTable(wanted)), out.set("gvar", gvarOf(tables.get("gvar"), kept)), out.set("GPOS", gposOf(kerning(tables, kept)));
 const file = writeWoff2(out);
 const range = FIRST.map(([a, b]) => (a === b ? `U+${a.toString(16).toUpperCase()}` : `U+${a.toString(16).toUpperCase()}-${b.toString(16).toUpperCase()}`)).join(", ");
+// (The page's face says FIRST's characters.)
+const said = STYLES.match(/InterVariable\.first\.woff2[^}]*?unicode-range:\s*([^;]+);/)?.[1];
+if (said !== range) throw new Error(`studio/index.html: the first face's unicode-range is ${said}, FIRST's ${range}`);
 if (process.argv.includes("--check")) {
-  const had = (() => { try { return readFileSync(OUT); } catch { return null; } })();
-  if (!had || Buffer.compare(had, file)) throw new Error(`${OUT} isn't as first.mjs writes it: run it`);
+  // (Its tables, not its bytes: another brotli packs the same tables otherwise.)
+  const had = readWoff2(readFileSync(OUT)).tables;
+  if (had.size !== out.size || [...out].some(([tag, table]) => !had.has(tag) || Buffer.compare(had.get(tag), table))) throw new Error(`${OUT} isn't as first.mjs writes it: run it`);
   console.log(`Up to date: ${OUT} (${file.length} bytes)`);
 } else {
   writeFileSync(OUT, file);
