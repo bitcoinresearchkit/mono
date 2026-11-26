@@ -25,14 +25,12 @@ const restIn = /** @type {PromiseWithResolvers<void>} */ (Promise.withResolvers(
 let loading;
 /** `run` once the rest is in. @param {() => void} run */
 export const withRest = (run) => (command ? run() : void restIn.promise.then(run));
-/** The rest, once. Failed (the server lost): the page says it's offline, and the next press asks again. */
+/** The rest, once. Failed (the server lost): asked again by the next press, or the live check (see checkLive). */
 export const loadRest = () => (loading ??= Promise.all([import("/studio/rest.js"), restSheet()]).then(([rest]) => {
   ({ command, pen, grid, heatmaps, inspector, menus, presetsEdit, gestures, xkcd } = rest);
-  document.body.removeAttribute("data-offline");
   restIn.resolve();
 }, (error) => {
   loading = undefined;
-  document.body.toggleAttribute("data-offline", true);
   throw error;
 }));
 /** @type {Promise<unknown> | undefined} */
@@ -47,7 +45,8 @@ const restSheet = () => (sheet ??= new Promise((resolve, reject) => {
 /** For a first chart drawn, or a first press. */
 export const askRest = () => void loadRest().catch(() => {});
 // Held till the rest is in, then replayed in order (of clicks the last only: three taps would open, close, open). A
-// press on the chart isn't held, nor a key's default but for the page's own chords (⌘K would open the browser's search).
+// press on the chart isn't held, nor a key's default but for the page's own chords (⌘K would open the browser's search),
+// nor a start over (Try again, Reload).
 const HELD = ["click", "dblclick", "contextmenu", "keydown", "popstate", "hashchange", "storage"];
 /** The page's chords are what its controls say as their keys (data-kbd: "⌘ K", "⇧ ⌘ Z"). @param {Event} event */
 const pageChord = (event) => event instanceof KeyboardEvent && (event.metaKey || event.ctrlKey) && event.key.length === 1
@@ -58,7 +57,7 @@ let lastClick;
 function hold(event) {
   if (command) return;
   askRest();
-  if (!event.isTrusted) return;
+  if (!event.isTrusted || (event.target instanceof Element && event.target.closest("#offline, .booting"))) return;
   event.stopImmediatePropagation();
   if (event.type === "click" || event.type === "contextmenu" || pageChord(event)) event.preventDefault();
   if (event.type === "click") lastClick = event;

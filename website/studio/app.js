@@ -10477,8 +10477,10 @@ addEventListener("scroll", () => hinting() && placeHints(), true);
 $("live").addEventListener("animationend", (event) => event.animationName === "block" && $("live").classList.remove("block"));
 let checking = false;
 async function checkLive() {
-  // (The rest's: it retries the rest's plots.)
-  if (!command || document.visibilityState !== "visible" || checking) return;
+  if (document.visibilityState !== "visible" || checking) return;
+  // (The rest lost as it loaded, a chart drawn: asked again, as the device is back and each 15 seconds; till it's in,
+  // said as offline (the server unanswered, as it was). In, this check is its own: it retries the rest's plots.)
+  if (!command) return void loadRest().then(checkLive, () => ((answeredAt = 0), updateStatus()));
   checking = true;
   let health;
   try {
@@ -11306,8 +11308,8 @@ async function start() {
   normalize(chart);
   save();
   // (Home is the grid, an empty chart its cards: shown with the rest, so it's in first (not loading: said as at load);
-  // a chart, drawn first, then the rest: see later.js.)
-  if (home || !chart.layers.length) await loadRest();
+  // a chart, drawn first, then the rest: see later.js. Nothing drawn and the rest lost: offline, as at load.)
+  if (home || !chart.layers.length) await loadRest().catch((error) => (document.body.toggleAttribute("data-offline", true), Promise.reject(error)));
   // (Onto the grid, its chart drawn once it's opened: the grid's first moments its own, not shared with a chart's
   // build out of sight: see redrawChart.)
   refresh(!home);
