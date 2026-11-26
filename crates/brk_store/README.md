@@ -11,7 +11,7 @@ Key-value storage layer built on fjall for Bitcoin indexing.
 ```rust,ignore
 let mut store: Store<TxidPrefix, Height> = Store::import(
     &db, &path, "txid_to_height",
-    Version::new(1), Kind::Random
+    Version::new(1), Kind::Random, Compaction::Eager
 )?;
 
 store.insert(txid, height);
@@ -29,3 +29,5 @@ let height = store.get(&txid)?;
 | `Random` | Random point lookups | Bloom filters and pinned filter blocks |
 | `Recent` | Point lookups expected to hit | Point-read hints and Bloom filters |
 | `Vec` | Prefix and range scans | Restart interval 8; no filters or block pinning |
+
+`Compaction::Deferred` opens a store whose compaction only bounds its runs while it is written in bulk; the database's `resume_compaction()` then merges it once and compacts it as it goes from there.

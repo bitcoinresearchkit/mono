@@ -478,6 +478,9 @@ impl ComputePluginSet for DefaultPlugins {
     }
 
     fn compute(&mut self, context: UpdateContext<'_>) -> Result<bool> {
+        // Not during the bootstrap: the merge would compete with its computers, and a reimport
+        // would wait for it.
+        self.indexer.stores().resume_compaction();
         let rolled_back = self.roll_back_reorg(context)?;
         if !self.index(context)? && !rolled_back {
             return Ok(false);

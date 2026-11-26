@@ -2,7 +2,7 @@ use std::{
     fs,
     ops::{Bound, Deref, RangeBounds},
     path::Path,
-    sync::Arc,
+    sync::{Arc, atomic::Ordering},
 };
 
 use inner::Inner;
@@ -177,6 +177,26 @@ impl Tree {
             .iter_tables()
             .map(Table::file_size)
             .sum()
+    }
+
+    /// Defers compaction: a level is merged only once it holds enough runs to bound a read, into
+    /// the level below, until [`Self::resume_compaction`] merges the runs that stacked up into
+    /// one, once. For a tree written in bulk: it is rewritten a few times instead of once per
+    /// level all along. Not persisted: a tree opens undeferred.
+    pub fn defer_compaction(&self) {
+        self.deferred.store(true, Ordering::Release);
+    }
+
+    /// Ends the deferral; returns whether the tree was deferred.
+    #[must_use]
+    pub fn resume_compaction(&self) -> bool {
+        self.deferred.swap(false, Ordering::AcqRel)
+    }
+
+    /// Whether runs that deferral stacked are still unmerged ([`Version::is_tiered`]).
+    #[must_use]
+    pub fn is_tiered(&self) -> bool {
+        self.versions.guard().is_tiered()
     }
 
     /// Runs leveled compaction until no eligible work remains.

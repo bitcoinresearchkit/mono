@@ -65,11 +65,12 @@ where
         name: &str,
         version: Version,
         kind: Kind,
+        compaction: Compaction,
     ) -> Result<Self> {
         let keyspace = checked_open(
             &path.join(format!("meta/{name}")),
             Version::new(u32::from(FORMAT_VERSION)) + version,
-            || Self::open_keyspace(db, name, kind),
+            || Self::open_keyspace(db, name, kind, compaction),
         )?;
         Ok(Self {
             keyspace,
@@ -77,7 +78,12 @@ where
         })
     }
 
-    fn open_keyspace(database: &Database, name: &str, kind: Kind) -> Result<Keyspace> {
+    fn open_keyspace(
+        database: &Database,
+        name: &str,
+        kind: Kind,
+        compaction: Compaction,
+    ) -> Result<Keyspace> {
         let mut options = KeyspaceCreateOptions::default()
             .compaction_records::<K::Bytes, V::Bytes>()
             .filter_block_partitioning_policy(PartitioningPolicy::new([false, false, true]))
@@ -119,6 +125,10 @@ where
                     .filter_block_pinning_policy(PinningPolicy::all(false))
                     .index_block_pinning_policy(PinningPolicy::all(false));
             }
+        }
+
+        if compaction == Compaction::Deferred {
+            options = options.defer_compaction();
         }
 
         database.keyspace(name, || options).map_err(|error| {

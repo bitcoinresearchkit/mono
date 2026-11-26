@@ -1,9 +1,9 @@
 use std::{
-    sync::{MutexGuard, PoisonError},
+    sync::{MutexGuard, PoisonError, atomic::Ordering},
     time::Instant,
 };
 
-use log::debug;
+use log::{debug, info};
 use rustc_hash::FxHashSet;
 
 use crate::{
@@ -30,7 +30,7 @@ impl Tree {
             let state = self.compaction_state();
             let version = self.versions.load();
 
-            match Strategy::choose(&version, &state) {
+            match Strategy::choose(&version, &state, self.deferred.load(Ordering::Acquire)) {
                 Choice::Merge(input) => self.merge_tables::<K, V>(state, &version, &input)?,
                 Choice::Move(input) => self.move_tables(&state, &input)?,
                 Choice::DoNothing => return Ok(()),
@@ -77,6 +77,11 @@ impl Tree {
         };
         let start = Instant::now();
         let is_last_level = usize::from(input.dest_level) + 1 == version.level_count();
+        // A deferred tree's single merge, rare and long: worth a line.
+        let whole_tree = is_last_level && version.is_tiered();
+        if whole_tree {
+            info!("Merging all {} tables of {} into one run", tables.len(), self.config.path.display());
+        }
         let mut stream = stream.evict_tombstones(is_last_level);
         let mut writer = self.prepare_writer::<K, V>(input, is_last_level)?;
 
@@ -90,6 +95,9 @@ impl Tree {
             return Err(error);
         }
         debug!("Compaction done in {:?}", start.elapsed());
+        if whole_tree {
+            info!("Merged {} into one run in {:.1?}", self.config.path.display(), start.elapsed());
+        }
 
         let mut state = self.compaction_state();
         let result = self.publish_merge(writer, tables, input);
