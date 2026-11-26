@@ -1,5 +1,6 @@
 // @ts-check
 // The rest (rest.js, rest.css): what a first chart doesn't run, loaded after it draws, so it isn't in the way.
+import { typing } from "/studio/dom.js";
 /** @typedef {typeof import("/studio/rest.js")} Rest */
 /** @type {Rest["command"]} */
 export let command;
@@ -54,8 +55,8 @@ const PRESSES = ["click", "dblclick", "contextmenu", "keydown"];
 const kept = new Map([...PRESSES, "popstate", "hashchange", "storage"].map((type) => [type, new Map()]));
 /** A press's kind is its control; a key's, its key; a stored change's, its key; a step's, a step. @param {Event} event */
 const kindOf = (event) => (event instanceof MouseEvent ? (event.target instanceof Element && event.target.closest("button, a, [role=button], [data-action]")) || event.target : "key" in event ? event.key : "");
-/** The page's chords are what its controls say as their keys (data-kbd: "⌘ K", "⇧ ⌘ Z"). @param {Event} event */
-const pageChord = (event) => event instanceof KeyboardEvent && (event.metaKey || event.ctrlKey) && event.key.length === 1
+/** The page's chords are what its controls say as their keys (data-kbd: "⌘ K", "⇧ ⌘ Z"); a field's own are its. @param {Event} event */
+const pageChord = (event) => event instanceof KeyboardEvent && (event.metaKey || event.ctrlKey) && event.key.length === 1 && !typing(event.target)
   && Boolean(document.querySelector(`[data-kbd="${event.shiftKey ? "⇧ " : ""}⌘ ${CSS.escape(event.key.toUpperCase())}"]`));
 /** @param {Event} event */
 function hold(event) {
