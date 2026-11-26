@@ -39,6 +39,7 @@ const NEAR_FINE = 4, NEAR_TOUCH = 12, LEAST = 32;
 
 // iOS WebKit can hand a touch to a native gesture with no pointerup or pointercancel (WebKit bug 239014): only a
 // touch event proves one gone (all its fingers new, or a press taking a down touch's id).
+// A press's pointerdown comes before its touchstart, a lift's pointerup before its touchend (Chromium and WebKit, iOS too): touchesNew relies on it.
 const touchesDown = new Set(), touchesNew = new Set();
 /** @type {Set<(id: number) => void>} */
 const touchOwners = new Set();
@@ -641,6 +642,7 @@ export class Chart {
       }
       if (held === event.pointerId) return void ((at.x = event.clientX), (at.y = event.clientY), point(event));
       if (!at.panning) {
+        // A finger pans only past a 6 px slop, else a hold would move the chart a little.
         if (Math.hypot(event.clientX - at.startX, event.clientY - at.startY) <= 6) return;
         (at.panning = true), clearTimeout(this.holding), (this.holding = 0);
       }

@@ -310,6 +310,7 @@ export function measure(series, time, scale, x, y, reach = 8) {
   for (let f = 0, from = 0; f < fillsMade; from = fillEnds[f++]) {
     const to = fillEnds[f], c = f * 4, bx0 = fillClips[c], by0 = fillClips[c + 1], bx1 = fillClips[c + 2], by1 = fillClips[c + 3];
     if (!(bx1 > bx0 && by1 > by0)) continue;
+    // (Clipped to a box: a point outside it measures to the nearest painted point inside, not to the outline past the box.)
     const qx = Math.min(Math.max(x, bx0), bx1), qy = Math.min(Math.max(y, by0), by1);
     if ((qx !== x || qy !== y) && winding(fills, from, to, qx + (x < bx0 ? 1e-3 : x > bx1 ? -1e-3 : 0), qy + (y < by0 ? 1e-3 : y > by1 ? -1e-3 : 0)) !== 0) {
       best = Math.min(best, Math.hypot(x - qx, y - qy));

@@ -651,6 +651,7 @@ export class Pane {
     for (let k = 0; k < this.series.length; k++) {
       const series = this.series[k];
       if (shown && this.drawnHidden[k] !== (series.hidden ? 1 : 0)) shown = false;
+      // (Brought up to the view first: what it draws may hang on it, as bubbles sized to the largest in view.)
       if (!series.hidden) series.viewed?.(time);
       if (series.over) (overs += series.version), (own ||= !series.hidden);
       else if (!series.crosshair) (versions += series.version), (fixed ||= Boolean(series.fixed && !series.hidden)), (dashed ||= Boolean((series.dashed || series.immovable) && !series.hidden)), (immovable ||= Boolean(series.immovable && !series.hidden));

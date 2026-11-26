@@ -47,6 +47,7 @@ export class Timeline {
     this.kept = Infinity;
   }
 
+  // Only float noise is allowed past an edge: a value beyond it never becomes the resting readout.
   get firstVisible() {
     return Math.ceil(this.from - NOISE);
   }

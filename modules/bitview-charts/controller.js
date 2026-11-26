@@ -107,6 +107,7 @@ export class Controller {
 
   /** @param {number} speed @param {number} at */
   #fling(speed, at) {
+    // A flick that would pass an end slows faster to rest there: held at it, it would stop dead.
     const room = this.#time.room(speed), toEnd = Math.abs(speed) / RATE > room, clock = motionClock();
     this.#flick = { glide: glide({ from: 0, velocity: speed, rate: toEnd ? Math.abs(speed) / Math.max(room, 1e-9) : RATE }), clock, start: clock(at), moved: 0, toEnd };
     this.#move();

@@ -20,7 +20,7 @@ const zoneOf = (zones, v, own) => ((k) => (k < 0 ? own : zones[k].color))(zoneIn
 const PARTIAL_DASH = [2, 2];
 const SOLID = /** @type {number[]} */ ([]);
 const SPLIT = 128;
-/** A dashed subpath longer than this is never split, so its line is drawn whole as the view moves. */
+/** A dashed subpath longer than this is never split, so its line is drawn whole as the view moves (only a whole draw finds one: a pan's strips see short subpaths alone). */
 const DRIFT = 16 * SPLIT;
 
 /** Twice its sum where odd: the canvas repeats an odd list. @param {number[]} dash */
@@ -544,8 +544,7 @@ export class Line {
     g.lineWidth = this.width;
     // (Bevelled: as round at a line's width, half the cost to stroke in Firefox, and no miter spikes.)
     g.lineJoin = "bevel";
-    // (Measured, an all-painted palette shares one pass; else a pass a color, so its painted parts record as drawn.)
-    // (Measured, a stroke a zone, clipped: what it paints is what's hit, a see-through zone none.)
+    // (Measured: an all-painted palette shares one pass, else a pass a color; a stroke a zone, clipped: what it paints is what's hit.)
     const spans = zones && measuring ? zoneSpans(zones, scale, scale.height, this.spans) : null;
     const passes = spans ? spans.length / 3 : colors && (!measuring || !this.palette.every(painted)) ? this.palette.length : 0;
     // (A color's pass traces every point in view: one for a color none has, skipped.)
