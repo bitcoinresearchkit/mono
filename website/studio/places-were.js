@@ -260,39 +260,47 @@ const side = (written, row) => {
   if (state !== undefined && !window) throw new Error(`places-were.js: a state other than a window, ${written}`);
   return { steps, wild: steps.filter((step) => step.includes("*")).length, row, ...(window ? { window } : {}) };
 };
-/**
- * Rows by the top section they start from (never a wildcard), the most specific first: the longest, then the fewest
- * wildcards.
- * @param {[Side, Side][]} pairs
- */
-const byTop = (pairs) => {
-  const at = /** @type {Map<string, [Side, Side][]>} */ (new Map());
-  for (const pair of pairs.sort(([a], [b]) => b.steps.length - a.steps.length || a.wild - b.wild)) {
-    if (pair[0].steps[0].includes("*")) throw new Error(`places-were.js: a row starts with a wildcard, ${pair[0].steps.join(" › ")}`);
-    at.set(pair[0].steps[0], [...(at.get(pair[0].steps[0]) ?? []), pair]);
+/** @typedef {{ named: Map<string, Step>, wild: [string, Step][], rows: [Side, Side][] }} Step */
+/** The rows as a tree of their first side's steps: a place is looked up in as many steps as it has, not row by row. @param {[Side, Side][]} pairs */
+const tree = (pairs) => {
+  const root = /** @type {Step} */ ({ named: new Map(), wild: [], rows: [] });
+  for (const pair of pairs) {
+    let at = root;
+    for (const step of pair[0].steps) {
+      const known = step.includes("*") ? at.wild.find(([wild]) => wild === step)?.[1] : at.named.get(step), next = known ?? { named: new Map(), wild: [], rows: [] };
+      if (!known) step.includes("*") ? at.wild.push([step, next]) : at.named.set(step, next);
+      at = next;
+    }
+    at.rows.push(pair);
   }
-  return at;
+  return root;
 };
 const sides = PLACES_WERE.map(([was, now], row) => [side(was, row), side(now, row)]);
-const toWas = byTop(sides.map(([was, now]) => [now, was])), toNow = byTop(sides.map(([was, now]) => [was, now]));
-/** The words each "*" of `pattern` stands for at the start of `path`, or null. @param {string[]} pattern @param {string[]} path */
-const match = (pattern, path) => {
-  if (pattern.length > path.length) return null;
-  const words = [];
-  for (const [i, step] of pattern.entries()) {
-    const star = step.indexOf("*");
-    if (star < 0 ? step !== path[i] : !(path[i].length >= step.length - 1 && path[i].startsWith(step.slice(0, star)) && path[i].endsWith(step.slice(star + 1)))) return null;
-    if (star >= 0) words.push(path[i].slice(star, path[i].length - (step.length - star - 1)));
-  }
-  return words;
-};
+const toWas = tree(sides.map(([was, now]) => [now, was])), toNow = tree(sides.map(([was, now]) => [was, now]));
 /** @typedef {{ path: string[], row: number, window?: string }} Place */
 /**
- * Each row's other side for `path`, of the rows `taken` (all of them by default), the most specific first, with the
- * window a folded chart opens at.
- * @param {Map<string, [Side, Side][]>} table @param {string[]} path @param {(row: number) => boolean} [taken] @returns {Place[]}
+ * Each row's other side for `path`, of the rows `taken` (all of them by default), the most specific first (the longest,
+ * then the fewest wildcards, then the first written), with the window a folded chart opens at.
+ * @param {Step} root @param {string[]} path @param {(row: number) => boolean} [taken] @returns {Place[]}
  */
-const across = (table, path, taken = () => true) => (table.get(path[0]) ?? []).flatMap(([from, to]) => ((words) => (words && taken(from.row) ? [{ path: [...to.steps.map((step) => (step.includes("*") ? step.replace("*", /** @type {string} */ (words.shift())) : step)), ...path.slice(from.steps.length)], row: from.row, ...(from.window ? { window: from.window } : {}) }] : []))(match(from.steps, path)));
+const across = (root, path, taken = () => true) => {
+  const found = /** @type {{ from: Side, to: Side, words: string[] }[]} */ ([]);
+  /** @param {Step} at @param {number} depth @param {string[]} words */
+  const walk = (at, depth, words) => {
+    for (const [from, to] of at.rows) if (taken(from.row)) found.push({ from, to, words });
+    if (depth === path.length) return;
+    const named = at.named.get(path[depth]), step = path[depth];
+    if (named) walk(named, depth + 1, words);
+    for (const [wild, next] of at.wild) {
+      const star = wild.indexOf("*"), tail = wild.length - star - 1;
+      if (step.length >= wild.length - 1 && step.startsWith(wild.slice(0, star)) && step.endsWith(wild.slice(star + 1))) walk(next, depth + 1, [...words, step.slice(star, step.length - tail)]);
+    }
+  };
+  walk(root, 0, []);
+  return found
+    .sort((a, b) => b.from.steps.length - a.from.steps.length || a.from.wild - b.from.wild || a.from.row - b.from.row)
+    .map(({ from, to, words }) => ((left) => ({ path: [...to.steps.map((step) => (step.includes("*") ? step.replace("*", /** @type {string} */ (left.shift())) : step)), ...path.slice(from.steps.length)], row: from.row, ...(from.window ? { window: from.window } : {}) }))([...words]));
+};
 /**
  * The places a place was, a merged or folded one's too, and those before them (a row's old place moved by an older
  * row: rows are kept in the order they were written), the nearest first; none if it never moved.
