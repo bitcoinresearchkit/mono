@@ -1,8 +1,6 @@
 // @ts-check
-// What a first chart doesn't run (⌘K, the grid, the inspector, the menus, editing, drawing, heatmaps, gestures), loaded
-// once the chart has drawn, or at a first press or key, whichever comes first; at once where it's what shows (the home is
-// the grid; a heatmap draws with heatmaps): see rest.js. Each module is here once it's in. What needs one before then
-// waits for it (withRest); what shows beside the chart is shown as it comes.
+// What a first chart doesn't run (rest.js, rest.css): loaded once it has drawn, at a first press or key, or at once where
+// it's what shows (the home, a heatmap). Each module here once it's in; what needs one before then asks withRest.
 /** @typedef {typeof import("/studio/rest.js")} Rest */
 /** @type {Rest["command"]} */
 export let command;
@@ -28,18 +26,21 @@ const restIn = Promise.withResolvers();
 let loading;
 /** `run` once the rest is in: now, if it is. @param {() => void} run */
 export const withRest = (run) => (command ? run() : void restIn.promise.then(run));
-/**
- * The rest, loaded once: its modules here, then what waited for them, then what was pressed or typed meanwhile. Not
- * loading (the server lost): what was pressed let go of, asked again at the next press or key; the page it's needed to
- * show (Home) says so, see start.
- */
-export const loadRest = () => (loading ??= import("/studio/rest.js").then((rest) => {
+/** The rest, once. Failed (the server lost), what was held is let go of, asked again at the next press; Home says so. */
+export const loadRest = () => (loading ??= Promise.all([import("/studio/rest.js"), restSheet()]).then(([rest]) => {
   ({ command, pen, grid, heatmaps, inspector, menus, presetsEdit, gestures, xkcd } = rest);
   restIn.resolve();
 }, (error) => {
   loading = undefined;
   throw error;
 }));
+/** rest.css, in before anything it styles shows. @returns {Promise<unknown>} */
+const restSheet = () => new Promise((resolve, reject) => {
+  const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href: import.meta.resolve("/studio/rest.css") });
+  link.onload = resolve;
+  link.onerror = () => (link.remove(), reject(new Error("/studio/rest.css did not load")));
+  document.head.append(link);
+});
 /** The rest asked for, not waited on (a first chart drawn, a first press). */
 export const askRest = () => void loadRest().catch(() => {});
 // Till the rest is in, what it answers waits for it and is replayed in order: a click, a key, Back and Forward, a link
