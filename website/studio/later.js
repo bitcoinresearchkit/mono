@@ -53,10 +53,14 @@ export const askRest = () => void loadRest().catch(() => {});
 const PRESSES = ["click", "dblclick", "contextmenu", "keydown"];
 /** The last held, by type, then kind. @type {Map<string, Map<unknown, Event>>} */
 const kept = new Map([...PRESSES, "popstate", "hashchange", "storage"].map((type) => [type, new Map()]));
-/** A press's kind is its control; a key's, its key; a stored change's, its key; a step's, a step. @param {Event} event */
-const kindOf = (event) => (event instanceof MouseEvent ? (event.target instanceof Element && event.target.closest("button, a, [role=button], [data-action]")) || event.target : "key" in event ? event.key : "");
-/** The page's chords are what its controls say as their keys (data-kbd: "⌘ K", "⇧ ⌘ Z"); a field's own are its. @param {Event} event */
-const pageChord = (event) => event instanceof KeyboardEvent && (event.metaKey || event.ctrlKey) && event.key.length === 1 && !typing(event.target)
+/** A press's kind is its control; a key's, it with its modifiers (D apart from ⌘D); a stored change's, its key; a
+ * step's, a step. @param {Event} event */
+const kindOf = (event) => (event instanceof MouseEvent ? (event.target instanceof Element && event.target.closest("button, a, [role=button], [data-action]")) || event.target
+  : event instanceof KeyboardEvent ? [event.metaKey, event.ctrlKey, event.altKey, event.shiftKey, event.key].join() : "key" in event ? event.key : "");
+/** The page's chords are what its controls say as their keys (data-kbd: "⌘ K", "⇧ ⌘ Z"), but in a field those it edits
+ * with (undo, redo, select all, the clipboard's): its own. @param {Event} event */
+const pageChord = (event) => event instanceof KeyboardEvent && (event.metaKey || event.ctrlKey) && event.key.length === 1
+  && !(typing(event.target) && "acvxyz".includes(event.key.toLowerCase()))
   && Boolean(document.querySelector(`[data-kbd="${event.shiftKey ? "⇧ " : ""}⌘ ${CSS.escape(event.key.toUpperCase())}"]`));
 /** @param {Event} event */
 function hold(event) {

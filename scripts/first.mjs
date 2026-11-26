@@ -492,7 +492,6 @@ view(head).setInt16(50, 1);
 view(head).setUint32(8, 0); // checksum adjustment: not kept (no checksums in WOFF2's tables)
 const out = new Map(tables);
 out.set("head", head), out.set("glyf", glyf.done()), out.set("loca", loca.done()), out.set("cmap", cmapTable(wanted)), out.set("gvar", gvarOf(tables.get("gvar"), kept)), out.set("GPOS", gposOf(kerning(tables, kept)));
-const file = writeWoff2(out);
 const range = FIRST.map(([a, b]) => (a === b ? `U+${a.toString(16).toUpperCase()}` : `U+${a.toString(16).toUpperCase()}-${b.toString(16).toUpperCase()}`)).join(", ");
 // (The page's face says FIRST's characters.)
 const said = STYLES.match(/InterVariable\.first\.woff2[^}]*?unicode-range:\s*([^;]+);/)?.[1];
@@ -501,8 +500,9 @@ if (process.argv.includes("--check")) {
   // (Its tables, not its bytes: another brotli packs the same tables otherwise.)
   const had = readWoff2(readFileSync(OUT)).tables;
   if (had.size !== out.size || [...out].some(([tag, table]) => !had.has(tag) || Buffer.compare(had.get(tag), table))) throw new Error(`${OUT} isn't as first.mjs writes it: run it`);
-  console.log(`Up to date: ${OUT} (${file.length} bytes)`);
+  console.log(`Up to date: ${OUT}`);
 } else {
+  const file = writeWoff2(out);
   writeFileSync(OUT, file);
   console.log(`Written: ${OUT}, ${file.length} bytes, ${kept.size} glyphs of ${glyphs.length}, ${[...out.get("GPOS")].length} bytes of kerning; unicode-range: ${range}`);
 }

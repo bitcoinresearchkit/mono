@@ -10479,8 +10479,9 @@ let checking = false;
 async function checkLive() {
   if (document.visibilityState !== "visible" || checking) return;
   // (The rest lost as it loaded, a chart drawn: asked again, as the device is back and each 15 seconds; till it's in,
-  // said as offline (the server unanswered, as it was). In, this check is its own: it retries the rest's plots.)
-  if (!command) return void loadRest().then(checkLive, () => ((answeredAt = 0), updateStatus()));
+  // said as offline (the server unanswered, as it was). Not before the first draw: it's asked by it. In, this check
+  // is its own: it retries the rest's plots.)
+  if (!command) return void (displayed && loadRest().then(checkLive, () => ((answeredAt = 0), updateStatus())));
   checking = true;
   let health;
   try {
