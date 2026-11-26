@@ -1,0 +1,1577 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's. -->
+    <script src="/assets/launch/launch.js" data-app="Bedrock" data-color="#4b342e" data-wait></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#58bbc4" />
+    <title>Bedrock · Bitview</title>
+    <meta name="description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank the day, and turn the rarest ranks back into prices." />
+    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
+    <link rel="canonical" href="https://bitview.space/bedrock/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://bitview.space/bedrock/" />
+    <meta property="og:site_name" content="Bitview" />
+    <meta property="og:title" content="Bedrock · Bitview" />
+    <meta property="og:description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank the day, and turn the rarest ranks back into prices." />
+    <meta property="og:image" content="https://bitview.space/assets/cards/bedrock.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Bedrock: Bitcoin's price over a landscape of water, sand and rock, the rock where so few coins are in profit that it has rarely happened" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.core.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      /* The name's own face: Bricolage Grotesque at its heaviest, cut down to the name's seven letters. The file keeps the
+         face's optical sizes for the sizes the name is set at, and the browser picks by the font size. (Swapped in when
+         it arrives: the name's box is its line, one font size high in any face, and nothing sits beside it, so nothing
+         moves.) */
+      @font-face {
+        font-family: "Bricolage Grotesque";
+        src: url("/assets/fonts/BricolageGrotesque-ExtraBold.bedrock.woff2") format("woff2");
+        font-weight: 800;
+        font-display: swap;
+      }
+
+      /* One world: the landscape (Studio's colours, the same in either scheme) and, around it, grounds tinted from it,
+         lighter by day and deeper by night. */
+      :root {
+        color-scheme: light dark;
+        --sans: Inter, -apple-system, system-ui, sans-serif;
+        --gutter: max(20px, env(safe-area-inset-left));
+        --column: 640px;
+        /* The landscape's inks: what's written over its water, and the price drawn over any of it. */
+        --sky: #58bbc4;
+        --over-water: #021019;
+        --cream: #f4f1ea;
+        --outline: #0b1115;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--sky);
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        font: 400 17px/1.5 var(--sans);
+        font-variant-numeric: tabular-nums;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      p,
+      ol,
+      ul,
+      figure {
+        margin: 0;
+      }
+
+      h2 {
+        text-wrap: balance;
+      }
+
+      p,
+      li {
+        text-wrap: pretty;
+      }
+
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+      }
+
+      /* ── The grounds: each section stands on one ── */
+
+      [data-ground] {
+        background: var(--ground);
+        color: var(--text);
+      }
+
+      [data-ground="water"] {
+        --ground: light-dark(#d3ecef, #0a2f45);
+        --ink: light-dark(#04202b, #eaf7f9);
+        --text: light-dark(#1d3c47, #c3dde3);
+        --soft: light-dark(#3f6370, #8fb4bf);
+        --accent: light-dark(#176b8b, #58bbc4);
+      }
+
+      [data-ground="sand"] {
+        --ground: light-dark(#f3e7c3, #36261c);
+        --ink: light-dark(#2a1a08, #fbf0d2);
+        --text: light-dark(#4a3520, #e2d2ad);
+        --soft: light-dark(#75583a, #b39c78);
+        --accent: light-dark(#87502a, #c9a54b);
+      }
+
+      [data-ground="rock"] {
+        --ground: light-dark(#dfe1e3, #2a2d30);
+        --ink: light-dark(#121416, #f4f1ea);
+        --text: light-dark(#33373a, #d0d3d5);
+        --soft: light-dark(#5a5f63, #9a9fa3);
+        --accent: light-dark(#4b4f53, #b4b8bb);
+      }
+
+      [data-ground="bedrock"] {
+        --ground: light-dark(#cdd0d3, #121416);
+        --ink: light-dark(#121416, #f4f1ea);
+        --text: light-dark(#2e3235, #c6c9cb);
+        --soft: light-dark(#52575b, #8d9296);
+        --accent: light-dark(#303438, #b4b8bb);
+      }
+
+      /* The three words, wherever they're written: each in its ground's colour, the same in either scheme. */
+      .w,
+      .s,
+      .r {
+        padding: 0.02em 0.3em 0.06em;
+        border-radius: 0.28em;
+        font-weight: 700;
+        -webkit-box-decoration-break: clone;
+        box-decoration-break: clone;
+      }
+
+      .w {
+        background: #176b8b;
+        color: #eaf7f9;
+      }
+
+      .s {
+        background: #c9a54b;
+        color: #1e1206;
+      }
+
+      .r {
+        background: #4b4f53;
+        color: #f4f1ea;
+      }
+
+      .shell {
+        width: 100%;
+        max-width: calc(var(--column) + 2 * var(--gutter));
+        margin-inline: auto;
+        padding-inline: var(--gutter) max(20px, env(safe-area-inset-right));
+      }
+
+      /* ── The hero: the landscape from the very top, the name on its calm sky, the day's reading under it ── */
+
+      .hero {
+        position: relative;
+        height: max(520px, min(100svh, 920px));
+        background: var(--sky);
+      }
+
+      .bar {
+        position: absolute;
+        inset: 0 0 auto;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: calc(52px + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) max(12px, env(safe-area-inset-right)) 0 var(--gutter);
+        color: var(--over-water);
+        pointer-events: none;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 44px;
+        font-weight: 600;
+        font-size: 15px;
+        text-decoration: none;
+        pointer-events: auto;
+
+        img {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .title {
+        position: absolute;
+        top: calc(48px + env(safe-area-inset-top));
+        left: var(--gutter);
+        z-index: 1;
+        color: var(--over-water);
+        pointer-events: none;
+
+        h1 {
+          font-family: "Bricolage Grotesque", var(--sans);
+          font-size: clamp(36px, 3.6vw, 52px);
+          font-weight: 800;
+          line-height: 1;
+          letter-spacing: -0.01em;
+        }
+
+        p {
+          margin-top: 5px;
+          font-size: clamp(14px, 1.2vw, 17px);
+          font-weight: 500;
+          letter-spacing: -0.005em;
+        }
+      }
+
+      .chart {
+        position: absolute;
+        inset: 0 0 72px;
+      }
+
+      :is(.chart, .plot):focus-visible {
+        outline: 2px solid var(--cream);
+        outline-offset: -4px;
+      }
+
+      /* A chart's reading for the day shown, on the ground the line is in that day: two lines from the left, so
+         neither moves the other as they change. */
+      .read {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        height: 72px;
+        padding-inline: var(--gutter) max(20px, env(safe-area-inset-right));
+        background: var(--zone, #4b4f53);
+        color: var(--zone-ink, #f4f1ea);
+        line-height: 1.25;
+        white-space: nowrap;
+        /* (Its words and its ground change every frame of a pan: contained, they lay out nothing but themselves; and its
+           colour changes at once, since an eased one starts again at each ground the finger crosses and cost a pan its
+           first frames without a JIT.) */
+        contain: strict;
+
+        &[data-zone="high"] {
+          --zone: #58bbc4;
+          --zone-ink: #021019;
+        }
+
+        &[data-zone="water"] {
+          --zone: #176b8b;
+          --zone-ink: #eaf7f9;
+        }
+
+        &[data-zone="sand"] {
+          --zone: #c9a54b;
+          --zone-ink: #1e1206;
+        }
+
+        &[data-zone="calibrating"] {
+          --zone: #23262a;
+          --zone-ink: #c6c9cb;
+        }
+
+        .when {
+          font-size: 13px;
+          font-weight: 500;
+          opacity: 0.8;
+        }
+
+        .what {
+          font-size: 17px;
+          font-weight: 700;
+          letter-spacing: -0.015em;
+        }
+      }
+
+      .strip {
+        position: absolute;
+        inset: auto 0 0;
+      }
+
+      .spans {
+        display: flex;
+        flex: none;
+        gap: 4px;
+        pointer-events: auto;
+
+        /* (Compass's choice buttons: a capsule around its label, and a finger's 44px around that, unseen.) */
+        button {
+          position: relative;
+          min-width: 40px;
+          height: 28px;
+          padding: 0 10px;
+          border: 0;
+          border-radius: 999px;
+          background: none;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -8px min(0px, calc((100% - 44px) / 2));
+          }
+
+          &[aria-pressed="true"] {
+            background-color: color-mix(in srgb, currentColor 16%, transparent);
+          }
+        }
+      }
+
+      .failed {
+        position: absolute;
+        inset: 40% var(--gutter) auto;
+        z-index: 3;
+        color: var(--over-water);
+        font-weight: 600;
+
+        button {
+          margin-left: 8px;
+          text-decoration: underline;
+          border: 0;
+          background: none;
+          cursor: pointer;
+        }
+      }
+
+      .kicker {
+        margin-bottom: 14px;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      /* ── A part: one thought, large, and its picture ── */
+
+      .part {
+        padding-block: clamp(56px, 10vh, 104px);
+
+        h2,
+        .lead {
+          color: var(--ink);
+          font-size: clamp(30px, 5.2vw, 52px);
+          font-weight: 750;
+          line-height: 1.1;
+          letter-spacing: -0.035em;
+        }
+
+        h3 {
+          margin: 44px 0 0;
+          color: var(--ink);
+          font-size: 22px;
+          font-weight: 750;
+          letter-spacing: -0.02em;
+        }
+
+        .lead + .lead {
+          margin-top: 0.7em;
+        }
+
+        .body {
+          margin-top: 20px;
+          max-width: 34em;
+
+          b {
+            color: var(--ink);
+          }
+        }
+
+        .body + .body,
+        h3 + .body {
+          margin-top: 14px;
+        }
+
+        .note {
+          margin-top: 14px;
+          color: var(--soft);
+          font-size: 14px;
+          line-height: 1.45;
+        }
+      }
+
+      /* A large number and what it counts. */
+      .big {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 24px;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.2;
+
+        /* (Its words' lines are broken by hand: left to wrap them, Safari on a phone breaks them shorter than its room.) */
+        > span {
+          white-space: nowrap;
+        }
+
+        output {
+          flex: none;
+          min-width: 2.8em;
+          font-size: clamp(48px, 16vw, 104px);
+          font-weight: 800;
+          line-height: 1;
+          letter-spacing: -0.05em;
+        }
+      }
+
+      /* A picture: edge to edge on a phone, a rounded plate on a wide page; one look in either scheme. */
+      .plate {
+        position: relative;
+        width: min(100%, 1040px);
+        margin: 28px auto 0;
+        overflow: hidden;
+        background: #181b1e;
+
+        @media (width >= 1080px) {
+          border-radius: 18px;
+        }
+
+        .plot {
+          height: clamp(300px, 52vh, 480px);
+        }
+      }
+
+      /* ── Step 1: the coins by age, each age's counted part lit ── */
+
+      .cols {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: clamp(180px, 32vh, 280px);
+        padding: 20px 16px 0;
+        touch-action: pan-y;
+
+        i {
+          position: relative;
+          flex: 1;
+          height: calc(var(--coins) * 100%);
+          min-height: 2px;
+          overflow: hidden;
+          border-radius: 2px 2px 0 0;
+          background: rgb(244 241 234 / 0.16);
+
+          /* (The counted part grows from the foot by transform alone.) */
+          &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--cream);
+            transform: scaleY(var(--weight));
+            transform-origin: bottom;
+            transition: transform 0.5s;
+          }
+
+          &.on {
+            background: rgb(244 241 234 / 0.4);
+          }
+        }
+      }
+
+      .ends {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 16px 12px;
+        color: #a9adb0;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      /* Which coins are counted: Compass's control (a label over pills, the one in use filled). */
+      /* Words for one weight or the other, both set in the same box: it keeps the taller's height, so a switch moves
+         nothing. */
+      .either {
+        display: grid;
+
+        > * {
+          grid-area: 1 / 1;
+          transition: opacity 0.3s, visibility 0.3s;
+        }
+      }
+
+      :root:not([data-weight="mobile"]) [data-for="mobile"],
+      :root[data-weight="mobile"] [data-for="awake"] {
+        visibility: hidden;
+        opacity: 0;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .either > *,
+        .cols i::after {
+          transition: none;
+        }
+      }
+
+      .coins {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 14px 8px;
+        margin-top: 24px;
+        color: var(--soft);
+        font-size: 13px;
+
+        > span {
+          flex-basis: 100%;
+          margin-bottom: -6px;
+
+          &:empty {
+            display: none;
+          }
+        }
+
+        button {
+          position: relative;
+          height: 32px;
+          padding: 0 12px;
+          border: 1px solid color-mix(in srgb, var(--ink) 24%, transparent);
+          border-radius: 999px;
+          background: none;
+          color: var(--text);
+          cursor: pointer;
+
+          @media (pointer: coarse) {
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -7px min(0px, calc((100% - 44px) / 2));
+            }
+          }
+
+          &[aria-pressed="true"] {
+            border-color: transparent;
+            background: color-mix(in srgb, var(--ink) 14%, transparent);
+            color: var(--ink);
+            font-weight: 600;
+            cursor: default;
+          }
+        }
+      }
+
+      /* ── Steps 2 and 3: today's slice, standing still ── */
+
+      .slice {
+        height: clamp(300px, 50vh, 460px);
+
+        canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      /* A price drawn across a slice. */
+      .level {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 0;
+        will-change: transform;
+
+        &::before {
+          content: "";
+          position: absolute;
+          inset: -1.5px 0 auto;
+          height: 3px;
+          background: var(--cream);
+          box-shadow: 0 0 0 1.5px var(--outline);
+        }
+      }
+
+      .chip,
+      .today {
+        position: absolute;
+        padding: 3px 9px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .chip {
+        left: max(12px, env(safe-area-inset-left));
+        top: -13px;
+        background: var(--cream);
+        color: var(--outline);
+        box-shadow: 0 0 0 1.5px var(--outline);
+      }
+
+      /* ── Step 4: the slice whole, the price lowered through it by the scroll ── */
+
+      .sink {
+        position: relative;
+        height: 400svh;
+        background: var(--sky);
+      }
+
+      .scene {
+        position: sticky;
+        top: 0;
+        height: 100svh;
+        overflow: hidden;
+        color: var(--over-water);
+
+        canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      /* (The lit dots, shown from the price down: a window moved down and its picture moved back up, both by
+         transform alone, so the compositor does the sinking.) */
+      .lit {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        will-change: transform;
+
+        canvas {
+          will-change: transform;
+        }
+      }
+
+      /* Today's place in the slice. */
+      .mark {
+        position: absolute;
+        inset: 0 0 auto;
+        height: 0;
+
+        i {
+          position: absolute;
+          top: -4.5px;
+          right: max(20px, env(safe-area-inset-right));
+          width: 9px;
+          height: 9px;
+          border-radius: 50%;
+          background: var(--cream);
+          box-shadow: 0 0 0 2px var(--outline);
+        }
+      }
+
+      .today {
+        right: 17px;
+        top: -8px;
+        background: var(--outline);
+        color: var(--cream);
+        font-style: normal;
+      }
+
+      .reading {
+        position: absolute;
+        inset: 0 0 auto;
+        max-width: 880px;
+        padding-top: calc(18px + env(safe-area-inset-top));
+
+        .kicker {
+          margin-bottom: 4px;
+          color: inherit;
+          opacity: 0.75;
+        }
+
+        .big {
+          margin-top: 0;
+          color: inherit;
+        }
+
+        /* (Two lines, held: the slice starts under them.) */
+        .said {
+          height: 2.6em;
+          margin-top: 6px;
+          font-size: 16px;
+          font-weight: 500;
+          line-height: 1.3;
+        }
+      }
+
+      /* ── The record: each visit to the rock a row that says what happened, the chart gliding to it ── */
+
+      .visits {
+        display: grid;
+        gap: 8px;
+        margin-top: 24px;
+
+        button {
+          display: grid;
+          grid-template-columns: 3.4em 1fr;
+          gap: 2px 12px;
+          align-items: baseline;
+          min-height: 64px;
+          padding: 10px 14px;
+          border: 1.5px solid color-mix(in srgb, var(--ink) 22%, transparent);
+          border-radius: 14px;
+          background: none;
+          color: var(--text);
+          font-size: 14px;
+          line-height: 1.35;
+          text-align: left;
+          cursor: pointer;
+
+          b {
+            grid-row: span 2;
+            color: var(--ink);
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+          }
+
+          span:first-of-type {
+            color: var(--ink);
+            font-size: 15px;
+            font-weight: 650;
+          }
+
+          &[aria-pressed="true"] {
+            border-color: var(--ink);
+            background: color-mix(in srgb, var(--ink) 9%, transparent);
+          }
+        }
+      }
+
+      /* A share as a row of dots, lit while in profit, as in the slice. */
+      .lights {
+        --dot: radial-gradient(circle, currentColor 0 3px, transparent 3.6px) 0 0 / 12px 12px;
+        color: var(--ink);
+
+        i {
+          position: relative;
+          display: block;
+          height: 36px;
+          margin-top: 10px;
+
+          &::before,
+          &::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: var(--dot);
+          }
+
+          &::before {
+            opacity: 0.22;
+          }
+
+          &::after {
+            width: var(--lit, 0%);
+          }
+        }
+      }
+
+      .limits {
+        margin-top: 28px;
+        padding: 0;
+        list-style: none;
+
+        li {
+          padding: 16px 0;
+          border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+
+          b {
+            color: var(--ink);
+          }
+        }
+      }
+
+      .more {
+        margin-top: 16px;
+        color: var(--ink);
+        font-weight: 650;
+
+        /* (A finger's reach.) */
+        a {
+          display: inline-block;
+          padding-block: 12px;
+        }
+      }
+
+      footer {
+        margin-top: 56px;
+        padding-top: 4px;
+        border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent);
+        color: var(--soft);
+        font-size: 13px;
+
+        p {
+          margin-top: 14px;
+          max-width: 44em;
+        }
+      }
+
+      .end {
+        padding-bottom: calc(40px + env(safe-area-inset-bottom));
+      }
+    </style>
+  </head>
+  <body>
+    <section class="hero" id="hero">
+      <header class="bar">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <div class="spans" role="group" aria-label="Time shown">
+          <button type="button" data-span="365" aria-pressed="false">1Y</button>
+          <button type="button" data-span="1461" aria-pressed="false">4Y</button>
+          <button type="button" data-span="2922" aria-pressed="false">8Y</button>
+          <button type="button" data-span="0" aria-pressed="true" aria-label="All, since 2015">All</button>
+        </div>
+      </header>
+      <div class="title" id="title">
+        <h1>Bedrock</h1>
+        <p>The ground under Bitcoin's price.</p>
+      </div>
+      <figure class="chart" id="chart" tabindex="0" data-label="Bitcoin's price day by day over the Bedrock landscape drawn from the {coins}: water, sand, and the rock of the floors under it"></figure>
+      <div class="failed" id="failed" hidden></div>
+      <p class="read strip" id="strip" data-zone="high"><span class="when">Loading…</span><b class="what">&nbsp;</b></p>
+    </section>
+
+    <main>
+      <section class="part" data-ground="water" id="idea">
+        <div class="shell">
+          <p class="lead">Every coin has a price: Bitcoin's price when it last moved.</p>
+          <p class="lead">When today's price is above it, the coin is in profit. Below it, at a loss.</p>
+          <p class="lead">Lower the price, and fewer of the coins in play are in profit.</p>
+          <p class="lead">Bedrock finds the price where they'd be so few that it has only happened on about 5 days in 100. Then 2 in 100, then 1, down to 1 in 1,000. Those five prices are its floors.</p>
+          <p class="body">It takes four steps. Here is each one, with today's numbers.</p>
+        </div>
+      </section>
+
+      <section class="part" data-ground="water" id="weigh">
+        <div class="shell">
+          <p class="kicker">Step 1 of 4 · Weigh</p>
+          <h2>Not every coin is in play.</h2>
+          <p class="body">Millions of coins haven't moved in ten years or more. A coin like that is unlikely to be sold tomorrow, so it shouldn't count like one that moved last week.</p>
+          <p class="body">The coins are sorted by age, the time since each last moved, and every age gets a weight between 0 and 1: 1 counts a coin fully, 0 not at all.</p>
+          <p class="body">In the picture, each bar is an age. Its height is the coins of that age, and its lit part is how much they count.</p>
+        </div>
+        <figure class="plate">
+          <div class="cols" id="ages" role="img" data-label="The coins by age, the latest to move on the left: each bar an age, its lit part the {coins}"></div>
+          <p class="ends" aria-hidden="true"><span>Moved in the last hour</span><span>longer ago →</span><span>15+ years ago</span></p>
+          <figcaption class="read" id="ages-read"><span class="when">&nbsp;</span><b class="what"></b></figcaption>
+        </figure>
+        <div class="shell">
+          <div class="coins" role="group" aria-labelledby="coins-step"><span id="coins-step">Weight</span><button type="button" data-coins="awake" aria-pressed="true">Awake</button><button type="button" data-coins="mobile" aria-pressed="false">Mobile</button><span class="coins-said" aria-live="polite"></span></div>
+          <p class="body either">
+            <span data-for="awake">The <b>Awake</b> weight builds on the Cointime framework. It looks back: for each age, take every coin that was ever that old and see what share has moved since. Coins that stayed that old for longer count for more. The other choice, Mobile, comes from Coinflow, a Bitview model, and looks ahead, to the chance that a coin that old ever moves again.</span>
+            <span data-for="mobile">The <b>Mobile</b> weight comes from Coinflow, a Bitview model. It looks ahead: for each age, the estimated chance that a coin that old ever moves again, judged from how fast coins of each age have moved so far. The other choice, Awake, builds on the Cointime framework and looks back, at the share of coins that old that have moved since.</span>
+          </p>
+          <p class="body">With either weight, a coin that just moved counts almost fully, and one that hasn't moved in fifteen years counts for almost nothing. The whole page follows the weight you pick. The weight is borrowed; the ranking and the floors that follow are Bedrock's own.</p>
+        </div>
+      </section>
+
+      <section class="part" data-ground="water" id="count-part">
+        <div class="shell">
+          <p class="kicker">Step 2 of 4 · Count</p>
+          <h2>Count the <span data-mode>awake</span> coins in profit.</h2>
+          <p class="body">Stack the <span data-mode>awake</span> coins by the price each last moved at, the cheapest at the bottom. Every dot is 0.2% of them. Draw a line at today's price: the dots under it last moved for less, so they are in profit.</p>
+          <p class="big"><output id="count-share">–</output><span>of <span data-mode>awake</span> coins<br />in profit today</span></p>
+        </div>
+        <figure class="plate slice" id="count" role="img" data-label="Today's {coins} as dots stacked by the price they last moved at, a line at today's price, the dots under it lit">
+          <canvas aria-hidden="true"></canvas>
+          <div class="level" id="count-level"><span class="chip" id="count-price"></span></div>
+        </figure>
+      </section>
+
+      <section class="part" data-ground="sand" id="rank-part">
+        <div class="shell">
+          <p class="kicker">Step 3 of 4 · Rank</p>
+          <h2>Rank today's share against every earlier day.</h2>
+          <p class="body">Here is every earlier day since 2009, sorted by its share of <span data-mode>awake</span> coins in profit: days with nearly every coin in profit at the top, days with almost none at the bottom. The longer a bar, the more days had that share.</p>
+          <p class="big"><output id="rank-share">–</output><span>of earlier days had<br />a lower share</span></p>
+        </div>
+        <figure class="plate slice" id="rank" role="img" data-label="Every earlier day piled up by its share of {coins} in profit, the rare low shares coloured as rock, a line at today's share">
+          <canvas aria-hidden="true"></canvas>
+          <div class="level" id="rank-level"><span class="chip" id="rank-today"></span></div>
+        </figure>
+        <div class="shell">
+          <p class="body">Five marks show the rare low shares: the ones that only about 5%, 2%, 1%, 0.5% and 0.1% of earlier days fell under. Everything below the first mark is the <span class="r">rock</span>.</p>
+        </div>
+      </section>
+
+      <section class="part" data-ground="sand" id="price-part">
+        <div class="shell">
+          <p class="kicker">Step 4 of 4 · Price it</p>
+          <h2>Lower the price until profit gets that rare.</h2>
+          <p class="body">Take the stack from step 2 and lower its line. As the price falls, fewer coins are in profit. Each time the share reaches one of the five marks, the price that got it there is a floor.</p>
+          <p class="body">The <span data-mode>awake</span> coins that last moved above the first floor are split by price into ten slices, each with the same number of coins. The five higher slices are <span class="w">water</span>, the five lower <span class="s">sand</span>.</p>
+        </div>
+      </section>
+
+      <section class="sink" id="sink" data-label="Lower the price through today's {coins}: the share in profit at each price, and the five floors">
+        <div class="scene" id="scene">
+          <canvas id="tank" aria-hidden="true"></canvas>
+          <div class="lit" id="lit" aria-hidden="true"><canvas id="tank-lit"></canvas></div>
+          <div class="level" id="level" aria-hidden="true"><span class="chip" id="level-price"></span></div>
+          <div class="mark" id="today-mark" aria-hidden="true"><i><span class="today">Today's price</span></i></div>
+          <div class="reading shell" id="reading">
+            <p class="kicker">Keep scrolling to lower the price</p>
+            <p class="big"><output id="sink-share">100%</output><span>of <span data-mode>awake</span> coins<br />in profit</span></p>
+            <p class="said" id="sink-said"></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="part" data-ground="rock" id="record">
+        <div class="shell">
+          <p class="kicker">Every day</p>
+          <h2>Done again each day, the floors draw the <span class="r">rock</span>.</h2>
+          <p class="body">Coins move and each day adds one more to rank against, so the five floors are worked out again every day. Day after day, they make the rock in the landscape at the top of this page. Each day is ranked only against the days before it, never with hindsight.</p>
+          <p class="body">The ranking uses every day since 2009, but this page's counts start in 2015. Before that the history to rank against is short and prices come from exchange records, so the charts mark those years "Calibrating": drag one back to see them.</p>
+          <p class="body" id="today-said"></p>
+          <p class="body" id="visits-said">Since 2015 the price has been under the first floor in a handful of visits.</p>
+          <div class="visits" id="visits-list" role="group" aria-label="Each time the price went into the rock"></div>
+        </div>
+        <figure class="plate">
+          <div class="plot" id="visits-chart" tabindex="0" data-label="Bitcoin's price over the landscape drawn from the {coins}, since 2015 or around one visit to the rock"></div>
+          <figcaption class="read" id="visits-read"><span class="when">&nbsp;</span><b class="what"></b></figcaption>
+        </figure>
+      </section>
+
+      <section class="part end" data-ground="bedrock" id="why">
+        <div class="shell">
+          <p class="kicker">The reasoning</p>
+          <h2>When most <span data-mode>awake</span> coins are at a loss, few sellers should be left.</h2>
+          <p class="body">Selling a coin below the price it last moved at means taking a loss. At the first floor, <span id="first-loss">about three in four</span> of the <span data-mode>awake</span> coins are at a loss, and more at each floor below. Most holders who could sell would be selling at a loss, and those willing to do that have likely done so already. With few sellers left, it would take little buying to stop the fall.</p>
+          <p class="body">That is the reasoning. The record above is the evidence, and it is short.</p>
+
+          <h3>Why the weights matter</h3>
+          <p class="body">Count every coin the same and the picture blurs. Coins that haven't moved in a decade last moved at a sliver of today's price. They are in profit at almost any price, and almost none of them move.</p>
+          <div class="lights" id="all-lights"><p class="big"><output id="all-share">–</output><span>of all coins<br />in profit today</span></p><i></i></div>
+          <div class="lights" id="mode-lights"><p class="big"><output id="mode-share">–</output><span>of <span data-mode>awake</span> coins<br />in profit today</span></p><i></i></div>
+
+          <h3>What it can't tell</h3>
+          <ul class="limits">
+            <li><b>The record is short.</b> A few visits to the rock can't prove a rule.</li>
+            <li><b>A floor isn't a wall.</b> It marks where profit would be that rare, not where the price must stop. <span id="deepest-said"></span></li>
+            <li><b>The floors move.</b> They are worked out again each day, so today's floors aren't next month's.</li>
+            <li><b>A rank isn't a chance.</b> "<span id="rank-quote">Only 1% of earlier days had fewer in profit</span>" describes the past. It doesn't say there's a <span id="rank-chance">1%</span> chance of going lower.</li>
+            <li><b>The last move isn't always a sale.</b> A coin moved between its owner's own wallets takes a new price here.</li>
+            <li><b>The weights are estimates.</b> Nobody knows which coins will move. An age's weight is a judgement from how coins of that age behaved before.</li>
+          </ul>
+          <p class="note">Every number is computed by this Bitview server from Bitcoin's public record; prices before late January 2015 come from exchange records. None of this is advice to buy or sell.</p>
+          <p class="more"><a id="in-studio" href="/studio/presets/bedrock/awake/floors-colored">Open this chart in Bitview Studio</a></p>
+
+          <footer>
+            <div class="coins" role="group" aria-labelledby="coins-foot"><span id="coins-foot">Weight</span><button type="button" data-coins="awake" aria-pressed="true">Awake</button><button type="button" data-coins="mobile" aria-pressed="false">Mobile</button><span class="coins-said" aria-live="polite"></span></div>
+            <p>This page is showing <span data-mode>awake</span> coins. Since 2015 the two weights' floors have sat about 5% apart in price on a typical day, and 15% or more on about one day in ten. The choice is kept in the page's address, so a link shares it.</p>
+          </footer>
+        </div>
+      </section>
+    </main>
+
+    <script type="module">
+      import { createChart, Custom, Candles, Band, lastIn } from "/modules/bitview-charts/index.js";
+      import { patternOf } from "/modules/bitview-charts/texture.js";
+      import { LANDSCAPE, SKY } from "/studio/palette.js";
+
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const all = (/** @type {string} */ selector) => /** @type {HTMLElement[]} */ ([...document.querySelectorAll(selector)]);
+      const DAY = 86400e3, EPOCH = Date.UTC(2009, 0, 1);
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dateOf = (/** @type {number} */ day) => new Date(EPOCH + day * DAY);
+      const dated = (/** @type {number} */ day) => { const d = dateOf(day); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`; };
+      const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+      const usd = (/** @type {number} */ v) => (v >= 100 ? `$${WHOLE.format(v)}` : v >= 1 ? `$${v.toFixed(2)}` : `$${v.toPrecision(2)}`);
+      /** A price as it's said in passing: three figures. */
+      const about = (/** @type {number} */ v) => (v >= 1e3 ? `$${(v / 1e3).toPrecision(3)}k` : `$${+v.toPrecision(3)}`);
+      /** Coins, as said in passing. */
+      const coins = (/** @type {number} */ v) => (v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : `${WHOLE.format(v / 1e3)}k`);
+      const percent = (/** @type {number} */ share) => `${Math.round(share * 100)}%`;
+      const still = matchMedia("(prefers-reduced-motion: reduce)");
+
+      // ── The model, as the server names it ──
+
+      /** Which coins are counted, and the weight each mode gives an age. */
+      const WEIGHTS = /** @type {const} */ ({ awake: "wakefulness", mobile: "mobility" });
+      /** @typedef {keyof typeof WEIGHTS} Mode */
+      /** The floors, first to deepest: the server's key and the share of earlier days under each. */
+      const FLOORS = [["p95", "5%"], ["p98", "2%"], ["p99", "1%"], ["p99_5", "0.5%"], ["p99_9", "0.1%"]];
+      /** The cost levels over the first floor, highest first, each with the part of those coins that last moved under
+       * it: water down to the median, sand under it. */
+      const LEVELS = /** @type {const} */ ([["p90", 0.9], ["p80", 0.8], ["p70", 0.7], ["p60", 0.6], ["median", 0.5], ["p40", 0.4], ["p30", 0.3], ["p20", 0.2], ["p10", 0.1]]);
+      /** The ages the model weighs, youngest first: the server's key, and the age as said. */
+      const AGES = [
+        ["under_1h", "under an hour"], ["1h_to_1d", "an hour to a day"], ["1d_to_1w", "a day to a week"], ["1w_to_1m", "a week to a month"],
+        ["1m_to_2m", "1 to 2 months"], ["2m_to_3m", "2 to 3 months"], ["3m_to_4m", "3 to 4 months"], ["4m_to_5m", "4 to 5 months"], ["5m_to_6m", "5 to 6 months"],
+        ["6m_to_9m", "6 to 9 months"], ["9m_to_1y", "9 months to a year"], ["1y_to_18m", "1 to 1.5 years"], ["18m_to_2y", "1.5 to 2 years"],
+        ["2y_to_3y", "2 to 3 years"], ["3y_to_4y", "3 to 4 years"], ["4y_to_5y", "4 to 5 years"], ["5y_to_6y", "5 to 6 years"], ["6y_to_7y", "6 to 7 years"],
+        ["7y_to_8y", "7 to 8 years"], ["8y_to_10y", "8 to 10 years"], ["10y_to_12y", "10 to 12 years"], ["12y_to_15y", "12 to 15 years"], ["over_15y", "over 15 years"],
+      ];
+      /** The first day the page counts, about when the price starts being read from the chain itself: the days before are shown as calibration. */
+      const FROM = Math.round((Date.UTC(2015, 0, 1) - EPOCH) / DAY);
+      /** The landscape's grounds by their bands' indices in Studio's colours (the water over the all-time high apart). */
+      const SAND = 5, ROCK = 10;
+      /** The ground of a layer: 0 over the all-time high, then the fifteen bands. */
+      const zoneOf = (/** @type {number} */ layer) => (layer === 0 ? "high" : layer <= SAND ? "water" : layer <= ROCK ? "sand" : "rock");
+      const INKS = { water: { ink: "#021019", light: "#d8f4f7" }, sand: { ink: "#1e1206", light: "#fbe8bb" }, rock: { ink: "#000000", light: "#dfe3e6" } };
+      /** Each band's marks, top to bottom: water's lines thinning with depth, sand's crumbs, a rock a floor. */
+      const MARKS = /** @type {const} */ ([
+        ["current", 1], ["current", 0.8], ["current", 0.62], ["current", 0.46], ["current", 0.32],
+        ["speckle", 1], ["speckle", 1], ["speckle", 1], ["speckle", 1], ["speckle", 1],
+        ["shale", 1], ["sandstone", 1], ["conglomerate", 1], ["granite", 0.8], ["granite", 0.35],
+      ]);
+      /** @typedef {import("/modules/bitview-charts/texture.js").Texture} Texture */
+      /** The water over the all-time high, then the fifteen bands: each a colour and its texture (one object each, so its tile is made once). */
+      const LOOKS = [SKY, ...LANDSCAPE].map((color, k) => ({
+        color,
+        texture: /** @type {Texture} */ (k ? { kind: MARKS[k - 1][0], amount: MARKS[k - 1][1], ...INKS[/** @type {"water" | "sand" | "rock"} */ (zoneOf(k))], seed: 7 + (k - 1) * 13 } : { kind: "current", amount: 1, ...INKS.water, seed: 3 }),
+      }));
+      /** The water a slice stands in before its grounds are known, and the rock's five layers. */
+      const WATER = LOOKS[3], ROCKS = LOOKS.slice(ROCK + 1);
+      const DEEPEST = LANDSCAPE[LANDSCAPE.length - 1];
+      /** The price over the landscape, and its outline. */
+      const OVER = { ink: "#f4f1ea", outline: "#0b1115" };
+
+      // ── The data: one ask a series ──
+
+      const WAIT = 20000;
+      /** @type {Map<string, Promise<any>>} */
+      const answers = new Map();
+      /** An answer asked once; a failed ask is asked again next time. @template T @param {string} key @param {() => Promise<T>} make @returns {Promise<T>} */
+      const kept = (key, make) => {
+        let got = answers.get(key);
+        if (!got) answers.set(key, (got = make().catch((error) => (answers.delete(key), Promise.reject(error)))));
+        return got;
+      };
+      const json = async (/** @type {string} */ path) => {
+        const response = await fetch(path, { signal: AbortSignal.timeout(WAIT) });
+        if (!response.ok) throw new Error(`${path}: the server answered ${response.status}`);
+        return response.json();
+      };
+      /**
+       * A series by day, whole, a column for each value of a day (one; the price's four: its open, high, low and close);
+       * NaN where there's none.
+       * @returns {Promise<Float64Array[]>}
+       */
+      const columns = (/** @type {string} */ id, width = 1) => kept(id, async () => {
+        const body = await json(`/api/series/${id}/day1?start=0`);
+        if (!Array.isArray(body?.data)) throw new Error(`${id}: the server's answer couldn't be read`);
+        const made = Array.from({ length: width }, () => new Float64Array(body.start + body.data.length).fill(NaN));
+        body.data.forEach((/** @type {any} */ day, /** @type {number} */ i) => made.forEach((column, k) => (column[body.start + i] = (width > 1 ? day?.[k] : day) ?? NaN)));
+        return made;
+      });
+      const series = async (/** @type {string} */ id) => (await columns(id))[0];
+      /** A series' latest value alone. @returns {Promise<number>} */
+      const latest = (/** @type {string} */ id) => kept(`latest ${id}`, async () => {
+        const value = await json(`/api/series/${id}/day1/latest`);
+        if (typeof value !== "number") throw new Error(`${id}: the server's latest value couldn't be read`);
+        return value;
+      });
+
+      /** @typedef {{ first: number, from: number, last: number, open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, edges: Float64Array[], floors: Float64Array[] }} Days (`first`: the first day with floors; `from`: the first counted) */
+      /** The landscape's days: the price (each day's open, high, low and close), and its fifteen edges (the all-time high, the levels, the floors) on one length. */
+      const readDays = (/** @type {Mode} */ mode) => kept(`days ${mode}`, async () => {
+        const ids = ["price_ath", ...LEVELS.map(([k]) => `bedrock_${mode}_cost_basis_above_p95_floor_${k}`), ...FLOORS.map(([k]) => `bedrock_${mode}_floor_${k}`)];
+        const [price, ...read] = await Promise.all([columns("price_ohlc", 4), ...ids.map(series)]);
+        const close = price[3], n = Math.min(close.length, ...read.map((a) => a.length)), deepest = read[read.length - 1];
+        let first = 0, last = n - 1;
+        while (first < n && !(deepest[first] > 0)) first++;
+        while (last > first && !(close[last] > 0 && deepest[last] > 0)) last--;
+        const from = Math.max(first, FROM);
+        if (last <= from) throw new Error(`the ${mode} floors: none since 2015`);
+        // (Nothing of the days before the first: the line begins there, and the ground holds its first day's to a
+        // chart's edge, as it holds its last day's past the end.)
+        const [open, high, low, shut] = price.map((a) => a.slice(0, last + 1).fill(NaN, 0, first)), edges = read.map((a) => a.slice(0, last + 1).fill(a[first], 0, first));
+        return /** @type {Days} */ ({ first, from, last, open, high, low, close: shut, edges, floors: edges.slice(-FLOORS.length) });
+      });
+
+      /** @typedef {{ today: number, edges: number[], loss: Float64Array, below: (share: number) => number }} Shares */
+      /**
+       * The coins in profit as parts of one: today's, and the landscape's fifteen edges today as such shares (the floors'
+       * as the server ranks them, the levels' as the parts they are of the coins over the first floor); and every day's
+       * share in loss, in percent, as the server gives it; and the part of the earlier days that had fewer in profit than
+       * a share.
+       */
+      const readShares = (/** @type {Mode} */ mode, /** @type {Promise<Days>} */ days) => kept(`shares ${mode}`, async () => {
+        const [d, loss, ...thresholds] = await Promise.all([days, series(`${mode}_supply_in_loss_share`), ...FLOORS.map(([k]) => series(`bedrock_${mode}_supply_in_loss_share_threshold_${k}`))]);
+        // (A series a day short of the landscape's last holds its own last there.)
+        const profit = (/** @type {Float64Array} */ v) => 1 - v[Math.min(d.last, v.length - 1)] / 100;
+        const floors = thresholds.map(profit), top = floors[0], today = profit(loss);
+        if (!(today >= 0) || !floors.every((floor) => floor >= 0)) throw new Error(`the ${mode} coins in profit today couldn't be read`);
+        // (The earlier days' shares in profit, sorted: how many had fewer than a share is a search.)
+        const earlier = Float64Array.from(loss.subarray(0, Math.min(d.last, loss.length)), (v) => 1 - v / 100).filter((v) => v >= 0).sort();
+        const below = (/** @type {number} */ share) => {
+          let lo = 0, hi = earlier.length;
+          while (lo < hi) { const mid = (lo + hi) >> 1; earlier[mid] < share ? (lo = mid + 1) : (hi = mid); }
+          return lo / earlier.length;
+        };
+        return /** @type {Shares} */ ({ today, edges: [1, ...LEVELS.map(([, part]) => top + (1 - top) * part), ...floors], loss, below });
+      });
+      /** The price at which a share of today's counted coins is in profit: from those coins by the price they last moved at. */
+      const readPriceAt = (/** @type {Mode} */ mode) => kept(`price at ${mode}`, async () => {
+        const urpd = await json(`/api/urpd/all?weight=${WEIGHTS[mode]}&agg=log1000`);
+        /** @type {number[]} */ const price = urpd.buckets.price, supply = urpd.buckets.supply, under = new Float64Array(price.length);
+        let sum = 0;
+        for (let i = 0; i < price.length; i++) under[i] = sum += supply[i];
+        return (/** @type {number} */ share) => {
+          let lo = 0, hi = price.length - 1;
+          while (lo < hi) { const mid = (lo + hi) >> 1; under[mid] < share * sum ? (lo = mid + 1) : (hi = mid); }
+          return price[lo];
+        };
+      });
+      /** Each age's coins and the weight they count by, today. @returns {Promise<{ coins: number, weight: number }[]>} */
+      const readAges = (/** @type {Mode} */ mode) => kept(`ages ${mode}`, () => Promise.all(AGES.map(async ([id]) => {
+        const [supply, weight] = await Promise.all([latest(`age_${id}_supply`), latest(`age_${id}_${WEIGHTS[mode]}`)]);
+        return { coins: supply, weight };
+      })));
+
+      /** Where a value stands among a day's edges (highest first): its layer, 0 over them all. */
+      const layerOf = (/** @type {Float64Array[]} */ edges, /** @type {number} */ day, /** @type {number} */ value) => {
+        let k = 0;
+        while (k < edges.length && value < edges[k][day]) k++;
+        return k;
+      };
+      /** A small part, as a percent: to a tenth under ten, to a hundredth under a tenth. */
+      const rarity = (/** @type {number} */ part) => `${part < 0.001 ? (100 * part).toFixed(2) : part < 0.1 ? (100 * part).toFixed(1) : Math.round(100 * part)}%`;
+      /** How rare a share in profit is, as said: by the part of the earlier days that had fewer. */
+      const rare = (/** @type {number} */ part, coins = "") => `${part ? `Only ${rarity(part)} of earlier days` : "No earlier day"} had fewer ${coins}in profit`;
+      /** A layer's ground, as said. */
+      const ground = (/** @type {number} */ layer) => (layer === 0 ? "At an all-time high" : layer > ROCK ? `In the rock, ${layer - ROCK} of ${FLOORS.length} floors deep` : `In the ${zoneOf(layer)}`);
+
+      // ── The landscape as a chart: Studio's (createChart), the same picture wherever it's drawn ──
+
+      const FONT = "500 12px Inter, -apple-system, system-ui, sans-serif";
+      /** One look in either scheme: its dates on the deepest rock. */
+      const THEME = { background: DEEPEST, text: "#a9adb0", grid: "transparent", font: FONT, crosshair: OVER.ink, across: "transparent", badge: OVER.outline, separator: "transparent", active: "transparent" };
+      /** Every day's time, from the first block's year: one timeline for every chart. */
+      let times = new Float64Array(0);
+      const ratio = () => Math.min(2, devicePixelRatio || 1);
+
+      /** The landscape's bands between `edges` (highest first): water over the first to the top, the deepest to the foot. */
+      const landscape = (/** @type {Float64Array[]} */ edges) => [
+        new Band({ upper: edges[0], to: "top", hold: true, ...LOOKS[0] }),
+        ...edges.map((upper, k) => new Band(k + 1 < edges.length ? { upper, lower: edges[k + 1], hold: true, ...LOOKS[k + 1] } : { upper, to: "foot", hold: true, ...LOOKS[k + 1] })),
+      ];
+
+      /** @type {CanvasPattern | null} */
+      let hatch = null;
+      /** Thin lines across what isn't counted. */
+      const hatched = (/** @type {CanvasRenderingContext2D} */ g) => {
+        const tile = new OffscreenCanvas(8, 8), t = /** @type {OffscreenCanvasRenderingContext2D} */ (tile.getContext("2d"));
+        (t.strokeStyle = "rgba(11, 17, 21, 0.2)"), (t.lineWidth = 1), t.beginPath(), t.moveTo(-2, 10), t.lineTo(10, -2), t.stroke();
+        return g.createPattern(tile, "repeat");
+      };
+
+      /** A reading under a chart, on the ground it names: written only as it changes. */
+      const reader = (/** @type {HTMLElement} */ el) => {
+        const when = /** @type {HTMLElement} */ (el.querySelector(".when")), what = /** @type {HTMLElement} */ (el.querySelector(".what"));
+        let was = "";
+        return (/** @type {string} */ zone, /** @type {string} */ first, /** @type {string} */ second) => {
+          const now = zone + first + second;
+          if (now === was) return;
+          (was = now), (el.dataset.zone = zone), (when.textContent = first), (what.textContent = second);
+        };
+      };
+
+      /**
+       * A chart of the price over the landscape, read into `out` as a finger or pointer moves over it: the days before
+       * the first counted under a wash, and read as calibrating.
+       * @param {HTMLElement} box @param {Days} d @param {HTMLElement} out @param {AbortSignal} signal @param {() => number} [top] the room kept clear over the line
+       */
+      function landscapeChart(box, d, out, signal, top) {
+        const chart = createChart(box, { theme: THEME, axis: 0, leftAxis: 0, timeHeight: 28, embedded: true, dateFormat: (t) => dated(Math.round((t * 1000 - EPOCH) / DAY)) });
+        signal.addEventListener("abort", () => chart.destroy());
+        const pane = chart.addPane({ scale: { mode: "log", top: 0, bottom: 0 }, format: () => "" });
+        chart.setTimes(times);
+        chart.time.first = d.first;
+        for (const band of landscape(d.edges)) pane.add(band);
+        // (The price: a line, and from three pixels a day candles, as Studio's. In the line's two inks, so the landscape
+        // keeps the colours: a day that rose filled in the line's cream, one that fell in its dark, ringed in cream.)
+        pane.add(new Candles({ open: d.open, high: d.high, low: d.low, close: d.close, up: OVER.ink, down: OVER.outline, downWick: OVER.ink, downBorder: OVER.ink, outline: OVER.outline, color: OVER.ink, width: 1.75 }));
+        // (The days before the first counted under a pale wash, hatched from its edge so the picture's strips meet:
+        // part of the picture, so it moves with a pan, and it leaves the room kept over the line clear.)
+        pane.add(new Custom({
+          draw(g, { time }) {
+            const x = time.x(d.from - 0.5), y = top ? top() + 14 : 0, h = pane.height - y;
+            if (x <= 0) return;
+            (g.fillStyle = "rgba(223, 225, 227, 0.62)"), g.fillRect(0, y, x, h);
+            if (!(hatch ??= hatched(g))) return;
+            hatch.setTransform(new DOMMatrix().translateSelf(x, 0));
+            (g.fillStyle = hatch), g.fillRect(0, y, x, h);
+          },
+        }));
+        // (Over everything: the wash's one word, in the middle of what shows of it once it has the room, and the last
+        // day ringed.)
+        pane.add(new Custom({
+          draw(g, { time, scale }) {
+            const x = Math.min(time.x(d.from - 0.5), time.width);
+            if (x >= 96) (g.font = FONT.replace("500", "700")), (g.textAlign = "center"), (g.textBaseline = "middle"), (g.lineWidth = 3), (g.lineJoin = "round"), (g.strokeStyle = OVER.ink), g.strokeText("Calibrating", x / 2, pane.height / 2), (g.fillStyle = OVER.outline), g.fillText("Calibrating", x / 2, pane.height / 2);
+            if (d.last < time.from || d.last > time.to) return;
+            g.beginPath(), g.arc(time.x(d.last), scale.y(d.close[d.last]), 4.5, 0, Math.PI * 2);
+            (g.fillStyle = OVER.ink), g.fill(), (g.lineWidth = 2), (g.strokeStyle = OVER.outline), g.stroke();
+          },
+        }, { over: true }));
+        const write = reader(out);
+        let hovered = /** @type {number | null} */ (null);
+        const tell = () => {
+          const g = chart.controller.target ?? chart.time, last = lastIn(d.close, g.from, g.to), day = hovered ?? (last >= d.first ? last : d.last), when = `${day === d.last ? "Today" : dated(day)} · ${usd(d.close[day])}`;
+          if (day < d.from) return write("calibrating", when, "Calibrating");
+          const layer = layerOf(d.edges, day, d.close[day]);
+          write(zoneOf(layer), when, ground(layer));
+        };
+        chart.onCrosshair((index, _pane, _y, input) => {
+          if (!input) return;
+          const next = index === index ? Math.max(d.first, Math.min(d.last, index)) : null;
+          if (next !== hovered) (hovered = next), tell();
+        });
+        chart.onRange(tell);
+        chart.onLayout(() => {
+          const h = pane.height;
+          // (A view never leaves the days with floors: no wider than all of them, and held on them at either end, but
+          // for the blank a chart keeps past the last.)
+          const { time } = chart;
+          (time.minSpacing = time.dataWidth / (d.last - d.first)), (time.minDataShare = time.dataWidth / time.width);
+          if (h > 0) pane.setScale("right", { top: ((top?.() ?? 0) + 14) / h, bottom: 14 / h }), chart.invalidate(true);
+        });
+        return { chart, tell };
+      }
+
+      // ── The hero ──
+
+      const GLIDE = 380;
+      function hero(/** @type {Days} */ d, /** @type {AbortSignal} */ signal) {
+        // (The sky over the line is the name's: no zoom brings the line or the land up into it.)
+        const { chart } = landscapeChart($("chart"), d, $("strip"), signal, () => $("title").getBoundingClientRect().bottom - $("chart").getBoundingClientRect().top);
+        const { time, controller } = chart, since = d.last - d.from + 1, buttons = all("[data-span]");
+        /** The span shown, in days: 0 every day counted, −1 the reader's own view. */
+        let span = 0;
+        const press = () => { for (const b of buttons) b.setAttribute("aria-pressed", String(Number(b.dataset.span) === span)); };
+        const lengthOf = (/** @type {number} */ s) => (s ? Math.min(s, since) : since);
+        let goal = /** @type {{ from: number, to: number } | null} */ (null);
+        const glide = (/** @type {number} */ s) => { span = s; press(); controller.viewTo((goal = time.shown(lengthOf(s))), still.matches ? 0 : GLIDE); };
+        for (const b of buttons) b.addEventListener("click", () => glide(Number(b.dataset.span)), { signal });
+        chart.onLayout(() => { if (span !== -1 && !controller.target) chart.show(lengthOf(span)); });
+        // (A span stays pressed only while the view is its own.)
+        chart.onRange((from, to) => {
+          if (span === -1 || (controller.target && controller.target === goal)) return;
+          const g = time.shown(lengthOf(span));
+          if (Math.abs(g.from - from) * time.spacing >= 1 || Math.abs(g.to - to) * time.spacing >= 1) (span = -1), press();
+        });
+        chart.onTimeReset(() => glide(span === -1 ? 0 : span));
+        press(), chart.show(lengthOf(span));
+      }
+
+      // ── Step 1: weigh ──
+
+      /** The coins by age, each age's counted part lit: read as a finger or pointer crosses the ages. */
+      function weigh(/** @type {{ coins: number, weight: number }[]} */ ages, /** @type {Mode} */ mode, /** @type {AbortSignal} */ signal) {
+        const box = $("ages"), write = reader($("ages-read")), most = Math.max(...ages.map((age) => age.coins));
+        // (The bars stay as the weights change: each counted part eases to its new height.)
+        if (box.children.length !== ages.length) box.replaceChildren(...ages.map(() => document.createElement("i")));
+        const bars = /** @type {HTMLElement[]} */ ([...box.children]);
+        ages.forEach((age, k) => (bars[k].style.setProperty("--coins", String(age.coins / most)), bars[k].style.setProperty("--weight", String(age.weight))));
+        const sum = ages.reduce((n, age) => n + age.coins, 0), counted = ages.reduce((n, age) => n + age.coins * age.weight, 0);
+        let on = -1;
+        const pick = (/** @type {number} */ k) => {
+          bars[on]?.classList.remove("on"), bars[(on = k)]?.classList.add("on");
+          const age = ages[k];
+          if (age) write("", `Last moved ${AGES[k][1]} ago · weight ${age.weight.toFixed(3)}`, `${coins(age.coins)} count as ${coins(age.coins * age.weight)} ${mode} coins`);
+          else write("", "Every coin · slide across to read one age", `${coins(sum)} count as ${coins(counted)} ${mode} coins`);
+        };
+        const at = (/** @type {PointerEvent} */ e) => {
+          const first = bars[0].getBoundingClientRect(), end = bars[bars.length - 1].getBoundingClientRect();
+          pick(Math.max(0, Math.min(bars.length - 1, Math.floor(((e.clientX - first.left) / (end.right - first.left)) * bars.length))));
+        };
+        box.addEventListener("pointerdown", at, { signal }), box.addEventListener("pointermove", at, { signal });
+        for (const type of ["pointerleave", "pointercancel"]) box.addEventListener(type, () => pick(-1), { signal });
+        pick(-1);
+      }
+
+      // ── Today's slice: the counted coins as dots, by the price each last moved at, a share of them a height ──
+
+      /** The dots: five hundred, each 0.2% of the counted coins, the cheapest at the foot. */
+      const DOTS = 500;
+      /** A canvas at a size, drawn in CSS pixels. */
+      const sized = (/** @type {HTMLCanvasElement} */ canvas, /** @type {number} */ w, /** @type {number} */ h) => {
+        const dpr = ratio(), g = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+        (canvas.width = Math.round(w * dpr)), (canvas.height = Math.round(h * dpr)), g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        return g;
+      };
+      /**
+       * The grounds of a slice: one more look than `shares` (highest first), each from its share down to the next, the
+       * first from the top and the last to the foot.
+       * @param {CanvasRenderingContext2D} g @param {number} w @param {number} h @param {(share: number) => number} y @param {number[]} shares @param {typeof LOOKS} looks
+       */
+      const strata = (g, w, h, y, shares, looks) => looks.forEach((look, k) => {
+        const a = k ? y(shares[k - 1]) : 0, b = k < shares.length ? y(shares[k]) : h, made = patternOf(look.texture, look.color, ratio());
+        (g.fillStyle = look.color), g.fillRect(0, a, w, b - a);
+        if (made.pattern) (g.fillStyle = made.pattern), g.fillRect(0, a, w, b - a);
+      });
+      /** Each dot of a slice `height` tall from `top`: rows from the foot, every other half a dot across as coins settle; `each` given its centre, radius and the share of coins under it. */
+      const eachDot = (/** @type {number} */ w, /** @type {number} */ top, /** @type {number} */ height, /** @type {(cx: number, cy: number, r: number, share: number) => void} */ each) => {
+        const cols = w >= 700 ? 25 : 20, rows = DOTS / cols, across = Math.min(w, 880), cw = (across - 32) / (cols + 0.5), ch = height / rows, r = Math.min(cw, ch) * 0.24, x0 = (w - across) / 2 + 16;
+        for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) each(x0 + (col + 0.5 + (row % 2) / 2) * cw, top + height - (row + 0.5) * ch, r, (row + 0.5) / rows);
+      };
+      /** A dot: lit (in profit) cream and ringed, else a shadow. */
+      const dot = (/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ cx, /** @type {number} */ cy, /** @type {number} */ r, /** @type {boolean} */ lit) => {
+        if (lit) (g.fillStyle = "rgba(11, 17, 21, 0.7)"), g.beginPath(), g.arc(cx, cy, r + 0.75, 0, 6.2832), g.fill();
+        (g.fillStyle = lit ? OVER.ink : "rgba(11, 17, 21, 0.32)"), g.beginPath(), g.arc(cx, cy, r, 0, 6.2832), g.fill();
+      };
+      /** A still slice in a figure: painted again as its box changes, a share a height in it. */
+      const slice = (/** @type {string} */ id, /** @type {AbortSignal} */ signal, /** @type {(g: CanvasRenderingContext2D, w: number, h: number, y: (share: number) => number) => void} */ paint) => {
+        const figure = $(id), canvas = /** @type {HTMLCanvasElement} */ (figure.querySelector("canvas"));
+        const watch = new ResizeObserver(() => {
+          const w = figure.clientWidth, h = figure.clientHeight;
+          if (w && h) paint(sized(canvas, w, h), w, h, (share) => (1 - share) * h);
+        });
+        watch.observe(figure), signal.addEventListener("abort", () => watch.disconnect());
+      };
+
+      // ── Step 2: count ──
+
+      function count(/** @type {Days} */ d, /** @type {Shares} */ past, /** @type {AbortSignal} */ signal) {
+        ($("count-share").textContent = percent(past.today)), ($("count-price").textContent = `Today · ${usd(d.close[d.last])}`);
+        slice("count", signal, (g, w, h, y) => {
+          strata(g, w, h, y, [], [WATER]);
+          eachDot(w, 0, h, (cx, cy, r, share) => dot(g, cx, cy, r, share < past.today));
+          $("count-level").style.transform = `translateY(${y(past.today)}px)`;
+        });
+      }
+
+      // ── Step 3: rank ──
+
+      /** Every earlier day piled at its share in profit, a bar a point of share; the rock from the shares the server ranks rare. */
+      function rank(/** @type {Days} */ d, /** @type {Shares} */ past, /** @type {AbortSignal} */ signal) {
+        const bins = new Float64Array(50), end = Math.min(d.last, past.loss.length);
+        for (let day = 0; day < end; day++) {
+          const profit = 100 - past.loss[day];
+          if (profit >= 0) bins[Math.min(bins.length - 1, Math.floor((profit / 100) * bins.length))]++;
+        }
+        ($("rank-share").textContent = rarity(past.below(past.today))), ($("rank-today").textContent = `Today · ${$("rank-share").textContent} of days below`);
+        // (The bars' length by the second-fullest: the top one, the years every coin was in profit, runs off the edge.)
+        const most = [...bins].sort((a, b) => b - a)[1] || 1, floors = past.edges.slice(-FLOORS.length);
+        slice("rank", signal, (g, w, h, y) => {
+          strata(g, w, h, y, floors, [WATER, ...ROCKS]);
+          const bar = h / bins.length;
+          g.fillStyle = OVER.ink;
+          bins.forEach((n, k) => n && g.fillRect(0, h - (k + 1) * bar + 0.5, Math.max(1.5, (n / most) * w * 0.7), Math.max(1, bar - 1)));
+          // (Its axis said at the right, each word outlined: a long bar may run under it.)
+          (g.font = FONT.replace("500", "700")), (g.textAlign = "right"), (g.lineWidth = 3), (g.lineJoin = "round"), (g.strokeStyle = OVER.outline);
+          for (const [text, at, baseline] of /** @type {const} */ ([["100% in profit", 8, "top"], ["50%", y(0.5), "middle"], ["5% of days are below this mark", y(floors[0]) - 5, "bottom"], ["0%", h - 8, "bottom"]])) (g.textBaseline = baseline), g.strokeText(text, w - 12, at), g.fillText(text, w - 12, at);
+          $("rank-level").style.transform = `translateY(${y(past.today)}px)`;
+        });
+      }
+
+      // ── Step 4: price it ──
+
+      /** How far the price sinks: to a tenth of the coins in profit. */
+      const LEAST = 0.1;
+      /** The part of the scene's scroll that sinks the price: a rest at the bottom after it. */
+      const SINKING = 0.92;
+      /** A ground's name, in its colour. */
+      const named = (/** @type {number} */ layer) => { const zone = zoneOf(Math.max(1, layer)); return `<span class="${zone[0]}">${zone[0].toUpperCase()}${zone.slice(1)}.</span>`; };
+
+      /**
+       * The pinned scene: today's slice with all its grounds, the price lowered through it by the scroll, each floor
+       * named as the price goes under it.
+       * @param {Days} d @param {Shares} past @param {(share: number) => number} priceAt @param {Mode} mode @param {AbortSignal} signal
+       */
+      function scene(d, past, priceAt, mode, signal) {
+        const section = $("sink"), stage = $("scene"), lit = $("lit"), level = $("level"), reading = $("reading"), mark = $("today-mark");
+        const tank = /** @type {HTMLCanvasElement} */ ($("tank")), tankLit = /** @type {HTMLCanvasElement} */ ($("tank-lit"));
+        const shareOut = $("sink-share"), priceOut = $("level-price"), saidOut = $("sink-said");
+        const shares = past.edges;
+        /** The scroll's three equal parts: through the water, through the sand, through the rock (as much scroll as either, though it's the thinnest). */
+        const stops = [1, shares[SAND], shares[ROCK], LEAST];
+        /** The slice's place in the scene: its top (every coin in profit) and height; the section's place on the page. */
+        let top = 0, height = 0, from = 0, travel = 1;
+        const y = (/** @type {number} */ share) => top + (1 - share) * height;
+
+        function draw() {
+          const w = stage.clientWidth, h = stage.clientHeight;
+          if (!w || !h) return;
+          top = Math.round(reading.getBoundingClientRect().bottom - stage.getBoundingClientRect().top + 18);
+          height = h - top;
+          const g = sized(tank, w, h), over = sized(tankLit, w, h);
+          strata(g, w, h, y, shares, LOOKS);
+          eachDot(w, top, height, (cx, cy, r) => (dot(g, cx, cy, r, false), dot(over, cx, cy, r, true)));
+          mark.style.transform = `translateY(${y(past.today)}px)`;
+          (from = section.offsetTop), (travel = section.offsetHeight - h), (wrote = -1);
+          place();
+        }
+
+        /** The share last written: the words change only as it does (a dot's worth), the sinking itself by transform alone. */
+        let wrote = -1;
+        /** Everything where the scroll has it: a function of the scroll alone, so any jump lands right. */
+        function place() {
+          const t = Math.max(0, Math.min(1, (scrollY - from) / travel / SINKING)), part = Math.min(2, Math.floor(t * 3));
+          const share = stops[part] + (stops[part + 1] - stops[part]) * (t * 3 - part), at = y(share);
+          lit.style.transform = level.style.transform = `translateY(${at}px)`;
+          tankLit.style.transform = `translateY(${-at}px)`;
+          const step = Math.round(share * DOTS);
+          if (step === wrote) return;
+          wrote = step;
+          shareOut.textContent = percent(share);
+          priceOut.textContent = t === 0 ? "All-time high" : about(priceAt(share));
+          // (The layer the price is in: over the first edge only at the very top.)
+          let layer = t === 0 ? 0 : 1;
+          while (layer < shares.length && share < shares[layer]) layer++;
+          const deep = layer - ROCK;
+          saidOut.innerHTML = layer === 0 ? `Every ${mode} coin is in profit.`
+            : deep > 0 ? `${named(layer)} ${deep < FLOORS.length ? `${deep} of ${FLOORS.length} floors deep` : `Under all ${deep} floors`}, below ${usd(d.floors[deep - 1][d.last])}. ${rare(past.below(share))}.`
+            : layer > SAND ? `${named(layer)} Fewer and fewer ${mode} coins are in profit.`
+            : `${named(layer)} Most ${mode} coins are still in profit.`;
+        }
+
+        let queued = 0;
+        addEventListener("scroll", () => (queued ||= requestAnimationFrame(() => ((queued = 0), place()))), { passive: true, signal });
+        const watch = new ResizeObserver(draw);
+        watch.observe(stage), watch.observe(reading), signal.addEventListener("abort", () => (watch.disconnect(), cancelAnimationFrame(queued)));
+      }
+
+      // ── The record: the visits to the rock ──
+
+      /** Days apart at most for two stays under the first floor to be one visit. */
+      const APART = 180;
+      function record(/** @type {Days} */ d, /** @type {Shares} */ past, /** @type {Mode} */ mode, /** @type {AbortSignal} */ signal) {
+        /** @type {{ from: number, to: number, days: number, deepest: number, low: number }[]} */
+        const runs = [];
+        for (let day = d.from; day <= d.last; day++) {
+          const deep = layerOf(d.edges, day, d.close[day]) - ROCK;
+          if (deep < 1) continue;
+          let run = runs[runs.length - 1];
+          if (!run || day - run.to > APART) runs.push((run = { from: day, to: day, days: 0, deepest: 0, low: day }));
+          (run.to = day), run.days++, (run.deepest = Math.max(run.deepest, deep));
+          if (d.close[day] < d.close[run.low]) run.low = day;
+        }
+        const list = $("visits-list");
+        const { chart, tell } = landscapeChart($("visits-chart"), d, $("visits-read"), signal);
+        const since = d.last - d.from + 1, under = runs.reduce((sum, run) => sum + run.days, 0), deep = layerOf(d.edges, d.last, d.close[d.last]) - ROCK;
+        $("today-said").textContent = deep > 0 ? `Today the price is in the rock, ${deep} of ${FLOORS.length} floors deep. ${rare(past.below(past.today), `${mode} coins `)}.` : "Today the price is above every floor.";
+        const through = runs.find((run) => run.deepest === FLOORS.length);
+        $("deepest-said").textContent = through ? `In ${dateOf(through.low).getUTCFullYear()} the price went under all ${FLOORS.length}.` : "";
+        $("visits-said").textContent = `Since 2015 the price has been under the first floor in ${runs.length} ${runs.length === 1 ? "visit" : "visits"}: dips less than six months apart count as one. Tap a visit to see it on the chart.`;
+        /** What the chart can show, each a row: every day counted, then each visit with room around it. */
+        const views = [
+          { name: "All", from: d.from, to: d.last, head: `${WHOLE.format(under)} days under the first floor`, said: `of ${WHOLE.format(since)} since 2015, in ${runs.length} ${runs.length === 1 ? "visit" : "visits"}.` },
+          ...runs.map((run) => {
+            const pad = Math.max(240, (run.to - run.from) * 0.8), open = run.to === d.last, later = d.close[run.low + 365];
+            // (A visit under way on the first day counted: only its days since are in the count.)
+            const early = run.from === d.from && layerOf(d.edges, d.from - 1, d.close[d.from - 1]) > ROCK;
+            return {
+              name: open ? "Now" : String(dateOf(run.low).getUTCFullYear()), from: Math.max(d.first, run.from - pad), to: Math.min(d.last + 20, run.to + pad),
+              head: `${run.days} ${run.days === 1 ? "day" : "days"} under${open ? " so far" : early ? " since 2015" : ""}, up to ${run.deepest} of ${FLOORS.length} floors deep`,
+              said: `${early ? "Began before 2015. " : ""}Lowest: ${usd(d.close[run.low])} on ${dated(run.low)}.${later > 0 ? ` A year later: ${usd(later)}.` : ""}`,
+            };
+          }),
+        ];
+        let picked = 0;
+        const pick = (/** @type {number} */ k, glide = true) => {
+          picked = k;
+          [...list.children].forEach((b, i) => b.setAttribute("aria-pressed", String(i === k)));
+          const view = views[k];
+          glide && !still.matches ? chart.controller.viewTo({ from: view.from, to: view.to }, 600) : (chart.setRange(view.from, view.to, { exact: true }), tell());
+        };
+        list.replaceChildren(...views.map((view, k) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          for (const [tag, text] of [["b", view.name], ["span", view.head], ["span", view.said]]) button.appendChild(document.createElement(tag)).textContent = text;
+          button.addEventListener("click", () => pick(k));
+          return button;
+        }));
+        chart.onLayout(() => { if (!chart.controller.target) pick(picked, false); });
+        pick(picked, false);
+      }
+
+      // ── Why the weights matter: every coin against the counted ones ──
+
+      function weights(/** @type {number} */ every, /** @type {Shares} */ past) {
+        for (const [id, share] of /** @type {const} */ ([["all", every], ["mode", past.today * 100]])) {
+          $(`${id}-share`).textContent = `${Math.round(share)}%`;
+          $(`${id}-lights`).style.setProperty("--lit", `${share}%`);
+        }
+        $("first-loss").textContent = `${Math.round(100 * (1 - past.edges[ROCK]))}%`;
+        // (The limits' example of a rank: today's, or the first floor's while the price is over it.)
+        const part = Math.min(past.below(past.today), past.below(past.edges[ROCK]));
+        ($("rank-quote").textContent = rare(part)), ($("rank-chance").textContent = rarity(part));
+      }
+
+      // ── Which coins are counted: the whole page drawn for one mode, the choice kept in the address ──
+
+      /** The mode the whole page shows, none yet; the mode the hero stands for; the latest asked for (an older ask still being read is dropped). */
+      let shown = /** @type {Mode | null} */ (null), heroOf = /** @type {Mode | null} */ (null), asked = /** @type {Mode | null} */ (null), turns = 0;
+      /** What stands for the mode shown: its charts, listeners and watchers, ended together. */
+      let built = new AbortController();
+      const say = (/** @type {string} */ text) => { for (const el of all(".coins-said")) el.textContent = text; };
+
+      /** Everything under the hero, read for a mode. */
+      const readRest = (/** @type {Mode} */ mode, /** @type {Promise<Days>} */ days) => Promise.all([readShares(mode, days), readPriceAt(mode), readAges(mode), latest("supply_in_profit_share")]);
+
+      /** The page's words for a weight: its pill pressed, its coins' name wherever it's written or said to assistive tech, and in Studio's address. */
+      function worded(/** @type {Mode} */ mode) {
+        document.documentElement.dataset.weight = mode;
+        for (const b of all("[data-coins]")) b.setAttribute("aria-pressed", String(b.dataset.coins === mode));
+        for (const el of all("[data-mode]")) el.textContent = mode;
+        for (const el of all("[data-label]")) el.setAttribute("aria-label", /** @type {string} */ (el.dataset.label).replace("{coins}", `${mode} coins`));
+        /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/bedrock/${mode}/floors-colored`;
+      }
+      function raiseHero(/** @type {Mode} */ mode, /** @type {Days} */ d) {
+        built.abort(), (built = new AbortController());
+        worded(mode);
+        times = Float64Array.from({ length: d.last + 1 }, (_, i) => EPOCH / 1000 + i * 86400);
+        hero(d, built.signal), (heroOf = mode);
+      }
+
+      /** @param {Mode} mode @param {Days} d @param {Awaited<ReturnType<typeof readRest>>} rest */
+      function build(mode, d, [past, priceAt, ages, every]) {
+        // (The hero raised alone on the first load stands; any other time, everything is built anew.)
+        if (shown || heroOf !== mode) raiseHero(mode, d);
+        const { signal } = built;
+        weigh(ages, mode, signal), count(d, past, signal), rank(d, past, signal), scene(d, past, priceAt, mode, signal), record(d, past, mode, signal), weights(every, past);
+        shown = mode;
+        const url = new URL(location.href);
+        mode === "awake" ? url.searchParams.delete("coins") : url.searchParams.set("coins", mode);
+        history.replaceState(null, "", url);
+      }
+
+      /** The page for a mode: on the first load the hero as soon as its days are read; then all of it at once, the mode shown kept if the new one can't be read. */
+      async function show(/** @type {Mode} */ mode) {
+        const turn = ++turns, days = readDays(mode), rest = readRest(mode, days);
+        (asked = mode), say("");
+        try {
+          if (!heroOf) {
+            // (Before anything is shown, the words are the asked weight's from the start.)
+            worded(mode);
+            const d = await days;
+            if (turn !== turns) return;
+            if (!heroOf) raiseHero(mode, d), /** @type {any} */ (window).bitviewLaunch?.ready();
+          }
+          const [d, read] = await Promise.all([days, rest]);
+          if (turn === turns) build(mode, d, read);
+        } catch (error) {
+          console.error(error);
+          if (turn !== turns) return;
+          asked = shown;
+          const why = error instanceof Error ? error.message : String(error);
+          if (shown) return say(`The ${mode} coins couldn't be read: ${why}.`);
+          /** @type {any} */ (window).bitviewLaunch?.ready();
+          const failed = $("failed");
+          failed.textContent = `The page's numbers couldn't be read: ${why}.`;
+          const again = failed.appendChild(document.createElement("button"));
+          (again.type = "button"), (again.textContent = "Try again"), again.addEventListener("click", () => location.reload());
+          failed.hidden = false;
+        }
+      }
+
+      for (const b of all("[data-coins]")) b.addEventListener("click", () => { if (b.dataset.coins !== asked) show(/** @type {Mode} */ (b.dataset.coins)); });
+      show(new URLSearchParams(location.search).get("coins") === "mobile" ? "mobile" : "awake");
+    </script>
+  </body>
+</html>
