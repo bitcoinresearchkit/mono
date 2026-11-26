@@ -705,6 +705,11 @@ export class Chart {
     /** The separator over pane `on` dragged by a press. @param {PointerEvent} event @param {number} on */
     const size = (event, on) => {
       hold(event);
+      // (A drag, not a click: the one a browser may send on its lift is taken (WebKit's, at the press's start, on what
+      // slid under it there: a legend's item), any pointer; none past the next press, nor a key's (detail 0).)
+      const swallow = (/** @type {MouseEvent} */ click) => click.detail && (click.stopPropagation(), click.preventDefault());
+      addEventListener("click", swallow, { capture: true, once: true, signal });
+      addEventListener("pointerdown", () => removeEventListener("click", swallow, true), { capture: true, once: true, signal });
       (sizing = [this.panes[on], this.panes[this.#next(on)]]), (sizer = event.pointerId), (this.resizing = true), (this.separatorLit = this.panes[on]), this.controller.stop(), this.#clearPointer();
     };
     /** The separator band's press that began on a page's own element (see take), till it goes up or down, or not. */
