@@ -1509,6 +1509,8 @@ const STARTERS = [
   { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
   { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
 ];
+/** @param {Layer | null | undefined} self */
+/** The starters of one line on the selected layer, else the first: ↵ adds one, ⇥ writes it in. */
 function recipesFor() {
   const inputs = chart.layers.filter((layer) => layer.type !== "cloud" && layer.type !== "signal");
   const on = inputs.find((layer) => layer.id === selected) ?? inputs[0];

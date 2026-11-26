@@ -1069,6 +1069,8 @@ function crumbsHtml(steps) {
   return steps.map((step) => `<button type="button" dir="auto" data-place="${escapeHtml(JSON.stringify(step.at))}"><span>${escapeHtml(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
 }
 
+/** @returns {Action[]} */
+/** A place's mark, as its row's (`open`: one the open chart's in). */
 function placeMark(/** @type {any} */ at, open = false) {
   const folder = at && "folder" in at && at.folder ? folderById(at.folder) : undefined;
   return folder ? folderMark(folder) : at && "path" in at ? sectionMark(presetNodeAt(at.path), open) : open ? ICONS.folderOpen : ICONS.folder;
