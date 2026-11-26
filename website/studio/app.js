@@ -3068,9 +3068,6 @@ resized.observe($("overview"));
 // The chart (bitview-charts): its timeline (`engine.time`), its panes, its drawing. On an element of its own in the
 // page's box, sized by the page (Studio sizes and pins it while a motion stretches its picture: see `resized`).
 const engine = createChart($("chart").appendChild(Object.assign(document.createElement("div"), { style: `width: ${$("chart").clientWidth}px; height: ${$("chart").clientHeight}px` })));
-// (Its date axis at least as high as a control's reach, a finger's by touch: it's dragged to scale time, and Full
-// screen in the corner beside it fits its reach there, never over the price scale. Before its first layout.)
-engine.timeHeight = Math.max(engine.timeHeight, parseFloat(css("--control-hit")));
 engine.theme = chartTheme();
 /** The right axis' width till it's drawn (then as its labels need: the library's), where a layer's on that side. */
 const RIGHT_AXIS = engine.axis;

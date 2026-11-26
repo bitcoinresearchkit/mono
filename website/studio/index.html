@@ -3129,6 +3129,11 @@
         inset: 0;
         z-index: 4;
         margin: auto;
+
+        /* (Its reach up over the price scale's foot, not down: the chart clips there, at the time axis' foot.) */
+        &::before {
+          inset-block: calc(24px - var(--control-hit)) 0;
+        }
       }
 
       /* A pane's legend (the library's, its items Studio's: see updateLegends): one row of its layers, each its mark,
@@ -8063,9 +8068,10 @@
         color: var(--muted);
         font-size: 13px;
 
+        /* (The way up, its reach whole beside the first level's: 10px apart.) */
         > .cap {
           flex: none;
-          margin: 0 2px 0 -6px;
+          margin: 0 6px 0 -6px;
         }
       }
 
@@ -9190,6 +9196,11 @@
           body[data-sheet="panel"] .card-inner {
             padding-bottom: var(--sheet-half-height);
           }
+
+          /* (The foot's controls their reach over it, clear of the sheet's top: half a reach under their middles.) */
+          body[data-sheet="panel"] .stage-foot {
+            padding-bottom: 8px;
+          }
         }
 
         /* (Focused as it opens, as a whole: no ring around the sheet.) */
@@ -10292,7 +10303,7 @@
       /* Reach belongs to the shared controls: 24px for a pointer, 44px for touch. The visible controls keep their size.
          Low specificity leaves positioned controls in place. The reach stays behind the contents, so an eye or
          an error's tip inside a control keeps its own input. Prose links keep their text's reach. */
-      :where(button, a:is(.btn, .cap, .brand), [role="button"], .navigator) {
+      :where(button, a:is(.btn, .cap, .brand), [role="button"], .navigator, .live) {
         position: relative;
         isolation: isolate;
 
@@ -10309,6 +10320,11 @@
       @media (pointer: coarse) {
         :root {
           --control-hit: 44px;
+        }
+
+        /* (Its actions a reach tall, over its line.) */
+        .palette-foot {
+          height: calc(var(--control-hit) + 1px);
         }
 
         :is(.legend, .tabs.lens-switch) {
@@ -10447,7 +10463,7 @@
 
         /* (A segment's reach up and down only, its neighbors flush (⌘K's crumbs and its scope too); a row's eye's away
            from the row, over its edge; a level's and a field head's button's, half the gap between them.) */
-        :is(.tabs button, .path button, .crumbs button, .scope)::before {
+        :is(.tabs button, .path button, .crumbs button:not(.cap), .scope)::before {
           inset-inline: 0;
         }
 
@@ -10604,8 +10620,9 @@
           margin-right: 30px;
         }
 
+        /* (Its reach whole inside the tile: its middle 22px in from the tile's edge.) */
         .tile .tile-more {
-          right: 3px;
+          right: 5px;
         }
 
         .home.picking .tile .tile-more {
