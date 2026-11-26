@@ -35,6 +35,7 @@
 import { HOLDER_COLORS, LANDSCAPE, SKY, holderColor, recencyColor, wheelColor } from "./palette.js";
 import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
+import { POWER_LAW } from "/modules/power-law/index.js";
 
 /** @param {any} n */
 const byDate = (n) => isLeaf(n) && n.indexes().includes("day1");
@@ -991,8 +992,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // The subsidy as 52,560 blocks a year (the schedule, not the blocks found); the model price is PlanB's 2019 fit
             // of market cap to it (e^14.6 × S2F^3.3).
       ((supply, epoch) => ((s2f) => chart("Stock-to-flow", "Stock-to-flow", [price(), { formula: `exp(14.6) * (${s2f}) ^ 3.3 / ${supply}`, label: "Model price", format: "usd", color: "violet", dash: 3 }, { formula: s2f, label: "Stock-to-flow", format: "number", pane: 2, color: "orange" }], { log: [2] }))(`${supply} / (50 * 0.5 ^ ${epoch} * 52560)`))(t.holders.all.supply.total.btc.name, blocks.halving.epoch.name),
-      // Burger's 2019 fit. The floor's −0.6 in log10 is a corridor page's reading: Burger gives it in a figure only.
-      ((days) => chart("Power law", "Power-law fit and floor", [price(), { formula: `10 ^ (-17.01593313 + 5.84509376 * log(${days}))`, label: "Power-law fit", format: "usd", color: "violet", dash: 3 }, { formula: `10 ^ (-17.61593313 + 5.84509376 * log(${days}))`, label: "Power-law floor", format: "usd", color: "green" }]))("(date - 2009-01-03) / 86400"),
+      (({ intercept, slope, support }, days) => chart("Power law", "Power-law fit and support line", [price(), { formula: `10 ^ (${intercept} + ${slope} * log(${days}))`, label: "Power-law fit", format: "usd", color: "violet", dash: 3 }, { formula: `10 ^ (${intercept} - ${support} + ${slope} * log(${days}))`, label: "Power-law floor", format: "usd", color: "green" }]))(POWER_LAW, "(date - 2009-01-03) / 86400"),
       chart("RHODL", "RHODL ratio", [price(), series(t.age.rhodlRatio, "RHODL ratio", { pane: 2 })], { log: [2] }),
       chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: PRICE_COLORS.realizedPrice }), series(ct.prices.trueMarketMean.value, "True market mean", { color: PRICE_COLORS.trueMarketMean }), series(ct.prices.cointime.value, "Cointime price", { color: PRICE_COLORS.cointime }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: PRICE_COLORS.capitalizedPrice })]),
       // (Woo's and Puell's 2019 lines from coin days destroyed, each valued at its block's price: terminal for the tops,
