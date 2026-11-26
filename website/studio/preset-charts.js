@@ -260,8 +260,10 @@ function pristine(/** @type {Chart} */ doc) {
   const seen = pristineSeen.get(doc), current = seen?.at === doc.updated ? seen : undefined;
   if (current?.as !== undefined) return current.as;
   const was = current?.from ?? doc, hash = contentHash(was);
-  // Migration (stamps from before windows could be picked): as made all the same, stamped anew. Delete in 2027-11.
-  if (hash !== doc.base && doc.base === hashOf(contentOf({ ...was, range: "", index: "day1" }))) doc.base = hash;
+  // Migration (stamps made with no window folded: from before windows could be picked, and an "…, all time" chart's
+  // from before all time was one): as made all the same, stamped anew. Delete in 2027-12.
+  const unfolded = { ...was, range: "", index: "day1" };
+  if (hash !== doc.base && [unfolded, { ...unfolded, panes: was.panes.map(({ size, ...pane }) => pane) }].some((as) => doc.base === hashOf(contentOf(as)))) doc.base = hash;
   const as = hash === doc.base;
   pristineSeen.set(doc, { at: doc.updated, as });
   return as;
