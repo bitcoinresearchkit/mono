@@ -370,13 +370,14 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * `whole`: the cohort is all of what its shares divide (a family's `all`): its shares would be a flat 100%, so left
    * out. `of`: whose coins and capital its shares divide. `urpd`: its URPD cohort, where it has one. `color`: its single
    * lines; series with a meaning of their own keep theirs. `weight`: its URPD's weighting. `beside`: its shares in
-   * loss shown beside its whole's, in place of profit and loss stacked.
+   * loss shown beside its whole's, in place of profit and loss stacked. `activity`: charts of its activity measured
+   * elsewhere (an age band's Cointime and Coinflow), after its own.
    * @param {any} c
    * @param {string} who
-   * @param {{ whole?: boolean, of?: Whole, urpd?: string, color?: string, weight?: string, inWhole?: string, beside?: [string, string] }} [options]
+   * @param {{ whole?: boolean, of?: Whole, urpd?: string, color?: string, weight?: string, inWhole?: string, beside?: [string, string], activity?: ChartNode[] }} [options]
    * @returns {(ChartNode | SectionNode)[]}
    */
-  const cohort = (c, who, { whole = false, of = ALL, urpd = undefined, color = undefined, weight = undefined, inWhole = who, beside = undefined } = {}) => {
+  const cohort = (c, who, { whole = false, of = ALL, urpd = undefined, color = undefined, weight = undefined, inWhole = who, beside = undefined, activity: activityMore = [] } = {}) => {
     const titled = (/** @type {string} */ what) => `${what}: ${who}`;
     /**
      * Beside its whole's the share in loss is two unfilled lines: a fill would tint the plot under them.
@@ -389,7 +390,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
     };
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
-    return [
+    // A member's realized price first, at its root: the one cost basis chart most look for. (The whole market's stays
+    // in its Cost basis, taken apart at the top of Valuation.)
+    const cost = c.costBasis ? /** @type {ChartNode[]} */ (costCharts(c, who, urpd, color, weight).filter(Boolean)) : [], realizedPrice = whole ? undefined : cost.find((item) => item.name === "Realized price");
+    // (The whole market's folders are taken apart at the top of their subjects: none lifted in pairs.)
+    return lift([
+      realizedPrice,
       supply && section("Supply", [
         chart("Total", titled("Supply"), amount(supply.total, "Supply", color)),
         inProfit && chart("In profit and loss", titled("Supply in profit and loss"), [
@@ -421,8 +427,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...change(utxos.count?.delta, "Change", titled("UTXO count change")),
         ...flow(utxos.spentCount, "Spent", titled(numberOf("UTXOs spent")), { color }),
       ]),
-      // Of transfer volume alone (UTXOs' and addresses' cohorts), its two charts lifted.
-      ...((/** @type {(ChartNode | SectionNode)[]} */ items) => (items.length > 2 ? [section("Activity", items)] : items.map((item) => ({ ...item, name: liftedName("Activity", item.name) }))))(!activity ? [] : /** @type {(ChartNode | SectionNode)[]} */ ([
+      activity && section("Activity", [
         ...flow(activity.transferVolume, "Transfer volume", titled("Transfer volume"), { color }),
         ...flowShares(c, "Transfer volume share", who, color),
         ...(activity.transferVolume?.inProfit ? [
@@ -434,7 +439,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...flow(activity.coindaysDestroyed, "Coin days destroyed", titled("Coin days destroyed"), { color }),
         ...flow(activity.coindaysCreated, "Coin days created", titled("Coin days created"), { color }),
         activity.dormancy && chart("Dormancy", titled("Dormancy"), windows(activity.dormancy, "", { color })),
-      ].filter(Boolean))),
+        ...activityMore,
+      ]),
       realized && section("Realized", [
         realized.profit && chart("Profit and loss", titled("Realized profit and loss"), [
           ...windows(realized.profit.sum, "Profit", { extra: { color: "green" } }), ...windows(realized.loss.sum, "Loss", { extra: { color: "red" } }),
@@ -478,8 +484,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
           [unrealized.profit, "Profit", { color: "green" }], [unrealized.loss, "Loss", { color: "red" }], [unrealized.netPnl, "Net", { pane: 2, ...baseline }],
         ]).map(([node, label, look]) => ({ formula: `100 * ${node.name} / ${MARKET_CAP}`, label, format: "percent", ...look }))),
       ]),
-      c.costBasis && section("Cost basis", costCharts(c, who, urpd, color, weight)),
-    ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
+      cost.length > (realizedPrice ? 1 : 0) && section("Cost basis", cost.filter((item) => item !== realizedPrice)),
+    ].filter(Boolean), !whole);
   };
   /** @param {string} realized @param {string} ratio @param {(what: string) => string} titled */
   const deviationCharts = (realized, ratio, titled) => [
@@ -621,21 +627,28 @@ export function studioPresets(client, facts, report = (problem) => console.error
     sellSideRiskRatio24h: { what: "sell-side risk ratio", window: "_24h", event: "Seller exhaustion", color: "yellow", place: "above", low: true },
     supplyInLoss: { what: "supply in loss", event: "Supply in loss", color: "orange", place: "below" },
   };
-  /** @param {SectionNode | ChartNode} item */
-  const lift = (item) => {
-    if (!("items" in item) || item.items.length !== 1 || "items" in item.items[0]) return item;
-    const only = item.items[0];
-    return { ...only, name: only.name === "Total" ? item.name : only.name === "Profit and loss" ? extended(item.name, " profit and loss") : only.name };
+  /** A folder of one or two charts opened up into its parent: one as itself, two named after it (D's thin folders). */
+  const lift = (/** @type {(ChartNode | SectionNode)[]} */ items, pairs = true) => {
+    const names = (/** @type {SectionNode} */ folder) => folder.items.map((inner) => placeOf(inner.name).toLowerCase());
+    // (A pair stays a folder beside a bigger one holding its names too: Addresses' Count and Change beside UTXOs'.)
+    const parallel = (/** @type {SectionNode} */ folder) => items.some((other) => other !== folder && "items" in other && other.items.length > 2 && names(folder).every((name) => names(other).includes(name)));
+    return items.flatMap((item) => {
+      if (!("items" in item) || item.items.length > (pairs ? 2 : 1) || item.items.some((inner) => "items" in inner) || (item.items.length === 2 && parallel(item))) return [item];
+      if (item.items.length === 2) return item.items.map((inner) => ({ ...inner, name: liftedName(placeOf(item.name), inner.name) }));
+      const only = item.items[0];
+      return [{ ...only, name: only.name === "Total" ? item.name : only.name === "Profit and loss" ? extended(item.name, " profit and loss") : only.name }];
+    });
   };
 
   /**
    * `disjoint`: the members split the whole (bands), so their amounts stack, and show as shares. `profile`: its members
    * (all coins aside) split the whole: their supply profiles stack in one chart. `inTime`: members are times (halving
    * epochs, years), oldest first, colored as halving cycles and years are (recencyColor). `wholeAbove`: all coins compared,
-   * their own charts placed elsewhere (see market).
+   * their own charts placed elsewhere (see market). `more`: comparisons and members' activity measured elsewhere (age
+   * bands' Cointime and Coinflow), after the family's own.
    * @param {[string, any][]} all
    * @param {(key: string) => Naming | undefined} naming
-   * @param {{ each: string, within?: string, disjoint?: boolean, profile?: boolean, wholeAbove?: boolean, inTime?: boolean, of?: Whole, known?: Record<string, string>, weight?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
+   * @param {{ each: string, more?: { compare: ChartNode[], activity: Map<string, ChartNode[]> }, within?: string, disjoint?: boolean, profile?: boolean, wholeAbove?: boolean, inTime?: boolean, of?: Whole, known?: Record<string, string>, weight?: string, lookOf?: (key: string) => { color: string, opacity?: number } | undefined, urpd?: (key: string) => string | undefined }} options
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (all, naming, options) => {
@@ -717,12 +730,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ...compare("Net realized profit and loss", (c) => c.realized?.netPnl?.sum?._1m, { level: 0, window: "_1m" }),
       ...compare("SOPR", (c) => c.realized?.sopr?._1w, { level: 1, log: true, window: "_1w" }),
     ];
+    comparisons.push(...(options.more?.compare ?? []));
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
       ...members.flatMap(([key, c], i) => {
         if (options.wholeAbove && key === "all") return [];
         const n = nameOf(key), color = key === "all" ? undefined : colors[i];
-        return member(n.name, cohort(c, n.who, { whole: key === "all" && !n.of, of: n.of ?? options.of, urpd: options.urpd?.(key), color, weight: options.weight, inWhole: n.inWhole, beside: n.beside }));
+        return member(n.name, cohort(c, n.who, { whole: key === "all" && !n.of, of: n.of ?? options.of, urpd: options.urpd?.(key), color, weight: options.weight, inWhole: n.inWhole, beside: n.beside, activity: options.more?.activity.get(key) }));
       }),
     ];
   };
@@ -839,19 +853,22 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * @param {Side} side
    * @param {Bands} d
    * @param {Kin} kin
+   * @param {Stored} stored
    * @returns {SectionNode}
    */
-  const cutoffFolder = (list, edges, { over, up }, d, kin) => {
+  const cutoffFolder = (list, edges, { over, up }, d, kin, stored) => {
     const nodes = list.map(([, node]) => node), at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
     const [side, each, place] = over ? [d.family.over, d.family.each, "Over"] : [d.family.under, d.family.under, "Under"];
     const members = edges.flatMap((key) => {
       const low = reported(key, band(key, d.family))?.[d.end];
       if (low === undefined) return [];
       const said = `${side} ${low}${d.after}`;
+      const held = stored[key]?.[over ? "over" : "under"];
+      if (held) return [{ key: held, c: t.holders[held], naming: { name: shownAs(`${place} ${placeEdge(key, d.end)}${d.after}`, capitalized(said)), who: holder(held).who } }];
       return [{ key, c: cutoffCohort(nodes, at(key), up), naming: { name: shownAs(`${place} ${placeEdge(key, d.end)}${d.after}`, capitalized(said)), who: d.who(said), inWhole: d.inWhole?.(said) } }];
     });
     const naming = new Map(members.map((m) => [m.key, m.naming]));
-    return section(shownAs(`${place} ${d.article}`, capitalized(`${each} each ${d.noun}`)), family(members.map((m) => [m.key, m.c]), (key) => naming.get(key), { each: `${each} each ${d.noun}`, ...kin }));
+    return section(shownAs(`${place} ${d.article}`, capitalized(`${each} each ${d.noun}`)), family(members.map((m) => [m.key, m.c]), (key) => naming.get(key), { each: `${each} each ${d.noun}`, ...kin, urpd: (key) => (Object.hasOwn(t.holders, key) ? holderName(key).urpd : undefined) }));
   };
   /**
    * @param {[string, any][]} list
@@ -859,17 +876,23 @@ export function studioPresets(client, facts, report = (problem) => console.error
    * @param {Bands} d
    * @param {Kin} [kin]
    * @param {Side[]} [sides]
+   * @param {Stored} [stored]
    * @returns {SectionNode[]}
    */
-  const cutoffs = (list, edges, d, kin = {}, sides = [OVER, UNDER]) => {
+  const cutoffs = (list, edges, d, kin = {}, sides = [OVER, UNDER], stored = {}) => {
     const at = (/** @type {string} */ key) => list.findIndex(([k]) => k === key);
     const known = edges.filter((key) => {
       if (at(key) < 0) report(`no band ${key} to cut at; its cutoffs left out`);
       return at(key) >= 0;
     });
-    return sides.map((side) => cutoffFolder(list, known.filter((key) => (side.up ? list.length - at(key) : at(key)) > 1), side, d, kin));
+    return sides.map((side) => cutoffFolder(list, known.filter((key) => (side.up ? list.length - at(key) : at(key)) > 1), side, d, kin, stored));
   };
   /** @typedef {{ over: boolean, up: boolean }} Side */
+  /**
+   * The holder groups stored whole at a cutoff's edge, taken in place of the bands' sums there: the heatmaps and
+   * percentiles no sum makes come with them.
+   * @typedef {Record<string, { over: string, under: string }>} Stored
+   */
   const OVER = { over: true, up: true }, UNDER = { over: false, up: false };
   /**
    * A profit band holds its high edge, a loss band its low one (see BAND_SIDES): its bands run from the deepest loss
@@ -890,11 +913,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const list = entries(bands).reverse();
     return [...cutoffs(list, PROFIT_EDGES, profits, kin, [OVER]), ...cutoffs(list, LOSS_EDGES, losses, kin, [{ over: true, up: false }])];
   };
-  /**
-   * Not 4 and 6 months: those are stored (Holders' age cutoffs).
-   * @type {string[]}
-   */
-  const AGE_EDGES = ["_1dTo1w", "_1wTo1m", "_1mTo2m", "_2mTo3m", "_3mTo4m", "_5mTo6m", "_9mTo1y", "_1yTo18m", "_18mTo2y", "_2yTo3y", "_3yTo4y", "_4yTo5y", "_5yTo6y", "_6yTo7y", "_7yTo8y", "_8yTo10y", "_10yTo12y", "_12yTo15y", "over15y"];
+  /** @type {Stored} */
+  const AGE_STORED = { _4mTo5m: { over: "over4m", under: "under4m" }, _6mTo9m: { over: "over6m", under: "under6m" } };
+  /** @type {string[]} */
+  const AGE_EDGES = ["_1dTo1w", "_1wTo1m", "_1mTo2m", "_2mTo3m", "_3mTo4m", "_4mTo5m", "_5mTo6m", "_6mTo9m", "_9mTo1y", "_1yTo18m", "_18mTo2y", "_2yTo3y", "_3yTo4y", "_4yTo5y", "_5yTo6y", "_6yTo7y", "_7yTo8y", "_8yTo10y", "_10yTo12y", "_12yTo15y", "over15y"];
   /** @type {string[]} */
   const PROFIT_EDGES = ["profit10To20Percent", "profit20To30Percent", "profit30To40Percent", "profit40To50Percent", "profit50To60Percent", "profit60To70Percent", "profit70To80Percent", "profit80To90Percent", "profit90To100Percent", "profit100To200Percent", "profit200To300Percent", "profit300To500Percent", "profit500To1000Percent"];
   /**
@@ -1084,21 +1106,21 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ]),
     ], { icon: "swap" }),
     section("Holders", [
-      ...holderSets(entries(t.holders), (members, each, profile) => family(members, holder, { each, urpd: (key) => holderName(key).urpd, profile, wholeAbove: true })),
+      ...family(entries(t.holders).filter(([key]) => key === "all" || key === "sth" || key === "lth"), holder, { each: "by holder group", urpd: (key) => holderName(key).urpd, profile: true, wholeAbove: true }),
+      ...cutoffs(entries(t.age.ranges), AGE_EDGES, AGES, {}, [UNDER, OVER], AGE_STORED),
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { each: "by entry price", disjoint: true, lookOf: (key) => (key === "discount" ? { color: "green" } : key === "premium" ? { color: "red" } : undefined) })),
-    ], { icon: "people" }),
-    section("Coin age", [
       // The oldest band has no upper edge: nothing ages out of it, its aged-out series are zeros by construction, so no
-            // such charts.
-      section("Age bands", family(entries(t.age.ranges).map(([key, c], i, all) => /** @type {[string, any]} */ (i === all.length - 1 ? [key, { ...c, supply: { ...c.supply, agedOut: undefined } }] : [key, c])), ageBand, { each: "by age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
-      ...cutoffs(entries(t.age.ranges), AGE_EDGES, AGES),
+      // such charts.
+      ((awake, mobile) => section("Age bands", family(entries(t.age.ranges).map(([key, c], i, all) => /** @type {[string, any]} */ (i === all.length - 1 ? [key, { ...c, supply: { ...c.supply, agedOut: undefined } }] : [key, c])), ageBand, { each: "by age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" }, more: { compare: [...awake.compare, ...mobile.compare], activity: new Map([...awake.activity].map(([key, charts]) => [key, [...charts, ...(mobile.activity.get(key) ?? [])]])) } })))(cointimeBands(ct.ageRanges), coinflowBands(cf.ageRanges)),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { each: "by halving epoch last moved", disjoint: true, inTime: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { each: "by vintage", disjoint: true, inTime: true })),
-    ], { icon: "hourglass" }),
-    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => {
-      const sides = profitsOf(key), d = sides.bands;
-      return holderSection(key, [...profitCutoffs(bands, sides), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...sides.kin })]);
-    })), { icon: "percent" }),
+      section("Profit bands", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => {
+        const sides = profitsOf(key), d = sides.bands;
+        return holderSection(key, [...profitCutoffs(bands, sides), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...sides.kin })]);
+      }))),
+      holderSection("awake", weightedSets(ct.cohorts, "awake", "wakefulness")),
+      holderSection("mobile", weightedSets(cf.cohorts, "mobile", "mobility")),
+    ], { icon: "people" }),
     section("Mining", [
       section("Hashing", [
         chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
@@ -1278,14 +1300,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
       section("By balance", family(entries(t.addresses.balances), bandMember(client.AMOUNT_RANGE_NAMES, BALANCES), { each: "by address balance", disjoint: true, of: ADDRESSED })),
       ...cutoffs(entries(t.addresses.balances), AMOUNT_EDGES, BALANCES, { of: ADDRESSED }),
     ], { icon: "key" }),
-    section("Cointime", [
-      section("Age bands", cointimeBands(ct.ageRanges)),
-      holderSection("awake", weightedSets(ct.cohorts, "awake", "wakefulness")),
-    ], { icon: "clock" }),
-    section("Coinflow", [
-      section("Age bands", coinflowBands(cf.ageRanges)),
-      holderSection("mobile", weightedSets(cf.cohorts, "mobile", "mobility")),
-    ], { icon: "swap" }),
   ];
 
   /** @param {any} node @param {string} name @param {string} title */
@@ -1528,7 +1542,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       { key: "respent", name: "Respent", having: "more than one spent output" },
       { key: "exposed", name: "Exposed", having: "exposed keys or scripts" },
     ].filter(({ key }) => a[key]).map((kind) => ({ ...kind, set: kind.adjective ? `${kind.adjective} ${these}` : `${these} with ${kind.having}` }));
-    return [
+    return lift([
       // Over funded addresses: empty ones aren't counted.
       a.avgBalance && chart("Average funded balance", of("Average balance of funded addresses"), amount(a.avgBalance, "Average balance"), { log: [1, 2] }),
       section("Count", [
@@ -1556,7 +1570,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ]);
       }),
       ...(a.supply ? cohort({ supply: a.supply, capital: a.capital }, `Coins in ${these}`) : []),
-    ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
+    ].filter(Boolean));
   }
   /**
      * A pool that hasn't found a block in 3 years (by the chain's facts) opens on its whole history: in the default 8
@@ -1604,40 +1618,40 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const naming = (/** @type {string} */ key) => ({ name: holder(key).name, who: capitalized(holderName(key).of(on)), of: groupWhole(key), beside });
     return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, each, profile) => family(members, naming, { each, within: holderName(on).who, urpd: (key) => holderName(key).urpd, weight, profile }));
   }
-  /** @param {any} ranges */
+  /** Its charts by age band, to go with the age bands' own. @param {any} ranges @returns {{ compare: ChartNode[], activity: Map<string, ChartNode[]> }} */
   function cointimeBands(ranges) {
     const list = ageBands(ranges), colors = ramp(list.length);
-    return [
-      section("Compare", [
+    return {
+      compare: [
         chart("Wakefulness", "Wakefulness by age band", list.map(([, node, n], i) => series(node.wakefulness, shownOf(n.name), { color: colors[i] })), { absolute: list.map(([, node, n], i) => series(node.coindaysConsumed.cumulative, shownOf(n.name), { color: colors[i] })), absoluteLog: true }),
         ...parts(["Awake supply", "Awake supply by age band"], ["Awake supply share", "Awake supply share by age band"], list.map(([, node, n], i) => series(node.awake.supply.btc, shownOf(n.name), { color: colors[i] }))),
         ...parts(["Dormant supply", "Dormant supply by age band"], ["Dormant supply share", "Dormant supply share by age band"], list.map(([, node, n], i) => series(node.dormant.supply.btc, shownOf(n.name), { color: colors[i] }))),
-      ]),
-      ...list.map(([, node, n]) => section(n.name, [
+      ],
+      activity: new Map(list.map(([key, node, n]) => [key, [
         ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed that built up while coins were ${n.said}`),
         chart("Wakefulness", `Wakefulness: ${n.who}`, [series(node.wakefulness, "Wakefulness", { color: "orange" }), series(node.awakeToDormant, "Awake to dormant", { color: "sky", pane: 2 })]),
         chart("Awake and dormant", `Awake and dormant supply: ${n.who}`, [series(node.awake.supply.btc, "Awake", { color: "orange", type: "area" }), series(node.dormant.supply.btc, "Dormant", { color: "gray", type: "area" }), series(node.awake.supply.usd, "Awake, value", { color: "green", type: "area", pane: 2 }), series(node.dormant.supply.usd, "Dormant, value", { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
-      ])),
-    ];
+      ]])),
+    };
   }
-  /** @param {any} ranges */
+  /** Its charts by age band, to go with the age bands' own. @param {any} ranges @returns {{ compare: ChartNode[], activity: Map<string, ChartNode[]> }} */
   function coinflowBands(ranges) {
     const list = ageBands(ranges), colors = ramp(list.length);
-    return [
-      section("Compare", [
+    return {
+      compare: [
         chart("Spending rate", "Spending rate by age band", list.map(([, node, n], i) => series(node.spendingRate, shownOf(n.name), { color: colors[i] })), { log: [1] }),
         chart("Spending exposure", "Spending exposure by age band", list.map(([, node, n], i) => series(node.spendingExposure, shownOf(n.name), { color: colors[i] }))),
         chart("Mobility", "Mobility by age band", list.map(([, node, n], i) => series(node.mobility, shownOf(n.name), { color: colors[i] }))),
         ...parts(["Mobile supply", "Mobile supply by age band"], ["Mobile supply share", "Mobile supply share by age band"], list.map(([, node, n], i) => series(node.mobile.supply.btc, shownOf(n.name), { color: colors[i] }))),
         ...parts(["Immobile supply", "Immobile supply by age band"], ["Immobile supply share", "Immobile supply share by age band"], list.map(([, node, n], i) => series(node.immobile.supply.btc, shownOf(n.name), { color: colors[i] }))),
-      ]),
-      ...list.map(([, node, n]) => section(n.name, [
+      ],
+      activity: new Map(list.map(([key, node, n]) => [key, [
         chart("Spending rate", `Spending rate: ${n.who}`, [series(node.spendingRate, "Spending rate", { color: "orange" })]),
         chart("Spending exposure", `Spending exposure: ${n.who}`, [series(node.spendingExposure, "Spending exposure", { color: "sky" })]),
         chart("Mobility", `Mobility: ${n.who}`, [series(node.mobility, "Mobility", { color: "violet" })]),
         chart("Mobile and immobile", `Mobile and immobile supply: ${n.who}`, [series(node.mobile.supply.btc, "Mobile", { color: "orange", type: "area" }), series(node.immobile.supply.btc, "Immobile", { color: "gray", type: "area" }), series(node.mobile.supply.usd, "Mobile, value", { color: "green", type: "area", pane: 2 }), series(node.immobile.supply.usd, "Immobile, value", { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
-      ])),
-    ];
+      ]])),
+    };
   }
 
   /** @param {Sketch} c @param {boolean} hidden @returns {Sketch} */

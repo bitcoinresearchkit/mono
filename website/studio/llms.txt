@@ -120,22 +120,19 @@ Each section's page lists its charts; each chart's own address is in https://bit
 - Supply (8): https://bitview.space/studio/presets/supply/index.html.md
 - Activity (15): https://bitview.space/studio/presets/activity/index.html.md
   - Cointime (8): https://bitview.space/studio/presets/activity/cointime/index.html.md
-- Holders (419): https://bitview.space/studio/presets/holders/index.html.md
+- Holders (4235): https://bitview.space/studio/presets/holders/index.html.md
   - Compare (26): https://bitview.space/studio/presets/holders/compare/index.html.md
   - Short-term holders (52): https://bitview.space/studio/presets/holders/short-term-holders/index.html.md
   - Long-term holders (50): https://bitview.space/studio/presets/holders/long-term-holders/index.html.md
-  - Age cutoffs (221): https://bitview.space/studio/presets/holders/age-cutoffs/index.html.md
+  - Under each age (729): https://bitview.space/studio/presets/holders/under-an-age/index.html.md
+  - At or above each age (675): https://bitview.space/studio/presets/holders/over-an-age/index.html.md
   - Entry price (70): https://bitview.space/studio/presets/holders/entry-price/index.html.md
-- Coin age (2636): https://bitview.space/studio/presets/coin-age/index.html.md
-  - Age bands (802): https://bitview.space/studio/presets/coin-age/age-bands/index.html.md
-  - At or above each age (575): https://bitview.space/studio/presets/coin-age/over-an-age/index.html.md
-  - Under each age (625): https://bitview.space/studio/presets/coin-age/under-an-age/index.html.md
-  - Halving epochs (148): https://bitview.space/studio/presets/coin-age/halving-epochs/index.html.md
-  - Vintages (486): https://bitview.space/studio/presets/coin-age/vintages/index.html.md
-- Profitability (588): https://bitview.space/studio/presets/profitability/index.html.md
-  - All coins (196): https://bitview.space/studio/presets/profitability/all-coins/index.html.md
-  - Short-term holders (196): https://bitview.space/studio/presets/profitability/short-term-holders/index.html.md
-  - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/index.html.md
+  - Age bands (975): https://bitview.space/studio/presets/holders/age-bands/index.html.md
+  - Halving epochs (148): https://bitview.space/studio/presets/holders/halving-epochs/index.html.md
+  - Vintages (486): https://bitview.space/studio/presets/holders/vintages/index.html.md
+  - Profit bands (588): https://bitview.space/studio/presets/holders/profit-bands/index.html.md
+  - Awake coins (218): https://bitview.space/studio/presets/holders/awake-coins/index.html.md
+  - Mobile coins (218): https://bitview.space/studio/presets/holders/mobile-coins/index.html.md
 - Mining (669): https://bitview.space/studio/presets/mining/index.html.md
   - Hashing (9): https://bitview.space/studio/presets/mining/hashing/index.html.md
   - Difficulty (4): https://bitview.space/studio/presets/mining/difficulty/index.html.md
@@ -167,9 +164,3 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - By balance (287): https://bitview.space/studio/presets/addresses/by-balance/index.html.md
   - At or above each address balance (271): https://bitview.space/studio/presets/addresses/over-a-balance/index.html.md
   - Under each address balance (271): https://bitview.space/studio/presets/addresses/under-a-balance/index.html.md
-- Cointime (292): https://bitview.space/studio/presets/cointime/index.html.md
-  - Age bands (74): https://bitview.space/studio/presets/cointime/age-bands/index.html.md
-  - Awake coins (218): https://bitview.space/studio/presets/cointime/awake-coins/index.html.md
-- Coinflow (317): https://bitview.space/studio/presets/coinflow/index.html.md
-  - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/index.html.md
-  - Mobile coins (218): https://bitview.space/studio/presets/coinflow/mobile-coins/index.html.md

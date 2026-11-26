@@ -40,7 +40,7 @@ import { placeNames, presetNodeAt, folderById, presetChart, presetEdited, preset
  */
 // seo.mjs checks each is a preset.
 const RECOMMENDED = [
-  "Valuation › Price by MVRV zone", "Price › Technical › Halving cycles", "Valuation › On-chain prices › Compare", "Valuation › Market and realized cap", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
+  "Valuation › Price by MVRV zone", "Price › Technical › Halving cycles", "Valuation › On-chain prices › Compare", "Valuation › Market and realized cap", "Valuation › MVRV", "Holders › Age bands › Compare › Supply share",
   "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price and value",
   "Supply › Inflation", "Valuation › Rarity meter › Full, bands", "Valuation › Bedrock › Unweighted › Floors", "Network › Transactions › Count",
 ];

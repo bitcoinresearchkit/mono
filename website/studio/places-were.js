@@ -63,11 +63,6 @@ const PLACES_WERE = [
   ["Network › Transactions › CPFP › Children", "Network › Transactions › CPFP, children"],
   ["Network › Outputs › Coinbase › Count", "Network › Outputs › Coinbase, count"],
   ["Network › Outputs › Coinbase › By type", "Network › Outputs › Coinbase, by type"],
-  // A cohort's Activity of transfer volume alone, lifted.
-  ["UTXOs › * › * › Activity › Transfer volume", "UTXOs › * › * › Activity, transfer volume"],
-  ["UTXOs › * › * › Activity › Transfer volume share", "UTXOs › * › * › Activity, transfer volume share"],
-  ["Addresses › * › * › Activity › Transfer volume", "Addresses › * › * › Activity, transfer volume"],
-  ["Addresses › * › * › Activity › Transfer volume share", "Addresses › * › * › Activity, transfer volume share"],
   // Chain statistics, once a section of their own: each now beside the native charts of its subject, or one of them
   // at a window.
   [`${CS} › Yearly › Transaction fees per year`, "Fees › Fees paid#window=1y"],
@@ -209,14 +204,61 @@ const PLACES_WERE = [
   [`${CS} › Inputs and outputs › Inputs per outputs`, "Network › Inputs and outputs › Inputs per output"],
   [`${CS} › UTXO set › UTXO set delta by script type`, "UTXOs › By type › Compare › Change per day"],
   [`${CS} › Transactions › Direct address reuse`, "Addresses › Reused › Direct reuse, share"],
+  // A cohort's Activity of transfer volume alone, lifted.
+  ["UTXOs › * › * › Activity › Transfer volume", "UTXOs › * › * › Activity, transfer volume"],
+  ["UTXOs › * › * › Activity › Transfer volume share", "UTXOs › * › * › Activity, transfer volume share"],
+  ["Addresses › * › * › Activity › Transfer volume", "Addresses › * › * › Activity, transfer volume"],
+  ["Addresses › * › * › Activity › Transfer volume share", "Addresses › * › * › Activity, transfer volume share"],
+  // Holders hold every grouping of coins: by age, profit, wakefulness and mobility too.
+  ["Coin age › Age bands", "Holders › Age bands"],
+  ["Coin age › Under an age", "Holders › Under an age"],
+  ["Coin age › Over an age", "Holders › Over an age"],
+  ["Coin age › Halving epochs", "Holders › Halving epochs"],
+  ["Coin age › Vintages", "Holders › Vintages"],
+  ["Holders › Age cutoffs › Under *", "Holders › Under an age › Under *"],
+  ["Holders › Age cutoffs › Over *", "Holders › Over an age › Over *"],
+  ["Holders › Age cutoffs › Compare", "Holders › Over an age › Compare"],
+  ["Profitability", "Holders › Profit bands"],
+  ["Cointime › Awake coins", "Holders › Awake coins"],
+  ["Coinflow › Mobile coins", "Holders › Mobile coins"],
+  ["Cointime › Age bands › Compare", "Holders › Age bands › Compare"],
+  ["Coinflow › Age bands › Compare", "Holders › Age bands › Compare"],
+  ["Cointime › Age bands › * › Coin days consumed", "Holders › Age bands › * › Activity › Coin days consumed"],
+  ["Cointime › Age bands › * › Wakefulness", "Holders › Age bands › * › Activity › Wakefulness"],
+  ["Cointime › Age bands › * › Awake and dormant", "Holders › Age bands › * › Activity › Awake and dormant"],
+  ["Coinflow › Age bands › * › Spending rate", "Holders › Age bands › * › Activity › Spending rate"],
+  ["Coinflow › Age bands › * › Spending exposure", "Holders › Age bands › * › Activity › Spending exposure"],
+  ["Coinflow › Age bands › * › Mobility", "Holders › Age bands › * › Activity › Mobility"],
+  ["Coinflow › Age bands › * › Mobile and immobile", "Holders › Age bands › * › Activity › Mobile and immobile"],
+  // A folder of two lifted (presets.js lift).
+  ["Holders › * › * › Unrealized › Profit and loss", "Holders › * › * › Unrealized, profit and loss"],
+  ["Holders › * › * › Unrealized › Relative to market cap", "Holders › * › * › Unrealized, relative to market cap"],
+  ["Holders › Profit bands › * › * › Supply › Total", "Holders › Profit bands › * › * › Supply, total"],
+  ["Holders › Profit bands › * › * › Supply › Share of *", "Holders › Profit bands › * › * › Supply, share of *"],
+  ["Holders › Profit bands › * › * › Capital › Total", "Holders › Profit bands › * › * › Capital, total"],
+  ["Holders › Profit bands › * › * › Capital › Share of *", "Holders › Profit bands › * › * › Capital, share of *"],
+  ["Holders › Profit bands › * › * › * › Supply › Total", "Holders › Profit bands › * › * › * › Supply, total"],
+  ["Holders › Profit bands › * › * › * › Supply › Share of *", "Holders › Profit bands › * › * › * › Supply, share of *"],
+  ["Holders › Profit bands › * › * › * › Capital › Total", "Holders › Profit bands › * › * › * › Capital, total"],
+  ["Holders › Profit bands › * › * › * › Capital › Share of *", "Holders › Profit bands › * › * › * › Capital, share of *"],
+  // A member's realized price first, at its root.
+  ["Holders › Short-term holders › Cost basis › Realized price", "Holders › Short-term holders › Realized price"],
+  ["Holders › Long-term holders › Cost basis › Realized price", "Holders › Long-term holders › Realized price"],
+  ["Holders › Age bands › * › Cost basis › Realized price", "Holders › Age bands › * › Realized price"],
+  ["Holders › Under an age › * › Cost basis › Realized price", "Holders › Under an age › * › Realized price"],
+  ["Holders › Over an age › * › Cost basis › Realized price", "Holders › Over an age › * › Realized price"],
+  ["Holders › Awake coins › * › Cost basis › Realized price", "Holders › Awake coins › * › Realized price"],
+  ["Holders › Awake coins › Age cutoffs › * › Cost basis › Realized price", "Holders › Awake coins › Age cutoffs › * › Realized price"],
+  ["Holders › Mobile coins › * › Cost basis › Realized price", "Holders › Mobile coins › * › Realized price"],
+  ["Holders › Mobile coins › Age cutoffs › * › Cost basis › Realized price", "Holders › Mobile coins › Age cutoffs › * › Realized price"],
 ];
 
-/** @typedef {{ steps: string[], wild: number, window?: string }} Side */
-/** @param {string} written @returns {Side} */
-const side = (written) => {
+/** @typedef {{ steps: string[], wild: number, row: number, window?: string }} Side */
+/** @param {string} written @param {number} row @returns {Side} */
+const side = (written, row) => {
   const [place, state] = written.split("#"), steps = place.split(" › "), window = state?.match(/^window=(\w+)$/)?.[1];
   if (state !== undefined && !window) throw new Error(`places-were.js: a state other than a window, ${written}`);
-  return { steps, wild: steps.filter((step) => step.includes("*")).length, ...(window ? { window } : {}) };
+  return { steps, wild: steps.filter((step) => step.includes("*")).length, row, ...(window ? { window } : {}) };
 };
 /**
  * Rows by the top section they start from (never a wildcard), the most specific first: the longest, then the fewest
@@ -231,7 +273,7 @@ const byTop = (pairs) => {
   }
   return at;
 };
-const sides = PLACES_WERE.map(([was, now]) => [side(was), side(now)]);
+const sides = PLACES_WERE.map(([was, now], row) => [side(was, row), side(now, row)]);
 const toWas = byTop(sides.map(([was, now]) => [now, was])), toNow = byTop(sides.map(([was, now]) => [was, now]));
 /** The words each "*" of `pattern` stands for at the start of `path`, or null. @param {string[]} pattern @param {string[]} path */
 const match = (pattern, path) => {
@@ -244,12 +286,26 @@ const match = (pattern, path) => {
   }
   return words;
 };
+/** @typedef {{ path: string[], row: number, window?: string }} Place */
 /**
- * Each row's other side for `path`, the most specific first, with the window a folded chart opens at.
- * @param {Map<string, [Side, Side][]>} table @param {string[]} path @returns {{ path: string[], window?: string }[]}
+ * Each row's other side for `path`, of the rows `taken` (all of them by default), the most specific first, with the
+ * window a folded chart opens at.
+ * @param {Map<string, [Side, Side][]>} table @param {string[]} path @param {(row: number) => boolean} [taken] @returns {Place[]}
  */
-const across = (table, path) => (table.get(path[0]) ?? []).flatMap(([from, to]) => ((words) => (words ? [{ path: [...to.steps.map((step) => (step.includes("*") ? step.replace("*", /** @type {string} */ (words.shift())) : step)), ...path.slice(from.steps.length)], ...(from.window ? { window: from.window } : {}) }] : []))(match(from.steps, path)));
-/** The places a place was, a merged or folded one's too, the most specific first (none if it never moved). @param {string[]} path */
-export const placeWas = (path) => across(toWas, path);
-/** A place moved since, where it is now; null if it never moved. @param {string[]} path */
-export const placeNow = (path) => across(toNow, path)[0]?.path ?? null;
+const across = (table, path, taken = () => true) => (table.get(path[0]) ?? []).flatMap(([from, to]) => ((words) => (words && taken(from.row) ? [{ path: [...to.steps.map((step) => (step.includes("*") ? step.replace("*", /** @type {string} */ (words.shift())) : step)), ...path.slice(from.steps.length)], row: from.row, ...(from.window ? { window: from.window } : {}) }] : []))(match(from.steps, path)));
+/**
+ * The places a place was, a merged or folded one's too, and those before them (a row's old place moved by an older
+ * row: rows are kept in the order they were written), the nearest first; none if it never moved.
+ * @param {string[]} path
+ */
+export const placeWas = (path) => {
+  const found = across(toWas, path);
+  for (let i = 0; i < found.length; i++) for (const before of across(toWas, found[i].path, (row) => row < found[i].row)) found.push(found[i].window ? { ...before, window: found[i].window } : before);
+  return found;
+};
+/** A place moved since, where it is now, through each row written after the one that moved it; null if it never moved. @param {string[]} path */
+export const placeNow = (path) => {
+  let now = across(toNow, path)[0];
+  for (let next = now; next; next = across(toNow, next.path, (row) => row > next.row)[0]) now = next;
+  return now?.path ?? null;
+};
