@@ -354,7 +354,7 @@ export class Band {
       }
       if (at >= 0) this.#put(time.x(at), scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
     }
-    // (Held: its last point's edges on to the plot's right, from it or from the strip's left where it's out of the strip.)
+    // Held to x1: from the strip's left where the last point is out of it.
     if (this.hold) {
       const l = n - 1, ll = toEdge ? upper[l] : lower[l], lu = upper[l], lx = time.x(l);
       if (lx < x1 && (log ? ll > 0 && lu > 0 : ll === ll && lu === lu) && (!colors || colors[l] === pass)) {
