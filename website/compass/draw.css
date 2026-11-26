@@ -1,9 +1,4 @@
-/* Compass's look wherever its pictures are drawn (the page, and any other that draws them with draw.js): its type and colours,
-   and the compass's own (inside an element of class compass). What a press,
-   a pointer or a focus does to them is each page's own. */
-
-/* Its type: Inter and Instrument Serif, with local faces keeping text visible while the web fonts load (width fits
-   from a general Latin sample, vertical metrics from Inter 4.1, divided by size-adjust). */
+/* Local fallback so text shows while web fonts load; its metrics are Inter's divided by size-adjust. */
 @font-face {
   font-family: "Inter Fallback";
   src: local("ArialMT"), local("Arial"), local("Helvetica"), local("Roboto");
@@ -22,7 +17,6 @@
   descent-override: 24.180080%;
   line-gap-override: 0%;
 }
-/* /fallback fonts */
 
 @font-face {
   font-family: Inter;
@@ -45,13 +39,10 @@
   font-display: swap;
 }
 
-/* A navigator's chart: chart paper by day, a night sea by night, the nine states each its own colour and nothing
-   else coloured. Their names set in a serif, as a chart's places are; everything else plain. */
 :root {
   --sans: Inter, "Inter Fallback", -apple-system, system-ui, sans-serif;
   --serif: "Instrument Serif", ui-serif, Georgia, serif;
-  /* (Words over a drawing haloed in the colour under them, the drawing whole beneath: a stroke this many px wide,
-     half of it outside each glyph. The compass's cells and the words over the chart alike.) */
+  /* Words over a drawing are haloed in the colour under them: half the stroke falls outside each glyph. */
   --halo-width: 2.5;
   --app: light-dark(#f4f1ea, #0b0f14);
   --ink: light-dark(#14181d, #e6ebf0);
@@ -61,11 +52,9 @@
   --line: light-dark(rgb(20 24 29 / 0.14), rgb(230 235 240 / 0.12));
   --grid: light-dark(rgb(20 24 29 / 0.06), rgb(230 235 240 / 0.05));
   --focus: light-dark(rgb(20 24 29 / 0.6), rgb(230 235 240 / 0.6));
-  /* (Soft, the light theme's softer still: on paper a grey reads stronger than on the night sea.) */
   --cloud-long: light-dark(rgb(20 24 29 / 0.05), rgb(230 235 240 / 0.07));
   --cloud-short: light-dark(rgb(20 24 29 / 0.065), rgb(230 235 240 / 0.09));
-  /* The nine states: greens where the cycle's up, reds where it's down, the moves against it cooler. (Each as
-     text on the page, 4.5:1 and more in either scheme.) */
+  /* Each as text on the page: 4.5:1 or more in either scheme. */
   --s-optimism: light-dark(oklch(0.5 0.15 150), oklch(0.78 0.18 150));
   --s-calm: light-dark(oklch(0.51 0.13 122), oklch(0.84 0.16 122));
   --s-anxiety: light-dark(oklch(0.51 0.12 88), oklch(0.86 0.14 88));
@@ -75,7 +64,6 @@
   --s-relief: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
   --s-apathy: light-dark(oklch(0.52 0.17 345), oklch(0.74 0.16 345));
   --s-fear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
-  /* An index's colours, 0 to 100: Fear's, Doubt's, the ink (its line's three, in its key's swatch). */
   --index-ramp: linear-gradient(90deg in oklch, var(--s-fear), var(--s-doubt), var(--ink));
 }
 
@@ -90,15 +78,14 @@
   }
 }
 
-/* The compass: nine cells, north the cycle's best, east the moment's; the day a dot in its cell. */
-/* (A colour, so a cell's tint fades as it's lit.) */
+/* A registered colour, so a cell's tint fades as it's lit. */
 @property --tint {
   syntax: "<color>";
   inherits: true;
   initial-value: transparent;
 }
 
-/* (A percentage, so color-mix() is handed a plain one, not the calc() it's computed by.) */
+/* A registered percentage, so color-mix() gets a plain one, not the calc() it's computed by. */
 @property --strength {
   syntax: "<percentage>";
   inherits: false;
@@ -106,16 +93,11 @@
 }
 
 .compass {
-  /* (The trail's strength by a piece's age in weeks, one curve: --top for the newest, easing to --floor by
-     exp(-age / --tau). The floor a hundredth over the least whose ink reads 1.5:1 on every cell, plain or the
-     day's, in either theme (measured on rendered pixels: 0.21, the light theme's day cells); tau so 8 weeks back
-     keeps at least half the span over the floor and the year's second half at most a quarter (11.5 to 18.7
-     weeks: 13, a quarter year). Its tail rises from --top to whole ink at the dot.) */
+  /* --floor: the least whose ink reads 1.5:1 on every cell in either theme. */
   --top: 0.5;
   --floor: 0.22;
   --tau: 13;
 
-  /* (A cell's tint, opaque, the day's stronger.) */
   .cell {
     --tint: color-mix(in srgb, var(--c) 14%, var(--app));
   }
@@ -134,7 +116,6 @@
     stroke-opacity: 0.8;
   }
 
-  /* (A thin halo in its cell's own colour, the trail whole under it: --halo-width of the page's px at any width.) */
   .cell text {
     fill: var(--c);
     paint-order: stroke;
@@ -143,12 +124,12 @@
     stroke-linejoin: round;
   }
 
-  /* (The small words a little toward the ink, 4.5:1 or more on a lit cell's tint in both themes.) */
+  /* Toward the ink: 4.5:1 or more on a lit cell's tint in both themes. */
   .cell :is(.share, .move) {
     fill: light-dark(color-mix(in srgb, var(--c) 65%, var(--ink)), color-mix(in srgb, var(--c) 80%, var(--ink)));
   }
 
-  /* (Sizes in the drawing's units, 676 across: larger where it's drawn small, so they read the same.) */
+  /* In the drawing's units: larger where it's drawn small, so they read the same. */
   .cell .name {
     font: 400 32px var(--serif);
 
@@ -157,7 +138,6 @@
     }
   }
 
-  /* (Under the name, two lines a step down and alike: its share of the days under it, the move it is at its foot.) */
   .cell :is(.share, .move) {
     font: 500 18px var(--sans);
 
@@ -170,18 +150,14 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* (The year before the day, into its dot: under the words, in ink, stronger the newer, its last weeks widest;
-     --u a piece's place on the curve, 1 the newest week (and the tail), toward 0 a year back: its width 1.4 to 2.4
-     of the page's px. Round joins at each day; butt ends, as round ones would overlap the tail where it starts.) */
+  /* Round joins at each day; butt ends, as round ones would overlap the tail where it starts. */
   :is(.trail path, .tail) {
     stroke-linejoin: round;
     fill: none;
     stroke-width: calc((1.4 + var(--u)) * var(--px, 1px));
   }
 
-  /* (Each piece opaque, its ink mixed toward the blend's blank by its strength; the body one layer multiplied onto
-     the cells (screened in the dark): as an ink of that alpha would be, but where pieces meet or cross the stronger
-     one shows, never a darker bead.) */
+  /* Opaque pieces, the body one blended layer: where pieces cross, no darker bead as translucent ink makes. */
   .trail {
     --blank: #fff;
     mix-blend-mode: multiply;
@@ -216,15 +192,14 @@
     }
   }
 
-  /* (The page's smallest text, 12px, at whatever width the drawing is: --axis, in its units, set by fitCompass.) */
+  /* --axis is set by fitCompass so the words are the page's smallest text at any width. */
   .axis {
     fill: var(--faint);
     font: 500 var(--axis, 15px) var(--sans);
   }
 
-  /* (A side's part: axis words, its share a step stronger, a faint bar along its row or column.) */
   .side {
-    /* (Its colour is its focus ring's: none until it's focused.) */
+    /* currentColor is the focus ring's: transparent until focused. */
     color: transparent;
 
     .hit {
@@ -244,7 +219,7 @@
       opacity: 0.35;
     }
 
-    /* (Focused, a ring round its words and bar, not round its whole unseen reach.) */
+    /* A ring round its words and bar, not round its whole unseen reach. */
     .focus {
       fill: none;
       stroke: currentColor;
@@ -252,7 +227,6 @@
     }
   }
 
-  /* (A cloud's name over its three parts, a heading for them: bolder, in sentence case.) */
   .title .axis {
     font-weight: 600;
   }
