@@ -249,6 +249,10 @@ const PLACES_WERE = [
   ["Holders › Mobile coins › Age cutoffs › * › Cost basis › Realized price", "Holders › Mobile coins › Age cutoffs › * › Realized price"],
   // Each subject its own preset: a pair split in two.
   ["Mining › Hashing › Hash price and value", "Mining › Hashing › Hash price"],
+  // Entry price, said plainly.
+  ["Holders › Entry price › Discount coins", "Holders › Bought at a discount or premium › Bought at a discount"],
+  ["Holders › Entry price › Premium coins", "Holders › Bought at a discount or premium › Bought at a premium"],
+  ["Holders › Entry price", "Holders › Bought at a discount or premium"]
 ];
 
 /** @typedef {{ steps: string[], wild: number, row: number, window?: string }} Side */
