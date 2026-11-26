@@ -40,6 +40,8 @@ function widen(series, a, b, positive, out, time) {
 }
 /** A tag's room on its axis: a pill and 2 pixels between two (CSS pixels). */
 const TAG = PILL;
+/** How near a tag an axis label isn't drawn (CSS pixels, middle to middle): half a tag, half its words' height and 4 pixels. */
+const COVER = TAG / 2 + 10;
 /**
  * What a pane draws: its lowest and highest over a range of indices (widening `out`), and its picture over part of the
  * plot; `version`, changed at each change of its values or look; `fixed`, what it draws holds its place as the view
@@ -204,6 +206,8 @@ export class Pane {
     this.pageTags = [new Tags(), new Tags()];
     /** Each side's lines' tags as last drawn: each one's series and middle, and their height. @type {{ lines: Series[], at: Float64Array, step: number }[]} */
     this.drawnTags = [{ lines: [], at: new Float64Array(8), step: 0 }, { lines: [], at: new Float64Array(8), step: 0 }];
+    /** Each side's labels' middles as last drawn (from its top), for a tag drawn over the axis later (see cover). */
+    this.drawnLabels = [{ at: new Float64Array(16), count: 0 }, { at: new Float64Array(16), count: 0 }];
     /** What each side's axis needs as last drawn (CSS pixels): its widest tick label or tag, with their room (see the chart's). */
     this.axisNeed = [0, 0];
     /**
@@ -877,22 +881,25 @@ export class Pane {
     this.drawnTicks[slot].set(this.axisTicks.subarray(0, count));
     this.drawnTickCounts[slot] = count;
     const stepAt = (/** @type {number} */ v) => this.stepAt(v, scale);
-    // (Its tags placed first: a tick's label none where one covers it (within half a tag, half its words' height and
-    // 4 pixels: one touching a tag reads cramped against it).)
-    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, near = this.tagStep / 2 + 10, page = this.pageTags[side];
+    // (Its tags placed first: a tick's label none where one covers it (within COVER: one touching a tag reads cramped
+    // against it).)
+    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, page = this.pageTags[side], labels = this.drawnLabels[side];
     (page.count = 0), (page.length = this.height);
     for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale, stepAt);
     // (Each where it's drawn: within the pane (one out of it none, as a line's).)
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
     const free = (/** @type {number} */ y) => {
-      if (!(y > 6 && y < this.height - 6) || page.covers(y, TAG / 2 + 10)) return false;
-      for (let t = 0; t < tags; t++) if (Math.abs(place[t] - y) < near) return false;
+      if (!(y > 6 && y < this.height - 6) || page.covers(y, COVER)) return false;
+      for (let t = 0; t < tags; t++) if (Math.abs(place[t] - y) < COVER) return false;
       return true;
     };
     // (Each label on its gridline, or none: one a tag covers is hidden, never moved off the line it names.)
+    if (labels.at.length < count) labels.at = new Float64Array(count * 2);
+    labels.count = 0;
     for (let k = 0; k < count; k++) {
       const y = scale.own(this.axisTicks[k]);
       if (!free(y)) continue;
+      labels.at[labels.count++] = y;
       const words = texts ? (texts[k] ?? "") : this.axisLabel(this.axisTicks[k], scale);
       g.fillText(words, at, y);
       // (A label 8 pixels from the plot and from the edge.)
@@ -903,6 +910,18 @@ export class Pane {
     // (Its series' own tags over its lines' (a drawing's value), each where it says, within the pane, against the plot.)
     for (let k = 0; k < page.count; k++) this.axisNeed[side] = Math.max(this.axisNeed[side], pill(g, page.texts[k], page.colors[k], page.inks[k], side ? x + width : x, page.at[k], side ? "right" : "left") + 4);
     if (this.separated) this.#separator(g, theme, dpr, x, x + width);
+  }
+
+  /**
+   * A tag drawn over its axis on `side` after it (the crosshair's, at `y` from its top): the labels it covers (as a
+   * line's tag covers them, within COVER) painted over with the ground on `g`, across `x` to `x + width` in g's own
+   * place for the axis, the pane's top at `top`. None shows cut beside it.
+   * @param {CanvasRenderingContext2D} g @param {number} side @param {number} y @param {number} top @param {number} x @param {number} width @param {Theme} theme
+   */
+  cover(g, side, y, top, x, width, theme) {
+    const labels = this.drawnLabels[side];
+    g.fillStyle = theme.background;
+    for (let k = 0; k < labels.count; k++) if (Math.abs(labels.at[k] - y) < COVER) g.fillRect(x, top + labels.at[k] - COVER / 2, width, COVER);
   }
 
   /**
