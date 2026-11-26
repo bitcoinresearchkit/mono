@@ -985,9 +985,9 @@ export class Pane {
    * A side's lines' tags placed (their count returned; their lines in tagLines, each one's point in tagIndex, by tagAt
    * top to bottom at tagPlace, tagStep apart at least): each one at its last value whose center is in view
    * (a price line's tag too: its line alone at its last of all); one with nothing in view, none,
-   * top to bottom, each at its line or just under the one over it (the first always at its line), the last cut off by
-   * its axis' foot where they run past it, one where lines meet (as the chart library laid them), none for a line out of
-   * the pane; on a relative scale, as it reads them.
+   * top to bottom, each at its line or just under the one over it, each whole in the pane (the first pushed past its foot
+   * and the lines under it, none), one where lines meet (as the chart library laid them), none for a line out of the
+   * pane; on a relative scale, as it reads them.
    * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
    */
   #placeTags(scale, time, side) {
@@ -1026,10 +1026,11 @@ export class Pane {
         (order[j] = order[j - 1]), (order[j - 1] = swap);
       }
     // (Top to bottom, each at its line, or just under the one over it where they'd overlap (as the chart library laid
-    // them): the first always at its line, each moving only as its own line or one over it does; past the axis' foot,
-    // cut off there (more under it, said), none starting under it. One where lines read the same (an empty band's top on
-    // the next one's); lines a hair apart, each its own (two prices a dollar apart). A line out of the pane (its scale dragged past it), none: a tag reads where its line is. A pane too short
-    // for one, none.)
+    // them): the first always at its line, each moving only as its own line or one over it does. Every one whole, none
+    // cut by the pane's foot: the first pushed past it ends them, the lowest lines' left out (their values still in the
+    // legend). One where lines read the same (an empty band's top on the next one's); lines a hair apart, each its
+    // own (two prices a dollar apart). A line out of the pane (its scale dragged past it), none: a tag reads where its
+    // line is. A pane too short for one, none.)
     const top = TAG / 2, foot = this.height - TAG / 2;
     this.tagStep = TAG;
     if (foot < top) return 0;
@@ -1039,7 +1040,7 @@ export class Pane {
       if (!(y0 > -0.5 && y0 < this.height + 0.5)) continue;
       if (Math.abs(y0 - last) < 1e-6) continue;
       const line = Math.min(Math.max(y0, top), foot), y = m ? Math.max(line, at[m - 1] + TAG) : line;
-      if (y - TAG / 2 >= this.height) break;
+      if (y > foot) break;
       (order[m] = order[k]), (at[m++] = y), (last = y0);
     }
     return m;
