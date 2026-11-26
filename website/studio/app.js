@@ -1,6 +1,6 @@
 // @ts-check
 import { askRest, command, gestures, grid, heatmaps, inspector, loadRest, menus, pen, presetsEdit, withRest, xkcd } from "/studio/later.js";
-import { BitviewClient } from "/modules/bitview-client/index.js";
+import { BitviewClientBase, _endpoint, dateToIndex, indexToDate } from "/modules/bitview-client/core.js";
 // (Studio's chart library: bitview-charts.)
 import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
@@ -86,11 +86,32 @@ document.getElementById("page-info")?.remove();
 
 // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
 // (The server that serves the page; the page built on its own names its server.)
-const client = new BitviewClient({ baseUrl: location.origin, timeout: 30_000, memCache: false, browserCache: false });
+export const CLIENT = { baseUrl: location.origin, timeout: 30_000, memCache: false, browserCache: false };
+/**
+ * The client: core's alone (all a first chart asks) till the rest brings the whole one (see whole).
+ * @type {import("/modules/bitview-client/index.js").BitviewClient}
+ */
+let client = /** @type {any} */ (Object.assign(new BitviewClientBase(CLIENT), {
+  /** @param {string} name @param {any} index */
+  seriesEndpoint(name, index) { return _endpoint(/** @type {any} */ (this), name, index); },
+  /** (The whole client's getSeriesInfo.) @param {string} name @param {any} [options] */
+  getSeriesInfo(name, options) { return /** @type {any} */ (this).getJson(`/api/series/${encodeURIComponent(name)}`, options); },
+}));
 /** The server the page draws from, as its words name it: its host, as written (a prefix too, if it has one). */
 const SERVER_HOST = new URL(client.baseUrl).host;
 for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
-const tree = client.series;
+/** The catalog: the whole client's tree, none till it comes (see whole). @type {any} */
+let tree;
+/**
+ * The whole client, from client.js, in before the rest's other modules run. @param {import("/modules/bitview-client/index.js").BitviewClient} full
+ */
+export function whole(full) {
+  client = full;
+  tree = full.series;
+  EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
+  LIVE = new Map([[tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats]]);
+  knowCohorts(full.AGE_RANGE_NAMES);
+}
 /** The catalog's node at a path (its own keys only: no "constructor" off a prototype), or undefined. @param {string[]} path */
 function nodeAt(path) {
   let node = /** @type {any} */ (tree);
@@ -211,16 +232,16 @@ const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize 
 const tablet = matchMedia("(max-width: 1100px)");
 /** Studio's version: the Bitview server's that serves it (it comes with it), as it says it (a release's, `v0.12.2`; a build of a commit, next's, `a1b2c3d`), once it's said (else ""). */
 let studioVersion = "";
-client.getVersion().then((said) => {
+withRest(() => client.getVersion().then((said) => {
   studioVersion = typeof said === "string" ? said : "";
   $("home-version").textContent = studioVersion;
-}).catch(() => {});
+}).catch(() => {}));
 for (const element of all$("[data-icon]")) element.insertAdjacentHTML("afterbegin", ICONS[element.dataset.icon] ?? "");
 
 // ── Vocabulary, as the page's state has it (the rest, stateless, in the leaf modules) ─
 
 /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first). */
-const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
+const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
 /** Each index's times from its first, as far as they've been asked for: the same for every series at it, made once. @type {Map<string, number[]>} */
 const indexTimes = new Map();
 /** An index's times from `start`, `count` of them (a series' as loaded). */
@@ -230,7 +251,7 @@ function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @
   for (let i = times.length; i < start + count; i++) times.push(timeAt(index, i));
   return times.slice(start, start + count);
 }
-const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
+const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
 /**
  * A color's lightness, chroma and hue as the theme shows it. The palette's (see ofPalette) on the dark as they are; on
  * the light, their lightness turned over along one curve: white as black and black as white, Bitview's band (0.5 to
@@ -394,19 +415,29 @@ const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it o
  * report it: the same bands, see ageBand in presets.js).
  */
 /** @typedef {{ id: string, shown: string, brief: string, who: string, age: boolean }} HeatCohort */
-const HEAT_COHORTS = /** @type {HeatCohort[]} */ ([
-  ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
-  ...Object.entries(client.AGE_RANGE_NAMES).flatMap(([key, { id, short }]) => {
-    const band = dimensionBand(key, AGES);
-    return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
-  }),
-]);
+/** (None till the whole client names the age bands: see whole, and knowCohorts.) @type {HeatCohort[]} */
+let HEAT_COHORTS = [];
+/** @type {Map<string, HeatCohort>} */
+let HEAT_BY_ID = new Map();
 /** A URPD cohort, by its id (one Bitview doesn't have, a link's typo or one renamed: undefined). */
-const HEAT_BY_ID = new Map(HEAT_COHORTS.map((c) => [c.id, c])), heatCohort = (/** @type {string} */ id) => HEAT_BY_ID.get(id);
+const heatCohort = (/** @type {string} */ id) => HEAT_BY_ID.get(id);
 /** Whether Bitview has a heatmap's holder group (see heatCohort). @param {Layer} layer */
 const heatKnown = (layer) => (layer.type === "profile" ? (layer.profile ?? []).every((id) => heatCohort(id)) : Boolean(heatCohort(layer.heatmap ?? "all")));
 /** The URPD's holder groups (all coins and the age cutoffs), then its age bands, the youngest first. */
-const HEAT_HOLDERS = HEAT_COHORTS.filter((c) => !c.age).map((c) => c.id), HEAT_AGES = HEAT_COHORTS.filter((c) => c.age).map((c) => c.id);
+let HEAT_HOLDERS = /** @type {string[]} */ ([]), HEAT_AGES = /** @type {string[]} */ ([]);
+/** The cohorts, by the client's age bands (see whole). @param {Record<string, { id: string, short: string }>} ageNames */
+function knowCohorts(ageNames) {
+  HEAT_COHORTS = [
+    ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
+    ...Object.entries(ageNames).flatMap(([key, { id, short }]) => {
+      const band = dimensionBand(key, AGES);
+      return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
+    }),
+  ];
+  HEAT_BY_ID = new Map(HEAT_COHORTS.map((c) => [c.id, c]));
+  HEAT_HOLDERS = HEAT_COHORTS.filter((c) => !c.age).map((c) => c.id);
+  HEAT_AGES = HEAT_COHORTS.filter((c) => c.age).map((c) => c.id);
+}
 /**
  * Each holder group's color, one palette wherever it's drawn (see palette.js, the presets' too): its own (all coins
  * green, short-term holders orange, long-term blue, the age cutoffs around them; the URPD's age_under_4m is the
@@ -545,8 +576,8 @@ function spanParts(from, to, index = shownIndex()) {
 
 // ── Formulas ──────────────────────────────────────────────────────────────
 
-/** A formula on a series by its name, the way a new formula on an empty chart starts. */
-const EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
+/** How a new formula on an empty chart starts (a letter till the whole client names the price). */
+let EXAMPLE = "sma(A, 200d)";
 
 // ── Charts: the document ──────────────────────────────────────────────────
 
@@ -800,7 +831,8 @@ function normalize(doc) {
   // (A profile: its holder groups each once (none: it draws nothing till one's picked), its color its first one's (its
   // letter's, its legend's), each group's own kept only where it isn't the group's, and only for those in it.)
   for (const layer of doc.layers) {
-    if (layer.type !== "profile") continue;
+    // (Its groups' colors come with the whole client: a profile draws once it's in.)
+    if (layer.type !== "profile" || !tree) continue;
     layer.profile = [...new Set(layer.profile ?? [])];
     // (A group taken out takes its color with it, as a link keeps them.)
     for (const [cohort, color] of Object.entries(layer.cohortColors ?? {})) if (color === cohortColor(cohort) || !layer.profile.includes(cohort)) delete /** @type {Record<string, string>} */ (layer.cohortColors)[cohort];
@@ -1259,7 +1291,8 @@ function inLibrary(doc) {
  * throttled (to one a minute, after five minutes hidden).
  */
 const indexCatalog = (() => {
-  const walk = catalogWalk(tree, INTERVAL_ORDER);
+  /** @type {ReturnType<typeof catalogWalk> | undefined} */
+  let walk;
   /** What it found, the catalog's: the first to come, the worker's or the page's own. */
   const take = (/** @type {{ index: Map<string, string>, intervals: Map<string, readonly string[]>, sharedTops: Set<string> }} */ found) => {
     if (catalogIndex) return;
@@ -1276,10 +1309,15 @@ const indexCatalog = (() => {
       const docs = [...library.charts, ...library.presets], before = docs.map((doc) => JSON.stringify(doc));
       for (const doc of docs) normalize(doc);
       if (docs.some((doc, i) => JSON.stringify(doc) !== before[i])) save();
+      // (The chart drawn before the tree came, by a series' old name (renamed since): drawn again by its new one.)
+      if (docs.includes(chart) && JSON.stringify(chart) !== before[docs.indexOf(chart)]) draw();
     });
   };
   /** Walked here while `more` says (it's told how many nodes so far). */
   const run = (/** @type {(done: number) => boolean} */ more) => {
+    // (By the whole client's tree: see whole.)
+    if (!tree) return;
+    walk ??= catalogWalk(tree, INTERVAL_ORDER);
     for (let done = 0; !catalogIndex && more(done); done++) {
       const step = walk.next();
       if (step.done) return take(step.value);
@@ -3301,6 +3339,8 @@ async function draw(refit = false, fresh = false) {
   const live = !FINE.has(doc.index) || spanOf(doc)?.live !== false;
   // (A heatmap, a profile, bubbles: drawn by the rest, asked for with its data, see later.js.)
   const rest = doc.layers.some((layer) => heatLike(layer) || layer.type === "bubbles") ? loadRest() : undefined;
+  // (A sum of bands (over, under) finds its bands by the tree.)
+  if (doc.layers.some((layer) => /\b(over|under)\(/.test(layer.formula ?? ""))) await import("/studio/client.js");
   const result = await resolve(doc, fresh || stale(doc));
   await rest;
   // (Its data come while the chart grows out of its tile: drawn once it's grown, not built mid-motion (a phone's
@@ -10431,7 +10471,8 @@ addEventListener("scroll", () => hinting() && placeHints(), true);
 $("live").addEventListener("animationend", (event) => event.animationName === "block" && $("live").classList.remove("block"));
 let checking = false;
 async function checkLive() {
-  if (document.visibilityState !== "visible" || checking) return;
+  // (Asked by the whole client: see whole.)
+  if (!tree || document.visibilityState !== "visible" || checking) return;
   checking = true;
   let health;
   try {
@@ -10481,7 +10522,7 @@ addEventListener("online", () => (sayUnreached(), checkLive()));
 // (Hidden, nothing is asked: back in view, the minute starts over.)
 document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (answeredAt = Date.now()));
 document.addEventListener("visibilitychange", checkLive);
-checkLive();
+withRest(checkLive);
 
 // ── Live price: between blocks, the price's own layers follow it ──────────
 // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
@@ -10493,9 +10534,8 @@ checkLive();
 
 /** The price's series, each with what the live price (in dollars) is in its unit. */
 const usd = (/** @type {number} */ price) => price, sats = (/** @type {number} */ price) => 1e8 / price;
-const LIVE = new Map([
-  [tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats],
-]);
+/** (Named by the whole client: see whole.) @type {Map<string, (price: number) => number>} */
+let LIVE = new Map();
 /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
 function liveLayers() {
   if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
@@ -10636,7 +10676,8 @@ function movePrice(price) {
 }
 let pricePending = false, priceTimer = 0, priceDelay = 1000;
 async function pollPrice() {
-  if (pricePending || document.visibilityState !== "visible") return;
+  // (Asked by the whole client: see whole.)
+  if (!tree || pricePending || document.visibilityState !== "visible") return;
   clearTimeout(priceTimer);
   pricePending = true;
   try {
@@ -10661,7 +10702,7 @@ async function pollPrice() {
   }
 }
 document.addEventListener("visibilitychange", pollPrice);
-pollPrice();
+withRest(pollPrice);
 
 // ── Start ─────────────────────────────────────────────────────────────────
 

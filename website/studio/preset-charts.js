@@ -14,6 +14,7 @@ import { showView } from "/studio/vocabulary.js";
 import { titleOf } from "/studio/looks.js";
 import { STUDIO_ORIGIN, presetInfo, sectionInfo, STUDIO_TITLE, STUDIO_DESCRIPTION, presetDataset, studioApplication } from "/studio/page-info.js";
 import { inSlices } from "/studio/timing.js";
+import { withRest } from "/studio/later.js";
 import { addressSteps } from "/studio/addresses.js";
 import { validate, fromSketch, viewShown, contentOf, lookFields } from "/studio/charts-read.js";
 import { isNamed } from "/studio/color.js";
@@ -197,7 +198,9 @@ function placeAddress() {
     : { title: home && "top" in homeAt ? STUDIO_TITLE : `${home ? homeName() : titleOf(chart)} · Bitview Studio`, description: STUDIO_DESCRIPTION };
   const canonical = `${CANONICAL_ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
   const structuredKey = `${address}|${i}|${info.title}|${info.description}`;
-  if (structuredKey !== structuredFor) {
+  // (A preset's dataset names its series by the tree: written once it's in, see whole.)
+  if (structuredKey !== structuredFor && i >= 0 && presets && !tree) withRest(placeAddress);
+  else if (structuredKey !== structuredFor) {
     const json = document.querySelector('script[type="application/ld+json"]');
     if (json) json.textContent = JSON.stringify(i >= 0 && presets ? presetDataset(presets[i], presetLabels, tree, canonical) : studioApplication(canonical, info.description));
     structuredFor = structuredKey;

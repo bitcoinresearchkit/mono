@@ -1,8 +1,7 @@
 // @ts-check
-// What a first chart doesn't run, as one module for later.js to load: ⌘K first, whose imports bring in the others in the
-// order they've always run in. With it, Lilex, the face of what it writes in mono (the layers' letters, a formula), which
-// a first screen doesn't: asked for now, not waited on (its fallback face is fitted to its metrics: words before it
-// barely move).
+// What a first chart doesn't run, for later.js: the whole client first, then ⌘K, whose imports keep the others' order.
+// Lilex, which a first screen doesn't write, asked for, not waited on: its fallback is fitted to its metrics.
+import "/studio/client.js";
 export * as command from "/studio/command.js";
 export * as pen from "/studio/drawing.js";
 export * as grid from "/studio/grid.js";
