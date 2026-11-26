@@ -3043,9 +3043,11 @@ animateMark();
  * the page's own font files (no second copy of them), as "Inter Chart" from 500 up (a variable font: a canvas's
  * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
  * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. Begun with the
- * page (see the first script), its last face only. Till it's in, the page's font: a canvas has no font-display.
+ * page (see the first script), its last face only (a first screen's characters); the core's (é, ≥, °: a name, a
+ * drawing's words) with the rest. Till one's in, the page's font: a canvas has no font-display, and asks for none.
  */
-const chartFont = ([...document.fonts].findLast((face) => face.family.replace(/"/g, "") === "Inter Chart")?.load() ?? Promise.reject()).then(() => true, () => false);
+const chartFaces = [...document.fonts].filter((face) => face.family.replace(/"/g, "") === "Inter Chart");
+const chartFont = (chartFaces.at(-1)?.load() ?? Promise.reject()).then(() => true, () => false);
 let chartSans = css("--sans");
 /** The size of every word on the chart (CSS pixels): its axes', its tags', its marks', its navigator's; its legends' the same (see .legend). */
 const CHART_TEXT = 12;
@@ -3222,16 +3224,18 @@ addEventListener("resize", () => {
   card.style.setProperty("--card-motion", "0s");
   requestAnimationFrame(() => requestAnimationFrame(() => card.style.removeProperty("--card-motion")));
 });
-// Once it's in (before the first frame when it already is), the chart's words in it, measured again (a new name: the
-// axes' kept widths are by the font's).
-chartFont.then((loaded) => {
+// Once a face is in (the first before the first frame when it already is), the chart's words in it, measured again (a
+// new name: the axes' kept widths are by the font's).
+const chartFontIn = (/** @type {boolean} */ loaded) => {
   if (!loaded) return;
   chartSans = css("--chart-sans");
   navigatorFont = "";
   engine.theme = chartTheme();
   engine.invalidate(true);
   drawOverview();
-});
+};
+chartFont.then(chartFontIn);
+withRest(() => void chartFaces[0]?.load().then(() => chartFontIn(true), () => {}));
 /** The layers' order as last put in order (see build). */
 let drawnOrder = "";
 /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
