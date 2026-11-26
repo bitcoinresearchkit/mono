@@ -153,6 +153,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const shownOf = (name) => (typeof name === "string" ? name : name.shown);
   /** @param {Name} name @param {string} words @param {string} [said] */
   const extended = (name, words, said = words) => shownAs(placeOf(name) + words, shownOf(name) + said);
+  /** A chart lifted out of a folder of two, named after it ("Activity, transfer volume"). @param {string} folder @param {Name} name */
+  const liftedName = (folder, name) => ((said) => shownAs(said(placeOf(name)), said(shownOf(name))))((/** @type {string} */ text) => `${folder}, ${/^[A-Z][a-z]/.test(text) ? text[0].toLowerCase() + text.slice(1) : text}`);
 
   /** @param {any} node @param {string} label @param {Layer} [extra] @returns {Layer} */
   const series = (node, label, extra = {}) => {
@@ -419,7 +421,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...change(utxos.count?.delta, "Change", titled("UTXO count change")),
         ...flow(utxos.spentCount, "Spent", titled(numberOf("UTXOs spent")), { color }),
       ]),
-      activity && section("Activity", [
+      // Of transfer volume alone (UTXOs' and addresses' cohorts), its two charts lifted.
+      ...((/** @type {(ChartNode | SectionNode)[]} */ items) => (items.length > 2 ? [section("Activity", items)] : items.map((item) => ({ ...item, name: liftedName("Activity", item.name) }))))(!activity ? [] : /** @type {(ChartNode | SectionNode)[]} */ ([
         ...flow(activity.transferVolume, "Transfer volume", titled("Transfer volume"), { color }),
         ...flowShares(c, "Transfer volume share", who, color),
         ...(activity.transferVolume?.inProfit ? [
@@ -431,7 +434,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...flow(activity.coindaysDestroyed, "Coin days destroyed", titled("Coin days destroyed"), { color }),
         ...flow(activity.coindaysCreated, "Coin days created", titled("Coin days created"), { color }),
         activity.dormancy && chart("Dormancy", titled("Dormancy"), windows(activity.dormancy, "", { color })),
-      ]),
+      ].filter(Boolean))),
       realized && section("Realized", [
         realized.profit && chart("Profit and loss", titled("Realized profit and loss"), [
           ...windows(realized.profit.sum, "Profit", { extra: { color: "green" } }), ...windows(realized.loss.sum, "Loss", { extra: { color: "red" } }),
@@ -1096,26 +1099,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
       const sides = profitsOf(key), d = sides.bands;
       return holderSection(key, [...profitCutoffs(bands, sides), ...family(entries(bands), bandMember(client.PROFITABILITY_RANGE_NAMES, d), { each: "by profit band", disjoint: true, ...sides.kin })]);
     })), { icon: "percent" }),
-    section("UTXOs", [
-      chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
-      section("By amount", family(entries(t.utxos.amounts), bandMember(client.AMOUNT_RANGE_NAMES, UTXO_AMOUNTS), { each: "by UTXO amount", disjoint: true })),
-      ...cutoffs(entries(t.utxos.amounts), AMOUNT_EDGES, UTXO_AMOUNTS),
-      // Read off the amount bands' Lorenz curve; bands, not each UTXO, so a floor under the true figure. The 0-sat band
-            // has UTXOs and no coins.
-      ((bands) => ((count, coins) => chart("Gini coefficient", "Gini coefficient of UTXO amounts", [price(), { formula: `1 - (${coins.map((s, i) => `${count[i + 1]} * (${i ? `2 * under(${s}) + ` : ""}${s})`).join(" + ")}) / (over(${count[0]}) * over(${coins[0]}))`, label: "Gini coefficient", format: "number", pane: 2, color: "violet" }]))(bands.map(([, c]) => own(c.utxos.count).name), bands.slice(1).map(([, c]) => c.supply.total.btc.name)))(entries(t.utxos.amounts)),
-      section("By type", family(entries(t.utxos.types), (key) => ({ name: client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, who: `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} outputs` }), { each: "by output type", disjoint: true })),
-    ], { icon: "cube" }),
-    section("Addresses", [
-      ...addressCharts(t.addresses),
-      section("By type", [
-        section("Compare", [
-          .../** @type {[string, string, (a: any) => any, string?][]} */ ([["Funded", "Funded address count by type", (a) => own(a.funded)], ["Total", "Total address count by type", (a) => a.total], ["New", "Number of new addresses by type", (a) => a.new.sum._1m, "_1m"], ["Active per block", "Average number of active addresses per block by type", (a) => a.activity.active.avg._1m, "_1m"]]).map(([name, title, pick, window]) => chart(name, title, entries(t.addresses.types).map(([key, a], i, all) => series(pick(a), client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, { color: ramp(all.length)[i] })), { log: [1], window })),
-        ]),
-        ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, client.SPENDABLE_TYPE_NAMES[key]?.short ?? key))),
-      ]),
-      section("By balance", family(entries(t.addresses.balances), bandMember(client.AMOUNT_RANGE_NAMES, BALANCES), { each: "by address balance", disjoint: true, of: ADDRESSED })),
-      ...cutoffs(entries(t.addresses.balances), AMOUNT_EDGES, BALANCES, { of: ADDRESSED }),
-    ], { icon: "key" }),
     section("Mining", [
       section("Hashing", [
         chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
@@ -1275,6 +1258,26 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // Chain statistics' alone (chain-statistics.js).
       section("Inputs and outputs", []),
     ], { workings: true, icon: "nodes" }),
+    section("UTXOs", [
+      chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
+      section("By amount", family(entries(t.utxos.amounts), bandMember(client.AMOUNT_RANGE_NAMES, UTXO_AMOUNTS), { each: "by UTXO amount", disjoint: true })),
+      ...cutoffs(entries(t.utxos.amounts), AMOUNT_EDGES, UTXO_AMOUNTS),
+      // Read off the amount bands' Lorenz curve; bands, not each UTXO, so a floor under the true figure. The 0-sat band
+            // has UTXOs and no coins.
+      ((bands) => ((count, coins) => chart("Gini coefficient", "Gini coefficient of UTXO amounts", [price(), { formula: `1 - (${coins.map((s, i) => `${count[i + 1]} * (${i ? `2 * under(${s}) + ` : ""}${s})`).join(" + ")}) / (over(${count[0]}) * over(${coins[0]}))`, label: "Gini coefficient", format: "number", pane: 2, color: "violet" }]))(bands.map(([, c]) => own(c.utxos.count).name), bands.slice(1).map(([, c]) => c.supply.total.btc.name)))(entries(t.utxos.amounts)),
+      section("By type", family(entries(t.utxos.types), (key) => ({ name: client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, who: `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} outputs` }), { each: "by output type", disjoint: true })),
+    ], { icon: "cube" }),
+    section("Addresses", [
+      ...addressCharts(t.addresses),
+      section("By type", [
+        section("Compare", [
+          .../** @type {[string, string, (a: any) => any, string?][]} */ ([["Funded", "Funded address count by type", (a) => own(a.funded)], ["Total", "Total address count by type", (a) => a.total], ["New", "Number of new addresses by type", (a) => a.new.sum._1m, "_1m"], ["Active per block", "Average number of active addresses per block by type", (a) => a.activity.active.avg._1m, "_1m"]]).map(([name, title, pick, window]) => chart(name, title, entries(t.addresses.types).map(([key, a], i, all) => series(pick(a), client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, { color: ramp(all.length)[i] })), { log: [1], window })),
+        ]),
+        ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, client.SPENDABLE_TYPE_NAMES[key]?.short ?? key))),
+      ]),
+      section("By balance", family(entries(t.addresses.balances), bandMember(client.AMOUNT_RANGE_NAMES, BALANCES), { each: "by address balance", disjoint: true, of: ADDRESSED })),
+      ...cutoffs(entries(t.addresses.balances), AMOUNT_EDGES, BALANCES, { of: ADDRESSED }),
+    ], { icon: "key" }),
     section("Cointime", [
       section("Age bands", cointimeBands(ct.ageRanges)),
       holderSection("awake", weightedSets(ct.cohorts, "awake", "wakefulness")),

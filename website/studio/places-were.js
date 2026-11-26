@@ -63,6 +63,11 @@ const PLACES_WERE = [
   ["Network › Transactions › CPFP › Children", "Network › Transactions › CPFP, children"],
   ["Network › Outputs › Coinbase › Count", "Network › Outputs › Coinbase, count"],
   ["Network › Outputs › Coinbase › By type", "Network › Outputs › Coinbase, by type"],
+  // A cohort's Activity of transfer volume alone, lifted.
+  ["UTXOs › * › * › Activity › Transfer volume", "UTXOs › * › * › Activity, transfer volume"],
+  ["UTXOs › * › * › Activity › Transfer volume share", "UTXOs › * › * › Activity, transfer volume share"],
+  ["Addresses › * › * › Activity › Transfer volume", "Addresses › * › * › Activity, transfer volume"],
+  ["Addresses › * › * › Activity › Transfer volume share", "Addresses › * › * › Activity, transfer volume share"],
   // Chain statistics, once a section of their own: each now beside the native charts of its subject, or one of them
   // at a window.
   [`${CS} › Yearly › Transaction fees per year`, "Fees › Fees paid#window=1y"],
