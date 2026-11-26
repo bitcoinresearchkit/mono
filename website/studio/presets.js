@@ -35,7 +35,7 @@
 import { HOLDER_COLORS, LANDSCAPE, SKY, holderColor, recencyColor, wheelColor } from "./palette.js";
 import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
-import { POWER_LAW } from "/modules/power-law/index.js";
+import { POWER_LAW } from "../modules/power-law/index.js";
 
 /** @param {any} n */
 const byDate = (n) => isLeaf(n) && n.indexes().includes("day1");
