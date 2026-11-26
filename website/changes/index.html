@@ -2,11 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's; in the API's colour, which it's beside. -->
     <script src="/assets/launch/launch.js" data-app="Changes" data-color="#af4000"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/changes/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/changes/" />
@@ -98,8 +96,6 @@
         font-display: swap;
       }
 
-      /* The series page's paper and ink: hairlines between rows, ids in a monospace, Bitcoin's orange for what's
-         chosen and what an id became. Light or dark, as the system is. */
       :root {
         color-scheme: light dark;
         --app: light-dark(#fbfaf7, #0e0f11);
@@ -115,12 +111,10 @@
         --pick: light-dark(#fbe9dc, #33221a);
         --gone: light-dark(#a3261f, #ff8f87);
         --sans: Inter, "Inter Fallback", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        --measure: 540px; /* prose lines stay near 70 characters */
+        --measure: 540px;
         --mono: Lilex, "Lilex Fallback", ui-monospace, SFMono-Regular, Menlo, monospace;
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more), as every page: the greys toward the ink, the
-         hairlines about twice as strong. */
       @media (prefers-contrast: more) {
         :root {
           --soft: light-dark(#3a3c42, #c3c4c7);
@@ -183,14 +177,11 @@
         overflow-wrap: anywhere;
       }
 
-      /* ── The bar: the brand, the search, the ways back to the API and to GitHub ── */
-
       .bar {
         position: sticky;
         top: 0;
         z-index: 3;
         display: grid;
-        /* (The same room either side, so the search sits in the middle; where there isn't, each side as much as it holds.) */
         grid-template-columns: minmax(max-content, 1fr) minmax(0, 560px) minmax(max-content, 1fr);
         align-items: center;
         gap: 16px;
@@ -254,8 +245,6 @@
         }
       }
 
-      /* (The way to star Bitview on GitHub: a gold star at the text's size, how many have starred it, then the words;
-         the count written by home.mjs, at two figures and a "+", so it stays true as more star it.) */
       .stars {
         white-space: nowrap;
       }
@@ -291,7 +280,6 @@
           pointer-events: none;
         }
 
-        /* (A thumb's reach on a phone: a label behind the field, unseen, so a tap on the bar around it lands in the field.) */
         .reach {
           display: none;
 
@@ -326,8 +314,6 @@
         }
       }
 
-      /* ── The page: its head, then a column of sections beside their contents ── */
-
       .page {
         max-width: 1180px;
         margin: 0 auto;
@@ -345,7 +331,6 @@
         letter-spacing: -0.025em;
       }
 
-      /* (A tab each release to the one after it, newest first; the one read in Bitcoin's orange.) */
       .releases {
         display: flex;
         flex-wrap: wrap;
@@ -361,7 +346,6 @@
           font-weight: 600;
           font-variant-numeric: tabular-nums;
 
-          /* (A finger's reach, its look as it is; the gap between pills left to neither.) */
           &::before {
             content: "";
             position: absolute;
@@ -380,7 +364,6 @@
         }
       }
 
-      /* (Room for the two lines a lead runs to at the measure, so the one-line "Reading…" before it moves nothing.) */
       .lead {
         max-width: var(--measure);
         min-height: 2lh;
@@ -389,7 +372,6 @@
         font-size: 15px;
       }
 
-      /* (What it changed, in a few figures, hairlines between.) */
       .figures {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -436,7 +418,6 @@
         }
       }
 
-      /* (What an id typed became, or why it's gone.) */
       .answer {
         margin: 24px 0 0;
         padding: 14px 16px;
@@ -458,7 +439,6 @@
           color: var(--soft);
         }
 
-        /* (The one result's link only: the closest ids below it wrap, close under each other, with no room for a reach.) */
         .now a {
           position: relative;
 
@@ -476,7 +456,6 @@
         gap: 48px;
         margin-top: 40px;
 
-        /* (A lone section needs no contents beside it.) */
         &:has(> nav[hidden]) {
           grid-template-columns: minmax(0, 1fr);
         }
@@ -490,7 +469,6 @@
         }
       }
 
-      /* (The sections, each with how many rows it has: where to go, as the page scrolls.) */
       .body > nav {
         position: sticky;
         top: 80px;
@@ -543,7 +521,6 @@
           margin: 4px 0 0;
           color: var(--soft);
 
-          /* (A link alone in its paragraph, as a release's "View changes": a thumb's reach, unseen, in the room around it.) */
           > a:only-child {
             position: relative;
 
@@ -565,14 +542,12 @@
           }
         }
 
-        /* (A kind of note's topic, beneath its kind.) */
         h4 {
           margin: 16px 0 0;
           font-size: 14px;
           font-weight: 600;
         }
 
-        /* (A release's date, beside its version.) */
         .date {
           margin-left: 8px;
           color: var(--faint);
@@ -582,8 +557,6 @@
         }
       }
 
-      /* (A dash hangs outside each nested note, as its marker: a wrapped id stays under its own text and the dash never
-         lands alone on a line above a long id.) */
       .subs,
       .notes {
         margin: 4px 0 0;
@@ -595,7 +568,6 @@
         }
       }
 
-      /* (A note's own, beneath it; its pairs apart from each other.) */
       .subs {
         padding: 0 0 0 2em;
 
@@ -603,9 +575,6 @@
           margin-top: 10px;
         }
       }
-
-      /* ── Rows: a rename on a line, as it was, then as it is, then what its values were multiplied by and how many it
-         renamed ── */
 
       .rows {
         --columns: minmax(0, 1fr) 20px minmax(0, 1fr) 96px 56px;
@@ -622,7 +591,6 @@
           border-bottom: 1px solid var(--line);
         }
 
-        /* (A family's pattern, on the rows' columns, its cohorts beneath.) */
         .line {
           display: grid;
           grid-template-columns: var(--columns);
@@ -647,13 +615,10 @@
           text-align: right;
         }
 
-        /* (A row that's one thing: an id gone, an endpoint and what changed of it.) */
         > li.whole {
           display: block;
         }
 
-        /* (A note in words: at the measure of the page's other prose, its rule still the column's width; its ids and
-           paths each on a well, as the members' are.) */
         > li.prose {
           max-width: var(--measure);
           font-size: 15px;
@@ -668,8 +633,6 @@
           }
         }
 
-        /* (A row that's a thing and what's said of it, on one line: an endpoint gone and what it was, an index and
-           its spellings gone.) */
         > li.said {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 4px 16px;
@@ -701,7 +664,6 @@
         color: var(--gone);
       }
 
-      /* (A family of cohorts renamed alike: its pattern, then the cohorts in it.) */
       .members {
         display: flex;
         flex-wrap: wrap;
@@ -716,7 +678,6 @@
         }
       }
 
-      /* (An endpoint: its method, its path, what changed of it beneath.) */
       .method {
         display: inline-block;
         min-width: 44px;
@@ -730,7 +691,6 @@
         padding: 0 0 0 1.1em;
       }
 
-      /* (Ids gone, one by one: in columns.) */
       .ids {
         columns: 3 260px;
         column-gap: 24px;
@@ -790,10 +750,9 @@
       import { index, read } from "./rules.js";
       import { releases } from "./changelog.js";
 
-      // The releases whose API was compared, newest first, each as from, to: `<from>.json` beside this page, written by
-      // scripts/api-changes.mjs from two servers, the one release's and the other's before it was released.
+      // `<from>.json` beside this page, written by scripts/api-changes.mjs.
       const RELEASES = [["v0.12.2","v0.13.0"]];
-      /** @type {Map<string, Promise<any>>} API comparisons, fetched once and shared by the tabs and id lookup. */
+      /** @type {Map<string, Promise<any>>} */
       const comparisons = new Map();
 
       /** @param {string | undefined} from */
@@ -810,16 +769,12 @@
       const escape = (/** @type {unknown} */ text) =>
         String(text).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
       const code = (/** @type {string} */ text) => `<code>${escape(text)}</code>`;
-      /** Text with its `quoted` parts as code. */
       const marked = (/** @type {string} */ text) => escape(text).replace(/`([^`]+)`/g, "<code>$1</code>");
       const grouped = new Intl.NumberFormat("en-US");
-      /** What a series' values are multiplied by under its new id, said: `÷ 100`, `× 10,000`, or nothing. */
       const factor = (/** @type {number} */ f) =>
         Math.abs(f - 1) < 1e-12 ? "" : f < 1 ? `÷ ${grouped.format(Math.round(1 / f))}` : `× ${grouped.format(Math.round(f))}`;
 
       /**
-       * Two releases as their tab says them: a minor release by its minor alone (`0.12 → 0.13`, the first breaking
-       * what the second keeps), else each whole (`0.12.2 → 0.12.3`).
        * @param {string} from
        * @param {string} to
        */
@@ -829,34 +784,30 @@
         return minor ? [`${a[0]}.${a[1]}`, `${b[0]}.${b[1]}`] : [a.join("."), b.join(".")];
       }
 
-      // ── The sections: each a list of rows searchable by their text, the first shown, the rest at a tap ──
-
       const SHOWN = 25;
       /**
        * @typedef {{ html: string, text: string }} Row
-       * @typedef {{ group?: string, title?: string, said?: string, rows: Row[], list?: "rows" | "ids" }} List In a group
-       *   (a kind of note), the group's heading comes once, its lists' titles beneath it.
+       * @typedef {{ group?: string, title?: string, said?: string, rows: Row[], list?: "rows" | "ids" }} List
        * @typedef {{ rows: Row[], element: HTMLElement, more: HTMLButtonElement, all: boolean, own: HTMLElement[], group?: HTMLElement }} Shown
        * @typedef {{ id: string, section: HTMLElement, link: HTMLElement, lists: Shown[] }} Section
        */
       /** @type {Section[]} */
       const sections = [];
 
-      /** A rename's cells: what it was, what it is, and its factor and count if any. @param {string} from @param {string} to */
+      /** @param {string} from @param {string} to */
       const cells = (from, to, said = "", count = "") =>
         `<span>${from}</span><span class="to" aria-label="now">→</span><span>${to}</span><span class="factor">${said}</span><span class="count">${count}</span>`;
-      /** A rename's row. @param {string} from @param {string} to */
+      /** @param {string} from @param {string} to */
       const rename = (from, to, said = "", count = "") => `<li>${cells(from, to, said, count)}</li>`;
       /** @param {string} text */
       const dropped = (text) => (text ? code(text) : `<span class="gone">dropped</span>`);
 
       /**
-       * A section: its title, what it says, and its lists of rows; and its way in, in the column beside.
        * @param {string} id
        * @param {string} title
        * @param {string} said
        * @param {List[]} lists
-       * @param {string} label its way in's, if not its title
+       * @param {string} label
        */
       function addSection(id, title, said, lists, label = title) {
         lists = lists.filter((list) => list.rows.length);
@@ -897,7 +848,6 @@
         sections.push(entry);
       }
 
-      /** Every list, its rows found by what's searched (all while nothing is), the first shown unless asked for all. */
       function render() {
         const query = /** @type {HTMLInputElement} */ ($("q")).value.trim().toLowerCase();
         for (const { section, link, lists } of sections) {
@@ -912,19 +862,15 @@
             list.more.textContent = `Show all ${grouped.format(found.length)}`;
             any ||= found.length > 0;
           }
-          // (A group's heading while any of its lists shows.)
           for (const { group } of lists) if (group) group.hidden = !lists.some((list) => list.group === group && !list.element.hidden);
           section.hidden = !any;
           link.hidden = !any;
         }
       }
 
-      // ── The releases: a tab each minor release, its notes from the changelog, and its API's changes if compared ──
-
       /**
        * @typedef {import("./changelog.js").Release} Release
-       * @typedef {{ name: string, label: string, notes: Release[], api?: string[] }} Tab A minor release (`0.12`), or
-       *   those not released yet; its releases' notes, newest first; the API comparison into it, as from, to.
+       * @typedef {{ name: string, label: string, notes: Release[], api?: string[] }} Tab
        */
       /** @type {Tab[]} */
       let tabs = [];
@@ -937,11 +883,7 @@
 
       const minorOf = (/** @type {string} */ version) => version.replace(/^v/, "").split(".").slice(0, 2).join(".");
 
-      /**
-       * The tabs: the changelog's releases by their minor, then each API comparison in the tab of the release it's
-       * into, those not released yet if it isn't out (a tab of its own if the changelog has neither).
-       * @param {Release[]} notes
-       */
+      /** @param {Release[]} notes */
       function tabsOf(notes) {
         /** @type {Tab[]} */
         const tabs = [];
@@ -975,7 +917,7 @@
       }
 
       let opening = 0;
-      /** A tab's changes, the tab chosen (its address saying so, but for the newest's). @param {Tab} tab */
+      /** @param {Tab} tab */
       function open(tab) {
         const request = ++opening;
         const url = new URL(location.href);
@@ -990,7 +932,7 @@
 
       const version = (/** @type {Release} */ release) => escape(release.version?.replace(/^v/, "") ?? "");
 
-      /** What a tab says first: what its notes are, and how to find an id of its API's. @param {Tab} tab */
+      /** @param {Tab} tab */
       function leadOf(tab) {
         const released = tab.notes.filter((release) => release.version);
         const notes = !tab.notes.length
@@ -1007,7 +949,7 @@
         return notes ? `${notes}: its notes, then ${api}` : api[0].toUpperCase() + api.slice(1);
       }
 
-      /** A tab's notes: a section each release, its notes by kind and topic, found by the search as the rest. @param {Tab} tab */
+      /** @param {Tab} tab */
       function addNotes(tab) {
         for (const release of tab.notes) {
           const title = release.version ? `${version(release)}${release.date ? `<span class="date">${escape(release.date)}</span>` : ""}` : "Unreleased";
@@ -1039,7 +981,6 @@
         if (request !== opening) return;
         changes = data;
         if (changes) {
-          // Series renames written in the notes belong to the same lookup as the API comparison.
           const ids = tab.notes.flatMap((release) => release.groups.flatMap((group) => group.notes.flatMap((note) => {
             const [heading] = note.html.split('<ul class="subs">');
             if (!/\bseries ids?\b/i.test(heading)) return [];
@@ -1079,7 +1020,6 @@
           },
         ]);
 
-        // (Each spelling gone, by the index it spelled.)
         const spellings = new Map();
         for (const [alias, name] of indexes.aliases) {
           const now = indexes.renamed.find(([was]) => was === name)?.[1] ?? name;
@@ -1097,7 +1037,6 @@
           },
         ]);
 
-        // Cohorts renamed alike told once: the words around what they share (`utxos_…_old_` to `age_…_`), then each.
         /** @type {Map<string, { from?: string, to?: string, member?: string, whole: string[], members: string[], count: number }>} */
         const families = new Map();
         for (const [was, now, count] of changes.rules.cohorts) {
@@ -1169,9 +1108,6 @@
       }
 
       /**
-       * A cohort's rename as a family's: the words the two names share in the middle (`2y_to_3y`) stand for its
-       * member, and the words around them for the family (`utxos_…_old_` to `age_…_`, `…_` to `pool_…_`). Without
-       * such words, it's alone.
        * @param {string} from
        * @param {string} to
        */
@@ -1192,15 +1128,12 @@
         return { key: `${outer(a, best.i)}\t${outer(b, best.j)}`, from: outer(a, best.i), to: outer(b, best.j), member: join(a.slice(best.i, best.i + best.length)), whole: [from, to] };
       }
 
-      // ── An id looked up: as it is now, if the release serves it ──
-
       /** @type {Map<string, Promise<boolean>>} */
       const served = new Map();
-      /** The server not answering, or with another error than its 404. */
       class Unanswered extends Error {}
       /**
-       * Whether this page's server serves series `id` (the release it's on): its 404 says no; otherwise `Unanswered`, and
-       * asked again next time. @param {string} id
+       * A 404 says no; any other failure is `Unanswered` and asked again next time.
+       * @param {string} id
        */
       function serves(id) {
         if (!served.has(id)) {
@@ -1213,10 +1146,7 @@
         return /** @type {Promise<boolean>} */ (served.get(id));
       }
       const seriesLink = (/** @type {string} */ id) => `<a href="/catalog/?series=${encodeURIComponent(id)}">${code(id)}</a>`;
-      /**
-       * Ids gone that Studio computes from the series served now, each with its chart, where the formula lives (home.mjs
-       * checks every address into Studio a page has is one). @type {Record<string, string>}
-       */
+      /** Gone ids Studio still computes from the served series. @type {Record<string, string>} */
       const IN_STUDIO = {
         puell_multiple: "/studio/presets/mining/rewards/puell-multiple",
         nvt: "/studio/presets/valuation/nvt",
@@ -1228,7 +1158,6 @@
       let asked = 0;
       async function lookUp() {
         const id = /** @type {HTMLInputElement} */ ($("q")).value.trim();
-        // (Typed, from three letters; linked, as the API's not-found links any id it lacks, whatever its length.)
         const answer = $("answer"), ask = ++asked, linked = id === asked0;
         if (!changes || !(linked ? /^[a-z0-9_]+$/ : /^[a-z0-9_]{3,}$/).test(id)) return void (answer.hidden = true);
         const readings = read(id, rules);
@@ -1253,16 +1182,12 @@
               (different.has(id) ? `<p class="why">Its values aren't the same as they were: computed anew.</p>` : "")
             );
           }
-          // (Why, where the lists say: its whole cohort gone, or its measure from three cohorts or more.)
           const cohort = changes.removed.cohorts.find((/** @type {[string, number]} */ [prefix]) => id.startsWith(prefix));
           const measure = !cohort && changes.removed.measures.find((/** @type {[string, number]} */ [name]) => id.endsWith(`_${name}`));
-          // (Every id gone is in a list of the removed; one that's in none wasn't an id, as a word searched in the
-          // notes: nothing said of it, unless a link asked for it, as the API's not-found does for any id it lacks.)
           const removed = cohort || measure || changes.removed.ids.includes(id);
           if (!removed && !linked) return "";
           const near = await fetch(`/api/series/search?q=${encodeURIComponent(id)}&limit=5`).then((r) => (r.ok ? r.json() : []), () => []);
           const [from, to] = versions(changes.from, changes.to);
-          // (Under a unit's suffix too, `puell_multiple_ppm`: Studio draws the id without it.)
           const computed = [id, ...rules.suffixes.map(([unit]) => id.endsWith(`_${unit}`) && id.slice(0, -unit.length - 1))].find(
             (it) => it && Object.hasOwn(IN_STUDIO, it),
           );
@@ -1291,10 +1216,8 @@
         typing = setTimeout(lookUp, 250);
       });
       $("search-form").addEventListener("submit", (event) => (event.preventDefault(), lookUp()));
-      // (A link may name an id, and a release: /changes/?id=utxos_2y_to_3y_old_supply, /changes/?release=0.12.)
       const params = new URLSearchParams(location.search), asked0 = params.get("id"), wanted = params.get("release");
       if (asked0) /** @type {HTMLInputElement} */ ($("q")).value = asked0;
-      // (Without the changelog, the API's comparisons alone.)
       const changelog = await fetch("./CHANGELOG.md").then((response) => (response.ok ? response.text() : ""), () => "");
       tabs = tabsOf(releases(changelog));
       if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? tabs[0]);
