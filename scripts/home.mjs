@@ -453,7 +453,7 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
   @font-face { font-family: Inter; src: url("/assets/fonts/InterVariable.woff2") format("woff2"); font-weight: 100 900; }
   html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; background: #0d0c0b; }
   body { position: relative; font-family: Inter, sans-serif; color: #f6f3ee; -webkit-font-smoothing: antialiased; }
-  img.art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 35%; transform: scale(1.3); transform-origin: 100% 0; }
+  img.art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 70% 0; }
   .shade { position: absolute; inset: 0; background: linear-gradient(to right, #0d0c0b 0, rgb(13 12 11 / 0.92) 34%, rgb(13 12 11 / 0.35) 62%, transparent 82%), linear-gradient(to top, rgb(13 12 11 / 0.7), transparent 40%); }
   .words { position: absolute; left: 72px; bottom: 76px; width: 560px; }
   .brand { display: flex; align-items: center; gap: 22px; font-size: 76px; font-weight: 750; letter-spacing: -0.04em; }

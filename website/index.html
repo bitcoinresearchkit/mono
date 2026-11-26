@@ -546,9 +546,9 @@
 
         img {
           position: absolute;
-          inset: 0;
+          inset: var(--art-drop, 0px) 0 0;
           width: 100%;
-          height: 100%;
+          height: calc(100% - var(--art-drop, 0px));
           object-fit: cover;
           /* (Its height in view, a third of the way down, where a picture doesn't say its own.) */
           object-position: 70% var(--art-y, 35%);
@@ -560,11 +560,14 @@
             opacity: 1;
           }
 
-          /* (Studio's chart fills its picture's top half, over its dark ground: the top in view; in a phone's band, its
-             top 57% as tall as the band.) */
+          /* (Its price runs above its waves: its top in view, the picture dropped below the nav (32px at one row, 90 at two), so the line and the crests both show.) */
           &[src$="/studio.webp"] {
-            --art-y: 10%;
-            --art-top: 0.57;
+            --art-drop: 32px;
+            --art-y: 0%;
+
+            @media (max-width: 899px) {
+              --art-drop: 90px;
+            }
           }
 
           /* (Oracle's chart sits across its picture's middle: lowered, it sinks into the words' fade; kept at the top.) */
@@ -597,7 +600,7 @@
           /* (A picture whose subject is its top: that top the band's height, the rest under it cut.) */
           img {
             bottom: auto;
-            height: calc(100% / var(--art-top, 1));
+            height: calc(100% / var(--art-top, 1) - var(--art-drop, 0px));
 
             /* (Installed on iOS, the page runs up under the status bar: the picture starts under it, where it did, and
                its own top, mirrored, fills the strip above, its colours carried up to the screen's edge.) */
