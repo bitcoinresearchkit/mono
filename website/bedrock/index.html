@@ -2,14 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Bedrock" data-color="#4b342e" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#58bbc4" />
     <title>Bedrock · Bitview</title>
     <meta name="description" content="How Bedrock finds the ground under Bitcoin's price, in four steps: weigh the coins, count the ones in profit, rank the day, and turn the rarest ranks back into prices." />
-    <!-- (Its address, wherever it's served from, and how a shared link previews: its card made by scripts/home.mjs --pictures.) -->
     <link rel="canonical" href="https://bitview.space/bedrock/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/bedrock/" />
@@ -44,10 +42,7 @@
         font-display: swap;
       }
 
-      /* The name's own face: Bricolage Grotesque at its heaviest, cut down to the name's seven letters. The file keeps the
-         face's optical sizes for the sizes the name is set at, and the browser picks by the font size. (Swapped in when
-         it arrives: the name's box is its line, one font size high in any face, and nothing sits beside it, so nothing
-         moves.) */
+      /* Cut down to the name's seven letters, its optical sizes kept. Swapped in when it arrives: the name's box is its line, so nothing moves. */
       @font-face {
         font-family: "Bricolage Grotesque";
         src: url("/assets/fonts/BricolageGrotesque-ExtraBold.bedrock.woff2") format("woff2");
@@ -55,14 +50,11 @@
         font-display: swap;
       }
 
-      /* One world: the landscape (Studio's colours, the same in either scheme) and, around it, grounds tinted from it,
-         lighter by day and deeper by night. */
       :root {
         color-scheme: light dark;
         --sans: Inter, -apple-system, system-ui, sans-serif;
         --gutter: max(20px, env(safe-area-inset-left));
         --column: 640px;
-        /* The landscape's inks: what's written over its water, and the price drawn over any of it. */
         --sky: #58bbc4;
         --over-water: #021019;
         --cream: #f4f1ea;
@@ -120,8 +112,6 @@
         outline-offset: 2px;
       }
 
-      /* ── The grounds: each section stands on one ── */
-
       [data-ground] {
         background: var(--ground);
         color: var(--text);
@@ -159,7 +149,6 @@
         --accent: light-dark(#303438, #b4b8bb);
       }
 
-      /* The three words, wherever they're written: each in its ground's colour, the same in either scheme. */
       .w,
       .s,
       .r {
@@ -191,8 +180,6 @@
         margin-inline: auto;
         padding-inline: var(--gutter) max(20px, env(safe-area-inset-right));
       }
-
-      /* ── The hero: the landscape from the very top, the name on its calm sky, the day's reading under it ── */
 
       .hero {
         position: relative;
@@ -263,8 +250,6 @@
         outline-offset: -4px;
       }
 
-      /* A chart's reading for the day shown, on the ground the line is in that day: two lines from the left, so
-         neither moves the other as they change. */
       .read {
         display: flex;
         flex-direction: column;
@@ -275,9 +260,7 @@
         color: var(--zone-ink, #f4f1ea);
         line-height: 1.25;
         white-space: nowrap;
-        /* (Its words and its ground change every frame of a pan: contained, they lay out nothing but themselves; and its
-           colour changes at once, since an eased one starts again at each ground the finger crosses and cost a pan its
-           first frames without a JIT.) */
+        /* Contained, and its colour not eased: an eased one restarted at each ground the finger crossed and cost a pan its first frames without a JIT. */
         contain: strict;
 
         &[data-zone="high"] {
@@ -324,7 +307,6 @@
         gap: 4px;
         pointer-events: auto;
 
-        /* (Compass's choice buttons: a capsule around its label, and a finger's 44px around that, unseen.) */
         button {
           position: relative;
           min-width: 40px;
@@ -374,8 +356,6 @@
         text-transform: uppercase;
       }
 
-      /* ── A part: one thought, large, and its picture ── */
-
       .part {
         padding-block: clamp(56px, 10vh, 104px);
 
@@ -422,7 +402,6 @@
         }
       }
 
-      /* A large number and what it counts. */
       .big {
         display: flex;
         align-items: center;
@@ -433,7 +412,7 @@
         font-weight: 600;
         line-height: 1.2;
 
-        /* (Its words' lines are broken by hand: left to wrap them, Safari on a phone breaks them shorter than its room.) */
+        /* Broken by hand: Safari on a phone wraps them shorter than their room. */
         > span {
           white-space: nowrap;
         }
@@ -448,7 +427,6 @@
         }
       }
 
-      /* A picture: edge to edge on a phone, a rounded plate on a wide page; one look in either scheme. */
       .plate {
         position: relative;
         width: min(100%, 1040px);
@@ -464,8 +442,6 @@
           height: clamp(300px, 52vh, 480px);
         }
       }
-
-      /* ── Step 1: the coins by age, each age's counted part lit ── */
 
       .cols {
         display: flex;
@@ -484,7 +460,6 @@
           border-radius: 2px 2px 0 0;
           background: rgb(244 241 234 / 0.16);
 
-          /* (The counted part grows from the foot by transform alone.) */
           &::after {
             content: "";
             position: absolute;
@@ -510,9 +485,7 @@
         font-weight: 500;
       }
 
-      /* Which coins are counted: Compass's control (a label over pills, the one in use filled). */
-      /* Words for one weight or the other, both set in the same box: it keeps the taller's height, so a switch moves
-         nothing. */
+      /* Both set in one box, which keeps the taller's height, so a switch moves nothing. */
       .either {
         display: grid;
 
@@ -581,8 +554,6 @@
         }
       }
 
-      /* ── Steps 2 and 3: today's slice, standing still ── */
-
       .slice {
         height: clamp(300px, 50vh, 460px);
 
@@ -594,7 +565,6 @@
         }
       }
 
-      /* A price drawn across a slice. */
       .level {
         position: absolute;
         inset: 0 0 auto;
@@ -629,8 +599,6 @@
         box-shadow: 0 0 0 1.5px var(--outline);
       }
 
-      /* ── Step 4: the slice whole, the price lowered through it by the scroll ── */
-
       .sink {
         position: relative;
         height: 400svh;
@@ -652,8 +620,7 @@
         }
       }
 
-      /* (The lit dots, shown from the price down: a window moved down and its picture moved back up, both by
-         transform alone, so the compositor does the sinking.) */
+      /* A window moved down and its picture back up, by transform alone: the compositor does the sinking. */
       .lit {
         position: absolute;
         inset: 0;
@@ -665,7 +632,6 @@
         }
       }
 
-      /* Today's place in the slice. */
       .mark {
         position: absolute;
         inset: 0 0 auto;
@@ -708,7 +674,6 @@
           color: inherit;
         }
 
-        /* (Two lines, held: the slice starts under them.) */
         .said {
           height: 2.6em;
           margin-top: 6px;
@@ -717,8 +682,6 @@
           line-height: 1.3;
         }
       }
-
-      /* ── The record: each visit to the rock a row that says what happened, the chart gliding to it ── */
 
       .visits {
         display: grid;
@@ -762,7 +725,6 @@
         }
       }
 
-      /* A share as a row of dots, lit while in profit, as in the slice. */
       .lights {
         --dot: radial-gradient(circle, currentColor 0 3px, transparent 3.6px) 0 0 / 12px 12px;
         color: var(--ink);
@@ -811,7 +773,6 @@
         color: var(--ink);
         font-weight: 650;
 
-        /* (A finger's reach.) */
         a {
           display: inline-block;
           padding-block: 12px;
@@ -1003,24 +964,15 @@
       const dated = (/** @type {number} */ day) => { const d = dateOf(day); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`; };
       const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
       const usd = (/** @type {number} */ v) => (v >= 100 ? `$${WHOLE.format(v)}` : v >= 1 ? `$${v.toFixed(2)}` : `$${v.toPrecision(2)}`);
-      /** A price as it's said in passing: three figures. */
       const about = (/** @type {number} */ v) => (v >= 1e3 ? `$${(v / 1e3).toPrecision(3)}k` : `$${+v.toPrecision(3)}`);
-      /** Coins, as said in passing. */
       const coins = (/** @type {number} */ v) => (v >= 1e6 ? `${(v / 1e6).toFixed(2)}M` : `${WHOLE.format(v / 1e3)}k`);
       const percent = (/** @type {number} */ share) => `${Math.round(share * 100)}%`;
       const still = matchMedia("(prefers-reduced-motion: reduce)");
 
-      // ── The model, as the server names it ──
-
-      /** Which coins are counted, and the weight each mode gives an age. */
       const WEIGHTS = /** @type {const} */ ({ awake: "wakefulness", mobile: "mobility" });
       /** @typedef {keyof typeof WEIGHTS} Mode */
-      /** The floors, first to deepest: the server's key and the share of earlier days under each. */
       const FLOORS = [["p95", "5%"], ["p98", "2%"], ["p99", "1%"], ["p99_5", "0.5%"], ["p99_9", "0.1%"]];
-      /** The cost levels over the first floor, highest first, each with the part of those coins that last moved under
-       * it: water down to the median, sand under it. */
       const LEVELS = /** @type {const} */ ([["p90", 0.9], ["p80", 0.8], ["p70", 0.7], ["p60", 0.6], ["median", 0.5], ["p40", 0.4], ["p30", 0.3], ["p20", 0.2], ["p10", 0.1]]);
-      /** The ages the model weighs, youngest first: the server's key, and the age as said. */
       const AGES = [
         ["under_1h", "under an hour"], ["1h_to_1d", "an hour to a day"], ["1d_to_1w", "a day to a week"], ["1w_to_1m", "a week to a month"],
         ["1m_to_2m", "1 to 2 months"], ["2m_to_3m", "2 to 3 months"], ["3m_to_4m", "3 to 4 months"], ["4m_to_5m", "4 to 5 months"], ["5m_to_6m", "5 to 6 months"],
@@ -1028,37 +980,30 @@
         ["2y_to_3y", "2 to 3 years"], ["3y_to_4y", "3 to 4 years"], ["4y_to_5y", "4 to 5 years"], ["5y_to_6y", "5 to 6 years"], ["6y_to_7y", "6 to 7 years"],
         ["7y_to_8y", "7 to 8 years"], ["8y_to_10y", "8 to 10 years"], ["10y_to_12y", "10 to 12 years"], ["12y_to_15y", "12 to 15 years"], ["over_15y", "over 15 years"],
       ];
-      /** The first day the page counts, about when the price starts being read from the chain itself: the days before are shown as calibration. */
+      /** The first day counted, about when the price starts being read from the chain itself; before it, calibration. */
       const FROM = Math.round((Date.UTC(2015, 0, 1) - EPOCH) / DAY);
-      /** The landscape's grounds by their bands' indices in Studio's colours (the water over the all-time high apart). */
       const SAND = 5, ROCK = 10;
-      /** The ground of a layer: 0 over the all-time high, then the fifteen bands. */
       const zoneOf = (/** @type {number} */ layer) => (layer === 0 ? "high" : layer <= SAND ? "water" : layer <= ROCK ? "sand" : "rock");
       const INKS = { water: { ink: "#021019", light: "#d8f4f7" }, sand: { ink: "#1e1206", light: "#fbe8bb" }, rock: { ink: "#000000", light: "#dfe3e6" } };
-      /** Each band's marks, top to bottom: water's lines thinning with depth, sand's crumbs, a rock a floor. */
       const MARKS = /** @type {const} */ ([
         ["current", 1], ["current", 0.8], ["current", 0.62], ["current", 0.46], ["current", 0.32],
         ["speckle", 1], ["speckle", 1], ["speckle", 1], ["speckle", 1], ["speckle", 1],
         ["shale", 1], ["sandstone", 1], ["conglomerate", 1], ["granite", 0.8], ["granite", 0.35],
       ]);
       /** @typedef {import("/modules/bitview-charts/texture.js").Texture} Texture */
-      /** The water over the all-time high, then the fifteen bands: each a colour and its texture (one object each, so its tile is made once). */
+      /** One texture object each, so its tile is made once. */
       const LOOKS = [SKY, ...LANDSCAPE].map((color, k) => ({
         color,
         texture: /** @type {Texture} */ (k ? { kind: MARKS[k - 1][0], amount: MARKS[k - 1][1], ...INKS[/** @type {"water" | "sand" | "rock"} */ (zoneOf(k))], seed: 7 + (k - 1) * 13 } : { kind: "current", amount: 1, ...INKS.water, seed: 3 }),
       }));
-      /** The water a slice stands in before its grounds are known, and the rock's five layers. */
       const WATER = LOOKS[3], ROCKS = LOOKS.slice(ROCK + 1);
       const DEEPEST = LANDSCAPE[LANDSCAPE.length - 1];
-      /** The price over the landscape, and its outline. */
       const OVER = { ink: "#f4f1ea", outline: "#0b1115" };
-
-      // ── The data: one ask a series ──
 
       const WAIT = 20000;
       /** @type {Map<string, Promise<any>>} */
       const answers = new Map();
-      /** An answer asked once; a failed ask is asked again next time. @template T @param {string} key @param {() => Promise<T>} make @returns {Promise<T>} */
+      /** A failed ask is asked again next time. @template T @param {string} key @param {() => Promise<T>} make @returns {Promise<T>} */
       const kept = (key, make) => {
         let got = answers.get(key);
         if (!got) answers.set(key, (got = make().catch((error) => (answers.delete(key), Promise.reject(error)))));
@@ -1069,11 +1014,7 @@
         if (!response.ok) throw new Error(`${path}: the server answered ${response.status}`);
         return response.json();
       };
-      /**
-       * A series by day, whole, a column for each value of a day (one; the price's four: its open, high, low and close);
-       * NaN where there's none.
-       * @returns {Promise<Float64Array[]>}
-       */
+      /** One column per value of a day (the price's four: open, high, low, close); NaN where none. @returns {Promise<Float64Array[]>} */
       const columns = (/** @type {string} */ id, width = 1) => kept(id, async () => {
         const body = await json(`/api/series/${id}/day1?start=0`);
         if (!Array.isArray(body?.data)) throw new Error(`${id}: the server's answer couldn't be read`);
@@ -1082,7 +1023,7 @@
         return made;
       });
       const series = async (/** @type {string} */ id) => (await columns(id))[0];
-      /** A series' latest value alone. @returns {Promise<number>} */
+      /** @returns {Promise<number>} */
       const latest = (/** @type {string} */ id) => kept(`latest ${id}`, async () => {
         const value = await json(`/api/series/${id}/day1/latest`);
         if (typeof value !== "number") throw new Error(`${id}: the server's latest value couldn't be read`);
@@ -1090,7 +1031,6 @@
       });
 
       /** @typedef {{ first: number, from: number, last: number, open: Float64Array, high: Float64Array, low: Float64Array, close: Float64Array, edges: Float64Array[], floors: Float64Array[] }} Days (`first`: the first day with floors; `from`: the first counted) */
-      /** The landscape's days: the price (each day's open, high, low and close), and its fifteen edges (the all-time high, the levels, the floors) on one length. */
       const readDays = (/** @type {Mode} */ mode) => kept(`days ${mode}`, async () => {
         const ids = ["price_ath", ...LEVELS.map(([k]) => `bedrock_${mode}_cost_basis_above_p95_floor_${k}`), ...FLOORS.map(([k]) => `bedrock_${mode}_floor_${k}`)];
         const [price, ...read] = await Promise.all([columns("price_ohlc", 4), ...ids.map(series)]);
@@ -1100,26 +1040,19 @@
         while (last > first && !(close[last] > 0 && deepest[last] > 0)) last--;
         const from = Math.max(first, FROM);
         if (last <= from) throw new Error(`the ${mode} floors: none since 2015`);
-        // (Nothing of the days before the first: the line begins there, and the ground holds its first day's to a
-        // chart's edge, as it holds its last day's past the end.)
+        // Nothing before the first day: the line begins there, and the ground holds its first day's to the edge.
         const [open, high, low, shut] = price.map((a) => a.slice(0, last + 1).fill(NaN, 0, first)), edges = read.map((a) => a.slice(0, last + 1).fill(a[first], 0, first));
         return /** @type {Days} */ ({ first, from, last, open, high, low, close: shut, edges, floors: edges.slice(-FLOORS.length) });
       });
 
       /** @typedef {{ today: number, edges: number[], loss: Float64Array, below: (share: number) => number }} Shares */
-      /**
-       * The coins in profit as parts of one: today's, and the landscape's fifteen edges today as such shares (the floors'
-       * as the server ranks them, the levels' as the parts they are of the coins over the first floor); and every day's
-       * share in loss, in percent, as the server gives it; and the part of the earlier days that had fewer in profit than
-       * a share.
-       */
+      /** Floors as the server ranks them; levels as the parts they are of the coins over the first floor. */
       const readShares = (/** @type {Mode} */ mode, /** @type {Promise<Days>} */ days) => kept(`shares ${mode}`, async () => {
         const [d, loss, ...thresholds] = await Promise.all([days, series(`${mode}_supply_in_loss_share`), ...FLOORS.map(([k]) => series(`bedrock_${mode}_supply_in_loss_share_threshold_${k}`))]);
-        // (A series a day short of the landscape's last holds its own last there.)
+        // A series a day short of the landscape's last holds its own last.
         const profit = (/** @type {Float64Array} */ v) => 1 - v[Math.min(d.last, v.length - 1)] / 100;
         const floors = thresholds.map(profit), top = floors[0], today = profit(loss);
         if (!(today >= 0) || !floors.every((floor) => floor >= 0)) throw new Error(`the ${mode} coins in profit today couldn't be read`);
-        // (The earlier days' shares in profit, sorted: how many had fewer than a share is a search.)
         const earlier = Float64Array.from(loss.subarray(0, Math.min(d.last, loss.length)), (v) => 1 - v / 100).filter((v) => v >= 0).sort();
         const below = (/** @type {number} */ share) => {
           let lo = 0, hi = earlier.length;
@@ -1128,7 +1061,6 @@
         };
         return /** @type {Shares} */ ({ today, edges: [1, ...LEVELS.map(([, part]) => top + (1 - top) * part), ...floors], loss, below });
       });
-      /** The price at which a share of today's counted coins is in profit: from those coins by the price they last moved at. */
       const readPriceAt = (/** @type {Mode} */ mode) => kept(`price at ${mode}`, async () => {
         const urpd = await json(`/api/urpd/all?weight=${WEIGHTS[mode]}&agg=log1000`);
         /** @type {number[]} */ const price = urpd.buckets.price, supply = urpd.buckets.supply, under = new Float64Array(price.length);
@@ -1140,35 +1072,27 @@
           return price[lo];
         };
       });
-      /** Each age's coins and the weight they count by, today. @returns {Promise<{ coins: number, weight: number }[]>} */
+      /** @returns {Promise<{ coins: number, weight: number }[]>} */
       const readAges = (/** @type {Mode} */ mode) => kept(`ages ${mode}`, () => Promise.all(AGES.map(async ([id]) => {
         const [supply, weight] = await Promise.all([latest(`age_${id}_supply`), latest(`age_${id}_${WEIGHTS[mode]}`)]);
         return { coins: supply, weight };
       })));
 
-      /** Where a value stands among a day's edges (highest first): its layer, 0 over them all. */
       const layerOf = (/** @type {Float64Array[]} */ edges, /** @type {number} */ day, /** @type {number} */ value) => {
         let k = 0;
         while (k < edges.length && value < edges[k][day]) k++;
         return k;
       };
-      /** A small part, as a percent: to a tenth under ten, to a hundredth under a tenth. */
       const rarity = (/** @type {number} */ part) => `${part < 0.001 ? (100 * part).toFixed(2) : part < 0.1 ? (100 * part).toFixed(1) : Math.round(100 * part)}%`;
-      /** How rare a share in profit is, as said: by the part of the earlier days that had fewer. */
       const rare = (/** @type {number} */ part, coins = "") => `${part ? `Only ${rarity(part)} of earlier days` : "No earlier day"} had fewer ${coins}in profit`;
-      /** A layer's ground, as said. */
       const ground = (/** @type {number} */ layer) => (layer === 0 ? "At an all-time high" : layer > ROCK ? `In the rock, ${layer - ROCK} of ${FLOORS.length} floors deep` : `In the ${zoneOf(layer)}`);
 
-      // ── The landscape as a chart: Studio's (createChart), the same picture wherever it's drawn ──
-
       const FONT = "500 12px Inter, -apple-system, system-ui, sans-serif";
-      /** One look in either scheme: its dates on the deepest rock. */
       const THEME = { background: DEEPEST, text: "#a9adb0", grid: "transparent", font: FONT, crosshair: OVER.ink, across: "transparent", badge: OVER.outline, separator: "transparent", active: "transparent" };
-      /** Every day's time, from the first block's year: one timeline for every chart. */
+      /** One timeline for every chart. */
       let times = new Float64Array(0);
       const ratio = () => Math.min(2, devicePixelRatio || 1);
 
-      /** The landscape's bands between `edges` (highest first): water over the first to the top, the deepest to the foot. */
       const landscape = (/** @type {Float64Array[]} */ edges) => [
         new Band({ upper: edges[0], to: "top", hold: true, ...LOOKS[0] }),
         ...edges.map((upper, k) => new Band(k + 1 < edges.length ? { upper, lower: edges[k + 1], hold: true, ...LOOKS[k + 1] } : { upper, to: "foot", hold: true, ...LOOKS[k + 1] })),
@@ -1176,14 +1100,12 @@
 
       /** @type {CanvasPattern | null} */
       let hatch = null;
-      /** Thin lines across what isn't counted. */
       const hatched = (/** @type {CanvasRenderingContext2D} */ g) => {
         const tile = new OffscreenCanvas(8, 8), t = /** @type {OffscreenCanvasRenderingContext2D} */ (tile.getContext("2d"));
         (t.strokeStyle = "rgba(11, 17, 21, 0.2)"), (t.lineWidth = 1), t.beginPath(), t.moveTo(-2, 10), t.lineTo(10, -2), t.stroke();
         return g.createPattern(tile, "repeat");
       };
 
-      /** A reading under a chart, on the ground it names: written only as it changes. */
       const reader = (/** @type {HTMLElement} */ el) => {
         const when = /** @type {HTMLElement} */ (el.querySelector(".when")), what = /** @type {HTMLElement} */ (el.querySelector(".what"));
         let was = "";
@@ -1195,9 +1117,8 @@
       };
 
       /**
-       * A chart of the price over the landscape, read into `out` as a finger or pointer moves over it: the days before
-       * the first counted under a wash, and read as calibrating.
-       * @param {HTMLElement} box @param {Days} d @param {HTMLElement} out @param {AbortSignal} signal @param {() => number} [top] the room kept clear over the line
+       * Read into `out` as a finger or pointer moves over it.
+       * @param {HTMLElement} box @param {Days} d @param {HTMLElement} out @param {AbortSignal} signal @param {() => number} [top]
        */
       function landscapeChart(box, d, out, signal, top) {
         const chart = createChart(box, { theme: THEME, axis: 0, leftAxis: 0, timeHeight: 28, embedded: true, dateFormat: (t) => dated(Math.round((t * 1000 - EPOCH) / DAY)) });
@@ -1206,11 +1127,9 @@
         chart.setTimes(times);
         chart.time.first = d.first;
         for (const band of landscape(d.edges)) pane.add(band);
-        // (The price: a line, and from three pixels a day candles, as Studio's. In the line's two inks, so the landscape
-        // keeps the colours: a day that rose filled in the line's cream, one that fell in its dark, ringed in cream.)
+        // In the line's two inks, so the landscape keeps its colours: a day that rose filled cream, one that fell dark, ringed cream.
         pane.add(new Candles({ open: d.open, high: d.high, low: d.low, close: d.close, up: OVER.ink, down: OVER.outline, downWick: OVER.ink, downBorder: OVER.ink, outline: OVER.outline, color: OVER.ink, width: 1.75 }));
-        // (The days before the first counted under a pale wash, hatched from its edge so the picture's strips meet:
-        // part of the picture, so it moves with a pan, and it leaves the room kept over the line clear.)
+        // Hatched from its edge so the picture's strips meet; part of the picture, so it moves with a pan.
         pane.add(new Custom({
           draw(g, { time }) {
             const x = time.x(d.from - 0.5), y = top ? top() + 14 : 0, h = pane.height - y;
@@ -1221,8 +1140,6 @@
             (g.fillStyle = hatch), g.fillRect(0, y, x, h);
           },
         }));
-        // (Over everything: the wash's one word, in the middle of what shows of it once it has the room, and the last
-        // day ringed.)
         pane.add(new Custom({
           draw(g, { time, scale }) {
             const x = Math.min(time.x(d.from - 0.5), time.width);
@@ -1248,8 +1165,7 @@
         chart.onRange(tell);
         chart.onLayout(() => {
           const h = pane.height;
-          // (A view never leaves the days with floors: no wider than all of them, and held on them at either end, but
-          // for the blank a chart keeps past the last.)
+          // A view never leaves the days with floors, but for the blank a chart keeps past the last.
           const { time } = chart;
           (time.minSpacing = time.dataWidth / (d.last - d.first)), (time.minDataShare = 1);
           if (h > 0) pane.setScale("right", { top: ((top?.() ?? 0) + 14) / h, bottom: 14 / h }), chart.invalidate(true);
@@ -1257,11 +1173,9 @@
         return { chart, tell };
       }
 
-      // ── The hero ──
-
       const GLIDE = 380;
       function hero(/** @type {Days} */ d, /** @type {AbortSignal} */ signal) {
-        // (The sky over the line is the name's: no zoom brings the line or the land up into it.)
+        // The sky over the line is the name's: no zoom brings line or land up into it.
         const { chart } = landscapeChart($("chart"), d, $("strip"), signal, () => $("title").getBoundingClientRect().bottom - $("chart").getBoundingClientRect().top);
         const { time, controller } = chart, since = d.last - d.from + 1, buttons = all("[data-span]");
         /** The span shown, in days: 0 every day counted, −1 the reader's own view. */
@@ -1272,7 +1186,6 @@
         const glide = (/** @type {number} */ s) => { span = s; press(); controller.viewTo((goal = time.shown(lengthOf(s))), still.matches ? 0 : GLIDE); };
         for (const b of buttons) b.addEventListener("click", () => glide(Number(b.dataset.span)), { signal });
         chart.onLayout(() => { if (span !== -1 && !controller.target) chart.show(lengthOf(span)); });
-        // (A span stays pressed only while the view is its own.)
         chart.onRange((from, to) => {
           if (span === -1 || (controller.target && controller.target === goal)) return;
           const g = time.shown(lengthOf(span));
@@ -1282,12 +1195,8 @@
         press(), chart.show(lengthOf(span));
       }
 
-      // ── Step 1: weigh ──
-
-      /** The coins by age, each age's counted part lit: read as a finger or pointer crosses the ages. */
       function weigh(/** @type {{ coins: number, weight: number }[]} */ ages, /** @type {Mode} */ mode, /** @type {AbortSignal} */ signal) {
         const box = $("ages"), write = reader($("ages-read")), most = Math.max(...ages.map((age) => age.coins));
-        // (The bars stay as the weights change: each counted part eases to its new height.)
         if (box.children.length !== ages.length) box.replaceChildren(...ages.map(() => document.createElement("i")));
         const bars = /** @type {HTMLElement[]} */ ([...box.children]);
         ages.forEach((age, k) => (bars[k].style.setProperty("--coins", String(age.coins / most)), bars[k].style.setProperty("--weight", String(age.weight))));
@@ -1308,19 +1217,14 @@
         pick(-1);
       }
 
-      // ── Today's slice: the counted coins as dots, by the price each last moved at, a share of them a height ──
-
-      /** The dots: five hundred, each 0.2% of the counted coins, the cheapest at the foot. */
       const DOTS = 500;
-      /** A canvas at a size, drawn in CSS pixels. */
       const sized = (/** @type {HTMLCanvasElement} */ canvas, /** @type {number} */ w, /** @type {number} */ h) => {
         const dpr = ratio(), g = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         (canvas.width = Math.round(w * dpr)), (canvas.height = Math.round(h * dpr)), g.setTransform(dpr, 0, 0, dpr, 0, 0);
         return g;
       };
       /**
-       * The grounds of a slice: one more look than `shares` (highest first), each from its share down to the next, the
-       * first from the top and the last to the foot.
+       * One more look than `shares` (highest first): the first from the top, the last to the foot.
        * @param {CanvasRenderingContext2D} g @param {number} w @param {number} h @param {(share: number) => number} y @param {number[]} shares @param {typeof LOOKS} looks
        */
       const strata = (g, w, h, y, shares, looks) => looks.forEach((look, k) => {
@@ -1328,17 +1232,15 @@
         (g.fillStyle = look.color), g.fillRect(0, a, w, b - a);
         if (made.pattern) (g.fillStyle = made.pattern), g.fillRect(0, a, w, b - a);
       });
-      /** Each dot of a slice `height` tall from `top`: rows from the foot, every other half a dot across as coins settle; `each` given its centre, radius and the share of coins under it. */
+      /** Rows from the foot, every other half a dot across as coins settle. */
       const eachDot = (/** @type {number} */ w, /** @type {number} */ top, /** @type {number} */ height, /** @type {(cx: number, cy: number, r: number, share: number) => void} */ each) => {
         const cols = w >= 700 ? 25 : 20, rows = DOTS / cols, across = Math.min(w, 880), cw = (across - 32) / (cols + 0.5), ch = height / rows, r = Math.min(cw, ch) * 0.24, x0 = (w - across) / 2 + 16;
         for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) each(x0 + (col + 0.5 + (row % 2) / 2) * cw, top + height - (row + 0.5) * ch, r, (row + 0.5) / rows);
       };
-      /** A dot: lit (in profit) cream and ringed, else a shadow. */
       const dot = (/** @type {CanvasRenderingContext2D} */ g, /** @type {number} */ cx, /** @type {number} */ cy, /** @type {number} */ r, /** @type {boolean} */ lit) => {
         if (lit) (g.fillStyle = "rgba(11, 17, 21, 0.7)"), g.beginPath(), g.arc(cx, cy, r + 0.75, 0, 6.2832), g.fill();
         (g.fillStyle = lit ? OVER.ink : "rgba(11, 17, 21, 0.32)"), g.beginPath(), g.arc(cx, cy, r, 0, 6.2832), g.fill();
       };
-      /** A still slice in a figure: painted again as its box changes, a share a height in it. */
       const slice = (/** @type {string} */ id, /** @type {AbortSignal} */ signal, /** @type {(g: CanvasRenderingContext2D, w: number, h: number, y: (share: number) => number) => void} */ paint) => {
         const figure = $(id), canvas = /** @type {HTMLCanvasElement} */ (figure.querySelector("canvas"));
         const watch = new ResizeObserver(() => {
@@ -1347,8 +1249,6 @@
         });
         watch.observe(figure), signal.addEventListener("abort", () => watch.disconnect());
       };
-
-      // ── Step 2: count ──
 
       function count(/** @type {Days} */ d, /** @type {Shares} */ past, /** @type {AbortSignal} */ signal) {
         ($("count-share").textContent = percent(past.today)), ($("count-price").textContent = `Today · ${usd(d.close[d.last])}`);
@@ -1359,9 +1259,6 @@
         });
       }
 
-      // ── Step 3: rank ──
-
-      /** Every earlier day piled at its share in profit, a bar a point of share; the rock from the shares the server ranks rare. */
       function rank(/** @type {Days} */ d, /** @type {Shares} */ past, /** @type {AbortSignal} */ signal) {
         const bins = new Float64Array(50), end = Math.min(d.last, past.loss.length);
         for (let day = 0; day < end; day++) {
@@ -1369,32 +1266,24 @@
           if (profit >= 0) bins[Math.min(bins.length - 1, Math.floor((profit / 100) * bins.length))]++;
         }
         ($("rank-share").textContent = rarity(past.below(past.today))), ($("rank-today").textContent = `Today · ${$("rank-share").textContent} of days below`);
-        // (The bars' length by the second-fullest: the top one, the years every coin was in profit, runs off the edge.)
+        // Scaled by the second-fullest: the top one, the years every coin was in profit, runs off the edge.
         const most = [...bins].sort((a, b) => b - a)[1] || 1, floors = past.edges.slice(-FLOORS.length);
         slice("rank", signal, (g, w, h, y) => {
           strata(g, w, h, y, floors, [WATER, ...ROCKS]);
           const bar = h / bins.length;
           g.fillStyle = OVER.ink;
           bins.forEach((n, k) => n && g.fillRect(0, h - (k + 1) * bar + 0.5, Math.max(1.5, (n / most) * w * 0.7), Math.max(1, bar - 1)));
-          // (Its axis said at the right, each word outlined: a long bar may run under it.)
           (g.font = FONT.replace("500", "700")), (g.textAlign = "right"), (g.lineWidth = 3), (g.lineJoin = "round"), (g.strokeStyle = OVER.outline);
           for (const [text, at, baseline] of /** @type {const} */ ([["100% in profit", 8, "top"], ["50%", y(0.5), "middle"], ["5% of days are below this mark", y(floors[0]) - 5, "bottom"], ["0%", h - 8, "bottom"]])) (g.textBaseline = baseline), g.strokeText(text, w - 12, at), g.fillText(text, w - 12, at);
           $("rank-level").style.transform = `translateY(${y(past.today)}px)`;
         });
       }
 
-      // ── Step 4: price it ──
-
-      /** How far the price sinks: to a tenth of the coins in profit. */
       const LEAST = 0.1;
-      /** The part of the scene's scroll that sinks the price: a rest at the bottom after it. */
       const SINKING = 0.92;
-      /** A ground's name, in its colour. */
       const named = (/** @type {number} */ layer) => { const zone = zoneOf(Math.max(1, layer)); return `<span class="${zone[0]}">${zone[0].toUpperCase()}${zone.slice(1)}.</span>`; };
 
       /**
-       * The pinned scene: today's slice with all its grounds, the price lowered through it by the scroll, each floor
-       * named as the price goes under it.
        * @param {Days} d @param {Shares} past @param {(share: number) => number} priceAt @param {Mode} mode @param {AbortSignal} signal
        */
       function scene(d, past, priceAt, mode, signal) {
@@ -1402,9 +1291,8 @@
         const tank = /** @type {HTMLCanvasElement} */ ($("tank")), tankLit = /** @type {HTMLCanvasElement} */ ($("tank-lit"));
         const shareOut = $("sink-share"), priceOut = $("level-price"), saidOut = $("sink-said");
         const shares = past.edges;
-        /** The scroll's three equal parts: through the water, through the sand, through the rock (as much scroll as either, though it's the thinnest). */
+        /** Three equal parts of the scroll: the rock gets as much as the water or sand, though it's the thinnest. */
         const stops = [1, shares[SAND], shares[ROCK], LEAST];
-        /** The slice's place in the scene: its top (every coin in profit) and height; the section's place on the page. */
         let top = 0, height = 0, from = 0, travel = 1;
         const y = (/** @type {number} */ share) => top + (1 - share) * height;
 
@@ -1421,9 +1309,9 @@
           place();
         }
 
-        /** The share last written: the words change only as it does (a dot's worth), the sinking itself by transform alone. */
+        /** The words change only as it does (a dot's worth), the sinking itself by transform alone. */
         let wrote = -1;
-        /** Everything where the scroll has it: a function of the scroll alone, so any jump lands right. */
+        /** A function of the scroll alone, so any jump lands right. */
         function place() {
           const t = Math.max(0, Math.min(1, (scrollY - from) / travel / SINKING)), part = Math.min(2, Math.floor(t * 3));
           const share = stops[part] + (stops[part + 1] - stops[part]) * (t * 3 - part), at = y(share);
@@ -1434,7 +1322,6 @@
           wrote = step;
           shareOut.textContent = percent(share);
           priceOut.textContent = t === 0 ? "All-time high" : about(priceAt(share));
-          // (The layer the price is in: over the first edge only at the very top.)
           let layer = t === 0 ? 0 : 1;
           while (layer < shares.length && share < shares[layer]) layer++;
           const deep = layer - ROCK;
@@ -1449,8 +1336,6 @@
         const watch = new ResizeObserver(draw);
         watch.observe(stage), watch.observe(reading), signal.addEventListener("abort", () => (watch.disconnect(), cancelAnimationFrame(queued)));
       }
-
-      // ── The record: the visits to the rock ──
 
       /** Days apart at most for two stays under the first floor to be one visit. */
       const APART = 180;
@@ -1472,12 +1357,11 @@
         const through = runs.find((run) => run.deepest === FLOORS.length);
         $("deepest-said").textContent = through ? `In ${dateOf(through.low).getUTCFullYear()} the price went under all ${FLOORS.length}.` : "";
         $("visits-said").textContent = `Since 2015 the price has been under the first floor in ${runs.length} ${runs.length === 1 ? "visit" : "visits"}: dips less than six months apart count as one. Tap a visit to see it on the chart.`;
-        /** What the chart can show, each a row: every day counted, then each visit with room around it. */
         const views = [
           { name: "All", from: d.from, to: d.last, head: `${WHOLE.format(under)} days under the first floor`, said: `of ${WHOLE.format(since)} since 2015, in ${runs.length} ${runs.length === 1 ? "visit" : "visits"}.` },
           ...runs.map((run) => {
             const pad = Math.max(240, (run.to - run.from) * 0.8), open = run.to === d.last, later = d.close[run.low + 365];
-            // (A visit under way on the first day counted: only its days since are in the count.)
+            // A visit under way on the first day counted: only its days since count.
             const early = run.from === d.from && layerOf(d.edges, d.from - 1, d.close[d.from - 1]) > ROCK;
             return {
               name: open ? "Now" : String(dateOf(run.low).getUTCFullYear()), from: Math.max(d.first, run.from - pad), to: Math.min(d.last + 20, run.to + pad),
@@ -1504,31 +1388,23 @@
         pick(picked, false);
       }
 
-      // ── Why the weights matter: every coin against the counted ones ──
-
       function weights(/** @type {number} */ every, /** @type {Shares} */ past) {
         for (const [id, share] of /** @type {const} */ ([["all", every], ["mode", past.today * 100]])) {
           $(`${id}-share`).textContent = `${Math.round(share)}%`;
           $(`${id}-lights`).style.setProperty("--lit", `${share}%`);
         }
         $("first-loss").textContent = `${Math.round(100 * (1 - past.edges[ROCK]))}%`;
-        // (The limits' example of a rank: today's, or the first floor's while the price is over it.)
         const part = Math.min(past.below(past.today), past.below(past.edges[ROCK]));
         ($("rank-quote").textContent = rare(part)), ($("rank-chance").textContent = rarity(part));
       }
 
-      // ── Which coins are counted: the whole page drawn for one mode, the choice kept in the address ──
-
-      /** The mode the whole page shows, none yet; the mode the hero stands for; the latest asked for (an older ask still being read is dropped). */
+      /** The latest asked for: an older ask still being read is dropped. */
       let shown = /** @type {Mode | null} */ (null), heroOf = /** @type {Mode | null} */ (null), asked = /** @type {Mode | null} */ (null), turns = 0;
-      /** What stands for the mode shown: its charts, listeners and watchers, ended together. */
       let built = new AbortController();
       const say = (/** @type {string} */ text) => { for (const el of all(".coins-said")) el.textContent = text; };
 
-      /** Everything under the hero, read for a mode. */
       const readRest = (/** @type {Mode} */ mode, /** @type {Promise<Days>} */ days) => Promise.all([readShares(mode, days), readPriceAt(mode), readAges(mode), latest("supply_in_profit_share")]);
 
-      /** The page's words for a weight: its pill pressed, its coins' name wherever it's written or said to assistive tech, and in Studio's address. */
       function worded(/** @type {Mode} */ mode) {
         document.documentElement.dataset.weight = mode;
         for (const b of all("[data-coins]")) b.setAttribute("aria-pressed", String(b.dataset.coins === mode));
@@ -1545,7 +1421,6 @@
 
       /** @param {Mode} mode @param {Days} d @param {Awaited<ReturnType<typeof readRest>>} rest */
       function build(mode, d, [past, priceAt, ages, every]) {
-        // (The hero raised alone on the first load stands; any other time, everything is built anew.)
         if (shown || heroOf !== mode) raiseHero(mode, d);
         const { signal } = built;
         weigh(ages, mode, signal), count(d, past, signal), rank(d, past, signal), scene(d, past, priceAt, mode, signal), record(d, past, mode, signal), weights(every, past);
@@ -1555,13 +1430,12 @@
         history.replaceState(null, "", url);
       }
 
-      /** The page for a mode: on the first load the hero as soon as its days are read; then all of it at once, the mode shown kept if the new one can't be read. */
+      /** The mode shown is kept if the new one can't be read. */
       async function show(/** @type {Mode} */ mode) {
         const turn = ++turns, days = readDays(mode), rest = readRest(mode, days);
         (asked = mode), say("");
         try {
           if (!heroOf) {
-            // (Before anything is shown, the words are the asked weight's from the start.)
             worded(mode);
             const d = await days;
             if (turn !== turns) return;
