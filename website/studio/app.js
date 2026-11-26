@@ -806,9 +806,10 @@ function normalize(doc) {
     if (name) layer.series = name;
     else if (catalogIndex?.has(layer.series)) layer.path = catalogIndex.get(layer.series);
   }
-  // So do the series a formula names, their paths kept beside it.
+  // So do the series a formula names, their paths kept beside it (as they are till the tree's in: the catalog's take
+  // normalizes again).
   for (const layer of doc.layers) {
-    if (layer.formula === undefined) continue;
+    if (layer.formula === undefined || !tree) continue;
     /** @type {Record<string, string>} */
     const paths = {}, names = new Map();
     for (const name of seriesNamed(layer.formula)) {
