@@ -54,8 +54,9 @@
     <script type="module" src="/studio/presets-kept.js"></script>
     <script type="module" src="/studio/app.js" onerror="document.body.toggleAttribute('data-offline', true)"></script>
     <style>
-      /* Only what a first screen shows, in any state it starts in (theme, sidebar, panel, home); what the rest builds is in
-         rest.css. A rule for a first screen goes here: in rest.css it's missing till the rest is in. */
+      /* Only what a first screen shows, in any state it starts in (theme, sidebar, panel, home), the server's page-info
+         too; what the rest builds is in rest.css. A rule for a first screen goes here: in rest.css it's missing till the
+         rest is in. rest.css comes after these: a rule here meant to win over one there, at equal specificity, loses. */
       /* craft rules */
       /* Written into every page by home.mjs: headings balance their lines and text pretties its last, so no one-word last
          lines (zero specificity, a page's own text-wrap wins); digits are equal width, so a number that changes never
@@ -338,6 +339,25 @@
 
       :is(.card-head, .stage-foot, .mobile-bar, .pick-bar, .menu, .palette) {
         touch-action: pan-x pan-y;
+      }
+
+      #page-info:not(:empty) {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        overflow: auto;
+        padding: 24px;
+        background: var(--app);
+        user-select: text;
+        overflow-wrap: anywhere;
+
+        a {
+          display: inline-block;
+          box-sizing: border-box;
+          min-width: 44px;
+          min-height: 44px;
+          padding-block: 12px;
+        }
       }
 
       body {
