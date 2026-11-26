@@ -406,10 +406,10 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
  * no page's guess of its own loading. */
 const PAINT = 2000;
 
-/** Every JPEG's quality, Chromium's encoder: the lowest that shows no loss at twice the density of a phone, in the
- * hardest pictures (Studio's gradients mottle at 30, Oracle's dark cells go muddy at 50, neither at 60), from the 78 to 88
- * each kind had. */
-const QUALITY = 60;
+/** Each format's quality, Chromium's own encoders: the lowest that shows no loss at twice the density of a phone, in the
+ * hardest pictures (Studio's gradients mottle at 30, Oracle's dark cells go muddy at 50 in a JPEG and 60 in a WebP). The
+ * share cards stay JPEG (links to them are read by X, which takes no WebP); the pictures our own pages show are WebP. */
+const QUALITY = { jpeg: 60, webp: 70 };
 
 /** Each picture's making: its app's address (its screen's size, if not 1440×900), what's hidden
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
@@ -440,7 +440,7 @@ const shown = {
   kind: /id="bb-kind">([^<]*)</.exec(html)?.[1],
   line: /id="bb-blurb">([^<]*)</.exec(html)?.[1],
   href: /id="bb-open" href="([^"]*)"/.exec(html)?.[1],
-  picture: /<div class="art"[^>]*><img[^>]* src="\/assets\/home\/banners\/([a-z]+)\.jpg"/.exec(html)?.[1],
+  picture: /<div class="art"[^>]*><img[^>]* src="\/assets\/home\/banners\/([a-z]+)\.webp"/.exec(html)?.[1],
 };
 if (!entry) problems.push(`FEATURED's first, ${first}: not in APPS as this script reads it`);
 else {
@@ -459,7 +459,7 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
   .brand { display: flex; align-items: center; gap: 22px; font-size: 76px; font-weight: 750; letter-spacing: -0.04em; }
   .brand img { width: 68px; height: 79px; }
   p { margin: 22px 0 0; color: #d6cfc4; font-size: 28px; line-height: 1.35; letter-spacing: -0.01em; }
-</style><img class="art" src="/assets/home/banners/${id}@2x.jpg"><div class="shade"></div>
+</style><img class="art" src="/assets/home/banners/${id}@2x.webp"><div class="shade"></div>
 <div class="words"><div class="brand"><img src="/assets/logo/logo.svg">Bitview</div><p>Bitcoin's chain, read and measured: live apps, thousands of charts, and every series as data.</p></div>`;
 
 // ── Its share card, named in its head ──
@@ -499,8 +499,8 @@ async function makePictures() {
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
       if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number][]} */ ([
-        ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960], [`covers/${id}@720.jpg`, recipe.cover, 720]] : []),
-        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900], [`banners/${id}@2x.jpg`, recipe.banner, 2880]] : []),
+        ...(appIds.includes(id) ? [[`covers/${id}.webp`, recipe.cover, 960], [`covers/${id}@720.webp`, recipe.cover, 720]] : []),
+        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.webp`, recipe.banner, 1900], [`banners/${id}@2x.webp`, recipe.banner, 2880]] : []),
       ]);
       if (!wanted.length) continue;
       // (One screen at the density the largest cut needs.)
@@ -510,7 +510,7 @@ async function makePictures() {
       if (!tab) continue;
       try {
         for (const [file, [x, y, w, h], width] of wanted) {
-          const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
+          const shot = await tab.send("Page.captureScreenshot", { format: "webp", quality: QUALITY.webp, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
           writeFileSync(join(out, file), Buffer.from(shot.data, "base64"));
           console.log(`made ${file}`);
         }
@@ -564,7 +564,7 @@ async function makePictures() {
       if (!tab) continue;
       try {
         if ("run" in recipe) await tab.send("Runtime.evaluate", { expression: recipe.run }), await Bun.sleep(1000);
-        const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY, clip: { x: 0, y: 0, width, height, scale: 1200 / width / 2 } });
+        const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY.jpeg, clip: { x: 0, y: 0, width, height, scale: 1200 / width / 2 } });
         writeFileSync(join(SITE, "assets", "cards", `${name}.jpg`), Buffer.from(shot.data, "base64"));
         console.log(`made cards/${name}.jpg`);
       } finally {
@@ -575,7 +575,7 @@ async function makePictures() {
     if (!pictures || (ONLY && ONLY !== featured[0])) return;
     const card = await screen(port, `${SERVER}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
     try {
-      const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });
+      const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY.jpeg, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });
       writeFileSync(join(out, "og.jpg"), Buffer.from(shot.data, "base64"));
       console.log("made og.jpg");
     } finally {
