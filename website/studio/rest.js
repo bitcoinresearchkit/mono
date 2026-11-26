@@ -1,6 +1,6 @@
 // @ts-check
-// What a first chart doesn't run, for later.js: the whole client first, then ⌘K, whose imports keep the others' order.
-// Lilex, which a first screen doesn't write, asked for, not waited on: its fallback is fitted to its metrics.
+// The rest (see later.js): the whole client first, then ⌘K, whose imports keep the others' order. Lilex isn't on a
+// first screen: asked for, not waited on (its fallback fits its metrics).
 import "/studio/client.js";
 export * as command from "/studio/command.js";
 export * as pen from "/studio/drawing.js";

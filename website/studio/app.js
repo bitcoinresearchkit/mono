@@ -1284,9 +1284,9 @@ function inLibrary(doc) {
   return library.charts.some((other) => other.id === doc.id);
 }
 /**
- * The catalog indexed (`catalogIndex`, `catalogIntervals`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
- * its JIT: 180 ms of it, in a launch's first seconds), begun with the rest, as what asks for it is (its own copy of
- * the client, 70 KB fetched beside a first chart's data, held that data up); without one (or it failing), here, a slice at a time while the
+ * The catalog indexed (`catalogIndex`, `catalogIntervals`, `byBlock`, `sharedTops`): in a worker, off the page's thread (long on a
+ * phone without its JIT, in a launch's first seconds), begun with the rest, as what asks for it is (its own copy of
+ * the client, fetched beside a first chart's data, held that data up); without one (or it failing), here, a slice at a time while the
  * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
  * series added) has the rest done here at once, never waiting on the worker or an idle moment: a hidden tab's are
  * throttled (to one a minute, after five minutes hidden).
