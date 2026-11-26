@@ -16,13 +16,13 @@ import {
   presetLabels, presetMarks, presets, presetsFailed, presetsMatching, pressedTile, previewCharts, previews,
   previousChart, profileColor, railMenuKept, recentCharts, redoing, reduced, relayout, relist, renderCharts, save,
   savePrefs, savePreviewsSoon, saveView, sectionMark, shelfRows, shelfScrolls, sideLight, sidePresets, started, storage,
-  THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit,
+  THEMES, thumbs, toast, touched, undoLibrary, viewOn, within, writeSideList, yourTilesSeen, zeroFit, THUMBS, PREVIEWS, SHELF, GALLERY_PAGE, MARK_VERSION, THUMB_POINTS,
 } from "/studio/app.js";
 import {
-  $, all$, closest, composing, escapeHtml, holdPage, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing,
+  $, all$, closest, composing, escapeHtml, holdPage, KEY_STEPS, scrollsY, SLOP, stepIn, TOUCH, typing, focusKey, restoreFocus, isOpen, cutFade, fadeOut, fading,
 } from "/studio/dom.js";
 import { inSlices, until, whenIdle } from "/studio/timing.js";
-import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
+import { clamp, hashOf, lowerBound, uid, onScale, onScaleAll } from "/studio/math.js";
 import { format, grouped, plural, precise } from "/studio/format.js";
 import { ICONS, markBody } from "/studio/icons.js";
 import {
@@ -40,64 +40,33 @@ import {
 import {
   chartActions, choicePage, inputPage, openPage, renameChart, renameChartPage, searchCase, searchText, typedWords,
 } from "/studio/command.js";
-import { tickOn } from "/studio/drawing.js";
 import { FUNCTIONS, parse } from "/studio/formulas.js";
 import {
   amountsOf, heatCalendar, heatColor, heatCome, heatDayHeld, heatDayKey, heatDays, heatExtras, heatGrid, heatLook,
   heatMost, heatPump, mostIn, rowsOf,
 } from "/studio/heatmaps.js";
 import {
-  fadingOf, fillOf, focusKey, gradientCss, gradientTable, labelOf, layerById, levelSteps, lineLook, modeOf, rangeOf,
-  restoreFocus, STACK_FILL, stackOf,
-} from "/studio/inspector.js";
-import {
-  anythingKept, chartsFile, closedOwner, cutFade, download, downloadAll, downloadChart, downloadFolder, fadeOut, fading,
-  hideMenu, keepCarriedView, menuOf, onRail, ownerNow, railed, setMenuOwner, supportedIntervals,
+  anythingKept, chartsFile, closedOwner, download, downloadAll, downloadChart, downloadFolder, hideMenu, menuOf, onRail, ownerNow, railed, setMenuOwner, supportedIntervals,
 } from "/studio/menus.js";
 import {
-  editedPreset, fromPreset, keptPreset, presetById, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex,
-  presetKey, pristine, RECOMMENDED, refocus, showAddress, vocabNow,
+  RECOMMENDED, refocus, vocabNow,
 } from "/studio/presets-edit.js";
-/** @import { Group, Thumb } from "/studio/app.js" */
+import { fillOf, labelOf, layerById, lineLook, modeOf, STACK_FILL, stackOf, gradientCss, gradientTable, derivedTitle, titleOf, seriesMark, barsOf, runs, sides, areaOf, legendEntry, fadingOf, levelSteps, rangeOf } from "/studio/looks.js";
+import { presetTree, presetRoot, presetName, presetNodeAt, placeNames, homeName, folderById, asPlace, editedPreset, fromPreset, keptPreset, presetById, presetDoc, presetDocs, presetEdited, presetIdOf, presetIndex, presetKey, pristine, showAddress, chartPlace, stepsTo } from "/studio/preset-charts.js";
+import { tickOn } from "/studio/sketch.js";
+import { keepCarriedView } from "/studio/charts-read.js";
+/** @import { Group, Preview, Thumb } from "/studio/app.js" */
 /** @import { Chart, Folder, Layer } from "/studio/vocabulary.js" */
 /** @import { Resolved } from "/studio/chart.js" */
 /** @import { Action } from "/studio/command.js" */
 /** @import { Node, Vector } from "/studio/formulas.js" */
 /** @import { heatWants } from "/studio/heatmaps.js" */
 /** @import { Preset } from "/studio/presets-edit.js" */
+/** @import { Place, PresetNode, Step } from "/studio/preset-charts.js" */
 
-// One pass per chart squeezes every layer, with its formulas and its pane's scale, to a few dozen points: up to
-// three of them make the chart's mark, each one alone makes its layer's mark in the legend. Monthly data is
-// enough, except where windows run (sma, stdev…: a short one would be a point there): those use the chart's
-// own interval. Only the drawings are kept, by chart, with what they were drawn from and the day; a change, or a
-// new day, redraws them.
-
-const THUMBS = "bitview-studio:thumbs";
-/** The presets' marks kept in this browser, the last drawn: a visit shows them at once, not drawn anew first (as a chart's, see THUMBS); let go of first, as the thumbs are, when storage is full. */
-const PRESET_MARKS = "bitview-studio:preset-marks";
-const THUMB_POINTS = 28;
-/** The drawings' version: one kept from before it (drawn by older rules) isn't reused. Drawings only, never saved charts or preferences. */
-const MARK_VERSION = "4:";
 /** A drawing's key, what it's of, under the drawings' version (see MARK_VERSION). @param {unknown[]} parts */
 const drawingKey = (parts) => MARK_VERSION + JSON.stringify(parts);
-const validDrawingKey = (key) => typeof key === "string" && key.startsWith(MARK_VERSION);
-const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
-const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
-const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
-/** A mark's lines, as kept: each its color, its points, its kind (and a two-sided one's other color, its level), its dates' colors. */
-const validLines = (/** @type {any} */ lines) => Array.isArray(lines) && lines.length <= 3
-  && lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] == null || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4])))
-    && (line[5] === undefined || (Array.isArray(line[5]) && line[5].length === line[1].length && line[5].every((color) => color === null || isColor(color)))));
-/**
- * A mark, as kept: its lines (see validLines); a heatmap's wash about one of them (that line, the colors over it and
- * under it, its band's foot and top); a few of the largest bubbles, dots (each its color, across, up).
- */
-const validChartMark = (/** @type {any} */ mark) => typeof mark === "object" && mark !== null && validLines(mark.lines)
-  && Array.isArray(mark.washes) && mark.washes.length <= 1 && mark.washes.every((wash) => Array.isArray(wash) && Number.isInteger(wash[0]) && wash[0] >= 0 && wash[0] < mark.lines.length && isColor(wash[1]) && isColor(wash[2]) && validLevel(wash[3]) && validLevel(wash[4]))
-  && Array.isArray(mark.dots) && mark.dots.length <= 4 && mark.dots.every((dot) => Array.isArray(dot) && isColor(dot[0]) && validLevel(dot[1]) && validLevel(dot[2]));
-const validThumb = (thumb) => validDrawingKey(thumb?.key) && validChartMark(thumb)
-  && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
-  && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
+
 /** Whether a formula runs a window (a call with its span: on a coarser interval, a short one would be one point). */
 const runsWindow = (/** @type {string} */ formula) => {
   /** @param {Node} node @returns {boolean} */
@@ -141,43 +110,10 @@ function shapeOf(values, mode, bars = false, base = 0) {
   });
   return { points, lo, hi, scale };
 }
-/**
- * A value as its pane's scale draws it, for its shape: a log scale's, its log; a percent or indexed one's, its change
- * from where it starts (`from`) over that one's size, as the chart's are (from a negative one, a rise still rises).
- */
-const onScale = (/** @type {number} */ mode, /** @type {number} */ from) => (/** @type {number} */ value) => (!Number.isFinite(value) ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? (from ? (value - from) / Math.abs(from) : NaN) : value);
-/**
- * Values as onScale puts them, all at once (from `first` to `last`, every one by default; NaN past them): by index,
- * finite by a subtraction, no call a value (thousands a picture, a phone's engine without a JIT).
- */
-function onScaleAll(/** @type {ArrayLike<number>} */ values, /** @type {number} */ mode, /** @type {number} */ from, first = 0, last = values.length - 1) {
-  const out = new Float64Array(values.length).fill(NaN), size = Math.abs(from);
-  for (let i = Math.max(0, first), end = Math.min(last, values.length - 1); i <= end; i++) {
-    const value = values[i];
-    out[i] = value - value !== 0 ? NaN : mode === 1 ? (value > 0 ? Math.log10(value) : NaN) : mode >= 2 ? (from ? (value - from) / size : NaN) : value;
-  }
-  return out;
-}
+
 /** Points placed between a low and a high, in hundredths of the height. */
 const place = (points, lo, hi, bottom = 0, height = 1) => points.map((value) => (value === null || !Number.isFinite(value) ? null : clamp(Math.round((bottom + ((value - lo) / (hi - lo || 1)) * height) * 100) / 100, 0, 1)));
-/** Work done one pass at a time: asked for again while one runs, it runs once more after. @param {() => Promise<void>} pass */
-function serial(pass) {
-  let running = false, again = false;
-  const run = async () => {
-    if (running) return void (again = true);
-    running = true;
-    try {
-      await pass();
-    } finally {
-      running = false;
-      if (again) {
-        again = false;
-        void run();
-      }
-    }
-  };
-  return run;
-}
+
 /**
  * Whether a series of a chart failed to come, each forgotten to be fetched again next time: a failed fetch leaves
  * nothing behind, no blank drawing, no cached failure. (A series the server doesn't have, or not at this interval,
@@ -342,32 +278,9 @@ async function freshThumb(doc, picture = false) {
   updateMark(doc);
   return true;
 }
-// A card is the chart's plot, small: every pane in its band (with the chart's scale margins), every layer shown in
-// it as its type (see previewSvg), over the view the chart was left at (else its range), a point per few pixels. Drawn
-// from the chart's own data, which is then at hand when it opens.
 
-const PREVIEWS = "bitview-studio:previews";
 const PREVIEW = { width: 320, height: 200, points: 120 };
-/**
- * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, one of
- * its lines across, or bubbles of one size, `w` across), `c` its color (`c2` under its base), `d` its line (or its
- * bars, or bubbles, above the base, `d2` those below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
- * its line style, `op` its opacity, `end` its latest point, `f` an area's fill (its top's opacity and its foot's: see fillOf),
- * `o` outlined (see OUTLINED): its layer's place, from 1 (its marks drawn together, see previewSvg).
- * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number, w?: number, z?: [number, string][] }} PlotMark
- * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
- * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
- * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
- */
-/** Each kind, with what it can't be drawn without. */
-const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w", "top", "bottom"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"], profile: ["f", "top", "bottom"] };
-const isPath = (d) => typeof d === "string" && /^[MLHVZh\d. -]*$/.test(d);
-const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
-  && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op, mark.w].every((n) => n === undefined || Number.isFinite(n))
-  && (mark.up === undefined || typeof mark.up === "boolean") && (mark.f === undefined || (Array.isArray(mark.f) && mark.f.every(Number.isFinite))) && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
-  && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)))
-  && (mark.img === undefined || (typeof mark.img === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mark.img)));
-const validPreview = (item) => validDrawingKey(item?.key) && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
+
 /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
 // (A heatmap's picture in its colors as the theme shows them: drawn again in the other. A profile shown, its bars and
 // its room after the latest (see previewShown): one kept from before them drawn again, others' as they were.)
@@ -1269,8 +1182,7 @@ function plotHtml(doc, current = false, frame = "tile-plot") {
   // shown one's.)
   return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}"${drawn ? ` data-drawn="${drawingId(drawn)}"` : ""}>${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
 }
-/** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot (a gradient's, its colors), its name. @param {Layer} layer */
-const legendEntry = (doc, layer, after = "") => `<span style="--c:${escapeHtml(((stops) => (stops ? gradientCss(stops) : ink(layer.color)))(gradientOfLayer(doc, layer)))}">${escapeHtml(viewName(doc, layer))}${after}</span>`;
+
 /** A tile's interval, where it isn't a day's. @param {Chart} doc */
 const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
 /** A card's legend: its shown layers' entries. @param {Chart} doc */
@@ -1361,62 +1273,12 @@ function renderHomeHead() {
   $("home-foot").hidden = !yours || Boolean(folder) || !anythingKept();
   renderSideNav();
 }
-/** The page's name, where it is: a folder's, the Library's, the previews', Recent's, a section's, the presets'; at the top, Home. */
-const homeName = () => ("folder" in homeAt ? folderById(homeAt.folder)?.name ?? "Library" : "previews" in homeAt ? "Previews" : "recent" in homeAt ? "Recent" : "path" in homeAt ? placeNames(homeAt.path).at(-1) ?? "Presets" : "Home");
-/** @typedef {{ name: string, at: Place }} Step */
+
 /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
 function crumbsHtml(steps) {
   return steps.map((step) => `<button type="button" dir="auto" data-place="${escapeHtml(JSON.stringify(step.at))}"><span>${escapeHtml(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
 }
-/**
- * The way to a place, the place last, from its group (none for the top): a section's, the Presets and the sections
- * it's in; a folder's, the Library and the folders it's in (one gone, the Library's).
- * @param {Place} place @returns {Step[]}
- */
-function stepsTo(place) {
-  const group = (/** @type {Group} */ name) => ({ name: GROUP_OF[name][0], at: GROUP_OF[name][1] });
-  if ("previews" in place) return [group("previews")];
-  if ("recent" in place) return [group("recent")];
-  if ("path" in place) return [group("presets"), ...placeNames(place.path).map((name, k) => ({ name, at: { path: place.path.slice(0, k + 1) } }))];
-  if (!("folder" in place)) return [];
-  const folder = folderById(place.folder);
-  return [group("library"), ...(folder ? [...foldersAbove(folder), folder] : []).map((step) => ({ name: step.name, at: { folder: step.id } }))];
-}
-/** A preset chart's sections, by its own key (read as stored: anything but a list of names, none). @param {Chart} doc */
-function presetPathOf(doc) {
-  try {
-    const path = doc.preset === undefined ? null : JSON.parse(doc.preset);
-    return Array.isArray(path) && path.length && path.every((name) => typeof name === "string") ? /** @type {string[]} */ (path).slice(0, -1) : null;
-  } catch {
-    return null;
-  }
-}
-/** Where a chart is (the open one's, else): a preset's section, your folder (or the Library's top), the previews; a new chart, not yet anywhere, nowhere. @returns {Place | null} */
-function chartPlace(doc = chart) {
-  const i = presetIndex(doc);
-  // (A preset's, before the presets are read: its own key says where it is (its sections, then its name).)
-  return i >= 0 ? { path: /** @type {Preset[]} */ (presets)[i].p.slice(0, -1) }
-    : !presets && presetPathOf(doc) ? { path: /** @type {string[]} */ (presetPathOf(doc)) }
-    : isPreview(doc) && !drafts.has(doc) ? { previews: true }
-    : library.charts.includes(doc) ? { folder: doc.folder ?? "" }
-    : null;
-}
-/** The step last drawn before the open chart's name (drawn again only changed: it keeps its focus). */
-let chartPathDrawn = "";
-/** The chart it was drawn for (itself, whatever its id: a preview saved again takes a new one). @type {Chart | null} */
-let chartPathOf = null;
-/** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
-function renderChartPath() {
-  const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1), path = $("chart-path");
-  const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escapeHtml(steps.map((step) => step.name).join(", "))}" data-tip="In ${escapeHtml(steps.map((step) => step.name).join(" › "))}"><span>${escapeHtml(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
-  // (The same chart somewhere else (a preview saved, and back): its path as wide as it's been at least, its name kept
-  // where it is; another chart's, as wide as its own.)
-  if (chart !== chartPathOf) path.style.minWidth = "";
-  else if (html !== chartPathDrawn && chartPathDrawn) path.style.minWidth = `${path.offsetWidth}px`;
-  chartPathOf = chart;
-  path.hidden = !html;
-  if (html !== chartPathDrawn) path.innerHTML = chartPathDrawn = html;
-}
+
 /**
  * The open chart's place as a menu: the way there, each a step to its page; then, apart, what's in it as the sidebar
  * has it, a section or folder a step to its page, a chart opened, the open one ticked.
@@ -1447,12 +1309,7 @@ function chartPathRows() {
   drawPresetMarks();
   return [...steps.map((step) => page(step, true)), ...inside];
 }
-/** The folders a folder's in, the outermost first. @param {Folder} folder */
-function foldersAbove(folder) {
-  const above = [];
-  for (let at = folderById(folder.parent), steps = 0; at && steps <= library.folders.length; at = folderById(at.parent), steps++) above.unshift(at);
-  return above;
-}
+
 /**
  * A part of the page's side of your charts: a shelf's `place`, where its name leads; its `folder`, what's dropped on
  * it goes into (yours, "": the Library's top; none: nothing, the previews'); a note `flat`, its html as it is (a
@@ -1612,14 +1469,6 @@ const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnect
 const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
 
 /**
- * Where the page is: at the top, Charts (`top`); the presets (`path` [], their page) or a section of them (`path`,
- * as their tree names it); your Library (`folder` "") or one of its folders (`folder`); the previews (`previews`); the
- * charts last opened (`recent`). Each a step of the history (Back goes back up).
- * @typedef {{ top: true } | { path: string[] } | { folder: string } | { previews: true } | { recent: true }} Place
- */
-/** A place as kept in a step of the history, as it can be (none: the top). @returns {Place} */
-const asPlace = (/** @type {any} */ at) => (typeof at?.folder === "string" ? { folder: at.folder } : Array.isArray(at?.path) ? { path: at.path.filter((/** @type {any} */ name) => typeof name === "string") } : at?.previews === true ? { previews: true } : at?.recent === true ? { recent: true } : { top: true });
-/**
  * Each page's place as it was left, by its step's key: Back and Forward come back there. A step left by them can't
  * be written any more (its place, in it, only when left otherwise): kept here, it's where it was last.
  */
@@ -1669,8 +1518,7 @@ function renderSideNav() {
   for (const row of all$("[data-section-row]", $("chart-list"))) over(row, path !== null && path !== row.dataset.sectionRow && path.startsWith(/** @type {string} */ (row.dataset.sectionRow).slice(0, -1) + ","));
   showAddress();
 }
-/** The most a shelf shows (its section's first), and a grid at once (more, a button away). */
-const SHELF = 12, GALLERY_PAGE = 60;
+
 /** A shelf's last tile, holding more than it shows: to its page, as its name is. @param {Place} place @param {number} count */
 const seeAll = (place, count) => (count > SHELF ? `<button type="button" class="shelf-all" data-see-all="" data-place="${escapeHtml(JSON.stringify(place))}">See all ${grouped.format(count)}${ICONS.next}</button>` : "");
 /** The recommended presets, by their place in the tree. */
@@ -1958,12 +1806,7 @@ function fitShelf(row, at, size, full, cut) {
 // (a preset on two shelves, the recommended's and its section's: while either's in view).
 const galleryQueue = /** @type {Set<number>} */ (new Set()), gallerySeen = /** @type {Set<Element>} */ (new Set());
 const presetOf = (/** @type {Element} */ frame) => Number(/** @type {HTMLElement | null} */ (frame.closest("[data-preset]"))?.dataset.preset);
-// (Its root the grid's own scroller: from the window's, what's past the scroller's edge is cut off, margin or not. Its
-// margin a screen, the scroller's height in pixels (a percentage there is of its width), made again as it's resized.)
-const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entries) => {
-  for (const entry of entries) entry.isIntersecting ? galleryAhead.add(entry.target) : galleryAhead.delete(entry.target);
-  drawGallery();
-}, { root: homeScroller, rootMargin: `0px 0px ${Math.round(height)}px 0px` });
+
 /** A tile waiting to be drawn, watched in view and a screen ahead. @param {Element} frame */
 const watchTile = (frame) => (galleryTilesSeen.observe(frame), galleryTilesAhead.observe(frame));
 // (At rest: no scroll moving in Home (its own, a shelf's: caught on the way down, as scrollend doesn't bubble) and no
@@ -2271,27 +2114,7 @@ function go(doc, push = true) {
   card?.classList.add("opening");
   requestAnimationFrame(() => setTimeout(() => mine === goes && ((goingCard = null), leaveHome(() => doc !== chart && openChart(doc), card, push))));
 }
-/** A new chart, untouched, opened from the grid: leaving it goes back there. */
-const backToHome = () => (isPreview(chart) || emptyYours(chart)) && history.state?.fromHome === true && history.state.chart === chart.id;
-// Back and Forward, between the grid and the charts opened from it.
-/**
- * Whether a dialog (⌘K, the guide, the shortcuts) is open. Each is a popover in the top layer, not a modal dialog
- * (Safari's AutoFill measures a modal's whole page as ⌘K's field takes the focus); what a modal does, done here: the
- * page behind held inert (holdPage), the keys kept in it, esc, a click beside it, Back on a phone.
- * @param {Element} element
- */
-function isOpen(element) {
-  return element.matches(":popover-open");
-}
-/** `then` once a dialog has closed (by then, maybe open again: it says so); `once`, the first time alone. @param {HTMLElement} element @param {() => void} then */
-function onClosed(element, then, once = false) {
-  const heard = (/** @type {Event} */ event) => {
-    if (/** @type {ToggleEvent} */ (event).oldState !== "open") return;
-    if (once) element.removeEventListener("toggle", heard);
-    then();
-  };
-  element.addEventListener("toggle", heard);
-}
+
 /** What each dialog was opened from: the focus back there as it closes, as a modal's goes. */
 const dialogOpeners = /** @type {WeakMap<HTMLElement, Element | null>} */ (new WeakMap());
 /**
@@ -2713,47 +2536,7 @@ function nextCard(from, /** @type {string} */ key, within = $("home-grid")) {
   const inRow = beyond.filter((card) => Math.abs(box(card).top - row) < 2);
   return inRow.reduce((best, card) => (Math.abs(box(card).left - here.left) < Math.abs(box(best).left - here.left) ? card : best));
 }
-/** A drawing's points placed at `x(i)`, `y(value)`: the runs of "x,y" between its gaps, each of two points or more. */
-function runs(ys, x, y) {
-  const parts = /** @type {string[][]} */ ([[]]);
-  ys.forEach((value, i) => (value === null ? parts.push([]) : parts[parts.length - 1].push(`${x(i).toFixed(1)},${y(value).toFixed(1)}`)));
-  return parts.filter((part) => part.length > 1);
-}
-/**
- * A run's stretches above a level (`y0`, as drawn) and below it, cut where the run crosses it: a baseline's two
- * colors. @param {string[]} run its "x,y" points
- */
-function sides(run, y0) {
-  const out = /** @type {{ above: { part: string[], from: number }[], below: { part: string[], from: number }[] }} */ ({ above: [], below: [] });
-  const points = run.map((point) => point.split(",").map(Number));
-  // On the base at first, it's on the side it goes to.
-  let part = /** @type {string[]} */ ([]), side = /** @type {"above" | "below"} */ ((points.find(([, y]) => y !== y0)?.[1] ?? y0) > y0 ? "below" : "above"), along = 0, from = 0;
-  points.forEach(([x, y], i) => {
-    const now = y < y0 ? "above" : y > y0 ? "below" : side;
-    if (i) {
-      const [px, py] = points[i - 1];
-      if (now !== side) {
-        const t = (y0 - py) / (y - py), cx = px + (x - px) * t;
-        along += Math.hypot(cx - px, y0 - py);
-        part.push(`${cx.toFixed(1)},${y0.toFixed(1)}`);
-        if (part.length > 1) out[side].push({ part, from });
-        part = [`${cx.toFixed(1)},${y0.toFixed(1)}`];
-        from = along;
-        along += Math.hypot(x - cx, y - y0);
-      } else along += Math.hypot(x - px, y - py);
-    }
-    side = now;
-    part.push(`${x},${y}`);
-  });
-  if (part.length > 1) out[side].push({ part, from });
-  return out;
-}
-/** A few bars from a drawing's points (each its share's farthest from the base, and where that is), above the base in one color, under it in the other. */
-const barsOf = (ys, n, base, place) => Array.from({ length: n }, (_, k) => {
-  let far = -1;
-  for (let i = Math.floor((k * ys.length) / n); i < Math.floor(((k + 1) * ys.length) / n); i++) if (ys[i] !== null && (far < 0 || Math.abs(ys[i] - base) > Math.abs(ys[far] - base))) far = i;
-  return far < 0 ? "" : place(k, ys[far], far);
-}).join("");
+
 /** Marks as drawn, by the mini chart they're drawn from and the theme: the list written again, its marks aren't. */
 const marksDrawn = new WeakMap();
 /** A chart's mark: its mini chart once drawn, a faint line until then. @param {Chart} doc */
@@ -2764,10 +2547,7 @@ const chartMark = (doc) => {
   if (thumb) marksDrawn.set(thumb, { light, svg });
   return svg;
 };
-/** The points of a run of a line's area: the run, closed down (or up) to `edge` under its ends. @param {string[]} part @param {number} edge */
-const areaPoints = (part, edge) => `${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${edge}`;
-/** Small charts' writers: a run's area (see areaPoints), a fill fading down a viewBox, the area under a line filled by it, a line. */
-const areaOf = (/** @type {string[]} */ part, /** @type {number} */ edge, /** @type {string} */ color, opacity = ".2") => `<polygon points="${areaPoints(part, edge)}" fill="${color}" fill-opacity="${opacity}"/>`;
+
 const fadeDef = (/** @type {string} */ id, /** @type {string} */ color, /** @type {number | string} */ top) => `<linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escapeHtml(color)}" stop-opacity="${top}"/><stop offset="1" stop-color="${escapeHtml(color)}" stop-opacity="0"/></linearGradient>`;
 const areaUnder = (/** @type {string} */ id, /** @type {string[]} */ points, /** @type {number} */ w, /** @type {number} */ h) => `<polygon points="0,${h} ${points.join(" ")} ${w},${h}" fill="url(#${id})"/>`;
 const lineOver = (/** @type {string[]} */ points, /** @type {string} */ stroke, opacity = 1) => `<polyline points="${points.join(" ")}" fill="none" stroke="${escapeHtml(stroke)}"${opacity < 1 ? ` stroke-opacity="${opacity}"` : ""} stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
@@ -2804,65 +2584,7 @@ const markOf = ({ lines, washes, dots }) => {
   const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escapeHtml(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
   return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${wash}${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}${dotted}</svg>`;
 };
-/** A profile's mark's bars, from the edge, each split in its colors (its first two groups', or a group's), the first at the edge. @param {string[]} colors */
-const profileMark = (colors) => [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => colors.map((color, c) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escapeHtml(color)}"/>`)(length / colors.length)).join("")).join("");
-/**
- * A layer's own mark in the legend: its shape across its history, in its color and drawn as its type (bars for a
- * histogram, a filled line for an area), from its chart's drawing; its line straight across until there's one. Kept
- * from the last drawing while a new one is made, so an edit doesn't blank it.
- */
-function seriesMark(layer) {
-  const thumb = thumbs.get(chart.id), ys = thumb && Object.hasOwn(thumb.marks, layer.id) ? thumb.marks[layer.id] : undefined;
-  const level = thumb?.bases && Object.hasOwn(thumb.bases, layer.id) ? thumb.bases[layer.id] : 0;
-  const now = layer.type === "histogram" && layer.colors === 4 ? null : colorNow(layer), color = escapeHtml(ink(now ?? layer.color)), below = now ? color : escapeHtml(ink(belowOf(layer)));
-  const span = (ys?.length ?? 2) - 1, x = (i) => 0.8 + (i / span) * 14.4, y = (value) => 11 - value * 10;
-  // (Its line as the chart draws it: solid, or dashed as it is (where the type has a line style), in the mark's proportions.)
-  const [, , dash, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
-  const dashes = gap ? `stroke-dasharray="${+(dash * 0.8).toFixed(1)} ${+(gap * 0.8).toFixed(1)}" stroke-linecap="butt"` : 'stroke-linecap="round"';
-  let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-width="1.4" ${dashes}/>`;
-  // (A gradient's, a bar of its colors, low to high, whatever its type.)
-  const stops = gradientOfLayer(chart, layer);
-  if (stops) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escapeHtml(table[placeIndex(k / 7, table.length)])}"/>`).join(""))(gradientTable(stops));
-  // A cloud's, a band in its color.
-  else if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
-  // (A signal's, its mark.)
-  else if (layer.type === "signal") body = markBody(layer.place, color);
-  // (Bubbles', two: one in each of their colors, below zero and above.)
-  else if (layer.type === "bubbles") body = `<circle cx="4.5" cy="7.5" r="2.5" fill="${below}" fill-opacity=".4" stroke="${below}"/><circle cx="11" cy="5.5" r="4" fill="${color}" fill-opacity=".4" stroke="${color}"/>`;
-  // (A profile's, bars from the edge, each split in its first two groups' colors, the first at the edge.)
-  else if (layer.type === "profile") body = profileMark(layer.profile?.length ? layer.profile.slice(0, 2).map((cohort) => ink(profileColor(layer, cohort))) : [ink("gray")]);
-  // (A heatmap's, cells of it: its unrealized P&L's, its loss over its profit.)
-  else if (layer.type === "heatmap") body = [[0.3, 0.6, 1, 0.5], [0.6, 1, 0.45, 0.25], [1, 0.45, 0.2, 0.6]].map((row, r) => row.map((opacity, k) => `<rect x="${(1 + k * 3.6).toFixed(1)}" y="${(2 + r * 3.3).toFixed(1)}" width="3" height="2.7" rx=".5" fill="${layer.measure === "pnl" && !r ? below : color}" fill-opacity="${opacity}"/>`).join("")).join("");
-  else if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
-    // Six bars from its base: above it in its color, under it in the other.
-    body = barsOf(ys, 6, level, (k, value) => `<rect x="${(0.5 + k * 2.6).toFixed(1)}" y="${Math.min(y(value), y(level)).toFixed(1)}" width="1.8" height="${Math.max(1.2, Math.abs(y(value) - y(level))).toFixed(1)}" rx=".4" fill="${value >= level ? color : below}"/>`);
-  } else if (ys && layer.type === "dots") {
-    body = ys.map((value, i) => (value === null || i % 4 !== 1 ? "" : `<circle cx="${x(i).toFixed(1)}" cy="${y(value).toFixed(1)}" r="1.2" fill="${color}"/>`)).join("");
-  } else if (ys) {
-    // In steps, each value held until the next.
-    const stepped = (part) => (layer.shape === "steps" && LINED.has(layer.type) ? part.flatMap((point, i) => (i ? [`${point.split(",")[0]},${part[i - 1].split(",")[1]}`, point] : [point])) : part);
-    const edge = layer.fill === "above" ? 0.5 : 11.5;
-    const line = (part, stroke, from = 0) => `<polyline points="${part.join(" ")}" fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round" ${dashes}${gap && from ? ` stroke-dashoffset="${from.toFixed(1)}"` : ""}/>`;
-    body = runs(ys, x, y).map(stepped).map((part) => {
-      // A baseline in its two colors, parting at its base.
-      if (layer.type === "baseline") {
-        const { above, below: under } = sides(part, y(level));
-        return [...above.map((piece) => line(piece.part, color, piece.from)), ...under.map((piece) => line(piece.part, below, piece.from))].join("");
-      }
-      return (layer.type === "area" ? areaOf(part, edge, color, ".22") : "") + line(part, color);
-    }).join("");
-  }
-  return `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${body}</svg>`;
-}
-/**
- * A chart's name: its own, else what it holds, untitled till named and never stored, so it follows its layers: its
- * first layer's, its first two's, or the first's and how many more.
- */
-const titleOf = (doc) => doc.title || derivedTitle(doc);
-const derivedTitle = (/** @type {Chart} */ doc) => {
-  const names = (doc.layers ?? []).filter((layer) => layer.type !== "signal").map(labelOf);
-  return !names.length ? "Untitled chart" : names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} & ${names.length - 1} more`;
-};
+
 /** The sidebar's list, written first where it's owed (⌘1–⌘9 read its rows on a phone's layout too). */
 function sideList() {
   if (listOwed) writeSideList(home ? null : chart);
@@ -2920,43 +2642,13 @@ function toggleGroup(group) {
   savePrefs();
   foldRow(() => /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-group="${group}"]`)), closing);
 }
-/**
- * The presets' sections as a tree, made once they're read: each with what's in it as made (its sections and its
- * own presets, in the presets' order), every preset it holds at any depth (`under`, in their order), its key (its path, as kept), its name as
- * shown (see shownStep) and its path as shown (`shown`); and, once a search needs them, each preset's words (see presetSearch).
- * @typedef {{ path: string[], key: string, name: string, shown: string[], items: (PresetNode | number)[], under: number[], icon?: string }} PresetNode
- */
-let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null, byKey: Map<string, PresetNode>, search: PresetSearch | null, making: Generator<void, PresetSearch> | null }} */ ({ for: null, node: null, byKey: new Map(), search: null, making: null });
+
 /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
 function sectionKeys(/** @type {number} */ i) {
   const path = /** @type {Preset[]} */ (presets)[i].p;
   return path.slice(0, -1).map((_, depth) => JSON.stringify(path.slice(0, depth + 1)));
 }
-function presetTree() {
-  if (!presets) return null;
-  if (presetRoot.for === presets) return presetRoot.node;
-  const root = /** @type {PresetNode} */ ({ path: [], key: "[]", name: "Presets", shown: [], items: [], under: [] }), byKey = new Map([[root.key, root]]);
-  presets.forEach((preset, i) => {
-    let node = root;
-    node.under.push(i);
-    for (let depth = 0; depth < preset.p.length - 1; depth++) {
-      const path = preset.p.slice(0, depth + 1), key = JSON.stringify(path);
-      let next = byKey.get(key);
-      if (!next) {
-        // (A top section's icon, on its first preset: see presets.js.)
-        const name = shownStep(presetLabels, path);
-        next = { path, key, name, shown: [...node.shown, name], items: [], under: [], ...(!depth && preset.s && ICONS[preset.s] ? { icon: preset.s } : {}) };
-        byKey.set(key, next);
-        node.items.push(next);
-      }
-      node = next;
-      node.under.push(i);
-    }
-    node.items.push(i);
-  });
-  presetRoot = { for: presets, node: root, byKey, search: null, making: null };
-  return root;
-}
+
 /**
  * What a search of the presets reads, made from the tree after they're read, a slice at a time in idle moments (none
  * of it at the start, nor a long task: see searchNow), the rest at once when a search comes first. Each preset's
@@ -3025,16 +2717,7 @@ function searchNow(/** @type {{ timeRemaining: () => number } | undefined} */ de
   inSlices(deadline, searchStep, searchNow);
   if (presetRoot.search) whenIdle(vocabNow);
 }
-/** A preset's name as shown (see shownStep). @param {Preset} preset */
-const presetName = (preset) => shownStep(presetLabels, preset.p);
-/** A section of the presets as the sidebar has it (see presetTree), by its path; none, gone. */
-function presetNodeAt(/** @type {string[]} */ path) {
-  return presetTree() ? presetRoot.byKey.get(JSON.stringify(path)) : undefined;
-}
-/** A section's steps as shown (see shownStep); their names till the presets are read. @param {string[]} path */
-function placeNames(path) {
-  return presetNodeAt(path)?.shown ?? path;
-}
+
 /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
 const KEPT_PRESET_MARKS = 200;
 /** Each preset's own tag, by what it is (its layers, its look): a mark kept of it as it was, not taken for it as it is now. @type {WeakMap<Preset, string>} */
@@ -3104,11 +2787,7 @@ function presetParts() {
   if (!rail && [...revealed.keys].every((key) => prefs.presetsOpen.includes(key))) keepSidePresets(parts);
   return parts;
 }
-/**
- * The presets' rows as the sidebar last drew them, open, and the sections open then (see presetParts): kept in this
- * browser, the first to go when it's full, as a picture's are.
- */
-const SIDE_PRESETS = "bitview-studio:side-presets";
+
 /** An item's key in the sidebar's order: a folder's ("f:…"), a chart's ("c:…"), at any depth. @param {Chart | Folder} item */
 const sideKey = (item) => ("layers" in item ? `c:${item.id}` : `f:${item.id}`);
 /** The folder an item's in (none: the top). @param {Chart | Folder} item */
@@ -3154,8 +2833,7 @@ function treeOf(parent = /** @type {string | undefined} */ (undefined), open = f
   }
   return out;
 }
-/** A folder of yours, by its id (none: gone, or the Library's top). */
-const folderById = (/** @type {string | undefined} */ id) => library.folders.find((folder) => folder.id === id);
+
 /** Whether a folder is `outer`, or in it, at any depth. */
 const isIn = (/** @type {string | undefined} */ id, /** @type {string} */ outer) => {
   for (let at = id, steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (at === outer) return true;
@@ -3335,16 +3013,7 @@ function rowsUnder(/** @type {HTMLElement} */ head) {
 }
 /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
 let closings = 0;
-/** A CSS cubic-bezier's progress at a time (both 0 to 1), as the browser eases by it. @param {string} css */
-function bezierOf(css) {
-  const [a, b, c, d] = (css.match(/-?[\d.]+/g) ?? []).map(Number);
-  const at = (/** @type {number} */ p1, /** @type {number} */ p2, /** @type {number} */ s) => 3 * p1 * s * (1 - s) ** 2 + 3 * p2 * s * s * (1 - s) + s ** 3;
-  return (/** @type {number} */ t) => {
-    let lo = 0, hi = 1;
-    for (let k = 0; k < 24; k++) ((s) => (at(a, c, s) < t ? (lo = s) : (hi = s)))((lo + hi) / 2);
-    return at(b, d, (lo + hi) / 2);
-  };
-}
+
 /**
  * Rows unfolding from nothing, or folding to it, as one edge moving down from the one above them (or back up to it)
  * on the layout's curve: each row opened (its gap, then itself) as the edge passes it, its words in place, fading in
@@ -3991,25 +3660,25 @@ function retryPlots() {
   void drawGallery();
 }
 export {
-  aheadOf, allShelfSteps, areaUnder, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
+  allShelfSteps, areaUnder, arrive, batch, beginOnTime, besideItem, bubblesAt, cardOf,
   cardQueue, CARDS, chartCounts, chartKeys, chartLabel, chartMark, chartMenu, chartPathRows, chartPick, childrenOf,
-  clearPicks, closeDialogs, depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, fadeDef,
-  duplicateCharts, fillRow, fillSlot, folderActions, folderById, folderChoices, folderPath, folderRow, folderRows,
-  forgetPaletteMarks, freshThumb, GALLERY_PAGE, galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions,
-  groupRows, groupShut, heatSamples, heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming,
-  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, lineOver, markOf, morph,
+  clearPicks, closeDialogs, depthOf, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, fadeDef,
+  duplicateCharts, fillRow, fillSlot, folderActions, folderChoices, folderPath, folderRow, folderRows,
+  forgetPaletteMarks, freshThumb, galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions,
+  groupRows, groupShut, heatSamples, heightsSheet, isIn, itemOf, itemsOf, keepNaming,
+  KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt, keysCame, landingIn, leafRow, leave, leftPlaces, lineOver, markOf, morph,
   morphing, moveToFolder, movingSide, naming, newChart, newFolder, nextCard, nextGallery, NO_MARK, numbered, onceKeys,
-  onChart, onClosed, onScaleAll, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf,
-  pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS, presetMark, presetMarkKey,
-  presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts, presetRankOf, presetSearch,
-  presetTiles, presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS, previewSvg, profileMark,
-  queueYours, recommendedCards, recommendedDrawn, recommendedKey, recommendedPresets, renderChartPath, renderDoors,
+  onChart, orphan, outOf, pageIn, pageOut, paint, paletteMarksAsked, panelSize, parentOf,
+  pickChart, picked, placeItems, placesFor, placesOf, presetMark, presetMarkKey,
+  presetMarkQueue, presetMarksAsked, presetOf, presetParts, presetRankOf, presetSearch,
+  presetTiles, previewBars, previewIndex, previewKey, previewOf, previewSvg, 
+  queueYours, recommendedCards, recommendedDrawn, recommendedKey, recommendedPresets, renderDoors,
   renderGallery, renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme,
   renderYours, reorderable, restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews,
-  saveThumbs, searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent,
-  setTheme, sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead,
+  saveThumbs, searchNow, sectionKeys, sectionRows, seePaletteMarks, setChildren, setParent,
+  setTheme, sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, sideHead,
   sideId, sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
-  stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
-  toggleSection, treeOf, unstretched, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
+  stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, tileOpen, toggleFolder, toggleGroup,
+  toggleSection, treeOf, unstretched, updateMark, 
   walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
 };

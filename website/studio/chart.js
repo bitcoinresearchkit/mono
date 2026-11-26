@@ -1,4 +1,5 @@
 // @ts-check
+import { command, grid, heatmaps, inspector, menus, pen } from "/studio/later.js";
 // The chart: drawing a chart's layers and panes, its readouts, keys and navigator.
 import {
   Band, Bars, Candles, channels, columnWidth, Custom, DARK, Gradient, Grid, lastIn, Bubbles as LibraryBubbles, Line, Marks,
@@ -16,9 +17,9 @@ import {
   panelShown, pending, placing, pointedLayer, pointerOnChart, profileColor, profileLit, reaching, reduced, resolved,
   rowSizes, selected, shownOklch, signalShown, sizeChart, sizeHeld, SPAN, spanKey, spanParts, spotlight, submenus,
   subSetups, tagLit, timeAt, timesAt, tokensNow, tool, updateRowChanges, viewMoving, viewTimes, widest, windowTooLong,
-  within,
+  within, keepFocus, heatAt,
 } from "/studio/app.js";
-import { $, all$, closest, escapeHtml, keyText } from "/studio/dom.js";
+import { $, all$, closest, escapeHtml, keyText, focusKey, restoreFocus } from "/studio/dom.js";
 import { motionTime } from "/modules/motion/clock.js";
 import { clamp, lowerBound } from "/studio/math.js";
 import {
@@ -33,21 +34,12 @@ import {
   CADENCE, CHUNK, FINE, FINE_STEP, FIRST_CHUNKS, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, KEPT_CHUNKS,
   MOST_CHUNKS, outreaches, rangeDays, spanDays,
 } from "/studio/intervals.js";
-import { aboutOf, latestSaid } from "/studio/command.js";
-import { plotBox, PULL } from "/studio/drawing.js";
 import {
   breaksAt, evaluate, fromStart, parse, refsOf, restarts, rolling, seriesNamed, seriesUnnamed, unitOfNode, unstarted,
 } from "/studio/formulas.js";
-import { profileMark, seriesMark, titleOf } from "/studio/grid.js";
-import {
-  amountsOf, crossAt, fromClose, gradientCell, gradientChannels, HEAT_COLUMN, HEAT_FADE, heatCalendar, heatColor, heatLooks, heatReading, heatShown, litCohort,
-  placeSaid, priceSpan, profileName, readingLine, viewHeat, viewProfile,
-} from "/studio/heatmaps.js";
-import {
-  bandOf, fadingOf, focusKey, gradientTable, labelOf, layerById, levelSteps, modeOf,
-  keepFocus, named, paneMode, rangeOf, restoreFocus, stackOf, upToDatePlaces,
-} from "/studio/inspector.js";
-import { renderRanges } from "/studio/menus.js";
+import { profileName, modeOf, stackOf, layerById, labelOf, bandOf, paneMode, named, gradientTable, profileMark, seriesMark, titleOf, rangeOf, upToDatePlaces, levelSteps, fadingOf } from "/studio/looks.js";
+import { renderRanges } from "/studio/toolbar.js";
+import { plotBox, PULL } from "/studio/sketch.js";
 /** @import { Levels } from "/modules/bitview-charts/index.js" */
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Vector } from "/studio/formulas.js" */
@@ -68,7 +60,7 @@ const gone = new Set();
 function info(name, signal = /** @type {AbortSignal | undefined} */ (undefined)) {
   return cachedLoad(infos, name, false, Infinity, async (_, stop) => {
     // (The search's worker has the catalog: what it says of a series, at once; else, or if it doesn't know it, Bitview.)
-    const meta = (await aboutOf(name)) ?? (await client.getSeriesInfo(name, { signal: stop }));
+    const meta = (await command?.aboutOf(name)) ?? (await client.getSeriesInfo(name, { signal: stop }));
     known.set(name, meta);
     return meta;
   }, (error) => {
@@ -1526,7 +1518,7 @@ function paintProfileItems() {
   for (const button of all$(".legend button[data-select]", $("chart"))) {
     const layer = layerById(button.dataset.select ?? ""), named = button.querySelector(".legend-name");
     if (layer?.type !== "profile" || !named) continue;
-    const lit = litCohort(layer.id);
+    const lit = heatmaps.litCohort(layer.id);
     if ((button.dataset.lit ?? "") === lit) continue;
     lit ? (button.dataset.lit = lit) : delete button.dataset.lit;
     writeHtml(named, lit ? legendNameHtml(layer, `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${profileMark([ink(profileColor(layer, lit))])}</svg>`, cohortName(lit)) : legendNameHtml(layer));
@@ -1632,7 +1624,7 @@ function updateValues() {
   // (⌘K's preview of a layer open meanwhile, its latest not its line's caption: as it comes, a heatmap's once its day's in.)
   for (const caption of $("palette").querySelectorAll("[data-latest]")) {
     const layer = layerById(/** @type {HTMLElement} */ (caption).dataset.latest ?? ""), result = layer && resolved?.results.get(layer.id);
-    if (layer) caption.textContent = latestSaid(layer, result, unitFor(layer, result));
+    if (layer) caption.textContent = command.latestSaid(layer, result, unitFor(layer, result));
   }
 }
 /** A strip that scrolls sideways follows its scroll, and a wheel turns it, as on a tab strip (trackpads swipe it). */
@@ -1868,15 +1860,15 @@ function updateReadout() {
     if (!layer || !result || result.error) continue;
     // (A named band's value: its name, in its color.)
     // (A binned layer's: its amount, where it's at beside it in a legend, under it in a row.)
-    const inRow = element.classList.contains("row-value"), heat = result.heat ? heatReading(layer, point) : null;
-    const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow ? heat.amount : readingLine(heat)) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+    const inRow = element.classList.contains("row-value"), heat = result.heat ? heatmaps.heatReading(layer, point) : null;
+    const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow ? heat.amount : heatmaps.readingLine(heat)) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
     writeText(element, text);
     // (Older than the rest: when it's from, after it.)
     const since = Number.isFinite(value) || result.low ? asOf(layer, point) : "";
     // (A row's, on the line under it, beside its change (a binned layer's, where its amount is at): its note, the last
     // of its figures, see .row-figures; a legend's, after its value.)
     if (inRow) {
-      const holder = /** @type {HTMLElement} */ (element.parentElement), note = /** @type {HTMLElement} */ (holder.querySelector(":scope > .row-note")), said = result.heat ? (heat?.at ? placeSaid(heat.at) : "") : since;
+      const holder = /** @type {HTMLElement} */ (element.parentElement), note = /** @type {HTMLElement} */ (holder.querySelector(":scope > .row-note")), said = result.heat ? (heat?.at ? heatmaps.placeSaid(heat.at) : "") : since;
       if (writeText(note, said)) holder.classList.toggle("noted", Boolean(said));
     } else if ((element.dataset.asOf ?? "") !== since) {
       since ? (element.dataset.asOf = since) : delete element.dataset.asOf;
@@ -2450,15 +2442,15 @@ class Heat {
     this.closes = EMPTY;
     /** Its closes as a line (in no pane): their extents by blocks, each frame. */
     this.line = new Line();
-    const look = () => /** @type {HeatLook} */ (heatLooks.get(id)), fit = (/** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ positive, /** @type {Float64Array} */ out) => void (this.alone && this.line.extent(a, b, positive, out));
+    const look = () => /** @type {HeatLook} */ (heatmaps.heatLooks.get(id)), fit = (/** @type {number} */ a, /** @type {number} */ b, /** @type {boolean} */ positive, /** @type {Float64Array} */ out) => void (this.alone && this.line.extent(a, b, positive, out));
     /** A heatmap's grid (none: a profile). */
     this.grid = profile ? null : new Grid({
       columns: new Int32Array(0),
-      width: HEAT_COLUMN,
-      column: (owner, step) => ((heat, shown) => (shown?.day.rows.length ? { rows: shown.day.rows, values: amountsOf(shown.day, heat.measure), key: shown.key } : null))(look(), look() && heatShown(look(), owner, step)),
+      width: heatmaps.HEAT_COLUMN,
+      column: (owner, step) => ((heat, shown) => (shown?.day.rows.length ? { rows: shown.day.rows, values: heatmaps.amountsOf(shown.day, heat.measure), key: shown.key } : null))(look(), look() && heatmaps.heatShown(look(), owner, step)),
       edge: (row) => /** @type {NonNullable<HeatLook["grid"]>} */ (look().grid).price(row),
-      paint: (value, pixels, at) => heatColor(value, look().reference ?? 0, look(), pixels, at),
-      viewed: (blocks) => void (look() && this.grid && viewHeat(look(), blocks, this.grid)),
+      paint: (value, pixels, at) => heatmaps.heatColor(value, look().reference ?? 0, look(), pixels, at),
+      viewed: (blocks) => void (look() && this.grid && heatmaps.viewHeat(look(), blocks, this.grid)),
       fit,
     });
     this.engine = this.grid ?? new Profile({
@@ -2466,7 +2458,7 @@ class Heat {
       cell: (value) => /** @type {NonNullable<HeatLook["grid"]>} */ (look().grid).cell(value),
       bin: PROFILE_BIN,
       // (No look (a holder group Bitview doesn't have): nothing drawn.)
-      viewed: () => void (this.engine instanceof Profile && (look() ? viewProfile(look(), this.engine) : this.engine.groups.length && this.engine.set({ groups: [] }))),
+      viewed: () => void (this.engine instanceof Profile && (look() ? heatmaps.viewProfile(look(), this.engine) : this.engine.groups.length && this.engine.set({ groups: [] }))),
       fit,
     });
     engine.panes[pane].add(this.engine, side);
@@ -2477,7 +2469,7 @@ class Heat {
     this.closes = closes;
     this.line.setValues(closes);
     if (this.grid) {
-      const g = resolved ? heatCalendar(resolved).g : new Int32Array(0);
+      const g = resolved ? heatmaps.heatCalendar(resolved).g : new Int32Array(0);
       this.grid.setColumns(Int32Array.from(closes, (close, i) => (close === close && i < g.length ? g[i] : -1)));
     }
     this.redraw();
@@ -2610,14 +2602,14 @@ function drawRows(doc, data) {
     // its 4 is green); about an amount's, one for both, the log already evening them.)
     const whole = signed ? quantile(placed((value) => Math.abs(place(value)) || NaN), ROWS_WHOLE) : NaN, sorted = signed ? null : placed(place);
     const lo = sorted ? quantile(sorted, 1 - ROWS_WHOLE) : -whole, hi = sorted ? quantile(sorted, ROWS_WHOLE) : whole;
-    const up = channels(ink("green")), down = channels(ink("red")), table = level === undefined ? gradientChannels(paneGradient(pane)[2]) : [];
+    const up = channels(ink("green")), down = channels(ink("red")), table = level === undefined ? heatmaps.gradientChannels(paneGradient(pane)[2]) : [];
     // (About a ratio, the middle lifted (see ROWS_CURVE); a signed log, as it is: lifted again, most cells read alike.)
     const curve = ratio ? ROWS_CURVE : 1;
     // (A cell at the level, or of nothing (no level: 0, a member not yet there), drawn none: the pane's ground.)
     kept.rows.paint = (value, _, pixels, at) => {
       const p = place(value);
       if (!Number.isFinite(p) || (level === undefined ? value === 0 : p === 0)) return;
-      if (level === undefined) return gradientCell(table, clamp((p - lo) / (hi - lo || 1), 0, 1), 1, pixels, at);
+      if (level === undefined) return heatmaps.gradientCell(table, clamp((p - lo) / (hi - lo || 1), 0, 1), 1, pixels, at);
       const strength = clamp(p < 0 ? p / (lo < 0 ? lo : -1) : p / (hi > 0 ? hi : 1), 0, 1), [r, g, b] = p < 0 ? down : up;
       (pixels[at] = r), (pixels[at + 1] = g), (pixels[at + 2] = b), (pixels[at + 3] = 255 * rowsOpacity(strength, curve));
     };
@@ -2629,7 +2621,7 @@ function drawRows(doc, data) {
     // (Each swatch the color halfway along its fifth of the way: the gradient's, as its cells fade; a side's, as strong.)
     const strip = (/** @type {(strength: number) => string} */ shade, /** @type {boolean} */ rising) => `<span class="key-strip">${[0, 1, 2, 3, 4].map((k) => `<i style="--c:${shade(((rising ? k : 4 - k) + 0.5) / 5)}"></i>`).join("")}</span>`;
     const toward = (/** @type {number[]} */ c) => (/** @type {number} */ strength) => `rgb(${c.slice(0, 3).join(" ")} / ${rowsOpacity(strength, curve)})`;
-    const along = (/** @type {number[][]} */ table) => (/** @type {number} */ strength) => `rgb(${table[placeIndex(strength, table.length)].slice(0, 3).join(" ")} / ${Math.min(1, strength / HEAT_FADE)})`;
+    const along = (/** @type {number[][]} */ table) => (/** @type {number} */ strength) => `rgb(${table[placeIndex(strength, table.length)].slice(0, 3).join(" ")} / ${Math.min(1, strength / heatmaps.HEAT_FADE)})`;
     const ends = (/** @type {number} */ p) => `<span>${escapeHtml(Number.isFinite(p) ? words(at(p)) : "")}</span>`;
     kept.scale.className = "legend-key rows-key";
     kept.scale.innerHTML = level === undefined ? `${ends(lo)}${strip(along(table), true)}${ends(hi)}` : `${ends(Math.min(lo, 0))}${strip(toward(down), false)}<span>${escapeHtml(words(level))}</span>${strip(toward(up), true)}${ends(Math.max(hi, 0))}`;
@@ -2720,7 +2712,7 @@ function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @t
  * first (a cent, see logRows: four digits under a dollar) to thousands grouped (a price's letter is narrower); a
  * heatmap's cell's price, a profile's bin's two. @param {Layer} layer
  */
-const binnedAt = (layer) => [0.01234, 888_888].map((value) => (layer.type === "profile" ? priceSpan(value, value) : format(value, "usd")));
+const binnedAt = (layer) => [0.01234, 888_888].map((value) => (layer.type === "profile" ? heatmaps.priceSpan(value, value) : format(value, "usd")));
 /**
  * The width a layer's value can take: its lowest, highest, latest and a sample across its history written out,
  * the longest of them measured at a size in semibold tabular figures, in whole pixels. The legend and the panel
@@ -2738,8 +2730,8 @@ function valueSlot(layer, size, lines = false) {
     // bin's or a cell's with its place, a cumulative profile's after how far its price is from the close, either way.)
     const unit = measureUnit(measureOf(layer)), amounts = WIDEST_VALUES.flatMap((value) => (signedMeasure(layer) ? [value, -value] : [value])).map((value) => format(value, unit));
     // (Up as far as the writer goes; down, nearly all.)
-    const changes = [...WIDEST_VALUES, -WIDEST_VALUES[0], -99.99].map(fromClose);
-    const hovered = layer.cumulative ? changes.flatMap((change) => amounts.map((amount) => `${change} ${amount}`)) : lines ? amounts : amounts.flatMap((amount) => binnedAt(layer).map((at) => readingLine({ amount, at })));
+    const changes = [...WIDEST_VALUES, -WIDEST_VALUES[0], -99.99].map(heatmaps.fromClose);
+    const hovered = layer.cumulative ? changes.flatMap((change) => amounts.map((amount) => `${change} ${amount}`)) : lines ? amounts : amounts.flatMap((amount) => binnedAt(layer).map((at) => heatmaps.readingLine({ amount, at })));
     const shares = [100, 88.88, WIDEST_VALUES[0]].map((share) => `≈${format(share, "percent")} in profit`);
     const width = widest([...hovered, ...(layer.type === "profile" ? shares : [])], 510, size);
     measured.set(key, width);
@@ -2915,7 +2907,7 @@ function holdCross(settled = false) {
   }
   lightBubble(time, seriesPane(series));
   // (A binned layer reads the price there: see hoveredIn.)
-  if (heatLooks.size) valuesSoon();
+  if (heatmaps?.heatLooks.size) valuesSoon();
   crossOn(price, time, series);
 }
 /** The crosshair set here let go: none shown, the legends back at the view's end. */
@@ -3103,7 +3095,7 @@ function figuresRoom(/** @type {Layer} */ layer, /** @type {Result} */ result) {
   // (A binned layer's: its amount over where it's at, see heatReading; a cumulative profile's, its one line.)
   if (heatLike(layer)) {
     const value = valueSlot(layer, rowSizes.value, true) + 10;
-    return { value, change: 0, date: layer.cumulative ? 0 : Math.max(0, widest(binnedAt(layer).map(placeSaid), 400, 11) + 10 - value), dated: !layer.cumulative };
+    return { value, change: 0, date: layer.cumulative ? 0 : Math.max(0, widest(binnedAt(layer).map(heatmaps.placeSaid), 400, 11) + 10 - value), dated: !layer.cumulative };
   }
   const lines = layer.type === "cloud" && Boolean(result.low), value = valueSlot(layer, rowSizes.value, lines);
   // (Its date where the values' loop writes one: a value, or a cloud's; measured once a view, as the slots are.)
@@ -3239,6 +3231,11 @@ function reachOut() {
   if (span.to - span.from + 1 >= MOST_CHUNKS && (side < 0 ? range.to > n - 1 - near - CHUNK : range.from < near + CHUNK)) return;
   if (side) void grow(span, side);
 }
+/** Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer. */
+function crossAt() {
+  const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
+  return crossSet ? (pinned && y !== null ? { pane: seriesPane(pinned), y } : null) : heatAt;
+}
 export {
   alpha, amountOn, applyRange, asked, atLatest, autoScale, bandAt, baseOf, bubbleAt, Bubbles,
   build, built, BY_BLOCK, byColor, candleColumns, cardsDrawn, changeOver, chartFacts, chartPoint, chartTheme,
@@ -3260,5 +3257,5 @@ export {
   showsPreset, showTimes, SIDES, sizeKeeping, sizePanes, spanned, spanOf, spans, stackBands, stale, Standard,
   stretchAcross, stretchDrawn, stretchNow, strip, styleSeries, subAt, tagAt, unitFor, units, updateLegends,
   updateReadout, updateValues, valueAt, valueFormatOf, valueSlot, valuesSoon, viewName, WHEEL_QUIET,
-  whenSubmenu, windows, writeText, zoom,
+  whenSubmenu, windows, writeText, zoom, crossAt,
 };

@@ -15,10 +15,10 @@ import {
   resolved, revision, say, selected, seriesCount, setSingleKeys, SHARE, sharedTops, SHARES_IMAGES, SHEET_SHARE,
   showGuide, showLook, showPalette, showShortcuts, signalShown, STACKED_ONLY, startTyping, studioVersion, tabletHead,
   takeUp, THEMES, timeAt, togglePanel, toggleSidebar, tokensMedia, tool, toolKept, tree, trendShort, undoLast,
-  updatePaletteKeys, used, chartWindow,
+  updatePaletteKeys, used, chartWindow, nodeAt, placingPath, fullOn,
 } from "/studio/app.js";
 import { aside, isSeriesName } from "/studio/catalog-walk.js";
-import { $, drawKeys, escapeHtml, keycaps, keyText, proseHtml, TOUCH, viewport } from "/studio/dom.js";
+import { $, drawKeys, escapeHtml, keycaps, keyText, proseHtml, TOUCH, viewport, isOpen, fadeOut } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
 import {
   ago, dateLabel, format, grouped, humanize, humanizeKey, MONTH_NAMES, monthYear, plural, UNIT_NAMES,
@@ -48,38 +48,38 @@ import {
   shiftSpanError, unfitHere, VALUES,
 } from "/studio/formulas.js";
 import {
-  areaUnder, batch, chartCounts, chartKeys, chartMark, chartPick, childrenOf, clearPicks, derivedTitle, drawPreview, fadeDef, folderById,
-  folderChoices, folderPath, folderRows, giveUpUnframed, go, isOpen, lineOver, moveToFolder, newChart, newFolder, outOf, pickChart,
-  picked, placeNames, previewKey, previewSvg, seePaletteMarks, setTheme, stepChart, titleOf, treeOf,
+  areaUnder, batch, chartCounts, chartKeys, chartMark, chartPick, childrenOf, clearPicks, drawPreview, fadeDef, folderChoices, folderPath, folderRows, giveUpUnframed, go, lineOver, moveToFolder, newChart, newFolder, outOf, pickChart,
+  picked, previewKey, previewSvg, seePaletteMarks, setTheme, stepChart, treeOf,
 } from "/studio/grid.js";
 import {
   clearDrawings, drawingRows, duplicateDrawings, finishPath, flipDrawings, flipsOf, HEAT_ABOUT, HEAT_SHORT,
-  heatReading, heatRows, placingPath, PROFILE_ABOUT, PROFILE_SHORT, readingLine, removeDrawings, selectInView,
+  heatReading, heatRows, PROFILE_ABOUT, PROFILE_SHORT, readingLine, removeDrawings, selectInView,
 } from "/studio/heatmaps.js";
 import {
   addFormula, addFormulaLayer, addHeatmap, addSeries, addSignal, addSignalLayer, addStop, changeSeries, cloudable,
   colorModeChoices, colorModeOf, colorOf, colorSlots, completeSeries, completion, completionsAt, copyName, dashRow,
-  editById, faintOf, fillOf, fitChoices, fitOf, FITS, fitsAt, formatChoices, formulaInputs, fromChoices, fromPage,
-  gradientSwatch, isUnfinished, labelOf, layerActions, layerById, layersCommands, levelValue, lineChoices, lineLook,
-  lineLookOn, lineStyleGlyph, lineStyleName, modeName, modeSwatch, moveLayer, moveStop, named, overShort, paneChoices,
-  paneMode, periodsOf, rangeOf, readNumber, readsOf, readyName, readyPage, recipesFor, refChoices, removeStop,
+  editById, fitChoices, fitOf, FITS, fitsAt, formatChoices, formulaInputs, fromChoices, fromPage,
+  gradientSwatch, isUnfinished, layerActions, layersCommands, levelValue, lineChoices, lineLookOn, lineStyleGlyph, lineStyleName, modeName, modeSwatch, moveLayer, moveStop, overShort, paneChoices,
+  periodsOf, readNumber, readyName, readyPage, recipesFor, refChoices, removeStop,
   replaceSeries, reverseGradient, setColor, setFit, setLineLook, showEvery, slotName, stackedIn, stackedOnly,
   TAG_NEEDS_LINE, usesOf, widthRow, withLevel, withoutLevel,
 } from "/studio/inspector.js";
 import {
-  anythingKept, downloadAll, exportAs, exportRows, fadeOut, hideMenu, NO_INTERVAL, renameInPlace, setRange, showMenu,
+  anythingKept, downloadAll, exportAs, exportRows, hideMenu, NO_INTERVAL, renameInPlace, setRange, showMenu,
   supportedIntervals, switchInterval, switchWindow,
 } from "/studio/menus.js";
 import {
-  copyPreset, fullOn, legendAction, LEGENDS, ordersOf, paneChip, paneRows, presetActions, presetEdited, presetIndex, setPaneView,
+  copyPreset, legendAction, LEGENDS, ordersOf, paneChip, paneRows, presetActions, setPaneView,
   presetPages, presetRow, presetsPage, resetPreset, scaleGroup, setFull, setLegend, setPaneMode, toggleHalvings,
 } from "/studio/presets-edit.js";
+import { fillOf, labelOf, layerById, lineLook, named, paneMode, derivedTitle, titleOf, faintOf, rangeOf } from "/studio/looks.js";
+import { placeNames, folderById, presetEdited, presetIndex } from "/studio/preset-charts.js";
+import { readsOf } from "/studio/charts-read.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Result } from "/studio/chart.js" */
 /** @import { Vector } from "/studio/formulas.js" */
-/** @import { Place } from "/studio/grid.js" */
+/** @import { Place } from "/studio/preset-charts.js" */
 /** @import { Preset } from "/studio/presets-edit.js" */
-
 
 /**
  * The search's worker: questions wait for its index to be built. Without workers the same engine runs on the page.
@@ -191,7 +191,6 @@ function findSeries(query, limit, signal, waiting = () => {}) {
   }).finally(() => signal?.removeEventListener("abort", onAbort));
 }
 
-
 /**
  * What ⌘K's doing: browsing everything; adding a series (`into` a pane chosen beforehand: its id, or "new", each into a
  * new one); replacing a `layer`'s series; a formula, added (`into` a pane) or a layer's own, `editing`.
@@ -247,15 +246,6 @@ const palette = {
   from: 0,
 };
 
-/** The catalog's node at a path (its own keys only: no "constructor" off a prototype), or undefined. @param {string[]} path */
-function nodeAt(path) {
-  let node = /** @type {any} */ (tree);
-  for (const key of path) {
-    if (!node || typeof node !== "object" || !Object.hasOwn(node, key)) return undefined;
-    node = node[key];
-  }
-  return node;
-}
 /** How many series a catalog folder holds, all the way down; counted once. */
 const seriesCounts = new WeakMap();
 function seriesUnder(node) {
@@ -877,28 +867,7 @@ function columnsOf(values, columns) {
   }
   return points;
 }
-/**
- * A long series drawn small and smooth: the mean of each of `columns` columns, at its middle; a short one whole.
- * Finite points only, as [index, value]. @param {ArrayLike<number>} values @param {number} columns @returns {[number, number][]}
- */
-function meansOf(values, columns) {
-  /** @type {[number, number][]} */
-  const points = [];
-  const per = Math.max(1, values.length / columns);
-  for (let start = 0; start < values.length; start += per) {
-    let sum = 0, count = 0, at = 0;
-    // (Finite by a subtraction: no call each value.)
-    for (let i = Math.floor(start), end = Math.min(values.length, Math.floor(start + per)); i < end; i++) {
-      const value = values[i];
-      if (value - value !== 0) continue;
-      sum += value;
-      at += i;
-      count++;
-    }
-    if (count) points.push([at / count, sum / count]);
-  }
-  return points;
-}
+
 /** Sparks drawn, each its own fill's id (two panels can show at once: a phone's sheet, the pane behind). */
 let sparksDrawn = 0;
 /**
@@ -1184,8 +1153,6 @@ function runAction(action, item) {
   paletteKeys();
 }
 
-/** What's picked from ⌘K's search, how often and when: what's used most, lately, comes first. */
-const USED = "bitview-studio:used";
 /** A pick's weight: its count, fading over days (three days on, it counts half). */
 const useScore = (key) => (used[key] ? used[key].n / (1 + (Date.now() - used[key].at) / (3 * 86_400_000)) : 0);
 /** A list, what's used most lately first; the rest in their order. */
@@ -2402,11 +2369,11 @@ export {
   browseRows, byUse, catalogTops, chartActions, chartsPage, choicePage, choose, columnsOf, commandItem, commands,
   dangerous, datePage, drawOptions, finder, findSeries, fitScore, formulaAt, formulaError, formulaSide, goesOn, goUp,
   headMenu, heightRow, inputPage, insertPiece, isOwnFormula, keyboard, keyboardKey, keyed, latestSaid, layerRow,
-  layerRows, leavePages, leaveScope, listPage, litFirst, loopError, meansOf, nodeAt, openPage, optionsHtml,
+  layerRows, leavePages, leaveScope, listPage, litFirst, loopError, openPage, optionsHtml,
   otherLayerRows, outOfData, pageTitle, palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneNames, paneRow,
   placeOnHome, plotIn, pointsOf, popPage, presetPicked, preview, previewDate, previewLayer, pushPage, rank, ranksSoon,
   readColor, readDate, recentRow, renameChart, renameChartPage, renderPath, rowText, scalePane, searchCase,
   searchSeries, searchText, seriesPicked, settingChoices, settingsNow, showActions, showFormula, showPage, sizable,
-  slipEdits, startFinder, stepSignal, stretchOf, textWords, timesPage, typedWords, underHome, USED, useScore, viewRow,
+  slipEdits, startFinder, stepSignal, stretchOf, textWords, timesPage, typedWords, underHome, useScore, viewRow,
   wayText,
 };

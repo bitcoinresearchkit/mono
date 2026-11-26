@@ -9,10 +9,10 @@ import {
   letterChip, markFor, markPicks, marksOf, memberable, minedHalvings, MOTION, notice, openPalette, ownerOf, panelShown,
   paneShowing, phone, profileColor, recent, reduced, refFor, refsFor, remember, removedNames, renderBelt, renderLayers,
   reshape, resolved, say, secondColor, select, selected, seriesCount, showList, shownOklch, signedSignal, SLIDERS,
-  STACKED_ONLY, toast, track, tree, undoToast, widest,
+  STACKED_ONLY, toast, track, tree, undoToast, widest, keepFocus, nodeAt,
 } from "/studio/app.js";
 import { isSeriesName } from "/studio/catalog-walk.js";
-import { $, all$, closest, drawKeys, escapeHtml, keyText, proseHtml, SLOP, viewport } from "/studio/dom.js";
+import { $, all$, closest, drawKeys, escapeHtml, keyText, proseHtml, SLOP, viewport, focusKey, restoreFocus, isOpen, cutFade, fadeOut, scrolled } from "/studio/dom.js";
 import { inSlices, whenIdle } from "/studio/timing.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
 import {
@@ -29,13 +29,13 @@ import {
 import {
   FINE, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, spanDays, SPANS, windowPoints,
 } from "/studio/intervals.js";
-import { gamma, hexToOklch, inside, limit, maxChroma, ofPalette, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
+import { gamma, hexToOklch, inside, limit, maxChroma, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
 import {
   baseOf, BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, idOf, info, ink, lastShown, noValues, oklchOf,
   respot, retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
 } from "/studio/chart.js";
 import {
-  aboutOf, bothOf, choicePage, finder, findSeries, formulaError, formulaSide, listPage, loopError, nodeAt, palette,
+  aboutOf, bothOf, choicePage, finder, findSeries, formulaError, formulaSide, listPage, loopError, palette,
   paneNames, previewLayer, pushPage,
 } from "/studio/command.js";
 import { beltSide, drawingById, lookFor, setLook } from "/studio/drawing.js";
@@ -43,102 +43,24 @@ import {
   argNames, FUNCTIONS, GENESIS, hasFunction, highlightFormula, parse, PERIODS_TAKEN, refsOf, turnsInto, unfitHere,
   VALUES,
 } from "/studio/formulas.js";
-import { fillSlot, isOpen, recommendedCards } from "/studio/grid.js";
+import { fillSlot, recommendedCards } from "/studio/grid.js";
 import {
-  heatGrid, heatName, heatPath, heatSection,
+  heatGrid, heatPath, heatSection,
 } from "/studio/heatmaps.js";
-import { cutFade, exportData, fadeOut, letGo, menuOf, scrolled, showMenu } from "/studio/menus.js";
-import { ordersOf, presetsSettled, refocus, slideLayers, tick } from "/studio/presets-edit.js";
+import { exportData, letGo, menuOf, showMenu } from "/studio/menus.js";
+import { ordersOf, refocus, slideLayers, tick } from "/studio/presets-edit.js";
+import { heatName, lineAt, lineLook, lineDefaults, named, modeOf, paneMode, labelOf, fromName, layerById, gradientTable, gradientCss, mixedOf, rangeOf, levelSteps, fadingOf, faintOf } from "/studio/looks.js";
+import { presetsSettled } from "/studio/preset-charts.js";
+import { readsOf } from "/studio/charts-read.js";
 /** @import { Chart, Layer, Pane } from "/studio/vocabulary.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
 /** @import { Node, Vector } from "/studio/formulas.js" */
 
-
-/** A stacked area's band, its tint: even, from its line to the one under it (a cloud's bands alike, each its own):
- * the band read as an area, its edges a fine line (STACK_WIDTH). */
-const STACK_FILL = 0.35, STACK_WIDTH = 1;
-/**
- * An area's fill, its top's opacity and its foot's (before its own opacity): its own (`fillOpacity`, `solid`), else its
- * kind's. Stacked or filled above, even (a band fading by price would read lighter the lower it sits; above a line
- * that runs high, it would all but vanish); else fading to none at its foot, unless solid. Colored by date (from
- * another layer, by its levels), stronger, its foot faintly so. @param {Layer} layer @param {boolean} stacked
- * @returns {[number, number]}
- */
-function fillOf(layer, stacked) {
-  const regime = Boolean(layer.colorFrom || layer.byLevels), above = layer.fill === "above";
-  const top = layer.fillOpacity ?? (stacked || above ? (regime ? 0.3 : above ? 0.1 : STACK_FILL) : regime ? 0.5 : 0.2);
-  return [top, stacked || above || layer.solid ? top : regime ? top * 0.08 : 0];
-}
 /** Whether a layer's pane stacks it. @param {Layer} layer */
 const stackedIn = (layer, doc = chart) => summed(doc.panes.find((pane) => pane.id === layer.pane));
-/** The open chart's stacks as last made, and what they were made of (see stackOf). */
-let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, foot: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()), times: /** @type {unknown} */ (null) };
-/**
- * What stacked panes draw: each layer shown on a side at its own value plus those of the layers before it in the
- * stack (the panel's order, its first at the foot: A, A+B, A+B+C; reversed, its last); in a 100% one, that as a
- * share of them all. Each is drawn as it is (its type, its look): only its values change. A layer without a value at
- * a point adds none there and shows none (it starts where its data does); in a 100% stack, a negative one counts as
- * none (a share of a whole). The library's stack makes them: `foot`, the stack under it (a share, in a 100% one),
- * `scale` the factor a 100% one's sums took, for its own values there (a candle's open, high, low and close);
- * `group` names its stack (its pane and side), `rank` its place there (its foot 0).
- * @param {Chart} doc @param {{ results: Map<string, any>, times?: number[] }} data
- * @returns {Map<string, { values: Float64Array, foot: Float64Array, scale: Float64Array | null, group: string, rank: number }>} by layer
- */
-function stackOf(doc, data, kept = true) {
-  // The open chart's, kept while what they're made of is the same (the stacked panes, their layers, places and values):
-  // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again. (Its marks' own,
-  // from other data, aren't kept: `kept` false.)
-  const key = kept && doc.id === chart?.id ? doc.panes.filter(summed).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
-    const shown = data.results.get(layer.id)?.values;
-    return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${layer.from ?? ""}.${placedOn(layer) ? 1 : 0}.${shown ? idOf(shown) : "-"}`;
-  }).join()}`).join("|") : "";
-  if (key && key === stacksMade.key) return stacksMade.stacked;
-  const stacked = new Map();
-  for (const pane of doc.panes) {
-    if (!summed(pane)) continue;
-    const shares = pane.stack === "percent";
-    for (const side of SIDES) {
-      const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && !placedOn(layer) && data.results.get(layer.id)?.values);
-      if (!layers.length) continue;
-      const group = `${pane.id}:${side}`, ordered = pane.reverse ? [...layers].reverse() : layers;
-      const { tops, feet, scale } = stackColumns(ordered.map((layer) => data.results.get(layer.id).values), { percent: shares });
-      ordered.forEach((layer, rank) => stacked.set(layer.id, { values: tops[rank], foot: feet[rank], scale, group, rank }));
-    }
-  }
-  if (!key) return stacked;
-  // (One that comes out as it was (a layer over it hidden, shown, another's moved), on the same dates, the one it
-  // was: its series not set again, see build.)
-  for (const [id, item] of stacksMade.times === data.times ? stacked : []) {
-    const was = stacksMade.stacked.get(id);
-    if (was && was.group === item.group && was.rank === item.rank && sameVector(was.values, item.values) && sameVector(was.foot, item.foot) && (was.scale === item.scale || (was.scale && item.scale && sameVector(was.scale, item.scale)))) stacked.set(id, was);
-  }
-  stacksMade = { key, stacked, times: data.times };
-  return stacked;
-}
-/** Whether two runs of values are the same, a missing one where the other's is (NaN as NaN). @param {ArrayLike<number>} a @param {ArrayLike<number>} b */
-function sameVector(a, b) {
-  if (a.length !== b.length) return false;
-  for (let i = 0; i < a.length; i++) if (a[i] !== b[i] && (a[i] === a[i] || b[i] === b[i])) return false;
-  return true;
-}
-/** The scale of the pane a layer is on. @param {Chart} doc */
-const modeOf = (doc, layer) => paneMode(doc.panes.find((item) => item.id === layer.pane));
-/**
- * A pane's scale as drawn, from the one it keeps (declared, or chosen) and how it draws: a stack, summed or as shares,
- * linear (on log, a band's height says nothing of its amount); a heatmap linear or log (percent change and indexed
- * would start each row from its own first value); lines, the kept one. The kept one never changes with the stack, so
- * switching back and forth leaves the chart as it was. @param {Pane} [pane]
- */
-const paneMode = (pane) => (!pane || summed(pane) || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
+
 /** The scales a pane can take now (a stack: none to choose; a heatmap: linear and log). @param {Pane} pane */
 const modesFor = (pane) => (summed(pane) ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
-const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.from ? fromName(layer) : heatLike(layer) ? heatName(layer) : layer.formula || "Formula");
-/**
- * A layer made from layers, named, unnamed: what it is, then its layers' letters (three at most; past that, how
- * many), then a cloud's edge (both: the pane). @param {{ from?: string[], type?: string }} layer @param {Chart | null} [doc]
- */
-const fromName = (layer, doc = ownerOf(/** @type {Layer} */ (layer))) => ((noun, letters, edges) => (edges.length > 1 && !letters.length ? `${noun} of the pane` : `${!letters.length ? noun : letters.length > 3 ? `${noun} of ${letters.length} layers` : `${noun} of ${letters.join(", ")}`}${edges.length ? ` to the ${edges.join(" and ")}` : ""}`))(layer.type === "trend" ? "Trend" : "Cloud", fromLetters(layer, doc), edgesOf(layer));
-const layerById = (id) => chart.layers.find((layer) => layer.id === id);
 
 /**
  * A view's content written anew, scrolled as it was: Safari on iOS sends some views whose content is replaced back
@@ -152,46 +74,7 @@ function rewrite(container, html) {
   container.innerHTML = html;
   if (top) container.scrollTop = top;
 }
-/** Rebuilding a panel's HTML would drop focus: these find the same control again afterwards. */
-function focusKey(container) {
-  const active = document.activeElement;
-  return active instanceof HTMLElement && container.contains(active) ? keyOf(active) : null;
-}
-/**
- * What finds an element's like once it's drawn again: its id, or its tag and data (not what marks it for a moment:
- * a tip, a key; a legend item named (pointed), a profile's group lit). @param {HTMLElement} element
- */
-const keyOf = (element) => ({ tag: element.tagName, id: element.id, data: Object.entries(element.dataset).filter(([name]) => !["tip", "kbd", "pointed", "lit"].includes(name)) });
-function restoreFocus(container, key) {
-  if (!key || container.contains(document.activeElement)) return;
-  const find = () => (key.id ? container.querySelector(`#${CSS.escape(key.id)}`) : [...container.querySelectorAll(key.tag)].find((element) => element instanceof HTMLElement && key.data.length > 0 && key.data.every(([name, value]) => element.dataset[name] === value)));
-  let match = find();
-  // (Its like on a preset's tile written as a slot yet: the tile written for it, see fillSlot.)
-  const preset = match ? undefined : key.data.find(([name]) => name === "openPreset" || name === "presetMenu")?.[1], slot = preset === undefined ? null : container.querySelector(`.tile-slot[data-slot="${CSS.escape(preset)}"]`);
-  if (slot) (fillSlot(/** @type {HTMLElement} */ (slot)), (match = find()));
-  /** @type {HTMLElement | null | undefined} */ (match)?.focus();
-}
-/**
- * The focus, where what had it goes (`away`: put away, the panel closed, the sidebar slid off; else removed, once
- * the page is drawn again), on the first of `next` that shows (a row's successor, the button that brings it back):
- * never lost to the page. A focus nowhere (after a click on the chart) stays nowhere.
- * @param {Element | null} away @param {...(() => Element | null | undefined)} next
- */
-function keepFocus(away, ...next) {
-  const had = document.activeElement;
-  if (!had || had === document.body) return;
-  const go = () => {
-    for (const pick of next) {
-      const element = pick();
-      if (element instanceof HTMLElement && element.isConnected && !away?.contains(element) && element.checkVisibility({ checkVisibilityCSS: true })) return (element.focus({ preventScroll: true }), true);
-    }
-    return false;
-  };
-  if (away?.contains(had)) return void go();
-  // (Gone: once the page is drawn again; what takes its place still coming in, once it's in.)
-  const lost = () => !had.isConnected || document.activeElement === document.body || !had.checkVisibility();
-  requestAnimationFrame(() => lost() && !go() && setTimeout(() => lost() && go(), MOTION.page + 40));
-}
+
 /** The picks shown: the rows, the legends, the bar (drawings let go: one selection at a time). */
 function showPicks() {
   if (layerPicks.size) {
@@ -822,13 +705,7 @@ function colorSlots(layer) {
     : mode === "momentum" ? [["color", "Above, growing"], ["colorFading", "Above, fading"], ["colorBelow", "Below, growing"], ["colorBelowFading", "Below, fading"]]
     : [["color", "Color"]];
 }
-/** A color fainter, as the card shows it (MACD's bars falling back): halfway to the card, its chroma halved. */
-function faintOf(/** @type {string} */ color) {
-  const [l, c, h] = shownOklch(color), [card] = oklchOf(css("--card"));
-  return oklchToHex(l + (card - l) * 0.5, c * 0.5, h);
-}
-/** Bars' color where they fall back toward their base, above it or below (four colors): theirs, else their side's fainter. @param {Layer} layer */
-const fadingOf = (layer, /** @type {boolean} */ below) => (below ? layer.colorBelowFading : layer.colorFading) ?? faintOf(below ? belowOf(layer) : layer.color);
+
 const colorOf = (/** @type {Layer} */ layer, /** @type {string} */ key) => (key.startsWith("cohort:") ? profileColor(layer, key.slice(7)) : key.startsWith("stop") ? layer.gradient?.[Number(key.slice(4))]?.[1] ?? layer.color : key === "colorBelow" ? belowOf(layer) : key === "colorFading" ? fadingOf(layer, false) : key === "colorBelowFading" ? fadingOf(layer, true) : layer.color);
 /**
  * One of a layer's colors, set (its way of coloring as it is): its own; its second, kept only where it isn't its
@@ -870,78 +747,7 @@ function setColorMode(/** @type {Layer} */ layer, /** @type {string} */ mode, fr
 
 /** A gradient a layer starts with: from blue to red. @returns {[number, string][]} */
 const gradientFor = () => [[0, "blue"], [100, "red"]];
-/**
- * A gradient as CSS draws it, across: its own colors (see gradientTable), each as shown, a sample of them (CSS's own
- * mixing, between its stops, would be another: through gray where they're mixed in sRGB).
- * @param {[number, string][]} stops
- */
-const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${table[placeIndex(k / 16, table.length)]} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
-/** Each gradient's colors, by the theme and its stops: see gradientTable. @type {Map<string, string[]>} */
-const gradientTables = new Map();
-/** The page's ink as the dark shows it (`--ink`'s dark side, which the light can't read): Bitview's form of it, see mixedOf. */
-const INK_DARK = "#f7f8f8";
-/** How many colors a gradient is drawn in (each a value's place, rounded to the nearest of so many). */
-const GRADIENT_STEPS = 64;
-/**
- * A gradient's colors as kept, `GRADIENT_STEPS` of them from 0% to 100%, mixed by the library (see its gradientTable, in
- * OKLCH), each by the two stops it lies between (past the outer ones, that one). Between two of the palette's, as
- * they're written (the dark's form), the mix an `oklch(…)`, the palette's too, toned in the theme as drawn (the curve
- * bends, so toning the stops first would draw another gradient); with any other color on either side, each stop as the
- * theme shows it (see shownOklch), the mix a hex, drawn as given.
- * @param {[number, string][]} stops @returns {string[]}
- */
-function mixedOf(stops) {
-  const lch = (/** @type {number[]} */ values) => `oklch(${values.join(" ")})`, given = (/** @type {[number, string]} */ [, color]) => !ofPalette(color);
-  // (Each stop in one form, Bitview's as written (ink, its dark side), and as shown from that, so a stop reads the same
-  // from either side.)
-  const forms = stops.map(([at, color]) => /** @type {[number, string]} */ ([at, !ofPalette(color) ? color : lch(color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color))]));
-  const kept = mixedTable(forms, GRADIENT_STEPS);
-  if (!stops.some(given)) return kept;
-  const shown = mixedTable(forms.map(([at, color]) => [at, lch(shownOklch(color))]), GRADIENT_STEPS);
-  return kept.map((mixed, k) => {
-    // (Its two stops as the library finds them: the first at or past its place, and the one before.)
-    const next = stops.findIndex(([where]) => where >= (k / (GRADIENT_STEPS - 1)) * 100);
-    const own = next < 0 ? !given(stops[stops.length - 1]) : !given(stops[next]) && (next === 0 || !given(stops[next - 1]));
-    return own ? mixed : oklchToHex(...oklchOf(shown[k]));
-  });
-}
-/** A gradient's colors as the theme draws them (see mixedOf), in hex. @param {[number, string][]} stops @returns {string[]} */
-function gradientTable(stops) {
-  const key = `${light}:${JSON.stringify(stops)}`, had = gradientTables.get(key);
-  if (had) return had;
-  const table = mixedOf(stops).map(ink);
-  if (gradientTables.size > 200) gradientTables.clear();
-  gradientTables.set(key, table);
-  return table;
-}
-/** A layer's lowest and highest values (none: Infinity and -Infinity). @param {Vector | number[]} values @returns {[number, number]} */
-function rangeOf(values) {
-  let low = Infinity, high = -Infinity;
-  // (By index, finite by a subtraction: a gradient's layer's every value at each live price; zeros by
-  // Math's own, a negative one kept as it was.)
-  for (let i = 0; i < values.length; i++) {
-    const value = values[i];
-    if (value === 0) (low = Math.min(low, value)), (high = Math.max(high, value));
-    else if (value - value === 0) (low = value < low ? value : low), (high = value > high ? value : high);
-  }
-  return [low, high];
-}
-/**
- * Where each value is between its lowest and its highest of its history up to it (0 to 1; no hindsight: what that
- * day would have shown; of all its history, a Gradient's place). None where it has none.
- * @param {Vector} values @returns {Float64Array}
- */
-function upToDatePlaces(values) {
-  const places = new Float64Array(values.length).fill(NaN);
-  let low = Infinity, high = -Infinity;
-  for (let i = 0; i < values.length; i++) {
-    const value = values[i];
-    if (!Number.isFinite(value)) continue;
-    (low = Math.min(low, value)), (high = Math.max(high, value));
-    places[i] = high > low ? (value - low) / (high - low) : 0.5;
-  }
-  return places;
-}
+
 /**
  * The surface, one plane, every point (u across, t down, 0 to 1) a color. Down, lightness, white at the top to
  * black at the bottom, each lightness given its room (`spaceAt`): all of it from the dark tones still seen to the
@@ -1000,15 +806,7 @@ function planeSays(/** @type {string} */ color, /** @type {number} */ u) {
   const [l, c, h] = shownOklch(color), grayish = u > HUES + (1 - HUES) * 0.85 - 1e-9;
   return { now: Math.round(l * 100), text: `${grayish || c < 0.02 ? "Gray" : `Hue ${Math.round(h)} degrees`}, lightness ${Math.round(l * 100)} percent` };
 }
-// A color to pick, the same wherever one is (a layer's, a drawing's, a line's): one of Bitview's, a click; any other,
-// on the surface under them, every hue across and lightness down, at one chroma (a quieter color is a matter of
-// opacity).
 
-/** A layer's levels as its bands, lowest first: each one's value and color (of two at one value, the first's, as its line across is). @param {Layer} layer */
-function levelSteps(layer) {
-  const steps = (layer.levels ?? []).map((level, k) => ({ value: level.value, color: lineLook(layer, k).color, k })).sort((a, b) => a.value - b.value || a.k - b.k);
-  return steps.filter((step, i) => !i || step.value !== steps[i - 1].value);
-}
 /** Colors for levels that color a layer, in order up: warmer as they go, none its own or one taken. */
 const LEVEL_COLORS = ["yellow", "orange", "red", "pink", "purple", "violet", "blue", "sky", "teal", "green", "lime", "amber"];
 /** A level added to a layer (in its edit): its own color where the layer's colored by its levels. @param {Layer} layer @param {number} value */
@@ -2010,33 +1808,7 @@ function fitsAt(/** @type {string} */ text, /** @type {number} */ caret, self, e
   if (name === "p") return { items: PERCENTS.map(([p, what]) => ({ insert: String(p), title: String(p), text: what, group: "Percents" })), more: "" };
   return null;
 }
-/**
- * The letters a layer of a chart (`doc`) reads itself: its formula's; a layer made from layers' (a cloud's, a trend's,
- * its reference with them). @param {Layer} layer @param {Chart} doc
- */
-function lettersRead(layer, doc) {
-  const letters = new Set();
-  if (layer.formula !== undefined) try { for (const letter of refsOf(parse(layer.formula))) letters.add(letter); } catch {}
-  // (A signal's ref is the layer it's marked on, not one it reads; a trend's, the one that flips it: read.)
-  for (const id of [...(layer.from ?? []), ...(layer.ref && !placedOn(layer) ? [layer.ref] : [])]) {
-    const made = doc.layers.find((item) => item.id === id);
-    if (made) letters.add(made.letter);
-  }
-  return letters;
-}
-/** The letters a layer reads, through those it reads too, in its chart (the open one unless said). @param {Layer} layer */
-function readsOf(layer, doc = chart) {
-  const seen = new Set(), queue = [layer];
-  while (queue.length) {
-    for (const letter of lettersRead(/** @type {Layer} */ (queue.pop()), doc)) {
-      if (seen.has(letter)) continue;
-      seen.add(letter);
-      const next = doc.layers.find((item) => item.letter === letter);
-      if (next) queue.push(next);
-    }
-  }
-  return seen;
-}
+
 /**
  * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
  * band) in its pane and on its axis, the others in a pane of their own. One layer each, but where it's a pair by
@@ -2208,31 +1980,10 @@ const toggleHidden = (id) => {
   commit((doc) => doc.layers.forEach((other) => (other.id === id || members.includes(other.id)) && (other.hidden = hide)), { look: true });
 };
 const showEvery = () => commit((doc) => doc.layers.forEach((layer) => delete layer.hidden), { look: true });
-/**
- * A line across (a level, by index, or a baseline's "base"), and its color and style unless set: a level its layer's
- * color in long dashes, a base gray in sparse dots.
- */
-const lineAt = (layer, key) => (key === "base" ? layer.baseLine ?? {} : layer.levels?.[Number(key)]);
-const lineDefaults = (layer, key) => (key === "base" ? { color: "gray", dash: LINE_STYLE.SparseDotted } : { color: layer.color, dash: LINE_STYLE.LargeDashed });
-const lineLook = (layer, key) => ({ ...lineDefaults(layer, key), ...lineAt(layer, key) });
+
 /** Why a line's value on the axis can't be turned on, said one way everywhere. */
 const TAG_NEEDS_LINE = "Turn on the line to show its value on the axis";
-/**
- * A value as its layer's levels name it: the highest level at or under it (as they color it, by levels; of two at one
- * value, the first), if it's named: its name, in its color; under them all, the layer's `underName`, in its own. Not
- * named there, none (the number, as ever).
- * @param {Layer} layer @param {number} value @returns {{ name: string, color: string } | null}
- */
-function bandOf(layer, value) {
-  const levels = layer.levels;
-  if (!levels?.length || !Number.isFinite(value) || !(layer.underName || levels.some((level) => level.name))) return null;
-  let at = -1;
-  levels.forEach((level, i) => level.value <= value && (at < 0 || level.value > levels[at].value) && (at = i));
-  if (at < 0) return layer.underName ? { name: layer.underName, color: layer.color } : null;
-  return levels[at].name ? { name: /** @type {string} */ (levels[at].name), color: lineLook(layer, at).color } : null;
-}
-/** Whether a layer's values can read as names (a level named, or the band under them). @param {Layer} layer */
-const named = (layer) => Boolean(layer.levels?.length && (layer.underName || layer.levels.some((level) => level.name)));
+
 /** A line's style as said and drawn (none: its band alone). */
 const lineStyleName = (/** @type {{ dash: number, line?: false }} */ look) => (look.line === false ? "None" : dashOf(look.dash)[1]);
 /** No line, as a line style's glyph: a slashed circle. */
@@ -2805,22 +2556,22 @@ function toSeries(/** @type {string} */ id, /** @type {string} */ name) {
 }
 export {
   acceptSuggestion, addFormula, addFormulaLayer, addFrom, addHeatmap, addLevel, addSeries, addSignal, addSignalLayer,
-  addStop, afterPress, applyFormula, applyFormulaLeft, assistKey, bandOf, barAt, changeSeries, chooseSuggestion,
+  addStop, afterPress, applyFormula, applyFormulaLeft, assistKey, barAt, changeSeries, chooseSuggestion,
   closestSeries, cloudable, colorLevels, colorModeChoices, colorModeOf, colorOf, colorSlot, colorSlots, colorSource,
   completeSeries, completion, completionsAt, copyName, dashRow, drawPlanes, drawWhenReady, dropSuggestions,
-  duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, fadingOf, faintOf, fillOf,
-  fitChoices, fitOf, FITS, fitsAt, flushPick, focusKey, formatChoices, formatMenu, formulaDrafts, formulaFieldLeft,
-  formulaInputs, fromChoices, fromPage, goneSaid, gradientCss, gradientEdit,
-  gradientSwatch, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, isUnfinished,
-  keepFocus, keyOf, labelOf, layerActions, layerById, layerMenu, layersCommands, layersMenu, leaveFormula, levelRows,
-  levelSteps, levelValue, lineAt, lineChoices, lineLook, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName,
-  markTyping, modeName, modeOf, modesFor, modeSwatch, moveLayer, movers, moveStop, multiEdit, named, overShort,
-  ownColor, paneChoices, paneMenu, paneMode, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers,
-  pickedOf, pickPoint, pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf,
-  readNumber, readsOf, readyName, readyPage, recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop,
-  renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient, rewrite, setColor, setFit,
+  duplicateLayer, duplicateLayers, editAdded, editById, editingMany, editLayer, editPicked, 
+  fitChoices, fitOf, FITS, fitsAt, flushPick, formatChoices, formatMenu, formulaDrafts, formulaFieldLeft,
+  formulaInputs, fromChoices, fromPage, goneSaid, gradientEdit,
+  gradientSwatch, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, isUnfinished,
+  layerActions, layerMenu, layersCommands, layersMenu, leaveFormula, levelRows,
+  levelValue, lineChoices, lineLookOn, lineMenu, lineStyleGlyph, lineStyleName,
+  markTyping, modeName, modesFor, modeSwatch, moveLayer, movers, moveStop, multiEdit, overShort,
+  ownColor, paneChoices, paneMenu, penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers,
+  pickedOf, pickPoint, pickPress, placeAssist, placeOf, planeHtml, planeOf, planeTarget, pruneDrafts, 
+  readNumber, readyName, readyPage, recipesFor, refChoices, refMenu, removeLayer, removeLayers, removeStop,
+  renderInspector, renderLayersBar, replaceSeries, resetFor, reverseGradient, rewrite, setColor, setFit,
   setLineLook, setSlider, sharedBy, showEvery, showPicks, showSelection, showStop, showSuggestions, slider,
-  sliders, slotName, soloLayer, STACK_FILL, STACK_WIDTH, stackedIn, stackedOnly, stackOf, suggest, suggestHere,
-  TAG_NEEDS_LINE, toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula, upToDatePlaces, usesOf, widthRow,
+  sliders, slotName, soloLayer, stackedIn, stackedOnly, suggest, suggestHere,
+  TAG_NEEDS_LINE, toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula, usesOf, widthRow,
   withLevel, withoutLevel,
 };
