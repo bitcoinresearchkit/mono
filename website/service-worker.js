@@ -1,5 +1,4 @@
-// The retired website's service worker, at its address: a browser that installed it updates to this one, which clears
-// its caches, unregisters itself and reloads the pages it held, so they reach the website (it sent every page to `/`).
+// Replaces the retired site's worker at its address: clears caches, unregisters, reloads the pages it held.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) =>
   event.waitUntil(
@@ -12,8 +11,7 @@ self.addEventListener("activate", (event) =>
   ),
 );
 
-/** A page's address to load it anew: one with a fragment (a Studio link's chart) would only move within the page, so
- * its query gains an empty part, which no page reads. */
+/** A fragment alone would only move within the page, so the query gains an empty part, which no page reads. */
 function reloadable(href) {
   const url = new URL(href);
   if (url.hash) url.search = url.search ? `${url.search}&` : "?";
