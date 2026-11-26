@@ -1312,8 +1312,6 @@ const stampEdit = (doc) => (doc.updated = Math.max(Date.now(), doc.updated + 1, 
 const isDeleted = (doc) => library.deleted[doc.id] >= doc.updated;
 /** Whether a chart stays in the library: not deleted since its last edit, or open (it goes once another is). @param {{ id: string, updated: number }} doc */
 const alive = (doc) => doc.id === chart?.id || !isDeleted(doc);
-/** The later copy of a chart; at the same millisecond the one whose text sorts later, the same in every tab. @template {{ updated: number }} T @param {T} a @param {T} b @returns {T} */
-const laterCopy = (a, b) => (a.updated !== b.updated ? (a.updated > b.updated ? a : b) : JSON.stringify(a) >= JSON.stringify(b) ? a : b);
 /** @returns {Chart | undefined} */
 const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? library.presets.find((doc) => doc.id === id) ?? previewCharts.find((doc) => doc.id === id);
 /** Whether a chart is one of yours (the Library's). @param {Chart} doc */
@@ -1682,7 +1680,7 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   /** A chart's later copy, in its folder as the arrangement has it. @param {Chart | undefined} own @param {Chart | undefined} other */
   const later = (own, other) => {
     if (!own || !other) return /** @type {Chart} */ (own ?? other);
-    const doc = laterCopy(own, other), by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
+    const doc = own.updated >= other.updated ? own : other, by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
     if (by.folder) doc.folder = by.folder;
     else delete doc.folder;
     return doc;
@@ -1711,7 +1709,7 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   const theirPresets = presetsOf(stored.presets), ourPresets = new Set(library.presets), byPreset = /** @type {Map<string, Chart>} */ (new Map());
   for (const doc of [...library.presets, ...theirPresets]) {
     const have = byPreset.get(/** @type {string} */ (doc.preset));
-    byPreset.set(/** @type {string} */ (doc.preset), have ? laterCopy(have, doc) : doc);
+    if (!have || doc.updated > have.updated) byPreset.set(/** @type {string} */ (doc.preset), doc);
   }
   library.presets = [...byPreset.values()].filter(alive);
   for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
@@ -2497,7 +2495,7 @@ function closePreview(doc = chart) {
 const closedPreviews = new Map();
 /** The preview the toast up says was closed (its Undo brings it back). @type {Chart | null} */
 let closedToast = null;
-/** The previews kept aside, this tab's and others' (a preset as made, which opened beside its edited copy till 2026-11, kept only if edited: read as the ordinary preview it is now; delete that in 2027-11). @returns {Chart[]} */
+/** The previews kept aside, this tab's and others' (migration, remove after the release following 2026-11-26 (the next past v0.13.0): a preset as made, once kept beside its edited copy, is read as the ordinary preview it is now). @returns {Chart[]} */
 const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored.filter((doc) => typeof doc?.id === "string" && !(doc.made !== undefined && doc.untouched === true)) : []))(storage.get(PREVIEW_ASIDE, null));
 /** Previews kept, by their ids aside (and when last edited): let go of there once saved with your charts (see persist). @type {Map<string, number>} */
 const keptPreviews = new Map();
