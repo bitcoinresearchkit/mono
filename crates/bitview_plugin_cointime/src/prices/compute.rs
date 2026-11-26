@@ -74,8 +74,8 @@ impl Vecs {
             exit,
         )?;
         // The mean over time since the first price, each block's cap held until the next: a running
-        // mean, its last value, cap and time picked up where the last update stopped (none before
-        // the first price, or on a chain without one).
+        // mean, its last value, cap and time picked up where the last update stopped (zero before
+        // the first price, as market capitalization is, and on a chain without one).
         let first = first_price_height().map(Height::from);
         let mut state = None;
         self.average_cap.compute_transform2(
@@ -84,7 +84,7 @@ impl Vecs {
             timestamps,
             |(height, cap, at, this): (Height, Cents, Timestamp, _)| {
                 let Some(first) = first.filter(|first| height >= *first) else {
-                    return Dollars::NAN;
+                    return Dollars::ZERO;
                 };
                 let usd = |cap: Cents| f64::from(Dollars::from(cap));
                 let cap = usd(cap);

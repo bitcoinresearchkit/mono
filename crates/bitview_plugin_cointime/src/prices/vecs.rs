@@ -1,6 +1,5 @@
-use bitview_primitives::{Multiple, PartsPerMillionSigned32};
+use bitview_primitives::{Float64, Multiple, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
-use bitview_primitives::Float64;
 use bitview_vecs::{
     CachedSeries, LazyPerBlock, LazyRatioPerBlock, Price, PriceWithMvrv, PriceWithRatio,
 };
@@ -64,15 +63,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// circulating supply in BTC. Zero where the difference is negative.
     #[traversable(lead = "Balanced price: the realized price less the transferred price.")]
     pub balanced: Price<LazyPerBlock<Cents>>,
-    /// Terminal price (Checkmate; David Puell, 2021: "terminal price = transferred price * 21"):
-    /// the transferred price times 21, the supply cap in millions of BTC. A model of tops: it
-    /// runs far above the price at the lows.
+    /// Terminal price (Checkmate): the transferred price times 21, as read in David Puell's thread
+    /// of 2021-11-05 through a Thread Reader copy (read 2026-11-26,
+    /// https://threadreaderapp.com/thread/1456748037364240396.html): "terminal price = transferred
+    /// price * 21". A model of tops: it runs far above the price at the lows.
     #[traversable(lead = "Terminal price: the transferred price times 21.")]
     pub terminal: Price<LazyPerBlock<Cents>>,
     /// CVDD, cumulative value-days destroyed (Willy Woo, "Experiments on Cumulative
     /// Destruction", 2019): `sum(coin days destroyed × price) / (days × 6000000)`, the 6 million
-    /// the source's own calibration. Each block's coin days destroyed are valued at its spot
-    /// price in USD and summed from genesis; the market's age is in days from the genesis
+    /// being the source's own calibration. Each block's coin days destroyed are valued at its
+    /// spot price in USD and summed from genesis; the market's age is in days from the genesis
     /// block's day (2009-01-03).
     #[traversable(lead = "CVDD: the value of all coin days destroyed, over the market's age in days and 6 million.")]
     pub cvdd: Price<LazyPerBlock<Cents>>,
@@ -88,7 +88,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     pub(crate) value_days_destroyed_sum: M::Stored<PcoVec<Height, Float64>>,
     /// Average capitalization in USD: market capitalization's mean over time since the first price,
-    /// each block's cap held until the next block.
+    /// each block's cap held until the next block; zero before it, as market capitalization is.
     #[traversable(hidden)]
     pub(crate) average_cap: M::Stored<PcoVec<Height, Dollars>>,
     #[traversable(hidden)]
