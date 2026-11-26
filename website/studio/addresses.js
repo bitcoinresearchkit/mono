@@ -64,9 +64,12 @@ export function* addressSteps(list) {
   const goneSections = new Map();
   for (const [i, preset] of list.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
     alias(addressOf(old), folded ? { preset: i, window: folded } : { preset: i });
-    // (A window's name as it was beside the chart, or as it is now, the window's place moved as the chart's was; a chart
-    // folded into this one had none of this one's.)
-    if (!folded) for (const [name, window] of Object.entries(preset.w ?? {})) for (const place of [[...old.slice(0, -1), name], ...placeWas([...preset.p.slice(0, -1), name]).map((was) => was.path)]) alias(addressOf(place), { preset: i, window });
+    // (A window's name as it was beside the chart (named after it, as the chart was then), or as it is now, the window's
+    // place moved as the chart's was; a chart folded into this one had none of this one's.)
+    if (!folded) for (const [name, window] of Object.entries(preset.w ?? {})) {
+      const leaf = /** @type {string} */ (preset.p.at(-1)), then = name.startsWith(leaf) ? [[...old.slice(0, -1), old.at(-1) + name.slice(leaf.length)]] : [];
+      for (const place of [[...old.slice(0, -1), name], ...then, ...placeWas([...preset.p.slice(0, -1), name]).map((was) => was.path)]) alias(addressOf(place), { preset: i, window });
+    }
     for (let depth = 1; depth < old.length; depth++) {
       const key = JSON.stringify(old.slice(0, depth));
       if (sections.has(key)) continue;
