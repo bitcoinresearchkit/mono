@@ -114,12 +114,12 @@ function templateDoc(/** @type {number} */ i) {
 const BASE = "/studio";
 /** @param {string} hash */
 const isLinkHash = (hash) => /^#(?:.*&)?(?:chart|image|c)=/.test(hash);
-// Where presets were: read only for an address or an edit no preset has now, rare, so never on the first chart's way.
+// Where presets were: read only for an edit no preset has now, rare, so never on the first chart's way.
 let placesWere = /** @type {typeof import("/studio/places-were.js") | null} */ (null);
 const wherePresetsWere = async () => void (placesWere ??= await import("/studio/places-were.js"));
-/** @typedef {{ for: Preset[], were: typeof placesWere, steps: ReturnType<typeof addressSteps>, book: import("/studio/addresses.js").AddressBook | null }} Addresses */
+/** @typedef {{ for: Preset[], steps: ReturnType<typeof addressSteps>, book: import("/studio/addresses.js").AddressBook | null }} Addresses */
 let addressBook = /** @type {Addresses | null} */ (null);
-const addressesNow = (/** @type {Preset[]} */ list) => (addressBook?.for === list && addressBook.were === placesWere ? addressBook : (addressBook = { for: list, were: placesWere, steps: addressSteps(list, placesWere?.placeWas), book: null }));
+const addressesNow = (/** @type {Preset[]} */ list) => (addressBook?.for === list ? addressBook : (addressBook = { for: list, steps: addressSteps(list), book: null }));
 const addresses = () => {
   if (!presets) return null;
   const at = addressesNow(presets);
@@ -129,7 +129,7 @@ const addresses = () => {
 /** @param {{ timeRemaining: () => number }} deadline */
 const addressesSoon = (deadline) => {
   const at = presets && addressesNow(presets);
-  // (One made again meanwhile, by new presets or where they were, is that one's.)
+  // (One made again meanwhile, for new presets, is that one's.)
   if (at && !at.book) inSlices(deadline, () => at !== addressBook || ((step) => (step.done && (at.book = step.value), Boolean(step.done)))(at.steps.next()), addressesSoon);
 };
 /**
@@ -138,8 +138,23 @@ const addressesSoon = (deadline) => {
  * @param {string} pathname @returns {{ path: string[] } | { preset: number, window?: string } | null}
  */
 const routeOf = (pathname) => addresses()?.at.get(pathname.slice(BASE.length)) ?? null;
-/** One no preset has now may be one a preset had: where they were is read then. @param {string} pathname */
-const routeOrWas = async (pathname) => routeOf(pathname) ?? (presets && !placesWere ? (await wherePresetsWere(), routeOf(pathname)) : null);
+/** @type {Promise<Map<string, string>> | null} */
+let movedTo = null;
+/**
+ * One no preset has now is sent where the server sends it (moved.txt, read then), the address too, its state kept
+ * unless the row gives one, as a redirect keeps it.
+ * @param {string} pathname
+ */
+const routeOrMoved = async (pathname) => {
+  const route = routeOf(pathname);
+  if (route || !presets) return route;
+  movedTo ??= fetch(`${BASE}/moved.txt`).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${BASE}/moved.txt: ${response.status}`))))
+    .then((text) => new Map(text.split("\n").filter(Boolean).map((line) => /** @type {[string, string]} */ (line.split("\t")))));
+  const to = (await movedTo.catch((error) => ((movedTo = null), console.error("Old addresses unread:", error), new Map()))).get(pathname.slice(BASE.length));
+  if (!to) return null;
+  history.replaceState(history.state, "", `${BASE}${to}${to.includes("#") ? "" : location.hash}`);
+  return routeOf(`${BASE}${to.split("#")[0]}`);
+};
 function addressNow() {
   if (home ? !("path" in homeAt) : chart.preset === undefined) return "/";
   const book = addresses();
@@ -419,5 +434,5 @@ function foldersAbove(folder) {
   return above;
 }
 const presetsSettled = () => readPresetList().then(() => {}, () => {});
-export { presetTree, presetRoot, presetName, presetNodeAt, placeNames, homeName, folderById, backToHome, asPlace, BASE, routeOf, routeOrWas, wherePresetsWere, showAddress, presetChart, presetLook, presetEdited, presetIndex, presetDoc, presetIdOf, keptPreset, pristine, looksOf, aFrame, idsNow, adoptPresets, prunePresets, addressesSoon, isLinkHash, presetLink, editedPreset, templateHash, templateHashes, freshPreset, contentHash, windowless, presetKey, presetPlaces, templateDoc, presetDocs, fromPreset, madeLooks, presetShows, likeness, presetPlace, restampedFor, keptAsStored, presetIds, presetById, addressBook, addressDue, structuredFor, placeAddress, addressNow, CANONICAL_ORIGIN, addresses, presetShowing, chartPlace, stepsTo, foldersAbove, presetPathOf, presetsSettled
+export { presetTree, presetRoot, presetName, presetNodeAt, placeNames, homeName, folderById, backToHome, asPlace, BASE, routeOf, routeOrMoved, wherePresetsWere, showAddress, presetChart, presetLook, presetEdited, presetIndex, presetDoc, presetIdOf, keptPreset, pristine, looksOf, aFrame, idsNow, adoptPresets, prunePresets, addressesSoon, isLinkHash, presetLink, editedPreset, templateHash, templateHashes, freshPreset, contentHash, windowless, presetKey, presetPlaces, templateDoc, presetDocs, fromPreset, madeLooks, presetShows, likeness, presetPlace, restampedFor, keptAsStored, presetIds, presetById, addressBook, addressDue, structuredFor, placeAddress, addressNow, CANONICAL_ORIGIN, addresses, presetShowing, chartPlace, stepsTo, foldersAbove, presetPathOf, presetsSettled
 };

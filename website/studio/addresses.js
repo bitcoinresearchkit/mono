@@ -1,21 +1,22 @@
 // @ts-check
 /** @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number, window?: string }>, clashes: string[] }} AddressBook */
 
+/** A step of a place as it's written in an address. @param {string} text */
+export const slug = (text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
+  .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
+
 /**
  * Two under one place still alike are each tagged with a short hash of their name, so an address is the same whatever
  * else exists.
- * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build). One that
- * moved keeps its old addresses too, given where presets were (places-were.js), never over a place there now.
- * @param {{ p: string[], w?: Record<string, string> }[]} list
- * @param {typeof import("./places-were.js").placeWas} [placeWas] @returns {Generator<void, AddressBook>}
+ * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build). Old
+ * addresses are moved.txt's (seo.mjs).
+ * @param {{ p: string[], w?: Record<string, string> }[]} list @returns {Generator<void, AddressBook>}
  */
-export function* addressSteps(list, placeWas) {
+export function* addressSteps(list) {
   const STEP = 200;
   let done = 0;
   const words = new Map();
   const word = (/** @type {string} */ text) => words.get(text) ?? words.set(text, slug(text)).get(text);
-  const slug = (/** @type {string} */ text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
-    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
   const tag = (/** @type {string} */ text) => {
     let h = 2166136261;
     for (const c of text) h = Math.imul(h ^ /** @type {number} */ (c.codePointAt(0)), 16777619);
@@ -58,32 +59,11 @@ export function* addressSteps(list, placeWas) {
     else clashes.push(`${address}, once ${preset.p.join(" › ")} at ${window}`);
     if (++done % STEP === 0) yield;
   }
-  const addressOf = (/** @type {string[]} */ path) => `/presets/${path.map(word).join("/")}`;
-  const alias = (/** @type {string} */ address, /** @type {{ path: string[] } | { preset: number, window?: string }} */ to) => at.has(address) || at.set(address, to);
-  // (A section gone opens the deepest section that holds all its charts now.)
-  const goneSections = new Map();
-  if (placeWas) for (const [i, preset] of list.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
-    alias(addressOf(old), folded ? { preset: i, window: folded } : { preset: i });
-    // (A window's name as it was beside the chart (named after it, as the chart was then), or as it is now, the window's
-    // place moved as the chart's was; a chart folded into this one had none of this one's.)
-    if (!folded) for (const [name, window] of Object.entries(preset.w ?? {})) {
-      const leaf = /** @type {string} */ (preset.p.at(-1)), then = name.startsWith(leaf) ? [[...old.slice(0, -1), old.at(-1) + name.slice(leaf.length)]] : [];
-      for (const place of [[...old.slice(0, -1), name], ...then, ...placeWas([...preset.p.slice(0, -1), name]).map((was) => was.path)]) alias(addressOf(place), { preset: i, window });
-    }
-    for (let depth = 1; depth < old.length; depth++) {
-      const key = JSON.stringify(old.slice(0, depth));
-      if (sections.has(key)) continue;
-      const now = goneSections.get(key), parent = preset.p.slice(0, -1);
-      goneSections.set(key, { old: old.slice(0, depth), now: now ? now.now.slice(0, now.now.findIndex((step, d) => step !== parent[d]) >>> 0) : parent });
-    }
-    if (++done % STEP === 0) yield;
-  }
-  for (const { old, now } of goneSections.values()) alias(`${addressOf(old)}/`, { path: now });
   return { presets: presetsAt, sections, at, clashes };
 }
-/** @param {Parameters<typeof addressSteps>} args */
-export function addressesOf(...args) {
-  const steps = addressSteps(...args);
+/** @param {{ p: string[], w?: Record<string, string> }[]} list */
+export function addressesOf(list) {
+  const steps = addressSteps(list);
   let step = steps.next();
   while (!step.done) step = steps.next();
   return step.value;

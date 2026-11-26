@@ -67,7 +67,7 @@ import {
 import { modeOf, labelOf, paneMode, layerById, stackOf, lineLook, STACK_WIDTH, fillOf, named, bandOf, lineAt, gradientTable, titleOf, seriesMark, derivedTitle, legendEntry, levelSteps, rangeOf } from "/studio/looks.js";
 import { renderRanges, fitTitle, titleReads, typedFrom, renderInterval, renderWindow, renderChartPath } from "/studio/toolbar.js";
 import { validate, linkLookOf, contentOf, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
-import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, routeOrWas, wherePresetsWere, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
+import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, routeOrMoved, wherePresetsWere, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
 import { fitted, laidOver, wordsOn, dropOwnLayers, sketches, Sketch, ownLayers, repaintDrawings, rulerReading, tagShapes, plotBox, timeLine, onScreen, tickOn, hover } from "/studio/sketch.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -5385,7 +5385,7 @@ function loadPresets() {
     if (pendingRoute && started) withRest(async () => {
       const asked = pendingRoute;
       pendingRoute = "";
-      const route = await routeOrWas(asked), here = Boolean(history.state?.route);
+      const route = await routeOrMoved(asked), here = Boolean(history.state?.route);
       const { route: _, ...state } = history.state ?? {};
       if (here) history.replaceState(state, "");
       if (here && route) "preset" in route ? grid.go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
@@ -8993,7 +8993,7 @@ async function start() {
   const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
   if (asked) await loadPresets().catch(() => {});
-  const routed = asked ? await routeOrWas(asked) : null;
+  const routed = asked ? await routeOrMoved(asked) : null;
   // (A window is read from the series tree, which a first chart doesn't otherwise wait for.)
   if (routed && "preset" in routed && linkLookOf(new URLSearchParams(location.hash.slice(1)), routed.window).window) await import("/studio/client.js");
   chart = (routed && "preset" in routed ? presetByAddress(routed.preset, routed.window) : resumed) || chart;

@@ -18,7 +18,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { addressesOf } from "../website/studio/addresses.js";
+import { addressesOf, slug } from "../website/studio/addresses.js";
 import { placeWas } from "../website/studio/places-were.js";
 import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "../website/studio/page-info.js";
 import { shownStep } from "../website/studio/words.js";
@@ -88,7 +88,29 @@ const places = new Set(presets.map((preset) => preset.p.join(" › ")));
 const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
-const book = addressesOf(presets, placeWas);
+const book = addressesOf(presets);
+// Old addresses, each opening what's there now: a preset moved (see places-were.js) keeps each it had, never over a
+// place there now. Written to moved.txt, the one table the server and the page both send old addresses by.
+const addressOf = (/** @type {string[]} */ path) => `/presets/${path.map(slug).join("/")}`;
+const alias = (/** @type {string} */ address, /** @type {{ path: string[] } | { preset: number, window?: string }} */ to) => book.at.has(address) || book.at.set(address, to);
+const sameStart = (/** @type {string[]} */ a, /** @type {string[]} */ b) => ((at) => (at < 0 ? a : a.slice(0, at)))(a.findIndex((step, d) => step !== b[d]));
+const goneSections = new Map();
+for (const [i, preset] of presets.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
+  alias(addressOf(old), folded ? { preset: i, window: folded } : { preset: i });
+  // (Its windows had their own addresses beside the chart: each window's name there, as the chart was named then (a
+  // window named after the chart, "Supply, all time", was named after its old name) and where the window's place
+  // went since. A chart folded into this one had none of this one's windows.)
+  if (!folded) for (const [name, window] of Object.entries(preset.w ?? {})) {
+    const leaf = /** @type {string} */ (preset.p.at(-1)), then = name.startsWith(leaf) ? [[...old.slice(0, -1), old.at(-1) + name.slice(leaf.length)]] : [];
+    for (const place of [[...old.slice(0, -1), name], ...then, ...placeWas([...preset.p.slice(0, -1), name]).map((was) => was.path)]) alias(addressOf(place), { preset: i, window });
+  }
+  // (A section gone opens the deepest section that holds all of its charts now.)
+  for (let depth = 1; depth < old.length; depth++) {
+    const key = JSON.stringify(old.slice(0, depth)), parent = preset.p.slice(0, -1);
+    if (!book.sections.has(key)) goneSections.set(key, { old: old.slice(0, depth), now: sameStart(goneSections.get(key)?.now ?? parent, parent) });
+  }
+}
+for (const { old, now } of goneSections.values()) alias(`${addressOf(old)}/`, { path: now });
 
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
 if (!about) throw new Error("No about section in the page: llms.txt is made from it");
