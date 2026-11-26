@@ -16,6 +16,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- First: the face a first screen's words are in. -->
+    <link rel="preload" href="/assets/fonts/InterVariable.first.woff2" as="font" type="font/woff2" crossorigin />
     <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
     <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
@@ -110,6 +112,16 @@
         font-family: Inter;
         src: url("/assets/fonts/InterVariable.rest.woff2") format("woff2");
         unicode-range: U+0180-0191, U+0193-02BA, U+02BD-02C5, U+02C7-02D9, U+02DB, U+02DD-0393, U+0395-03A1, U+03A4-03C2, U+03C4-03DD, U+03F0-04FF, U+052F, U+0E3F, U+1D00-1D1B, U+1D43-1D65, U+1D9C-1DA0, U+1DBB-1FFE, U+2070-20AB, U+20AD-20BE, U+20C0, U+20DB-2121, U+2126-213B, U+214D-2189, U+2423, U+2460-2468, U+24B6-24CF, U+24EA, U+2600-2606, U+263C, U+2661-266B, U+26A0, U+2717, U+2756-2764, U+2780-2788, U+27EF-27FA, U+2913, U+2A38, U+2B06-2B24, U+2C7C-2C7F, U+2DFF, U+2E18, U+A69F, U+A7FF, U+A92E, U+E000-E0F5, U+E106-E163, U+E1C3-E2DC, U+EE01-EEE1, U+F6C3, U+1F12F-1F149, U+1F16A-1F16B, U+1F850-1F852;
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      /* A cut of the full face, a first screen's characters only (by brain/notes/mono/studio-deep-pass-20261125/load/l2/
+         tools/first.mjs): last, as the face declared last wins where ranges meet. */
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.first.woff2") format("woff2");
+        unicode-range: U+20-7E, U+A0, U+B7, U+D7, U+2013-2014, U+2019, U+2026, U+203A, U+20BF, U+2191, U+2193, U+2212, U+2248, U+2318, U+2325;
         font-weight: 100 900;
         font-display: swap;
       }
@@ -565,6 +577,11 @@
         overflow: hidden;
         clip-path: inset(50%);
         white-space: nowrap;
+      }
+      /* (Words no one sees: no web face fetched for them.) */
+      :is(.vh, .about),
+      .about :is(code, pre) {
+        font-family: system-ui, sans-serif;
       }
 
       /* The plot, as the keys reach it: over it, its ring when it has the focus (the pointer goes through to the chart). */
@@ -10870,9 +10887,11 @@
           padding: 24px 16px 48px;
           clip-path: none;
           white-space: normal;
+          font-family: var(--sans);
         }
 
         .about pre {
+          font-family: var(--mono);
           white-space: pre-wrap;
           overflow-wrap: anywhere;
         }
@@ -10891,13 +10910,9 @@
       <button type="button" class="btn" onclick="location.reload()">Try again</button>
     </div>
     <script>
-      // The chart's Inter (see chartFont), begun with the page's own, from its file, and Lilex too (the layers' letters
-      // ask for it as they're first drawn, late): a face that loads after the page's lays the whole page out again
-      // (WebKit's every face, used or not: 20-100 ms on a phone). By their addresses, not their bytes: the page's own
-      // files, which a browser may parse once for both faces (from their bytes, parsed again, at once, on the page's
-      // thread), each over its own characters as the page's (the rest's fetched only for a character of its own).
+      // The chart's Inter (see chartFont) begun with the page's own: a face loaded after it lays the whole page out again
+      // (WebKit: 20-100 ms on a phone). By address, so a browser may parse a file once for both faces.
       try {
-        document.fonts.load("590 10px Lilex").catch(() => {});
         for (const sheet of document.styleSheets) {
           for (const rule of sheet.cssRules) {
             if (!(rule instanceof CSSFontFaceRule) || rule.style.getPropertyValue("font-family").replace(/["']/g, "").trim() !== "Inter") continue;
@@ -10906,7 +10921,8 @@
             if (url) document.fonts.add(new FontFace("Inter Chart", `url("${url}")`, { weight: "500 900", featureSettings: '"tnum" 1', unicodeRange }));
           }
         }
-        document.fonts.load('500 10px "Inter Chart"').catch(() => {});
+        // (Its last face only: fonts.load would fetch every face over its characters.)
+        [...document.fonts].findLast((face) => face.family.replace(/"/g, "") === "Inter Chart")?.load().catch(() => {});
       } catch {}
       // Before the first paint, the page as it was left: the sidebar, the layers panel, the grid or a chart (the module
       // settles it, later, by the same rules); else they'd be seen moving into place.

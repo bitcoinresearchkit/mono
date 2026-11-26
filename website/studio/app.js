@@ -3003,11 +3003,10 @@ animateMark();
  * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
  * the page's own font files (no second copy of them), as "Inter Chart" from 500 up (a variable font: a canvas's
  * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
- * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. Begun as the
- * page started, with the page's own Inter (see the first script). Until it's in, the page's font: the page shows at
- * once, never held for it (a canvas has no font-display, and measures its words by the font's name).
+ * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. Begun with the
+ * page (see the first script), its last face only. Till it's in, the page's font: a canvas has no font-display.
  */
-const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
+const chartFont = ([...document.fonts].findLast((face) => face.family.replace(/"/g, "") === "Inter Chart")?.load() ?? Promise.reject()).then(() => true, () => false);
 let chartSans = css("--sans");
 /** The size of every word on the chart (CSS pixels): its axes', its tags', its marks', its navigator's; its legends' the same (see .legend). */
 const CHART_TEXT = 12;
