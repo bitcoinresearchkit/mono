@@ -1,9 +1,8 @@
-// bun scripts/budget.mjs [--run <wf.mjs OUT.json>]: Studio's first chart against its byte budget (budget.json:
+// bun scripts/budget.mjs: Studio's first chart against its byte budget (budget.json:
 // KB on the wire before it draws, brotli q11), from the files; exit 1 when a kind is over. The pre-commit hook runs it.
 //  - html: the page without its <style>s; css: those, and any stylesheet it links (what's loaded later, isn't);
 //  - js: every script the page names, and all they import statically (an import() is what comes after the draw);
 //  - font: what it preloads (a face is fetched for the words in it: the page preloads the one a first screen's are in).
-// With --run, a wf.mjs run's median (harness: brain/notes/mono/studio-deep-pass-20261125/load): what came by the draw.
 import { brotliCompressSync, constants } from "node:zlib";
 import { readFileSync } from "node:fs";
 import { join, normalize } from "node:path";
@@ -29,21 +28,11 @@ for (const seen = new Set(); queue.length; ) {
 
 for (const t of tags) if (attr(t, "as") === "font") have.font += readFileSync(fileOf(/** @type {string} */ (attr(t, "href")))).length;
 
-const run = Bun.argv.indexOf("--run") > 0 ? JSON.parse(readFileSync(Bun.argv[Bun.argv.indexOf("--run") + 1], "utf8")) : null;
-let said = "";
-if (run) {
-  const runs = run.filter((/** @type {any} */ r) => r.firstChart).sort((/** @type {any} */ a, /** @type {any} */ b) => a.firstChart - b.firstChart), median = runs[runs.length >> 1];
-  const came = median.rows.filter((/** @type {any} */ r) => (r.end ?? Infinity) <= median.firstChart + 5);
-  have.data = came.filter((/** @type {any} */ r) => r.who === "page" && /\/api\/series\/[^/]+\/\w+(\?|$)/.test(r.url)).reduce((n, /** @type {any} */ r) => n + r.kb * 1000, 0);
-  have.total = came.reduce((n, /** @type {any} */ r) => n + (r.kb ?? 0) * 1000, 0);
-  said = `run: first chart ${Math.round(median.firstChart)} ms; data and total as the run had them (its server's compression)`;
-}
 let over = false;
 console.log("kind      KB now  budget");
 for (const [kind, limit] of Object.entries(budget)) {
-  const kb = kind in have ? Math.round(have[kind] / 100) / 10 : null;
-  over ||= kb !== null && kb > limit;
-  console.log(kind.padEnd(7), String(kb ?? "-").padStart(8), String(limit).padStart(7), kb === null ? " (measured: --run)" : kb > limit ? ` OVER by ${(kb - limit).toFixed(1)} KB` : "");
+  const kb = Math.round(have[/** @type {keyof typeof have} */ (kind)] / 100) / 10;
+  over ||= kb > limit;
+  console.log(kind.padEnd(7), String(kb).padStart(8), String(limit).padStart(7), kb > limit ? ` OVER by ${(kb - limit).toFixed(1)} KB` : "");
 }
-if (said) console.log(said);
 process.exit(over ? 1 : 0);
