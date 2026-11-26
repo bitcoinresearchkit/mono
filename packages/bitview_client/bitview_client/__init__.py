@@ -3413,10 +3413,15 @@ class CointimePriceWithMvrv(_Node):
 
 
 class Prices(_Node):
-    vaulted: CointimePriceWithMvrv = _at(CointimePriceWithMvrv, '*')
+    vaulted: CointimePriceWithMvrv = _at(CointimePriceWithMvrv, 'vaulted')
     active: CointimePriceWithMvrv = _at(CointimePriceWithMvrv, 'active')
     true_market_mean: CointimePriceWithRatio = _at(CointimePriceWithRatio, 'true_market_mean')
     cointime: CointimePriceWithMvrv = _at(CointimePriceWithMvrv, 'cointime')
+    transferred: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'transferred_*')
+    balanced: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'balanced_*')
+    terminal: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'terminal_*')
+    cvdd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'cvdd')
+    delta: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'delta_*')
 
 
 class Caps(_Node):
@@ -4427,7 +4432,7 @@ class Cointime(_Node):
     supply: CointimeSupply = _at(CointimeSupply, 'vaulted')
     value: CointimeValue = _at(CointimeValue, 'cointime_value')
     caps: Caps = _at(Caps, 'cap')
-    prices: Prices = _at(Prices, 'vaulted')
+    prices: Prices = _at(Prices, 'price')
     adjusted: Adjusted = _at(Adjusted, 'cointime_adjusted')
     reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
 

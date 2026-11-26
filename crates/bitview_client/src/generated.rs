@@ -742,10 +742,15 @@ pub mod tree {
         mvrv: SeriesPattern1<Option<Multiple>> = "*_mvrv",
     } }
     shape! { Prices at "series().cointime.prices" {
-        vaulted: CointimePriceWithMvrv = "*",
+        vaulted: CointimePriceWithMvrv = "vaulted",
         active: CointimePriceWithMvrv = "active",
         true_market_mean: CointimePriceWithRatio = "true_market_mean",
         cointime: CointimePriceWithMvrv = "cointime",
+        transferred: SeriesPattern1<Option<Dollars>> = "transferred_*",
+        balanced: SeriesPattern1<Option<Dollars>> = "balanced_*",
+        terminal: SeriesPattern1<Option<Dollars>> = "terminal_*",
+        cvdd: SeriesPattern1<Option<Dollars>> = "cvdd",
+        delta: SeriesPattern1<Option<Dollars>> = "delta_*",
     } }
     shape! { Caps at "series().cointime.caps" {
         thermo: SeriesPattern1<Option<Dollars>> = "thermo_*",
@@ -1632,7 +1637,7 @@ pub mod tree {
         supply: CointimeSupply = "vaulted",
         value: CointimeValue = "cointime_value",
         caps: Caps = "cap",
-        prices: Prices = "vaulted",
+        prices: Prices = "price",
         adjusted: Adjusted = "cointime_adjusted",
         reserve_risk: ReserveRisk = "reserve_risk",
     } }

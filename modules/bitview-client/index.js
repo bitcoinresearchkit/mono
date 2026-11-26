@@ -2761,13 +2761,23 @@ const _CointimePriceWithMvrv = _s({
  *   active: CointimePriceWithMvrv,
  *   trueMarketMean: CointimePriceWithRatio,
  *   cointime: CointimePriceWithMvrv,
+ *   transferred: SeriesPattern1<?Dollars>,
+ *   balanced: SeriesPattern1<?Dollars>,
+ *   terminal: SeriesPattern1<?Dollars>,
+ *   cvdd: SeriesPattern1<?Dollars>,
+ *   delta: SeriesPattern1<?Dollars>,
  * }} Prices
  */
 const _Prices = _s({
-  vaulted: [_CointimePriceWithMvrv, '*'],
+  vaulted: [_CointimePriceWithMvrv, 'vaulted'],
   active: [_CointimePriceWithMvrv, 'active'],
   trueMarketMean: [_CointimePriceWithRatio, 'true_market_mean'],
   cointime: [_CointimePriceWithMvrv, 'cointime'],
+  transferred: [_i1, 'transferred_*'],
+  balanced: [_i1, 'balanced_*'],
+  terminal: [_i1, 'terminal_*'],
+  cvdd: [_i1, 'cvdd'],
+  delta: [_i1, 'delta_*'],
 });
 
 /**
@@ -4930,7 +4940,7 @@ const _Cointime = _s({
   supply: [_CointimeSupply, 'vaulted'],
   value: [_CointimeValue, 'cointime_value'],
   caps: [_Caps, 'cap'],
-  prices: [_Prices, 'vaulted'],
+  prices: [_Prices, 'price'],
   adjusted: [_Adjusted, 'cointime_adjusted'],
   reserveRisk: [_ReserveRisk, 'reserve_risk'],
 });
@@ -7213,7 +7223,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "789048acca06ac48481822569e74008adff2305f427deeb8bf8fcaf806d750f0";
+  static HASH = "2ecec561cd42659f8562358a5bc884d95e2116bae84ae2b36acdb01d86e69c3c";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

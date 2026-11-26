@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31545 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31550 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -205,7 +205,7 @@
 - `cointime.supply` (9): `vaulted_supply`, `vaulted_supply_usd`, `vaulted_market_cap`, `hodled_or_lost_supply`, `hodled_or_lost_supply_usd`
 - `cointime.value` (18): `cointime_value_destroyed`, `cointime_value_destroyed_cumulative`, `cointime_value_destroyed_sum_24h`, `cointime_value_destroyed_sum_1w`, `cointime_value_destroyed_sum_1m`
 - `cointime.caps` (7): `thermo_cap`, `investor_cap`, `active_cap`, `vaulted_cap`, `cointime_cap`
-- `cointime.prices` (13): `vaulted_price`, `vaulted_price_ratio`, `vaulted_mvrv`, `active_price`, `active_price_ratio`
+- `cointime.prices` (18): `vaulted_price`, `vaulted_price_ratio`, `vaulted_mvrv`, `active_price`, `active_price_ratio`
 - `cointime.adjusted` (3): `cointime_adjusted_inflation_rate`, `cointime_adjusted_velocity_btc`, `cointime_adjusted_velocity_usd`
 - `cointime.reserve_risk` (8): `reserve_risk`, `hodl_bank`, `vocdd`, `vocdd_cumulative`, `vocdd_sum_24h`
 
