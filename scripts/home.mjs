@@ -406,6 +406,11 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
  * no page's guess of its own loading. */
 const PAINT = 2000;
 
+/** Every JPEG's quality, Chromium's encoder: the lowest that shows no loss at twice the density of a phone, in the
+ * hardest pictures (Studio's gradients mottle at 30, Oracle's dark cells go muddy at 50, neither at 60), from the 78 to 88
+ * each kind had. */
+const QUALITY = 60;
+
 /** Each picture's making: its app's address (its screen's size, if not 1440×900), what's hidden
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
  * cut, in its screen's points: [x, y, width, height]. A cover 960×600 and 720 wide (@720, the apps' grid's, from
@@ -493,9 +498,9 @@ async function makePictures() {
     const out = join(SITE, "assets", "home");
     for (const [id, recipe] of Object.entries(pictures ? PICTURES : {})) {
       if (ONLY && id !== ONLY) continue;
-      const wanted = /** @type {[string, number[], number, number][]} */ ([
-        ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80], [`covers/${id}@720.jpg`, recipe.cover, 720, 80]] : []),
-        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900, 78], [`banners/${id}@2x.jpg`, recipe.banner, 2880, 64]] : []),
+      const wanted = /** @type {[string, number[], number][]} */ ([
+        ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960], [`covers/${id}@720.jpg`, recipe.cover, 720]] : []),
+        ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900], [`banners/${id}@2x.jpg`, recipe.banner, 2880]] : []),
       ]);
       if (!wanted.length) continue;
       // (One screen at the density the largest cut needs.)
@@ -504,8 +509,8 @@ async function makePictures() {
       const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, PAINT, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
       if (!tab) continue;
       try {
-        for (const [file, [x, y, w, h], width, quality] of wanted) {
-          const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
+        for (const [file, [x, y, w, h], width] of wanted) {
+          const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY, clip: { x, y, width: w, height: h, scale: width / (w * density) } });
           writeFileSync(join(out, file), Buffer.from(shot.data, "base64"));
           console.log(`made ${file}`);
         }
@@ -559,7 +564,7 @@ async function makePictures() {
       if (!tab) continue;
       try {
         if ("run" in recipe) await tab.send("Runtime.evaluate", { expression: recipe.run }), await Bun.sleep(1000);
-        const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: 88, clip: { x: 0, y: 0, width, height, scale: 1200 / width / 2 } });
+        const shot = await tab.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY, clip: { x: 0, y: 0, width, height, scale: 1200 / width / 2 } });
         writeFileSync(join(SITE, "assets", "cards", `${name}.jpg`), Buffer.from(shot.data, "base64"));
         console.log(`made cards/${name}.jpg`);
       } finally {
@@ -570,7 +575,7 @@ async function makePictures() {
     if (!pictures || (ONLY && ONLY !== featured[0])) return;
     const card = await screen(port, `${SERVER}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
     try {
-      const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: 84, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });
+      const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: QUALITY, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });
       writeFileSync(join(out, "og.jpg"), Buffer.from(shot.data, "base64"));
       console.log("made og.jpg");
     } finally {
