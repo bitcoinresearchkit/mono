@@ -81,6 +81,7 @@ import { fitted, laidOver, wordsOn, dropOwnLayers, sketches, Sketch, ownLayers, 
 
 document.getElementById("page-info")?.remove();
 
+// Responses are kept here alone: the client's own copies, in memory and on disk, would double them.
 export const CLIENT = { baseUrl: location.origin, timeout: 30_000, memCache: false, browserCache: false };
 /** @type {import("/modules/bitview-client/index.js").BitviewClient} */
 let client = /** @type {any} */ (Object.assign(new BitviewClientBase(CLIENT), {
@@ -122,11 +123,16 @@ let catalogIntervals = null;
 const byBlock = new Set();
 /** @type {Set<string>} */
 const sharedTops = new Set();
+/**
+ * Read again in one go once the theme, the device's scheme or a phone's layout changed: the page's style resolved once,
+ * not once a token.
+ */
 const tokens = new Map(), probe = document.head.appendChild(document.createElement("i"));
 let tokensFor = "";
 // (Read on lists of their own, which no one listens to: a list's matches read takes a change for itself
 // (Chromium), its listeners never hearing of it.)
 const tokensMedia = [matchMedia(MEDIA.light), matchMedia(MEDIA.phone), matchMedia(MEDIA.moreContrast), matchMedia("(pointer: coarse)")];
+// (The theme's own colors for the chart, not a high-contrast mode's: the page around it takes those.)
 probe.style.forcedColorAdjust = "none";
 /** @param {Iterable<string>} [names] */
 function readTokens(names) {
@@ -212,6 +218,10 @@ function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @
   return times.slice(start, start + count);
 }
 const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
+/**
+ * The light theme turns Bitview's lightness over one curve (its band narrowed and raised; the warm hues lifted less,
+ * else they'd go brown); a person's own color stays exactly as picked, in either theme.
+ */
 let light = false;
 function shownOklch(/** @type {string} */ color) {
   const [l, c, h] = oklchOf(color);
@@ -222,7 +232,10 @@ let names = null;
 const namesAt = () => (names ??= xkcd.default.map(([name, hex]) => { const [l, c, h] = hexToOklch(hex); return { name, l, c, h }; }));
 const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalized(key));
 const colorNames = new Map();
-/** A color's name: Bitview's own as they're named, any other by the nearest familiar name. Found once: weighing every familiar name each time a sheet's colors are written costs a phone's engine without a JIT. */
+/**
+ * A color's name: Bitview's own as they're named, any other by the nearest familiar name. Found once: weighing every
+ * familiar name each time a sheet's colors are written costs a phone's engine without a JIT.
+ */
 function colorName(color) {
   if (SWATCHES.includes(color)) return ownName(color);
   const key = `${light ? "light" : "dark"}:${color}`, had = colorNames.get(key);
@@ -255,6 +268,8 @@ const reshape = (layer, edit) => {
   const after = Object.fromEntries(LOOK_KEYS.map((key) => [key, look[key]]));
   if (!COLORED_FROM.has(type)) delete after.colorFrom;
   if (!BY_LEVELS.has(type)) delete after.byLevels;
+  // (Kept for the chart's own layer alone: a copy's, ⌘K's look at it, keeps nothing.)
+  // (The kind its look before was: the one it came back to, else the one it left.)
   if (chart?.layers.includes(layer)) looksLeft.set(key, { to: shapeKey(layer), kind: back ? was.kind : kind, before, after });
   if (layer.byLevels && BY_LEVELS.has(type)) inspector.colorLevels(layer);
 };
@@ -310,6 +325,7 @@ const resultsOf = (layer) => {
   const values = resolved?.results.get(layer.id)?.values, own = resolved?.results.get(layer.ref ?? "");
   if (!values || !own?.values) return undefined;
   const results = changesOf(values).flatMap((change) => ((result) => (result === undefined ? [] : [result]))(stretchResult(change, own)));
+  // A stretch losing all, or more, leaves nothing: none to go on from.
   return results.length ? results.reduce((total, result) => total * Math.max(0, 1 + result), 1) - 1 : undefined;
 };
 /** @param {Layer} layer */
@@ -396,7 +412,8 @@ const letterTones = new Map();
 function letterChip(layer, tip = false) {
   const colored = (layer.colorFrom && ownerOf(layer)?.layers.find((other) => other.id === layer.colorFrom)) || layer;
   const color = ink(colored.color), key = `${color}|${light}|${tokensNow()}`;
-  // A tone of its letter that reads on its own tint (4.5:1) on each ground it's on. Found once a color and theme: a layer's row and its settings write it each time.
+  // A tone of its letter that reads on its own tint (4.5:1) on each ground it's on. Found once a color and theme: a
+    // layer's row and its settings write it each time.
   let tone = letterTones.get(key);
   if (tone === undefined) {
     const grounds = [css("--card"), css("--raise"), laidOver(css("--raise"), light ? "#000000" : "#ffffff", 0.07)];
@@ -500,7 +517,10 @@ const touched = new WeakSet();
 const asideDirty = new WeakSet();
 /** @param {Chart} doc */
 const touchPreview = (doc) => void (touched.add(doc), asideDirty.add(doc));
-/** @param {Chart} doc */
+/**
+ * Kept aside as opened: its link is gone from the address bar once read, so a reload or a put-away tab finds it again.
+ * @param {Chart} doc
+ */
 const keepAsideOpened = (doc) => void (isPreview(doc) && !drafts.has(doc) && (asideDirty.add(doc), save()));
 /** @param {Layer} layer */
 function followPool(layer) {
@@ -513,7 +533,8 @@ function followPool(layer) {
 }
 
 /**
- * By its place in the catalog (its last window step), never by its name, which puts it anywhere (`market_cap_delta_1y_percent`).
+ * By its place in the catalog (its last window step), never by its name, which puts it anywhere
+ * (`market_cap_delta_1y_percent`).
  * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
  */
 function seriesWindow(name) {
@@ -530,7 +551,11 @@ const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [lay
  */
 /** @type {Map<string, ChartWindow | null>} */
 const windowsFound = new Map();
-/** @param {Chart} doc @returns {ChartWindow | null} */
+/**
+ * One window every windowed series is over, else null. The catalog is indexed first so a chart opens over the right
+ * series, except for a chart whose names hold no window key (`_<key>`): no walk to learn it has none.
+ * @param {Chart} doc @returns {ChartWindow | null}
+ */
 function chartWindow(doc) {
   const names = seriesOf(doc), key = names.join(" ");
   let found = windowsFound.get(key);
@@ -583,6 +608,7 @@ function atWindow(doc, to) {
 
 /** @param {Chart} doc */
 function normalize(doc) {
+  // The shown view emptied: the other takes its place and no lens remains, so nothing is lost unsaid.
   for (const pane of doc.panes) {
     if (pane.lens && !doc.layers.some((layer) => layer.pane === pane.id)) showView(doc, pane.id, pane.lens.at ? 0 : 1);
     if (!pane.lens) continue;
@@ -647,6 +673,7 @@ function normalize(doc) {
   for (const layer of doc.layers) if (layer.type === "candles" && layer.colors === undefined && layer.colorBelow === undefined && !layer.colorFrom && !layer.byLevels && !layer.byGradient) layer.colors = 1;
   for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : TWO_OR_ONE.has(layer.type) ? layer.colors === 1 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
   for (const layer of doc.layers) if (layer.type === "bubbles" && layer.ref === undefined) layer.ref = (markable(doc).find((other) => other.pane === layer.pane) ?? markable(doc)[0])?.id ?? "";
+  // Gone: said so (""), so a reload doesn't put them on another layer.
   for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : placedOn(layer) ? markable(doc) : []).some((other) => other.id === layer.ref)) placedOn(layer) ? (layer.ref = "") : delete layer.ref;
   for (const layer of doc.layers) {
     if (layer.type !== "bubbles") for (const key of ["size", "hide", "scaleTo"]) delete layer[key];
@@ -672,7 +699,9 @@ function normalize(doc) {
     doc.layers.splice(behind ? doc.layers.indexOf(/** @type {Layer} */ (members.at(-1))) + 1 : doc.layers.indexOf(first), 0, layer);
   }
   for (const layer of doc.layers) if (placedOn(layer)) ((on) => on && Object.assign(layer, { pane: on.pane, side: on.side }))(doc.layers.find((other) => other.id === layer.ref));
+  // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
   for (const pane of doc.panes) if (pane.reverse && doc.layers.filter((layer) => layer.pane === pane.id).length < 2) delete pane.reverse;
+  // Unknown saved settings are raw; known ones stay kept while an interval or a distribution blocks them.
   for (const pane of doc.panes) if (pane.average && !Object.hasOwn(AVERAGES, pane.average)) delete pane.average;
   const used = new Set(doc.layers.map((layer) => layer.pane));
   doc.panes = doc.layers.length ? doc.panes.filter((pane) => used.has(pane.id)) : doc.panes.slice(0, 1);
@@ -727,6 +756,7 @@ const startText = (() => {
     return null;
   }
 })();
+// Read at start, not "": else the first save takes its own start as another tab's, and a let-go preset copy comes back.
 let storedAs = startText ?? "";
 /** @param {string} text */
 function writeStored(text) {
@@ -746,7 +776,11 @@ let library = (() => {
     return null;
   }
 })();
-/** The library's shape. Raised with what `validate` learns to read and with what's kept, so an older Studio that doesn't know a field can't save over it (5 deletions, 6 folders in folders, 7 edited presets, 8 interval Auto, 9 signals, 10 a signal's down color and results, 11 area fill opacity and solid fill, candles' one color and hollow bodies, 12 paths and a folder's icon, 13 heatmaps and gradients, 14 profiles, 15 a layer's `maxInterval` and `fit: "zero"`, 16 a pane drawn as a heatmap, its outline and short names, 17 a heatmap's gradient on its pane). One saved by a newer Studio, or stored in a shape this can't read, is opened read-only, said so, and kept as it is: saving over it could drop what this one doesn't know. */
+/**
+ * Raised with what `validate` learns to read, so a Studio that doesn't know a field can't save over it. One saved by a
+ * newer Studio, or unreadable, is opened read-only and kept as it is: saving over it would drop what this one doesn't
+ * know.
+ */
 const SCHEMA = 17;
 let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && startText !== null);
 let unsavedWhy = !readOnly ? "" : Number(/** @type {any} */ (library)?.schema) > SCHEMA ? "newer" : "unreadable";
@@ -768,6 +802,7 @@ function read(stored) {
   if (typeof stored.base === "string" && /^[a-z0-9]{1,24}$/.test(stored.base)) doc.base = stored.base;
   if (stored.blank === true) doc.blank = true;
   doc.updated = Number.isFinite(stored.updated) ? stored.updated : 0;
+  // Kept as stored before normalizing: a newer client moving fields isn't an edit (see pristine).
   keptAsStored(doc);
   normalize(doc);
   return doc;
@@ -781,6 +816,7 @@ function restore(stored) {
     // chart edited again elsewhere replaces its older copy.
     const aside = storage.get(UNREAD, []);
     const list = (Array.isArray(aside) ? aside : []).filter((item) => (stored?.id ? item?.id !== stored.id : JSON.stringify(item) !== JSON.stringify(stored)));
+    // (Not set aside: the library stays as stored, read-only, rather than lose it at the next save.)
     if (!storage.set(UNREAD, [...list, stored])) (readOnly = true), (unsavedWhy = "full");
     console.error(`A saved chart couldn't be read; it's kept under "${UNREAD}" in this browser's storage.`, error);
     return [];
@@ -825,7 +861,8 @@ function foldersOf(/** @type {any} */ stored, /** @type {Chart[]} */ charts) {
   for (const doc of charts) if (doc.folder && !seen.has(doc.folder)) delete doc.folder;
   return folders;
 }
-// Charts set aside by a version that couldn't read them come back, first in the list, once this one can. One here already (the same chart, or a copy alike in all but its id) isn't brought back twice.
+// Charts set aside by a version that couldn't read them come back, first in the list, once this one can. One here
+// already (the same chart, or a copy alike in all but its id) isn't brought back twice.
 {
   const aside = storage.get(UNREAD, []);
   if (Array.isArray(aside) && aside.length) {
@@ -847,10 +884,12 @@ function foldersOf(/** @type {any} */ stored, /** @type {Chart[]} */ charts) {
         still.push(stored);
       }
     }
+    // Off the side only once they're saved in the library (a preset's with the presets, the latest of each).
     const charts = back.filter((doc) => doc.preset === undefined), edited = presetsOf([...library.presets, ...back.filter((doc) => doc.preset !== undefined)]);
     const replaced = library.charts.map((doc) => {
       const later = newer.get(doc.id);
       if (!later) return doc;
+      // (Where it is, the library's: a move doesn't make a chart later.)
       if (doc.folder === undefined) delete later.folder;
       else later.folder = doc.folder;
       return later;
@@ -916,6 +955,7 @@ const rekey = (doc, id) => {
   if (chart === doc) library.active = id;
   if (displayed?.doc.id === old) (displayed.doc.id = id), (displayed.look = lookKey(displayed.doc));
   if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
+  // Its old copy is let go of once the new one is written; another tab's later one stays.
   if (touched.has(doc) || (isPreview(doc) && !drafts.has(doc))) asideDirty.add(doc);
   if (isPreview(doc) && !drafts.has(doc)) keptPreviews.set(old, doc.updated);
 };
@@ -932,6 +972,7 @@ const discard = (/** @type {Chart} */ doc) => {
 };
 /** @type {{ doc: Chart, at: number, folder: string | undefined } | null} */
 let cancelledNew = null;
+// Deleted as of its last edit only: another tab's later work on it wins.
 const dropEmpty = (/** @type {Chart} */ doc) => {
   const at = library.charts.indexOf(doc);
   if (at < 0) return;
@@ -946,6 +987,7 @@ const dropEmpty = (/** @type {Chart} */ doc) => {
     if (home) leaveHome(() => openChart(doc));
     else openChart(doc);
   } }));
+  // (Within the month deletions are kept, or it'd be pruned before another tab hears.)
   library.deleted[doc.id] = Math.max(doc.updated, Date.now() - 29 * 86400000, library.deleted[doc.id] ?? 0);
 };
 /** @param {Chart} doc */
@@ -972,7 +1014,11 @@ const chartById = (id) => library.charts.find((doc) => doc.id === id) ?? library
 function inLibrary(doc) {
   return library.charts.some((other) => other.id === doc.id);
 }
-/** The catalog indexed in a worker, off the page's thread (long on a phone without its JIT, in a launch's first seconds), begun with the rest as what asks for it is: its own copy of the client, fetched beside a first chart's data, held that data up. Without a worker, here, a slice at a time while the page is idle. What needs it before (a search, a series added) has the rest done here at once, never waiting on the worker or an idle moment: a hidden tab's are throttled (to one a minute, after five minutes hidden). */
+/**
+ * Indexed in a worker, off the page's thread (long on a phone without a JIT); without one, here, a slice at a time
+ * while idle. What needs it sooner (a search, an added series) has it done here at once: a hidden tab's timers are
+ * throttled.
+ */
 const indexCatalog = (() => {
   /** @type {ReturnType<typeof catalogWalk> | undefined} */
   let walk;
@@ -985,6 +1031,7 @@ const indexCatalog = (() => {
     seriesCount = catalogIndex.size - byBlock.size;
     $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
     withRest(() => whenIdle(command.ranksSoon));
+    // (After what asked for it: its work isn't held up, nor failed, by this.)
     queueMicrotask(() => {
       const docs = [...library.charts, ...library.presets], before = docs.map((doc) => JSON.stringify(doc));
       for (const doc of docs) normalize(doc);
@@ -1076,10 +1123,13 @@ function readPrefs(/** @type {any} */ stored) {
   };
 }
 const prefs = readPrefs(storage.get(PREFS, {}));
+// A phone's drawing tools are put away at each start: there they take the place of the chart's foot.
 if (phone.matches) prefs.belt.on = false;
+// Each preference as this tab last wrote or took it: only what changed since is written, so another tab's is kept.
 const prefsSeen = Object.fromEntries(Object.entries(prefs).map(([key, value]) => [key, JSON.stringify(value)]));
 function savePrefs() {
   const changed = Object.fromEntries(Object.entries(prefs).filter(([key, value]) => JSON.stringify(value) !== prefsSeen[key]));
+  // (Counted written once they are: a write refused, the next tries them again.)
   const written = storage.set(PREFS, { ...storage.get(PREFS, {}), ...changed });
   if (written) for (const [key, value] of Object.entries(changed)) prefsSeen[key] = JSON.stringify(value);
   return written;
@@ -1092,6 +1142,7 @@ const THEMES = /** @type {const} */ ([
 ]);
 const deviceLight = matchMedia(MEDIA.light);
 const themeColors = /** @type {NodeListOf<HTMLMetaElement>} */ (document.querySelectorAll('meta[name="theme-color"]'));
+// (The theme's, kept till it changes: the page coming or going reads no style for it, mid-change.)
 const syncThemeColor = () => {
   const color = css(phone.matches && !document.body.hasAttribute("data-home") ? "--card" : "--app");
   for (const meta of themeColors) meta.content = color;
@@ -1108,7 +1159,10 @@ let home = false;
 
 let saveDue = false, savedFade = /** @type {Animation | null} */ (null), unsaved = false;
 let announcing = false;
-/** The library as stored now, if another tab saved since this one: read and taken in by the caller, so the next save doesn't bring back what this tab let go of since; else null. */
+/**
+ * The library as stored now, if another tab saved since this one: read and taken in by the caller, so the next save
+ * doesn't bring back what this tab let go of since; else null.
+ */
 function storedSince() {
   let text = null;
   try {
@@ -1117,6 +1171,7 @@ function storedSince() {
   if (text === null || text === storedAs) return null;
   try {
     const stored = JSON.parse(text);
+    // (Another tab's, newer or unreadable here: kept, and none of this one's saved over it.)
     if (!(Number(stored?.schema) > SCHEMA) && Array.isArray(stored?.charts)) {
       storedAs = text;
       return stored;
@@ -1134,12 +1189,18 @@ function persist() {
   // Another tab's save since this one's, not heard yet (its storage event to come, or never: two tabs closed at once,
   // one back from the browser's history), taken in first: what's written holds both.
   const stored = storedSince();
+  // The arrangement is ours only if changed here since this tab last wrote or took one in; else theirs, so a save
+    // doesn't roll back a folder renamed or a chart moved there.
   if (stored) reconcile(stored, arrangedNow() !== arrangedAs, true);
   if (readOnly) return false;
+  // A deletion the open chart still stands under is kept past its month, or it'd be saved back.
   const pruned = deletedOf(library.deleted);
   for (const doc of [...library.charts, ...library.presets]) if (isDeleted(doc)) pruned[doc.id] = library.deleted[doc.id];
   library.deleted = pruned;
+  // The open chart, deleted in another tab, stays here unsaved: saved again once edited.
   const written = JSON.stringify({ ...library, charts: library.charts.filter((doc) => !isDeleted(doc)), presets: library.presets.filter((doc) => !isDeleted(doc)), schema: SCHEMA });
+  // Only previews changed here are written, each over its copy there if that's older: another tab's are kept as they
+    // are.
   const mine = previewCharts.filter((doc) => asideDirty.has(doc) && !drafts.has(doc));
   let aside = true;
   if (mine.length) {
@@ -1154,6 +1215,8 @@ function persist() {
     return true;
   };
   const ok = write() || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS, SIDE_PRESETS), write());
+  // Previews are let go of aside only once saved with your charts, never before; a rekeyed one, once its copy under the
+    // new id is written.
   if (ok && aside && keptPreviews.size) {
     const left = previewsAside().filter((item) => !keptPreviews.has(item.id) || laterAside(item, /** @type {number} */ (keptPreviews.get(item.id))));
     if (left.length) storage.set(PREVIEW_ASIDE, left);
@@ -1187,7 +1250,10 @@ function flushEdits(open = false) {
     if (formula && document.activeElement === formula && selected) inspector.applyFormula(selected, formula.value);
   });
 }
-/** Written at the page's next idle moment (a second at most), once for all asked for till then: never put off by more. A failure stays on screen. */
+/**
+ * Written at the page's next idle moment (a second at most), once for all asked for till then: never put off by more. A
+ * failure stays on screen.
+ */
 function save(announce = false) {
   saves++;
   announcing ||= announce;
@@ -1214,8 +1280,14 @@ function written(/** @type {boolean} */ ok, /** @type {boolean} */ announced) {
   (savedFade = saved.animate([{ opacity: 1, offset: 0.55 }, { opacity: 0 }], { duration: 2600, easing: "ease", fill: "forwards" })).finished.then(() => (saved.textContent = ""), () => {});
 }
 
-/** @param {any[]} charts @param {Folder[]} folders @param {Record<string, number>} deleted */
+/**
+ * Not its deletions: a save takes in storage's first, and one lost there would bring back what it deleted, a difference
+ * here.
+ * @param {any[]} charts @param {Folder[]} folders @param {Record<string, number>} deleted
+ */
 const holdings = (charts, folders, deleted, presets = /** @type {any[]} */ ([])) => JSON.stringify([[...charts, ...presets].filter((doc) => !(deleted[doc?.id] >= doc?.updated)).map((doc) => `${doc?.id}@${doc?.updated}`).sort(), folders.map((folder) => folder.id).sort()]);
+// Another tab's save taken in: our charts kept where edited later or it hasn't them, our folders it hasn't; every tab's
+// deletions, the open chart excepted; the arrangement as that tab saved it unless `saving` and changed here since.
 function reconcile(stored = storedSince(), saving = false, writing = false) {
   if (!stored) return;
   const deleted = deletedOf(stored.deleted), incoming = stored.charts.flatMap(restore), folders = foldersOf(stored.folders, []);
@@ -1226,7 +1298,10 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   }
   for (const [id, at] of Object.entries(deleted)) if (!(library.deleted[id] >= at)) library.deleted[id] = at;
   const ours = new Map(library.charts.map((doc) => [doc.id, doc])), theirs = new Map(incoming.map((doc) => [doc.id, doc]));
+  // Saving here: the arrangement is this tab's only where changed here since it last wrote or took one in; a chart
+    // moved or folder closed there isn't saved back as it was.
   const arranged = saving && arrangedAs ? /** @type {[string[], Folder[], [string, string][]]} */ (JSON.parse(arrangedAs)) : null, placedThen = new Map(arranged?.[2] ?? []);
+  // Theirs, as written, before any copy of theirs is placed below: from then on this tab's own changes stay its own.
   const theirArrangement = saving ? JSON.stringify([orderOf(stored.order), folders, incoming.map((doc) => [doc.id, doc.folder ?? ""])]) : "";
   /** @param {Chart | undefined} own @param {Chart | undefined} other */
   const later = (own, other) => {
@@ -1236,10 +1311,13 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
     else delete doc.folder;
     return doc;
   };
+  // In the arrangement's order; charts only the other has come first, as every new chart does.
   const [lead, others] = saving ? [library.charts, incoming] : [incoming, library.charts], leading = new Set(lead.map((doc) => doc.id));
   const merged = [...others.filter((doc) => !leading.has(doc.id)), ...lead.map((doc) => later(ours.get(doc.id), theirs.get(doc.id)))];
   for (const doc of merged) if (ours.get(doc.id) !== doc) histories.delete(doc.id);
   library.charts = merged.filter(alive);
+  // Saving here: this tab's folders, but each one's name, icon, place and closing theirs unless changed here since this
+    // tab last wrote or took one in.
   const base = arranged ? new Map(arranged[1].map((folder) => [folder.id, folder])) : null, other = new Map(folders.map((folder) => [folder.id, folder]));
   const ourFolders = !base ? library.folders : library.folders.map((folder) => {
     const was = base.get(folder.id), theirs = other.get(folder.id);
@@ -1250,7 +1328,9 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   });
   const [first, second] = saving ? [ourFolders, folders] : [folders, library.folders], firstIds = new Set(first.map((folder) => folder.id));
   library.folders = foldersOf([...first, ...second.filter((folder) => !firstIds.has(folder.id))].filter((folder) => !Object.hasOwn(library.deleted, folder.id)), library.charts);
+  // (The order, theirs too unless changed here since.)
   if (!saving || (arranged && JSON.stringify(library.order) === JSON.stringify(arranged[0]))) library.order = orderOf(stored.order);
+  // The presets as edited: each preset's latest copy, here or there (one deleted, gone; the open one stays).
   const theirPresets = presetsOf(stored.presets), ourPresets = new Set(library.presets), byPreset = /** @type {Map<string, Chart>} */ (new Map());
   for (const doc of [...library.presets, ...theirPresets]) {
     const have = byPreset.get(/** @type {string} */ (doc.preset));
@@ -1260,6 +1340,8 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
   // (Its charts this tab can't read, set aside: not counted, or each tab would save over the other's.)
   if (!saving && !writing && holdings(library.charts, library.folders, library.deleted, library.presets) !== holdings(incoming, folders, deleted, theirPresets)) save();
+  // Taken in, theirs is the arrangement as last written; saving here, this tab's changes stay over theirs but the
+    // baseline is theirs all the same, so a later take-in doesn't count what it took of theirs as its own.
   arrangedAs = saving ? theirArrangement : arrangedNow();
   if (!chart) return;
   const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id) ?? library.presets.find((doc) => doc.id === chart.id || (chart.preset !== undefined && doc.preset === chart.preset)) ?? chart;
@@ -1282,7 +1364,8 @@ addEventListener("storage", (event) => event.key === STORE && takeIn());
 addEventListener("pageshow", (event) => event.persisted && takeIn());
 
 /**
- * By touch also as it's hidden: a phone closes an app put away when it likes, with no word to the page (a computer's tab put away runs on).
+ * By touch also as it's hidden: a phone closes an app put away when it likes, with no word to the page (a computer's
+ * tab put away runs on).
  * @param {(hidden: boolean) => void} run
  */
 function onLeave(run) {
@@ -1340,12 +1423,14 @@ function editChart(doc, edit, { coalesce = "", quiet = false, look = false, keep
   // (Nor across another step done since, in any history: one undo takes back one thing.)
   const joins = open && coalesce && edits.past.at(-1)?.at === stepCount && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
   recordStep(steps, joins ? /** @type {ChartStep} */ (edits.past.pop()).state : before);
+  // (A view's step (a range) is a step, not an edit: nothing stamped, a preview untouched, as a pan.)
   if (!view) stampEdit(doc);
   if (!view && isPreview(doc)) touchPreview(doc);
   if (!open) return keepHistory(doc.id, steps), offPage(), true;
   const kept = edits.past.length;
   if (edits.past.length > UNDO_STEPS) edits.past.shift();
   trimSteps(edits, UNDO_CHARS);
+  // (Its oldest steps let go: the one that kept a chart started here may be among them, kept for good then.)
   if (edits.past.length < kept) keptByEdit.delete(chart);
   edits.key = coalesce;
   edits.at = now;
@@ -1380,6 +1465,8 @@ function dropRedos() {
     while (future && (future.at(-1)?.at ?? 0) > from) future.pop();
   }
 }
+// The history ⌘Z (or ⇧⌘Z) steps: of those in reach, the one whose next step moved last; never another chart's. null is
+// the Library's, undefined none.
 function historyFor(/** @type {boolean} */ back) {
   let found, at = 0;
   for (const [doc, from] of reachable()) {
@@ -1409,6 +1496,7 @@ function travelIn(/** @type {Chart | null | undefined} */ doc, /** @type {boolea
   if (!putState(doc, moveStep(steps, back, now).state, now) && isPreview(doc)) asideDirty.add(doc);
   keepHistory(doc.id, steps);
   offPage();
+  // (Said where it shows, in place of a toast of its step: the chart it changed isn't on screen.)
   toast(`${back ? "Undone" : "Redone"} in “${titleOf(doc)}”`);
 }
 function offPage() {
@@ -1443,13 +1531,17 @@ function putState(/** @type {Chart} */ doc, /** @type {string} */ state, /** @ty
   Object.assign(doc, was, { range: rangeOnly ? was.range : doc.range, id: doc.id });
   if (folder) doc.folder = folder;
   else delete doc.folder;
+  // (Once something's been in it, a chart for good: not blank again, whichever step.)
   if (!blank) delete doc.blank;
+  // (Stamped past the copy as it was: this step is its latest edit; a range's, a view's, nothing stamped, as when set.)
   doc.updated = stamped;
   if (!rangeOnly) stampEdit(doc);
   for (const layer of doc.layers) if (shapes.get(layer.id) !== shapeKey(layer)) looksLeft.delete(`${doc.id}:${layer.id}`);
   return rangeOnly;
 }
 function travel(/** @type {boolean} */ back) {
+  // Typed text and a picked color are kept first, as a step of their own, since the steps are read after; what's being
+    // drawn or moved goes.
   leaveField();
   inspector.flushPick();
   if (!edits[back ? "past" : "future"].length) return;
@@ -1459,7 +1551,9 @@ function travel(/** @type {boolean} */ back) {
   const ranged = putState(chart, state, now);
   if (isPreview(chart) && !ranged) asideDirty.add(chart);
   edits.key = "";
+  // (A toast of the chart's step said what's now taken back or done again, or something before it: no longer true.)
   if (toastOf === chart) hideToast();
+  // The step that kept a chart started here undone: a draft again, not one of your charts (redone, kept again).
   const keptAt = keptByEdit.get(chart);
   if (keptAt !== undefined && back && edits.past.length === keptAt - 1 && library.charts.includes(chart)) {
     keepFocus(null, () => $("new-chart"), () => $("plot-keys"));
@@ -1472,6 +1566,7 @@ function travel(/** @type {boolean} */ back) {
   changed(true);
   if (drawn && !home && back && (undoTook || picks === drawn.picks)) (takeUp(drawn.kind, false, true), (undoTook = drawn.kind));
   else if (drawn && !home && !back && undoTook === drawn.kind && tool === drawn.kind) takeUp("", false, true);
+  // For a screen reader: nothing else on screen says it.
   say(back ? "Undone" : "Redone");
 }
 function changed(announce, keepMenu = false) {
@@ -1506,18 +1601,26 @@ const previousPreset = () => {
   const id = viewed().find((other) => other !== chart?.id);
   return id && !chartById(id) ? presetById(id) : -1;
 };
-/** Where each chart was left, zoomed or panned off its preset: each edge of the view as a point's time and how many bars it lies from that point, so it holds as new points come in, and past either end of the data. On its preset a chart keeps nothing: the preset follows the newest data. */
+/**
+ * Where each chart was left, zoomed or panned off its preset: each edge of the view as a point's time and how many bars
+ * it lies from that point, so it holds as new points come in, and past either end of the data. On its preset a chart
+ * keeps nothing: the preset follows the newest data.
+ */
 const VIEWS = "bitview-studio:views";
+// Read once, written through: a grid of tiles asks for each at every key typed; another tab's write is read again.
 let viewsLeft = /** @type {Record<string, any> | null} */ (null), viewsBase = /** @type {Record<string, any>} */ ({}), viewsUnkept = false;
 const viewsNow = () => viewsLeft ?? ((viewsBase = storage.get(VIEWS, {})), (viewsLeft = { ...viewsBase }));
 /** @param {Record<string, any>} all */
 const putViews = (all) => {
+  // (Another tab's writes since this one read them, taken in a chart's view at a time: changed there alone, theirs
+  // (gone there, gone); here alone, this one's; in both, the later (a view left over one let go of).)
   const stored = storage.get(VIEWS, {}), at = (/** @type {any} */ view) => (view === undefined ? -Infinity : view?.at ?? 0);
   for (const id of new Set([...Object.keys(stored), ...Object.keys(viewsBase)])) {
     const theirs = Object.hasOwn(stored, id) ? stored[id] : undefined, base = Object.hasOwn(viewsBase, id) ? viewsBase[id] : undefined;
     if ((theirs === undefined) === (base === undefined) && at(theirs) === at(base)) continue;
     const ours = Object.hasOwn(all, id) ? all[id] : undefined;
     if (ours === base || at(theirs) > at(ours)) theirs === undefined ? delete all[id] : (all[id] = theirs);
+    // (The base as storage is now, whichever won: written or not, what's theirs isn't this one's own.)
     theirs === undefined ? delete viewsBase[id] : (viewsBase[id] = theirs);
   }
   const ids = Object.keys(all);
@@ -1525,6 +1628,7 @@ const putViews = (all) => {
   if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS, SIDE_PRESETS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
   else if (!viewsUnkept) (viewsUnkept = true), notice("Can't remember where each chart was left: this browser's storage is full or blocked");
 };
+// (Another tab's linked view, taken here at once out of sight: shown already as it's turned to (see followLinked).)
 addEventListener("storage", (event) => event.key === VIEWS && ((viewsLeft = null), document.visibilityState !== "visible" && followLinked()));
 addEventListener("pageshow", (event) => event.persisted && (viewsLeft = null));
 const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
@@ -1546,11 +1650,14 @@ function leftView(id) {
 const LINKED = "*";
 const spanKey = (/** @type {string} */ id, /** @type {string} */ index, linked = viewKey(id) === LINKED) => `${id}@${index}${linked ? "@linked" : ""}`;
 /**
- * Chunks loaded before it move its points, not its dates: the linked view is said again only once the chart has moved from here (see storeView), never for what it showed meanwhile.
+ * Where the open chart was last in line with the linked view, by its edges' dates (chunks loaded before it move its
+ * points, not them): it says the linked view again only once moved from here (see storeView).
  * @type {any}
  */
 let linkedAt = null;
 let linkedTook = 0;
+// A hand on the page since it last took or said the linked view: only then does it say it; a chart laid out, resized or
+// taking it moves its view as no one's move.
 let handled = false;
 let handledYet = false;
 const handsHeld = new Set();
@@ -1576,6 +1683,8 @@ function carrySpan() {
 }
 const viewKey = (/** @type {string} */ id) => (prefs.linkView && id === chart?.id ? LINKED : id);
 const openView = (/** @type {Chart} */ doc) => leftView(viewKey(doc.id));
+// Opens at its own window: the view it came with, else its range, whatever view is linked; the linked one follows once
+// moved.
 let linkWindow = "";
 const openingView = (/** @type {Chart} */ doc) => (linkWindow === doc.id ? leftView(doc.id) : retaking && doc.id === retaking.id && viewKey(doc.id) === LINKED ? retaking.view : openView(doc));
 function edgeOf(logical, times) {
@@ -1583,7 +1692,11 @@ function edgeOf(logical, times) {
   return [times[i], logical - i];
 }
 const mostBars = () => (engine.time.width ? engine.time.width / engine.time.minSpacing : Infinity);
-/** @param {{ from: number, to: number }} range @param {"middle" | "from" | "to"} [keep] */
+/**
+ * No wider than the chart shows: wider, it would fold the view to a sliver; a wider one keeps its middle, or the end
+ * `keep` names.
+ * @param {{ from: number, to: number }} range @param {"middle" | "from" | "to"} [keep]
+ */
 function within({ from, to }, keep = "middle", most = mostBars()) {
   const over = to - from - most;
   if (over <= 0) return { from, to };
@@ -1638,6 +1751,8 @@ function linkView(/** @type {boolean} */ on) {
 function renderLinkView() {
   $("link-view").setAttribute("aria-pressed", String(prefs.linkView));
 }
+// Never as it's looked at: what's on screen moves only by a hand on it; out of sight at once, else as it comes in
+// sight.
 function followLinked() {
   if (home || !chartShown() || viewKey(chart.id) !== LINKED) return;
   const linked = leftView(LINKED), at = viewsNow()[LINKED]?.at;
@@ -1655,7 +1770,11 @@ function saveView() {
   // (Mid-gesture, the bar waits for the view to rest: Safari allows only so many writes.)
   if (!viewMoving) showAddress();
 }
-/** @param {boolean} asDrawn */
+/**
+ * Mid-switch it still shows the interval before (the new data is on its way): kept then only `asDrawn`, by the switch's
+ * draw as it lands.
+ * @param {boolean} asDrawn
+ */
 /** @param {{ from: number, to: number }} range @param {number[]} times */
 const viewRecord = (range, times, index = shownIndex()) => ({ index, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && resolved?.live ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}) });
 function shownView() {
@@ -1672,6 +1791,7 @@ function storeView(asDrawn, leaving = false) {
   if (!(document.visibilityState === "visible" || (leaving && seen))) return;
   const times = resolved?.times;
   if (!chartShown() || (!asDrawn && shownIndex() !== chart.index) || !times?.length || !engine.time.width) return;
+  // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
   const range = (asDrawn && engine.controller.target) || shownSpan();
   const all = viewsNow(), key = viewKey(chart.id), shown = range ? viewRecord(range, times) : null;
   if (key === LINKED && (!handled || sameEdges(shown, linkedAt))) return;
@@ -1692,6 +1812,8 @@ function openChart(doc) {
   blockAtHome = false;
   lastOpen = "";
   quickHide();
+  // (Left, a chart started here is kept for good: undoing its first edit makes it a draft only while it's still on screen.
+  // Left a draft again, it keeps that step's place: brought back to redo it (see redoLibrary), kept again.)
   if (chart && chart !== doc && !isPreview(chart)) keptByEdit.delete(chart);
   gestures.stopCarrying();
   leaveField();
@@ -1804,7 +1926,11 @@ function closePreview(doc = chart) {
 const closedPreviews = new Map();
 /** @type {Chart | null} */
 let closedToast = null;
-/** @returns {Chart[]} */
+/**
+ * Migration, remove after the release following 2026-11-26 (the next past v0.13.0): a preset as made, once kept beside
+ * its edited copy, is read as the ordinary preview it is now.
+ * @returns {Chart[]}
+ */
 const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored.filter((doc) => typeof doc?.id === "string" && !(doc.made !== undefined && doc.untouched === true)) : []))(storage.get(PREVIEW_ASIDE, null));
 /** @type {Map<string, number>} */
 const keptPreviews = new Map();
@@ -1817,12 +1943,14 @@ const forgetPreview = (/** @type {Chart} */ doc) => {
 };
 function keepPreview(announce = true, doc = chart) {
   if (!isPreview(doc)) return;
+  // (Its copy aside stays till it's saved with your charts: see persist.)
   asideDirty.delete(doc);
   keptPreviews.set(doc.id, doc.updated);
   const listed = inLibrary(doc), old = doc.id;
   if (!listed && drafts.has(doc) && Object.hasOwn(library.deleted, doc.id)) recover(doc);
   if (listed || Object.hasOwn(library.deleted, doc.id)) rekey(doc, uid());
   if (!listed && old !== doc.id) chartAgain.set(old, doc.id);
+  // (Kept by its button, which goes: the focus on the chart's ⋯ beside it, not into a field where the next key would type.)
   if (document.activeElement === $("keep")) keepFocus(null, () => $("chart-more"), () => $("plot-keys"));
   library.charts.unshift(doc);
   dropPreview(doc);
@@ -1880,7 +2008,11 @@ function openRecent(id) {
 /** @param {{ doc: Chart, preset: number }} item */
 const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(grid.presetMarkKey(preset)) || grid.presetMarksAsked.add(preset), grid.presetMark(preset)) : doc.preset !== undefined && presetMarks.has(grid.keptMarkKey(doc)) ? grid.markOf(presetMarks.get(grid.keptMarkKey(doc)) ?? grid.NO_MARK) : grid.chartMark(doc));
 
-/** @param {Element | null} away @param {...(() => Element | null | undefined)} next */
+/**
+ * The focus goes where what had it goes (put away: the panel closed, the sidebar slid off; else removed), on the first
+ * of `next` that shows: never lost to the page. A focus nowhere (after a click on the chart) stays nowhere.
+ * @param {Element | null} away @param {...(() => Element | null | undefined)} next
+ */
 function keepFocus(away, ...next) {
   const had = document.activeElement;
   if (!had || had === document.body) return;
@@ -2003,9 +2135,9 @@ for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
     savePrefs();
   });
 }
-// A phone's sheet takes the focus as it opens, and gives it back to what opened it as it closes. Whole (dragged up),
-// it's modal: what's behind it can't be reached, by Tab or a screen reader (the tab bar isn't behind it: it floats
-// over it, live); at half height, or a column on its side, the chart beside stays live.
+// A phone's sheet takes the focus as it opens and gives it back as it closes. Whole (dragged up), it's modal: what's
+// behind can't be reached by Tab or a screen reader; at half height or a column on its side, the chart beside stays
+// live.
 {
   let opener = /** @type {Element | null} */ (null), shown = false, wasModal = false;
   const sheetModal = () => {
@@ -2037,6 +2169,7 @@ function toggleSidebar() {
   const before = listRows($("chart-list")), was = grid.placesOf([...before.keys()], (row) => before.get(row)), scrolled = $("chart-list").scrollTop;
   prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
   savePrefs();
+  // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
   if (!reduced()) document.body.toggleAttribute("data-sliding", true);
   const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .list-head-name, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
   const inFolder = prefs.sidebar === "collapsed" ? document.activeElement?.closest("#chart-list .in-folder") : null;
@@ -2157,7 +2290,8 @@ function animateMark() {
   const along = (t) => Math.min(1, Math.max(0, t / FULL));
   const speedAt = (t) => VMAX * along(t) ** POWER, timeTo = (v) => FULL * Math.min(1, v / VMAX) ** (1 / POWER);
   const turnBy = (t) => (VMAX * FULL * along(t) ** (POWER + 1)) / (POWER + 1);
-  // Turning fast, a blur: a fixed number of faint copies (so it never pulses), covering all its ways round alike from a quarter turn up: drawn on a fixed grid, a still cylinder.
+  // Turning fast, a blur: a fixed number of faint copies (so it never pulses), covering all its ways round alike from a
+    // quarter turn up: drawn on a fixed grid, a still cylinder.
   const COPIES = 24, EXPOSURE = 1 / 30;
   const paths = [first, ...Array.from({ length: COPIES - 1 }, () => svg.appendChild(/** @type {SVGPathElement} */ (first.cloneNode())))];
   const brand = /** @type {HTMLElement} */ (document.querySelector(".brand"));
@@ -2255,6 +2389,11 @@ function animateMark() {
 }
 animateMark();
 
+/**
+ * "Inter Chart": the page's own Inter files, a tad heavier from 500 up (a canvas's regular text comes at 500), its
+ * digits tabular by the face's own setting (a canvas has no font-variant-numeric). Till loaded, the page's font: a
+ * canvas has no font-display.
+ */
 const chartFaces = [...document.fonts].filter((face) => face.family.replace(/"/g, "") === "Inter Chart");
 const chartFont = (chartFaces.at(-1)?.load() ?? Promise.reject()).then(() => true, () => false);
 let chartSans = css("--sans");
@@ -2279,8 +2418,13 @@ engine.time.minSpacing = MIN_BAR_SPACING;
 engine.crosshair.setFormat((time) => pointLabel(time));
 let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
 fillBox();
+// (Its element filling its box after, whatever the library makes it (a pixel short, rounded): no strip under it.)
 const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), (Object.assign(engine.element.style, { width: `${width}px`, height: `${height}px` }), engine.layout()), !sizeHeld && !exporting && fillBox());
-/** A layout's motion (the sidebar's, the panel's, full screen's, a peek's): the chart sized once for it, not at each of its frames (each a new size: its canvases made anew, every series drawn again; Firefox shows a third of them). It takes its size at the motion's end at once, pinned to the edges of its box that move least, the moving edges sliding over it or off it. Its box narrowing or widening, it keeps the view's stretch of time: drawn once at its end's width, its plot stretched to its box's width each frame (see stretchDrawn). */
+/**
+ * A layout's motion sizes the chart once, not each frame (each a new size: canvases made anew, every series drawn
+ * again). It takes its end size at once, pinned to the edges that move least; a width-only motion is stretched each
+ * frame (see stretchDrawn) and drawn once at its end.
+ */
 let motionsSized = 0, sizeHeld = false;
 /** @type {string | null} */
 let stretchKept = null;
@@ -2294,21 +2438,18 @@ function sizeOnce() {
     return;
   }
   const run = ++motionsSized, at = inMotion.map((motion) => motion.currentTime), now = box.getBoundingClientRect(), own = engine.element.getBoundingClientRect();
-  // (Its box at their end: each motion that moves it there for a moment, read, and back where it was; nothing's drawn
-  // between. Those inside the sidebar or the panel (their rows' own, many) don't: only the boxes beside the chart's.)
-  // (A hair before their end, not at it: WebKit takes a transition sought to its very end as done, and starts a copy
-  // of it beside the first, whose second motion lays the chart out again once the first lands. WebKit bug.)
+  // Each motion's box is read at its end, moved there for a moment and back (only the boxes beside the chart's, not
+    // those inside the sidebar or panel), a hair before the end: WebKit takes a transition sought to its very end as done
+    // and starts a copy, whose second motion lays the chart out again (WebKit bug).
   const moving = inMotion.filter((motion) => ((target) => !target || !target.parentElement?.closest(".sidebar, #panel"))(/** @type {KeyframeEffect | null} */ (motion.effect)?.target));
   for (const motion of moving) motion.currentTime = Number(/** @type {AnimationEffect} */ (motion.effect).getComputedTiming().endTime) - 0.01;
   const end = box.getBoundingClientRect();
   moving.forEach((motion) => (motion.currentTime = at[inMotion.indexOf(motion)]));
   const across = Math.abs(end.width - now.width) >= 1 && Boolean(resolved?.times.length) && chartShown();
   const leftAxis = engine.left > 0 && !(engine.axisShown > 0);
-  // (Only its width changing (the sidebar's, the panel's): the drawing as it is, stretched from the first frame,
-  // nothing held back, nothing drawn (a draw waiting, the live price's, flushed now, would hold the motion's first
-  // frame as long as a heavy chart takes); drawn at its end's width once the motion's over (releaseSize). Its height
-  // too (full screen, a phone's sheet): drawn at its end's size first, its scales fitted to it at once: one motion,
-  // nothing gliding after it.)
+  // Width only (sidebar, panel): stretched from the first frame, a waiting draw (the live price's) flushed, else it
+    // would hold the first frame as long as a heavy chart takes; drawn once at the end (releaseSize). Height too (full
+    // screen, a sheet): drawn at the end size first, one motion.
   const later = across && Math.abs(end.height - chartSize.height) < 1;
   const was = across && !later ? (engine.render(true), shownSpan()) : null;
   stretchDrawn(null);
@@ -2333,12 +2474,16 @@ function sizeOnce() {
     requestAnimationFrame((time) => inMotion.filter((motion) => motion.playState === "paused").forEach((motion) => (motion.startTime = time - Number(at[inMotion.indexOf(motion)] ?? 0))));
   }
   if (across) stretchAcross(run, now.width, width);
+  // (Drawn at its end's size once the page is idle, not in the frames that end the motion (what fades in as it ends:
+  // the sidebar's words, New folder): a heavy chart's draw is a long frame.)
   Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => {
     if (run !== motionsSized) return;
     if (later) return whenIdle(() => run === motionsSized && releaseSize(), { timeout: 200 });
     releaseSize();
   });
 }
+// While a width is dragged the drawing is stretched to its box each frame and drawn at its width once let go: a heavy
+// chart's draws are long frames.
 function holdChart() {
   if (sizeHeld || !resolved?.times.length || !chartShown()) return;
   const run = ++motionsSized, leftAxis = engine.left > 0 && !(engine.axisShown > 0);
@@ -2424,6 +2569,8 @@ function spotlight(id) {
 }
 let pointedLayer = /** @type {string | null} */ (null), pointerOnChart = false;
 document.addEventListener("pointerover", (event) => {
+  // Not while something's carried (the rows passed over aren't pointed at). A finger points at nothing: what it
+    // touched, or a row it scrolled the list by, would stay lit once it's lifted.
   if (document.body.classList.contains("carrying")) return;
   pointedLayer = event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null);
   pointerOnChart = event.pointerType !== "touch" && !pointedLayer && Boolean(closest(event, "#chart"));
@@ -2478,8 +2625,12 @@ async function draw(refit = false, fresh = false) {
   if (doc.layers.some((layer) => /\b(over|under)\(/.test(layer.formula ?? ""))) await import("/studio/client.js");
   const result = await resolve(doc, fresh || stale(doc));
   await rest;
+  // (Its data come while the chart grows out of its tile: drawn once it's grown, not built mid-motion (a phone's
+  // build of a big one, a second, held the motion still).)
   if (showLoading || later) await Promise.all((grid?.morphing ?? []).map((animation) => animation.finished.catch(() => {})));
   if (version !== drawVersion) return false;
+  // (Back to the grid while it grew (its growth cancelled): built when it's opened again, as it grows (see
+  // leaveHome's undrawn), not during the shrink.)
   if ((showLoading || later) && home) {
     $("loading").hidden = true;
     $("progress").hidden = true;
@@ -2526,9 +2677,12 @@ function buildChart(doc, data, refit) {
     (buildAsked = 0), (refit ||= buildRefit), (buildRefit = false);
     queueMicrotask(() => { for (const wake of [...drawnWaiters]) wake(); });
   }
+  // What's on screen from now: this, whatever builds it. A range asked for since this chart's view was laid out is
+    // owed: this build lays it out, whichever draw it's from.
   const prior = displayed, priorTimes = resolved?.times ?? [], same = prior?.doc.id === doc.id && prior?.doc.index === doc.index, sameView = !refit && same;
   const owed = prior?.doc.id === doc.id && prior?.doc.range !== doc.range;
   (displayed = { doc, look: lookKey(doc) }), (resolved = data);
+  // (Another chart, another interval: the crosshair set here, or the keys', lets go of a date it may not have.)
   if (!same) crossSet ? dropCross() : keyAway();
   const visible = sameView ? shownDates() : null;
   const logical = sameView ? shownSpan() : null;
@@ -2559,11 +2713,8 @@ function buildChart(doc, data, refit) {
   while (engine.panes.length < doc.panes.length) engine.addPane(PANE);
   const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
   const foldedLayers = foldedInto(doc);
-  // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
-  // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
-  // alone, and a color or a width scrubbed stays smooth however many points there are. (A histogram's set again
-  // whole: its bars under its base in its second color, a palette made with its data.)
-  // (Not where it is among them: a layer moved, or its pane reversed, keeps its series, put in order below.)
+  // A layer drawn as before keeps its series, its data set again only where it changed: an edit redraws that layer
+    // alone, a scrubbed color stays smooth. A histogram's is set whole: its palette is made with its data.
   const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", layer.type === "bubbles" && !layer.ref, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.opens), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1 && !cloudLayers(layer).length, layer.type === "cloud" && Boolean(layer.byLayers)]);
   /** @type {Map<string, { shape: string, shown?: Vector, opens?: Vector, highs?: Vector, lows?: Vector, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
   const kept = new Map();
@@ -2572,6 +2723,7 @@ function buildChart(doc, data, refit) {
     if (before && before.shape === layerShape(layer) && was.has(layer.id)) kept.set(layer.id, before);
   }
   built.clear();
+  // The others' series go once the new ones are in (their panes kept till then, see the panes trimmed below).
   const old = [...was].filter(([id]) => !kept.has(id)).map(([, series]) => series);
   let added = false;
   /** @type {{ layer: Layer, value: number, color: string, dash: number, tag: boolean, mode: number, pane: number, format: any }[]} */
@@ -2608,11 +2760,8 @@ function buildChart(doc, data, refit) {
     const dated = fromSource && ((/** @type {number} */ i) => ((name) => (name ? ink(name) : base))(fromSource(i)));
     const shadeDown = signal && layer.place === "shade" ? alpha(ink(belowOf(layer)), 0.14 * op) : "";
     const painting = dated ? paintSig(doc, layer, data, op, base) : shadeDown ? [shadeDown] : null;
-    // (What one color of its own paints, once for all its colors (its own, its zones', its gradient's, each date's): a
-    // line's, dots' or a trend's at its opacity; an area's line, fill and fade (a stacked line's fill none); bars' at
-    // three quarters. An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line
-    // that runs high it would all but vanish. Stacked, its band (from its line to the one under it, see stackBands)
-    // evenly too: a band fading by price would read lighter the lower it sits.)
+    // An area filled above its line, or stacked, is tinted evenly: the fill's gradient runs by price, so above a high
+        // line (or the lower a band sits) it would all but vanish.
     const fills = stackedLine ? [0, 0] : fillOf(layer, Boolean(stack));
     const looks = (/** @type {string} */ c) => /** @type {Record<string, string>} */ (layer.type === "area" || stackedLine ? { line: op < 1 ? alpha(c, op) : c, fill: alpha(c, fills[0] * op), fade: alpha(c, fills[1] * op) }
       : layer.type === "histogram" ? { color: alpha(c, 0.75 * op) } : { color: op < 1 ? alpha(c, op) : c });
@@ -2711,6 +2860,7 @@ function buildChart(doc, data, refit) {
     } else if (result?.values) {
       const shown = stack?.values ?? result.values;
       const at = (/** @type {number} */ value, /** @type {number} */ i) => (stack ? stack.foot[i] + value * (stack.scale?.[i] ?? 1) : value);
+      // Log scales can't show zero or negative values: they become gaps.
       const log = modeOf(doc, layer) === 1;
       const look = !dated || layer.type === "baseline" ? null : looks;
       const times = layer.from && fromUnfit(doc, layer) ? [] : data.times;
@@ -2764,11 +2914,8 @@ function buildChart(doc, data, refit) {
   while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(engine.panes[engine.panes.length - 1]);
   if (heatmaps) for (const id of heatmaps.heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatmaps.heatLooks.delete(id), heatmaps.heatWants.delete(id);
   for (const [id, series] of drawn) if (!sketches.has(series)) sketches.set(series, new Sketch(id, series));
-  // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
-  // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first:
-  // as a series is added, or the order's another (a layer moved, a pane reversed). Each series' edge and its own
-  // layers just over it (see ownLayer): those behind every series under them all, those over everything over them,
-  // each in the same order.
+  // Series front to back as the panel lists them (a stack's foot in front of the taller ones), drawn back first; each
+    // one's edge and own layers just over it (see ownLayer).
   const order = JSON.stringify([doc.layers.map((layer) => [layer.id, layer.pane]), doc.panes.map((pane) => Boolean(pane.reverse))]);
   if (added || order !== drawnOrder) {
     /** @type {Map<number, { under: any[], series: any[], over: any[] }>} */
@@ -2803,6 +2950,8 @@ function buildChart(doc, data, refit) {
   const axis = sides.has("right") ? RIGHT_AXIS : 0;
   if (engine.axis !== axis) (engine.axis = axis), engine.layout();
   engine.invalidate(true);
+  // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again. Laid from the chart, or the
+  // look on it, whose copy this is: a copy is no other chart, see panesLaid.)
   if (!(holding && priorShape === panesShape)) sizePanes();
   const layerIds = (/** @type {Chart} */ of) => of.layers.map((layer) => layer.id).join();
   if (!keep || layerIds(doc) !== (prior ? layerIds(prior.doc) : "")) engine.fitAxes();
@@ -2816,6 +2965,9 @@ function buildChart(doc, data, refit) {
   retaking = null;
   const onRange = Boolean(left?.latest && left.index === doc.index && data.times.length > 1) && ((preset, last, latest) => Math.abs(latest[0] - (preset.from - last)) < 1 && Math.abs(latest[1] - (preset.to - last)) <= Math.max(1, (preset.to - last) / 4))(presetWindow(doc, data), data.times.length - 1, /** @type {[number, number]} */ (left?.latest));
   const back = left && !onRange && !owed && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
+  // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
+  // library's own, on a first draw), and the change of their width held against it: the library holds the bars where
+  // they are on screen as an axis widens.)
   if (back && back.to >= back.from) {
     const target = within(back, "to");
     showSpan(target, EXACT_RANGE);
@@ -2853,6 +3005,7 @@ function buildChart(doc, data, refit) {
     const outward = offset > 0 ? -1 : offset + priorTimes.length < data.times.length ? 1 : 0;
     if (outward && inReveal?.outward !== outward) reveal(outward < 0 ? offset - 0.5 : offset + priorTimes.length - 0.5, outward);
   }
+  // (The build before let go of: the chart's own closures, made here, keep this scope, and so these, alive.)
   was.clear();
   kept.clear();
   showDrawings(doc);
@@ -2871,6 +3024,7 @@ function layOutLegends() {
 }
 /** @type {Chart | null} */
 let lookDoc = null;
+// The person takes over: a press stops any glide (a wheel does by itself).
 $("chart").addEventListener("pointerdown", () => engine.controller.stop(), { capture: true, passive: true });
 
 let hoverTime = null;
@@ -2932,6 +3086,8 @@ const sideLight = glides($("chart-list"), {
   },
   can: (item) => !foldOf.has(/** @type {Element} */ (item.closest("#chart-list > *"))),
 });
+// Rows reordered under a still pointer (Recent's, a chart opened from it) leave nothing lit as they land, since a row
+// only slid there: the highlight waits for the mouse to move.
 let sidePointer = "", sideHeld = false;
 const sidePoint = (/** @type {PointerEvent} */ event) => {
   if (event.pointerType !== "mouse") return;
@@ -3116,11 +3272,17 @@ function relayout() {
   if (layoutFrame) return;
   layoutFrame = requestAnimationFrame(() => {
     layoutFrame = 0;
+    // A card growing out of the grid or shrinking into it: nothing laid out against it as it moves (it'd be measured
+        // scaled); laid out once it's over, see morph.
     if (document.body.hasAttribute("data-morph")) return void (layoutOwed = true);
     layoutOwed = false;
+    // (A layout's motion, the chart's size held: only the belt follows its box; the navigator stretches as the chart
+    // does (its brush in shares), the rest laid out once it ends (releaseSize).)
     if (sizeHeld) return void pen?.placeBelt();
     if (lensAt) lookAt(lensAt);
     const width = engine.time.width;
+    // A drawing placed by taps starts over when its pane moved from under it (turn, sidebar): its second tap would land
+        // as if it hadn't. A path's points are kept.
     const restarted = width !== laidWidth && Boolean(placing?.clicks && draft) && !placingPath();
     if (restarted) {
       placing = draft = null;
@@ -3153,9 +3315,14 @@ function fitMargins() {
   all.forEach((margins, i) => SIDES.forEach((side) => engine.panes[i]?.setScale(side, margins)));
   engine.invalidate(true);
 }
+// (A separator dragged, the panes laid out at each move: their room over their lines with them, as tall as their
+// legends, not a share of the height they had (the lines moving when let go).)
 engine.onLayout(() => engine.resizing && fitMargins());
 addEventListener("pointerdown", (event) => press(event, { end: keepPaneSizes }), true);
-/** Whether the view moves: from a move (a pan, a fling, a zoom, a glide, the navigator, the wheel) till it's at rest: a frame drawn with it where it was, nothing held down on it, no glide on its way. At rest, what waited for it: the rows' changes in full (see updateRowChanges), more data reached for (see reachOut). */
+/**
+ * Whether the view moves, from a move till it's at rest (a fling stops, a finger lifts). At rest, the rows' changes are
+ * drawn in full and more data reached for.
+ */
 let viewMoving = false, movedSince = false, restFrame = 0, wheelAt = -Infinity;
 addEventListener("wheel", () => (wheelAt = performance.now()), { capture: true, passive: true });
 const restSoon = () => void (restFrame ||= requestAnimationFrame(atRest));
@@ -3182,6 +3349,7 @@ function updateRowChanges() {
     const id = /** @type {string} */ (element.dataset.change), layer = layerById(id), result = resolved.results.get(id);
     if (!layer || !result) continue;
     const change = !layer.hidden && !result.error && !(named(layer) && bandOf(layer, valueAt(layer, point))) ? changeOver(layer, point) : null;
+    // (Each written only where it changed: a crosshair's move restyles nothing else.)
     const name = `row-change ${change?.up === true ? "up" : change?.up === false ? "down" : ""}`, text = change ? chipText(change) : "";
     if (change) since.add(change.from);
     if (element.className !== name) element.className = name;
@@ -3227,6 +3395,7 @@ function drawOverview() {
   const canvas = overviewBase, rect = overviewBox;
   if (!rect.width) return;
   const ratio = (overviewRatio = devicePixelRatio || 1);
+  // (Its size set only when it changes: set at all, the canvas starts over.)
   const width = Math.max(1, Math.round(rect.width * ratio)), height = Math.max(1, Math.round(rect.height * ratio));
   if (canvas.width !== width || canvas.height !== height) (canvas.width = width), (canvas.height = height);
   const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
@@ -3237,7 +3406,8 @@ function drawOverview() {
     if (overviewShape.key !== key) {
       const scaled = onScaleAll(source.values, source.log ? 1 : 0, NaN);
       let [lo, hi] = rangeOf(scaled);
-      // Smooth: each pixel's column its mean, a sketch of the series, not its noise. A few points in one column, a mean is one point, no line: their lowest and highest then.
+      // Smooth: each pixel's column its mean, a sketch of the series, not its noise. A few points in one column, a mean
+            // is one point, no line: their lowest and highest then.
       let points = meansOf(scaled, canvas.width);
       if (points.length < 2) points = command.columnsOf(scaled, canvas.width);
       overviewShape = { key, n: scaled.length, lo, hi, points };
@@ -3315,6 +3485,8 @@ function paintNavigator(lit) {
       if (x !== undefined) dates.push({ text, width, x });
     }
   }
+  // (The overview, dimmed outside the window: half faded out, the strip's own ground through it (a ground painted over
+  // it, the card's, made the strip two greys where the field is translucent, the light's).)
   context.drawImage(overviewBase, 0, 0);
   if (lit && shown) {
     context.globalCompositeOperation = "destination-out";
@@ -3527,7 +3699,8 @@ function drawLens() {
   const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), span = pen.LENS / pen.LENS_ZOOM / 2, k = pen.LENS_ZOOM * ratio;
   context.clearRect(0, 0, size, size);
   context.imageSmoothingQuality = "high";
-  // Each of the chart's layers, in order, the part under the lens: not the lens itself, which would show itself again, and again.
+  // Each of the chart's layers, in order, the part under the lens: not the lens itself, which would show itself again,
+    // and again.
   for (const source of $("canvas").querySelectorAll("canvas")) {
     if (source === canvas) continue;
     const box = source.getBoundingClientRect();
@@ -3610,6 +3783,7 @@ function renderBelt() {
   if (belt.hidden && magnifying) return takeUp("");
   $("draw-toggle").setAttribute("aria-pressed", String(prefs.belt.on));
   if (belt.hidden) {
+    // (What had the focus in it lets go: hidden, it can't keep it; the chart's keys take it, not the page.)
     if (belt.contains(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur(), $("plot-keys").hidden || $("plot-keys").focus({ preventScroll: true });
     return;
   }
@@ -3651,6 +3825,8 @@ function renderBelt() {
           <div class="belt-row ${drawings.length || context ? "" : "spread"}">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
           ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escapeHtml(tool ? `Next ${TOOLS[tool].noun}` : drawing ? pen.drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
           ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}`;
+  // (Its words set in place: the plot taking the focus or giving it up, as a belt's button is pressed, changes only
+  // them, and the button pressed stays the one clicked.)
   const writeHow = () => {
     const caption = belt.querySelector(".belt-caption span");
     if (caption && caption.textContent !== how) caption.textContent = how || "";
@@ -3663,8 +3839,10 @@ function renderBelt() {
     writeHow();
     drawKeys(belt);
     restoreFocus(belt, focus);
+    // (Its button in focus gone with what it was for (a drawing removed): the chart's keys take it, not the page.)
     if (focus && document.activeElement === document.body && !$("plot-keys").hidden) $("plot-keys").focus({ preventScroll: true });
     pen.rovingBelt();
+    // The button in focus gone with what it was for (a drawing removed from it): D's keys end with it.
     if (focus && !belt.contains(document.activeElement) && beltKeys) {
       beltKeys = false;
       belt.classList.remove("keys");
@@ -3796,6 +3974,7 @@ $("belt").addEventListener("pointerdown", (event) => {
   event.preventDefault();
   const box = belt.getBoundingClientRect(), canvas = $("canvas").getBoundingClientRect(), offset = { x: event.clientX - box.left, y: event.clientY - box.top };
   belt.classList.add("held");
+  // (The belt holds the pointer, not the grip: a redraw mid-way replaces the grip.)
   belt.setPointerCapture(event.pointerId);
   let trail = [{ x: event.clientX, y: event.clientY, at: performance.now() }];
   const carry = (/** @type {PointerEvent} */ at) => {
@@ -3845,11 +4024,14 @@ let gesturePointer = -1, gestureTouch = false;
 function take(event) {
   event.preventDefault();
   event.stopPropagation();
+  // (Its press's own focus move held back: what had the focus outside the chart lets go of it, as a press anywhere
+  // else makes it: the keys the chart's (the navigator, pressed before, would take the arrows).)
   if (document.activeElement instanceof HTMLElement && !$("chart").contains(document.activeElement)) document.activeElement.blur();
   swallow = true;
   gesturePointer = event.pointerId;
   gestureTouch = event.pointerType === "touch";
   $("chart").setPointerCapture(event.pointerId);
+  // (One gesture's press at a time: one abandoned (stopDrawing) before its pointer's up ends nothing that came after.)
   stopGesture();
   stopGesture = press(event, { captor: $("chart"), end: gestureEnded });
 }
@@ -3869,7 +4051,8 @@ for (const type of ["mousedown", "touchstart"]) $("chart").addEventListener(type
   event.preventDefault();
   event.stopPropagation();
 }, { capture: true, passive: false });
-// A mouse's by its mousemove: the chart's own comes before it and asks for its frame first, so the lens drawn after shows that frame, not the one before.
+// Capture phase, before the chart: a press that draws, or takes a drawing, doesn't pan. The lens is placed by a mouse's
+// mousemove: the chart's own comes first and asks for its frame, so the lens shows that frame.
 addEventListener("mousemove", (event) => (pointerAt = { x: event.clientX, y: event.clientY }), { passive: true });
 addEventListener("mousemove", (event) => magnifying && !lensAt?.touch && event.target instanceof Node && $("chart").contains(event.target) && lookAt(closest(event, ".legend, button") ? null : { x: event.clientX, y: event.clientY, touch: false }));
 $("chart").addEventListener("pointermove", (event) => lensAt?.touch && event.pointerId === gesturePointer && lookAt({ x: event.clientX, y: event.clientY, touch: true }));
@@ -3883,6 +4066,8 @@ withRest(() => {
         if (!release && !heatmaps.gesturing()) stopDrawing();
       },
     });
+    // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan. A
+    // finger's move, another finger down too: the move let go, the drawing as it was, nothing pinched.)
     if (heatmaps.otherPointer(event)) {
       event.preventDefault();
       event.stopPropagation();
@@ -4158,6 +4343,7 @@ withRest(() => {
 });
 $("draw-text").addEventListener("blur", () => leftWith($("draw-text"), endTyping) || endTyping());
 $("draw-text").addEventListener("keydown", (event) => {
+  // (Enter mid-composition is the input method's. A label is one line: ⇧Enter puts it down too.)
   if (composing(event) || !((event.key === "Enter" && (!event.shiftKey || writing?.label)) || event.key === "Escape")) return;
   event.preventDefault();
   const back = writing?.back;
@@ -4202,6 +4388,7 @@ function say(/** @type {string} */ text) {
 const scrolledBy = (/** @type {HTMLElement} */ view, /** @type {number} */ top) => view.style.setProperty("--scrolled", String(Math.min(1, Math.max(0, top) / 16)));
 for (const view of all$(".panel-view")) view.addEventListener("scroll", () => scrolledBy(view, view.scrollTop), { passive: true });
 $("layer-list").addEventListener("scroll", () => scrolledBy($("layers-view"), $("layer-list").scrollTop), { passive: true });
+// A status line in the page and in each dialog, there from the start: what a toast says is read from it.
 for (const host of [document.body, ...all$("dialog")]) {
   const said = document.createElement("p");
   Object.assign(said, { className: "vh" });
@@ -4220,7 +4407,11 @@ function glideList(list, was) {
   const seen = (/** @type {number | undefined} */ top) => top !== undefined && top < sight.bottom && top > sight.top - 60;
   grid.slide([...after.keys()].filter((row) => seen(row.getBoundingClientRect().top) || seen(was.get(after.get(row)))), (row) => after.get(row), was, { fade: true, layout: true });
 }
-/** @param {HTMLElement} container @param {[string, string][]} parts */
+/**
+ * Written again only where it changed: each part kept where its key is (its hover, a lit row stays lit, a press on it
+ * still clicks), the focus put back on its like. Whether anything was written.
+ * @param {HTMLElement} container @param {[string, string][]} parts
+ */
 function writeList(container, parts) {
   const was = listWritten.get(container);
   listWritten.set(container, parts);
@@ -4234,11 +4425,14 @@ function writeList(container, parts) {
   }
   const make = document.createElement("template");
   let wrote = false;
+  // Those gone go first and the others aren't moved past them: a move loses a press on the node.
   const keys = new Set(parts.map(([key]) => key));
   for (const [key, { element }] of kept) if (!keys.has(key)) element.remove(), kept.delete(key), (wrote = true);
   parts.forEach(([key, html], i) => {
     const old = kept.get(key);
     kept.delete(key);
+    // (One folded away (inert, its fold's end held), shown again by another way than its fold: written anew. One
+    // still folding, as it is: its fold goes on.)
     let element = old && !(/** @type {HTMLElement} */ (old.element).inert && foldOf.get(old.element)?.playState !== "running") && (old.html === html || rewriteInPlace(old.element, old.html, html)) ? old.element : null;
     if (old && element && old.html !== html) wrote = true;
     if (!element) {
@@ -4247,6 +4441,7 @@ function writeList(container, parts) {
       if (old) old.element.remove();
       wrote = true;
     }
+    // (One kept moved as it is, where the browser can: its focus, its hover kept.)
     if (container.children[i] !== element) {
       const to = container.children[i] ?? null, move = /** @type {any} */ (container).moveBefore;
       if (move && element.isConnected) move.call(container, element, to);
@@ -4281,7 +4476,10 @@ function patchNode(live, a, b) {
 /** @typedef {{ washes: [number, string, string, number, number][], dots: [string, number, number][], lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number] | [string, (number | null)[], string | null, string | null, number | null, (string | null)[]])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb */
 
 const THUMBS = "bitview-studio:thumbs";
-/** The presets' marks kept in this browser, the last drawn: a visit shows them at once, not drawn anew first; let go of first, as the thumbs are, when storage is full. */
+/**
+ * The presets' marks kept in this browser, the last drawn: a visit shows them at once, not drawn anew first; let go of
+ * first, as the thumbs are, when storage is full.
+ */
 const PRESET_MARKS = "bitview-studio:preset-marks";
 const THUMB_POINTS = 28;
 /** The drawings' version: one kept from before it (drawn by older rules) isn't reused. Drawings only, never saved charts or preferences. */
@@ -4316,7 +4514,10 @@ const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mar
   && (mark.img === undefined || (typeof mark.img === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mark.img)));
 const validPreview = (item) => validDrawingKey(item?.key) && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
 const SHELF = 12, GALLERY_PAGE = 60;
-/** The presets' rows as the sidebar last drew them, open, and the sections open then (see presetParts): the first to go when storage is full, as a picture's are. */
+/**
+ * The presets' rows as the sidebar last drew them, open, and the sections open then (see presetParts): the first to go
+ * when storage is full, as a picture's are.
+ */
 const SIDE_PRESETS = "bitview-studio:side-presets";
 const USED = "bitview-studio:used";
 /** @type {Map<string, Thumb & { key: string }>} */
@@ -4388,6 +4589,9 @@ const drawYours = serial(async () => {
     grid.yourQueue.delete(id);
     const doc = chartById(id) ?? [...grid.presetTiles.keys()].find((tile) => tile.id === id);
     if (!home || !doc?.layers.length) continue;
+    // Drawn already, it's shown where it's still waited for. A failed fetch isn't drawn or kept: it's asked for again
+        // as the server answers. At home each waiting tile's drawing starts at once, else one at a time, so a scroll
+        // doesn't ask for the tiles it passes.
     const drawn = grid.drawPreview(doc, grid.presetTiles.has(doc) ? grid.previewIndex(doc) : doc.index);
     if (!yoursStill()) await drawn;
   }
@@ -4453,6 +4657,8 @@ const galleryTilesSeen = new IntersectionObserver((entries) => {
   drawGallery();
 });
 const galleryAhead = /** @type {Set<Element>} */ (new Set()), homeScroller = /** @type {HTMLElement} */ ($("home").querySelector(".home-scroll"));
+// (Its root the grid's own scroller: from the window's, what's past the scroller's edge is cut off, margin or not. Its
+// margin a screen, the scroller's height in pixels (a percentage there is of its width), made again as it's resized.)
 const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entries) => {
   for (const entry of entries) entry.isIntersecting ? galleryAhead.add(entry.target) : galleryAhead.delete(entry.target);
   drawGallery();
@@ -4476,6 +4682,9 @@ const drawGallery = serial(async () => {
     for (const tile of all$(`.tile[data-preset="${i}"]:has(> [data-open-preset])`, $("gallery"))) if (tile.querySelector("[data-plot]")?.getAttribute("data-plot") !== doc.id) grid.writeTile(tile, i);
     if (have?.key === grid.previewKey(doc)) grid.paint(doc.id, have, true);
     else {
+      // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
+      // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
+      // passes, nor those it may never reach. Each given up if the grid's drawn anew without it, see giveUpUnframed.)
       const drawn = grid.drawPreview(doc, grid.previewIndex(doc));
       if (![...grid.gallerySeen].some((frame) => grid.presetOf(frame) === i) || !galleryStill()) await grid.galleryWait(drawn);
     }
@@ -4555,6 +4764,8 @@ function showHome(push = true, /** @type {{ top: number, rows: Record<string, nu
   leaveField();
   saveView();
   if (settled() && chart.layers.length && resolved && !resolved.failed.length) {
+    // A heatmap's days aren't at hand at a card's density: its card is kept till drawn with them; one whose data moved
+        // on (a live price, a block) is drawn again in an idle moment once it's in, not in the motion's frames.
     const key = chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : grid.previewKey(chart);
     const drawCard = (/** @type {Chart} */ doc, /** @type {Resolved} */ data, /** @type {number} */ revision) => {
       const drawn = { key, ...grid.previewOf(doc, data) };
@@ -4564,6 +4775,8 @@ function showHome(push = true, /** @type {{ top: number, rows: Record<string, nu
     if (!key || previews.get(chart.id)?.key !== key) drawCard(chart, resolved, dataRevision);
     else if (cardsDrawn.get(chart.id) !== dataRevision) {
       const doc = chart, data = resolved, revision = dataRevision, kept = previews.get(doc.id);
+      // (Only while it's still the chart under the grid: another opened since, what a picture reads of the open one
+      // (its bars' spacing, its room) is that one's; this card kept as it is till the next time.)
       redrawCard = () => home && chart === doc && previews.get(doc.id) === kept && grid.previewKey(doc) === key && grid.paint(doc.id, drawCard(doc, data, revision), true);
     }
   }
@@ -4594,8 +4807,12 @@ function showHome(push = true, /** @type {{ top: number, rows: Record<string, nu
   }).then(() => {
     if (!home) return;
     if (redrawCard) whenIdle(redrawCard);
+    // (In reach again once it's there, the focus on it then: inert is style, inherited, and lifting it has the whole
+    // page styled again, not in the motion's frames. Moved meanwhile, the focus is where it was put.)
     $("home").inert = false;
     if (document.activeElement === focusWas || document.activeElement === document.body) (focusTo?.isConnected ? focusTo : focusTo && $("home-title"))?.focus({ preventScroll: true });
+    // The new chart, empty, taken back once it's faded out over the page, the one before it under the grid then
+    // (else that one would show, fading); none opened meanwhile. (An empty preview left simply goes.)
     if (draft && chart === draft) openChart(previousChart() ?? newDraft());
   });
 }
@@ -4606,6 +4823,8 @@ function leaveHome(show = () => {}, /** @type {HTMLElement | null} */ before = n
   prefs.home = false;
   savePrefs();
   grid.picked.clear();
+  // Where the page was, kept in its step for Back; read before anything changes, or it'd be laid out anew just to read
+    // it.
   leftPlace = galleryPlace();
   show();
   if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), grid.leftPlaces.set(history.state.key, leftPlace));
@@ -4694,6 +4913,7 @@ addEventListener("popstate", (event) => {
   }
   const again = routed >= 0 && doc === chart;
   if (routed >= 0) forgetSpans(doc.id);
+  // (Its step names what it opens (a preset edited since: its preview), so opening it pushes no step: Forward kept.)
   if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ ...history.state, chart: doc.id }, "");
   if (again) displayed = null;
   grid.go(doc, false);
@@ -4775,6 +4995,8 @@ function writeSideList(current) {
   listOwed = false;
   const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${grid.chartMark(doc)}<span class="label">${escapeHtml(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escapeHtml(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
   const listed = listedPreviews(), counts = grid.chartCounts(), rail = onRail(), recents = recentCharts();
+  // (Recent reordered (a chart opened): the rows slid under the pointer, none of them pointed at: its highlight put
+  // away till the pointer moves, see sidePoint.)
   const recentOrder = recents.map((item) => item.id).join();
   if (recentDrawn && recentOrder !== recentDrawn) (sideHeld = true), sideLight(null);
   recentDrawn = recentOrder;
@@ -4796,6 +5018,7 @@ function writeSideList(current) {
   ];
   const list = $("chart-list"), drawn = listWritten.get(list), keys = (/** @type {[string, string][]} */ items) => items.map(([key]) => key).join("\n");
   const was = drawn && !grid.sideMoved && !reduced() && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
+  // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
   if (writeList(list, parts)) fitSoon(list, true);
   if (was) glideList(list, was);
   const keyed = grid.numbered();
@@ -4818,6 +5041,8 @@ function writeSideList(current) {
   grid.presetMarkQueue.clear();
   if (presets) for (const row of all$("[data-preset-row]", $("chart-list"))) if (!presetMarks.has(grid.presetMarkKey(Number(row.dataset.presetRow)))) presetRowsSeen.observe(row);
   if (grid.presetMarksAsked.size) drawPresetMarks();
+  // The open one marked in place: a switch writes no row again (the focus on one stays where it is). (A preset's,
+  // by which it is.)
   const openedPreset = current?.preset !== undefined ? presetIndex(current) : -1;
   for (const button of all$("[data-open-chart], [data-open-preset], [data-open-recent]", $("chart-list"))) {
     const on = button.dataset.openPreset !== undefined ? Number(button.dataset.openPreset) === openedPreset : (button.dataset.openChart ?? button.dataset.openRecent) === current?.id;
@@ -4873,15 +5098,19 @@ function keepSidePresets(parts) {
   saveSidePresets();
 }
 let recentDrawn = "";
+// The theme now chosen, if it changed: the page is drawn again, crossfaded; the chart paints in the frame the crossfade
+// ends on, so nothing's waited for and the page is still while it's taken.
 function applyTheme(/** @type {boolean} */ anyway = false) {
   if (!anyway && lightChosen() === light) return void (document.documentElement.dataset.theme = prefs.theme);
   const swap = () => {
+    // (As chosen when it runs: two changes queued are one. Where colors were picked, on the other surface.)
     light = lightChosen();
     withRest(() => inspector.pickedAt.clear());
     document.documentElement.dataset.theme = prefs.theme;
     hexCache.clear();
     engine.theme = chartTheme();
     refresh();
+    // (Its chart recolored inside the crossfade, not a frame after it: see buildSoon.)
     buildNow();
     if (home) renderHome();
     if (presets && !$("empty").hidden) grid.renderRecommended();
@@ -4941,6 +5170,7 @@ function deleteFolder(/** @type {string} */ id) {
   if (!folder) return;
   const members = grid.childrenOf(id), charts = library.charts.filter((doc) => grid.isIn(doc.folder, id)).length, siblings = grid.childrenOf(folder.parent), place = siblings.indexOf(folder);
   library.folders.splice(at, 1);
+  // (Kept with the library, as a chart's: another tab's copy of it doesn't bring it back.)
   library.deleted[id] = Date.now();
   for (const item of members) grid.setParent(item, folder.parent);
   if ("folder" in homeAt && homeAt.folder === id) {
@@ -4979,7 +5209,11 @@ function deleteChart(doc) {
   const index = library.charts.indexOf(doc);
   if (index < 0) return;
   const wasOpen = doc === chart;
+  // Its history kept as any chart's left is (see keepHistory: the last few charts', fifty steps each), there when it
+  // comes back: undone, the chart can still be undone further. (Its redos let go of: the delete is a step done since.)
   if (wasOpen) edits.future = [];
+  // (Where the focus goes, asked before what has it goes: the row after, else the one before, else New chart; from
+  // the Charts page (its tile, its ⋯'s menu), that one's tile there.)
   const neighbor = library.charts[index + 1] ?? library.charts[index - 1], kept = () => Boolean(neighbor && library.charts.includes(neighbor));
   const onPage = home && [document.activeElement, menus.ownerNow(), performance.now() - menus.closedAt < 1000 ? menus.closedOwner : null].some((element) => element?.closest("#home"));
   const tile = onPage ? grid.cardOf(doc.id) : null, beside = /** @type {HTMLElement | null | undefined} */ (tile?.nextElementSibling?.matches(".tile[data-home-card]") ? tile.nextElementSibling : tile?.previousElementSibling?.matches(".tile[data-home-card]") ? tile.previousElementSibling : null)?.dataset.homeCard;
@@ -5145,11 +5379,18 @@ function loadPresets() {
     withRest(() => whenIdle(grid.searchNow));
     whenIdle(idsNow);
     presetsFound = { query: "", found: [] };
+    // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
+    // have it now, if that's changed.)
+    // (Adopted first: copies left as they were, stored, are still here for an adoption's stamp to pass.)
     adoptPresets();
     prunePresets(chart ?? null);
+    // The open one's place gone (renamed since): the preset showing it now takes its place, else it stays. A link being
+        // read opens its chart instead. Only before a hand's been on the page: an edit under way (a path half drawn) is
+        // left to adoptPresets. Asked first: making the one to open takes the open one's place.
     const at = chart?.preset === undefined || (reading.hash && currentRead(reading.run, reading.at)) ? -1 : presetIndex(chart) >= 0 ? presetIndex(chart) : pristine(chart) && !handledYet ? presetShowing(chart) : -1, now = at >= 0 ? presetChart(at) : chart;
     if (now && now !== chart) openChart(now);
     withRest(() => (grid.renderRecommended(), presetsEdit.presetsArrived(), renderCharts()));
+    // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
     whenIdle(addressesSoon);
     withRest(() => whenIdle(command.ranksSoon));
     if (pendingRoute && started) withRest(() => {
@@ -5182,7 +5423,10 @@ function retryPresets() {
   if (isOpen($("palette"))) showPalette();
   renderHome();
 }
-/** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts (an old /chart/ one its server can't place, too: said missing); elsewhere (a file, another server's), none. */
+/**
+ * Whether the page is Studio's own, at BASE (its server serves it at every address under it): an address of the
+ * presets' is read as it starts, an old /chart/ one too (said missing); elsewhere (a file, another server's), none.
+ */
 const ROUTED = /^\/studio\/(?:$|presets\/|chart\/)/.test(location.pathname);
 /** @param {string} address */
 function missedRoute(address) {
@@ -5198,6 +5442,8 @@ function missedRoute(address) {
   notice(presetsEdit.missedSaid(address));
 }
 let started = false;
+// Nothing acted on before then (no chart open, a link still being read): a key, press or click is let go of (the
+// browser's own keys aside), and a click's own doing; the page's Reload, if slow to start, is taken.
 for (const type of ["keydown", "pointerdown", "click"]) window.addEventListener(type, (event) => !started && !(type === "click" && event.target instanceof Element && event.target.closest(".booting")) && (event.stopImmediatePropagation(), type === "click" && event.preventDefault()), true);
 let pendingRoute = "";
 
@@ -5210,6 +5456,8 @@ function presetByAddress(i, window = undefined) {
 }
 function pickPreset(/** @type {number} */ i) {
   if (!presets?.[i]) return;
+  // (The group opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has
+  // no sidebar to show it in.)
   if (!phone.matches) {
     if (grid.groupShut("presets")) (prefs.groupsOpen = [...prefs.groupsOpen, "presets"]), savePrefs();
     presetToReveal = i;
@@ -5222,6 +5470,8 @@ let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
 /** @returns {{ found: number[], count: number, partial: boolean }} */
 function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
   const list = /** @type {Preset[]} */ (presets), query = words.join(" "), { texts: made, initials: madeInitials, titles, rank, order, exact } = grid.presetSearch();
+  // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
+  // among them all at each match: thousands, a word or two typed.)
   const copies = new Map();
   for (const doc of library.presets) ((i) => i >= 0 && !copies.has(i) && copies.set(i, doc))(presetIndex(doc));
   // (Only those renamed, by their title as it is now: a copy kept as it came (any preset opened) searched by its words
@@ -5240,7 +5490,9 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
   }
   const initialWords = words.map((word) => initialsWord(word) ? word : "\0");
   const holds = (/** @type {number} */ i, /** @type {number} */ k) => texts[i].includes(words[k]) || initials[i].includes(initialWords[k]);
-  // One scan: each one's words held, counted, and kept those holding the most (every word where any does). Else, of the presets as a whole, at least half of them and two (one word of two is a search for that word alone, not a name half remembered). One's let go once it can't hold as many. Index loops, not iterators, the first word tested inline, a word alone a loop of its own: thousands each keystroke, most let go at the first word, on a phone's engine without a JIT.
+  // Index loops, not iterators: a phone's engine without a JIT, thousands of presets each keystroke, most let go at the
+    // first word. One scan counts each one's words; else the presets as a whole at least half and two (one word of two is
+    // a search for that word alone), said to be partial.
   const wordCount = words.length, first = words[0], least = under || wordCount < 2 ? wordCount : Math.max(2, Math.ceil(wordCount / 2));
   const scan = (/** @type {ArrayLike<number> | null} */ among, /** @type {number} */ fewest) => {
     const found = [];
@@ -5267,6 +5519,8 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
     }
     return { found, top };
   };
+  // (Typed on from the last search, those holding every word now are among those that held every word then: looked
+  // through first; none, the presets as a whole for the most held. In a section, only its own.)
   const among = !under && !renamed.size && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null;
   const all = under ? order.filter(under) : null;
   let { found, top } = scan(among ?? all, among ? wordCount : least);
@@ -5294,15 +5548,16 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
       return presetsMatching(fixed, most, under, true);
     }
   }
-  // Exact names and their whole initials lead; then word prefixes, initials, and substrings. At each,
-  // prefer all words in the title, then its start, then the nearest the top and shortest (`order`). Each one's fit found as it's reached, the fits in turn, till
-  // `most` are: a word or two matches thousands, a few dozen show.
+  // Exact names and whole initials lead; then word prefixes, initials, substrings; each prefers all words in the title,
+    // then its start, then nearest the top and shortest. Fits found as reached till `most` are: a word matches thousands,
+    // a few dozen show.
   const inFound = new Uint8Array(list.length), fits = new Int8Array(list.length).fill(-1);
   for (let k = 0; k < found.length; k++) inFound[found[k]] = 1;
   const holdsAll = (/** @type {string} */ text, /** @type {string} */ initial) => {
     for (let k = 0; k < wordCount; k++) if (!text.includes(words[k]) && !initial.includes(initialWords[k])) return false;
     return true;
   };
+  // Whole words and prefixes lead initials; initials lead incidental substrings of other words.
   const prefixes = words.map((word) => new RegExp(`(?:^|[^a-z0-9])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
   const fitOf = (/** @type {number} */ i) => {
     if (fits[i] < 0) {
@@ -5318,6 +5573,8 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
   const rankOf = (/** @type {number} */ i) => ((title) => (title === undefined ? rank[i] : grid.presetRankOf(list[i].p.length, title)))(renamed.get(i));
   const byRank = (/** @type {number} */ a, /** @type {number} */ b) => rankOf(a) - rankOf(b) || a - b;
   const best = [...new Set([...(exact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) >= 14).sort((a, b) => fitOf(b) - fitOf(a) || byRank(a, b)).slice(0, most);
+  // (Those found in rank order: a few, sorted; many, read along the presets' order, the renamed ones (few) in their
+  // own places.)
   const few = found.length * 16 < order.length ? found.slice().sort(byRank) : null;
   const along = few ?? (!renamed.size ? order : ((moved) => {
     const out = [];
@@ -5369,10 +5626,8 @@ window.addEventListener("keydown", (event) => {
 let layersWritten = { keys: /** @type {string[]} */ ([]), tail: /** @type {[string, string][]} */ ([]) };
 let layersBehind = false;
 /**
- * The layers' list, as the chart is now: where it shows, at once; hidden (a phone's sheet put away, the panel shut),
- * while the page is idle after, or as it shows, whichever comes first, not in the change that asked (a chart's
- * opening: 31 ms of its tap at a phone's 4× slower CPU). What of it shows on the chart (a lit legend, the values)
- * at once either way.
+ * The layers' list: where it shows, at once; hidden, while idle after or as it shows, not in the change that asked (a
+ * chart's opening: 31 ms of its tap at a phone's 4× slower CPU).
  */
 function renderLayers() {
   if (panelShown()) return writeLayers();
@@ -5526,6 +5781,7 @@ function markPicks() {
   inspector.renderLayersBar();
   if (inspector.multiEdit) inspector.renderInspector();
 }
+/** No more picks; `refocus`: the focus goes back to the row last picked (from the bar's ×, it'd be lost). */
 function clearLayerPicks(refocus = false) {
   layerPicks.clear();
   lastOpen = "";
@@ -5675,6 +5931,7 @@ $("inspector").addEventListener("input", (event) => {
   inspector.editLayer((item) => inspector.moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
   inspector.showStop(k, !(event instanceof InputEvent));
 });
+// (Left, not changed: a place stepped by ↑ ↓ is set by script, no `change` to follow.)
 $("inspector").addEventListener("focusout", (event) => {
   const field = /** @type {HTMLInputElement} */ (event.target);
   if (field.dataset?.stopAt) inspector.showStop(Number(field.dataset.stopAt));
@@ -5759,6 +6016,7 @@ withRest(() => {
   document.addEventListener("focusout", (event) => {
     const field = /** @type {HTMLInputElement} */ (event.target);
     if (field.id === "base") {
+      // Only its Reset is put in or taken out: the panel drawn again would lose the click that left the field.
       const layer = layerById(selected), label = field.closest(".field")?.firstElementChild, reset = label?.querySelector(".reset");
       if (layer && label && !DEFAULTS.base.is(layer) && !reset) label.insertAdjacentHTML("beforeend", inspector.resetFor("base", layer));
       else if (layer && DEFAULTS.base.is(layer)) reset?.remove();
@@ -5867,6 +6125,8 @@ $("inspector").addEventListener("click", (event) => {
   const { type, dash, shape, fill, solid, hollow, place, side, priceLine, outline, fit, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
   const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
   if (index) menus.switchInterval(index);
+  // (A gradient's color pressed by a pointer: the one nearest the press, taken as it went down (see the bar's
+  // pointerdown), not the one whose reach is on top.)
   else if (slot) (button.matches(".gradient-stop") && event.detail) || inspector.colorSlot.set(`${chart.id}:${selected}`, slot), inspector.renderInspector();
   else if (source && paletteKey) {
     const layers = inspector.inHand();
@@ -6095,12 +6355,13 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   command.palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into, bubbles } : { kind: "browse" };
   const dialog = $("palette"), input = $("palette-input");
   if (!isOpen(dialog)) (trailDrawn = ""), dialog.removeAttribute("data-half");
-  // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped (the Search tab too: a keyboard
-  // comes only when asked for). Opened by a tap on what's drawn as a field (an empty chart's search), its field at
-  // once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
+  // By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped. A tap on what's drawn as a
+    // field (an empty chart's search) focuses it at once, in that tap, for iOS to allow the keyboard.
   const keys = !TOUCH || byKeys || typing;
   if (dialog.dataset.leaving) (dismissing = false), grid.arrive(dialog);
   if (!isOpen(dialog)) (paletteOnField = onField), command.placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced());
+  // (Its second frame; frames not running (a tab put away as it opened), a moment on all the same: never left unseen.)
+  // (This arrival's alone: ⌘K closed and opened again meanwhile, the next one's its own.)
   if (dialog.hasAttribute("data-arriving")) ((arrived) => (requestAnimationFrame(() => requestAnimationFrame(arrived)), setTimeout(arrived, 100)))(((arrival) => () => arrival === paletteArrivals && dialog.removeAttribute("data-arriving"))(++paletteArrivals));
   if (!isOpen(dialog)) (input.inert = !keys), grid.showDialog(dialog), (input.inert = false), !keys && dialog.focus();
   if (typing && TOUCH) input.focus();
@@ -6110,6 +6371,7 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   command.paletteKeys(true);
   showPalette();
 }
+// (By touch, ⌘K itself can have the focus, not its field: no keyboard till it's tapped.)
 if (TOUCH) $("palette").tabIndex = -1;
 let byKeys = false;
 let byTouch = false;
@@ -6192,10 +6454,9 @@ function showPalette() {
   }
   const words = command.typedWords(query);
   const everything = !command.palette.adding && !command.palette.replacing;
-  // A command leads only when the first word typed starts a word of its name ("download", "share"); otherwise (a word
-  // of its description alone) it follows the series, which is what people search for. One of many of a kind (an
-  // interval) leads only by its own name ("weekly", "1w"); by the kind ("interval"), the page that has them all, the
-  // one in effect checked, does.
+  // A command leads only when the first word typed starts a word of its name ("download"); a word of its description
+    // alone follows the series, what people search for. One of many of a kind (an interval) leads only by its own name
+    // ("1w"), by the kind the page that has them all does.
   const leads = (said) => ((own) => [...own.words, ...own.joins].some((word) => word.startsWith(words[0])))(command.textWords((said.follows ?? said.title).toLowerCase()));
   const found = !everything ? [] : command.rank(command.commands().map(command.commandItem), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
   const titled = (/** @type {Command} */ command) => command.title.toLowerCase().startsWith(words[0]), ahead = found.filter((item) => leads(item.command));
@@ -6311,6 +6572,7 @@ function updatePaletteKeys() {
   else if (command.palette.query.trim()) {
     const found = command.palette.items.filter((row) => !row.elsewhere).length, more = command.palette.items.filter((row) => row.kind === "series").length >= 80;
     $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
+    // (Said for a screen reader as the search answers: once a search, not again as the highlight moves.)
     const said = `${command.palette.query}|${$("palette-count").textContent}`;
     if (said !== countSaidFor && isOpen($("palette")) && !$("palette-count").hidden) (countSaidFor = said), say($("palette-count").textContent);
   } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
@@ -6348,6 +6610,7 @@ function withLook(doc) {
   return doc;
 }
 function showLook(look) {
+  // (Not shown (the chart's own still drawing): none, not the one before kept.)
   if (!resolved || !chartShown() || !isOpen($("palette"))) return clearLook();
   lookShown = look;
   build(withLook({ ...structuredClone(chart), index: shownIndex() }), resolved, false);
@@ -6372,6 +6635,7 @@ function noteUse(key) {
 
 /** @param {number} time */
 function goToTime(time, go = ++dateGoes) {
+  // Drawn first: a view set while it loads is undone. For this chart only, the latest Go (see afterDrawn).
   if (!settled()) return command.afterDrawn(go, () => goToTime(time, go));
   const range = shownSpan(), at = resolved ? lowerBound(resolved.times, time) : -1;
   if (!range || !resolved) return;
@@ -6402,6 +6666,7 @@ function goToDate(span, by = 0, go = ++dateGoes) {
     }
     held.live = held.to >= latest;
     void draw();
+    // (Loaded while this draw's the one drawn; another in its place (another interval), looked at again.)
     const mine = drawVersion;
     return void command.afterDrawn(go, () => goToDate(span, mine, go));
   }
@@ -6412,6 +6677,8 @@ function goToDate(span, by = 0, go = ++dateGoes) {
     glide({ from: center - half, to: center + half });
   } else {
     const times = /** @type {Resolved} */ (resolved).times, middle = command.stretchOf(span);
+    // (Its first and last bars whole at the edges: the library puts bar i at (i - from) bars in, its middle, so half a
+    // bar more each side shows each whole, none of the days around it.)
     glide({ from: Math.max(first, lowerBound(times, middle.from)) - 0.5, to: Math.min(last, lowerBound(times, middle.to) - 1) + 0.5 });
   }
 }
@@ -6422,10 +6689,13 @@ $("palette-input").addEventListener("input", (event) => {
 });
 $("palette-input").addEventListener("keydown", (event) => {
   if (composing(event)) return;
+  // (The list's keys as they're said (↑↓, ⇧ by five; ↵, ⇧↵, ⌘↵): another chord's the field's, ⌘↑ to its start. A
+  // page left or entered by a key's press, not its repeat: ⌫ held empties the field and stops there.)
   const plain = !event.metaKey && !event.ctrlKey && !event.altKey;
   if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "z" && !command.palette.formula && !command.palette.pages.at(-1)?.input) {
     event.preventDefault();
     event.shiftKey ? redoLast() : undoLast();
+    // (Its field kept, the undo having let the page's go: the next ⌘Z, or ⇧⌘Z, is ⌘K's too.)
     showPalette();
     return command.paletteKeys();
   }
@@ -6468,6 +6738,8 @@ $("palette-enter").addEventListener("click", () => {
   if (isOpen($("palette"))) command.paletteKeys();
 });
 $("palette-actions").addEventListener("click", () => command.showActions());
+// By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
+// (The result held, as it was: one replaced under the finger meanwhile (a search's later answer) is let go.)
 withRest(() => {
   gestures.onHold($("palette-list"), "[data-option]", (option) => ((held) => () => {
     if (command.palette.items[Number(option.dataset.option)] !== held) return false;
@@ -6492,6 +6764,8 @@ withRest(() => {
     menus.dismissMenu();
   });
 });
+// A menu placed for the screen as it was (a phone's sheet, a popover at its opener) isn't carried to another: the
+// screen turned, or a window made wider or narrower, it's put away. (Not as a keyboard makes it shorter.)
 {
   let wide = innerWidth;
   addEventListener("resize", () => innerWidth !== wide && ((wide = innerWidth), !$("menu").hidden && menus.dismissMenu()));
@@ -6503,6 +6777,7 @@ withRest(() => {
       sheet.toggleAttribute("data-half", !whole);
       if (!whole && document.activeElement === $("palette-input")) sheet.focus();
     };
+    // (A menu open in it (a result's actions) is dragged on its own: ⌘K under it stays.)
     const menuIn = () => !$("menu").hidden && sheet.contains($("menu"));
     grid.heightsSheet(sheet, { pulls: () => phone.matches && isOpen(sheet) && !menuIn(), grab: (event) => phone.matches && isOpen(sheet) && !menuIn() && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
     $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && grid.onceKeys(() => isOpen(sheet) && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && grid.sizeSheet(sheet, () => size(true))));
@@ -6623,6 +6898,8 @@ $("menu").addEventListener("keydown", (event) => {
   }
   if (menus.walkMenu(event, $("menu"))) menus.hideSubmenu();
 });
+// A press away closes the menu. (Inside it by its path as the press began: what it pressed may be redrawn meanwhile, as
+// a slider is at each step.)
 withRest(() => {
   document.addEventListener("pointerdown", (event) => {
     if (!$("menu").hidden && event.target !== menus.menuScrim && !event.composedPath().includes($("menu")) && !submenus.some((sub) => event.composedPath().includes(sub)) && closest(event, "button") !== menus.ownerNow()) menus.hideMenu();
@@ -6645,6 +6922,8 @@ function showRange() {
     const from = Math.max(span.to + 1 >= wanted.from ? Math.min(span.from, wanted.from) : wanted.from, wanted.to - MOST_CHUNKS + 1);
     if (from !== span.from || !span.live) Object.assign(span, { ...wanted, from }), draw();
   }
+  // (A draw on its way (its chunks', a switch's, a block's): its build lays it out, over the data it brings, not a glide
+  // now over the data it replaces. Owed till then, the same range asked again too: the view laid out from none.)
   if (pending()) return void (/** @type {NonNullable<typeof displayed>} */ (displayed).doc.range = "");
   applyRange(chart, resolved, true);
   /** @type {NonNullable<typeof displayed>} */ (displayed).doc.range = chart.range;
@@ -6652,6 +6931,7 @@ function showRange() {
 engine.onTimeReset(() => !home && chartShown() && menus.setRange(chart.range));
 $("ranges").addEventListener("click", (event) => {
   const button = closest(event, "[data-range]");
+  // (One that doesn't fit says why, as its key does: a tap, a finger's only way to ask.)
   if (button?.getAttribute("aria-disabled") === "true") notice(`${button.textContent} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
   else if (button) menus.setRange(/** @type {string} */ (button.dataset.range));
 });
@@ -6677,6 +6957,7 @@ document.addEventListener("keydown", (event) => {
     field.value = typedFrom.get(field);
     field.dispatchEvent(new Event("input", { bubbles: true }));
   }
+  // The edit may have redrawn the field: leave whichever one has the focus now (for what opened the one typed in).
   const now = /** @type {HTMLElement | null} */ (document.activeElement);
   if (now && now !== field && menus.fieldOpener.has(field)) menus.fieldOpener.set(now, /** @type {HTMLElement} */ (menus.fieldOpener.get(field)));
   if (now) menus.letGo(now);
@@ -6740,6 +7021,7 @@ $("import-file").addEventListener("change", async (event) => {
       const docs = parsed.charts.flatMap((item) => {
         try {
           const doc = readChart(item);
+          // (One here already isn't taken: neither is the view it came with, a backup's maybe, older than this one's.)
           if (library.charts.some((other) => sameChart(other, doc))) return (forgetView(doc.id), already++, []);
           const folder = folders.get(item.folder);
           if (folder) doc.folder = folder.id;
@@ -6826,6 +7108,9 @@ $("import-file").addEventListener("change", async (event) => {
       return toast(`Imported ${new Intl.ListFormat("en-US").format(what)}${already ? `; ${grouped.format(already)} already here` : ""}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`, { label: "Undo", run: () => {
         if (!same()) return keptAsEdited([...docs, ...edits]);
         const unarranged = arrangedNow() === arranged;
+        // (As a delete takes them, by their ids: another tab may have saved one anew since; the open one among them,
+        // another opens.)
+        // (Edited presets kept as charts, with them.)
         const ids = new Set([...docs.map((doc) => doc.id), ...keptIds]);
         for (const doc of library.charts.filter((doc) => ids.has(doc.id))) (discard(doc), grid.picked.delete(doc.id));
         for (const id of editIds) {
@@ -6877,6 +7162,8 @@ function fromWritten(/** @type {string} */ raw) {
       parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
     } catch (error) {
       failure = error;
+      // (Encoded as a form, a "+" is a space, a plus "%2B": it's told by its ":" encoded too, where a link's own
+      // encoding, a chat's, Studio's, keeps it, and a "+" with it. Every chart has one, after its first key.)
       if (/^\s*(?:%[0-9a-f]{2})*%(?:25)*7b/i.test(text) && !text.includes(":")) text = text.replace(/\+/g, "%20");
       try {
         text = decodeURIComponent(text.replace(/%(?![0-9a-f]{2})/gi, "%25"));
@@ -6905,12 +7192,15 @@ async function chartImage(size = {}, wait = false, grown = false) {
   const asPicture = (read) => {
     const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = shownSpan(), heightWas = chartHeight, shown = presetShown, screen = engine.time.width;
     let restoreLegends = () => {};
+    // (Its resizes aren't the chart's: the view held as it is, see holdView. Its tags at rest, as its legends read:
+    // a crosshair on it, a pinned one's too, read nowhere (put back after).)
     exporting = true;
     const crossIndex = engine.crosshair.index, hovered = hoverTime;
     engine.crosshair.index = NaN;
     hoverTime = null;
     try {
       if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
+      // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
       layOutLegends();
       const presented = presentLegends();
       restoreLegends = presented;
@@ -6955,6 +7245,7 @@ async function chartImage(size = {}, wait = false, grown = false) {
       }
       marginsSet = "";
       fitMargins();
+      // (Its view put back now, not as the library's next frame would: another picture right after reads it.)
       engine.render(true);
       exporting = false;
       hoverTime = hovered;
@@ -6978,18 +7269,23 @@ async function chartImage(size = {}, wait = false, grown = false) {
       return k;
     });
     if (grow > 1) return chartImage({ width: /** @type {number} */ (size.width) * grow, height: /** @type {number} */ (size.height) * grow, scale: (size.scale ?? devicePixelRatio) / grow }, wait, true);
+    // `wait`: a heatmap's days at a size not the screen's are asked for by a draw at it, a few rounds while draws ask
+        // for more; still missing, no picture: why. Not on a tap: a share then would lose the tap's user gesture.
     if (sized && wait) for (let round = 0; heatmaps.shownHeats().length; round++) {
       const asked = asPicture(() => {
         chartPicture(engine);
         Object.assign(extra, { wants: [...heatmaps.heatWants.values()].flat(), keys: new Set(heatmaps.shownHeats().flatMap((look) => [...(look.keep ?? [])])) });
+        // (Those not in, nor failed: a failed one won't come.)
         return [...extra.keys].filter((key) => !heatmaps.heatDays.get(key)?.rows && !heatmaps.heatDays.get(key)?.failed);
       });
       if (!asked.length) break;
       if (round === 3) throw new Error("The heatmap's days are still loading");
       heatmaps.heatPump();
       await heatmaps.heatCome(asked, 20_000, () => menus.shownAs() === owner);
+      // (The chart changed meanwhile (another opened, edited, another interval): none of it taken.)
       if (menus.shownAs() !== owner) throw new Error("The chart changed meanwhile");
     }
+    // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
     taken = asPicture((layout) => {
       capturing = true;
       repaintDrawings();
@@ -7008,6 +7304,8 @@ async function chartImage(size = {}, wait = false, grown = false) {
     heatmaps.heatExtras.delete(extra);
   }
   const { shot, scale, pieces, layout, dates, axisHeight, leftWidth } = taken;
+  // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
+  // size may come.)
   const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
   if (layout.items.length) {
     const row = menus.APART.row * scale, [markWidth, markHeight] = [menus.APART.mark * scale, menus.APART.markHeight * scale];
@@ -7111,6 +7409,7 @@ async function chartImage(size = {}, wait = false, grown = false) {
 }
 function pictureTitle(/** @type {string} */ text, /** @type {number} */ width) {
   measure.font = `590 20px ${(figuresFont ||= css("--sans"))}`;
+  // (Its room less what the drawn size's rounding to whole pixels can add: 20 at a scale of 4/3 is drawn at 27.)
   const words = text.split(" "), room = width * 0.97;
   if (words.length < 2 || measure.measureText(text).width <= room) return [text];
   let k = 1;
@@ -7129,6 +7428,7 @@ function presentLegends() {
   for (const [legend] of strips) Object.assign(legend.style, { display: hidden.has(legend.dataset.pane ?? "") ? "none" : "flex", flexWrap: "wrap", overflow: "visible", maskImage: "none", rowGap: "2px", height: "auto" });
   for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
   for (const [button] of buttons) {
+    // (Its rows wrapped, none scrolling: an item no wider than its line, its name cut short past that, never its value.)
     button.style.maxWidth = "100%";
     if (button.classList.contains("hidden")) button.style.display = "none";
     button.classList.remove("selected", "lit");
@@ -7189,11 +7489,16 @@ function showTip(target) {
 function hideTip() {
   clearTimeout(tipTimer);
   tipTimer = 0;
+  // (Set only when it changes: set again, the page's style is looked at again. Going, it fades.)
   if (!tip.hidden) (fadeOut(tip, [{ opacity: 1 }, { opacity: 0 }]), (tipClosed = performance.now()), (tip.hidden = true));
   tipTarget = null;
   described?.removeAttribute("aria-describedby");
   described = null;
 }
+/**
+ * Whether the focus is moved by the keys (Tab, the arrows): only then does a control focused say its tip, not where
+ * the page puts the focus (back on a menu's button, a dropdown's choice).
+ */
 let tabbing = false;
 addEventListener("keydown", (event) => (tabbing = event.key === "Tab" || event.key.startsWith("Arrow")), true);
 addEventListener("pointerdown", () => (tabbing = false), true);
@@ -7232,6 +7537,8 @@ function undoToast(text, doc = chart) {
 }
 let toastTimer = 0;
 function syncUndo() {
+  // (Dimmed, not disabled: a key's focus on one stays there as it runs out. The chart's and the Charts page's alike:
+  // what ⌘Z and ⇧⌘Z take where they show.)
   const back = canTravel(true), forth = canTravel(false);
   for (const id of ["undo", "home-undo"]) $(id).setAttribute("aria-disabled", String(!back));
   for (const id of ["redo", "home-redo"]) $(id).setAttribute("aria-disabled", String(!forth));
@@ -7303,11 +7610,14 @@ function redoLibrary() {
   } finally {
     redoing = false;
   }
+  // (Only once it did something: a refused redo moves nothing, nor the chart open.)
+  // (From the Charts page, none: the chart under it isn't the one being looked at, nor swapped unseen.)
   if (step.open && saves !== saved && !home && from.id === step.left && chart.id !== step.open.id) {
     const doc = step.open, preset = doc.preset !== undefined ? presetIndex(doc) : -1;
     if (!chartById(doc.id) && drafts.has(doc)) addPreview(doc);
     const now = chartById(doc.id) ?? (preset >= 0 ? presetChart(preset) : undefined);
     if (now?.id === doc.id) {
+      // (The redo opened one itself: this one in its place in the tab's history, Back never to a chart not seen.)
       if (chart !== from && history.state?.chart === chart.id) history.replaceState({ ...history.state, chart: now.id }, "");
       openChart(now);
     }
@@ -7323,7 +7633,9 @@ function toast(text, action, done = true) {
   closedToast = null;
   const element = $("toast");
   const host = topDialog() ?? document.body;
+  // Its id is found where it is, never in a copy before it: a moved one's copy is fading where it was.
   if (element.parentElement !== host) (cutFade(element), host.append(element));
+  // Said by the status line that's always there: a toast moved in, or just made, is often not read.
   const said = /** @type {HTMLElement | null} */ (host.querySelector(":scope > [data-said]"));
   if (said) {
     said.textContent = "";
@@ -7351,7 +7663,10 @@ function toast(text, action, done = true) {
   toastFor = Math.max(action ? 6000 : done ? 2600 : 4500, 1500 + text.length * 55);
   hideToastLater();
 }
-/** Placed again as the screen changes while it's up (a turn, the keyboard): measured once, it stayed where the old layout had it, off the new one. */
+/**
+ * Where the toast shows: above the chart's foot, the grid's bar, a sheet's bar or the keyboard. Placed again as the
+ * screen changes while it's up: measured once, it stayed where the old layout had it.
+ */
 function placeToast(/** @type {Element} */ host = /** @type {HTMLElement} */ ($("toast").parentElement)) {
   const element = $("toast");
   const layersBar = $("layers-bar"), sheetBar = document.body.dataset.sheet === "panel" && !layersBar.hidden ? layersBar.getBoundingClientRect() : null;
@@ -7456,6 +7771,7 @@ $("shortcuts").addEventListener("click", (event) => {
 let liveHeight = 0, liveAt = 0, livePrice = 0;
 let answeredAt = Date.now();
 const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
+// (Written only as it changes: it's a live region, and the same words written again at each price are said again.)
 const sayUnreached = () => ((text) => $("unreached-text").textContent !== text && ($("unreached-text").textContent = text))(navigator.onLine ? `Couldn't reach ${SERVER_HOST}` : "This device is offline");
 /** @param {string} icon @param {string} name @param {string} text */
 const liveFigure = (icon, name, text) => `<span class="live-figure"><span role="img" aria-label="${name}">${icon}</span>${escapeHtml(text)}</span>`;
@@ -7505,6 +7821,7 @@ function liveTip(state, ...lines) {
 function refresh(refit = false) {
   for (const wake of [...drawnWaiters]) wake();
   clearLink();
+  // (Focused but not typed in, it follows the chart too: another tab's rename, taken in.)
   if (document.activeElement !== $("title") || $("title").value === typedFrom.get($("title"))) typedFrom.set($("title"), ($("title").value = chart.title));
   renderChartPath();
   $("title").placeholder = derivedTitle(chart);
@@ -7545,6 +7862,7 @@ function redrawChart(refit = false, now = false) {
   if ((home && undrawn) || (!refit && asked === lookKey(chart))) {
     updateLegends();
     if (chartShown()) sizePanes();
+    // (Under the Charts page, its drawings as they were, nothing painted unseen: painted as it's left, see leaveHome.)
     if (!home) showDrawings(chart);
   } else if (builds()) now ? build(withLook(structuredClone(chart)), /** @type {Resolved} */ (resolved), refit) : buildSoon(refit);
   else draw(refit);
@@ -7552,9 +7870,9 @@ function redrawChart(refit = false, now = false) {
 }
 const builds = () => chartShown() && resolved?.key === dataKey(chart) && asking.key === resolved.key && drawLayers(chart).every((layer) => resolved?.drawn.has(layer.id));
 /**
- * The open chart drawn again from the data at hand once what was pressed has shown: the row, the eye, the swatch answer
- * on the next frame, the chart on the one after (a stack of many built again is a third of a second on a phone);
- * however many edits ask by then, one build. A tab drawing no frames (hidden), at once. Any build meanwhile is it.
+ * The open chart drawn again once what was pressed has shown: the row, eye and swatch answer on the next frame, the
+ * chart on the one after (a stack built again is a third of a second on a phone); many edits, one build. A tab drawing
+ * no frames builds at once.
  */
 function buildSoon(/** @type {boolean} */ refit) {
   buildRefit ||= refit;
@@ -7572,6 +7890,7 @@ function buildNow() {
   else draw(fit);
   for (const wake of [...drawnWaiters]) wake();
 }
+// (A tab put away draws no frames: what was asked, built as it goes.)
 document.addEventListener("visibilitychange", () => document.hidden && buildNow());
 
 function railMenu(/** @type {HTMLElement} */ item, hover = false) {
@@ -7664,6 +7983,7 @@ document.addEventListener("click", (event) => {
   const card = template && grid.recommendedCards[Number(template.dataset.template)];
   if (card) return pickPreset(card.preset);
   const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-pane-outline], [data-pane-gradient], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
+  // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
   const target = byTouch && found?.matches(".legend [data-toggle]") ? /** @type {HTMLElement | null} */ (found.closest("[data-select]")) : found;
   if (!target) return;
   const { select: id, toggle, paneMode, paneStack, paneReverse, paneOutline, paneGradient, gradient, mode, action, sheet, openChart } = target.dataset;
@@ -7729,6 +8049,8 @@ withRest(() => {
     scrim.addEventListener("click", () => (dialog.id === "palette" ? dismissPalette(true) : grid.leave(dialog)));
     dialog.before(scrim);
     grid.dialogScrims.set(dialog, scrim);
+    // (Closing: off the stack, its scrim gone with it, and the focus back where it was, as a modal's: there and then,
+    // before what follows moves it on.)
     dialog.addEventListener("beforetoggle", (event) => {
       if (/** @type {ToggleEvent} */ (event).newState !== "closed") return;
       const to = grid.dialogOpeners.get(dialog), at = document.activeElement;
@@ -7737,6 +8059,7 @@ withRest(() => {
       if (isOpen(scrim)) scrim.hidePopover();
       if (to instanceof HTMLElement && to.isConnected && (!at || at === document.body || dialog.contains(at))) to.focus({ preventScroll: true });
     });
+    // (esc: as it leaves, where the browser wouldn't play it: see leave. Unless something of it took the key: Quick Look.)
     dialog.addEventListener("cancel", (event) => {
       if (keepsLeaving || event.defaultPrevented) return;
       event.preventDefault();
@@ -7748,19 +8071,14 @@ withRest(() => {
 });
 
 const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), inspector.applyFormulaLeft());
-// The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
-// under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the
-// page as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page
-// a quarter shorter, not as the focus says: a field can keep it with the keyboard put away), `data-keys`
-// ("covering" the page's foot, iOS's; "shortening" the page, Android's), the bars out of its way, and `--keys`,
-// how much of the page's foot it covers (iOS's; none where the page is made shorter): a sheet's list goes on to
-// its top. A field in a phone's sheet tapped (the layers', ⌘K), not focused yet, is focused where it is, its
-// caret where it was tapped (the page left in place; a half sheet made whole once the keyboard's up, as ⌘K is:
-// see onceKeys), and scrolled into what shows (seen on iOS 26.5: focused so, the page doesn't move, however low
-// the field: its list scrolls). A tap in a field focused already is the browser's (its caret, a word selected). A
-// menu's (a color's hex) is iOS's: no list there to scroll, iOS moves the page up to it, smoothly, on its own.
+// By touch, iOS lays the keyboard over the page (its viewport the same) and moves the whole page up to a field under
+// it; Android makes the page as short as it leaves. `data-keys` ("covering", "shortening") and `--keys` (how much of
+// the foot it covers) say so while it's up. A field in a sheet tapped is focused where it is, the page left in place
+// (see onceKeys), and scrolled into view (iOS 26.5: focused so, the page doesn't move, however low the field); a menu's
+// is iOS's own.
 {
   const root = document.documentElement;
+  /** The page's height with no keyboard, at each width it's had (a screen turned with the keyboard up, the other's). */
   const tallest = /** @type {Map<number, number>} */ (new Map());
   let covered = 0;
   const reveal = () => {
@@ -7781,6 +8099,8 @@ const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @t
     const layout = root.clientHeight, most = Math.max(tallest.get(innerWidth) ?? 0, layout);
     tallest.set(innerWidth, most);
     const under = Math.max(0, Math.round(layout - viewport.height));
+    // (By touch: a window made shorter by a mouse isn't a keyboard.)
+    // (Covering by what's under it; else by the page made shorter: a pixel's rounding there is none.)
     const covering = under > 120, up = TOUCH && typing(document.activeElement) && (covering || most - layout > most / 4);
     if (up) document.body.dataset.keys = covering ? "covering" : "shortening";
     else delete document.body.dataset.keys;
@@ -7800,6 +8120,7 @@ const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @t
       const target = /** @type {HTMLElement} */ (event.target), was = press, touch = event.changedTouches[0];
       press = null;
       const field = /** @type {HTMLElement | null | undefined} */ (typing(target) ? target : target.closest("label")?.control);
+      // (A tap: not a scroll, nor a press held for the caret's magnifier or a paste.)
       if (!phone.matches || !field || !was || was.target !== target || document.activeElement === field || !typing(field) || !field.matches(":read-write") || !field.closest("#panel, #palette")) return;
       if (Math.hypot(touch.clientX - was.x, touch.clientY - was.y) > SLOP || event.timeStamp - was.at > 500) return;
       event.preventDefault();
@@ -7817,6 +8138,7 @@ function selectBy(delta) {
   select(chart.layers[clamp(index < 0 ? (delta > 0 ? 0 : chart.layers.length - 1) : index + delta, 0, chart.layers.length - 1)].id);
 }
 document.addEventListener("keydown", (event) => {
+  // (A key composing a character, an IME's (⌃K among them), is the composition's: none here.)
   if (composing(event)) return;
   const mod = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
@@ -7839,6 +8161,7 @@ document.addEventListener("keydown", (event) => {
     return command.showActions();
   }
   if (document.querySelector("dialog:popover-open")) return;
+  // An open menu has the keys (its own, and its arrows): the chart's don't act behind it. Esc closes it.
   if (!$("menu").hidden && event.key !== "Escape") return;
   const search = /** @type {HTMLElement | null} */ (closest(event, "[data-typing]"));
   if (search && event.key.length === 1 && event.key !== " " && !mod && !event.altKey) {
@@ -7852,6 +8175,7 @@ document.addEventListener("keydown", (event) => {
     grid.numbered()[Number(event.key) - 1]?.click();
     return;
   }
+  // Everything saves as you go: ⌘S just says so, instead of the browser saving the page; a preview, it keeps it.
   if (mod && key === "s") {
     event.preventDefault();
     flushEdits();
@@ -7944,6 +8268,8 @@ document.addEventListener("keydown", (event) => {
     else if (document.body.dataset.sheet) delete document.body.dataset.sheet;
     else if (!home && tablet.matches && panelShown()) togglePanel(false);
     else if (!home && !chart.layers.length && (isPreview(chart) || emptyYours(chart))) leaveEmpty();
+    // (Full screen's panel, opened for the while (P), put away first; nothing else to put away: out of full screen,
+    // as anywhere (a press, not its repeat: one held unwinds the rest, not this too).)
     else if (!home && fullOn() && panelShown()) togglePanel(false);
     else if (fullOn() && !event.repeat) presetsEdit.setFull(false);
   } else if (upDown(event) && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
@@ -8029,7 +8355,9 @@ addEventListener("keydown", (event) => {
     }, HINT_DELAY);
     return;
   }
+  // Once the keys are up, ⇧ keeps them (a ⌘⇧ key is among them); before, it's a chord like any other key.
   if (event.key === "Shift" && hinting()) return;
+  // Any other key is a chord: the keys don't come up. Once up, they follow what the key changed (⌘1, ⌘2…).
   clearTimeout(hintTimer);
   hintTimer = 0;
   if (hinting()) requestAnimationFrame(placeHints);
@@ -8046,7 +8374,8 @@ addEventListener("resize", hideHints);
 document.addEventListener("visibilitychange", hideHints);
 addEventListener("scroll", () => hinting() && placeHints(), true);
 
-// The server's health says which block its series are computed up to: a light, uncached read, every 15 seconds while the page is seen and at once when it's seen again. A new block refetches the chart, and the dot flashes.
+// The server's health says which block its series are computed up to: a light, uncached read, every 15 seconds while
+// the page is seen and at once when it's seen again. A new block refetches the chart, and the dot flashes.
 
 $("live").addEventListener("animationend", (event) => event.animationName === "block" && $("live").classList.remove("block"));
 let checking = false;
@@ -8064,11 +8393,12 @@ async function checkLive() {
   }
   answeredAt = Date.now();
   grid?.retryPlots();
-  // (A layer that couldn't load (bitview.space away a while): asked for again as it answers, not at the next block,
-  // ten minutes on; drawn once, a new block's draw if one came. Not while it's still being drawn (a slow answer
-  // never overtaken), nor under a menu (its button kept). Under the Charts page, once it's back: see leaveHome.)
+  // A layer that couldn't load is asked for again as the server answers, not at the next block, ten minutes on; not
+    // while still being drawn (a slow answer never overtaken) nor under a menu (its button kept).
   const idle = Boolean(chart && !home && settled() && $("menu").hidden);
   const retry = idle && Boolean(resolved?.failed.length) && grid.retryFailed(/** @type {Resolved} */ (resolved), chart.index);
+  // (A refresh that failed, its series' older points held: asked again at once too, not at the next block. A draw
+  // for it asks the tails afresh.)
   const behind = idle && !retry && refreshFailed(chart);
   updateStatus();
   const height = health.computedHeight;
@@ -8087,6 +8417,7 @@ async function checkLive() {
   live.classList.remove("block");
   void live.offsetWidth;
   live.classList.add("block");
+  // (Under the Charts page, the chart isn't drawn again for it: once it's back, see leaveHome.)
   if (chart && drawSeries(chart).length) home ? (blockAtHome = true) : draw(false, true);
 }
 setInterval(checkLive, 15_000);
@@ -8096,7 +8427,10 @@ document.addEventListener("visibilitychange", () => document.visibilityState ===
 document.addEventListener("visibilitychange", checkLive);
 withRest(checkLive);
 
-// bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the page is seen. Layers drawing the price itself have its point for the interval the clock is in moved there, a candle's high or low pushed out. Between blocks, the server's latest interval can be over: a live bar then opens for the current one, from the last close. A formula of the price waits for the next block, whose data takes over.
+// ── Live price ── bitview.space's live price, read each second while the page is seen: each layer drawing the price
+// itself (candles, close, spot; no stack) has its point for the current interval moved there, a candle's high or low
+// pushed out; past the server's latest interval a live bar opens from the last close. A formula of the price waits for
+// the next block.
 
 const usd = (/** @type {number} */ price) => price, sats = (/** @type {number} */ price) => 1e8 / price;
 /** @type {Map<string, (price: number) => number>} */
@@ -8105,6 +8439,7 @@ function liveLayers() {
   if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
   return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && ((pane) => !drawnInto(chart, pane) && !averageFor(chart, pane).active)(chart.panes.find((pane) => pane.id === layer.pane)));
 }
+/** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
 const ownLive = new WeakSet();
 /** @template {Float64Array | any[]} T @param {T} vector @returns {T} */
 const liveCopy = (vector) => {
@@ -8142,6 +8477,7 @@ function movePrice(price) {
     for (const series of heatmaps.heatSeries) for (let k = 0; k < added.length; k++) series.place(resolved.times.length - added.length + k, price);
   }
   const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1;
+  // The same price on the same data, for the same layers (as most polls bring): nothing to move.
   const key = `${idOf(data)}:${price}:${layers.map((layer) => layer.id).join()}`;
   if (key === liveLast) return;
   liveLast = key;
@@ -8221,6 +8557,7 @@ async function pollPrice() {
     }
     priceDelay = 1000;
   } catch {
+    // Unanswered, it asks less often (up to every half minute); answered, each second again.
     priceDelay = Math.min(priceDelay * 2, 30_000);
   } finally {
     pricePending = false;
@@ -8238,6 +8575,9 @@ async function fromHash(run = linkRun, at = 0) {
   picturing = key === "image";
   if (picturing) pictureDrawing();
   Object.assign(reading, { hash: location.hash, run, at });
+  // (Read, the link goes from the address bar (see clearLink); one that can't be read stays as it is, to be put
+  // right there.)
+  // (Written, it runs to the end, read as it is: a "+" in a formula a plus, an "&" in a name, part of it.)
   return linked(new RegExp(`(?:^|&)${key}=(.*)$`, "s").exec(hash)?.[1] ?? "", shared, run, at, key === "c");
 }
 function clearLink() {
@@ -8399,6 +8739,8 @@ $("picture-open").addEventListener("click", (event) => {
   event.preventDefault();
   leavePicture();
 });
+// A picture's page takes no keys for the chart out of sight under it (⌘K, P, a layer removed), wherever the focus
+// is: its link's and button's own (↵, Tab) as ever, the browser's.
 window.addEventListener("keydown", (event) => document.body.hasAttribute("data-picture") && event.stopImmediatePropagation(), true);
 
 async function settle(ms = 60_000) {
@@ -8414,18 +8756,20 @@ async function settle(ms = 60_000) {
       const timer = setTimeout(wake, left());
       drawnWaiters.add(wake);
       heatmaps.heatWaiters.add(wake);
+      // (The chart drawn, a heatmap of it not two frames on: the library had nothing on its scale to draw it on
+      // (see heatIn).)
       const undrawn = settled() && !document.hidden ? heatmaps.shownHeats().filter((look) => !look.drawn && !look.undrawable) : [];
       if (undrawn.length) requestAnimationFrame(() => requestAnimationFrame(() => (undrawn.forEach((look) => (look.undrawable = !look.drawn)), wake())));
     });
   }
-  // (Its reveal, the page's crossfade to it, its legends' fades, the chart's own wipe: each at its end now. A script
-  // asking wants the chart as it stays, and a tab drawing no frames (out of sight, a pane not shown) would never
-  // move them. Those that don't end, a live dot's, go on. Again after a frame: what an end started.)
+  // Its reveal, crossfade, legend fades and wipe each at its end now: a tab drawing no frames (out of sight, a pane not
+    // shown) would never move them. Those that don't end (a live dot's) go on.
   const ended = () => {
     for (const motion of document.getAnimations()) if (motion.playState === "running" && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime))) motion.finish();
     endReveal();
   };
   ended();
+  // (Drawn on its next frame, where there are frames: out of sight there are none, and a picture's drawn when it's made.)
   if (!document.hidden) await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
   ended();
   if (!heatmaps.heatIn()) return settle(left());
@@ -8498,9 +8842,8 @@ Object.defineProperty(window, "studio", { value: studio });
 
 const homeScroll = () => /** @type {HTMLElement} */ (document.querySelector(".home-scroll"));
 /**
- * Each shelf's scroll, as it last scrolled (one not in it, new: at its start). Where the page is, read and put back
- * by it: a shelf out of sight, its scroll read or written, is laid out for it alone, shelf by shelf (back from a
- * chart: 64 ms at a phone's 4× slower CPU, to write where they were already).
+ * Each shelf's scroll as it last scrolled, read and put back by the page: a shelf out of sight, read or written, is
+ * laid out alone (64 ms at a phone's 4× slower CPU).
  * @type {WeakMap<HTMLElement, number>}
  */
 const shelfScrolls = new WeakMap();
@@ -8509,6 +8852,7 @@ const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: Object.fromEntr
 const shelfKey = (/** @type {HTMLElement} */ row) => ((title) => title?.getAttribute("data-place") ?? title?.firstChild?.textContent ?? "")(row.closest(".shelf")?.querySelector(".shelf-title"));
 /** @param {{ top: number, rows: Record<string, number> }} place */
 function placeGallery(place) {
+  // (Only those not there already: the rest aren't laid out for it.)
   for (const row of shelfRows()) {
     const left = place.rows[shelfKey(row)] ?? 0;
     if (left !== (shelfScrolls.get(row) ?? 0)) (row.scrollLeft = left), shelfScrolls.set(row, row.scrollLeft);
@@ -8536,8 +8880,11 @@ function quickPicture(/** @type {Chart} */ doc) {
   else made = (async () => {
     const index = await grid.sampleable(doc, grid.sampleIndex(doc, "week1", QUICK_PICTURE.points)), copy = { ...structuredClone(doc), index };
     const data = await resolve(copy).catch(() => null);
+    // (Not drawn, or some of it missing: not kept, asked again next time.)
     if (!data || grid.retryFailed(data, index)) return void quickPictures.delete(key), null;
     const [heat, bubbles] = await Promise.all([grid.heatSamples(copy, data, grid.previewBars(doc, index), HEAT_QUICK_COLUMNS), grid.bubblesAt(doc, data, index)]);
+    // (Its bubbles' fetch failed, or the theme changed meanwhile: its heatmaps' colors another's, none; its days not all
+    // in: shown, not kept.)
     if (!bubbles || key !== `${doc.id}:${grid.previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
     if (heat.whole === false) quickPictures.delete(key);
     const drawn = grid.previewOf(copy, data, grid.previewBars(doc, index), QUICK_PICTURE, heat, bubbles);
@@ -8567,6 +8914,7 @@ function quickPicture(/** @type {Chart} */ doc) {
   return made;
 }
 function quickShow() {
+  // (Where it can't show (the window made a phone's), one showing goes: it would show another than the one lit.)
   if (!quickWorks() || !isOpen($("palette"))) return void quickHide();
   const look = lookableAt(command.palette.items[command.palette.active]), key = look ? JSON.stringify([look.doc.id, grid.previewKey(look.doc), titleOf(look.doc), look.doc.layers.map(labelOf), light]) : "";
   if (quick?.key === key && $("quick").matches(":popover-open")) return;
@@ -8580,6 +8928,7 @@ function quickShow() {
   if (look) {
     const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(doc, layer, `<b data-quick-value="${escapeHtml(layer.id)}"></b>`)).join("");
     frame.innerHTML = `<div class="tile-legend quick-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</div><div class="quick-chart"><span class="tile-plot quick-plot ${doc.layers.length ? "pending" : "blank"}"></span><div class="quick-scales"></div></div><div class="quick-ticks"></div>`;
+    // (Drawn where the highlight rests: rows passed by, held ↓, ask for nothing.)
     if (doc.layers.length) requestAnimationFrame(() => quick?.key === key && void quickPicture(doc).then((made) => {
       if (quick?.key !== key) return;
       const plot = /** @type {HTMLElement} */ (frame.querySelector(".quick-plot"));
@@ -8604,6 +8953,7 @@ function quickShow() {
 function quickHide() {
   if (!quick) return;
   quick = null;
+  // (Its pictures not kept past it: the next look draws from the data as it is then.)
   quickPictures.clear();
   grid.leave($("quick"));
   if (isOpen($("palette"))) $("palette-input").focus({ preventScroll: true });
@@ -8611,6 +8961,7 @@ function quickHide() {
 const quickToggle = () => (quick ? quickHide() : quickShow());
 $("quick").addEventListener("pointerup", () => requestAnimationFrame(() => isOpen($("palette")) && $("palette-input").focus({ preventScroll: true })));
 $("quick").addEventListener("click", (event) => {
+  // (Rows waiting drawn first, and the look then theirs: what shows is what opens.)
   if (closest(event, "[data-quick-open]")) return void (command.palette.pending ? command.palette.pending() : quick?.key && command.choose());
   if (event.target === $("quick") || closest(event, "[data-quick-close]")) quickHide();
 });
@@ -8624,9 +8975,13 @@ $("palette").addEventListener("cancel", (event) => {
 onClosed($("palette"), quickHide);
 
 async function start() {
+  // (The arrangement as loaded: one changed from it, not written yet, is this tab's own.)
   arrangedAs = arrangedNow();
   const at = navigations + 1, shared = await fromHash(linkRun, at);
   if (navigations > at) (picturing = false), clearLink();
+  // Edited previews kept aside (left, reloaded, a tab closed) come back, one opened; one kept since in another tab, or
+    // in your charts as late or later, is let go of (a later one's edits since in another tab become a preview of their
+    // own, under a new id).
   const stored = previewsAside(), kept = (/** @type {any} */ doc) => library.charts.find((item) => item.id === doc.id);
   const unsaved = stored.filter((doc) => !kept(doc) || laterAside(doc, /** @type {Chart} */ (kept(doc)).updated)).map((doc) => (kept(doc) ? { ...doc, id: uid() } : doc));
   if (unsaved.length < stored.length || unsaved.some((doc, i) => doc !== stored[i])) unsaved.length ? storage.set(PREVIEW_ASIDE, unsaved) : storage.drop(PREVIEW_ASIDE);
@@ -8639,6 +8994,7 @@ async function start() {
     linkWindow = chart.id;
     if (!library.charts.includes(chart)) addPreview(chart), keepAsideOpened(chart);
   }
+  // (Charts another tab saved while this one was starting: the first of them, as a library's first is.)
   chart ??= chartById(library.active) ?? library.charts[0] ?? setAside[0];
   const first = !chart;
   if (first) chart = newDraft();
@@ -8665,17 +9021,25 @@ async function start() {
   normalize(chart);
   save();
   if (home || !chart.layers.length) await loadRest().catch((error) => (document.body.toggleAttribute("data-offline", true), Promise.reject(error)));
+  // (Onto the grid, its chart drawn once it's opened: the grid's first moments its own, not shared with a chart's
+  // build out of sight: see redrawChart.)
   refresh(!home);
+  // (Rendered: the page shown, settling in whole; opened from a home screen, there whole at once, under its launch's
+  // orange, which drawing back is its way in: see /assets/launch/launch.js.)
   if ("launch" in document.documentElement.dataset) document.body.classList.remove("boot");
   document.documentElement.dataset.ready = "";
   if (picturing && shared) showPicture();
   else if (picturing) pictureFailed(linkError || "That link doesn't contain a chart");
   else if (document.body.hasAttribute("data-picture")) leavePicture();
   setTimeout(() => document.body.classList.remove("boot"), 1400);
+  // Once the chart's asked for its data: the search's index builds, off the page, at once (search is this machine's
+  // a second or so after a load, not after an idle moment a hidden tab may give late).
   withRest(() => command.startFinder());
   const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(hashOf(JSON.stringify(aside))) : "";
   if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here and ${aside.length === 1 ? "was" : "were"} set aside`, { label: "Download", run: () => menus.download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
 }
+// (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight, nor held from
+// input (see started).)
 navigate(start().finally(() => ((started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
 export {
   acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
