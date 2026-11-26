@@ -1566,8 +1566,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // (Each floor, its modes' over the price: how far weighting moves it.)
       section("Compare", entries(entries(t.bedrock)[0][1].floor).map(([key]) => chart(`${percentileLabel(percentile(key))} floor`, `Bedrock ${percentileLabel(percentile(key))} floor by mode`, [price(), ...entries(t.bedrock).map(([mode, node], i, all) => series(node.floor[key], modeName(mode), { color: ramp(all.length)[i] }))]))),
       ...entries(t.bedrock).map(([mode, node]) => {
-        // The Bedrock landscape, top to bottom: sky over the all-time high, water from it to the median cost basis above
-        // the floor, soil down to the first floor, bedrock through the floors, the deepest down to the bottom.
+        // The Bedrock landscape, top to bottom: water over the all-time high and from it to the median cost basis above
+        // the floor, sand down to the first floor, rock through the floors, the deepest down to the bottom.
         const edges = [
           [m.ath.high, "All-time high"],
           ...entries(node.costBasisAboveP95Floor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
@@ -1584,7 +1584,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
             { cloud: [letter(1), "top"], label: "Above the all-time high", color: SKY, opacity: 1 },
             // (Under it, one cloud by its edges: each band in the color of the edge over it, down to the pane's foot; its
             // edges one legend item, their colors its key.)
-            { cloud: [...edges.map((_, i) => letter(i + 1)), "bottom"], label: "Water, soil and bedrock", color: LANDSCAPE[0], byLayers: true, opacity: 1 },
+            { cloud: [...edges.map((_, i) => letter(i + 1)), "bottom"], label: "Water, sand and rock", color: LANDSCAPE[0], byLayers: true, opacity: 1 },
           ]),
           chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
             ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
