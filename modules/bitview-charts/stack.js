@@ -1,9 +1,5 @@
 // @ts-check
-// A stack's columns from its members' (a Float64Array each, on one timeline), the first at the foot: each member's top,
-// its value plus all those under it, NaN where it has none (it starts where its data does, a gap where it has none);
-// its foot, the members' sum under it. With `percent`, each a share of the point's whole (0 to 100), a negative member
-// counted as none (a share of a whole), `scale` the factor each point's sums took (100 over the whole; NaN where the
-// whole is none). A band from each member's foot to its top, and a line along its top, draw the stack.
+// With `percent`, a negative member counts as none: a share of a whole.
 
 /**
  * @param {Float64Array[]} members @param {{ percent?: boolean }} [options]

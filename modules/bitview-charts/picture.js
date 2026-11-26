@@ -1,8 +1,5 @@
 // @ts-check
-// The chart as a picture (an Export, a card, a preview): its canvases (each pane's plot and axes, the time axis', the
-// crosshair's with `crosshair`, and the layers over the panes) drawn into one, at the chart's size and its device pixels, as it shows now (drawn whole first, so no
-// pan's seams are in it). A picture at another size: a chart laid out at that size (an element of it, out of sight),
-// pictured, then destroyed.
+// The chart's canvases in one, drawn whole first so no pan's seams are in it.
 
 /**
  * @param {import("./index.js").Chart} chart @param {{ crosshair?: boolean }} [options]

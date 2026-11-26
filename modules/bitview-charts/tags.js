@@ -1,19 +1,10 @@
 // @ts-check
-// A page's own tags on an axis (a drawing's value on a price axis, its date on the time axis): gathered each time the
-// axis is drawn from its pane's series that give some (see Custom's axisTags and timeTags), drawn as a series' tags
-// are, the axis' labels left out under them.
 
 import { inkOn } from "./color.js";
 
-/** A pill's height (CSS pixels): a tag's, a badge's. */
 export const PILL = 18;
 
 /**
- * A pill (every tag and badge the chart draws: its series' and a page's on the axes, the crosshair's): `words` on
- * `color` in `ink`, as wide as its words and 6 pixels each side, `height` tall (its corners 4, less where it's lower), its
- * middle at `y`; its preferred left at `x` (`align` "left"), its right ("right") or its middle ("center"), kept within
- * `within` (its leftmost and rightmost x) where given. Too low to read (under 10 pixels: crowded tags), its color alone.
- * With a `border`, edged in it (a pixel, inside). Its width returned.
  * @param {CanvasRenderingContext2D} g @param {string} words @param {string} color @param {string} ink @param {number} x
  * @param {number} y @param {"left" | "right" | "center"} align @param {number} [height] @param {string} [border]
  * @param {readonly [number, number] | null} [within]
@@ -41,7 +32,6 @@ export function pill(g, words, color, ink, x, y, align, height = PILL, border = 
 
 export class Tags {
   constructor() {
-    /** Each one's place along the axis (CSS pixels), words, color, and its words' (`count` of them). */
     this.at = new Float64Array(8);
     /** @type {string[]} */
     this.texts = [];
@@ -50,11 +40,9 @@ export class Tags {
     /** @type {string[]} */
     this.inks = [];
     this.count = 0;
-    /** The axis' length: one past either end of it, none (its value out of view). */
     this.length = Infinity;
     /**
-     * One added: at `at`, its words `text`, on `color` (in `ink`, else black or white by it); none where it's not a
-     * number, or out of the axis. Made once: given to every series asked.
+     * Made once: given to every series asked.
      * @param {number} at @param {string} text @param {string} color @param {string} [ink]
      */
     this.add = (at, text, color, ink) => {
@@ -65,7 +53,7 @@ export class Tags {
     };
   }
 
-  /** Whether one's within `near` of `at`. @param {number} at @param {number} near */
+  /** @param {number} at @param {number} near */
   covers(at, near) {
     for (let k = 0; k < this.count; k++) if (Math.abs(this.at[k] - at) < near) return true;
     return false;

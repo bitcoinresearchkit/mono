@@ -1,21 +1,8 @@
 // @ts-check
-// A grid: a heatmap's cells, its columns the page's (a day each, say: `columns`, each point's; -1, none there), its rows
-// the page's too (integers, a row's floor on the pane's scale `edge(row)`, its top the next row's; even on a log scale,
-// as a cost basis is cut). Zoomed out, a column a block of columns (a power of two of them, `width` CSS pixels at least;
-// a block drawn as its last: the same blocks at any pan, as the page fetches them). A column's cells (`column(owner,
-// step)`: its rows, rising, their values and a key; null: none, or not here yet) drawn as one strip, made once and
-// stretched into place, never cell by cell (a view holds hundreds of thousands): on a log scale a pixel a row; on a
-// linear one a pixel a step of values (a power of two near a CSS pixel's worth, `TALL` pixels at most), each pixel its
-// strongest cell's (by its size, its sign aside), colored by the page (`paint`: into its red, green, blue, opacity; none,
-// left clear), its look's key `look` (strips made again as it changes). Each column on device pixels, its strip
-// smoothed only where it's squeezed (its rows' edges sharp where they're taller than a pixel). Before each draw the page
-// is told the blocks in view (`viewed`): what it fetches and keeps. A backdrop, never hit; fitted as the page says
-// (`fit`), else not.
+// Each column is one strip made once and stretched, never cell by cell: a view holds hundreds of thousands.
 
-/** A strip's pixels at most, on a linear scale. */
 const TALL = 4096;
-/** Strips kept at least (twice the columns in view where that's more): their canvases reused past it (a canvas a column
- * made anew each time would leave WebKit past its canvas memory, every canvas on the page blank). */
+/** Canvases reused: made anew per column, WebKit runs past its canvas memory and blanks every canvas. */
 const KEPT = 768;
 
 /**
@@ -35,7 +22,6 @@ export class Grid {
   constructor({ columns, column, edge, paint, look = "", width = 2, viewed = null, fit = null }) {
     /** Each point's column (-1: none). */
     this.columns = columns;
-    /** The last column (the newest): the blocks' last. */
     this.lastColumn = lastOf(columns);
     this.column = column;
     this.edge = edge;
@@ -43,66 +29,56 @@ export class Grid {
     this.look = look;
     this.width = width;
     this.onViewed = viewed;
-    /** How it widens its scale's range, the page's (see the pane's Series); none, not fitted. */
     this.fit = fit;
-    /** The blocks' size as last found (a power of two of columns). */
     this.step = 1;
-    /** Strips by column, look and step, the most recently drawn last. @type {Map<string, Strip>} */
+    /** Most recently drawn last. @type {Map<string, Strip>} */
     this.strips = new Map();
-    /** Strips kept at most, as its last view needed. */
     this.kept = KEPT;
-    /** Not read on its side's scale unless the page fits it (`fit`). */
     this.scaled = Boolean(fit);
     this.hidden = false;
     this.faint = false;
     this.version = 0;
   }
 
-  /** Its columns anew (the timeline's, a live point grown): drawn again. @param {Int32Array} columns */
+  /** @param {Int32Array} columns */
   setColumns(columns) {
     (this.columns = columns), (this.lastColumn = lastOf(columns));
     this.version++;
   }
 
-  /** Its look's key: strips made again where it's another (its colors, its reference). @param {string} look */
+  /** @param {string} look */
   setLook(look) {
     if (look === this.look) return;
     this.look = look;
     this.version++;
   }
 
-  /** What it draws changed (a column come, a coarser one replaced): drawn again, strips kept by their keys. */
   changed() {
     this.version++;
   }
 
-  /** A column's strips let go (its cells anew under the same key: the newest day refreshed), drawn again. @param {string} key */
+  /** @param {string} key */
   forget(key) {
     for (const [other, strip] of this.strips) if (other.startsWith(`${key}|`)) this.strips.delete(other), spare.push(strip.canvas);
     this.version++;
   }
 
-  /** Nothing of its own to fit to (the page's `fit`, where it has one). */
   extent() {}
 
-  /** Any base. */
   first() {
     return 1;
   }
 
-  /** Never hit: a backdrop. */
   distance() {
     return Infinity;
   }
 
-  /** The block a column's in: its last (the newest at most). @param {number} column @param {number} step */
+  /** @param {number} column @param {number} step */
   owner(column, step) {
     return Math.min(Math.ceil(column / step) * step, this.lastColumn);
   }
 
   /**
-   * Before each draw: its blocks' size for the view (each `width` pixels at least) and the blocks in view (and one past
-   * each edge), told the page.
    * @param {import("./timeline.js").Timeline} time
    */
   viewed(time) {
@@ -114,7 +90,6 @@ export class Grid {
       const each = (time.spacing * count) / Math.max(1, last - first + 1);
       while (step * each < this.width && step < 1 << 14) step *= 2;
     }
-    // (Its blocks another size: drawn whole, none of its picture moved.)
     if (step !== this.step) (this.step = step), this.version++;
     if (!this.onViewed) return;
     const owners = [];
@@ -123,15 +98,11 @@ export class Grid {
   }
 
   /**
-   * Its columns from x `x0` to `x1` of the plot, each its block's strip stretched over its points (half a point's room
-   * each side), on device pixels.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
    * @param {number} x0 @param {number} x1 @param {number} dpr
    */
   draw(g, time, scale, x0, x1, dpr) {
     const columns = this.columns, step = this.step, log = scale.mode === "log";
-    // (On a linear scale, its strips' step of values: a power of two near a CSS pixel's worth, the same while the zoom
-    // stays within it.)
     const span = log ? 0 : Math.abs(scale.y(scale.lo) - scale.y(scale.hi)) / Math.abs(scale.hi - scale.lo);
     const by = span > 0 ? 2 ** Math.ceil(Math.log2(1 / span)) : 0;
     if (!log && !by) return;
@@ -146,8 +117,7 @@ export class Grid {
       if (!strip) return;
       const top = scale.y(strip.top), bottom = scale.y(strip.bottom);
       if (!(bottom >= 0) || !(top <= height)) return;
-      // (Its ends where they fall, not rounded: each column's rows span their own values, so rounded ends scaled each
-      // column a hair apart, their rows' edges a pixel off from one to the next, a comb along them.)
+      // Ends unrounded: rounded, each column scales a hair apart, a comb along its rows' edges.
       const x = Math.round(left * dpr), w = Math.max(1, Math.round(right * dpr) - x), y0 = top * dpr, y1 = bottom * dpr;
       g.imageSmoothingEnabled = y1 - y0 < strip.height;
       g.drawImage(strip.canvas, x, y0, w, Math.max(1, y1 - y0));
@@ -169,8 +139,6 @@ export class Grid {
   }
 
   /**
-   * Block `owner`'s strip (`step` columns), a pixel a row (`by` 0: a log scale's) or a step of `by` values: made once,
-   * kept (the most recently drawn last); none where the page has no cells there (yet).
    * @param {number} owner @param {number} step @param {number} by
    * @returns {Strip | null}
    */
@@ -180,8 +148,6 @@ export class Grid {
     const key = `${column.key}|${this.look}|${by}`, had = this.strips.get(key);
     if (had) return this.strips.delete(key), this.strips.set(key, had), had;
     const { rows, values } = column, edge = this.edge, n = rows.length, lowest = edge(rows[0]), highest = edge(rows[n - 1] + 1);
-    // (A step no finer than its height's most, TALL: zoomed far in on a linear scale, its pixels stretched, finer than
-    // its rows anyway.)
     if (by) by = Math.max(by, 2 ** Math.ceil(Math.log2(highest / TALL)));
     const bottom = by ? Math.floor(lowest / by) * by : lowest, top = by ? Math.ceil(highest / by) * by : highest;
     const height = Math.max(1, by ? Math.round((top - bottom) / by) : rows[n - 1] - rows[0] + 1);
@@ -190,7 +156,6 @@ export class Grid {
     for (let k = 0; k < n; k++) {
       const value = values[k];
       if (!value) continue;
-      // (Its pixels: its own on a log scale; on a linear one, every step it reaches, a part of it too.)
       const from = by ? Math.max(0, Math.floor((top - edge(rows[k] + 1)) / by)) : rows[n - 1] - rows[k];
       const to = by ? Math.min(height - 1, Math.ceil((top - edge(rows[k])) / by) - 1) : from;
       for (let p = from; p <= to; p++) if (Math.abs(value) > Math.abs(strongest[p])) strongest[p] = value;
@@ -212,7 +177,6 @@ export class Grid {
 
 /** @param {Int32Array} columns */
 const lastOf = (columns) => columns.reduce((most, column) => Math.max(most, column), -1);
-/** Each pixel's strongest value, as a strip's made (made once, grown). */
 let strongest = new Float64Array(256);
-/** Canvases let go of, to be painted anew (shared by every grid). @type {HTMLCanvasElement[]} */
+/** Shared by every grid. @type {HTMLCanvasElement[]} */
 const spare = [];
