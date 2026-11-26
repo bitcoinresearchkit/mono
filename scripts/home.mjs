@@ -242,26 +242,26 @@ const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntr
 // ── Each page's head: its address, and how a link to it previews ──
 
 /** Every page's share card's making (assets/cards/NAME.jpg, 1200×630, made with --pictures; with the brand, not in
- * the page's folder, which a server route can shadow, as /api/ is the API's): its address, how long it's let
- * settle, its screen's size if not 1200×630 (drawn at twice the density, the card shrunk to fit), and what's done on it
+ * the page's folder, which a server route can shadow, as /api/ is the API's): its address, its
+ * screen's size if not 1200×630 (drawn at twice the density, the card shrunk to fit), and what's done on it
  * first, if anything (Logs: only series answered, no one's addresses in a picture that lasts). */
 const CARDS = {
-  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [1600, 840], settle: 16000 },
-  oracle: { url: "/oracle/", settle: 9000 },
-  explorer: { url: "/explorer/", settle: 9000 },
-  globe: { url: "/globe/", settle: 9000 },
-  trail: { url: "/trail/", settle: 12000 },
-  stack: { url: "/stack/", settle: 8000 },
-  compass: { url: "/compass/", settle: 6000 },
-  calendar: { url: "/calendar/", settle: 9000 },
-  miners: { url: "/miners/", settle: 9000 },
-  catalog: { url: "/catalog/?series=hashrate", settle: 8000 },
-  logs: { url: "/logs/", settle: 6000, run: `document.querySelector('button[data-group="statuses"][data-key$=":2"]').click(); document.getElementById("search").value = "/api/series/"; document.getElementById("search").dispatchEvent(new Event("input"))` },
-  api: { url: "/api/", settle: 6000 },
-  changes: { url: "/changes/", settle: 6000 },
-  dev: { url: "/dev/", settle: 4000 },
-  brk: { url: "/brk/", settle: 4000 },
-  benchmarks: { url: "/benchmarks/", settle: 8000 },
+  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [1600, 840] },
+  oracle: { url: "/oracle/" },
+  explorer: { url: "/explorer/" },
+  globe: { url: "/globe/" },
+  trail: { url: "/trail/" },
+  stack: { url: "/stack/" },
+  compass: { url: "/compass/" },
+  calendar: { url: "/calendar/" },
+  miners: { url: "/miners/" },
+  catalog: { url: "/catalog/?series=hashrate" },
+  logs: { url: "/logs/", run: `document.querySelector('button[data-group="statuses"][data-key$=":2"]').click(); document.getElementById("search").value = "/api/series/"; document.getElementById("search").dispatchEvent(new Event("input"))` },
+  api: { url: "/api/" },
+  changes: { url: "/changes/" },
+  dev: { url: "/dev/" },
+  brk: { url: "/brk/" },
+  benchmarks: { url: "/benchmarks/" },
 };
 // (Every page in the rows: its canonical address and its preview's its own on bitview.space, wherever it's served from
 // (next.bitview.space, someone's own server: one page, not copies); its preview named, described and pictured, the
@@ -402,20 +402,24 @@ else for (const [id, status] of answers) if (status !== 200) problems.push(`seri
 
 // ── Its pictures, made again from the apps ──
 
-/** Each picture's making: its app's address (its screen's size, if not 1440×900), how long it's let settle, what's hidden
+/** How long a page is let paint once its network has gone quiet (its data in, its chart drawn): a card or a cover's own,
+ * no page's guess of its own loading. */
+const PAINT = 2000;
+
+/** Each picture's making: its app's address (its screen's size, if not 1440×900), what's hidden
  * ("text": a canvas's words, "scene": everything but its canvas, and its tags), and where its cover and its banner are
  * cut, in its screen's points: [x, y, width, height]. A cover 960×600 and 720 wide (@720, the apps' grid's, from
  * phones to a 1440 desk at 2×); a banner 1,900 wide and 2,880 (@2x). */
 const PICTURES = {
-  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], settle: 16000, cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
-  oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
-  explorer: { url: "/explorer/", settle: 9000, cover: [8, 60, 1344, 840] },
-  globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
-  trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
-  stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
-  compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
-  calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
-  miners: { url: "/miners/", settle: 9000, cover: [240, 40, 960, 600] },
+  studio: { url: "/studio/presets/bedrock/awake/floors-colored", screen: [2600, 1150], cover: [677, 120, 1488, 930], banner: [265, 120, 1900, 930] },
+  oracle: { url: "/oracle/", cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
+  explorer: { url: "/explorer/", cover: [8, 60, 1344, 840] },
+  globe: { url: "/globe/", hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
+  trail: { url: "/trail/", hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
+  stack: { url: "/stack/", cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
+  compass: { url: "/compass/", cover: [130, 60, 1088, 680] },
+  calendar: { url: "/calendar/", cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
+  miners: { url: "/miners/", cover: [240, 40, 960, 600] },
 };
 if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY) || Object.hasOwn(CARDS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS), ...Object.keys(CARDS)])].join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);
@@ -497,7 +501,7 @@ async function makePictures() {
       // (One screen at the density the largest cut needs.)
       const density = Math.max(...wanted.map(([, box, width]) => Math.ceil((width / box[2]) * 10) / 10), 1);
       // (An app that fails: said, its pictures kept as they were, the others made.)
-      const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, recipe.settle, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
+      const tab = await screen(port, `${SERVER}${recipe.url}`, recipe.screen ?? [1440, 900], density, PAINT, /** @type {any} */ (recipe).hide).catch((error) => (problems.push(`${id}'s pictures: ${error.message}`), null));
       if (!tab) continue;
       try {
         for (const [file, [x, y, w, h], width, quality] of wanted) {
@@ -551,7 +555,7 @@ async function makePictures() {
     for (const [name, recipe] of Object.entries(pictures ? CARDS : {})) {
       if (ONLY && name !== ONLY) continue;
       const [width, height] = /** @type {any} */ (recipe).screen ?? [1200, 630];
-      const tab = await screen(port, `${SERVER}${recipe.url}`, [width, height], 2, recipe.settle).catch((error) => (problems.push(`${name}'s card: ${error.message}`), null));
+      const tab = await screen(port, `${SERVER}${recipe.url}`, [width, height], 2, PAINT).catch((error) => (problems.push(`${name}'s card: ${error.message}`), null));
       if (!tab) continue;
       try {
         if ("run" in recipe) await tab.send("Runtime.evaluate", { expression: recipe.run }), await Bun.sleep(1000);
@@ -600,7 +604,8 @@ function ico(/** @type {number[]} */ sizes, /** @type {Buffer[]} */ pngs) {
   return Buffer.concat([head, ...pngs]);
 }
 
-/** A page in a new tab, as a phone-free desk sees it, dark, less motion; settled; its words or all but its scene hidden;
+/** A page in a new tab, as a phone-free desk sees it, dark, less motion; its network quiet (a page still loading after a
+ * minute fails, loudly) and `settle` ms more to paint; its words or all but its scene hidden;
  * or, given its HTML, that page in its place (its address's origin kept, for its files). */
 async function screen(/** @type {string} */ port, /** @type {string} */ url, /** @type {number[]} */ [width, height], /** @type {number} */ density, /** @type {number} */ settle, /** @type {string | undefined} */ hide, /** @type {string | undefined} */ html) {
   const target = await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, { method: "PUT" })).json();
@@ -628,10 +633,21 @@ async function screen(/** @type {string} */ port, /** @type {string} */ url, /**
   await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: density, mobile: false });
   await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-color-scheme", value: "dark" }, { name: "prefers-reduced-motion", value: "reduce" }] });
   await send("Page.enable");
+  await send("Page.setLifecycleEventsEnabled", { enabled: true });
+  /** The page loads whose network has gone quiet: no request for half a second. @type {Set<string>} */
+  const quiet = new Set();
+  ws.addEventListener("message", (event) => {
+    const message = JSON.parse(String(event.data));
+    if (message.method === "Page.lifecycleEvent" && message.params.name === "networkIdle") quiet.add(message.params.loaderId);
+  });
   // (A canvas's words: not drawn; a scene's tags, its rounded boxes, too.)
   if (hide) await send("Page.addScriptToEvaluateOnNewDocument", { source: `const P = CanvasRenderingContext2D.prototype; P.fillText = P.strokeText = ${hide === "scene" ? "P.roundRect = " : ""}function () {};` });
   const went = await send("Page.navigate", { url });
   if (went.errorText) throw new Error(`${url}: ${went.errorText}`);
+  for (let waited = 0; !quiet.has(went.loaderId); waited += 100) {
+    if (waited >= 60_000) throw new Error(`${url}: its network wasn't quiet in 60 s (still loading?)`);
+    await Bun.sleep(100);
+  }
   if (html) {
     await Bun.sleep(300);
     const tree = await send("Page.getFrameTree");
