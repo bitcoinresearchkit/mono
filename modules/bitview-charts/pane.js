@@ -915,13 +915,18 @@ export class Pane {
   /**
    * A tag drawn over its axis on `side` after it (the crosshair's, at `y` from its top): the labels it covers (as a
    * line's tag covers them, within COVER) painted over with the ground on `g`, across `x` to `x + width` in g's own
-   * place for the axis, the pane's top at `top`. None shows cut beside it.
+   * place for the axis, the pane's top at `top`. None shows cut beside it; nothing painted past the pane (its
+   * separator's line).
    * @param {CanvasRenderingContext2D} g @param {number} side @param {number} y @param {number} top @param {number} x @param {number} width @param {Theme} theme
    */
   cover(g, side, y, top, x, width, theme) {
     const labels = this.drawnLabels[side];
     g.fillStyle = theme.background;
-    for (let k = 0; k < labels.count; k++) if (Math.abs(labels.at[k] - y) < COVER) g.fillRect(x, top + labels.at[k] - COVER / 2, width, COVER);
+    for (let k = 0; k < labels.count; k++) {
+      if (Math.abs(labels.at[k] - y) >= COVER) continue;
+      const from = Math.max(0, labels.at[k] - COVER / 2), to = Math.min(this.height, labels.at[k] + COVER / 2);
+      g.fillRect(x, top + from, width, to - from);
+    }
   }
 
   /**
