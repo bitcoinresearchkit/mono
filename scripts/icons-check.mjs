@@ -5,10 +5,10 @@
 // passes. (A part leaving another sideways is the house pattern; telling that from a parallel run is the sheet's job, by eye.)
 // Strokes that meet at a join are necessarily nearer each other than the gap there (a tip, a corner, two lines leaving one ring):
 // near a join they are not measured against each other, provided they leave it at least MIN_JOIN apart. Away from it, they are.
-// Run: bun website/studio/icons-check.mjs [name…]   Exits 1 when any icon fails.
+// Run: bun scripts/icons-check.mjs [name…]   Exits 1 when any icon fails.
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { ICONS, ICON_EXEMPT, KEY_GLYPHS, STYLE } from "./icons.js";
+import { ICONS, ICON_EXEMPT, KEY_GLYPHS, STYLE } from "../website/studio/icons.js";
 
 /** @typedef {[number, number]} Pt */
 /** @typedef {{ t: "L" | "A" | "C", a: Pt, b: Pt, r?: number, c?: Pt, sweep?: number, k?: [Pt, Pt] }} Seg */
@@ -334,11 +334,11 @@ const inlineIcons = (file) => {
   return found;
 };
 
-const ROOT = join(dirname(new URL(import.meta.url).pathname), "..");
+const ROOT = join(dirname(new URL(import.meta.url).pathname), "..", "website");
 const pages = (/** @type {string} */ dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
   const p = join(dir, e.name);
   if (e.isDirectory()) return ["assets", "modules", "_engine"].includes(e.name) ? [] : pages(p);
-  return /\.(html|js|mjs)$/.test(e.name) && e.name !== "icons.js" && e.name !== "icons-check.mjs" ? [p] : [];
+  return /\.(html|js)$/.test(e.name) && e.name !== "icons.js" ? [p] : [];
 });
 
 if (import.meta.main) {
@@ -347,7 +347,7 @@ if (import.meta.main) {
   for (const [name, svg] of Object.entries(ICONS)) if (!only.length || only.includes(name)) jobs.push({ name, body: bodyOf(svg), exempt: ICON_EXEMPT[name]?.rules ?? [], problems: [] });
   for (const [glyph, body] of Object.entries(KEY_GLYPHS)) if (!only.length || only.includes(glyph)) jobs.push({ name: `key ${glyph}`, body, exempt: [], problems: [] });
   // (Compass's trend arrows: its market.js imports from the browser's paths, so its text is read, not loaded.)
-  if (!only.length) for (const [, arrow] of readFileSync(join(dirname(new URL(import.meta.url).pathname), "../compass/market.js"), "utf8").matchAll(/arrow: "([^"]+)"/g)) jobs.push({ name: `compass trend ${arrow}`, body: `<path d="${arrow}"/>`, exempt: [], problems: [] });
+  if (!only.length) for (const [, arrow] of readFileSync(join(ROOT, "compass", "market.js"), "utf8").matchAll(/arrow: "([^"]+)"/g)) jobs.push({ name: `compass trend ${arrow}`, body: `<path d="${arrow}"/>`, exempt: [], problems: [] });
   const studio = jobs.length;
   if (!only.length) for (const file of pages(ROOT)) for (const { name, svg } of inlineIcons(file)) jobs.push(svg.startsWith("PROBLEM:") ? { name, body: "", exempt: [], problems: svg.slice(8).split("; ") } : { name, body: svg, exempt: [], problems: [] });
   let failed = 0;
