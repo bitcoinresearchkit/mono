@@ -11,6 +11,20 @@ const PLACES_WERE = [
   ["Price › Moving averages › SMA", "Price › Moving averages, SMA"],
   ["Price › Moving averages › EMA", "Price › Moving averages, EMA"],
   ["Price › Range › High and low", "Price › Range"],
+  ["Valuation › On-chain prices", "Valuation › On-chain prices › Compare"],
+  ["Valuation › Cost basis clouds", "Valuation › On-chain prices › Cost basis clouds"],
+  ["Valuation › Compass", "Valuation › On-chain prices › Compass"],
+  ["Valuation › Cointime caps", "Valuation › On-chain prices › Cointime caps"],
+  ["Valuation › Cointime prices", "Valuation › On-chain prices › Cointime prices"],
+  ["Valuation › Rarity meter › * › Bands", "Valuation › Rarity meter › *, bands"],
+  ["Valuation › Rarity meter › * › Level and score", "Valuation › Rarity meter › *, level and score"],
+  ["Valuation › Rarity meter › Components › * › * › Bands", "Valuation › Rarity meter › Components › * › *, bands"],
+  ["Valuation › Rarity meter › Components › * › * › Ratios", "Valuation › Rarity meter › Components › * › *, ratios"],
+  ["Valuation › Rarity meter › Components › * › * › * › Bands", "Valuation › Rarity meter › Components › * › * › *, bands"],
+  ["Valuation › Rarity meter › Components › * › * › * › Ratios", "Valuation › Rarity meter › Components › * › * › *, ratios"],
+  ["Bedrock", "Valuation › Bedrock"],
+  ["Valuation › Cumulative destruction", "Valuation › On-chain prices › Cumulative destruction"],
+  ["Valuation › Delta price", "Valuation › On-chain prices › Delta price"],
 ];
 
 /** @typedef {{ steps: string[], wild: number }} Side */

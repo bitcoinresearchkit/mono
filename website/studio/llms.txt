@@ -110,10 +110,10 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Moving averages, SMA (3): https://bitview.space/studio/presets/price/moving-averages-sma/index.html.md
   - Moving averages, EMA (2): https://bitview.space/studio/presets/price/moving-averages-ema/index.html.md
   - Technical (12): https://bitview.space/studio/presets/price/technical/index.html.md
-- Valuation (226): https://bitview.space/studio/presets/valuation/index.html.md
-  - Compass (5): https://bitview.space/studio/presets/valuation/compass/index.html.md
-  - Cointime prices (7): https://bitview.space/studio/presets/valuation/cointime-prices/index.html.md
+- Valuation (249): https://bitview.space/studio/presets/valuation/index.html.md
+  - On-chain prices (17): https://bitview.space/studio/presets/valuation/on-chain-prices/index.html.md
   - Rarity meter (194): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
+  - Bedrock (23): https://bitview.space/studio/presets/valuation/bedrock/index.html.md
 - Supply (4): https://bitview.space/studio/presets/supply/index.html.md
 - Holders (463): https://bitview.space/studio/presets/holders/index.html.md
   - Compare (26): https://bitview.space/studio/presets/holders/compare/index.html.md
@@ -169,8 +169,3 @@ Each section's page lists its charts; each chart's own address is in https://bit
 - Coinflow (317): https://bitview.space/studio/presets/coinflow/index.html.md
   - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/index.html.md
   - Mobile coins (218): https://bitview.space/studio/presets/coinflow/mobile-coins/index.html.md
-- Bedrock (23): https://bitview.space/studio/presets/bedrock/index.html.md
-  - Compare (5): https://bitview.space/studio/presets/bedrock/compare/index.html.md
-  - Awake (6): https://bitview.space/studio/presets/bedrock/awake/index.html.md
-  - Mobile (6): https://bitview.space/studio/presets/bedrock/mobile/index.html.md
-  - Unweighted (6): https://bitview.space/studio/presets/bedrock/unweighted/index.html.md
