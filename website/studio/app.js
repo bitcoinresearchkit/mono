@@ -166,7 +166,6 @@ const client = new BitviewClient({ baseUrl: location.origin, timeout: 30_000, me
 /** The server the page draws from, as its words name it: its host, as written (a prefix too, if it has one). */
 const SERVER_HOST = new URL(client.baseUrl).host;
 for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
-/** @type {HTMLElement} */ (document.getElementById("live")).dataset.tip = SERVER_HOST;
 const tree = client.series;
 /**
  * The series at a path, by its current name (charts keep a series' dotted catalog path with its name, so a rename
@@ -9609,13 +9608,13 @@ function updateStatus() {
     $("live").classList.remove("offline");
     $("live").classList.add("waiting");
     for (const line of [$("home-live"), $("home-pulse")]) line.textContent = "Connecting";
-    liveTip(`Connecting to ${SERVER_HOST}`);
+    liveTip("connecting", `Connecting to ${SERVER_HOST}`);
     return;
   }
   $("live").classList.toggle("offline", lost);
   $("live").classList.remove("waiting");
-  // (To a screen reader, as it connects, goes offline or comes back, in the live dot's words: not each price, as a
-  // live line (or the dot's own name, were it one) read whenever it changes would, each second.)
+  // (To a screen reader, as it connects, goes offline or comes back, in the live tip's words: not each price, as a
+  // live line read whenever it changes would, each second; the logo's name says the state alone.)
   const state = lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`;
   if (lost !== saidLost) (saidLost = lost), say(state);
   renderHorizon();
@@ -9634,15 +9633,19 @@ function updateStatus() {
     if (tip) half.dataset.tip = tip;
     return half;
   }));
-  liveTip(state, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
+  liveTip(lost ? "offline" : "live", state, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
 }
-/** The live dot's tip, a line each (its first, what it is), its name all of it: the one open, said again. @param {...string} lines */
-function liveTip(...lines) {
-  const said = lines.filter(Boolean).join("\n");
-  if ($("live").dataset.tip === said) return;
-  $("live").dataset.tip = said;
-  $("live").setAttribute("aria-label", lines.filter(Boolean).join(". "));
-  if (tipTarget === $("live") && !$("tip").hidden) showTip($("live"));
+/**
+ * The live state on the logo (its dot the badge, the logo the target, a finger's or a pointer's): its name Bitview
+ * Studio and the state in a word, its tip that name and the state's lines (where from, the price, the last block):
+ * the one open, said again. @param {string} state @param {...string} lines
+ */
+function liveTip(state, ...lines) {
+  const brand = $("brand"), said = ["Bitview Studio", ...lines].filter(Boolean).join("\n");
+  if (brand.dataset.tip === said) return;
+  brand.dataset.tip = said;
+  brand.setAttribute("aria-label", `Bitview Studio, ${state}`);
+  if (tipTarget === brand && !$("tip").hidden) showTip(brand);
 }
 
 // ── Rendering the page ────────────────────────────────────────────────────
