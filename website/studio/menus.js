@@ -15,7 +15,7 @@ import { CHEVRON, ICONS } from "/studio/icons.js";
 import {
   blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, DASHES, DEFAULT_MEASURE, defaultOpacity, EDGES,
   FORMULA_MAX, GRADIENT_LEAST, GRADIENT_MOST, HEAT_GRADIENTS, HEAT_MEASURES, HEAT_ROWS, HEAT_WEIGHTS, heatLike,
-  kindColor, letterAt, makeLayer, MARK_PLACES, markable, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
+  asideLayers, kindColor, letterAt, makeLayer, MARK_PLACES, markable, showView, MAX_PANES, OPACITIES, SHAPES, STACKS, TYPES, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
   labelText, LINES, lookOfDrawing, MAX_DRAWINGS, MAX_STROKE, PAIRED, PEN_COLOR, pointOf, TOOLS,
@@ -32,7 +32,7 @@ import { headMenu, pageTitle } from "/studio/command.js";
 import { chartPathRows, folderById, isIn, sideKey, titleOf, treeOf } from "/studio/grid.js";
 import { focusKey, keyOf, labelOf, restoreFocus } from "/studio/inspector.js";
 import { presetEdited, presetLink, tick } from "/studio/presets-edit.js";
-/** @import { Chart, Layer, Level } from "/studio/vocabulary.js" */
+/** @import { Chart, Layer, Lens, Level, Pane } from "/studio/vocabulary.js" */
 /** @import { Action } from "/studio/command.js" */
 
 /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
@@ -936,8 +936,42 @@ function keepCarriedView(doc, input) {
   all[doc.id] = { index: carried.index, from: carried.from, to: carried.to, ...(carried.latest ? { latest: carried.latest } : {}), at: Date.now() };
   putViews(all);
 }
-/** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+/**
+ * A chart with its views kept aside (see Lens) among its layers, as a link writes them: a pane of two views says them
+ * (`views`, each its name and its fields; `show: 2`, the second shown), its first view's layers, then its second's
+ * (`view: 2`), each drawing with the rest. What fromSketch reads back as the same.
+ * @param {Chart} doc @returns {Chart}
+ */
+function flatOf(doc) {
+  if (!doc.panes.some((pane) => pane.lens)) return doc;
+  const view = (/** @type {Pane} */ pane, /** @type {0 | 1} */ k) => {
+    const { id: _id, size: _size, lens, ...fields } = pane, { layers: _layers, drawings: _drawings, ...other } = /** @type {Lens} */ (lens).other;
+    return { name: /** @type {Lens} */ (lens).as[k], ...(/** @type {Lens} */ (lens).at === k ? fields : other) };
+  };
+  return {
+    ...doc,
+    panes: doc.panes.map((pane) => (pane.lens ? /** @type {any} */ ({ id: pane.id, ...(pane.size ? { size: pane.size } : {}), views: [view(pane, 0), view(pane, 1)], ...(pane.lens.at ? { show: 2 } : {}) }) : pane)),
+    layers: doc.panes.flatMap((pane) => ((own) => (pane.lens ? ((views) => [...views[0], ...views[1].map((layer) => ({ ...layer, pane: pane.id, view: 2 }))])(pane.lens.at ? [pane.lens.other.layers, own] : [own, pane.lens.other.layers]) : own))(doc.layers.filter((layer) => layer.pane === pane.id))),
+    drawings: [...(doc.drawings ?? []), ...doc.panes.flatMap((pane) => pane.lens?.other.drawings ?? [])],
+  };
+}
+/**
+ * A sketch's panes of two views (see flatOf) as a chart keeps them (see Lens): the one shown the pane's, the other
+ * aside with its layers. @param {any} sketch
+ */
+function lensed(sketch) {
+  const second = (/** @type {any} */ layer) => layer.view === 2 || layer.view === "2", aside = new Set();
+  const panes = sketch.panes.map((/** @type {any} */ { views, show, ...pane }) => {
+    if (!Array.isArray(views) || views.length !== 2) return pane;
+    const at = show === 2 || show === "2" ? 1 : 0, { name: _shown, ...fields } = views[at] ?? {}, { name: _other, ...other } = views[1 - at] ?? {};
+    const layers = sketch.layers.filter((/** @type {any} */ layer) => layer.pane === pane.id && second(layer) !== Boolean(at));
+    for (const layer of layers) aside.add(layer);
+    return { ...pane, ...fields, lens: { as: views.map((view) => view?.name), at, other: { ...other, layers } } };
+  });
+  return { ...sketch, panes, layers: sketch.layers.filter((/** @type {any} */ layer) => !aside.has(layer)) };
+}
+/** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, its views aside among them (see flatOf), keys sorted. */
+const contentOf = (/** @type {Chart} */ shown) => ((doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value)))(flatOf(shown));
 /** Two charts alike (a link opened again is the chart already here), whatever range each shows (a view, as a pan is). */
 const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf({ ...a, range: "", index: "" }) === contentOf({ ...b, range: "", index: "" });
 /**
@@ -959,13 +993,13 @@ const INTERVAL_OF_FIELD = Object.fromEntries(Object.entries(INTERVAL_LABEL).map(
 /**
  * How a link says to look at its chart, each a field of its own after its address or its chart, in the words of
  * Studio's own controls: `range` or the dates `from` and `to`, `interval`, and a preset's `window` ("24h", read
- * against the windows it offers where it's taken: see takeLinkLook), in any case. What it doesn't know, as if it
+ * against the windows it offers where it's taken: see takeLinkLook) and `show` (its views: see viewsShown), in any case. What it doesn't know, as if it
  * weren't there; `said`, the window an old address says (see routeOf), where its link doesn't.
  * @param {URLSearchParams} params @param {string} [said]
  */
 function linkLookOf(params, said = undefined) {
-  const range = params.get("range")?.toLowerCase(), interval = params.get("interval")?.toLowerCase() ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) }, window = params.get("window") ?? said;
-  return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_OF_FIELD, interval) ? { index: INTERVAL_OF_FIELD[interval] } : {}), ...(datedView("day1", view) ? { view } : {}), ...(window ? { window } : {}) };
+  const range = params.get("range")?.toLowerCase(), interval = params.get("interval")?.toLowerCase() ?? "", from = params.get("from"), to = params.get("to"), view = { from, ...(to === null ? {} : { to }) }, window = params.get("window") ?? said, show = params.get("show");
+  return { ...(RANGES.some(([id]) => id === range) ? { range: /** @type {string} */ (range) } : {}), ...(Object.hasOwn(INTERVAL_OF_FIELD, interval) ? { index: INTERVAL_OF_FIELD[interval] } : {}), ...(datedView("day1", view) ? { view } : {}), ...(window ? { window } : {}), ...(show !== null ? { show } : {}) };
 }
 /** A view by its dates, as Studio keeps one, at an interval (`from` alone, up to now; one date both, that point alone); dates it can't read or in the wrong order, null. @param {string} index @param {any} view */
 function datedView(index, view) {
@@ -983,16 +1017,17 @@ const timeOfText = (/** @type {any} */ value) => {
  * A chart as one writes it into a link (see the guide, the "About" section): its defaults left out, panes by number,
  * a cloud and a drawing by their layers' letters (all its letters, where they aren't in order), times as dates; what
  * fromSketch reads back as the same chart.
- * @param {Chart} doc
+ * @param {Chart} shown
  */
-function toSketch(doc) {
+function toSketch(shown) {
+  const doc = flatOf(shown);
   const place = (/** @type {string} */ id) => doc.panes.findIndex((pane) => pane.id === id) + 1;
   // (Panes as a link draws them by default: each its id and its default scale alone, nothing else set (no list of
   // fields to keep up with: one added is kept).)
   const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && Object.keys(pane).every((key) => key === "id" || key === "mode"));
   const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
-  if (doc === chart) saveView();
-  const dates = linkDates(doc);
+  if (shown === chart) saveView();
+  const dates = linkDates(shown);
   return {
     ...(doc.title ? { title: doc.title } : {}),
     // (Its interval, but 1D, a link's default.)
@@ -1047,7 +1082,11 @@ function linkDates(doc) {
  */
 // (Within half again the room after the latest (a drag's slack: one let go of past it is a view of its own).)
 const endsAtLatest = (doc) => ((view) => doc === chart && Boolean(view?.latest) && (view.latest[1] * engine.time.width) / (view.latest[1] - view.latest[0]) <= rightGap() * 1.5)(carriedView(doc));
-/** How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left out (its window, only a preset's: a chart's link holds its series). @param {Chart} doc @param {{ index: string, range: string, window?: string }} made */
+/**
+ * How a link says to look at a chart, each a field of its own (see linkLookOf): what `made` opens with anyway, left
+ * out (its window and its views, only a preset's: a chart's link holds its series and its views).
+ * @param {Chart} doc @param {{ index: string, range: string, window?: string, show?: string }} made
+ */
 function lookFields(doc, made) {
   const dates = linkDates(doc);
   // (A time in a date's field to the minute: "2026-11-08T14:30". A view at the latest, up to it, as it comes: no end.
@@ -1055,7 +1094,17 @@ function lookFields(doc, made) {
   const field = (/** @type {string} */ text) => text.replace(/:00Z$/, "");
   const look = [...(doc.range !== made.range ? [`range=${RANGES.find(([id]) => id === doc.range)?.[1] ?? doc.range}`] : []), ...(dates ? [`from=${field(dates.from)}`, ...(endsAtLatest(doc) ? [] : [`to=${field(dates.to)}`])] : [])];
   const window = made.window && chartWindow(doc)?.window;
-  return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : []), ...(window && window !== made.window ? [`window=${windowShort(window)}`] : [])].join("&");
+  const show = made.show !== undefined && viewsShown(doc);
+  return [...look, ...(doc.index !== made.index ? [`interval=${INTERVAL_LABEL[doc.index]}`] : []), ...(window && window !== made.window ? [`window=${windowShort(window)}`] : []), ...(show !== false && show !== made.show ? [`show=${show}`] : [])].join("&");
+}
+/** A view's name as a link says it: "net", "aviv-nupl". @param {string} name */
+const viewKey = (name) => name.trim().toLowerCase().replace(/\s+/g, "-");
+/** The views a chart shows (see Lens) other than its panes' first, as a link says them ("net,dollars"; none, ""). @param {Chart} doc */
+const viewsShown = (doc) => doc.panes.flatMap((pane) => (pane.lens?.at ? [viewKey(pane.lens.as[1])] : [])).join(",");
+/** A chart at the views a link says (see viewsShown): each pane of two at the one named, else its first. @param {Chart} doc @param {string} said */
+function showViews(doc, said) {
+  const keys = said.toLowerCase().split(",");
+  for (const pane of doc.panes) if (pane.lens) showView(doc, pane.id, keys.includes(viewKey(pane.lens.as[1])) ? 1 : 0);
 }
 /**
  * A chart as its link's #chart= writes it, readable. (Only what a link or a chat would break on encoded: brackets and
@@ -1211,7 +1260,7 @@ function fromSketch(/** @type {any} */ input) {
   });
   const letterId = (/** @type {any} */ ref) => (typeof ref === "string" && ids.includes(ref) ? ref : ((key) => (letters.includes(key) ? ids[letters.indexOf(key)] : ref))(typeof ref === "string" ? ref.toUpperCase() : ref));
   const index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1", dated = datedView(index, input.view);
-  return { ...input,
+  return lensed({ ...input,
     ...(Array.isArray(input.drawings) ? { drawings: input.drawings.slice(0, MAX_DRAWINGS).filter((/** @type {any} */ drawing) => drawing && typeof drawing === "object").map((/** @type {any} */ drawing) => ({
       ...drawing,
       layer: letterId(drawing.layer),
@@ -1236,7 +1285,7 @@ function fromSketch(/** @type {any} */ input) {
       ...(typeof layer.ref === "string" ? { ref: letterId(layer.ref) } : {}),
       ...(typeof layer.colorFrom === "string" ? { colorFrom: letterId(layer.colorFrom) } : {}),
     };
-  }) };
+  }) });
 }
 /** A series' name as a sketch may write it ("Realized price", "realized-price"): as the catalog does. */
 const seriesName = (/** @type {string} */ text) => text.trim().toLowerCase().replace(/[\s-]+/g, "_");
@@ -1292,12 +1341,15 @@ function validate(input, keepIds = false) {
   if (input.halvings === true) doc.halvings = true;
   if (input.legend === "off") doc.legend = "off";
   const panes = input.panes.slice(0, MAX_PANES);
-  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(pane?.outline === true ? { outline: true } : {}), ...(HEAT_GRADIENTS.some(([id], k) => k && id === pane?.gradient) ? { gradient: pane.gradient } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) }));
+  /** A view's fields (a pane's, see Lens), where valid. */
+  const viewOf = (/** @type {any} */ pane) => ({ mode: [0, 1, 2, 3].includes(pane?.mode) ? pane.mode : 0, ...(STACKS.some(([id]) => id && id === pane?.stack) ? { stack: pane.stack } : {}), ...(pane?.reverse === true ? { reverse: true } : {}), ...(pane?.outline === true ? { outline: /** @type {true} */ (true) } : {}), ...(HEAT_GRADIENTS.some(([id], k) => k && id === pane?.gradient) ? { gradient: pane.gradient } : {}), ...(Object.hasOwn(AVERAGES, pane?.average) ? { average: pane.average } : {}) });
+  doc.panes = panes.map((pane) => ({ id: idOf(pane?.id), ...(Number.isFinite(pane?.size) && pane.size > 0 && pane.size < 100 ? { size: pane.size } : {}), ...viewOf(pane) }));
   const paneFor = (id) => doc.panes[Math.max(0, panes.findIndex((pane) => pane?.id === id))].id;
   /** Each layer's id as read, to its own: its drawings follow it. */
   const layerIds = new Map();
-  for (const layer of input.layers) {
-    if (!layer || typeof layer !== "object") continue;
+  /** A layer read, onto the pane it says (none valid: the first), or null. @param {any} layer @param {string} [onto] a view kept aside's pane */
+  const layerOf = (layer, onto) => {
+    if (!layer || typeof layer !== "object") return null;
     // Made from layers: as a link writes it ("cloud", "trend"), or as a file keeps it ("from", and its type).
     const made = Array.isArray(layer.trend) ? "trend" : Array.isArray(layer.cloud) ? "cloud" : Array.isArray(layer.from) && (layer.type === "cloud" || layer.type === "trend") ? layer.type : null;
     const madeOf = made ? layer.trend ?? layer.cloud ?? layer.from : null;
@@ -1317,7 +1369,7 @@ function validate(input, keepIds = false) {
       type: heat ? "heatmap" : profiled ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
       width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
       dash: DASHES.some(([style]) => style === layer.dash) ? layer.dash : 0,
-      pane: paneFor(layer.pane),
+      pane: onto ?? paneFor(layer.pane),
       side: layer.side === "left" ? "left" : "right",
       hidden: layer.hidden === true || undefined,
       priceLine: layer.priceLine === true || undefined,
@@ -1352,17 +1404,29 @@ function validate(input, keepIds = false) {
     };
     const id = idOf(layer.id);
     if (typeof layer.id === "string") layerIds.set(layer.id, id);
-    doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc));
-  }
+    return makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc);
+  };
+  for (const layer of input.layers) ((read) => read && doc.layers.push(read))(layerOf(layer));
+  // A pane's other view (see Lens): its names (two, each its own), the one shown, and the other's fields and layers,
+  // read as the pane's are; one without a layer, none.
+  doc.panes.forEach((pane, i) => {
+    const lens = panes[i]?.lens, as = Array.isArray(lens?.as) ? lens.as.map((name) => (typeof name === "string" ? name.trim().slice(0, 24) : "")) : [];
+    if (as.length !== 2 || !as[0] || as[0] === as[1] || !Array.isArray(lens.other?.layers)) return;
+    const layers = lens.other.layers.flatMap((/** @type {any} */ layer) => ((read) => (read ? [read] : []))(layerOf(layer, pane.id)));
+    if (layers.length) pane.lens = { as: /** @type {[string, string]} */ (as), at: lens.at === 1 ? 1 : 0, other: { ...viewOf(lens.other), layers } };
+  });
+  const all = [...doc.layers, ...asideLayers(doc)];
   // What layers are made from, by their ids here, and a cloud's edges (normalize leaves out what's not a layer).
   // (A layer named that isn't one: none, to pick (not another put in its place).)
-  for (const layer of doc.layers) if (layer.ref) layer.ref = layerIds.get(layer.ref) ?? "";
+  for (const layer of all) if (layer.ref) layer.ref = layerIds.get(layer.ref) ?? "";
   // (A signal said without its layer: marked on the first that can be.)
   for (const layer of doc.layers) if (layer.type === "signal" && layer.ref === undefined) layer.ref = markable(doc)[0]?.id;
-  for (const layer of doc.layers) if (layer.colorFrom) layer.colorFrom = layerIds.get(layer.colorFrom);
-  for (const layer of doc.layers) if (layer.from) layer.from = layer.from.flatMap((id) => (EDGES.includes(id) ? [id] : layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
-  // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
-  doc.drawings = (Array.isArray(input.drawings) ? input.drawings : []).slice(0, MAX_DRAWINGS).flatMap((drawing) => {
+  for (const layer of all) if (layer.colorFrom) layer.colorFrom = layerIds.get(layer.colorFrom);
+  for (const layer of all) if (layer.from) layer.from = layer.from.flatMap((id) => (EDGES.includes(id) ? [id] : layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
+  // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid; one on a
+  // view kept aside, kept with it.
+  const drawings = [input.drawings, ...panes.map((pane) => pane?.lens?.other?.drawings)].flatMap((list) => (Array.isArray(list) ? list : []));
+  doc.drawings = drawings.slice(0, MAX_DRAWINGS).flatMap((drawing) => {
     const kind = drawing?.kind, layer = layerIds.get(drawing?.layer);
     if (!Object.hasOwn(TOOLS, kind) || !layer || !Array.isArray(drawing.points)) return [];
     const points = drawing.points.slice(0, MAX_STROKE).filter((point) => Array.isArray(point) && point.length === 2 && point.every(Number.isFinite) && Math.abs(point[0]) < 1e11).map(([time, value]) => pointOf(time, value));
@@ -1376,6 +1440,10 @@ function validate(input, keepIds = false) {
       ...(LINES.has(kind) && typeof drawing.label === "string" && labelText(drawing.label) ? { label: labelText(drawing.label), ...(Number.isFinite(drawing.at) ? { at: clamp(drawing.at, 0, 1) } : {}) } : {}),
     }];
   });
+  for (const pane of doc.panes) {
+    const lens = pane.lens, ids = new Set(lens?.other.layers.map((layer) => layer.id));
+    if (lens && doc.drawings.some((drawing) => ids.has(drawing.layer))) (lens.other.drawings = doc.drawings.filter((drawing) => ids.has(drawing.layer))), (doc.drawings = doc.drawings.filter((drawing) => !ids.has(drawing.layer)));
+  }
   return doc;
 }
 
@@ -1710,6 +1778,6 @@ export {
   measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade, openedImages,
   outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renameInPlace,
   renderInterval, renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setMenuOwner,
-  setRange, shareLink, showMenu, shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
-  titleReads, TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
+  setRange, shareLink, showMenu, shownAs, showViews, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval,
+  titleReads, TOO_SMALL, toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, viewsShown, walkMenu,
 };

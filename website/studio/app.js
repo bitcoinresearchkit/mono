@@ -26,11 +26,11 @@ import {
 } from "/studio/format.js";
 import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
-  asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asideLayers, asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
   fittable, FLIP_APART, fromOf, HEAT_GRADIENTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, signedMeasure, stretchResult,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, showView, signedMeasure, stretchResult,
   toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, twoSided, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -133,7 +133,7 @@ import {
 import {
   APART, apartFonts, apartLayout, canvasReadable, cascades, closedAt, closedOwner, contentOf, copyLink, cutFade,
   datedView, dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle,
-  fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf,
+  fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf, showViews,
   linksOf, measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade,
   openedImages, outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renderInterval,
   renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setRange, shareLink, showMenu,
@@ -796,12 +796,13 @@ function chartWindow(doc) {
 function atWindow(doc, to) {
   const now = chartWindow(doc);
   if (!now || now.window === to || !now.offered.includes(to)) return doc;
-  const swap = (/** @type {string} */ name) => now.at.get(name)?.get(to) ?? name;
+  // (A view kept aside (see Lens) at it too: its series, by their own windows, where they're over the chart's.)
+  const swap = (/** @type {string} */ name) => (now.at.get(name) ?? ((its) => (its?.window === now.window ? its.at : undefined))(seriesWindow(name)))?.get(to) ?? name;
   // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
   // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
   // band's "1 day to under 1 week old".)
   const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`), windowSaid(to)).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
-  for (const layer of doc.layers) {
+  for (const layer of [...doc.layers, ...asideLayers(doc)]) {
     if (layer.series) {
       layer.series = swap(layer.series);
       delete layer.path;
@@ -819,6 +820,17 @@ function atWindow(doc, to) {
 
 /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
 function normalize(doc) {
+  // A pane's view kept aside (see Lens), as the one shown is, on its own; none left in it, no lens. The one shown
+  // emptied (its last layer gone), the other in its place, and no lens: nothing lost unsaid.
+  for (const pane of doc.panes) {
+    if (pane.lens && !doc.layers.some((layer) => layer.pane === pane.id)) showView(doc, pane.id, pane.lens.at ? 0 : 1);
+    if (!pane.lens) continue;
+    const { layers, drawings, ...fields } = pane.lens.other, aside = { ...doc, panes: [{ ...fields, id: pane.id }], layers, drawings };
+    normalize(aside);
+    const { id: _id, ...kept } = aside.panes[0];
+    if (aside.layers.length) pane.lens.other = { ...kept, layers: aside.layers, ...(aside.drawings ? { drawings: aside.drawings } : {}) };
+    else delete pane.lens;
+  }
   for (const layer of doc.layers) {
     if (layer.maxInterval && !INTERVAL_ORDER.includes(layer.maxInterval)) delete layer.maxInterval;
     if (!intervalFits(layer.maxInterval, doc.index)) doc.index = /** @type {string} */ (layer.maxInterval);
@@ -939,6 +951,11 @@ function normalize(doc) {
   const seen = new Set();
   for (const layer of doc.layers) {
     if (seen.has(layer.letter)) layer.letter = nextLetter({ ...doc, layers: doc.layers.filter((other) => other !== layer) });
+    seen.add(layer.letter);
+  }
+  // (A view kept aside's letters none of the shown ones': shown, a formula reads what it read.)
+  for (const layer of asideLayers(doc)) {
+    if (seen.has(layer.letter)) layer.letter = nextLetter(doc);
     seen.add(layer.letter);
   }
   const order = new Map(doc.panes.map((pane, i) => [pane.id, i]));
@@ -6997,7 +7014,7 @@ function writeLayers() {
     const layers = chart.layers.filter((layer) => layer.pane === pane.id);
     /** @type {[string, string][]} */
     const rows = [["head:pane", `<div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack, order and average">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="${pane.lens ? "Show as, scale" : "Scale"}, stack, order and average">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
               ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} pane">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(paneShows(chart, pane.id))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
@@ -10529,10 +10546,11 @@ const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run
 /**
  * A chart as a link's fields say to look at it, over what it holds; what they don't say, as `made` opens (none: as it
  * is). A range or dates said, or as made, no view left on it from before.
- * @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look @param {{ index: string, range: string, window?: string }} [made]
+ * @param {Chart} doc @param {ReturnType<typeof linkLookOf>} look @param {{ index: string, range: string, window?: string, show?: string }} [made]
  */
 function takeLinkLook(doc, look, made) {
   doc.range = look.range ?? made?.range ?? doc.range;
+  ((show) => show !== undefined && showViews(doc, show))(look.show ?? made?.show);
   // (A window it doesn't offer, as if it weren't said.)
   const offered = chartWindow(doc)?.offered ?? [], window = (look.window && windowNamed(look.window, offered)) || made?.window;
   if (window) atWindow(doc, window);
