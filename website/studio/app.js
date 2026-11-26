@@ -541,7 +541,7 @@ function followPool(layer) {
  * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
  */
 function seriesWindow(name) {
-  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex((step) => isWindowKey(step) || step === ALL_TIME) : -1;
+  const { steps, i } = windowStep(name);
   if (!steps || i < 0) return null;
   const head = steps.slice(0, i), tail = steps.slice(i + 1), total = steps[i] === ALL_TIME;
   const windows = total && nodeAt([...head, "sum"]) ? [...head, "sum"] : head, holder = windows.at(-1) === "sum" ? windows.slice(0, -1) : windows;
@@ -552,8 +552,17 @@ function seriesWindow(name) {
   if (all) at.set(ALL_TIME, all);
   return { window: steps[i], at };
 }
-/** @param {Chart} doc */
+const windowStep = (/** @type {string} */ name) => ((steps) => ({ steps, i: steps ? steps.findLastIndex((step) => isWindowKey(step) || step === ALL_TIME) : -1 }))(catalogIndex?.get(name)?.split("."));
+/** @param {{ layers: { series?: string, formula?: string }[] }} doc */
 const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [layer.series] : []), ...(layer.formula ? seriesNamed(layer.formula) : [])]);
+/**
+ * Its series, each as its windows' family (any of its windows, all time too, is the same one): what folding a chart's
+ * window away can't change.
+ * @param {{ layers: { series?: string, formula?: string }[] }} doc
+ */
+const windowFamilies = (doc) => JSON.stringify([...new Set(seriesOf(doc).map(windowFamily))].sort());
+// (Its place in the catalog but its window, and the sum it's a window of: a sum's windows and its running total are one.)
+const windowFamily = (/** @type {string} */ name) => ((at) => (at.steps && at.i >= 0 ? at.steps.filter((step, k) => k !== at.i && !(k === at.i - 1 && step === "sum")).join(".") : name))(windowStep(name));
 /**
  * @typedef {{ window: string, offered: string[], at: Map<string, Map<string, string>> }} ChartWindow a chart's
  * window, the windows it offers, shortest first, and each of its windowed series at each of them
@@ -9028,7 +9037,7 @@ export {
   acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
   bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
   cardsSeen, catalogIndex, catalogIntervals, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
-  chartShown, chartSize, CHART_TEXT, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
+  chartShown, chartSize, CHART_TEXT, chartWindow, windowFamilies, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
   cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, crossMoved, css,
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,
   drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours, editChart, edits,

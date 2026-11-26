@@ -7,7 +7,7 @@
 /** @import { Folder } from "/studio/vocabulary.js" */
 import { ICONS } from "/studio/icons.js";
 import { shownStep } from "/studio/words.js";
-import { presets, presetLabels, homeAt, isPreview, chart, emptyYours, library, normalize, previews, home, started, ROUTED, tree, pendingRoute, chartWindow, atWindow, viewed, save, isDeleted, readOnly, rekey, chartAgain, histories, edits, refresh, toast, GROUP_OF, drafts, readPresetList } from "/studio/app.js";
+import { presets, presetLabels, homeAt, isPreview, chart, emptyYours, library, normalize, previews, home, started, ROUTED, tree, pendingRoute, chartWindow, windowFamilies, atWindow, viewed, save, isDeleted, readOnly, rekey, chartAgain, histories, edits, refresh, toast, GROUP_OF, drafts, readPresetList } from "/studio/app.js";
 import { plural } from "/studio/format.js";
 import { hashOf, uid } from "/studio/math.js";
 import { titleOf } from "/studio/looks.js";
@@ -331,14 +331,17 @@ function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = tru
   const lost = among.filter((doc) => presetIndex(doc) < 0 && !pristine(doc) && !isDeleted(doc));
   if (!lost.length || readOnly) return 0;
   const taken = (/** @type {number} */ i) => ((had) => Boolean(had && (presetEdited(had) || had === chart)))(editedPreset(i));
+  for (const doc of lost) normalize(doc);
+  // (Made only of the presets that could show what one lost shows, read from each as written: making each of them in
+  // full is most of a second.)
+  const wanted = new Set(lost.map(windowFamilies));
   /** @type {Map<string, number[]>} */
   const holders = new Map();
-  /** @type {Preset[]} */ (presets).forEach((_, i) => {
-    if (taken(i)) return;
+  /** @type {Preset[]} */ (presets).forEach((preset, i) => {
+    if (!wanted.has(windowFamilies(preset.c)) || taken(i)) return;
     const set = presetShows(freshPreset(i));
     holders.set(set, [...(holders.get(set) ?? []), i]);
   });
-  for (const doc of lost) normalize(doc);
   /** @type {Map<Chart, number>} */
   const to = new Map(), likes = lost.map(likeness);
   for (let pass = 0; pass < (likes[0]?.length ?? 0); pass++) {
