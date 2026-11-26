@@ -1,8 +1,6 @@
 // @ts-check
-// Every showcase's launch from a phone's home screen: each page loads this first in its head (`data-wait`: `bitviewLaunch.ready`).
-// iOS takes the manifest, icon and launch screen from the page it's added from, at that moment.
-// The launch screen is made as the page starts, not once loaded: added to a home screen before then, an app would launch white for good.
-// Launched from a home screen: the same orange from the first frame, so iOS hands over without a flash of white.
+// A showcase's home-screen launch, loaded first in each head (`data-wait`: `bitviewLaunch.ready`).
+// iOS takes the manifest, icon and launch screen from the page when it is added: made as the page starts, else an app added earlier launches white for good.
 (() => {
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
