@@ -8725,7 +8725,8 @@ window.addEventListener("keydown", (event) => document.body.hasAttribute("data-p
 
 async function settle(ms = 60_000) {
   const end = performance.now() + ms, left = () => Math.max(0, end - performance.now()), LATE = Symbol(), late = () => new Promise((done) => setTimeout(() => done(LATE), left()));
-  if ((await Promise.race([navigating, late()])) === LATE || (await Promise.race([document.fonts.ready, late()])) === LATE) throw new Error("The chart is still loading");
+  // (The rest too: a heatmap's drawing is told there, and a chart not yet drawn reaches it before it's read.)
+  if ((await Promise.race([navigating, late()])) === LATE || (await Promise.race([document.fonts.ready, late()])) === LATE || (await Promise.race([loadRest(), late()])) === LATE) throw new Error("The chart is still loading");
   while (home || !chart.layers.length || !settled() || !heatmaps.heatIn()) {
     if (home) throw new Error("No chart is open (Studio shows Home)");
     if (!chart.layers.length) throw new Error("The chart has no layers");
