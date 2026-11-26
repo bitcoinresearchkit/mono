@@ -5,7 +5,7 @@ import {
   placeIndex, Profile, rightBlank, Rows, Scale, Shade,
 } from "/modules/bitview-charts/index.js";
 import { OKLCH } from "/studio/palette.js";
-import { hexToOklch, oklchToHex, pageInk } from "/studio/color.js";
+import { hexToOklch, ofPalette, oklchToHex, pageInk } from "/studio/color.js";
 import { capitalized } from "/studio/words.js";
 import {
   averageFor, bandLit, bubbleRing, buildAsked, buildChart, byBlock, capturing, catalogIndex, catalogIntervals,
@@ -769,7 +769,7 @@ const hexCache = new Map();
 const ink = (color) => {
   const page = pageInk(color);
   if (page) return css(page);
-  if (color.startsWith("#")) return color;
+  if (!ofPalette(color)) return color;
   if (hexCache.size > 500) hexCache.clear();
   if (!hexCache.has(color)) hexCache.set(color, oklchToHex(...shownOklch(color)));
   return hexCache.get(color);

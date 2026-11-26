@@ -253,6 +253,7 @@ const CARDS = {
   trail: { url: "/trail/" },
   stack: { url: "/stack/" },
   compass: { url: "/compass/" },
+  bedrock: { url: "/bedrock/" },
   calendar: { url: "/calendar/" },
   miners: { url: "/miners/" },
   catalog: { url: "/catalog/?series=hashrate" },
@@ -423,6 +424,7 @@ const PICTURES = {
   trail: { url: "/trail/", hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
   stack: { url: "/stack/", cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
   compass: { url: "/compass/", cover: [130, 60, 1088, 680] },
+  bedrock: { url: "/bedrock/", cover: [660, 110, 768, 480] },
   calendar: { url: "/calendar/", cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
   miners: { url: "/miners/", cover: [240, 40, 960, 600] },
 };

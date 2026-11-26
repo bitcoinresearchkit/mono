@@ -2,6 +2,7 @@
 import { Fill, zoneSpans } from "./color.js";
 import { NOISE, firstFrom } from "./timeline.js";
 import { measure } from "./recorder.js";
+import { TextureFill } from "./texture.js";
 
 /** Points a block of a band's fitting extremes. */
 const FIT = 64;
@@ -53,6 +54,8 @@ const outline = {
 };
 
 /** @typedef {{ value: number, color: string, fade?: string | null }} BandZone a fill from a value up (see Band's zones) */
+/** @typedef {import("./texture.js").Texture} Texture */
+/** @typedef {{ color: string, fade?: string | null, texture?: Texture | null }} BandFill a palette's fill: a color, what it fades to, or a texture over it */
 
 export class Band {
   /**
@@ -67,9 +70,12 @@ export class Band {
    * Gradient (see color.js), by height, one fill (see Fill's graded), each height's color fading to `gradientFade`'s
    * there (a gradient as long; none, no fade) as far down the pane as it is; `zones` before it; not a baseline's
    * (`below`: its two sides' colors say which side it's on).
-   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[], zones?: readonly BandZone[] | null, gradient?: import("./color.js").Gradient | null, gradientFade?: import("./color.js").Gradient | null }} options
+   * `texture`: its color the ground of a texture's marks (see texture.js), anchored to the data; a palette's fill may
+   * have its own. A textured fill doesn't fade (its `fade` unused), and a baseline, zones and a gradient take none.
+   * `hold`: its last point's edges held on past it to the plot's right edge (ground that goes on past the latest day).
+   * @param {{ lower?: Float64Array, upper: Float64Array, base?: number, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: BandFill[], zones?: readonly BandZone[] | null, gradient?: import("./color.js").Gradient | null, gradientFade?: import("./color.js").Gradient | null, texture?: Texture | null, hold?: boolean }} options
    */
-  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [], zones = null, gradient = null, gradientFade = null }) {
+  constructor({ lower, upper, base = 0, color = "rgba(247, 248, 248, 0.2)", fade = null, below = null, belowFade = null, to = "base", steps = false, curve = false, colors = null, palette = [], zones = null, gradient = null, gradientFade = null, texture = null, hold = false }) {
     /** @type {Float64Array} */
     this.lower = lower ?? new Float64Array(upper.length).fill(base);
     this.base = base;
@@ -101,6 +107,14 @@ export class Band {
     (this.gradient = gradient), (this.gradientFade = gradientFade);
     // (Its gradient's fill, made again only as it, its fade or its scale change.)
     this.gradedFill = new Fill();
+    /** Its color the ground of these marks, or none. @type {Texture | null} */
+    this.texture = texture;
+    // (Its texture's pattern and its palette's, each made once a texture, color and density.)
+    this.textureFill = new TextureFill();
+    /** @type {TextureFill[]} */
+    this.textureFills = [];
+    /** Its last point's edges held on to the plot's right edge. */
+    this.hold = hold;
     /** How it widens its scale's range in its place (a page's own reading of it), none: by its extent. @type {((a: number, b: number, positive: boolean, out: Float64Array) => void) | null} */
     this.fit = null;
     /** @type {Float64Array} */
@@ -190,9 +204,9 @@ export class Band {
   /**
    * Its edges, color or base changed: a lower edge given, a band; `lower: null`, an area again (filled to its base, or
    * `to` the pane's "top" or "foot").
-   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: { color: string, fade?: string | null }[], zones?: readonly BandZone[] | null, gradient?: import("./color.js").Gradient | null, gradientFade?: import("./color.js").Gradient | null }} change
+   * @param {{ lower?: Float64Array | null, upper?: Float64Array, color?: string, fade?: string | null, below?: string | null, belowFade?: string | null, base?: number, to?: "base" | "top" | "foot", steps?: boolean, curve?: boolean, colors?: Uint8Array | Uint16Array | null, palette?: BandFill[], zones?: readonly BandZone[] | null, gradient?: import("./color.js").Gradient | null, gradientFade?: import("./color.js").Gradient | null, texture?: Texture | null }} change
    */
-  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve, colors = this.colors, palette = this.palette, zones = this.zones, gradient = this.gradient, gradientFade = this.gradientFade }) {
+  set({ lower, upper = this.upper, color = this.color, fade = this.fade, below = this.below, belowFade = this.belowFade, base = this.base, to = this.to, steps = this.steps, curve = this.curve, colors = this.colors, palette = this.palette, zones = this.zones, gradient = this.gradient, gradientFade = this.gradientFade, texture = this.texture }) {
     this.version++;
     const wasArea = this.area;
     if (lower === null) this.area = true;
@@ -203,7 +217,7 @@ export class Band {
     this.lower = lower ?? (this.area ? (kept ? this.lower : new Float64Array(upper.length).fill(base)) : this.lower);
     (this.upper = upper), (this.color = color), (this.below = below), (this.fade = fade), (this.belowFade = belowFade), (this.to = to), (this.steps = steps), (this.curve = curve), (this.colors = colors), (this.palette = palette);
     this.zones = zones && zones.length ? zones : null;
-    (this.gradient = gradient), (this.gradientFade = gradientFade);
+    (this.gradient = gradient), (this.gradientFade = gradientFade), (this.texture = texture);
   }
 
   /**
@@ -276,9 +290,9 @@ export class Band {
   /**
    * Filled on `g` (CSS pixels) from x `x0` to `x1` of the plot.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1
+   * @param {number} x0 @param {number} x1 @param {number} dpr
    */
-  draw(g, time, scale, x0, x1) {
+  draw(g, time, scale, x0, x1, dpr) {
     if (this.zones && !this.below) {
       // (By its zones: each part of the pane a zone holds, its fill clipped to it, fading over the pane as a whole.)
       const zones = this.zones, spans = zoneSpans(zones, scale, scale.height, this.spans);
@@ -297,8 +311,11 @@ export class Band {
     if (!this.below) {
       // (Colored point by point: a fill a color, its segments in it.)
       const palette = this.colors ? this.palette : [];
-      for (let k = 0; k < palette.length; k++) this.#fill(g, time, scale, x0, x1, (this.fills[k] ??= new Fill()).style(g, palette[k].color, palette[k].fade ?? null, 0, scale.height), k);
-      if (!palette.length) this.#fill(g, time, scale, x0, x1, this.overFill.style(g, this.color, this.fade, 0, scale.height), -1);
+      for (let k = 0; k < palette.length; k++) {
+        const { color, fade, texture } = palette[k];
+        this.#fill(g, time, scale, x0, x1, texture ? (this.textureFills[k] ??= new TextureFill()).style(g, texture, color, dpr, time, scale) : (this.fills[k] ??= new Fill()).style(g, color, fade ?? null, 0, scale.height), k);
+      }
+      if (!palette.length) this.#fill(g, time, scale, x0, x1, this.texture ? this.textureFill.style(g, this.texture, this.color, dpr, time, scale) : this.overFill.style(g, this.color, this.fade, 0, scale.height), -1);
       return;
     }
     // (A baseline: over its base in its color, under it in the other; the same outline filled twice, clipped at it (at
@@ -324,7 +341,7 @@ export class Band {
    * Its outline from x `x0` to `x1` filled in `color` (a gradient's too): all of it, or (`pass`, an index into its
    * palette) its segments colored so, each to the point after it.
    * @param {CanvasRenderingContext2D} g @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale
-   * @param {number} x0 @param {number} x1 @param {string | CanvasGradient} color @param {number} pass
+   * @param {number} x0 @param {number} x1 @param {string | CanvasGradient | CanvasPattern} color @param {number} pass
    */
   #fill(g, time, scale, x0, x1, color, pass) {
     const lower = this.lower, upper = this.upper, n = Math.min(lower.length, upper.length), log = scale.mode === "log", colors = pass >= 0 ? this.colors : null;
@@ -401,6 +418,15 @@ export class Band {
         }
       }
       if (at >= 0) this.#put(time.x(at), scale.y(upper[at]), toEdge ? edgeY : scale.y(lower[at]), !colors || colors[at] === pass);
+    }
+    // (Held: its last point's edges on to the plot's right, from it or from the strip's left where it's out of the strip.)
+    if (this.hold) {
+      const l = n - 1, ll = toEdge ? upper[l] : lower[l], lu = upper[l], lx = time.x(l);
+      if (lx < x1 && (log ? ll > 0 && lu > 0 : ll === ll && lu === lu) && (!colors || colors[l] === pass)) {
+        const up = scale.y(lu), down = toEdge ? edgeY : scale.y(ll);
+        if (!outline.count) outline.add(Math.max(lx, x0 - 1), up, down);
+        outline.add(x1 + 1, up, down);
+      }
     }
     outline.close();
     g.fill();

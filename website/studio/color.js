@@ -22,6 +22,12 @@ const PAGE_INKS = /** @type {Record<string, string>} */ ({ ink: "--ink", soft: "
 /** The page's custom property a color is, if it's one of the page's inks. @param {string} color */
 const pageInk = (color) => (Object.hasOwn(PAGE_INKS, color) ? PAGE_INKS[color] : undefined);
 const isNamed = (color) => Boolean(pageInk(color)) || Object.hasOwn(OKLCH, color);
+/**
+ * Whether a color is the palette's: one of its names, or an `oklch(…)` mixed from them (palette.js's ramps, a gradient's
+ * steps). The palette's follow the theme (see the page's shownOklch); any other color (a hex) is drawn as given, never
+ * touched. @param {string} color
+ */
+const ofPalette = (color) => isNamed(color) || OKLCH_TEXT.test(color);
 /** Whether a value is a color a layer can have (checked on everything read back or imported). */
 const isColor = (color) => typeof color === "string" && (isNamed(color) || /^#[0-9a-f]{6}$/i.test(color) || (OKLCH_TEXT.test(color) && Number(color.split(" ")[2].slice(0, -1)) <= 360));
 /** In OKLCH, names follow hue first (hue weighted by chroma, so a near-gray's hardly matters). */
@@ -79,6 +85,6 @@ function hexToOklch(hex) {
 }
 
 export {
-  gamma, hexToOklch, inside, isColor, isNamed, pageInk, limit, maxChroma, nameDistance, oklchToHex, oklchToLinear, onCurve,
+  gamma, hexToOklch, inside, isColor, isNamed, ofPalette, pageInk, limit, maxChroma, nameDistance, oklchToHex, oklchToLinear, onCurve,
   PALETTE, SWATCHES, TONE, warmLift,
 };

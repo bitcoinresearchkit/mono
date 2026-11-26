@@ -6,7 +6,7 @@ import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { hexToOklch, nameDistance, onCurve, pageInk, SWATCHES, TONE, warmLift } from "/studio/color.js";
+import { hexToOklch, nameDistance, ofPalette, onCurve, pageInk, SWATCHES, TONE, warmLift } from "/studio/color.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
@@ -299,17 +299,16 @@ function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @
 }
 const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
 /**
- * A color's lightness, chroma and hue as the theme shows it. Bitview's (its names, and what palette.js mixes from
- * them, an `oklch(…)`) on the dark as they are; on the light, their lightness turned over along one curve: white as
- * black and black as white, Bitview's band (0.5 to 0.75) narrowed and raised (0.64 to 0.58), so yellow, amber and lime
- * deepen enough to read on white and indigo, violet lighten a little, each still itself; the warm hues a little less
- * deep than the curve (see warmLift), else they'd go brown. A person's own (a hex, as every way of giving one keeps
- * it) exactly as picked, in either theme. (The page's ink is its own: white or black.)
+ * A color's lightness, chroma and hue as the theme shows it. The palette's (see ofPalette) on the dark as they are; on
+ * the light, their lightness turned over along one curve: white as black and black as white, Bitview's band (0.5 to
+ * 0.75) narrowed and raised (0.64 to 0.58), so yellow, amber and lime deepen enough to read on white and indigo, violet
+ * lighten a little, each still itself; the warm hues a little less deep than the curve (see warmLift), else they'd go
+ * brown. Any other color as given, in either theme. (The page's ink is its own: white or black.)
  */
 let light = false;
 function shownOklch(/** @type {string} */ color) {
   const [l, c, h] = oklchOf(color);
-  return /** @type {[number, number, number]} */ (light && !pageInk(color) && !color.startsWith("#") ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
+  return /** @type {[number, number, number]} */ (light && !pageInk(color) && ofPalette(color) ? [onCurve(TONE, l) + warmLift(c, h), c, h] : [l, c, h]);
 }
 /**
  * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
@@ -1478,7 +1477,7 @@ function savePrefs() {
  */
 const THEMES = /** @type {const} */ ([
   ["system", "System", "computer", "As the device is set, and as it changes."],
-  ["light", "Light", "sun", "Light surfaces; Bitview's colors deepened to read on white, yours as picked."],
+  ["light", "Light", "sun", "Light surfaces; the palette's colors deepened to read on white, any other as given."],
   ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are."],
 ]);
 const deviceLight = matchMedia(MEDIA.light);

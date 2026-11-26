@@ -53,7 +53,7 @@
  */
 
 /** @import { Facts } from "./facts.js" */
-import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
+import { HOLDER_COLORS, LANDSCAPE, SKY, holderColor, recencyColor, wheelColor } from "./palette.js";
 import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 
@@ -133,10 +133,6 @@ const sighashName = (/** @type {string} */ key) => key.replace(/^(\w+?)(AnyoneCa
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
-/** Bedrock's landscape colors, top to bottom: the sky over the all-time high, then water, soil and bedrock, as the
- * Bedrock model first drew them. */
-const SKY = "#58bbc4";
-const LANDSCAPE = ["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a54b", "#b68134", "#965a2f", "#714331", "#4b342e", "#83878a", "#666a6e", "#4b4f53", "#303438", "#181b1e"];
 /** The windows' colors, short to long: cool to warm around the wheel, the usual four (24 hours to 1 year) in blues. */
 /**
  * The chain's prices, each its own color wherever it's drawn (a chart of its own, among the others, a meter's
@@ -1570,8 +1566,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // (Each floor, its modes' over the price: how far weighting moves it.)
       section("Compare", entries(entries(t.bedrock)[0][1].floor).map(([key]) => chart(`${percentileLabel(percentile(key))} floor`, `Bedrock ${percentileLabel(percentile(key))} floor by mode`, [price(), ...entries(t.bedrock).map(([mode, node], i, all) => series(node.floor[key], modeName(mode), { color: ramp(all.length)[i] }))]))),
       ...entries(t.bedrock).map(([mode, node]) => {
-        // The Bedrock landscape, top to bottom: sky over the all-time high, water from it to the median cost basis above
-        // the floor, soil down to the first floor, bedrock through the floors, the deepest down to the bottom.
+        // The Bedrock landscape, top to bottom: water over the all-time high and from it to the median cost basis above
+        // the floor, sand down to the first floor, rock through the floors, the deepest down to the bottom.
         const edges = [
           [m.ath.high, "All-time high"],
           ...entries(node.costBasisAboveP95Floor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
@@ -1588,7 +1584,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
             { cloud: [letter(1), "top"], label: "Above the all-time high", color: SKY, opacity: 1 },
             // (Under it, one cloud by its edges: each band in the color of the edge over it, down to the pane's foot; its
             // edges one legend item, their colors its key.)
-            { cloud: [...edges.map((_, i) => letter(i + 1)), "bottom"], label: "Water, soil and bedrock", color: LANDSCAPE[0], byLayers: true, opacity: 1 },
+            { cloud: [...edges.map((_, i) => letter(i + 1)), "bottom"], label: "Water, sand and rock", color: LANDSCAPE[0], byLayers: true, opacity: 1 },
           ]),
           chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
             ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
