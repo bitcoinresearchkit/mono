@@ -24,6 +24,9 @@ const VALUES = new Set(["date", "year"]);
 const COMPARES = new Set(["<", ">", "<=", ">=", "==", "!="]);
 const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "shift", "diff", "flow", "perday", "abs", "macd", "macd_signal", "macd_hist", "when"]);
 const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
+// Read for how a series moves over time: of a running total, what it gained; a window's sum in its place would mean
+// another thing.
+const READS_CHANGE = new Set(["change", "diff", "flow", "perday"]);
 const UNSHARED = new Set(["halving", "shift", "rebase"]);
 
 /** @typedef {{ mean: Vector, variance: Vector, count: Vector, total: Vector }} WindowStats */
@@ -624,7 +627,7 @@ function refsOf(node, kind = "ref", into = new Set()) {
   }
   else if (node.k === "neg") refsOf(node.a, kind, into);
   else if (node.k === "bin") (refsOf(node.a, kind, into), refsOf(node.b, kind, into));
-  else if (node.k === "call") (kind === "call" && into.add(node.f), node.args.forEach((arg) => refsOf(arg, kind, into)));
+  else if (node.k === "call") (kind === "call" && into.add(node.f), node.args.forEach((arg) => refsOf(arg, kind === "change" && READS_CHANGE.has(node.f) ? "series" : kind, into)));
   return into;
 }
 /** @param {any} node @returns {boolean} */

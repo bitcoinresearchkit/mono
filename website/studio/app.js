@@ -561,8 +561,9 @@ const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [lay
 /** @type {Map<string, ChartWindow | null>} */
 const windowsFound = new Map();
 /**
- * One window every windowed series is over, else null. The catalog is indexed first so a chart opens over the right
- * series, except for a chart whose names hold no window key (`_<key>`): no walk to learn it has none.
+ * One window every windowed series is over, else null; none where one is read for its change (READS_CHANGE). The
+ * catalog is indexed first so a chart opens over the right series, except for a chart whose names hold no window key
+ * (`_<key>`): no walk to learn it has none.
  * @param {Chart} doc @returns {ChartWindow | null}
  */
 function chartWindow(doc) {
@@ -574,11 +575,11 @@ function chartWindow(doc) {
     if (!tree) return null;
     indexCatalog();
     let window = "", offered = /** @type {string[] | null} */ (null);
-    const at = new Map();
+    const at = new Map(), changed = new Set(doc.layers.flatMap((layer) => (layer.formula ? seriesNamed(layer.formula, "change") : [])));
     for (const name of names) {
       const its = seriesWindow(name);
       if (!its) continue;
-      if (window && its.window !== window) {
+      if (changed.has(name) || (window && its.window !== window)) {
         offered = null;
         break;
       }
