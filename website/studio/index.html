@@ -1711,6 +1711,11 @@
         > .cap:focus-visible {
           opacity: 1;
         }
+
+        /* (Hidden with its layer: that layer's eye, faded as the row's mark is.) */
+        > .cap.by > * {
+          opacity: 0.4;
+        }
       }
 
       /* Focused by keys, the ring around the row (its corners, its eye), not its main part alone. */
