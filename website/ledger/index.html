@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Ledger" data-color="#f7f1e3"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -107,11 +106,9 @@
       }
 
       :root {
-        /* The desk, then the paper and its inks: the paper stays paper in the dark, lit by a lamp. */
         --desk: #e8e1d1;
         --desk-ink: #3d372c;
         --desk-soft: #8a8170;
-        /* (The desk's small print, darker than the soft ink so it reads on the light desk.) */
         --desk-note: #565046;
         --paper: #f7f1e3;
         --paper-edge: #e2d8c2;
@@ -123,7 +120,6 @@
         --gain: #2a6a43;
         --loss: #a5302b;
         --note: #a5302b;
-        /* (The ribbon that marks the place on the history: the margin's red, brighter on a dark desk.) */
         --ribbon: var(--note);
         --mono: Lilex, "Lilex Fallback", ui-monospace, monospace;
         --serif: Instrument, Georgia, serif;
@@ -182,7 +178,6 @@
         color: inherit;
       }
 
-      /* The bar: the brand, the open pages' dates, a way to a day. */
       .bar {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -242,7 +237,6 @@
         opacity: 0.5;
       }
 
-      /* The desk: the book scaled to fit, its pages turned by the corner. */
       .desk {
         position: relative;
         min-height: 0;
@@ -252,7 +246,6 @@
       .holder {
         position: relative;
       }
-      /* (Unseen until its first spread is set, so it doesn't jump from nothing to a book.) */
       .holder:not([data-sized]) {
         visibility: hidden;
       }
@@ -281,7 +274,6 @@
       .page[hidden] {
         display: none;
       }
-      /* The paper's grain, and the shade toward the spine on each side. */
       .page::before {
         content: "";
         position: absolute;
@@ -334,7 +326,6 @@
         overflow: visible;
         pointer-events: none;
       }
-      /* The page edges: as thick on each side as the days before and after the open pages. */
       .edges {
         position: absolute;
         top: 3px;
@@ -351,7 +342,6 @@
           0 24px 60px -20px rgb(40 25 0 / 0.45);
       }
 
-      /* A page's writing. */
       .sheet {
         position: absolute;
         inset: 0;
@@ -359,7 +349,6 @@
         color: var(--ink);
       }
       .sheet::before {
-        /* the red double margin rule */
         content: "";
         position: absolute;
         top: 0;
@@ -493,7 +482,6 @@
         background: repeating-linear-gradient(transparent 0 calc(var(--row) - 1px), var(--rule) calc(var(--row) - 1px) var(--row));
       }
 
-      /* The title page, before the first day. */
       .title {
         display: grid;
         align-content: center;
@@ -555,7 +543,6 @@
         text-align: center;
       }
 
-      /* Under the book: the whole history as a ribbon to jump along. */
       .foot {
         display: grid;
         gap: 6px;
@@ -581,7 +568,7 @@
         appearance: none;
         cursor: pointer;
       }
-      /* (The track's faintness in its own color: an opacity here would fade the ribbon on it too.) */
+      /* The track's faintness in its own color: an opacity here would fade the ribbon on it too. */
       input[type="range"]::-webkit-slider-runnable-track {
         height: 2px;
         background: color-mix(in srgb, var(--desk-soft) 60%, transparent);
@@ -643,7 +630,6 @@
         .go button {
           position: relative;
         }
-        /* (A touch's reach: the visible controls stay as they are.) */
         .brand::after {
           content: "";
           position: absolute;
@@ -716,7 +702,6 @@
     </footer>
     <script type="module">
       import { reduced } from "/modules/motion/reduced.js";
-      // ---------------------------------------------------------------- Reads.
       const get = async (path) => {
         const r = await fetch(`/api${path}`);
         if (!r.ok) throw new Error(`${r.status} ${path}`);
@@ -729,7 +714,6 @@
         return () => (running ??= read().finally(() => (running = null)));
       };
 
-      // ---------------------------------------------------------------- Numbers, as a clerk would write them.
       const nf = (max, min = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: max, minimumFractionDigits: min });
       const int = (n) => nf(0).format(n);
       const coins = (n) => (n >= 1000 ? int(n) : n >= 10 ? nf(1, 1).format(n) : n > 0 && n < 0.005 ? "<0.01" : nf(2, 2).format(n));
@@ -742,13 +726,11 @@
         if (n >= 1e3) return `$${nf(n >= 1e5 ? 0 : 1).format(n / 1e3)}K`;
         return `$${int(n)}`;
       };
-      // A price as written: in whole dollars, with its cents while it's under a hundred.
       const dollars = (n) => (n < 100 ? `$${nf(2, 2).format(n)}` : `$${int(n)}`);
       const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
       const clock = (t) => new Date(t * 1000).toISOString().slice(11, 16);
       const ORDINAL = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth"];
 
-      // ---------------------------------------------------------------- Days.
       // Day index 0 is January 1, 2009 (UTC); the genesis block's day is index 2, the ledger's first.
       const DAY0 = 1230768000;
       const FIRST = 2;
@@ -759,21 +741,19 @@
         new Date(dayTime(d)).toLocaleDateString("en-US", { month: "long", day: "numeric", ...(year ? { year: "numeric" } : {}), timeZone: "UTC" });
       const today = () => Math.floor((Date.now() / 1000 - DAY0) / 86400);
       const iso = (d) => new Date(dayTime(d)).toISOString().slice(0, 10);
-      // A YYYY-MM-DD date as a day index, or null for anything that isn't a real date.
       const parseDay = (text) => {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(text ?? "")) return null;
         const t = Date.parse(`${text}T00:00:00Z`);
         return Number.isFinite(t) && new Date(t).toISOString().slice(0, 10) === text ? Math.floor((t / 1000 - DAY0) / 86400) : null;
       };
-      let lastDay = today(); // the book's last day, moved on by a refresh
+      let lastDay = today();
       const clampDay = (d) => Math.max(FIRST, Math.min(lastDay, d));
       let tip = 0;
       let pools = {};
 
-      // A day's entries: each block, its time and miner, what it carried and what its spends realized.
       const SERIES = ["timestamp", "block_pool", "tx_count", "transfer_volume", "fees", "subsidy", "realized_profit", "realized_loss", "coindays_destroyed"];
-      const days = new Map(); // the reads, by day
-      const ready = new Map(); // what's been read, by day
+      const days = new Map();
+      const ready = new Map();
       const readDay = (d) => {
         if (!days.has(d)) {
           const read = load(d).then(
@@ -814,7 +794,6 @@
             cdd: cdd[i],
           }));
         }
-        // Margin notes: what the chain itself marks on a day.
         if (h0 === 0 && h1 > 0) day.notes.push("Block 0, the genesis block: 50 new coins that can never be spent.");
         for (let h = Math.ceil(Math.max(h0, 1) / 210000) * 210000; h < h1; h += 210000)
           day.notes.push(`Block ${int(h)}, the ${ORDINAL[h / 210000 - 1]} halving: new coins per block fall from ${nf(8).format(50 / 2 ** (h / 210000 - 1))} to ${nf(8).format(50 / 2 ** (h / 210000))}.`);
@@ -829,9 +808,6 @@
         return day;
       }
 
-      // ---------------------------------------------------------------- The page, fitted to the screen.
-      // Pages aren't drawn at one size and shrunk: a page is as big as the desk allows, holds as many lines as fit
-      // it, and the columns its width has room for, the least needed left out first.
       const $ = (id) => document.getElementById(id);
       const mode = { single: false, W: 0, H: 0, rows: 0, columns: [], content: 0 };
       const COLUMNS = [
@@ -854,7 +830,6 @@
           ? { top: 26, left: 44, right: 18, bottom: 20, row: 21, head1: 34, head2: 30, date: 22 }
           : { top: 36, left: 64, right: 32, bottom: 28, row: 22, head1: 44, head2: 36, date: 30 };
         const content = W - s.left - s.right;
-        // The columns, in the order of need, while they fit; shown in their own order.
         let used = 0;
         const keep = new Set();
         for (const key of NEED) {
@@ -887,12 +862,7 @@
         parts.clear();
       }
 
-      // ---------------------------------------------------------------- Pages.
-      // A page is the cover's inside, the title, a part of a day, or the blank page after today. A day starts on a
-      // page of its own and runs on over as many as its blocks take: each part but the last carried forward at its
-      // foot, each but the first brought forward at its head, the last totalled, its margin notes under the total.
       const parts = new Map();
-      // The lines a day's last page needs after its blocks: its total, its notes (by their length), today's pencil line.
       function tail(day) {
         if (!day.blocks.length) return Math.ceil((day.notes.length * 20 + 40) / mode.style.row) + 2;
         const lines = day.notes.reduce((n, text) => n + Math.ceil((text.length * 6.6) / mode.content), 0);
@@ -922,7 +892,7 @@
       const END = { t: "end" };
       const dayPage = (d, k) => ({ t: "day", d, k });
       const key = (p) => (p.t === "day" ? `${p.d}:${p.k}` : p.t);
-      // The pages either side: null where the book ends, undefined where a day isn't read yet (it's asked for).
+      // null where the book ends, undefined where a day isn't read yet (it's asked for).
       const missing = new Set();
       const lack = (d) => (missing.add(d), undefined);
       function nextPage(p) {
@@ -946,7 +916,6 @@
         const day = ready.get(p.d - 1);
         return day ? dayPage(p.d - 1, partsOf(day).length - 1) : lack(p.d - 1);
       }
-      // Spreads: two pages side by side ({ left, right }), one on a phone ({ right }).
       let spread = { left: COVER, right: TITLE };
       function neighbor(s, dir) {
         if (mode.single) {
@@ -965,13 +934,11 @@
         const left = prevPage(right);
         return left === undefined ? undefined : { left: left ?? COVER, right };
       }
-      // Where a spread is in the history: its first day, the line it starts at.
       const firstDay = (s) => [s.left, s.right].find((p) => p?.t === "day");
       const anchorOf = (s) => {
         const p = firstDay(s);
         return p ? { d: p.d, i: ready.has(p.d) ? partsOf(ready.get(p.d))[p.k]?.[0] ?? 0 : 0 } : { d: null };
       };
-      // A spread opening on a line of a day (its first by default), today's last, or the beginning.
       function spreadAt({ d, i = 0 }) {
         if (d === null) return mode.single ? { right: TITLE } : { left: COVER, right: TITLE };
         const day = ready.get(d);
@@ -989,7 +956,6 @@
         const left = prevPage(last);
         return left === undefined ? undefined : { left: left ?? COVER, right: last };
       }
-      // A spread worked out once the days it needs are read: what's missing is read, then it's worked out again.
       async function resolve(compute) {
         for (let tries = 0; tries < 6; tries++) {
           missing.clear();
@@ -1000,7 +966,6 @@
         return null;
       }
 
-      // ---------------------------------------------------------------- Writing a page.
       const sumRow = (label, sums, cls) => {
         const lead = mode.columns.filter((c) => ["height", "time", "pool"].includes(c.key)).length;
         const cells = mode.columns
@@ -1009,7 +974,6 @@
         return `<tr class="${cls}"><td colspan="${lead}">${label}</td>${cells.join("")}</tr>`;
       };
       const figure = (k, v) => (k === "txs" ? int(v) : k === "moved" ? coins(v) : k === "fees" ? fee(v) : "");
-      // A dollar column: its ink where there's an amount, a pencilled dash where there's none (before any price).
       const money = (n, ink) => (n ? `<td class="${ink}">${usd(n)}</td>` : `<td class="none">—</td>`);
       const entry = (b) =>
         `<tr>${mode.columns
@@ -1072,8 +1036,6 @@
           <table>${columnsHTML()}<tbody>${rows.join("")}</tbody></table>
           ${last ? `<ul class="notes">${day.notes.map((n) => `<li>${n}</li>`).join("")}</ul>` : ""}</div>`;
       }
-      // A page element made to show page p (a ghost: the back of a page, its ink showing through); a page whose day
-      // is still being read is written again once it is, if it's still the page shown.
       let writes = 0;
       function write(el, p, { ghost = false } = {}) {
         const w = String(++writes);
@@ -1088,14 +1050,12 @@
           );
       }
       const matrix = (el, [a, b, c, d, e, f]) => (el.style.transform = `matrix(${a},${b},${c},${d},${e},${f})`);
-      // A page element put on a side of the spine, showing page p: a left page shaded toward its right, and back.
       function place(el, p, left, options) {
         write(el, p, options);
         el.classList.toggle("verso", left);
         matrix(el, [1, 0, 0, 1, left ? -mode.W : 0, 0]);
       }
 
-      // ---------------------------------------------------------------- Showing a spread.
       function show(s) {
         spread = s;
         flip = null;
@@ -1113,7 +1073,6 @@
         const first = firstDay(s);
         if (!scrubbing) $("ribbon").value = first ? first.d : FIRST;
         history.replaceState(null, "", first ? `?day=${iso(first.d)}` : location.pathname);
-        // The days a turn away read ahead, so a turn shows them written.
         resolve(() => neighbor(spread, 1)).catch(() => {});
         resolve(() => neighbor(spread, -1)).catch(() => {});
       }
@@ -1128,7 +1087,6 @@
               : `${shortDay(ds[0], false)} – ${shortDay(ds[1])}`;
         $("day").value = ds.length ? iso(ds.at(-1)) : "";
       }
-      // The page edges: as thick on each side as the history before and after the open pages.
       function edges() {
         const p = firstDay(spread);
         const f = p ? (p.d - FIRST) / Math.max(1, lastDay - FIRST) : 0;
@@ -1139,21 +1097,13 @@
         $("holder").dataset.sized = "";
       }
 
-      // ---------------------------------------------------------------- The turn.
-      // A leaf turns about the spine. Its geometry is worked in the leaf's own frame: its spine at x = 0, its outer edge
-      // at x = W; on the page, x is that times `frame` (+1 the right leaf, turned forward; -1 the left leaf, turned
-      // back). Its corner C is pulled to P; the paper folds along the line halfway between them, at right angles to
-      // CP. What lies past the fold turns over: its back, mirrored across the fold, is the flap; under it shows the page
-      // beneath. A turn has two ends, the corner home (C) and the corner landed across the spine (x = -W), and knows
-      // which spread each one leaves open. On a phone, with no left page to take, a turn back is the page before
-      // brought back: a forward turn of it, from its landed end home.
+      // A leaf's geometry is in its own frame: spine at x = 0, outer edge at x = W; `frame` is +1 the right leaf, -1 the left.
       let flip = null;
       let peek = null; // "forward" or "back": a corner lifted under a mouse, not yet taken
       const clampP = (P, C) => {
         const W = mode.W;
         const H = mode.H;
-        // The paper can't leave the spine: the corner stays within W of the spine's end on its side, and within the
-        // diagonal of the other end.
+        // The paper can't leave the spine: the corner stays within W of the spine's end on its side, and the diagonal of the other.
         const near = { x: 0, y: C.y };
         const far = { x: 0, y: C.y === 0 ? H : 0 };
         const limit = (Q, S, r) => {
@@ -1166,7 +1116,6 @@
         Q = limit(Q, far, Math.hypot(W, H));
         return limit(Q, near, W);
       };
-      // The leaf's rectangle cut by the fold: the part on the spine's side, or the part past the fold.
       function cut(M, n, keepSpineSide) {
         const W = mode.W;
         const H = mode.H;
@@ -1194,9 +1143,7 @@
       const poly = (pts) => (pts.length ? `polygon(${pts.map(([x, y]) => `${x}px ${y}px`).join(",")})` : "polygon(0 0)");
       const points = (pts) => pts.map(([x, y]) => `${x},${y}`).join(" ");
 
-      // How a turn goes, by its direction: the frame it's worked in, the spread it starts from (its corner home), the
-      // spread it lands on, the end it's played to, and where its corner starts. Null where the book ends there,
-      // undefined while the pages it needs are being read.
+      // null where the book ends there, undefined while the pages it needs are being read.
       function plan(dir) {
         const other = neighbor(spread, dir);
         if (!other) return other;
@@ -1246,10 +1193,8 @@
         const M = { x: (P.x + C.x) / 2, y: (P.y + C.y) / 2 };
         const kept = cut(M, n, true);
         const gone = cut(M, n, false);
-        // Each element's own x for the leaf's x: the right leaf's own; the left leaf's measured from its outer edge.
         $("p-front").style.clipPath = poly(kept.map(([x, y]) => [frame > 0 ? x : W - x, y]));
-        // The flap: the back's own point (u, y) is the leaf's (W - u, y) turned forward, its (u, y) turned back,
-        // mirrored across the fold, then put on the page by the frame.
+        // The flap: the back's point (u, y) is the leaf's (W - u, y) turned forward, (u, y) turned back, mirrored across the fold.
         const r00 = 1 - 2 * n.x * n.x;
         const r01 = -2 * n.x * n.y;
         const r11 = 1 - 2 * n.y * n.y;
@@ -1259,7 +1204,6 @@
           frame > 0 ? [-r00, -r01, r01, r11, r00 * W + mn * n.x, r01 * W + mn * n.y] : [-r00, r01, -r01, r11, -mn * n.x, mn * n.y],
         );
         $("p-back").style.clipPath = poly(gone.map(([x, y]) => [frame > 0 ? W - x : x, y]));
-        // The shade: cast on the page beneath, and the curl's light along the flap, both from the fold, on the page.
         const reflect = ([x, y]) => {
           const s = 2 * ((x - M.x) * n.x + (y - M.y) * n.y);
           return [x - s * n.x, y - s * n.y];
@@ -1280,9 +1224,7 @@
         $("curl").setAttribute("points", points(gone.map(reflect).map(onPage)));
       }
 
-      // ---------------------------------------------------------------- Turning, one at a time.
-      // Every turn and every jump takes a new generation: a turn's frames and its landing count only while it's the
-      // latest, so a jump (Home, End, Today, the ribbon, a date) ends whatever turn there is, where it stands.
+      // Every turn and jump takes a new generation: frames and landing count only while it's the latest.
       const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
       let gen = 0;
       let busy = false;
@@ -1290,8 +1232,6 @@
       let hand = null;
       let pendingLayout = false;
       const endAt = (name) => (name === "C" ? { ...flip.C } : { x: -mode.W, y: flip.C.y });
-      // Moving the corner over time to one of its ends, along a gentle lift (under reduced motion the page is just there,
-      // turned: the curl is the motion; a dragged page, moved by the hand, still follows it).
       let speed = 1;
       function travel(name, ms, lift, g) {
         const start = { ...flip.P };
@@ -1312,9 +1252,7 @@
           requestAnimationFrame(step);
         });
       }
-      // One thing at a time owns the book: a turn, a dragged page let go, a jump (its reading too), a riffle. Each takes
-      // it as it starts (a new generation: whatever was going on stops where it is) and gives it back through finish,
-      // where a layout or a refresh asked for meanwhile is made, and a key pressed meanwhile turns on.
+      // One thing at a time owns the book (turn, dragged page, jump, riffle); it gives it back through finish.
       let pendingRefresh = false;
       function take() {
         busy = true;
@@ -1351,12 +1289,9 @@
         } catch {}
         if (g === gen) finish(s);
       }
-      // A leaf left mid-turn by whatever takes the book next is put down on the end it's nearer.
       const putDown = () => {
         if (flip) spread = flip.ends[flip.P.x < 0 ? "landing" : "C"];
       };
-      // To a spread worked out once its days are read: by a few quick leaves toward it (more the farther it is), or
-      // at once (a layout, a refresh).
       const dayOf = (s) => firstDay(s)?.d ?? FIRST - 1;
       async function jump(compute, { riffle = false } = {}) {
         putDown();
@@ -1393,7 +1328,6 @@
         }
         finish(s);
       }
-      // A dragged page let go: on to the end it's headed for, from wherever it is.
       function settle(name) {
         return play(async (g) => {
           const f = flip;
@@ -1403,8 +1337,6 @@
           return g === gen ? f.ends[name] : null;
         });
       }
-      // A whole turn, by a click or a key (its pages read first if they aren't yet); one pressed during a turn hurries
-      // it and waits for it (eight at most), none past an end.
       function turn(dir, lifted = false) {
         if (hand) return;
         if (busy) {
@@ -1431,15 +1363,11 @@
         });
       }
 
-      // ---------------------------------------------------------------- Hands on the paper.
-      // A press on a page takes the corner on its side (top or bottom, by where the press is) and moves it as the
-      // pointer moves; let go past halfway, or with a flick, and the page turns, else it falls back.
       const book = $("book");
       const local = (e) => {
         const r = $("spine").getBoundingClientRect();
         return { x: e.clientX - r.left, y: e.clientY - r.top };
       };
-      // A mouse near a page's outer bottom corner lifts it a little, more the nearer it comes: the page to take.
       const REACH = 90;
       book.addEventListener("pointermove", (e) => {
         if (hand || busy || e.pointerType !== "mouse") return;
@@ -1472,7 +1400,6 @@
         if (p === null) return;
         if (p === undefined) resolve(() => neighbor(spread, dir)).catch(() => {});
         const corner = q.y < mode.H / 2 ? "top" : "bottom";
-        // A corner already lifted is taken as it is; anything else lifted is let down first.
         const lifted = peek === dir && Boolean(flip) && corner === "bottom";
         if (peek && !lifted) show(spread);
         peek = null;
@@ -1495,8 +1422,6 @@
         const dt = Math.max(1, e.timeStamp - hand.last.t);
         hand.v = 0.7 * hand.v + 0.3 * ((q.x - hand.last.x) / dt);
         hand.last = { x: q.x, t: e.timeStamp };
-        // On a phone the corner goes the whole way (from one edge to past the other) in the room the finger has:
-        // from where it pressed to the page's far edge.
         const room = hand.dir > 0 ? hand.start.x : mode.W - hand.start.x;
         const k = mode.single ? (2 * mode.W) / Math.max(room, 60) : 1;
         const f = hand.plan.frame;
@@ -1508,12 +1433,10 @@
         const h = hand;
         hand = null;
         if (!h.moved) return turn(h.dir, h.lifted);
-        // A flick counts only if the pointer was still moving when it let go; in the leaf's frame, toward the spine
-        // lands it, away sends it home.
+        // A flick counts only if the pointer was still moving when it let go; toward the spine lands the page, away sends it home.
         const v = e.timeStamp - h.last.t < 100 ? h.plan.frame * h.v : 0;
         settle(v < -0.45 ? "landing" : v > 0.45 ? "C" : flip.P.x < 0 ? "landing" : "C");
       });
-      // A press taken away (by the system, a gesture): the page goes back to where it was, nothing turned.
       book.addEventListener("pointercancel", (e) => {
         if (!hand || e.pointerId !== hand.id) return;
         const h = hand;
@@ -1533,7 +1456,6 @@
         e.preventDefault();
       });
 
-      // ---------------------------------------------------------------- The ribbon, the date and Today.
       function years() {
         const marks = [];
         for (let y = 2010; y <= new Date().getUTCFullYear(); y += mode.single ? 4 : 2) {
@@ -1560,7 +1482,6 @@
         if (d !== null) jump(() => spreadAt({ d: clampDay(d) }), { riffle: true });
       });
 
-      // The layout made again (a new size, a new day), the same line kept open.
       function relayout(anchor) {
         pendingLayout = false;
         measure();
@@ -1568,7 +1489,6 @@
         jump(() => spreadAt(anchor));
       }
 
-      // ---------------------------------------------------------------- Start, and today's page kept current.
       [tip, pools] = await Promise.all([
         get("/blocks/tip/height").then(Number),
         get("/v1/mining/pools").then(
@@ -1587,9 +1507,7 @@
         if (busy || hand) pendingLayout = true;
         else relayout(anchorOf(spread));
       }).observe($("desk"));
-      // Every 30 s: a new block or a new day reads the live day again (and the one that was live, if the tab slept
-      // through days); its pages are written again if they're open, a reader at the end kept at the end. Never in the
-      // middle of a turn or a jump: then it waits for it.
+      // A new block or day rereads the live day (and the one that was live, if the tab slept); never in the middle of a turn or jump.
       const refresh = alone(async () => {
         if (busy || hand) return void (pendingRefresh = true);
         const [hash, t] = await Promise.all([get("/blocks/tip/hash"), get("/blocks/tip/height").then(Number)]);
