@@ -53,7 +53,7 @@
  */
 
 /** @import { Facts } from "./facts.js" */
-import { HOLDER_COLORS, holderColor, recencyColor, wheelColor } from "./palette.js";
+import { HOLDER_COLORS, LANDSCAPE, SKY, holderColor, recencyColor, wheelColor } from "./palette.js";
 import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
 
@@ -133,10 +133,6 @@ const sighashName = (/** @type {string} */ key) => key.replace(/^(\w+?)(AnyoneCa
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
-/** Bedrock's landscape colors, top to bottom: the sky over the all-time high, then water, soil and bedrock, as the
- * Bedrock model first drew them. */
-const SKY = "#58bbc4";
-const LANDSCAPE = ["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a54b", "#b68134", "#965a2f", "#714331", "#4b342e", "#83878a", "#666a6e", "#4b4f53", "#303438", "#181b1e"];
 /** The windows' colors, short to long: cool to warm around the wheel, the usual four (24 hours to 1 year) in blues. */
 /**
  * The chain's prices, each its own color wherever it's drawn (a chart of its own, among the others, a meter's

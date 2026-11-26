@@ -24,6 +24,11 @@ export const OKLCH = {
  */
 export const HOLDER_COLORS = Object.freeze({ all: "gray", sth: "orange", lth: "blue", under4m: "yellow", under6m: "red", over4m: "cyan", over6m: "violet" });
 
+/** Bedrock's landscape colors, top to bottom: over the all-time high, then water, sand and rock; hexes, so drawn as
+ * given in either theme, in Studio's preset and on the Bedrock page alike. */
+export const SKY = "#58bbc4";
+export const LANDSCAPE = Object.freeze(["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a54b", "#b68134", "#965a2f", "#714331", "#4b342e", "#83878a", "#666a6e", "#4b4f53", "#303438", "#181b1e"]);
+
 /** A holder group's color, by its key (none: not a holder group). @param {string} key */
 export const holderColor = (key) => (Object.hasOwn(HOLDER_COLORS, key) ? HOLDER_COLORS[key] : undefined);
 

@@ -29,7 +29,7 @@ import {
 import {
   FINE, flowFits, INTERVAL_DAYS, INTERVAL_LABEL, INTERVAL_ORDER, spanDays, SPANS, windowPoints,
 } from "/studio/intervals.js";
-import { gamma, hexToOklch, inside, limit, maxChroma, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
+import { gamma, hexToOklch, inside, limit, maxChroma, ofPalette, oklchToHex, oklchToLinear, SWATCHES } from "/studio/color.js";
 import {
   baseOf, BY_BLOCK, cssColor, dailyOf, datedIntervals, foldedInto, gone, idOf, info, ink, lastShown, noValues, oklchOf,
   respot, retryInfo, seriesIn, SIDES, unitFor, units, updateLegends, valueAt,
@@ -884,24 +884,24 @@ const INK_DARK = "#f7f8f8";
 const GRADIENT_STEPS = 64;
 /**
  * A gradient's colors as kept, `GRADIENT_STEPS` of them from 0% to 100%, mixed by the library (see its gradientTable, in
- * OKLCH), each by the two stops it lies between (past the outer ones, that one). Between two of Bitview's, as they're
- * written (the dark's form), the mix an `oklch(…)` of Bitview's, toned in the theme as drawn (the curve bends, so toning
- * the stops first would draw another gradient); with a person's own on either side, each stop as the theme shows it (see
- * shownOklch), the mix a hex, as theirs are.
+ * OKLCH), each by the two stops it lies between (past the outer ones, that one). Between two of the palette's, as
+ * they're written (the dark's form), the mix an `oklch(…)`, the palette's too, toned in the theme as drawn (the curve
+ * bends, so toning the stops first would draw another gradient); with any other color on either side, each stop as the
+ * theme shows it (see shownOklch), the mix a hex, drawn as given.
  * @param {[number, string][]} stops @returns {string[]}
  */
 function mixedOf(stops) {
-  const lch = (/** @type {number[]} */ values) => `oklch(${values.join(" ")})`, theirs = (/** @type {[number, string]} */ [, color]) => color.startsWith("#");
+  const lch = (/** @type {number[]} */ values) => `oklch(${values.join(" ")})`, given = (/** @type {[number, string]} */ [, color]) => !ofPalette(color);
   // (Each stop in one form, Bitview's as written (ink, its dark side), and as shown from that, so a stop reads the same
   // from either side.)
-  const forms = stops.map(([at, color]) => /** @type {[number, string]} */ ([at, color.startsWith("#") ? color : lch(color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color))]));
+  const forms = stops.map(([at, color]) => /** @type {[number, string]} */ ([at, !ofPalette(color) ? color : lch(color === "ink" ? hexToOklch(INK_DARK) : oklchOf(color))]));
   const kept = mixedTable(forms, GRADIENT_STEPS);
-  if (!stops.some(theirs)) return kept;
+  if (!stops.some(given)) return kept;
   const shown = mixedTable(forms.map(([at, color]) => [at, lch(shownOklch(color))]), GRADIENT_STEPS);
   return kept.map((mixed, k) => {
     // (Its two stops as the library finds them: the first at or past its place, and the one before.)
     const next = stops.findIndex(([where]) => where >= (k / (GRADIENT_STEPS - 1)) * 100);
-    const own = next < 0 ? !theirs(stops[stops.length - 1]) : !theirs(stops[next]) && (next === 0 || !theirs(stops[next - 1]));
+    const own = next < 0 ? !given(stops[stops.length - 1]) : !given(stops[next]) && (next === 0 || !given(stops[next - 1]));
     return own ? mixed : oklchToHex(...oklchOf(shown[k]));
   });
 }
