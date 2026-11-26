@@ -245,7 +245,6 @@
         vertical-align: 0.0625rem;
       }
 
-      /* Floats over the followed robot: placed by script at its head, pointing down at it. */
       #card {
         position: fixed;
         top: 0;
@@ -279,7 +278,6 @@
         color: var(--muted);
       }
 
-      /* Transaction ids read as they are written: in lower case. */
       #card-body {
         line-height: 1.7;
         text-transform: none;
@@ -294,7 +292,6 @@
         border: none;
       }
 
-      /* Printed on the tables' decks: placed and skewed by script to lie on them. */
       .find {
         position: fixed;
         top: 0;
@@ -359,29 +356,18 @@
 
     <noscript><p>JavaScript is required to watch the chain.</p></noscript>
 
-    <!-- Styles and code are inline; the generated client loads from ../modules, the logos and the font from ../assets.
-         Blocks and mempool projections come live from the server that serves the page. -->
     <script type="module">
       // @ts-check
       import { logo as poolLogo } from "/assets/pools/logos.js";
       import { reduced, whenReduced } from "/modules/motion/reduced.js";
-      // Config ---------------------------------------------------------------
 
-      // The server that serves the page.
       const ORIGIN = location.origin;
-      // The belt and the blocks on it move one cube width every 2 minutes, so the room between
-      // two blocks is the time between them. Closer blocks would mean a slower belt.
       const SECONDS_PER_UNIT = 120;
       const CUBE = 1;
-      // The least room between two blocks, enough for two turning together not to touch: ones
-      // found closer in time push the older along.
       const GAP = 0.4;
       const SPACING = (CUBE + GAP) * SECONDS_PER_UNIT;
       const BELT_WIDTH = 1.6;
       const BELT_TOP = 0.3;
-      // The machine: HALF deep either side of x = 0, and long enough along Y for both belts
-      // to go through its +X face, the chain's at y = 0 and the mempool's beside it at QUEUE_Y,
-      // as far apart as the chain's folds.
       const HALF = 2;
       const QUEUE_Y = 3;
       const MACHINE_Y0 = -1.5;
@@ -394,11 +380,8 @@
       const PLINTH_TOP = 0.16;
       const HOLE = 0.85;
       const HOLE_TOP = BELT_TOP + 1.25;
-      // A block's center this far past a face is fully out of the machine.
       const EXIT = 0.95;
       const SLOT = 1.55;
-      // Seven projected blocks wait on the belt; the eighth projection, the rest of the mempool,
-      // is the pool.
       const QUEUE_SLOTS = 7;
       const OUTLINE = 0.42;
       const MAX_BLOCK_WEIGHT = 4_000_000;
@@ -410,8 +393,6 @@
       const PRESS_MS = 450;
       const OUT_MS = 1_000;
       const SETTLE_MS = 600;
-      // When nothing else moves, what does is drawn again once it has moved this far, in pixels: the belt, and the pool's
-      // water, whose waves move at most WATER_SPEED of the scale in pixels a second.
       const IDLE_STEP = 0.2;
       const WATER_SPEED = 0.042;
       const MIN_SCALE = 3;
@@ -430,25 +411,18 @@
        * @typedef {{ blockVSize: number, nTx: number, medianFee: number, totalFees: number, feeRange?: number[] }} Projected
        * @typedef {{ txid: string, fee: number, vsize: number, value: number }} Recent
        * @typedef {{ kind: "walk", to: number } | { kind: "toss" | "pick", block: number } | { kind: "fish" }} Step
-       *   A robot's errand: fish its transaction out of the pool, walk to a waiting block (-1 is
-       *   its spot by the pool), throw its parcel in, take one out.
        * @typedef {{ tx: Recent | null, x: number, y: number, home: number, place: number, steps: Step[],
        *   since: number, load: "tx" | "bumped" | null, stride: number, fishX: number, fishY: number }} Worker
-       *   place: the place it holds on the line it throws from, -1 when none. load: its own
-       *   transaction, one bumped out of the next block, or nothing.
+       *   place: -1 when none.
        * @typedef {{ data: Projected, slot: number, target: number, fill: number, alpha: number, lift: number }} Waiting
-       *   lift: how far above the belt it is, below it while still rising out of the lift.
        * @typedef {{ block: Block, entering: Waiting | null, enterFrom: number, start: number,
        *   pressed: boolean, out: boolean }} Job
        * @typedef {{ item: Block | Waiting | Worker, points: number[] }} Hit
        */
 
-      // DOM ------------------------------------------------------------------
-
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const root = document.documentElement;
       const canvas = /** @type {HTMLCanvasElement} */ ($("scene"));
-      // Where everything is drawn: the screen's canvas, but for pictures drawn once and kept.
       let ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
       const clock = $("clock");
       const caption = $("caption");
@@ -462,29 +436,26 @@
       const cardTitle = $("card-title");
       const HINT = caption.textContent ?? "";
 
-      // State ----------------------------------------------------------------
-
-      /** Confirmed blocks by ascending height. @type {Block[]} */
+      /** @type {Block[]} */
       let blocks = [];
-      /** Blocks found but not yet out of the machine. @type {Block[]} */
+      /** @type {Block[]} */
       const arriving = [];
-      /** The projected blocks waiting in front of the machine. @type {Waiting[]} */
+      /** @type {Waiting[]} */
       const queue = [];
       /** @type {Job | null} */
       let job = null;
       let knownTip = -1;
       let lastPool = "";
       let loadingOlder = false;
-      // After a failed load of older blocks, none is tried again before this.
       let olderAfter = 0;
       let reachedGenesis = false;
-      /** Projections fetched while found blocks still wait to be stamped. @type {Projected[] | null} */
+      /** @type {Projected[] | null} */
       let projectedLater = null;
       /** @type {Map<string, string>} */
       const poolNames = new Map();
       /** @type {Hit[]} */
       const hits = [];
-      /** The blocks on screen this frame, where they are. @type {{ block: Block, x: number, y: number, angle: number, newest: boolean }[]} */
+      /** @type {{ block: Block, x: number, y: number, angle: number, newest: boolean }[]} */
       const shown = [];
       /** @type {Block | Waiting | Worker | null} */
       let hovered = null;
@@ -497,19 +468,11 @@
       let flight = null;
       let animateUntil = 0;
       let lastFrame = 0;
-      // Nothing draws at rest: a frame is asked for (invalidate) by what changed, each display frame after while something
-      // moves, and else by a timer for the slowest thing that does.
       let frameId = 0;
       let timer = 0;
-      // How long that timer was set for, in milliseconds.
       let waited = 0;
-      // (Not before the font's in, or for a while after: canvas text ignores font-display.)
       let started = false;
-      // The clock everything that moves runs on, but the belt: real time, sped up while
-      // something would otherwise take long. In milliseconds.
       let sim = performance.now();
-
-      // Theme ----------------------------------------------------------------
 
       const palette = {
         paper: "", ink: "", muted: "", faint: "", ground: "", top: "", left: "", right: "",
@@ -525,7 +488,7 @@
 
       const systemDark = matchMedia("(prefers-color-scheme: dark)");
 
-      /** The viewer's pick, kept even where storage is blocked; none follows the system. */
+      /** Kept even where storage is blocked; none follows the system. */
       let choice = (() => {
         try {
           return localStorage.getItem("city-theme");
@@ -550,8 +513,6 @@
         applyTheme();
       });
       systemDark.addEventListener("change", applyTheme);
-
-      // Pool logos, inked in gray -------------------------------------------
 
       /** @type {Map<string, HTMLCanvasElement | null>} */
       const logos = new Map();
@@ -581,8 +542,6 @@
         const ratio = image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1;
         const w = ratio >= 1 ? size : size * ratio;
         const h = ratio >= 1 ? size / ratio : size;
-        // No color: drawn through a gray filter where there is one, then made gray pixel by
-        // pixel where the pixels can be read back.
         context.filter = "grayscale(1)";
         try {
           context.drawImage(image, (size - w) / 2, (size - h) / 2, w, h);
@@ -601,8 +560,6 @@
         return target;
       }
 
-      // Projection -----------------------------------------------------------
-
       // Isometric: +X runs right and down the screen, +Y left and down, +Z up.
       const sx = (/** @type {number} */ x, /** @type {number} */ y) =>
         ((x - y) * COS - camera.u) * camera.scale + W / 2;
@@ -614,7 +571,6 @@
       /** @param {number} x @param {number} y @param {number} z */
       const lineTo = (x, y, z) => ctx.lineTo(sx(x, y), sy(x, y, z));
 
-      /** A four-cornered face as the current path. */
       function face(
         /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
         /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
@@ -629,10 +585,6 @@
         ctx.closePath();
       }
 
-      /**
-       * Draws in a plane through the screen point (ox, oy), one step along u or v being
-       * the screen vector (ux, uy) or (vx, vy).
-       */
       function plane(
         /** @type {number} */ ox, /** @type {number} */ oy,
         /** @type {number} */ ux, /** @type {number} */ uy,
@@ -643,8 +595,6 @@
 
       const flat = () => ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // What may show: the screen and MARGIN pixels around it, in projected units. Anything
-      // outside is not drawn.
       const MARGIN = 96;
       let viewU0 = 0;
       let viewU1 = 0;
@@ -659,7 +609,6 @@
         viewV1 = camera.v + (H / 2 + MARGIN) / s;
       }
 
-      /** Whether anything inside [x0, x1] × [y0, y1] × [0, z1] may show. */
       function inView(
         /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ x1,
         /** @type {number} */ y1, /** @type {number} */ z1,
@@ -668,11 +617,8 @@
           && (x1 + y1) * SIN >= viewV0 && (x0 + y0) * SIN - z1 <= viewV1;
       }
 
-      // Boxes ------------------------------------------------------------------
-
       /** @typedef {{ top: string, left: string, right: string }} Faces */
 
-      /** The three faces a box shows: its top, its +Y side and its +X side. */
       function fillBox(
         /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
         /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
@@ -689,7 +635,6 @@
         ctx.fill();
       }
 
-      /** The outline and the three inner edges of a box, in one stroke. */
       function strokeBox(
         /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
         /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1,
@@ -722,7 +667,6 @@
         strokeBox(x0, y0, z0, x1, y1, z1);
       }
 
-      /** An upright cylinder: its side, then its top. */
       function cylinder(
         /** @type {number} */ cx, /** @type {number} */ cy,
         /** @type {number} */ z0, /** @type {number} */ z1,
@@ -760,36 +704,22 @@
         ctx.fillText(value, u, v);
       }
 
-      /** How visible text this many pixels tall is: gone when too small to read. */
       const legible = (/** @type {number} */ size) => Math.min(1, Math.max(0, (size - 5) / 3));
 
-      // The belt ---------------------------------------------------------------
-
-      // The chain's belt folds away behind the machine: out along +X, a U-turn back along -X one
-      // fold further back, a U-turn out again, and so on into the past. The middle of every
-      // U-turn is a PERIOD further along, so each one is a fixed age.
       const FOLD = 3;
       const BEND = FOLD / 2;
       const ARC = Math.PI * BEND;
       const PERIOD = 15;
       const RUN = PERIOD - ARC;
-      // The run out of the machine: just long enough for the folds coming back to clear its
-      // plinth and their footprints its footprint.
       const FIRST = PERIOD - ARC / 2 + 0.9;
       const RIGHT = HALF + FIRST;
       const LEFT = RIGHT - RUN;
 
-      // The mempool's belt reaches as far as the folds do, blocks on it or not.
       const QUEUE_END = RIGHT + BEND + BELT_WIDTH / 2;
-      // Near its far end, a lift: each next block rises out of the belt there from below, so
-      // nothing stands up to hide the folds behind.
       const LIFT_X = QUEUE_END - 1.1;
       const LIFT_HALF = CUBE / 2 + 0.1;
       const RISE = CUBE + 0.25;
       const RISE_MS = 900;
-      // The mempool, as a pool: in front of the mempool's belt and as long, on its own, a basin of
-      // the liquid the blocks hold with the transactions floating in it, twice as long as deep.
-      // The robots fish them out from its far side.
       const POOL_X0 = PLINTH + 0.9;
       const POOL_X1 = QUEUE_END;
       const POOL_Y0 = QUEUE_Y + BELT_WIDTH / 2 + 1.1;
@@ -802,14 +732,11 @@
 
       let atX = 0;
       let atY = 0;
-      // The way across the belt there, and which way a cube riding it faces, from +X toward +Y.
       let acrossX = 0;
       let acrossY = 1;
       let atAngle = 0;
-      // Whether it is on a straight run rather than in a U-turn.
       let atStraight = true;
 
-      /** Moves (atX, atY) to the point p along the belt. */
       function at(/** @type {number} */ p) {
         if (p < FIRST) {
           atX = HALF + p;
@@ -844,17 +771,12 @@
         atStraight = true;
       }
 
-      /** Where the k-th part of the belt starts and ends: the run into the k-th U-turn, and it. */
       const partStart = (/** @type {number} */ k) => (k === 0 ? 0 : FIRST + (k - 1) * PERIOD + ARC);
       const partEnd = (/** @type {number} */ k) => FIRST + k * PERIOD + ARC;
 
-      // Room beyond the belt's middle line for its footprint and the cubes riding it.
       const REACH = BELT_WIDTH / 2 + OUTLINE + CUBE;
 
-      /** The parts of the belt that may show, as [first, last]; none when last < first. */
       function visibleParts() {
-        // Part k spans y from -(k + 1) FOLD to -k FOLD and x from xMin to xMax, each with REACH
-        // around, so on screen each part sits one fold right of and above the last.
         const xMin = LEFT - BEND;
         const xMax = RIGHT + BEND;
         const lo = Math.max(
@@ -865,7 +787,6 @@
         return [Math.max(0, Math.ceil(lo)), Math.floor(hi)];
       }
 
-      /** The stretch [lo, hi] of x from x0 to x1, along a run at y, that may show. */
       function runInView(/** @type {number} */ y, /** @type {number} */ x0, /** @type {number} */ x1) {
         return [
           Math.max(x0, viewU0 / COS + y - REACH, 2 * viewV0 - y - REACH),
@@ -873,14 +794,12 @@
         ];
       }
 
-      /** Whether the k-th U-turn, with what rides it, may show. */
       function turnInView(/** @type {number} */ k) {
         turnAt(k);
         const r = BEND + REACH;
         return inView(turnX - r, turnY - r, turnX + r, turnY + r, TOP);
       }
 
-      /** The straight belt from pa to pb, raised from z0: runs go along +X or -X. */
       function straight(/** @type {number} */ pa, /** @type {number} */ pb, /** @type {number} */ z0) {
         const w = BELT_WIDTH / 2;
         at(pa);
@@ -888,12 +807,7 @@
         strip(0, Math.min(atX, x), Math.max(atX, x), atY - w, atY + w, z0, false);
       }
 
-      /**
-       * A straight stretch of belt from a to b along X (axis 0) or Y (axis 1), across from c0
-       * to c1, on a base at z0: its top, its side toward the viewer, and its far end when `end`.
-       * The belt is one surface: where it joins more belt nothing is outlined, and its fill
-       * reaches half a pixel over the join so no seam shows.
-       */
+      /** Fill reaches half a pixel over a join so no seam shows. */
       function strip(
         /** @type {0 | 1} */ axis, /** @type {number} */ a, /** @type {number} */ b,
         /** @type {number} */ c0, /** @type {number} */ c1, /** @type {number} */ z0, /** @type {boolean} */ end,
@@ -959,7 +873,6 @@
         ctx.stroke();
       }
 
-      /** Where a belt on the ground meets the plinth's side: the one crease between them. */
       function crease(/** @type {number} */ x, /** @type {number} */ y) {
         ctx.strokeStyle = palette.ink;
         ctx.beginPath();
@@ -968,12 +881,9 @@
         ctx.stroke();
       }
 
-      // A circle on the ground of radius r is, on screen, an upright ellipse whose angles are
-      // the ground's plus 45°: its front half is where sin is positive.
       const ellipseX = (/** @type {number} */ r) => r * Math.SQRT2 * COS * camera.scale;
       const ellipseY = (/** @type {number} */ r) => r * Math.SQRT2 * SIN * camera.scale;
 
-      // The k-th U-turn's center on the ground, and its span of screen angles.
       let turnX = 0;
       let turnY = 0;
       let turnFrom = 0;
@@ -987,12 +897,7 @@
         turnTo = turnFrom + Math.PI;
       }
 
-      /**
-       * A curved wall of radius r between two screen angles, shaded by where it faces: an
-       * outer wall turns from +X to +Y right to left across the screen, an inner one the other way.
-       * One end is the wall's outline on screen, upright; the other joins a run, unlined, its
-       * fill reaching a little past so no seam shows.
-       */
+      /** Fill reaches a little past a join so no seam shows. */
       function wall(
         /** @type {number} */ r, /** @type {number} */ from, /** @type {number} */ to,
         /** @type {boolean} */ outer, /** @type {boolean} */ outlineAtEnd,
@@ -1024,7 +929,6 @@
         ctx.stroke();
       }
 
-      /** The k-th U-turn: the walls that face the viewer, then its top, one surface with its runs. */
       function uTurn(/** @type {number} */ k) {
         turnAt(k);
         const w = BELT_WIDTH / 2;
@@ -1032,8 +936,6 @@
         const inner = BEND - w;
         ctx.strokeStyle = palette.ink;
         ctx.setLineDash(SOLID);
-        // The outer wall shows where the ellipse's front is, the inner one where its back is;
-        // both end, upright, at the ellipse's side.
         if ((k & 1) === 0) {
           wall(inner, turnFrom, 0, false, true);
           wall(outer, 0, turnTo, true, false);
@@ -1063,7 +965,6 @@
         }
       }
 
-      /** Slats across the belt from pa to pb, `phase` along. */
       function slats(/** @type {number} */ pa, /** @type {number} */ pb, /** @type {number} */ phase) {
         if (SLAT * camera.scale < 5) return;
         const inset = BELT_WIDTH / 2 - RAIL;
@@ -1077,18 +978,11 @@
         ctx.stroke();
       }
 
-      // The belt has the time printed on it every 5 minutes, across one of its steps. It moves
-      // with the blocks, so a printed time stays by the blocks mined then; a block may cover
-      // one, there are plenty.
       const PRINT = 300;
-      // The moment the belt is drawn at, in seconds: a point p along was at the machine p
-      // cube widths of time before.
       let beltSeconds = 0;
-      // The stretches of belt drawn this frame, as pairs, printed once all the belt is down.
       /** @type {number[]} */
       const printed = [];
 
-      /** Whether the belt is straight from pa to pb and on the ground, with a full side to print on. */
       function sideFrom(/** @type {number} */ pa, /** @type {number} */ pb) {
         if (pa < PLINTH - HALF) return false;
         at(pa);
@@ -1097,12 +991,6 @@
         return atStraight;
       }
 
-      /**
-       * What is printed on the belt from pa to pb, local time. Across its top like its slats,
-       * reading left to right on screen: the time, hours in ink. Along the side toward the
-       * viewer, under each time on the runs: the date, so the day shows wherever you are.
-       * Midnight is a line across the top and down that side.
-       */
       function marks(/** @type {number} */ pa, /** @type {number} */ pb) {
         const s = camera.scale;
         const size = 0.28 * s;
@@ -1116,7 +1004,6 @@
         const oldest = beltSeconds - pb * SECONDS_PER_UNIT;
         ctx.textBaseline = "middle";
         for (let t = Math.ceil((oldest + zone) / PRINT) * PRINT - zone; t <= newest; t += PRINT) {
-          // Its own offset, across a change of clocks.
           const local = t - new Date(t * 1000).getTimezoneOffset() * 60;
           const day = local % 86_400 === 0;
           const hour = local % 3_600 === 0;
@@ -1133,10 +1020,7 @@
             }
             ctx.stroke();
           }
-          // Slats fall on every minute, so the time is on one; it is printed in the step after
-          // it, the minute it names, toward the machine.
           const step = p - SLAT / 2;
-          // Not until its step is all out of the machine.
           if (step < SLAT / 2) continue;
           at(step);
           let dx = acrossX;
@@ -1149,7 +1033,6 @@
           ctx.globalAlpha = alpha;
           label(timeFormat.format(t * 1000), 0, 0, size, day || hour ? palette.ink : palette.muted, "center");
           flat();
-          // Runs go along X, so their side toward the viewer is the +Y one.
           if (sideAlpha && sideFrom(step - 0.7, step + 0.7)) {
             at(step);
             const y = atY + w;
@@ -1164,7 +1047,6 @@
         ctx.textBaseline = "alphabetic";
       }
 
-      /** The k-th U-turn and its slats, if they may show. */
       function drawTurn(/** @type {number} */ k, /** @type {number} */ phase) {
         if (!turnInView(k)) return;
         const start = FIRST + k * PERIOD;
@@ -1173,7 +1055,6 @@
         printed.push(start, start + ARC);
       }
 
-      /** The stretch of the run from pa to pb that may show, raised from z0, with its slats. */
       function drawRun(
         /** @type {number} */ pa, /** @type {number} */ pb, /** @type {number} */ z0, /** @type {number} */ phase,
       ) {
@@ -1189,11 +1070,7 @@
         printed.push(a, b);
       }
 
-      /**
-       * The folds behind the machine, farthest first. A run's end shows toward +X, so a U-turn
-       * on the right goes over the runs it joins, and the runs go over one on the left. The
-       * first U-turn waits for the first run, drawn in front of the machine.
-       */
+      /** Farthest first: a run's end shows toward +X. */
       function drawFolds(/** @type {number} */ first, /** @type {number} */ last, /** @type {number} */ phase) {
         for (let k = last; k >= Math.max(first, 1); k--) {
           const right = (k & 1) === 0;
@@ -1203,17 +1080,12 @@
         }
       }
 
-      /** The run out of the machine, in front of it: its mouth on the plinth, then the ground. */
       function drawFirstRun(/** @type {number} */ phase) {
         drawRun(0, PLINTH - HALF, PLINTH_TOP, phase);
         drawRun(PLINTH - HALF, FIRST, 0, phase);
         if (inView(PLINTH, 0, PLINTH, BELT_WIDTH / 2, PLINTH_TOP)) crease(PLINTH, BELT_WIDTH / 2);
       }
 
-      /**
-       * The belt the projected blocks wait on, still like them: beside the chain's, nearer the
-       * viewer, into the same face of the machine.
-       */
       function drawQueueBelt() {
         const w = BELT_WIDTH / 2;
         const y0 = QUEUE_Y - w;
@@ -1235,9 +1107,6 @@
         drawLift();
       }
 
-      // The ground -------------------------------------------------------------
-
-      /** Dashed footprints around the plinth and the belts. */
       function drawGround(/** @type {number} */ first, /** @type {number} */ last) {
         const P = PLINTH + OUTLINE;
         const Y0 = PLINTH_Y0 - OUTLINE;
@@ -1246,7 +1115,6 @@
         ctx.strokeStyle = palette.ground;
         ctx.setLineDash(DASHED);
         ctx.beginPath();
-        // The plinth, open where the two belts leave it, and the mempool's belt round its end.
         const end = QUEUE_END + OUTLINE;
         if (inView(-P, Y0, end, Y1, 0)) {
           moveTo(P, e, 0);
@@ -1260,8 +1128,6 @@
           lineTo(P, Y0, 0);
           lineTo(P, -e, 0);
         }
-        // A run's sides start a whole number of dashes from its end, so they hold still as
-        // the shown stretch changes.
         const dash = DASHED.reduce((a, b) => a + b) / camera.scale;
         for (let k = first; k <= last; k++) {
           const y = -k * FOLD;
@@ -1284,15 +1150,12 @@
           }
         }
         ctx.stroke();
-        // The pool's, round it like its rim.
         if (inView(POOL_X0 - 1, POOL_Y0 - 1, POOL_X1 + 1, POOL_Y1 + 1, 0)) {
           rounded(POOL_X0 - OUTLINE, POOL_Y0 - OUTLINE, POOL_X1 + OUTLINE, POOL_Y1 + OUTLINE, POOL_RADIUS + OUTLINE, 0);
           ctx.stroke();
         }
         ctx.setLineDash(SOLID);
       }
-
-      // The machine ------------------------------------------------------------
 
       function drawMachine(/** @type {number} */ now) {
         const t = job ? now - job.start : -1;
@@ -1312,8 +1175,6 @@
         }
         strokeBox(-HALF, MACHINE_Y0, PLINTH_TOP, HALF, MACHINE_Y1, MACHINE_TOP);
 
-        // Who stamped what came out last, over the way out.
-        // Each line shows as soon as it is big enough to read, the small one over the big one.
         const big = 0.24 * s;
         const small = 0.15 * s;
         const timer = 0.6 * s;
@@ -1328,7 +1189,6 @@
           ctx.globalAlpha = 1;
         }
 
-        // How long since the last block, counting up, on the side facing the pool.
         const tip = blocks.at(-1);
         if (tip && legible(timer)) {
           plane(sx(-HALF, MACHINE_Y1), sy(-HALF, MACHINE_Y1, MACHINE_TOP), COS, SIN, 0, 1);
@@ -1340,7 +1200,6 @@
           ctx.globalAlpha = 1;
         }
 
-        // The lamp, lit while stamping.
         ctx.beginPath();
         ctx.arc(sx(1.55, MACHINE_Y1), sy(1.55, MACHINE_Y1, MACHINE_TOP - 0.35), 0.09 * s, 0, Math.PI * 2);
         ctx.fillStyle = lit ? palette.ink : palette.top;
@@ -1349,8 +1208,6 @@
 
         box(-HALF + 0.2, MACHINE_Y0 + 0.2, MACHINE_TOP, HALF - 0.2, MACHINE_Y1 - 0.2, LID_TOP, palette);
 
-        // Pegs at the corners and, in the middle, the stamp: a base with the last miner's mark on
-        // it, a neck and a knob. It hangs over the roof and comes down on every block.
         const peg = 1.4;
         const back = MACHINE_Y0 + 0.6;
         const front = MACHINE_Y1 - 0.6;
@@ -1376,7 +1233,6 @@
         cylinder(peg, front, LID_TOP, LID_TOP + 0.2, 0.14, palette.left, palette.top);
       }
 
-      /** A time counting up: m:ss, or h:mm:ss past an hour. */
       function since(/** @type {number} */ seconds) {
         const whole = Math.max(0, Math.floor(seconds));
         const h = Math.floor(whole / 3600);
@@ -1385,9 +1241,6 @@
         return h ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
       }
 
-      // The mempool -------------------------------------------------------------
-
-      /** The lift's opening in the belt: dark while a block rises out of it, else its platform, flush. */
       function drawLift() {
         const o = LIFT_HALF;
         face(
@@ -1401,19 +1254,14 @@
         ctx.stroke();
       }
 
-      // The whole mempool, from the projections.
       let mempoolCount = 0;
       let mempoolVSize = 0;
 
-      /** A number in [0, 1) that is always the same for n. */
       const hash = (/** @type {number} */ n) => {
         const x = Math.sin(n * 12.9898) * 43_758.5453;
         return x - Math.floor(x);
       };
 
-      // Transactions floating in the pool, each in its own cell of an even grid, drifting
-      // round its spot, as many as the mempool's size calls for; one fished out is gone a while.
-      // The cell by the ladder stays clear.
       const FLOAT_COLUMNS = 22;
       const FLOAT_ROWS = 10;
       const LADDER_CELL = 1;
@@ -1427,30 +1275,24 @@
       }))
         .filter((f) => f.cell !== LADDER_CELL)
         .sort((a, b) => hash(a.cell + 7) - hash(b.cell + 7));
-      // Where each new transaction drops in.
       const RIPPLE_MS = 1_600;
       /** @type {{ x: number, y: number, start: number }[]} */
       const ripples = [];
-      // Little waves on the water, each at its own spot.
       const WAVES = Array.from({ length: 56 }, (_, i) => ({ u: hash(i + 300), v: hash(i + 400), phase: hash(i + 500) * 6 }));
 
       const floatCount = () => Math.max(10, Math.min(floats.length, Math.round(Math.sqrt(mempoolCount) / 2)));
-      // The floating ones on screen this frame, back to front, and where they are.
       /** @type {number[]} */
       const afloat = [];
       const floatX = new Float64Array(floats.length);
       const floatY = new Float64Array(floats.length);
 
-      // The water, inside the coping.
       const WATER_X0 = POOL_X0 + POOL_WALL;
       const WATER_X1 = POOL_X1 - POOL_WALL;
       const WATER_Y0 = POOL_Y0 + POOL_WALL;
       const WATER_Y1 = POOL_Y1 - POOL_WALL;
 
-      // The water's own time, for its waves and bobbing: still for a reader who asked for less motion.
       const swell = (/** @type {number} */ now) => (reduced() ? 0 : now);
 
-      /** Where the i-th floating transaction is now. */
       function floatAt(/** @type {number} */ i, /** @type {number} */ now) {
         const f = floats[i];
         const w = (WATER_X1 - WATER_X0 - 0.4) / FLOAT_COLUMNS;
@@ -1461,16 +1303,11 @@
         };
       }
 
-      /** How high the water is, by how many blocks the mempool holds, on a log scale. */
       function poolLevel() {
         const full = Math.log(1 + mempoolVSize / MAX_BLOCK_VSIZE) / Math.log(301);
         return POOL_RIM * Math.min(0.75, Math.max(0.25, full));
       }
 
-      /**
-       * A rounded rectangle at height z, its corners like the belt's turns: as the current path,
-       * or added to `into`.
-       */
       function rounded(
         /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ x1, /** @type {number} */ y1,
         /** @type {number} */ r, /** @type {number} */ z, /** @type {Path2D | null} */ into = null,
@@ -1493,11 +1330,6 @@
         path.closePath();
       }
 
-      /**
-       * The pool: its outer wall, the inside of its far wall down to the water, the water with
-       * what floats on it, the coping round it, and its ladder. The pool is round-cornered and
-       * convex, so each layer only covers what the next would.
-       */
       function drawPool(/** @type {number} */ now) {
         const x0 = POOL_X0;
         const x1 = POOL_X1;
@@ -1511,8 +1343,6 @@
         const tide = swell(now);
         ctx.setLineDash(SOLID);
 
-        // The outer wall: the outline at the foot, filled, shows below the rim in front. It turns
-        // from facing +Y to facing +X round the front corner.
         const front = [x1 - r, y1 - r];
         const fx = sx(front[0], front[1]);
         const reach = ellipseX(r) * Math.SQRT1_2;
@@ -1522,13 +1352,11 @@
         rounded(x0, y0, x1, y1, r, 0);
         ctx.fillStyle = outer;
         ctx.fill();
-        // Between its two ends on screen, up to the rim, where neither outline reaches.
         const left = [x0 + r + r * Math.cos((3 * Math.PI) / 4), y1 - r + r * Math.sin((3 * Math.PI) / 4)];
         const right = [x1 - r + r * Math.cos(-Math.PI / 4), y0 + r + r * Math.sin(-Math.PI / 4)];
         face(left[0], left[1], 0, left[0], left[1], POOL_RIM, right[0], right[1], POOL_RIM, right[0], right[1], 0);
         ctx.fill();
 
-        // The inside of the far walls, from the rim down: facing +X on the left, +Y on the right.
         const back = [WATER_X0 + ri, WATER_Y0 + ri];
         const bx = sx(back[0], back[1]);
         const inner = ctx.createLinearGradient(bx - ellipseX(ri) * Math.SQRT1_2, 0, bx + ellipseX(ri) * Math.SQRT1_2, 0);
@@ -1538,7 +1366,6 @@
         ctx.fillStyle = inner;
         ctx.fill();
 
-        // The water, seen through the opening, with its line round the walls.
         ctx.save();
         ctx.clip();
         rounded(WATER_X0, WATER_Y0, WATER_X1, WATER_Y1, ri, level);
@@ -1546,7 +1373,6 @@
         ctx.fill();
         ctx.strokeStyle = palette.muted;
         ctx.stroke();
-        // Waves, ripples where transactions drop in, and the ones floating.
         if (s >= 12) {
           ctx.beginPath();
           for (const wave of WAVES) {
@@ -1590,7 +1416,6 @@
             const x = floatX[i];
             const y = floatY[i];
             const z = level + 0.012 * Math.sin(tide / 700 + floats[i].phase);
-            // Mostly under water: a ring round it, and its top just out.
             ctx.strokeStyle = palette.muted;
             ctx.beginPath();
             ctx.ellipse(sx(x, y), sy(x, y, level), ellipseX(0.17), ellipseY(0.17), 0, 0, Math.PI * 2);
@@ -1600,7 +1425,6 @@
         }
         ctx.restore();
 
-        // The coping, the rim's top, between the outside and the opening.
         ctx.strokeStyle = palette.ink;
         const coping = new Path2D();
         rounded(x0, y0, x1, y1, r, POOL_RIM, coping);
@@ -1609,7 +1433,6 @@
         ctx.fill(coping, "evenodd");
         ctx.stroke(coping);
 
-        // The outer wall's foot in front, and its two ends on screen, upright.
         ctx.beginPath();
         ctx.ellipse(sx(x0 + r, y1 - r), sy(x0 + r, y1 - r, 0), ellipseX(r), ellipseY(r), 0, Math.PI, (3 * Math.PI) / 4, true);
         ctx.ellipse(sx(x1 - r, y1 - r), sy(x1 - r, y1 - r, 0), ellipseX(r), ellipseY(r), 0, (3 * Math.PI) / 4, Math.PI / 4, true);
@@ -1620,8 +1443,6 @@
         }
         ctx.stroke();
 
-        // The ladder over the far side: two rails up from the coping, over, and down into the
-        // water, with a rung above it. Over the edge the deck is out of sight behind the pool.
         const lx = WATER_X0 + ((LADDER_CELL + 0.5) / FLOAT_COLUMNS) * (WATER_X1 - WATER_X0);
         const out = y0 + 0.03;
         const into = WATER_Y0 + 0.14;
@@ -1645,14 +1466,11 @@
         drawSign((POOL_Y0 + POOL_Y1) / 2, "MEMPOOL", held);
       }
 
-      // Signs past the far ends of the belt and of the pool, side by side: what each holds. Far
-      // enough out that, low as they are, they hide no more than the pool's coping behind.
       const SIGN_X = QUEUE_END + 0.9;
       const SIGN_HALF = 1.2;
       const SIGN_FOOT = 0.4;
       const SIGN_TOP = 1.3;
 
-      /** A sign centered at y along SIGN_X, facing +X: a title, and a line under it if any. */
       function drawSign(/** @type {number} */ y, /** @type {string} */ title, /** @type {string} */ line) {
         const y0 = y - SIGN_HALF;
         const y1 = y + SIGN_HALF;
@@ -1676,10 +1494,6 @@
         flat();
       }
 
-      // Cubes ------------------------------------------------------------------
-
-      // The last cube's corners at its foot, going round: whole, and cut where it is still
-      // inside the machine. Which corners show its left face, its right face, and the one behind.
       const wholeX = [0, 0, 0, 0];
       const wholeY = [0, 0, 0, 0];
       const cutX = [0, 0, 0, 0];
@@ -1694,7 +1508,6 @@
       /** @param {string} hex */
       const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
 
-      /** A side's color between its colors facing +X (t = 0) and facing +Y (t = 1). */
       function shade(/** @type {string} */ right, /** @type {string} */ left, /** @type {number} */ t) {
         if (t <= 0) return right;
         if (t >= 1) return left;
@@ -1703,27 +1516,23 @@
         return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`;
       }
 
-      /** A side face of the last cube, from corner i to corner j, between z0 and z1. */
       function side(
         /** @type {number} */ i, /** @type {number} */ j, /** @type {number} */ z0, /** @type {number} */ z1,
       ) {
         face(cutX[i], cutY[i], z1, cutX[j], cutY[j], z1, cutX[j], cutY[j], z0, cutX[i], cutY[i], z0);
       }
 
-      // How high the last cube's foot and top are: on the belt, or lifted off it.
       let zBottom = BOTTOM;
       let zTop = TOP;
-      // Which way the last cube faces, for its stamp, and its center.
       let facing = 0;
       let centerX = 0;
       let centerY = 0;
 
       /**
-       * A cube on the belt at (cx, cy), facing `heading` (from +X toward +Y), cut where it is
-       * still inside the machine. False when none of it is out.
+       * False when none of it is out.
        * @param {number} cx @param {number} cy @param {number} heading
        * @param {number} fill @param {boolean} dashed @param {Block | Waiting} item
-       * @param {number} lift how far above the belt it is
+       * @param {number} lift
        */
       function cube(cx, cy, heading, fill, dashed, item, lift = 0) {
         zBottom = BOTTOM + lift;
@@ -1731,7 +1540,6 @@
         facing = heading;
         centerX = cx;
         centerY = cy;
-        // A quarter turn leaves a cube as it was: only its stamp knows the difference.
         const quarter = Math.PI / 2;
         const angle = ((heading % quarter) + quarter) % quarter;
         const c = (Math.cos(angle) * CUBE) / 2;
@@ -1750,21 +1558,16 @@
         }
         if (Math.max(...cutX) - Math.min(...cutX) < 1e-6 || Math.max(...cutY) - Math.min(...cutY) < 1e-6) return false;
 
-        // Its front corner swaps at 45°, where one side turns edge on and the other appears.
         const before = angle < Math.PI / 4;
         L = before ? 3 : 2;
         S = before ? 2 : 1;
         R = before ? 1 : 0;
         F = before ? 0 : 3;
-        // Sides shade by where they face: the left one's normal is angle + 90° or angle.
         const leftT = before ? 1 : angle / (Math.PI / 2);
         const rightT = before ? angle / (Math.PI / 2) : 0;
 
-        // A glass cube holding the block as a liquid, as full as the block, like the bitview
-        // mark: the liquid solid, the glass above it clear but for its edges.
         const level = zBottom + Math.min(1, Math.max(0, fill)) * CUBE;
 
-        // Through the glass: its far edges, faint.
         ctx.strokeStyle = palette.faint;
         ctx.setLineDash(SOLID);
         ctx.beginPath();
@@ -1775,7 +1578,6 @@
         lineTo(cutX[F], cutY[F], zTop);
         ctx.stroke();
 
-        // The liquid: its two near sides and its surface, with the surface's edges.
         ctx.fillStyle = shade(palette.liquidRight, palette.liquidLeft, leftT);
         side(L, S, zBottom, level);
         ctx.fill();
@@ -1816,7 +1618,6 @@
         return true;
       }
 
-      /** Clips to one face of the last cube, so what is printed on it stays on it. */
       function clipFace(/** @type {"top" | "left" | "right"} */ which) {
         if (which === "top") face(cutX[0], cutY[0], zTop, cutX[1], cutY[1], zTop, cutX[2], cutY[2], zTop, cutX[3], cutY[3], zTop);
         else if (which === "left") side(L, S, zBottom, zTop);
@@ -1825,14 +1626,12 @@
         ctx.clip();
       }
 
-      /** Prints on the last cube's side from corner i to corner j, in pixels from its top left. */
       function onSide(/** @type {number} */ i, /** @type {number} */ j) {
         const ux = wholeX[j] - wholeX[i];
         const uy = wholeY[j] - wholeY[i];
         plane(sx(wholeX[i], wholeY[i]), sy(wholeX[i], wholeY[i], zTop), (ux - uy) * COS, (ux + uy) * SIN, 0, 1);
       }
 
-      /** Prints on the last cube's top, in cube widths from its back corner as it faces. */
       function onTop() {
         const s = camera.scale;
         const ux = Math.cos(facing) * CUBE;
@@ -1853,13 +1652,12 @@
 
       /**
        * @param {Block} block @param {number} cx @param {number} cy @param {number} angle @param {boolean} newest
-       * @param {number} lift how far above the belt it is, carried or on the table
+       * @param {number} lift
        */
       function drawBlock(block, cx, cy, angle, newest, lift = 0) {
         if (!cube(cx, cy, angle, block.weight / MAX_BLOCK_WEIGHT, false, block, lift)) return;
         const s = camera.scale;
 
-        // The miner's stamp on top: a label with its logo, turning with the cube.
         if (s >= 10) {
           const mark = logo(block.pool);
           clipFace("top");
@@ -1880,14 +1678,12 @@
         const size = 0.17 * s;
         const alpha = legible(size);
         if (!alpha) return;
-        // As faint as the block, when it fades.
         const faded = ctx.globalAlpha;
         ctx.globalAlpha = faded * alpha;
         printSides(heightFormat.format(block.height), feeRate(block.fee), s);
         ctx.globalAlpha = faded;
       }
 
-      /** Where a block taken to the table belongs on the belt: an empty glass, faint. */
       function drawGhost(/** @type {Block} */ block, /** @type {number} */ cx, /** @type {number} */ cy, /** @type {number} */ angle) {
         ctx.globalAlpha = 0.5;
         cube(cx, cy, angle, 0, true, block);
@@ -1895,12 +1691,10 @@
       }
 
       /**
-       * A projected block at cx on the mempool's belt, cut where it is inside the machine.
-       * @param {Waiting} waiting @param {number} cx @param {number} height what it is expected to be
+       * @param {Waiting} waiting @param {number} cx @param {number} height
        */
       function drawWaiting(waiting, cx, height) {
         if (!inView(cx - CUBE / 2, QUEUE_Y - CUBE / 2, cx + CUBE / 2, QUEUE_Y + CUBE / 2, TOP + waiting.lift)) return;
-        // Rising out of the lift, what is still under the belt is hidden by the belt in front.
         const rising = waiting.lift < 0;
         if (rising) {
           const o = LIFT_HALF;
@@ -1922,7 +1716,6 @@
         }
         const s = camera.scale;
 
-        // Where the stamp will go.
         clipFace("top");
         ctx.strokeStyle = palette.muted;
         ctx.setLineDash(DASHED);
@@ -1948,10 +1741,6 @@
 
       const feeRate = (/** @type {number} */ rate) => (rate < 10 ? rate.toFixed(1) : Math.round(rate).toString());
 
-      /**
-       * What every block shows on both its sides, mined or still waiting: its height (or the one
-       * it is expected at), its median fee rate, and the unit.
-       */
       function printSides(/** @type {string} */ height, /** @type {string} */ rate, /** @type {number} */ s) {
         for (const [which, i, j] of /** @type {const} */ ([["left", L, S], ["right", S, R]])) {
           clipFace(which);
@@ -1964,30 +1753,13 @@
         }
       }
 
-      /**
-       * The height the i-th waiting block is expected at: after the tip, counting the blocks
-       * found but not yet through the machine, whose projections are still in front of it.
-       */
       const expectedHeight = (/** @type {number} */ i) => knownTip + 1 + i - arriving.length;
 
-      // Workers ----------------------------------------------------------------
-
-      // A crew of little robots lives by the pool. An idle one fishes each transaction that drops
-      // in out of it, and carries it along the front of the mempool's belt into the first waiting
-      // block its fee rate makes it into. The next block is full, so one that goes into it puts
-      // another out: the robot takes a parcel back out and on to the block after, then walks
-      // back to its spot by the pool. Parcels are dashed like what is not mined yet.
-      // Between the belt and the pool, from the belt out: the line the robots throw from, a lane
-      // toward the machine, one away from it, and the row they wait in by the pool. A robot walks
-      // in the lane of its way, behind any walking ahead of it there, and steps out of it where
-      // it is going, so none stands in another's way.
       const THROW_Y = QUEUE_Y + BELT_WIDTH / 2 + 0.15;
       const LANE_IN = THROW_Y + 0.2;
       const LANE_OUT = LANE_IN + 0.2;
       const SPOT_Y = LANE_OUT + 0.2;
       const ROOM = 0.42;
-      // Places along the line, half a block apart, one robot each: off the machine's plinth, up
-      // to the lift. A robot throws from the free one nearest its block.
       const PLACE = 0.5;
       const PLACES = Array.from({ length: Math.floor((LIFT_X - PLINTH - 0.5) / PLACE) + 1 }, (_, i) => PLINTH + 0.5 + i * PLACE);
       const THROW_REACH = 1;
@@ -2003,21 +1775,16 @@
         const home = first + (i * (POOL_X1 - 0.6 - first)) / (CREW - 1);
         return { tx: null, x: home, y: SPOT_Y, home, place: -1, steps: [], since: 0, load: null, stride: 0, fishX: 0, fishY: 0 };
       });
-      /** Transactions seen dropping into the mempool, waiting for an idle robot. @type {Recent[]} */
+      /** @type {Recent[]} */
       const pending = [];
       /** @type {Set<string>} */
       const seenTxids = new Set();
 
-      /** Where the i-th waiting block is along X, or the nearest there is. */
       function slotX(/** @type {number} */ i) {
         const waiting = queue[Math.min(i, queue.length - 1)];
         return HALF + EXIT + (waiting ? waiting.slot : 0) * SLOT;
       }
 
-      /**
-       * The free place nearest the i-th waiting block, within reach of it or anywhere; -1 when
-       * none. Reach counts from where the line starts for a block before it, the next one.
-       */
       function freePlace(/** @type {number} */ i, /** @type {boolean} */ anywhere) {
         const x = Math.max(slotX(i), PLACES[0]);
         let best = -1;
@@ -2029,10 +1796,7 @@
         return best;
       }
 
-      /**
-       * The first waiting block a fee rate makes it into, the projections being by fee, highest
-       * first; -1 when none, the transaction staying in the pool.
-       */
+      /** -1 when none. */
       function destination(/** @type {number} */ rate) {
         for (let i = 0; i < queue.length; i++) {
           if (rate >= (queue[i].data.feeRange?.[0] ?? 0)) return i;
@@ -2040,10 +1804,6 @@
         return -1;
       }
 
-      /**
-       * Gives the first transaction with a free place near its block to the idle robot nearest
-       * that place; the others wait their turn.
-       */
       function assign(/** @type {number} */ now) {
         if (!pending.length || !queue.length) return;
         if (!workers.some((worker) => !worker.steps.length)) return;
@@ -2069,7 +1829,6 @@
         }
       }
 
-      /** Sends a robot to fish a transaction out and throw it into the to-th waiting block from a place. */
       function send(
         /** @type {Worker} */ free, /** @type {Recent} */ tx, /** @type {number} */ to,
         /** @type {number} */ place, /** @type {number} */ now,
@@ -2080,7 +1839,6 @@
           steps.push({ kind: "pick", block: 0 }, { kind: "walk", to: 1 }, { kind: "toss", block: 1 });
         }
         steps.push({ kind: "walk", to: -1 });
-        // It fishes the floating one nearest it.
         let nearest = -1;
         let best = Infinity;
         for (let i = 0; i < floatCount(); i++) {
@@ -2097,11 +1855,6 @@
         Object.assign(free, { tx, place, steps, since: now, fishX: target.x, fishY: target.y });
       }
 
-      /**
-       * The blocks ahead move up one when the next goes into the machine; so do the robots'
-       * errands, but for a bumped parcel's, from the next block to the one after, whichever those
-       * are now. One not yet at its place finds one near its block again.
-       */
       function shiftWorkers() {
         for (const worker of workers) {
           for (const step of worker.steps) {
@@ -2114,7 +1867,6 @@
         }
       }
 
-      /** Moves the robots on. */
       function stepWorkers(/** @type {number} */ now, /** @type {number} */ dt) {
         assign(now);
         for (const worker of workers) {
@@ -2127,7 +1879,6 @@
             const move = (WALK * dt) / 1000;
             const dx = target - worker.x;
             const way = Math.sign(dx) || 1;
-            // In the lane of its way until there, then out of it: onto the line or into its spot.
             const lane = dx ? (way < 0 ? LANE_IN : LANE_OUT) : home ? SPOT_Y : THROW_Y;
             worker.y += Math.max(-move, Math.min(move, lane - worker.y));
             if (!dx) {
@@ -2148,13 +1899,11 @@
             worker.load = step.kind === "pick" ? "bumped" : step.kind === "fish" ? "tx" : null;
             worker.steps.shift();
             worker.since = now;
-            // Done at its place: it gives it up to walk on.
             if (step.kind !== "fish" && worker.steps[0]?.kind === "walk") worker.place = -1;
           }
         }
       }
 
-      /** A robot: two legs, a body, a cube for a head with two eyes, and its parcel held up. */
       function drawWorker(/** @type {Worker} */ worker) {
         const x = worker.x;
         const y = worker.y;
@@ -2178,7 +1927,6 @@
           ctx.arc(sx(x + ex, y + 0.065), sy(x + ex, y + 0.065, 0.51), 0.011 * camera.scale, 0, Math.PI * 2);
           ctx.fill();
         }
-        // Arms up under the parcel, or down; a throw is the parcel flying, drawn after.
         const held = worker.load !== null && (walking || !step);
         ctx.beginPath();
         for (const side of [-1, 1]) {
@@ -2197,7 +1945,6 @@
         });
       }
 
-      /** A transaction: a small dashed cube with its foot at z; carried, bigger than a robot's head. */
       function parcel(/** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ z, h = 0.11) {
         fillBox(x - h, y - h, z, x + h, y + h, z + 2 * h, palette);
         ctx.strokeStyle = palette.ink;
@@ -2206,7 +1953,6 @@
         ctx.setLineDash(SOLID);
       }
 
-      /** Parcels in the air: out of the pool, or between a robot's hands and a waiting block. */
       function drawThrows(/** @type {number} */ now) {
         for (const worker of workers) {
           const step = worker.steps[0];
@@ -2221,14 +1967,13 @@
           const y = worker.y + (toY - worker.y) * k;
           const z = 0.6 + (toZ - 0.6) * k + Math.sin(Math.PI * k) * 0.7;
           if (!inView(x - 0.2, y - 0.2, x + 0.2, y + 0.2, z + 0.2)) continue;
-          // It sinks out of sight into the block at the end of a throw, and out of it at the start of a pick.
           ctx.globalAlpha = Math.min(1, (1 - k) * 6);
           parcel(x, y, z);
           ctx.globalAlpha = 1;
         }
       }
 
-      /** The robot the camera follows. @type {Worker | null} */
+      /** @type {Worker | null} */
       let followed = null;
       let cardText = "";
 
@@ -2242,7 +1987,6 @@
       const ordinal = (/** @type {number} */ n) => (n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`);
       const blockName = (/** @type {number} */ i) => (i === 0 ? "the next block" : `the ${ordinal(i + 1)} block`);
 
-      /** What a robot carries, and where to, in a few lines. */
       function cargo(/** @type {Worker} */ worker) {
         const step = worker.steps[0];
         const toss = worker.steps.find((next) => next.kind === "toss");
@@ -2267,19 +2011,15 @@
         return ["Nothing: going back to the pool"];
       }
 
-      /** Keeps the followed robot in the middle, and its card up to date. */
       function stepFollow(/** @type {number} */ dt) {
         if (!followed) return;
         const toU = (followed.x - followed.y) * COS - camera.u;
         const toV = (followed.x + followed.y) * SIN - 0.5 - camera.v;
-        // (Glides after the robot; for a reader who asked for less motion, the view stays and only jumps to it when the robot
-        // nears the edge, so nothing scrolls under them.)
         const k = reduced() ? (Math.abs(toU) * camera.scale > W * 0.3 || Math.abs(toV) * camera.scale > H * 0.3 ? 1 : 0) : 1 - Math.exp(-dt / 200);
         const du = toU * k;
         const dv = toV * k;
         camera.u += du;
         camera.v += dv;
-        // Redrawn while the camera moves by more than a hundredth of a pixel.
         if ((Math.abs(du) + Math.abs(dv)) * camera.scale > 0.01) invalidate();
         const step = followed.steps[0];
         const title = !step
@@ -2297,7 +2037,6 @@
         }
       }
 
-      /** Puts the card over the followed robot's head, where it is drawn this frame. */
       function placeCard() {
         if (!followed) return;
         const x = sx(followed.x, followed.y);
@@ -2305,31 +2044,14 @@
         card.style.transform = `translate(${x}px, ${y}px) translate(-50%, calc(-100% - 0.75rem))`;
       }
 
-      // The viewing table -------------------------------------------------------
-
-      // A low table to look inside a block on, a car on guideways along the folds' right side,
-      // from past the signs into the past. On a click it rides to where it shows best on screen
-      // while its drone flies to the block, both quick, much quicker out of sight, and the drone
-      // sets the block down on it, where it splits into its transactions: a box each, in the
-      // block's order from the back corner, as wide as its bytes, as high and inked as its fee
-      // rate. For another block, the drone first takes this one back to its place, and the table
-      // leaves as soon as it is off. The camera stays where it is. Low, the table and its way
-      // hide nothing.
       const TABLE_X0 = SIGN_X + 1.4;
       const TABLE_SIZE = 11;
       const TABLE_X1 = TABLE_X0 + TABLE_SIZE;
-      // It hovers on four sleds over two guideways, its deck on them.
       const TABLE_TOP = 0.5;
       const DECK = 0.36;
       const TABLE_MARGIN = 0.9;
-      // Behind its boxes, a strip for the drone's dock instead of a margin: it is that much
-      // longer than wide.
       const DOCK_STRIP = 2.4;
       const TABLE_LENGTH = TABLE_SIZE - TABLE_MARGIN + DOCK_STRIP;
-      // Its back edge at home, where its way ends just past its front edge. The way: a slab
-      // a little wider than the table, cut in segments, a guide line down its middle, bollards
-      // along its edges, and two smooth beams with a strip along their tops, one under each of
-      // the table's sides. Beside it, level with each fold's end on the right, the time there.
       const HOME_Y = QUEUE_Y - 1.2;
       const WAY_END = HOME_Y + TABLE_LENGTH + 0.4;
       const WAY_X0 = TABLE_X0 - 0.4;
@@ -2341,75 +2063,51 @@
       const JOINT = 3;
       const BOLLARD = 6;
       const HOVER = 0.05;
-      // On screen, units a second, or pixels when zoomed out. Out of sight, the table and the
-      // drone close in fast, the farther the faster: a year away is a few seconds.
       const TABLE_SPEED = 10;
       const SCREEN_SPEED = 400;
       const OFFSCREEN = 12;
       const OFFSCREEN_S = 0.5;
-      // The boxes' grid, inside the margins, the dock's strip behind it.
       const GRID = 160;
       const AREA_X0 = TABLE_X0 + TABLE_MARGIN;
       const CELL = (TABLE_SIZE - 2 * TABLE_MARGIN) / GRID;
       const MIDDLE_X = AREA_X0 + (GRID * CELL) / 2;
-      // The dock: a raised pad with its landing marks and lights at its corners, the drone's
-      // charger beside it.
       const PAD_X = TABLE_X0 + 1.5;
       const PAD_HALF = 0.85;
       const PAD_TOP = TABLE_TOP + 0.12;
-      // Where the table is on its guideways, its back edge, and where it is going.
       let tableY = HOME_Y;
       let tableTo = HOME_Y;
       const areaY = () => tableY + DOCK_STRIP;
       const padY = () => tableY + DOCK_STRIP / 2;
       const middleY = () => areaY() + (GRID * CELL) / 2;
-      // Splitting: the block turns into a stack of little cubes, one per transaction, and they fly
-      // off its top one after another, in order, each landing as its box. Closing is the
-      // same, backward.
       const CONVERT_MS = 350;
       const SCATTER_MS = 1_100;
       const FLIGHT_MS = 500;
       const SPLIT_MS = CONVERT_MS + SCATTER_MS + FLIGHT_MS;
-      // Fee rates, in sat/vB, from which a box is a shade inkier.
       const FEE_STEPS = [0, 2, 5, 10, 25, 75];
       const FEE_ALPHAS = [0.1, 0.22, 0.36, 0.5, 0.66, 0.82];
-      // Each one a box: as wide as its bytes make its square, as high as its fee rate makes it,
-      // on a log scale, up to this one.
       const LOWEST = 0.03;
       const HIGHEST = 0.5;
       const TOP_FEE = 300;
-      // Transactions per request, well within what the server takes.
       const TX_BATCH = 4_000;
 
       /**
        * @typedef {{ block: Block, sizes: Uint32Array, fees: Float32Array, bytes: number, side: Uint16Array,
        *   col: Uint16Array, row: Uint16Array, cells: Int32Array, shade: Uint8Array, rise: Float32Array,
        *   order: Uint32Array, first: number }} Layout
-       *   Each transaction's box: its footprint's side in cells and its corner; which one is in each
-       *   cell; its fee rate's shade and height; all of them back to front. first: the chain-wide
-       *   index of its first transaction.
        */
 
-      /**
-       * The block on the table and its layout once loaded; when it started splitting, or
-       * closing back up for the drone, 0 when not, and from how far along.
-       */
       const table = {
         block: /** @type {Block | null} */ (null),
         layout: /** @type {Layout | null} */ (null),
         split: 0,
         closing: 0,
-        // How far along the split was when closing started.
         from: 0,
-        // How many blocks have been set down on it, so late answers know theirs.
         visit: 0,
       };
-      /** The transaction under the pointer on the table, -1 when none. */
       let hoveredTx = -1;
       /** @type {Map<number, Promise<Layout>>} */
       const layouts = new Map();
 
-      /** A block's transactions laid out, fetched once. */
       function layoutOf(/** @type {Block} */ block) {
         let found = layouts.get(block.height);
         if (!found) {
@@ -2441,7 +2139,6 @@
         return lay(block, sizes, fees, start);
       }
 
-      /** Lays the squares out at the scale, in bytes per cell, that about fills the grid. */
       function lay(
         /** @type {Block} */ block, /** @type {Uint32Array} */ sizes, /** @type {Float32Array} */ fees,
         /** @type {number} */ first,
@@ -2467,10 +2164,6 @@
         return { block, sizes, fees, bytes, ...packed, shade, rise, order, first };
       }
 
-      /**
-       * Each square, in order, in the first place it fits from the first free cell on, reading
-       * the grid row by row; null when they don't all fit.
-       */
       function pack(/** @type {Uint32Array} */ sizes, /** @type {number} */ unit) {
         const n = sizes.length;
         const side = new Uint16Array(n);
@@ -2503,23 +2196,17 @@
         return true;
       }
 
-      /** How far along the split is, in milliseconds: back toward 0 while closing up. */
       function splitTime(/** @type {number} */ now) {
         if (!table.layout || !table.split) return 0;
         if (table.closing) return Math.max(0, table.from - (now - table.closing));
         return Math.min(SPLIT_MS, now - table.split);
       }
 
-      /** How many of n transactions have left the stack by `t` into the split, `late` after leaving. */
       function flown(/** @type {number} */ t, /** @type {number} */ n, late = 0) {
         const since = t - CONVERT_MS - late;
         return since < 0 ? 0 : Math.min(n, Math.floor((since * n) / SCATTER_MS) + 1);
       }
 
-      /**
-       * The stack of the n transactions still on it, a cube each, L to a side: whole layers, then
-       * whole rows of the top one, then the rest of a row. The first transactions are on top.
-       */
       function drawStack(/** @type {number} */ n, /** @type {number} */ L) {
         const v = CUBE / L;
         const x0 = MIDDLE_X - CUBE / 2;
@@ -2533,7 +2220,6 @@
         if (rest % L) gridBox(x0, y0 + rows * v, z, x0 + (rest % L) * v, y0 + (rows + 1) * v, z + v, v);
       }
 
-      /** A box ruled every `step` along its three faces in sight. */
       function gridBox(
         /** @type {number} */ x0, /** @type {number} */ y0, /** @type {number} */ z0,
         /** @type {number} */ x1, /** @type {number} */ y1, /** @type {number} */ z1, /** @type {number} */ step,
@@ -2560,7 +2246,6 @@
         ctx.stroke();
       }
 
-      // Each shade's faces: the table's colors inked as much as the fee rate says, per palette.
       let facesFor = "";
       /** @type {Faces[]} */
       let faces = [];
@@ -2578,13 +2263,11 @@
         return faces;
       }
 
-      // The last box located: its corner, width and height.
       let boxX = 0;
       let boxY = 0;
       let boxW = 0;
       let boxH = 0;
 
-      /** Where the i-th transaction's box is on the table, `gap` apart from the next. */
       function locate(/** @type {Layout} */ layout, /** @type {number} */ i, /** @type {number} */ gap) {
         boxW = layout.side[i] * CELL - gap;
         boxX = AREA_X0 + layout.col[i] * CELL + gap / 2;
@@ -2592,7 +2275,6 @@
         boxH = layout.rise[i];
       }
 
-      /** The i-th transaction's box, landed: only if on screen, unless `all`. */
       function drawBox(
         /** @type {Layout} */ layout, /** @type {number} */ i, /** @type {number} */ gap,
         /** @type {Faces[]} */ shades, /** @type {boolean} */ all,
@@ -2601,7 +2283,6 @@
         const z = TABLE_TOP + boxH;
         if (!all && !inView(boxX, boxY, boxX + boxW, boxY + boxW, z)) return;
         ctx.strokeStyle = palette.muted;
-        // Out of the block, on the transaction table or on its way: where it goes, dashed.
         if (i === outOf(layout.block)) {
           ctx.setLineDash(DOTTED);
           strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z);
@@ -2612,13 +2293,9 @@
         if (boxW * camera.scale >= 7) strokeBox(boxX, boxY, TABLE_TOP, boxX + boxW, boxY + boxW, z);
       }
 
-      // All of them landed, drawn once into a picture and copied while only the view moves; drawn
-      // again when the zoom, the theme or the block changes. Too big a picture, up close, they
-      // are drawn as they come, only those on screen.
       const picture = document.createElement("canvas");
       const pictureCtx = /** @type {CanvasRenderingContext2D} */ (picture.getContext("2d"));
       let pictureOf = "";
-      // Its corner, from where the grid's back corner is on screen.
       let pictureX = 0;
       let pictureY = 0;
 
@@ -2654,7 +2331,6 @@
         ctx.drawImage(picture, ax + pictureX, ay + pictureY, picture.width / dpr, picture.height / dpr);
       }
 
-      // The transactions in the air this frame: where each is, how big, how deep, back to front.
       let flyingCap = 0;
       let flyX = new Float64Array(0);
       let flyY = new Float64Array(0);
@@ -2664,11 +2340,6 @@
       let flyDepth = new Float64Array(0);
       let flyOrder = new Uint32Array(0);
 
-      /**
-       * Where the transactions in the air are, from their cube on the stack to their box: arcing
-       * over, turning into their box as they land. Above every box, one is drawn last; lower, by
-       * its depth. How many there are.
-       */
       function fly(/** @type {Layout} */ layout, /** @type {number} */ t, /** @type {number} */ L, /** @type {number} */ gap) {
         const n = layout.sizes.length;
         const { side, col, row, rise } = layout;
@@ -2688,7 +2359,6 @@
         for (let k = 0; k < count; k++) {
           const i = first + k;
           const e = ease((t - CONVERT_MS - (i * SCATTER_MS) / n) / FLIGHT_MS);
-          // From its cube on the stack, the first ones on top, to its box.
           const b = n - 1 - i;
           const at = b % (L * L);
           const fromX = MIDDLE_X - CUBE / 2 + ((at % L) + 0.5) * v;
@@ -2710,7 +2380,6 @@
         return count;
       }
 
-      /** The k-th transaction in the air, `first` the first of them. */
       function drawFlyer(
         /** @type {Layout} */ layout, /** @type {number} */ k, /** @type {number} */ first,
         /** @type {Faces[]} */ shades, /** @type {boolean} */ outline,
@@ -2725,10 +2394,6 @@
         strokeBox(x - w, y - w, z, x + w, y + w, z + flyH[k]);
       }
 
-      /**
-       * While the block splits, or closes back up: the boxes landed, the stack and those in the
-       * air, back to front together; the boxes under the stack, inside it, first.
-       */
       function drawSplitting(
         /** @type {Layout} */ layout, /** @type {number} */ t, /** @type {number} */ gap,
         /** @type {number} */ landed, /** @type {number} */ turned,
@@ -2745,7 +2410,6 @@
         const under = () => boxX < x0 + CUBE && boxX + boxW > x0 && boxY < y0 + CUBE && boxY + boxW > y0;
         let stackDone = !stacked;
         const depth = MIDDLE_X + middleY();
-        /** The stack, if not yet drawn and behind depth d. */
         const stackBehind = (/** @type {number} */ d) => {
           if (stackDone || depth >= d) return;
           stackDone = true;
@@ -2786,7 +2450,6 @@
         const areaTop = areaY();
         if (!inView(TABLE_X0, back, TABLE_X1, front, TABLE_TOP + CUBE + 0.3)) return;
         const s = camera.scale;
-        // Its sleds over the guideways, flush with its corners and hovering, then its deck.
         for (const y of [back + 0.9, front - 0.9]) {
           for (const x of BEAMS) box(x - 0.4, y - 0.9, BEAM_TOP + HOVER, x + 0.4, y + 0.9, DECK, palette);
         }
@@ -2804,10 +2467,8 @@
         const t = splitTime(now);
         const n = layout ? layout.sizes.length : 0;
         const landed = flown(t, n, FLIGHT_MS);
-        // Apart by about a pixel, so even the smallest stay one each.
         const gap = Math.max(CELL * 0.14, Math.min(CELL * 0.4, 1 / s));
 
-        // What it shows, printed along its front margins.
         const size = 0.3 * s;
         if (legible(size)) {
           const block = table.block;
@@ -2829,8 +2490,6 @@
           ctx.globalAlpha = 1;
         }
 
-        // The block itself, turning into the stack of its transactions, which then fly off it to
-        // land as their boxes: those behind the stack drawn before it, those in front after.
         if (!table.block) return;
         const turned = Math.min(1, t / CONVERT_MS);
         if (turned < 1) {
@@ -2850,13 +2509,11 @@
         }
       }
 
-      /** The drone's dock on the table's back strip: its pad, marks and lights, its charger. */
       function drawDock() {
         const x = PAD_X;
         const y = padY();
         const h = PAD_HALF;
         box(x - h, y - h, TABLE_TOP, x + h, y + h, PAD_TOP, palette);
-        // A ring and a cross to land on.
         ctx.strokeStyle = palette.muted;
         ctx.beginPath();
         ctx.ellipse(sx(x, y), sy(x, y, PAD_TOP), ellipseX(0.55), ellipseY(0.55), 0, 0, Math.PI * 2);
@@ -2865,7 +2522,6 @@
         moveTo(x, y - 0.3, PAD_TOP);
         lineTo(x, y + 0.3, PAD_TOP);
         ctx.stroke();
-        // Lights at its corners, lit while the drone is out.
         ctx.fillStyle = drone.steps.length ? palette.ink : palette.top;
         for (const [ex, ey] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
           const lx = x + ex * (h - 0.12);
@@ -2875,7 +2531,6 @@
           ctx.fill();
           ctx.stroke();
         }
-        // The charger, beside the pad, with its cable to it.
         const cx = x + h + 0.75;
         box(cx - 0.3, y - 0.45, TABLE_TOP, cx + 0.3, y + 0.15, TABLE_TOP + 0.55, palette);
         ctx.strokeStyle = palette.ink;
@@ -2891,10 +2546,6 @@
         }
       }
 
-      /**
-       * The transaction under the screen point (x, y) on the table, -1 when none: of the boxes
-       * whose cells the line of sight crosses over the table, the one it meets nearest the eye.
-       */
       function txAt(/** @type {number} */ x, /** @type {number} */ y) {
         const layout = table.layout;
         if (!layout || !table.split || table.closing) return -1;
@@ -2912,7 +2563,6 @@
           const i = layout.cells[r * GRID + c];
           if (i < 0 || i >= landed || i === best) continue;
           locate(layout, i, gap);
-          // The heights at which the line is over its footprint and below its top.
           const top = Math.min(boxX + boxW - a / 2 - v, boxY + boxW + a / 2 - v, TABLE_TOP + boxH);
           const bottom = Math.max(boxX - a / 2 - v, boxY + a / 2 - v, TABLE_TOP);
           if (top >= bottom && top > nearest) {
@@ -2923,14 +2573,6 @@
         return best;
       }
 
-      // The transaction table ---------------------------------------------------
-
-      // A second car on its own way beside the first. A transaction clicked on the block table
-      // comes over to it in the drone's claws, a little cube, and opens up: its inputs at the back,
-      // its outputs in front, each a box as wide and high as its value says, wired to it in the
-      // middle. It stays while other blocks come and go; for another transaction, the drone first
-      // takes this one back into its block, on the table or out on the belt. Each table has a
-      // search box on its deck: a height or a hash, a transaction's id.
       const TX_WAY_X0 = WAY_X1 + 0.6;
       const TX_X0 = TX_WAY_X0 + 0.4;
       const TX_SIZE = 7;
@@ -2940,15 +2582,12 @@
       const TX_LENGTH = 8.6;
       const TX_HOME_Y = HOME_Y + (TABLE_LENGTH - TX_LENGTH) / 2;
       const TX_MID_X = TX_X0 + TX_SIZE / 2;
-      // From its back edge: where its inputs go, its outputs, and the transaction between.
       const INS_Y = [1.4, 3.6];
       const OUTS_Y = [4.9, 7.1];
       const NODE_Y = 4.25;
       const NODE = 0.3;
-      // At most this many of each shown.
       const SLOTS = 120;
       const OPEN_MS = 700;
-      // A transaction in the drone's claws, a cube this wide; it flies low over the tables.
       const PARCEL = 0.32;
       const LOW = TABLE_TOP + HIGHEST + 0.7;
       const HASH = /^[0-9a-f]{64}$/i;
@@ -2956,42 +2595,34 @@
       /**
        * @typedef {import("../modules/bitview-client/index.js").Transaction} Transaction
        * @typedef {{ x: number, y: number, w: number, h: number, value: number, label: string }} Slot
-       *   An input or an output: its box's corner from the table's back corner, its width and height.
        * @typedef {{ block: Block, i: number, g: number, shade: number, txid: string | null, tx: Transaction | null,
        *   ins: Slot[], outs: Slot[], moreIns: number, moreOuts: number }} Parcel
-       *   A transaction out of its block: its place in it and along the chain, its shade, its
-       *   details once in, laid out.
        */
 
-      /** On the table, and when it started opening, or folding back up from how open. */
       const txTable = {
         item: /** @type {Parcel | null} */ (null),
         open: 0,
         closing: 0,
         from: 0,
       };
-      // Where it is on its way, its back edge, and where it is going.
       let txY = TX_HOME_Y;
       let txTo = TX_HOME_Y;
-      /** A transaction found, to take as soon as its block is open. @type {{ block: Block, g: number, tx: Transaction } | null} */
+      /** @type {{ block: Block, g: number, tx: Transaction } | null} */
       let wantTx = null;
-      /** The input or output under the pointer. @type {{ slot: Slot, out: boolean, k: number, of: number } | null} */
+      /** @type {{ slot: Slot, out: boolean, k: number, of: number } | null} */
       let hoveredSlot = null;
 
-      /** Which transaction of the block is out of it, on the table or in the drone's claws; -1 if none. */
       function outOf(/** @type {Block} */ block) {
         const item = drone.parcel ?? txTable.item;
         return item && item.block === block ? item.i : -1;
       }
 
-      /** How open the transaction on the table is, 0 to 1. */
       function openness(/** @type {number} */ now) {
         if (!txTable.open) return 0;
         if (txTable.closing) return Math.max(0, txTable.from - (now - txTable.closing) / OPEN_MS);
         return Math.min(1, (now - txTable.open) / OPEN_MS);
       }
 
-      /** Opens the one on the table, once its details are in. */
       function opening(/** @type {number} */ now) {
         if (!txTable.item?.tx || txTable.open) return;
         txTable.open = now;
@@ -2999,7 +2630,6 @@
         invalidate();
       }
 
-      /** Fetches a transaction's details, by its place along the chain, and lays them out. */
       function loadTx(/** @type {Parcel} */ parcel) {
         void (async () => {
           const client = await clientReady;
@@ -3011,7 +2641,6 @@
         })().catch((error) => console.error("transaction", error));
       }
 
-      /** A transaction's inputs and outputs, as boxes as big as their values, the biggest the widest. */
       function layTx(/** @type {Transaction} */ tx) {
         const outs = tx.vout.map((out) => ({ value: out.value, label: out.scriptpubkeyAddress ?? out.scriptpubkeyType }));
         const ins = tx.vin.map((input) =>
@@ -3030,7 +2659,6 @@
         };
       }
 
-      /** Up to SLOTS of them in rows between y0 and y1, centered, each as wide as its value says. */
       function slots(/** @type {{ value: number, label: string }[]} */ list, /** @type {number[]} */ [y0, y1], /** @type {number} */ top) {
         const n = Math.min(list.length, SLOTS);
         const width = TX_SIZE - 1.2;
@@ -3054,10 +2682,8 @@
         });
       }
 
-      /** Sats as bitcoin, without trailing zeros. */
       const btc = (/** @type {number} */ sats) => (sats / 100_000_000).toFixed(8).replace(/\.?0+$/, "");
 
-      /** Moves the transaction table along its way; whether it is moving. */
       function stepTx(/** @type {number} */ dt) {
         if (txY === txTo) return false;
         const left = Math.abs(txTo - txY);
@@ -3067,10 +2693,6 @@
         return true;
       }
 
-      /**
-       * The transaction table on its sleds: its inputs, the transaction, its outputs, back to
-       * front, wired together on the deck, opening out of the transaction and folding back in.
-       */
       function drawTxTable(/** @type {number} */ now) {
         const back = txY;
         const front = txY + TX_LENGTH;
@@ -3084,7 +2706,6 @@
         const o = ease(openness(now));
         const mx = TX_MID_X;
         const my = back + NODE_Y;
-        /** Where a slot's middle is, and how big it is, as open as the table is. */
         const at = (/** @type {Slot} */ slot) => {
           const cx = mx + (TX_X0 + slot.x + slot.w / 2 - mx) * o;
           const cy = my + (back + slot.y + slot.w / 2 - my) * o;
@@ -3121,7 +2742,6 @@
           }
         }
 
-        // What it shows, along its front margin; what is what, along its right one.
         const size = 0.26 * s;
         if (!legible(size)) return;
         const tx = item?.tx;
@@ -3152,10 +2772,6 @@
         ctx.textBaseline = "alphabetic";
       }
 
-      /**
-       * The heights at which the line of sight through screen point (a, v) is inside the box
-       * over [x0, x0 + w] by [y0, y0 + w] up from z0 to z1: its top, or -Infinity if it misses.
-       */
       function rayBox(
         /** @type {number} */ a, /** @type {number} */ v, /** @type {number} */ x0, /** @type {number} */ y0,
         /** @type {number} */ w, /** @type {number} */ z0, /** @type {number} */ z1,
@@ -3165,7 +2781,6 @@
         return top >= bottom ? top : -Infinity;
       }
 
-      /** The input or output under the screen point (x, y), nearest the eye; null if none. */
       function slotAt(/** @type {number} */ x, /** @type {number} */ y) {
         const item = txTable.item;
         if (!item?.tx || openness(sim) < 1) return null;
@@ -3187,7 +2802,6 @@
         return best;
       }
 
-      /** The block at a height: the one on the belt, or one fetched alone from further back. */
       /** @type {Map<number, Block>} */
       const further = new Map();
       async function blockAt(/** @type {number} */ height) {
@@ -3204,7 +2818,6 @@
         return block;
       }
 
-      /** Looks inside the block at a height or with a hash. */
       async function findBlockBy(/** @type {string} */ text) {
         const client = await clientReady;
         const height = /^\d+$/.test(text) ? Number(text) : HASH.test(text) ? (await client.getBlock(text.toLowerCase())).height : NaN;
@@ -3214,7 +2827,6 @@
         look(block);
       }
 
-      /** Opens a transaction by its id: its block first, then it. */
       async function findTxBy(/** @type {string} */ text) {
         if (!HASH.test(text)) throw new Error("not a transaction id");
         const client = await clientReady;
@@ -3227,7 +2839,6 @@
         wantTx = { block, g: tx.index, tx };
       }
 
-      /** The transaction found, once its block is open on the table and the drone free. */
       function takeWanted(/** @type {number} */ now) {
         const layout = table.layout;
         if (!wantTx || table.block !== wantTx.block || !layout || table.closing || splitTime(now) < SPLIT_MS) return;
@@ -3257,7 +2868,6 @@
         });
       }
 
-      /** Lays a search box on a table's deck, skewed like it, where it shows. */
       function layInput(
         /** @type {HTMLInputElement} */ input, /** @type {number} */ x, /** @type {number} */ y,
         /** @type {number} */ length, /** @type {number} */ depth, /** @type {number} */ font, /** @type {boolean} */ shown,
@@ -3276,15 +2886,12 @@
         style.transform = `matrix(${COS}, ${SIN}, ${-COS}, ${SIN}, ${sx(x, y)}, ${sy(x, y, TABLE_TOP)})`;
       }
 
-      /** The block table's search box on its back strip, the transaction table's on its back margin. */
       function placeInputs() {
         layInput(findBlock, TABLE_X0 + 3.7, tableY + 0.75, TABLE_SIZE - 4.3, 0.75, 0.32,
           inView(TABLE_X0, tableY, TABLE_X1, tableY + TABLE_LENGTH, TABLE_TOP));
         layInput(findTx, TX_X0 + 0.45, txY + 0.3, TX_SIZE - 0.9, 0.7, 0.2,
           inView(TX_X0, txY, TX_X1, txY + TX_LENGTH, TABLE_TOP));
       }
-
-      // The drone -----------------------------------------------------------------
 
       /**
        * @typedef {{ kind: "go", to: "here" | "pad" | "table" | "belt" | "cell" | "tx", z: number, block?: Block, i?: number }
@@ -3294,32 +2901,22 @@
        *   | { kind: "take", parcel?: Parcel, then?: number }
        *   | { kind: "put", onto: "cell" | "tx" | "block" }
        *   | { kind: "fold" }} Flight
-       *   A leg of the drone's errand: fly straight to a point, z its feet's height, or straight
-       *   up or down where it is; take a block,
-       *   off the table sending the table on to `then`; set it down; wait for the block on the
-       *   table to close back up. And for a transaction: take it out of its cell on the block
-       *   table, or off the transaction table sending that one on to `then`; put it in its cell,
-       *   on the transaction table or into its block on the belt; wait for it to fold back up.
        * @typedef {{ x: number, y: number, z: number, angle: number, load: Block | null, parcel: Parcel | null,
        *   steps: Flight[], since: number, spin: number }} Drone
-       *   angle: the way the block it holds faces. parcel: the transaction it holds.
        */
 
-      // It flies over everything, and holds a block by its top, this far under its feet.
       const CRUISE = 2.6;
       const HOLD = 0.12;
       const DRONE_SPEED = 11;
       const GRAB_MS = 200;
       /** @type {Drone} */
       const drone = { x: PAD_X, y: HOME_Y + DOCK_STRIP / 2, z: PAD_TOP, angle: 0, load: null, parcel: null, steps: [], since: 0, spin: 0 };
-      /** What was clicked last while the drone was busy, to do once it is back. @type {(() => void) | null} */
+      /** @type {(() => void) | null} */
       let nextAction = null;
-      /** Blocks off the belt, held or on the table: an outline shows where they belong. @type {Set<Block>} */
+      /** @type {Set<Block>} */
       const away = new Set();
 
-      /** Sends the drone for a block, after taking back the one on the table. */
       function look(/** @type {Block} */ block) {
-        // Busy, the drone does the latest click when back.
         if (drone.steps.length) {
           nextAction = () => look(block);
           return;
@@ -3329,8 +2926,6 @@
         void layoutOf(block);
         const onTable = TABLE_TOP + CUBE + HOLD;
         const onBelt = TOP + HOLD;
-        // The table stops where it shows best in the view: its middle as near the screen's as
-        // its way lets it.
         const level = Math.min(HOME_Y, 0.5 * MIDDLE_X - COS * camera.u + 0.5 * camera.v - TABLE_LENGTH / 2);
         /** @type {Flight[]} */
         const steps = [];
@@ -3367,18 +2962,14 @@
         drone.since = sim;
       }
 
-      /** The table's way, from its end into the past, only where it shows. */
-      /** A table's way between x0 and x1 with its beams, the hours beside it if `hours`. */
       function drawWay(
         /** @type {number} */ x0, /** @type {number} */ x1, /** @type {number[]} */ beams, /** @type {boolean} */ hours,
       ) {
         const s = camera.scale;
-        // Where along Y some of it is on screen.
         const from = Math.max(x0 - viewU1 / COS, 2 * viewV0 - x1);
         const to = Math.min(WAY_END, x1 - viewU0 / COS, 2 * (viewV1 + 0.4) - x0);
         if (from >= to) return;
         box(x0, from, 0, x1, to, SLAB, palette);
-        // Its segments and the guide line down its middle.
         ctx.strokeStyle = palette.faint;
         ctx.beginPath();
         if (JOINT * s >= 10) {
@@ -3396,8 +2987,6 @@
         lineTo((x0 + x1) / 2, to, SLAB);
         ctx.stroke();
         ctx.setLineDash(SOLID);
-        // The time at each right fold's end, the middle of its U-turn, on the ground between it
-        // and the way, where the table never covers it.
         const size = 0.4 * s;
         if (hours && legible(size)) {
           ctx.textBaseline = "middle";
@@ -3414,7 +3003,6 @@
           ctx.globalAlpha = 1;
           ctx.textBaseline = "alphabetic";
         }
-        // Bollards on the far edge, the beams, bollards on the near edge.
         const bollards = (/** @type {number} */ x) => {
           if (s < 14) return;
           for (let y = Math.ceil(from / BOLLARD) * BOLLARD; y < to; y += BOLLARD) {
@@ -3434,7 +3022,6 @@
         bollards(x1 - 0.15);
       }
 
-      /** Moves the table along its way; whether it is moving. */
       function stepTable(/** @type {number} */ dt) {
         if (tableY === tableTo) return false;
         const left = Math.abs(tableTo - tableY);
@@ -3444,16 +3031,11 @@
         return true;
       }
 
-      /**
-       * How fast to cover what is left: up to a top speed, or a pace on screen when zoomed out,
-       * easing in over the last stretch; out of sight, far faster, more so the farther.
-       */
       function pace(/** @type {number} */ left, /** @type {number} */ top, /** @type {number} */ ease, /** @type {boolean} */ shown) {
         if (!shown) return Math.max(top * OFFSCREEN, left / OFFSCREEN_S);
         return Math.min(Math.max(top, SCREEN_SPEED / camera.scale), Math.max(1.5, left * ease));
       }
 
-      /** Moves the drone on its errand; whether it is on one. Docked, it rides with the table. */
       function stepDrone(/** @type {number} */ now, /** @type {number} */ dt) {
         const step = drone.steps[0];
         if (!step) {
@@ -3492,7 +3074,6 @@
           const d = Math.hypot(dx, dy, dz);
           const shown = inView(drone.x - 0.6, drone.y - 0.6, drone.x + 0.6, drone.y + 0.6, drone.z + 0.3);
           const move = (pace(d, DRONE_SPEED, 5, shown) * dt) / 1000;
-          // The block it holds turns the short way round.
           const turn = angle - drone.angle - 2 * Math.PI * Math.round((angle - drone.angle) / (2 * Math.PI));
           if (drone.load) drone.angle += Math.max(-dt / 150, Math.min(dt / 150, turn));
           if (d <= move) {
@@ -3566,10 +3147,6 @@
         return true;
       }
 
-      /**
-       * Splits the block set down on the table, visit `visit`, once its transactions are in,
-       * trying again if they fail; not once the table has moved on.
-       */
       function show(/** @type {Block} */ block, /** @type {number} */ visit) {
         const current = () => table.visit === visit && table.block === block && !table.closing;
         layoutOf(block).then((layout) => {
@@ -3590,11 +3167,6 @@
         action();
       }
 
-      /**
-       * Sends the drone for the block table's i-th transaction, to the transaction table, after
-       * taking back the one there: into its cell if its block is on the table, else into its
-       * block on the belt.
-       */
       function pickTx(/** @type {Block} */ block, /** @type {number} */ i, /** @type {Transaction | null} */ tx = null) {
         if (drone.steps.length) {
           nextAction = () => pickTx(block, i, tx);
@@ -3605,10 +3177,8 @@
         /** @type {Parcel} */
         const parcel = { block, i, g: layout.first + i, shade: layout.shade[i], txid: tx?.txid ?? null, tx, ins: [], outs: [], moreIns: 0, moreOuts: 0 };
         loadTx(parcel);
-        // The transaction table stops where it shows best in the view, like the block table.
         const level = Math.min(TX_HOME_Y, 0.5 * TX_MID_X - COS * camera.u + 0.5 * camera.v - TX_LENGTH / 2);
         const onTx = TABLE_TOP + PARCEL + HOLD;
-        /** Down to the cell of the j-th transaction, to hold it by its top or put one on it. */
         const cellZ = (/** @type {number} */ j, /** @type {number} */ held) => TABLE_TOP + layout.rise[j] + held + HOLD;
         /** @type {Flight[]} */
         const steps = [];
@@ -3658,7 +3228,6 @@
         drone.since = sim;
       }
 
-      /** The drone: its shadow, the block it holds, its body, four arms and their rotors. */
       function drawDrone() {
         const { x, y, z } = drone;
         const low = drone.load ? z - HOLD - CUBE : drone.parcel ? z - HOLD - PARCEL : z;
@@ -3679,7 +3248,6 @@
         }
         if (drone.load) {
           drawBlock(drone.load, x, y, drone.angle, false, z - HOLD - TOP);
-          // Its claws on the block's top.
           ctx.strokeStyle = palette.ink;
           ctx.beginPath();
           for (const [ex, ey] of [[-0.2, 0], [0.2, 0], [0, -0.2], [0, 0.2]]) {
@@ -3705,7 +3273,6 @@
           ctx.fillStyle = palette.top;
           ctx.fill();
           ctx.stroke();
-          // A blade, spinning while it flies.
           const turn = flying ? drone.spin + ex + 2 * ey : Math.PI / 4;
           const bx = Math.cos(turn) * 0.15;
           const by = Math.sin(turn) * 0.15;
@@ -3721,18 +3288,15 @@
 
       async function pollRecent() {
         clearTimeout(recentTimer);
-        // Nothing to see while the page is hidden.
         if (!document.hidden) try {
           const client = await clientReady;
           const recent = await client.getMempoolRecent({ cache: false });
           const fresh = recent.filter((tx) => !seenTxids.has(tx.txid));
-          // Each drops into the pool, spread over the time until the next look.
           const now = sim;
           fresh.forEach((tx, i) => {
             seenTxids.add(tx.txid);
             pending.push(tx);
             const margin = POOL_WALL + 0.4;
-            // (No rings spreading for a reader who asked for less motion.)
             if (!reduced()) ripples.push({
               x: POOL_X0 + margin + Math.random() * (POOL_X1 - POOL_X0 - 2 * margin),
               y: POOL_Y0 + margin + Math.random() * (POOL_Y1 - POOL_Y0 - 2 * margin),
@@ -3752,11 +3316,8 @@
         recentTimer = setTimeout(pollRecent, RECENT_POLL_MS);
       }
 
-      // Positions --------------------------------------------------------------
-
       const ease = (/** @type {number} */ t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
 
-      /** How far along the belt a block is: its age, unless it was pushed along. */
       function position(/** @type {Block} */ block, /** @type {number} */ seconds, /** @type {number} */ now) {
         const target = (seconds - block.tEff) / SECONDS_PER_UNIT;
         if (!block.offset) return target;
@@ -3768,7 +3329,6 @@
         return target + block.offset * (1 - ease(t));
       }
 
-      /** Lets a block glide from where it is drawn now to where it belongs. */
       function glide(/** @type {Block} */ block, /** @type {number} */ from, /** @type {number} */ ms, /** @type {number} */ now) {
         block.offset = from - (Date.now() / 1000 - block.tEff) / SECONDS_PER_UNIT;
         block.offsetStart = now;
@@ -3776,10 +3336,7 @@
         animateUntil = Math.max(animateUntil, now + ms);
       }
 
-      /**
-       * Older blocks give way to the one at index i: each keeps at least SPACING of time
-       * behind the next, which only ever moves it further along.
-       */
+      /** Each keeps at least SPACING behind the next, only ever moving further along. */
       function settle(/** @type {number} */ i, /** @type {number} */ now) {
         const seconds = Date.now() / 1000;
         for (; i >= 0; i--) {
@@ -3792,7 +3349,6 @@
         }
       }
 
-      /** Places blocks older than `next` (or the newest, if none) behind it. */
       function place(/** @type {Block[]} */ older, /** @type {Block | null} */ next) {
         const seconds = Date.now() / 1000;
         for (let i = older.length - 1; i >= 0; i--) {
@@ -3804,12 +3360,9 @@
         }
       }
 
-      // Stamping ---------------------------------------------------------------
-
       function startJob(/** @type {number} */ now) {
         const block = /** @type {Block} */ (arriving.shift());
         const entering = queue.shift() ?? null;
-        // One still rising goes in from the belt, out of the lift.
         if (entering) entering.lift = 0;
         for (const waiting of queue) waiting.target -= 1;
         shiftWorkers();
@@ -3849,13 +3402,11 @@
         }
       }
 
-      /** Eases the waiting blocks toward their slots, fills and full presence. */
       function stepQueue(/** @type {number} */ dt) {
         const k = 1 - Math.exp(-dt / 140);
         let moving = false;
         for (const waiting of queue) {
           const fill = waiting.data.blockVSize / MAX_BLOCK_VSIZE;
-          // One rising out of the lift is all out before it moves up.
           if (waiting.lift < 0) {
             waiting.lift = Math.min(0, waiting.lift + (RISE * dt) / RISE_MS);
             moving = true;
@@ -3875,8 +3426,6 @@
         return moving;
       }
 
-      // Drawing ----------------------------------------------------------------
-
       function draw(/** @type {number} */ now) {
         const seconds = Date.now() / 1000;
         flat();
@@ -3891,13 +3440,10 @@
         const [first, last] = visibleParts();
         const pLo = partStart(first) - CUBE;
         const pHi = partEnd(last) + CUBE;
-        // The belt's slats are spaced along it and move with the blocks.
         const phase = (seconds / SECONDS_PER_UNIT) % SLAT;
         beltSeconds = seconds;
         printed.length = 0;
 
-        // Back to front: the table's way, the folds behind the machine, the machine, the belts
-        // before it, then every cube by depth.
         drawGround(first, last);
         drawWay(WAY_X0, WAY_X1, BEAMS, true);
         drawWay(TX_WAY_X0, TX_WAY_X1, TX_BEAMS, false);
@@ -3908,11 +3454,8 @@
           drawTurn(0, phase);
         }
         for (let i = 0; i < printed.length; i += 2) marks(printed[i], printed[i + 1]);
-        // A cube turned any way stays within this of its center.
         const half = (CUBE * Math.SQRT2) / 2;
 
-        // Blocks are in order of tEff, so the newest that can show is found by halving; the
-        // two after it may be gliding. The folds turn back on themselves, so sort by depth.
         const newest = blocks.length - 1;
         const latest = seconds - pLo * SECONDS_PER_UNIT;
         let lo = 0;
@@ -3938,8 +3481,6 @@
           else drawBlock(block, x, y, angle, newest);
         }
 
-        // The mempool's belt beside the chain's, its blocks nearest the machine first, the sign at
-        // its end, then the robots and the pool in front of them.
         drawQueueBelt();
         if (job && job.entering) {
           const t = (now - job.start) / IN_MS;
@@ -3951,8 +3492,6 @@
         queue.forEach((waiting, i) => drawWaiting(waiting, HALF + EXIT + waiting.slot * SLOT, expectedHeight(i)));
         const worth = Math.ceil(mempoolVSize / MAX_BLOCK_VSIZE);
         drawSign(QUEUE_Y, "NEXT BLOCKS", worth ? `${heightFormat.format(worth)} BLOCKS TO CLEAR` : "");
-        // The robots, between the belt and the pool, its rim over their feet; the table, the pool,
-        // what is thrown, and the drone over it all.
         workers.sort((a, b) => a.x + a.y - (b.x + b.y));
         for (const worker of workers) drawWorker(worker);
         drawTable(now);
@@ -3977,7 +3516,6 @@
         if (started) frameId ||= requestAnimationFrame(frame);
       };
       function invalidate() {
-        // (Woken from its wait by a change: the first frame's step is a display frame's, not the whole wait's.)
         if (timer) {
           clearTimeout(timer);
           lastFrame = 0;
@@ -3999,7 +3537,6 @@
           if (t >= 1) flight = null;
           invalidate();
         }
-        // What shows now, for what moves faster out of sight.
         updateView();
         stepWarp(dt);
         const step = dt * warp;
@@ -4009,7 +3546,6 @@
         const rolling = stepTable(step);
         const sliding = stepTx(step);
         const flying = stepDrone(sim, step) || rolling || sliding;
-        // The robots at work, and the ripples, move at full rate while the pool shows; its water alone, slowly.
         const lively = camera.scale >= 12 && inView(PLINTH, QUEUE_Y - BELT_WIDTH, SIGN_X, POOL_Y1, 2);
         const busy = lively && (workers.some((worker) => worker.steps.length) || ripples.some((ripple) => sim >= ripple.start && sim < ripple.start + RIPPLE_MS));
         stepFollow(step);
@@ -4017,30 +3553,21 @@
         draw(sim);
         streak();
         if (moving) invalidate();
-        // (The belt moves under a pixel a second, the water under a few: a few frames a second carry them, more up close.)
         else if (!frameId) {
           const belt = (1000 * IDLE_STEP * SECONDS_PER_UNIT) / camera.scale;
-          // (The water's, and the next ripple's start, where the pool shows.)
           const ripple = Math.min(...ripples.map((r) => r.start - sim).filter((t) => t > 0));
           waited = lively ? Math.min(belt, reduced() ? Infinity : (1000 * IDLE_STEP) / (WATER_SPEED * camera.scale), ripple) : belt;
           timer = setTimeout(wake, waited);
         }
       }
 
-      // Fast-forward -------------------------------------------------------------
-
-      // What would take long runs faster: a backlog of blocks to stamp, several rising out of
-      // the lift. Time speeds up by powers of two, eased in and out, shown by the clock, and what
-      // moves leaves a faint trail. The belt keeps real time.
       const MAX_WARP = 64;
       const warpLabel = $("warp");
       let warp = 1;
-      // The frame before, for the trail.
       const trail = document.createElement("canvas");
       const trailCtx = /** @type {CanvasRenderingContext2D} */ (trail.getContext("2d"));
       let trailing = false;
 
-      /** How much faster things should run for what is going on now. */
       function warpWanted() {
         let wanted = 1;
         if (arriving.length) wanted = 2 ** Math.ceil(Math.log2(arriving.length + 1));
@@ -4050,7 +3577,6 @@
         return Math.min(MAX_WARP, wanted);
       }
 
-      /** Eases the speed toward what is wanted, in real time, and shows it. */
       function stepWarp(/** @type {number} */ dt) {
         const wanted = warpWanted();
         warp *= Math.pow(wanted / warp, 1 - Math.exp(-dt / 250));
@@ -4062,7 +3588,6 @@
         if (bold.textContent !== text) bold.textContent = text;
       }
 
-      /** The trail: the frame before laid faintly over this one, more so the faster it runs. */
       function streak() {
         const strength = Math.min(0.4, 0.12 * Math.log2(warp));
         if (strength < 0.02 || reduced()) {
@@ -4086,13 +3611,8 @@
         flat();
       }
 
-      // Camera -----------------------------------------------------------------
-
       function homeView() {
-        // Close enough to see the belt move: the machine on the left, the two belts out of it,
-        // the pool in front, and the first folds rising to the right.
         const scale = Math.max(20, Math.min(W / 32, (H - 96) / 20, 64));
-        // A phone, upright: the machine and the first folds above it.
         const narrow = W / scale < 22;
         return { u: narrow ? 4 : 7, v: narrow ? 2 : 5, scale };
       }
@@ -4135,7 +3655,6 @@
       const pointers = new Map();
       let pinch = 0;
 
-      // A press that moves less than this is a click.
       const CLICK_SLOP = 4;
       let pressX = 0;
       let pressY = 0;
@@ -4189,7 +3708,6 @@
         });
       }
 
-      /** A click on a robot follows it; on a mined block, sends the drone for it; anywhere else lets go. */
       function click(/** @type {number} */ x, /** @type {number} */ y) {
         for (let i = hits.length - 1; i >= 0; i--) {
           if (!inside(hits[i].points, x, y)) continue;
@@ -4202,7 +3720,6 @@
           return;
         }
         follow(null);
-        // A transaction on the block table goes to the transaction table.
         const i = txAt(x, y);
         if (i >= 0 && table.block) pickTx(table.block, i);
       }
@@ -4250,12 +3767,8 @@
       nowButton.addEventListener("click", flyHome);
       $("card-stop").addEventListener("click", () => follow(null));
       window.addEventListener("resize", resize);
-      // (Drawn again as the reader changes it: the water stills or moves, a flight lands, the trail goes.)
       whenReduced(invalidate);
 
-      // Hover ------------------------------------------------------------------
-
-      /** Whether (x, y) is inside the convex polygon `points`. */
       function inside(/** @type {number[]} */ points, /** @type {number} */ x, /** @type {number} */ y) {
         let sign = 0;
         for (let i = 0; i < points.length; i += 2) {
@@ -4331,7 +3844,6 @@
         }
         const index = queue.indexOf(hovered);
         if (index < 0) {
-          // It went into the machine.
           hovered = null;
           caption.textContent = HINT;
           return;
@@ -4345,8 +3857,6 @@
           `${((data.blockVSize / MAX_BLOCK_VSIZE) * 100).toFixed(1)}% full`,
         ].join(" · ");
       }
-
-      // Time -------------------------------------------------------------------
 
       /** @param {number} seconds */
       function ago(seconds) {
@@ -4379,8 +3889,6 @@
         }
         tick();
       }
-
-      // Data -------------------------------------------------------------------
 
       const clientReady = import("../modules/bitview-client/index.js").then(
         ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN }),
@@ -4433,7 +3941,6 @@
       /** @param {Projected[]} list @param {boolean} initial */
       function setProjected(list, initial) {
         const count = Math.min(list.length, QUEUE_SLOTS);
-        // New ones rise out of the lift near the belt's far end, one after another.
         let below = Math.min(0, ...queue.map((waiting) => waiting.lift));
         for (let i = 0; i < count; i++) {
           const data = list[i];
@@ -4452,7 +3959,6 @@
         invalidate();
       }
 
-      /** Projections wait for the blocks found before them to be stamped, which takes theirs in. */
       function projected(/** @type {Projected[]} */ list) {
         if (arriving.length || job) projectedLater = list;
         else setProjected(list, false);
@@ -4462,10 +3968,6 @@
       let pollTimer;
       let polling = false;
 
-      /**
-       * New blocks, in batches the server takes even after a long sleep, then the projections,
-       * which so never still hold a block found. One look at a time.
-       */
       async function poll() {
         // Until start() has the first blocks, it owns the polling.
         if (knownTip < 0 || polling) return;
@@ -4528,7 +4030,6 @@
         void poll();
       });
 
-      // Where the viewer was, kept for their next visit: saved as the page goes away.
       const CAMERA_KEY = "city-camera";
 
       function saveCamera() {
@@ -4549,8 +4050,6 @@
       }
 
       window.addEventListener("pagehide", saveCamera);
-
-      // Start ------------------------------------------------------------------
 
       readPalette();
       themeButton.textContent = root.dataset.theme === "dark" ? "Light" : "Dark";
