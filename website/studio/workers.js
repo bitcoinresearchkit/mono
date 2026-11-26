@@ -5,14 +5,13 @@
 // A site served without the release's import map (any plain folder server) has no second address: there, the page's own.
 // A worker that cannot start or fails says so in the console, by its file's name; its caller decides what to do next.
 
-/** A module worker from its file's URL (beside the caller's: `new URL("./x.js", import.meta.url)`). @param {URL} url */
+/** @param {URL} url */
 export function startWorker(url) {
   const name = url.pathname.slice(url.pathname.lastIndexOf("/") + 1);
   let address = url.href;
   try {
     address = import.meta.resolve(`worker/${url.pathname.slice(new URL(import.meta.resolve("/")).pathname.length)}`);
   } catch {
-    // (No `worker/` in an import map: the page's own address, set above.)
   }
   let worker;
   try {

@@ -28,9 +28,7 @@ export function sectionInfo(path, labels, inside) {
 
 /** @import { Preset } from "./presets.js" */
 import { inBands, bandNames } from "./bands.js";
-/** The real source series, including hidden inputs, cutoff expansions and implicit halving dates.
- * @param {Preset} preset @param {any} tree
- */
+/** @param {Preset} preset @param {any} tree */
 function presetSources(preset, tree) {
   const names = new Set();
   for (const layer of preset.c.layers) {
@@ -43,7 +41,7 @@ function presetSources(preset, tree) {
       });
       for (const match of formula.matchAll(/\b[a-z][a-z0-9_]*\b/g)) {
         const name = match[0];
-        // A function's name is consumed whole, never its suffix; date/year are formula values.
+        // A function's name is consumed whole, never its suffix; date and year are formula values.
         if (formula.slice(match.index + name.length).trimStart().startsWith("(") || name === "date" || name === "year") continue;
         names.add(name);
       }
@@ -59,7 +57,7 @@ export function presetDistributions(preset, tree) {
     "@type": "DataDownload", name, encodingFormat: format === "json" ? "application/json" : "text/csv",
     contentUrl: `https://bitview.space/api/series/${name}/${index}?format=${format}`,
   })));
-  // URPD exposes JSON only. Never advertise a nonexistent CSV representation.
+  // URPD exposes JSON only: never advertise a nonexistent CSV representation.
   const urpd = new Set(preset.c.layers.flatMap((layer) => [layer.heatmap, ...(layer.profile ?? [])].filter(Boolean).map((cohort) => `${cohort}${layer.weight ? `?weight=${layer.weight}` : ""}`)));
   return [...series, ...[...urpd].map((cohort) => ({ "@type": "DataDownload", name: `Cost basis distribution: ${cohort}`, encodingFormat: "application/json", contentUrl: `https://bitview.space/api/urpd/${cohort}` }))];
 }
@@ -70,9 +68,7 @@ export function presetDataset(preset, labels, tree, canonical) {
     distribution: presetDistributions(preset, tree) };
 }
 
-/** The app's structured data, shared by Home, sections and browser navigation.
- * @param {string} canonical @param {string} description
- */
+/** @param {string} canonical @param {string} description */
 export function studioApplication(canonical, description) {
   return { "@context": "https://schema.org", "@type": "WebApplication", name: "Bitview Studio", url: canonical, description,
     applicationCategory: "FinanceApplication", operatingSystem: "Any (a web browser)", isAccessibleForFree: true,
