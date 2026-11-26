@@ -77,7 +77,8 @@ pub(crate) fn generate_llm_clients(
     if !plugins.is_empty() || !roots.is_empty() {
         let generated = endpoints
             .iter()
-            .filter(|endpoint| endpoint.should_generate())
+            // (What assistants read documents the read API only, as the MCP serves it: Bitview is read-only to them.)
+            .filter(|endpoint| endpoint.should_generate() && endpoint.method == "GET")
             .collect::<Vec<_>>();
         let flow = render_series_flow(&generated, Surface::Https)?;
         let metric_count = count_metrics(catalog);

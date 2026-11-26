@@ -12,7 +12,7 @@
 - Support: https://bitview.space/support/
 - Data and charts: CC BY 4.0; republishing charts or substantial data needs credit to "Bitview (bitview.space)", quoting a few numbers doesn't; third-party parts are excluded. Code: MIT.
 - Metrics: 31545
-- Operations: 115
+- Operations: 113
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -879,16 +879,6 @@ Returns: JSON `ReplacementNode[]`
 
 ### Transactions
 
-#### POST `/api/tx`
-
-Broadcast transaction
-
-Submit a raw transaction as hexadecimal text (at most 800,000 request bytes, including whitespace: a standard transaction's largest size). Returns its txid as plain text. No responses are cached. Cancellation or a transport error after dispatch may leave the submission outcome unknown; do not automatically retry. *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
-
-Request body: `string` (required)
-
-Returns: text `Txid`
-
 #### GET `/api/tx-index/{index}`
 
 Txid by index
@@ -1163,16 +1153,6 @@ Parameters:
 - `height` (path, Height, required)
 
 Returns: JSON `BlindbitFilter`
-
-#### POST `/blindbit/mainnet/forward-tx`
-
-Broadcast transaction
-
-Submits a raw transaction, `{"data": "<hex>"}`, to the node, as `POST /api/tx` does. Returns its txid as a JSON string. No responses are cached.
-
-Request body: `ForwardTx` (required)
-
-Returns: JSON `Txid`
 
 #### GET `/blindbit/mainnet/info`
 
@@ -1694,10 +1674,6 @@ Returns: JSON `BlindbitUtxo[]`
 ### `Format`
 
 `json | csv`
-
-### `ForwardTx`
-
-- `data`: `string` (required) — The raw transaction, hexadecimal.
 
 ### `HashrateEntry`
 

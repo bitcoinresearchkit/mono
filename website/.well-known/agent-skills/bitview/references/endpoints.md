@@ -98,7 +98,6 @@ Base URL: https://bitview.space. Every operation, with its query parameters (`*`
 - `GET /api/tx/{txid}/raw` Transaction raw
 - `GET /api/tx/{txid}/status` Transaction status
 - `GET /api/v1/transaction-times` Transaction first-seen times. Query: `txId[]`*
-- `POST /api/tx` Broadcast transaction
 - `GET /api/utxo-set` Latest UTXO set
 - `GET /api/utxo-set/{point}` UTXO set at block height or date
 - `GET /api/utxo-set/{point}/diff` UTXO set changes of a block or date
@@ -110,7 +109,6 @@ Base URL: https://bitview.space. Every operation, with its query parameters (`*`
 - `GET /blindbit/mainnet/filter/{kind}/{height}` Block filter
 - `GET /blindbit/mainnet/spent-index/{height}` Spent index
 - `GET /blindbit/mainnet/utxos/{height}` Taproot outputs
-- `POST /blindbit/mainnet/forward-tx` Broadcast transaction
 - `GET /api/oracle/price` Live BTC/USD price
 - `GET /api/oracle/live` The oracle now
 - `GET /api/oracle/blocks/{height}` The oracle at a block
