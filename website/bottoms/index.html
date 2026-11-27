@@ -1248,14 +1248,14 @@
 
     <footer>
       <div class="shell">
-        <p>Every number is worked out in this page from Bitview's daily series. <span id="formulas" hidden>CVDD, balanced price and delta price are worked out here from their published formulas. </span>The power-law floor is Harold Christopher Burger's support line of 2019.</p>
+        <p>Every number is worked out in this page from Bitview's daily series. The power-law floor is Harold Christopher Burger's support line of 2019.</p>
         <p>None of this is advice to buy or sell.</p>
       </div>
     </footer>
 
     <script type="module">
       import { createChart, Candles, Custom, Line, lastIn } from "/modules/bitview-charts/index.js";
-      import { fullName, maker, weekOf, FROM, SHOWN, WEEK, PUBLISHED_ARE_SERVED } from "./study.js";
+      import { fullName, maker, weekOf, FROM, SHOWN, WEEK } from "./study.js";
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const all = (/** @type {string} */ selector) => /** @type {HTMLElement[]} */ ([...document.querySelectorAll(selector)]);
@@ -1609,7 +1609,7 @@
             const to = $("spans").appendChild(el("button", "", String(dateOf(l.low).getUTCFullYear())));
             (/** @type {HTMLButtonElement} */ (to).type = "button"), (to.dataset.view = String(k)), to.setAttribute("aria-pressed", "false"), to.setAttribute("aria-label", `The fall to the ${month(l.low)} bottom`);
           });
-          ($("from-year").textContent = String(dateOf(FROM).getUTCFullYear())), ($("formulas").hidden = PUBLISHED_ARE_SERVED);
+          $("from-year").textContent = String(dateOf(FROM).getUTCFullYear());
           hero(), falls(), /** @type {any} */ (window).bitviewLaunch?.ready();
         } else if (data.type === "ranked") (ranked = data.ranked), ranking(), heroChart?.drawn();
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); heroChart?.drawn(), miss(); }
