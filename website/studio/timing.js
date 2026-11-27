@@ -2,8 +2,7 @@
 // Time on the page: work put off to idle moments and done in slices, and waiting for a thing to hold.
 
 /**
- * Work for a moment the page is idle, given how long it has: at the latest after `timeout` ms. Without idle
- * callbacks (Safari), after `settle` ms, with a slice of 8.
+ * No idle callbacks in Safari: runs `settle` ms later instead.
  * @param {(deadline: { timeRemaining: () => number }) => void} work
  */
 const whenIdle = (work, { timeout = 1000, settle = 40 } = {}) => void ("requestIdleCallback" in window ? requestIdleCallback(work, { timeout }) : setTimeout(() => {
@@ -11,10 +10,9 @@ const whenIdle = (work, { timeout = 1000, settle = 40 } = {}) => void ("requestI
   work({ timeRemaining: () => Math.max(0, end - performance.now()) });
 }, settle));
 /**
- * Work in steps, a slice of them in an idle moment (`deadline`): as long as its time lasts, 2 to 8 ms (one step at
- * least: a callback timed out has none left), none of it a long task (a phone's engine without a JIT), the rest
- * asked for (`again`) in the next; none (asked now), all at once. `step` does one, true once there's none left.
- * @param {{ timeRemaining: () => number } | undefined} deadline @param {() => boolean} step
+ * A timed-out callback has no time left, yet one step runs; slices stay short for a phone's engine without a JIT.
+ * @param {{ timeRemaining: () => number } | undefined} deadline
+ * @param {() => boolean} step
  * @param {(deadline: { timeRemaining: () => number }) => void} again
  */
 function inSlices(deadline, step, again) {
@@ -22,13 +20,13 @@ function inSlices(deadline, step, again) {
   while (!step()) if (performance.now() >= stop) return void whenIdle(again);
 }
 
-/** Resolves once `test` holds (or `ms` have passed), looked at every `step` ms: on timers, not frames (a change of place draws none, and a tab out of sight still looks). */
+// Timers, not frames: a change of place draws none and a hidden tab still looks.
 const until = (/** @type {() => boolean} */ test, /** @type {number} */ ms, step = 16) => new Promise((done) => {
   const end = performance.now() + ms, look = () => (test() || performance.now() > end ? done(undefined) : setTimeout(look, step));
   look();
 });
 
-/** Work done one pass at a time: asked for again while one runs, it runs once more after. @param {() => Promise<void>} pass */
+/** @param {() => Promise<void>} pass */
 function serial(pass) {
   let running = false, again = false;
   const run = async () => {

@@ -1,9 +1,4 @@
 // @ts-check
-/**
- * Chain statistics: every chart of mainnet.observer's kept under its own name, computed from Bitview's series, a day's
- * value the change of a running total per day, over the days each point spans, and a share the ratio of two. Every count behind them is a series of its own,
- * defined once on the server (the AntPool group, proof of work, signature bytes); these presets only combine them.
- */
 
 /** @import { SeriesTree, SeriesPattern, Pool, Concentration } from "../../modules/bitview-client/index.js" */
 /** @import { ChartBuilder, Name, SectionBuilder, SectionNode } from "./presets.js" */
@@ -14,7 +9,7 @@
  * @typedef {{ [K in keyof SeriesTree["pools"]]: SeriesTree["pools"][K] extends Pool ? K : never }[keyof SeriesTree["pools"]]} PoolKey
  */
 
-/** Its section's name: its charts keep the names of the site they reproduce, outside the rules other titles keep (seo.mjs). */
+// Its charts keep the names of the site they reproduce, outside the rules other titles keep (seo.mjs).
 export const CHAIN_STATISTICS = "Chain statistics";
 
 /**
@@ -22,24 +17,18 @@ export const CHAIN_STATISTICS = "Chain statistics";
  * @returns {SectionNode}
  */
 export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, underOneSatVb }) {
-  /** A series' change per day, by the days each point spans (see perday). @param {NamedSeries} series */
+  /** @param {NamedSeries} series */
   const perDay = (series) => `perday(${series.name})`;
-  /** A running total's change per day. @param {Cumulative} total */
+  /** @param {Cumulative} total */
   const daily = (total) => perDay(total.cumulative);
-  /** `part` as a percentage of `whole`. @param {string} part @param {string} whole */
+  /** @param {string} part @param {string} whole */
   const percent = (part, whole) => `100 * (${part}) / (${whole})`;
-  /** What `all` holds beyond `parts`. @param {string} all @param {string[]} parts */
+  /** @param {string} all @param {string[]} parts */
   const rest = (all, parts) => `${all} - ${parts.map((part) => `(${part})`).join(" - ")}`;
-  /** Lines, each a label and a formula (`was`, see chart). @param {Name} name @param {string[][]} lines @param {number} days @param {{ title?: string, format?: string, log?: number[], was?: Record<string, string> }} [options] */
+  /** @param {Name} name @param {string[][]} lines @param {number} days @param {{ title?: string, format?: string, log?: number[], was?: Record<string, string> }} [options] */
   const line = (name, lines, days, { title = typeof name === "string" ? name : name.shown, format, log, was } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}), ...(was ? { was } : {}) });
-  /**
-   * Events counted over a window, one chart, opened at 30 days as every flow is (the page offers the others, the week
-   * mainnet.observer shows among them, see chartWindow), at an address of its own; its name's old one opens the 7-day
-   * chart it was, and "per 30 days" the 30-day one (`was`; `weekly: false`, one only ever 30 days: its name's, that).
-   * One whose lines aren't all published is left out whole (a comparison missing a line would read as that line at
-   * zero); the tree is the generated client's, so the set is fixed per release and the sitemap (seo.mjs) is built from
-   * the same one.
-   */
+  // One whose lines aren't all published is left out whole: a comparison missing a line would read as that line at
+    // zero.
   const events = (/** @type {string} */ title, /** @type {[string, Cumulative][]} */ totals, { weekly = true, ...options } = /** @type {{ weekly?: boolean, log?: number[] }} */ ({})) => {
     /** @type {string[][]} */
     const lines = [];
@@ -49,15 +38,14 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
     }
     return lines.length === totals.length ? [line({ place: `${title}, by window`, shown: title }, lines, 1, { ...options, title: `${title}, 30 days`, was: weekly ? { [title]: "_1w", [`${title}, per 30 days`]: "_1m" } : { [title]: "_1m" } })] : [];
   };
-  /** A calendar year's flow, from the preceding year's end. */
   const yearly = (/** @type {string} */ title, /** @type {NamedSeries} */ total, format = "number") => chart(title, title, [{ formula: `flow(${total.name}, 1y)`, label: title, type: "histogram", colors: 1, color: "orange", format }], { index: "year1" });
-  /** Lines of percentages. @param {string} title @param {string[][]} lines @param {number} days */
+  /** @param {string} title @param {string[][]} lines @param {number} days */
   const percentLine = (title, lines, days) => line(title, lines, days, { format: "percent" });
-  /** Areas stacked into shares of their sum. @param {string} title @param {string[][]} parts @param {number} days */
+  /** @param {string} title @param {string[][]} parts @param {number} days */
   const shareStack = (title, parts, days) => chart(title, title, parts.map(([label, formula], i) => ({ formula, label, type: "area", color: ramp(parts.length)[i] })), { stack: { 1: "percent" }, ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
 
   const day = { blocks: daily(t.blocks.count), txs: daily(t.transactions.count), inputs: daily(t.inputs.count), outputs: daily(t.outputs.count) };
-  /** Per block, over the day. @param {string} formula */
+  /** @param {string} formula */
   const perBlock = (formula) => `(${formula}) / ${day.blocks}`;
 
   const types = /** @type {const} */ (["p2pk", "p2pkh", "p2wpkh", "p2ms", "p2sh", "p2wsh", "p2tr", "p2a"]);
@@ -69,7 +57,7 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
 
   const { ecdsa, schnorr } = t.inputs.signatures;
   const lengths = (/** @type {const} */ ([70, 71, 72, 73, 74])).map((n) => [`${n} byte`, daily(ecdsa.length[`_${n}Bytes`])]).concat([["75 byte or more", daily(ecdsa.length.over74Bytes)]]);
-  /** ECDSA signatures with and without a property. @param {string} title @param {Cumulative} total @param {string} yes @param {string} no */
+  /** @param {string} title @param {Cumulative} total @param {string} yes @param {string} no */
   const ecdsaSplit = (title, total, yes, no) => shareStack(title, [[yes, daily(total)], [no, `${daily(ecdsa.count)} - ${daily(total)}`]], 30);
   const sighash = (/** @type {string} */ title, /** @type {keyof typeof ecdsa.sighash} */ key) => events(title, [["SigHashes", ecdsa.sighash[key]]]);
   const opcodes = (/** @type {string} */ title, /** @type {(keyof typeof t.inputs.opcodes)[]} */ keys) => events(title, keys.map((key) => [key.toUpperCase(), t.inputs.opcodes[key]]));
@@ -83,13 +71,13 @@ export function chainStatistics({ t, facts, chart, section, ramp, flowWindow, un
   const workPerBlock = perBlock(daily(t.blocks.work));
 
   const pools = t.pools;
-  /** Some of a day's blocks, as a share of all. @param {string} blocks */
+  /** @param {string} blocks */
   const ofBlocks = (blocks) => percent(blocks, day.blocks);
   const poolLine = (/** @type {string} */ name, /** @type {Pool} */ pool) => percentLine(`${name} hashrate`, [[`${name} share`, ofBlocks(daily(pool.blockCount))]], 7);
   const group = daily(pools.groups.antpool.blockCount);
   const large = (/** @type {[string, Pool][]} */ ([["Foundry USA", pools.foundryusa], ["F2Pool", pools.f2pool], ["ViaBTC", pools.viabtc], ["SpiderPool", pools.spiderpool]])).map(([name, pool]) => [name, daily(pool.blockCount)]);
   const poolOf = (/** @type {string} */ slug) => pools[/** @type {PoolKey} */ (slug in pools ? slug : `_${slug}`)];
-  /** The largest pools of each day, as a share of its blocks. @param {string} title @param {Concentration} tops */
+  /** @param {string} title @param {Concentration} tops */
   const centralization = (title, tops) => percentLine(title, (/** @type {const} */ ([2, 3, 4, 5, 6])).map((n) => [`top ${n} pools`, ofBlocks(tops[`top${n}`].name)]), 30);
 
   const txs = t.transactions, features = txs.features, timelocks = txs.timelocks, spending = txs.spending;

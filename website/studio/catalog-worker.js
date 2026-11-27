@@ -11,7 +11,6 @@ onmessage = ({ data: dated }) => {
     let step = steps.next();
     while (!step.done) step = steps.next();
     const { index, intervals, sharedTops } = step.value;
-    // (Each series' intervals by their list's place: the few lists, not one each. Every name indexed has its own.)
     const lists = [...new Set(intervals.values())], place = new Map(lists.map((list, i) => [list, i]));
     postMessage({ text: JSON.stringify([[...index], lists, [...index.keys()].map((name) => place.get(/** @type {readonly string[]} */ (intervals.get(name)))), [...sharedTops]]) });
   } catch (error) {

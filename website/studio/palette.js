@@ -1,13 +1,4 @@
-// Studio's colors, one palette wherever they're drawn (the page, its presets): Bitview's named colors, the holder
-// groups' (their comparisons, Compass's clouds, Bitcoin clouds, profiles, by the keys the series tree names them by), and
-// the ramps families and things in time take.
-
-/**
- * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. Bitview's colors are these names,
- * "ink" (the page's own) and an exact "oklch(l c h)" mixed from them (see wheelColor); a person's own is a hex. Each
- * is drawn in sRGB (the chart reads only that), converted on demand.
- * @type {Record<string, [number, number, number]>}
- */
+/** @type {Record<string, [number, number, number]>} */
 export const OKLCH = {
   gray: [0.55, 0, 0], red: [0.607, 0.241, 26.328], orange: [0.6764, 0.191, 44.41], amber: [0.7175, 0.1835, 64.199],
   yellow: [0.738, 0.173, 80.9405], avocado: [0.72, 0.19, 110], lime: [0.708, 0.2165, 131.267], green: [0.675, 0.2065, 149.3965],
@@ -16,29 +7,18 @@ export const OKLCH = {
   fuchsia: [0.629, 0.294, 322.523], pink: [0.624, 0.245, 357.444], rose: [0.6155, 0.2495, 17.012],
 };
 
-/**
- * Each holder group's color: all coins gray (the others' reference, as a reference is: apart from the price's ink,
- * solid, a dash on a daily series breaking up), short-term holders orange, long-term blue; the age cutoffs around them,
- * the younger warm (under 4 months yellow, under 6 red), the older cool (at least 4 months cyan, at least 6 violet).
- * @type {Readonly<Record<string, string>>}
- */
+/** @type {Readonly<Record<string, string>>} */
 export const HOLDER_COLORS = Object.freeze({ all: "gray", sth: "orange", lth: "blue", under4m: "yellow", under6m: "red", over4m: "cyan", over6m: "violet" });
 
-/** Bedrock's landscape colors, top to bottom: over the all-time high, then water, sand and rock; hexes, so drawn as
- * given in either theme, in Studio's preset and on the Bedrock page alike. */
+/** Hexes, so drawn as given in either theme (Studio's preset and the Bedrock page alike). */
 export const SKY = "#58bbc4";
 export const LANDSCAPE = Object.freeze(["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a54b", "#b68134", "#965a2f", "#714331", "#4b342e", "#83878a", "#666a6e", "#4b4f53", "#303438", "#181b1e"]);
 
-/** A holder group's color, by its key (none: not a holder group). @param {string} key */
+/** @param {string} key */
 export const holderColor = (key) => (Object.hasOwn(HOLDER_COLORS, key) ? HOLDER_COLORS[key] : undefined);
 
-/** Bitview's hues around the wheel (its named colors, the neutral aside), by hue: what a ramp is made of. */
 const WHEEL = Object.values(OKLCH).filter(([, c]) => c > 0).sort((a, b) => a[2] - b[2]);
-/**
- * The `i`th of `count` members' color (a family's: the age bands from the youngest): hues around the wheel, evenly, from
- * warm to pink, each as Bitview's own named color there is (its lightness and vividness, mixed between the two named on
- * either side of its hue): as vivid as the colors one picks, never a duller copy of them. @param {number} i @param {number} count
- */
+/** @param {number} i @param {number} count */
 export function wheelColor(i, count, from = 25, to = 320) {
   const hue = (((count > 1 ? from + ((to - from) * i) / (count - 1) : from) % 360) + 360) % 360;
   const after = WHEEL.findIndex(([, , h]) => h >= hue), [l1, c1, h1] = WHEEL[after < 0 ? 0 : after], [l0, c0, h0] = WHEEL[(after <= 0 ? WHEEL.length : after) - 1];
@@ -46,13 +26,8 @@ export function wheelColor(i, count, from = 25, to = 320) {
   return `oklch(${(l0 + (l1 - l0) * t).toFixed(3)} ${(c0 + (c1 - c0) * t).toFixed(4)} ${hue.toFixed(1)})`;
 }
 
-/** Bitview's hues from cool to warm, as things in time take them, the oldest the coolest. */
 const IN_TIME = ["indigo", "blue", "sky", "cyan", "teal", "emerald", "green", "lime", "avocado", "yellow", "amber", "orange"];
-/**
- * The `i`th of `count` in time, the oldest first (halving cycles, years, a family's members by when): Bitview's hues
- * from cool to warm, the newest orange, as far apart as their number lets them: by name, up to twelve; more, each mixed
- * between the two nearest. Each its own hue, in either theme (you, 2026-10-31). @param {number} i @param {number} count
- */
+/** @param {number} i @param {number} count */
 export function recencyColor(i, count) {
   const at = count > 1 ? (i * (IN_TIME.length - 1)) / (count - 1) : IN_TIME.length - 1;
   if (count <= IN_TIME.length) return IN_TIME[Math.round(at)];
