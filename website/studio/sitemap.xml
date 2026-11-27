@@ -970,6 +970,7 @@
 <url><loc>https://bitview.space/studio/presets/mining/pools/compare/</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/top-pools/</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/antpool-group/</loc></url>
+<url><loc>https://bitview.space/studio/presets/mining/pools/stratum-v2/</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/foundry-usa/</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/antpool/</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/viabtc/</loc></url>
@@ -6727,6 +6728,8 @@
 <url><loc>https://bitview.space/studio/presets/mining/pools/top-pools/top-5</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/top-pools/top-6</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/antpool-group/blocks-mined</loc></url>
+<url><loc>https://bitview.space/studio/presets/mining/pools/stratum-v2/tagged-blocks</loc></url>
+<url><loc>https://bitview.space/studio/presets/mining/pools/stratum-v2/tagged-blocks-share</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/foundry-usa/blocks-mined</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/foundry-usa/coinbase</loc></url>
 <url><loc>https://bitview.space/studio/presets/mining/pools/foundry-usa/fees-per-block</loc></url>

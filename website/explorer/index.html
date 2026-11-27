@@ -2350,11 +2350,12 @@
           placeAt(url.block(h));
           document.title = `Block ${int(h)} · Explorer · Bitview`;
         }
-        const [[profit], [loss], [destroyed], [cdd], price, chain] = await Promise.all([
+        const [[profit], [loss], [destroyed], [cdd], [sv2], price, chain] = await Promise.all([
           series("realized_profit", "height", h, h + 1),
           series("realized_loss", "height", h, h + 1),
           series("value_destroyed", "height", h, h + 1),
           series("coindays_destroyed", "height", h, h + 1),
+          series("stratum_v2_tagged_block_count", "height", h, h + 1),
           priceAt(h),
           chainAround({ kind: "mined", h }),
         ]);
@@ -2365,7 +2366,7 @@
         $("view").innerHTML = `${chainView(chain)}
           <div class="focus">
             <div class="lead">
-              <p class="lead-kicker">${copyPill(b.id)}</p>
+              <p class="lead-kicker">${sv2 ? `<span class="chip" title="Its coinbase tag says Sv2/: the pool's own word">Tagged Stratum V2</span>` : ""}${copyPill(b.id)}</p>
               <div class="lead-head"><h2 class="lead-title">Block ${int(h)}</h2>${neighbours(h)}</div>
               <p class="lead-lede">Mined by <b>${poolMark(x.pool?.slug)}${poolName(x.pool)}</b> at ${clockTime(b.timestamp)} on ${day(b.timestamp)}, <span data-ago="${b.timestamp}">${ago(b.timestamp)}</span>. ${plural(state.tip - h + 1, "confirmation")}.</p>
               <p class="lead-note">${
