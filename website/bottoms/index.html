@@ -1251,7 +1251,7 @@
       <figure class="chart" id="chart" tabindex="0" aria-label="Bitcoin's price day by day, its cycle bottoms marked, every ranked line in grey behind it and the three that came closest in colour"></figure>
       <div class="failed" id="failed" role="alert" hidden></div>
       <div class="tower" id="tower">
-        <a class="heads fine" id="every" href="#ranking">Every line</a>
+        <a class="heads fine" id="every" href="#ranking">All lines</a>
         <ol id="top" aria-label="The closest lines and each one's worst miss">
           <li class="first"><i class="n" data-n="1">1</i><span class="who"><span class="label">&nbsp;</span></span><span class="off"><b class="value num"></b><small>worst miss · smaller is better</small></span></li>
           <li><i class="n" data-n="2">2</i><span class="label">&nbsp;</span><b class="value num"></b></li>
@@ -1667,7 +1667,6 @@
           /** @type {HTMLElement} */ (li.querySelector(".label")).textContent = fullName(r.row), (/** @type {HTMLElement} */ (li.querySelector(".value")).textContent = scoreOf(r));
         });
         $("board-said").textContent = `${ranked.length} lines, closest first.`;
-        $("every").textContent = `All ${ranked.length} lines`;
         $("caveat").textContent = `Ranked on the ${worded(judged.length)} ${judged.length === 1 ? "bottom" : "bottoms"} so far${open ? ", one still open" : ""}: the order will change as new ones come.`;
         // The field: every line's worst miss along one line from the bottom, wide enough for the largest, to the next 20%.
         const scored = ranked.filter((r) => Number.isFinite(r.worst)), wide = Math.ceil(Math.max(...scored.map((r) => r.worst)) / 20) * 20, ends = el("p", "ends fine");
