@@ -1,7 +1,5 @@
 // @ts-check
 
-import { WeightedRank } from "/modules/weighted-rank/index.js";
-
 /** Where price is against a cloud: 1 above, 0 inside, -1 below. @typedef {1 | 0 | -1} Side */
 export const STATES = /** @type {{ id: string, name: string, move: string, cycle: number, local: number }[]} */ ([
   { id: "optimism", name: "Optimism", move: "Advance", cycle: 1, local: 1 },
@@ -28,13 +26,16 @@ export const SERIES = { close: "price_close" };
 /** Each group's 40th and 60th percentiles and its average: the steadiest clouds, their nine moods about as even as any. */
 const STATS = ["p40", "p60", "avg"];
 export const cloudIds = (/** @type {"long" | "short"} */ cloud, /** @type {Coins} */ which) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => STATS.map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
+/** The served Compass of those coins: each day read from its close and the days before it (rarity_meter's compass.rs). */
+const METRICS = ["index", "short_term_cloud_position", "long_term_cloud_position", "mood", "extreme", "mood_days"];
+const compassIds = (/** @type {Coins} */ which) => METRICS.map((metric) => `${which}_compass_${metric}`);
 /** @type {Map<string, Promise<Answer>>} */
 export const answers = new Map();
 /** Every block moves each series' last day, so they are read together or not at all. */
 export async function readAll(/** @type {Coins} */ which) {
   // The tip is asked first: a block landing between only makes the next ask read them again.
   const tip = await (await ask("/api/blocks/tip/hash")).text();
-  const ids = [SERIES.close, ...cloudIds("long", which), ...cloudIds("short", which)];
+  const ids = [SERIES.close, ...cloudIds("long", which), ...cloudIds("short", which), ...compassIds(which)];
   for (const id of ids) {
     const held = answers.get(id);
     answers.set(id, (held ? held.then((answer) => (answer.tip === tip ? answer : renew(id, answer, tip))) : read(id).then((answer) => ({ ...answer, tip }))).catch((error) => (answers.delete(id), Promise.reject(error))));
@@ -55,7 +56,7 @@ async function read(/** @type {string} */ id, from = START) {
 }
 const WAIT = 20_000;
 /** Without a limit a request can hang for good, and the page with it. */
-export async function ask(/** @type {string} */ url) {
+async function ask(/** @type {string} */ url) {
   const signal = AbortSignal.timeout(WAIT);
   const response = await fetch(url, { signal }).catch((error) => {
     // Asked of the signal, not the error: WebKit rejects a timed-out fetch as an AbortError.
@@ -65,17 +66,18 @@ export async function ask(/** @type {string} */ url) {
   if (!response.ok) throw new Error((await response.json().catch(() => null))?.error?.message ?? `the server answered ${response.status}`);
   return response;
 }
-function byDay(/** @type {Answer} */ answer, /** @type {number} */ n) {
+/** Prices count only above zero; the Compass's own values, any. */
+function byDay(/** @type {Answer} */ answer, /** @type {number} */ n, price = true) {
   const out = new Float64Array(n).fill(NaN);
   answer.data.forEach((v, i) => {
-    if (v !== null && v > 0 && answer.start + i < n) out[answer.start + i] = v;
+    if (v !== null && (!price || v > 0) && answer.start + i < n) out[answer.start + i] = v;
   });
   return out;
 }
 
 /**
- * `x` the moment's, `y` the cycle's, each -1 to 1.
- * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, state: Int8Array, x: Float32Array, y: Float32Array, index: Float64Array, extreme: Uint8Array }} Days
+ * `x` the moment's, `y` the cycle's, each -1 to 1; `moodDays` the mood's run so far; `indexed` the first day with an index.
+ * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, state: Int8Array, x: Float32Array, y: Float32Array, index: Float64Array, extreme: Uint8Array, moodDays: Float64Array, indexed: number }} Days
  */
 
 /** A halving cycle: history's weight halves each, so recent cycles count more than the first. */
@@ -83,53 +85,8 @@ const HALF_LIFE = 1461;
 /** From day 0, not the day read: only the ratios matter, and a sum stays good as later days join it. */
 export const weight = (/** @type {number} */ day) => 2 ** (day / HALF_LIFE);
 const weightOf = (/** @type {number} */ a, /** @type {number} */ b) => (weight(b + 1) - weight(a)) / (weight(1) - 1);
-/** Inside a cloud the middle third by log place between its edges; outside, the outer third by weighted rank. */
-export function placeOf(/** @type {Float64Array} */ close, /** @type {[Float64Array, Float64Array]} */ [bottom, top], /** @type {number} */ first, /** @type {number} */ last) {
-  const place = new Float32Array(close.length);
-  const BUCKETS = 4096, WIDTH = 0.002, sides = [new WeightedRank(BUCKETS), new WeightedRank(BUCKETS)];
-  for (let i = first; i <= last; i++) {
-    const p = close[i], lo = bottom[i], hi = top[i];
-    if (p >= lo && p <= hi) {
-      place[i] = hi > lo ? -1 / 3 + ((2 / 3) * Math.log(p / lo)) / Math.log(hi / lo) : 0;
-      continue;
-    }
-    const k = p > hi ? 0 : 1, side = sides[k], bucket = Math.min(BUCKETS - 1, Math.floor(Math.log(k ? lo / p : p / hi) / WIDTH));
-    const rank = side.total ? side.below(bucket + 1) / side.total : 0.5;
-    side.add(bucket, weight(i));
-    place[i] = (k ? -1 : 1) * (1 / 3 + (2 / 3) * rank);
-  }
-  return place;
-}
-
-/** With fewer days behind it, a place outside a cloud would be ranked against next to nothing. */
-const INDEXED_AFTER = 365;
-export const indexedFrom = (/** @type {Days} */ d) => d.first + INDEXED_AFTER;
-
-const EXTREME_PERCENT = 1;
-/** Ranked against that side's earlier days only (not the day itself), and only with a year behind it. */
-export function extremeOf(/** @type {Float32Array[]} */ sides, /** @type {number} */ first, /** @type {number} */ last) {
-  const extreme = new Uint8Array(sides[0].length), sorted = new Float64Array(last - first + 1);
-  const rankOf = (/** @type {number} */ v, atMost = false) => {
-    let lo = 0, hi = sorted.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (sorted[mid] < v || (atMost && sorted[mid] === v)) lo = mid + 1;
-      else hi = mid;
-    }
-    return lo;
-  };
-  for (const place of sides) {
-    sorted.set(place.subarray(first, last + 1));
-    sorted.sort();
-    const before = new WeightedRank(sorted.length);
-    for (let i = first; i <= last; i++) {
-      const v = place[i], rank = rankOf(v), mass = before.total;
-      if (i >= first + INDEXED_AFTER && (before.below(rank) / mass < EXTREME_PERCENT / 100 || (mass - before.below(rankOf(v, true))) / mass < EXTREME_PERCENT / 100)) extreme[i] = 1;
-      before.add(rank, weight(i));
-    }
-  }
-  return extreme;
-}
+/** The first day with an index: a year after the first day with a mood. */
+export const indexedFrom = (/** @type {Days} */ d) => d.indexed;
 
 export function compute(/** @type {Record<string, Answer>} */ answered, /** @type {Coins} */ which) {
   const n = Math.max(...Object.values(answered).map((a) => a.start + a.data.length));
@@ -150,27 +107,10 @@ export function compute(/** @type {Record<string, Answer>} */ answered, /** @typ
     return /** @type {[Float64Array, Float64Array]} */ ([bottom, top]);
   };
   const long = cloudOf(lines(cloudIds("long", which))), short = cloudOf(lines(cloudIds("short", which)));
-  const state = new Int8Array(n).fill(-1);
-  let first = -1, last = -1;
-  for (let i = 0; i < n; i++) {
-    const p = close[i];
-    if (!(p > 0) || !(long[0][i] > 0) || !(short[0][i] > 0)) continue;
-    const side = (/** @type {[Float64Array, Float64Array]} */ c) => (p > c[1][i] ? 1 : p < c[0][i] ? -1 : 0);
-    state[i] = stateOf(side(long), side(short));
-    if (first < 0) first = i;
-    last = i;
-  }
-  for (let i = first + 1; i < last; i++) {
-    if (state[i] >= 0) continue;
-    close[i] = close[i - 1];
-    for (const edge of [...long, ...short]) edge[i] = edge[i - 1];
-    state[i] = state[i - 1];
-  }
-  const x = placeOf(close, short, first, last), y = placeOf(close, long, first, last);
-  // Not ranked again: x and y already rank how far out the price is.
-  const index = new Float64Array(n).fill(NaN);
-  for (let i = first + INDEXED_AFTER; i <= last; i++) index[i] = 25 * (x[i] + y[i] + 2);
-  return { first, last, close, cloud: { long, short }, state, x, y, index, extreme: extremeOf([x, y], first, last) };
+  const [index, x, y, mood, extreme, moodDays] = compassIds(which).map((id) => byDay(answered[id], n, false));
+  const state = Int8Array.from(mood, (v) => (Number.isNaN(v) ? -1 : v));
+  const first = state.findIndex((v) => v >= 0), last = state.findLastIndex((v) => v >= 0);
+  return { first, last, close, cloud: { long, short }, state, x: Float32Array.from(x), y: Float32Array.from(y), index, extreme: Uint8Array.from(extreme, (v) => Number(v === 1)), moodDays, indexed: index.findIndex(Number.isFinite) };
 }
 
 /**
@@ -214,7 +154,7 @@ export function spellsOf(/** @type {Days} */ d, upTo = d.last) {
     const n = endedBy(runs, upTo), spent = (n ? runs[n - 1].weightTo : 0) + (of[upTo] === k ? weightOf(now.first, upTo) : 0);
     return { share: spent / weightOf(d.first, upTo) };
   });
-  return { moods: all, now: { mood: of[upTo], first: now.first } };
+  return { moods: all, now: { mood: of[upTo] } };
 }
 /** Each by its last day's weight; NaN with none. All pass: exactly 1, both sums the same additions. */
 export function shareOf(/** @type {Run[]} */ runs, /** @type {number} */ n, /** @type {(run: Run) => boolean} */ test) {

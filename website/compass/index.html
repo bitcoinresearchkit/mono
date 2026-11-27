@@ -1495,7 +1495,7 @@
       import { Line } from "/modules/bitview-charts/line.js";
       import { Shade } from "/modules/bitview-charts/shade.js";
       import { legible, over } from "/modules/bitview-charts/color.js";
-      import { STATES, TRENDS, DAY, EPOCH, weight, SERIES, cloudIds, answers, ask, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
+      import { STATES, TRENDS, DAY, EPOCH, weight, SERIES, cloudIds, answers, readAll, compute, indexedFrom, runsOf, endedBy, shareOf, medianOf, tenths, spellsOf, cellWords, lengthWords, MONTHS, dateOf, dated } from "./market.js";
       import { paletteOf, withAlpha, noneLit, lighting, litKey, colorsOf, fadedPalette, colorAt, heroOf, FONTS, indexOf, INDEX_TICKS, coinsWords, buildCompass, fitCompass, compassParts, drawCompassDay } from "./draw.js";
       /** @typedef {import("./market.js").Days} Days @typedef {import("./market.js").Answer} Answer @typedef {import("./market.js").Run} Run @typedef {import("./draw.js").Paint} Paint @typedef {import("./draw.js").Lit} Lit */
 
@@ -2424,7 +2424,7 @@
         const d = /** @type {Days} */ (days), pressed = moodPressed !== null && lit.state.has(moodPressed) ? moodPressed : null;
         const { day, spells } = told, i = moodPointed ?? pressed ?? spells.now.mood, s = STATES[i];
         const all = runsOf(d)[i], going = spells.now.mood === i, ended = endedBy(all, day);
-        const run = going ? { first: spells.now.first, length: day - spells.now.first + 1 } : all[ended - 1], before = going ? ended : ended - 1;
+        const run = going ? { first: day - d.moodDays[day] + 1, length: d.moodDays[day] } : all[ended - 1], before = going ? ended : ended - 1;
         give($("mood"), `var(--s-${s.id})`, "--c");
         give($("mood"), `var(--words-${s.id})`, "--words");
         give($("mood-name"), s.name);
@@ -2535,22 +2535,18 @@
         living = true;
         try {
           // Anything past the reading is a bug: thrown to the console, not shown as the server's.
-          const read = await Promise.all([readAll(coins), ask("/api/oracle/price").then((response) => response.text()).then(Number)]).catch(() => null);
-          if (!read) {
+          const answered = await readAll(coins).catch(() => null);
+          if (!answered) {
             failing = true;
             return;
           }
-          const [answered, price] = read;
           (readAt = Date.now()), (failing = false);
           const close = answered[SERIES.close];
           // A new day by the clock, not yet the server's: nothing to show before its first block.
           if (clockDay() > close.start + close.data.length - 1) return;
-          const key = `${close.tip}|${price}`;
+          // The served days move with blocks: a new tip is the only news.
+          const key = close.tip ?? "";
           if (key === liveKey) return;
-          if (price > 0) {
-            // Today's close so far: kept in what's read, so a switch of coins keeps it too.
-            close.data[close.data.length - 1] = price;
-          }
           const computed = compute(answered, coins);
           // Something else changed the days meanwhile, or the new ones have none: left as they are.
           if (days !== was || switching || computed.first < 0) return;
