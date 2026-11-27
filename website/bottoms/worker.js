@@ -5,7 +5,7 @@
 // every line on the days it's held to (today's ranking, which only confirms or replaces the stored one; with the
 // crowd's weeks it says which lines are ceilings), and last the price's candles.
 
-import { PRICE, EPOCH, SHOWN, WEEK, NAMED, WORKED, weekOf, lowsOf, linesOf, spans, stale, ranking, ceiling } from "./study.js";
+import { PRICE, EPOCH, SHOWN, NAMED, weekOf, lowsOf, linesOf, spans, stale, ranking, ceiling } from "./study.js";
 
 const WAIT = 30000;
 /** What the server's bulk route takes in one ask: this many series, and this many of their values in all (it weighs a line's value at 16, and takes 320,000). */
@@ -87,9 +87,6 @@ async function main() {
   };
   const close = put(PRICE, price), lows = lowsOf(close, put(EPOCH, epochs));
   post({ type: "price", close: close.slice(), lows });
-  // (The lines worked out here, the daily refit's second or so on a phone among them: in slices, beside the reads, so
-  // nothing in hand waits on them.)
-  const worked = Promise.all(Object.entries(WORKED).map(async ([id, line]) => got.set(id, await line(close))));
   // (The chart draws the first three over every day it shows, and a line the page asks for: each read whole once, the
   // stored ranking's first three not waiting for the catalog, as the stored ranking is of the same release as the server
   // it's served with; ahead of the ranking's reads. One that fails can be asked again.)
@@ -99,7 +96,7 @@ async function main() {
     if (!more.length) return;
     more.forEach((id) => whole.add(id));
     try {
-      await Promise.all([fill(more.filter((id) => !(id in WORKED)), SHOWN, n), more.some((id) => id in WORKED) && worked]);
+      await fill(more, SHOWN, n);
     } catch (error) {
       throw (more.forEach((id) => whole.delete(id)), error);
     }
@@ -112,8 +109,8 @@ async function main() {
   // (A stored line the server stopped serving since the release it was written before is read again, as today's first
   // three, once ranked: the stored ranking only starts the reads, the catalog says what is served.)
   const drawn = known.then((board) => draw(firstOf(board?.ranked ?? []))).catch(() => {});
-  const made = linesOf(await named), ids = made.map((l) => l.id).filter((id) => !(id in WORKED)), board = await known;
-  // (Every line by week, the chart's crowd, each ask's lines sent as they land, the worked lines' once worked out: asked
+  const made = linesOf(await named), ids = made.map((l) => l.id), board = await known;
+  // (Every line by week, the chart's crowd, each ask's lines sent as they land: asked
   // once the first three are drawn, so they don't share a slow link with them, and before the ranking's spans, as the
   // stored ranking already shows. A week's value is its last day's.)
   const from = weekOf(SHOWN), weeks = weekOf(last) - from + 1;
@@ -123,15 +120,11 @@ async function main() {
     post({ type: "crowd", from, weeks, values }, [values.buffer]);
   };
   const crowd = drawn.then(() => read(ids, from, from + weeks, "week1", send));
-  const modelled = worked.then(() => {
-    const bodies = Object.keys(WORKED).map((id) => ({ start: from, data: Array.from({ length: weeks }, (_, w) => /** @type {Float64Array} */ (got.get(id))[Math.min(last, (from + w) * WEEK.days + WEEK.day)]) }));
-    return send(bodies), bodies;
-  });
-  // (Awaited where they're needed: a failure is said there, once.)
-  crowd.catch(() => {}), modelled.catch(() => {});
+  // (Awaited where it's needed: a failure is said there, once.)
+  crowd.catch(() => {});
   const plan = spans(lows, ids, board);
   // (Beside the first three, not after them: held back, the ranking would wait on their bytes on a slow link.)
-  await spanned(plan), await worked;
+  await spanned(plan);
   const all = made.map((m) => ({ ...m, line: /** @type {Float64Array} */ (got.get(m.id)) }));
   /** Today's ranking without the lines taken as ceilings, its stale spans read through first. */
   const rank = async (/** @type {Set<string>} */ ceilings) => {
@@ -146,9 +139,8 @@ async function main() {
   said(ceilings, ranked);
   const redrawn = drawn.then(() => draw(firstOf(ranked)));
   // (Which lines are ceilings, once the crowd's weeks are in.)
-  const [read1, worked1] = await Promise.all([crowd, modelled]);
-  const weekly = [...ids.map((id, i) => /** @type {const} */ ([id, read1[i]])), ...Object.keys(WORKED).map((id, k) => /** @type {const} */ ([id, worked1[k]]))];
-  const today = new Set(weekly.filter(([, body]) => ceiling(close, body.data, body.start)).map(([id]) => id));
+  const weekly = await crowd;
+  const today = new Set(ids.filter((id, i) => ceiling(close, weekly[i].data, weekly[i].start)));
   if (today.size !== ceilings.size || [...today].some((id) => !ceilings.has(id))) (ceilings = today), (ranked = await rank(ceilings)), said(ceilings, ranked), await draw(firstOf(ranked));
   await redrawn;
   // (The price as candles, for a view zoomed in: a column each.)
