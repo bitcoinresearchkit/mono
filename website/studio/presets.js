@@ -526,7 +526,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ], { log: [2] }),
       ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, !oldest),
       ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
-      ...[[cost.supplyDensity, "Supply", btc(c.supply?.total), "btc", color ?? "orange"], [cost.capitalDensity, "Capital", c.capital?.realizedCap, "usd", color ?? "sky"]].flatMap(([node, label, total, format, hue]) => {
+      ...[[cost.supplyDensity, "Supply", color ?? "orange"], [cost.capitalDensity, "Capital", color ?? "sky"]].flatMap(([node, label, hue]) => {
         if (!node) return [];
         const parts = [["total", label, hue], ["inProfit", "In profit", "green"], ["inLoss", "In loss", "red"]];
         return [chart(`${label} density`, titled(`Share of ${label.toLowerCase()} with a cost basis within 5% of the price`),
@@ -1050,7 +1050,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
             ...entries(node.floor).map(([key, value]) => [value, `${percentileLabel(percentile(key))} floor`]),
           ];
           const bands = entries(node.entrySupply), colors = ramp(bands.length, 140, 200);
-          const supply = { awake: ct.cohorts.all.awake.supply.total.btc, mobile: cf.cohorts.all.mobile.supply.total.btc, unweighted: t.holders.all.supply.total.btc }[mode];
           return section(modeName(mode), [
             chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 140, 200)[i] }))]),
             chart("Floors, colored", `Bedrock landscape, ${mode}`, [

@@ -20,8 +20,6 @@ export function chainStatistics({ t, chart, ramp, flowWindow, underOneSatVb }) {
   const daily = (total) => perDay(total.cumulative);
   /** @param {string} part @param {string} whole */
   const percent = (part, whole) => `100 * (${part}) / (${whole})`;
-  /** @param {string} all @param {string[]} parts */
-  const rest = (all, parts) => `${all} - ${parts.map((part) => `(${part})`).join(" - ")}`;
   /** @param {string} name @param {string} title @param {string[][]} lines @param {number} days @param {{ format?: string, log?: number[] }} [options] */
   const line = (name, title, lines, days, { format, log } = {}) => chart(name, title, lines.map(([label, formula], i) => ({ formula, label, color: ramp(lines.length)[i], ...(format ? { format } : {}) })), { ...(log ? { log } : {}), ...(days > 1 ? { average: { 1: `${days}d` } } : {}) });
   /** @param {string} name @param {string} title @param {string[][]} lines @param {number} days */
