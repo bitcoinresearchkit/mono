@@ -20,7 +20,8 @@ impl Vecs {
             Price::from_height_source(name, version, &source, mappings)
         };
         Ok(Self {
-            burger_floor: line("burger_power_law_floor", published::burger),
+            burger: line("burger_power_law", published::burger),
+            burger_floor: line("burger_power_law_floor", published::burger_floor),
             mooij_floor: line("mooij_power_law_floor", published::mooij),
             rainbow_lowest_band: line("rainbow_lowest_band", published::rainbow_lowest_band),
             sminston_floor: Price::import(db, "sminston_power_law_floor", version, mappings)?,

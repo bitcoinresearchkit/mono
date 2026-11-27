@@ -952,10 +952,11 @@ pub mod tree {
         lth: ProfitabilityRange = "lth",
     } }
     shape! { PowerLaw at "series().market.power_law" {
-        burger_floor: SeriesPattern1<Option<Dollars>> = "burger_*",
-        mooij_floor: SeriesPattern1<Option<Dollars>> = "mooij_*",
+        burger: SeriesPattern1<Option<Dollars>> = "burger_*",
+        burger_floor: SeriesPattern1<Option<Dollars>> = "burger_*_floor",
+        mooij_floor: SeriesPattern1<Option<Dollars>> = "mooij_*_floor",
         rainbow_lowest_band: SeriesPattern1<Option<Dollars>> = "rainbow_lowest_band",
-        sminston_floor: SeriesPattern1<Option<Dollars>> = "sminston_*",
+        sminston_floor: SeriesPattern1<Option<Dollars>> = "sminston_*_floor",
     } }
     shape! { MarketPriceWithRatio at "series().market.sma._200d" {
         value: SeriesPattern1<Option<Dollars>> = "*",
@@ -1057,7 +1058,7 @@ pub mod tree {
         range: MarketRange = "*",
         sma: Ema<MarketPriceWithRatio> = "*_sma",
         ema: Ema<PriceWithRatio> = "*_ema",
-        power_law: PowerLaw = "power_law_floor",
+        power_law: PowerLaw = "power_law",
     } }
     shape! { UtxoSetSeries at "series().utxo_set" {
         supply: SeriesPattern1<Option<Bitcoin>> = "*",

@@ -3655,10 +3655,11 @@ class Profitability(_Node):
 
 
 class PowerLaw(_Node):
-    burger_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'burger_*')
-    mooij_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mooij_*')
+    burger: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'burger_*')
+    burger_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'burger_*_floor')
+    mooij_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mooij_*_floor')
     rainbow_lowest_band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rainbow_lowest_band')
-    sminston_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sminston_*')
+    sminston_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sminston_*_floor')
 
 
 class MarketPriceWithRatio(_Node):
@@ -3771,7 +3772,7 @@ class Market(_Node):
     range: MarketRange = _at(MarketRange, '*')
     sma: Ema[MarketPriceWithRatio] = _at((Ema, MarketPriceWithRatio), '*_sma')
     ema: Ema[PriceWithRatio] = _at((Ema, PriceWithRatio), '*_ema')
-    power_law: PowerLaw = _at(PowerLaw, 'power_law_floor')
+    power_law: PowerLaw = _at(PowerLaw, 'power_law')
 
 
 class UtxoSetSeries(_Node):

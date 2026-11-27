@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31747 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31748 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -145,7 +145,7 @@
 - `market.range` (6): `price_min_1w`, `price_min_1m`, `price_min_1y`, `price_max_1w`, `price_max_1m`
 - `market.sma` (31): `price_sma_1w`, `price_sma_1w_ratio`, `price_sma_8d`, `price_sma_8d_ratio`, `price_sma_13d`
 - `market.ema` (30): `price_ema_1w`, `price_ema_1w_ratio`, `price_ema_8d`, `price_ema_8d_ratio`, `price_ema_13d`
-- `market.power_law` (4): `burger_power_law_floor`, `mooij_power_law_floor`, `rainbow_lowest_band`, `sminston_power_law_floor`
+- `market.power_law` (5): `burger_power_law`, `burger_power_law_floor`, `mooij_power_law_floor`, `rainbow_lowest_band`, `sminston_power_law_floor`
 
 ### age
 

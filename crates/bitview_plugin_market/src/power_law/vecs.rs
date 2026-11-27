@@ -8,6 +8,12 @@ use super::compute::Floor;
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    /// Harold Christopher Burger's power law ("Bitcoin's natural long-term power-law corridor of
+    /// growth", 2019): `log10(price) = −17.01593313 + 5.84509376 · log10(days)`, days counted whole
+    /// from the genesis block's day (2009-01-03) to the block's day (UTC). His published
+    /// constants, so each value depends only on its day. Null on the genesis day.
+    #[traversable(lead = "Burger's power law: his fit of the price to the days since genesis.")]
+    pub burger: Price<LazyPerBlock<Cents>>,
     /// Harold Christopher Burger's power-law support line ("Bitcoin's natural long-term
     /// power-law corridor of growth", 2019): `log10(price) = −17.01593313 + 5.84509376 ·
     /// log10(days) − 0.45`, days counted whole from the genesis block's day (2009-01-03) to the
