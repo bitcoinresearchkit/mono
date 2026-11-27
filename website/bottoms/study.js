@@ -4,6 +4,7 @@
 
 import { bottoms, miss, rank } from "./score.js";
 import { POWER_LAW } from "/modules/power-law/index.js";
+import { refitFloor } from "./refit.js";
 
 const DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
 /** A date's day, counted as the server's day1 counts. */
@@ -18,7 +19,7 @@ export const SHOWN = dayOf("2016-01-01");
 export const WEEK = { days: 7, day: 3 };
 /** The week a day is in. */
 export const weekOf = (/** @type {number} */ day) => Math.ceil((day - WEEK.day) / WEEK.days);
-const GENESIS = dayOf("2009-01-03");
+const GENESIS = dayOf("2009-01-03"), RAINBOW = dayOf("2012-01-01");
 
 // ── The lines: each one a price by day, the set read from the server's catalog, so a line it starts serving joins ──
 
@@ -30,17 +31,33 @@ const GENESIS = dayOf("2009-01-03");
 const levelOf = (/** @type {string} */ tag) => +tag.replace("_", ".");
 /** The rarity levels ranked: the cheap tail, where a bottom would sit; from 10% up, a level is a price seen one day in ten. */
 const LOW = 5;
-/** The days in a moving average's window, as the server's ids write it (`200w`, `4y`). */
-const SPAN = /** @type {Record<string, number>} */ ({ d: 1, w: 7, m: 30, y: 365 });
+/** The days in a window or an age, as the server's ids write it (`200w`, `4y`, `18m`). */
+const SPAN = /** @type {Record<string, number>} */ ({ h: 1 / 24, d: 1, w: 7, m: 30, y: 365 });
+/** A window or an age in days, from the server's ids' way of writing it (`18m`). */
+const daysOf = (/** @type {string} */ n, /** @type {string} */ unit) => +n * SPAN[unit];
+/** A published power law fixed when it was fitted, by day: `log10 price = a + b · log10(days since genesis) − below`. */
+const law = (/** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ below) => (/** @type {Float64Array} */ close) => {
+  const out = new Float64Array(close.length).fill(NaN);
+  for (let d = GENESIS + 1; d < out.length; d++) out[d] = 10 ** (a + b * Math.log10(d - GENESIS) - below);
+  return out;
+};
 /**
- * The lines worked out here from the date alone, by id, each over `n` days: Burger's support line, until the server
- * serves the power laws.
+ * The bottom models worked out here from the date and the closes, by id, each as long as the closes, until the server
+ * serves them; each with its author's own parameters, as their own source states them.
  */
-export const WORKED = /** @type {Record<string, (n: number) => Float64Array>} */ ({
-  power_law_floor: (n) => {
-    const { intercept, slope, support } = POWER_LAW, floor = new Float64Array(n).fill(NaN);
-    for (let d = GENESIS + 1; d < n; d++) floor[d] = 10 ** (intercept - support + slope * Math.log10(d - GENESIS));
-    return floor;
+export const WORKED = /** @type {Record<string, (close: Float64Array) => Float64Array | Promise<Float64Array>>} */ ({
+  // Burger's support line (modules/power-law).
+  burger_power_law_floor: law(POWER_LAW.intercept, POWER_LAW.slope, POWER_LAW.support),
+  // Alexander Mooij's (btcpowerlaw.nl/about, its code): a trend of 10^-16.493 · days^5.688, the floor 0.42 of it.
+  mooij_power_law_floor: law(-16.493, 5.688, -Math.log10(0.42)),
+  // Sminston With's (sminstonwith.com): the 5% quantile line of every close before the day, from a year of closes on.
+  sminston_power_law_floor: (close) => refitFloor(close, GENESIS, 0.05, 365),
+  // The Rainbow chart's lowest band (blockchaincenter.net, its page's code): 10^(2.775 · ln(n + 1175) − 19.463), n the
+  // days since 2012-01-01, from which it draws.
+  rainbow_lowest_band: (close) => {
+    const out = new Float64Array(close.length).fill(NaN);
+    for (let d = RAINBOW; d < out.length; d++) out[d] = 10 ** (2.775 * Math.log(d - RAINBOW + 1175) - 19.463);
+    return out;
   },
 });
 const alone = (/** @type {string} */ id) => /** @type {Made} */ ({ id, base: id, kind: "line" });
@@ -48,7 +65,7 @@ const alone = (/** @type {string} */ id) => /** @type {Made} */ ({ id, base: id,
 const leveled = (/** @type {string} */ id, /** @type {string} */ base, /** @type {Kind} */ kind, /** @type {string} */ tag) => ({ id, base, kind, level: levelOf(tag) });
 /** The cost-basis percentiles ranked: those under the median, where a floor would sit (the medians are ranked as the median realized and capitalized prices). */
 const MEDIAN = 50;
-/** @typedef {{ bases: Set<string>, averages: Made[], percentiles: Made[], floors: Made[], rarity: Made[] }} Groups */
+/** @typedef {{ bases: Set<string>, bands: Made[], averages: Made[], percentiles: Made[], floors: Made[], rarity: Made[] }} Groups */
 /**
  * The rules that make the lines from the names the server serves (its catalog), tried in order on each name; only
  * what they leave out is out. Each rule's `parts` are what every name its pattern takes contains: the catalog is
@@ -58,10 +75,10 @@ const MEDIAN = 50;
  */
 const RULES = [
   // A price the server ranks the price's ratio to (it serves `B_ratio_rarity_…`) is a reference price: ranked as it is
-  // and at each low rarity level. Its age slices (`age_…`) are cuts of the holders, not models; the short- and
-  // long-term holders are the published split.
+  // and at each low rarity level. Not the short-term holders' (young coins, which follow the price down rather than
+  // hold under it), nor the age cohorts' (their realized prices alone are ranked, below).
   { parts: ["rarity"], pattern: /^(\w+?)_rarity_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], served, into) => {
-    if (base.startsWith("age_") || !served.has(`${base}_ratio_rarity_p${tag}`)) return false;
+    if (/^(sth|age)_/.test(base) || !served.has(`${base}_ratio_rarity_p${tag}`)) return false;
     into.bases.add(base);
     if (levelOf(tag) <= LOW) into.rarity.push(leveled(id, base, "rarity", tag));
     return true;
@@ -69,18 +86,23 @@ const RULES = [
   // The rarity meters, at their low levels.
   { parts: ["rarity"], pattern: /^(\w*rarity_meter)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => levelOf(tag) <= LOW && (into.rarity.push(leveled(id, base, "rarity", tag)), true) },
   // The cost basis's percentiles under the median (`…cost_basis_by_coin_p5`: the price under which 5% of the coins last
-  // moved; `by_dollar`: 5% of their dollars), of all holders and the published split, unweighted or awake or mobile.
-  { parts: ["cost_basis_by_"], pattern: /^(?:sth_|lth_)?(?:awake_|mobile_)?cost_basis_by_(?:coin|dollar)_p(\d+)$/, take: ([id, tag], _, into) => levelOf(tag) < MEDIAN && (into.percentiles.push(alone(id)), true) },
+  // moved; `by_dollar`: 5% of their dollars), of all holders and the long-term ones, unweighted or awake or mobile.
+  { parts: ["cost_basis_by_"], pattern: /^(?:lth_)?(?:awake_|mobile_)?cost_basis_by_(?:coin|dollar)_p(\d+)$/, take: ([id, tag], _, into) => levelOf(tag) < MEDIAN && (into.percentiles.push(alone(id)), true) },
+  // The realized prices of coins by age, the bands from a year old (`age_1y_to_18m`, by its youngest).
+  { parts: ["_realized_price"], pattern: /^age_(\d+)([a-z])_to_\d+[a-z]_realized_price$/, take: ([id, n, unit], _, into) => daysOf(n, unit) >= SPAN.y && (into.bands.push(alone(id)), true) },
+  // Puell's transferred price.
+  { parts: ["transferred_price"], pattern: /^transferred_price$/, take: ([id], _, into) => (into.bases.add(id), true) },
   // Every Bedrock floor (`bedrock_W_floor_…`, W its weighting; the cost-basis lines above a floor are not floors).
   { parts: ["_floor_p"], pattern: /^(bedrock_[a-z]+_floor)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => (into.floors.push(leveled(id, base, "floor", tag)), true) },
-  // The price's moving averages of a year or more (shorter ones are trading averages, which a fall cuts through).
-  { parts: ["price_sma_", "price_ema_"], pattern: /^price_(?:sma|ema)_(\d+)([dwmy])$/, take: ([id, n, unit], _, into) => +n * SPAN[unit] >= SPAN.y && (into.averages.push(alone(id)), true) },
+  // The price's moving averages and trailing lows of a year or more (shorter ones are trading levels, which a fall
+  // cuts through).
+  { parts: ["price_sma_", "price_ema_", "price_min_"], pattern: /^price_(?:sma|ema|min)_(\d+)([dwmy])$/, take: ([id, n, unit], _, into) => daysOf(n, unit) >= SPAN.y && (into.averages.push(alone(id)), true) },
 ];
 /** The name parts the rules read: the catalog is asked for the names that contain one. */
 export const NAMED = [...new Set(RULES.flatMap((rule) => rule.parts))];
 /** Every line, from the names the server serves, in groups: the lines themselves, the lines worked out here, the percentiles, Bedrock's floors, then the rarity lines. @returns {Made[]} */
 export function linesOf(/** @type {Set<string>} */ served) {
-  /** @type {Groups} */ const into = { bases: new Set(), averages: [], percentiles: [], floors: [], rarity: [] }, taken = new Set();
+  /** @type {Groups} */ const into = { bases: new Set(), bands: [], averages: [], percentiles: [], floors: [], rarity: [] }, taken = new Set();
   for (const id of served) for (const rule of RULES) {
     const m = rule.pattern.exec(id);
     if (!m) continue;
@@ -90,7 +112,7 @@ export function linesOf(/** @type {Set<string>} */ served) {
   }
   // (A rule that took nothing: its parts don't bring its names, or the server stopped serving them. Either way, lines are missing.)
   for (const rule of RULES) if (!taken.has(rule)) throw new Error(`no line taken by the rule for ${rule.pattern}: the catalog's names with ${rule.parts.join(" or ")} have none it takes`);
-  return [...[...into.bases].map(alone), ...into.averages, ...Object.keys(WORKED).map(alone), ...into.percentiles, ...into.floors, ...into.rarity];
+  return [...[...into.bases].map(alone), ...into.bands, ...into.averages, ...Object.keys(WORKED).map(alone), ...into.percentiles, ...into.floors, ...into.rarity];
 }
 
 // ── The bottoms ──
@@ -127,9 +149,12 @@ export function stale(/** @type {Bottom[]} */ lows, /** @type {ReturnType<typeof
 
 /** @typedef {Made & { at: (import("./score.js").At | null)[] }} Row (`at`: one per bottom) */
 /** @typedef {{ row: Row, rank: number, worst: number }} Ranked (`rank`: shared by lines equal at every bottom; `worst`: its largest miss, Infinity with no value at a bottom) */
-/** Every line held to each bottom, in the ranking's order. @returns {Ranked[]} */
+/**
+ * Every line held to each bottom, in the ranking's order: those with a value at each fall's high (a cohort born since,
+ * as coins over 15 years old, can't be held to a bottom before it). @returns {Ranked[]}
+ */
 export function ranking(/** @type {Float64Array} */ close, /** @type {Bottom[]} */ lows, /** @type {Line[]} */ all) {
-  return rank(all.map(({ line, ...made }) => /** @type {Row} */ ({ ...made, at: lows.map((l) => miss(close, line, l)) })), lows.map((_, k) => k));
+  return rank(all.filter(({ line }) => lows.every(({ peak }) => line[peak] === line[peak])).map(({ line, ...made }) => /** @type {Row} */ ({ ...made, at: lows.map((l) => miss(close, line, l)) })), lows.map((_, k) => k));
 }
 /**
  * A line the price closed under in two weeks of three since the judged period began is a ceiling, not a floor: it isn't
@@ -154,20 +179,22 @@ export function ceiling(/** @type {Float64Array} */ close, /** @type {ArrayLike<
 // ── The lines' names: every one from its definition above, so a name says exactly which line it is ──
 
 const NAMES = /** @type {Record<string, string>} */ ({
-  cvdd: "CVDD", balanced_price: "Balanced price", delta_price: "Delta price", power_law_floor: "Power-law floor",
-  active_price: "Active price", vaulted_price: "Vaulted price", cointime_price: "Cointime price", true_market_mean: "True market mean",
+  cvdd: "CVDD", balanced_price: "Balanced price", delta_price: "Delta price", burger_power_law_floor: "Burger's power-law floor",
+  mooij_power_law_floor: "Mooij's power-law floor", sminston_power_law_floor: "Sminston With's power-law floor", rainbow_lowest_band: "Rainbow chart's lowest band",
+  transferred_price: "Transferred price", active_price: "Active price", vaulted_price: "Vaulted price", cointime_price: "Cointime price", true_market_mean: "True market mean",
   rarity_meter: "Rarity meter", local_rarity_meter: "Local rarity meter", cycle_rarity_meter: "Cycle rarity meter",
 });
-const HOLDER = /** @type {Record<string, string>} */ ({ sth_: "short-term holders' ", lth_: "long-term holders' " });
+const UNIT = /** @type {Record<string, string>} */ ({ h: "hour", d: "day", w: "week", m: "month", y: "year" });
 /** A base's name, from its id's parts; a Bedrock floor's with its level, as Bedrock names its floors. */
 function baseName(/** @type {string} */ id, /** @type {number | undefined} */ level) {
   if (NAMES[id]) return NAMES[id];
-  let m = /^price_(sma|ema)_(\d+)(w|y)$/.exec(id);
-  if (m) return `${m[2]}-${m[3] === "w" ? "week" : "year"} ${m[1] === "ema" ? "exponential average" : "average"}`;
+  let m = /^price_(sma|ema|min)_(\d+)([a-z])$/.exec(id);
+  if (m) return `${m[2]}-${UNIT[m[3]]} ${{ sma: "average", ema: "exponential average", min: "low" }[m[1]]}`;
+  if ((m = /^age_(\d+)([a-z])_to_(\d+)([a-z])_realized_price$/.exec(id))) return `${m[1]}-${UNIT[m[2]]} to ${m[3]}-${UNIT[m[4]]} coins' realized price`;
   if ((m = /^bedrock_(\w+)_floor$/.exec(id))) return `Bedrock ${m[1]} ${level}% floor`;
   // (A cost basis by coin is a realized price, by dollar a capitalized one: the median by coin is the median realized price.)
-  if ((m = /^(sth_|lth_)?(awake_|mobile_)?(?:(median_)?(realized|capitalized)_price|cost_basis_by_(coin|dollar)_p(\d+))$/.exec(id))) {
-    const said = `${HOLDER[m[1]] ?? ""}${m[2]?.replace("_", " ") ?? ""}${m[3] ? "median " : m[6] ? `${m[6]}th percentile ` : ""}${m[4] ?? (m[5] === "coin" ? "realized" : "capitalized")} price`;
+  if ((m = /^(lth_)?(awake_|mobile_)?(?:(median_)?(realized|capitalized)_price|cost_basis_by_(coin|dollar)_p(\d+))$/.exec(id))) {
+    const said = `${m[1] ? "long-term holders' " : ""}${m[2]?.replace("_", " ") ?? ""}${m[3] ? "median " : m[6] ? `${m[6]}th percentile ` : ""}${m[4] ?? (m[5] === "coin" ? "realized" : "capitalized")} price`;
     return said[0].toUpperCase() + said.slice(1);
   }
   throw new Error(`a line with no name: ${id}`);
@@ -178,20 +205,3 @@ export function fullName(/** @type {Made} */ m) {
   return m.kind === "rarity" ? `${base}, ${+(100 - /** @type {number} */ (m.level)).toFixed(1)}% ${m.base.endsWith("rarity_meter") ? "" : "rarity "}line` : base;
 }
 
-/** Where each line Bitview doesn't make comes from, as its source says (the study's formulas.md and origins.md): who published it and when. The year matters: a model of 2019 was made with the 2018 bottom known. */
-const COINTIME = "ARK Invest & Glassnode, 2023", SPLIT = "after Glassnode, 2020";
-const CREDIT = /** @type {Record<string, string>} */ ({
-  cvdd: "Willy Woo, 2019", balanced_price: "David Puell, 2019", delta_price: "David Puell, 2019", power_law_floor: "Burger, 2019",
-  realized_price: "Coin Metrics, 2018", sth_realized_price: SPLIT, lth_realized_price: SPLIT,
-  active_price: "Dor Shahar, 2021", vaulted_price: COINTIME, cointime_price: COINTIME, true_market_mean: COINTIME,
-});
-/** The bases Bitview constructed (no earlier outside source found): every price weighted awake or mobile, and the capitalized prices (the cost basis by dollar); and those others publish too with no first author established. */
-const OWN = /^(sth_|lth_)?((awake|mobile)_\w+|(median_)?capitalized_price|cost_basis_by_dollar_p\d+)$/, UNKNOWN = /^(sth_|lth_)?(median_realized_price|cost_basis_by_coin_p\d+)$/;
-/** Who made a line: "Bitview" (its floors, its rarity lines, the bases it constructed), a published line's credit, or "" where no first author could be established. */
-export function maker(/** @type {Made} */ m) {
-  if (m.kind !== "line" || OWN.test(m.id)) return "Bitview";
-  if (CREDIT[m.id]) return CREDIT[m.id];
-  if (m.id.startsWith("price_")) return "moving average";
-  if (UNKNOWN.test(m.id)) return "";
-  throw new Error(`a line with no maker: ${m.id}`);
-}

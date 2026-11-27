@@ -105,7 +105,7 @@ else {
   globalThis.fetch = Object.assign((/** @type {any} */ url, /** @type {any} */ init) => (url instanceof URL && url.protocol === "file:" ? Promise.resolve(own(url)) : real(typeof url === "string" && url.startsWith("/") ? PROD + url : url, init)), real);
   /** @type {any} */ let last = null;
   const ended = new Promise((done, fail) => {
-    /** @type {any} */ (globalThis).self = { postMessage: (/** @type {any} */ message) => message.type === "ranked" && message.live ? (last = message) : message.type === "crowd" ? done(last) : message.type === "failed" && fail(new Error(`bottoms/worker.js: ${message.why}`)) };
+    /** @type {any} */ (globalThis).self = { postMessage: (/** @type {any} */ message) => message.type === "ranked" && message.live ? (last = message) : message.type === "candles" ? done(last) : message.type === "failed" && fail(new Error(`bottoms/worker.js: ${message.why}`)) };
   });
   await import(join(SITE, "bottoms", "worker.js"));
   const { day, lows, ranked, ceilings } = await ended;
