@@ -118,8 +118,8 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Bedrock (23): https://bitview.space/studio/presets/valuation/bedrock/index.html.md
 - Profit and loss (16): https://bitview.space/studio/presets/profit-and-loss/index.html.md
 - Supply (10): https://bitview.space/studio/presets/supply/index.html.md
-- Activity (17): https://bitview.space/studio/presets/activity/index.html.md
-  - Cointime (9): https://bitview.space/studio/presets/activity/cointime/index.html.md
+- Activity (18): https://bitview.space/studio/presets/activity/index.html.md
+  - Cointime (10): https://bitview.space/studio/presets/activity/cointime/index.html.md
 - Holders (4536): https://bitview.space/studio/presets/holders/index.html.md
   - Compare (26): https://bitview.space/studio/presets/holders/compare/index.html.md
   - Short-term holders (55): https://bitview.space/studio/presets/holders/short-term-holders/index.html.md
