@@ -1478,7 +1478,7 @@
       const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
       /** @type {Event[]} */ const early = [];
       worker.onmessage = worker.onerror = (event) => void early.push(event);
-      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, weekOf, FROM, SHOWN, WEEK }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js")]);
+      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, weekOf, FROM, SHOWN, WEEK }, { reduced }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js"), import("/modules/motion/reduced.js")]);
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const all = (/** @type {string} */ selector) => /** @type {HTMLElement[]} */ ([...document.querySelectorAll(selector)]);
@@ -1496,7 +1496,7 @@
       const NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
       const worded = (/** @type {number} */ n) => NUMBERS[n] ?? String(n);
       const capital = (/** @type {string} */ s) => s[0].toUpperCase() + s.slice(1);
-      const still = matchMedia("(prefers-reduced-motion: reduce)"), dark = matchMedia("(prefers-color-scheme: dark)");
+      const dark = matchMedia("(prefers-color-scheme: dark)");
 
       // ── What the worker read and measured ──
 
@@ -1565,7 +1565,7 @@
         (chosen = id), (unread = null), (from = b), marked();
         // (Brought into view when its chip isn't: focus then goes to the chip, which names it; else it stays on the name.)
         const chip = $("picked").getBoundingClientRect();
-        if (chip.top < 0 || chip.bottom > innerHeight) scrollTo({ top: 0, behavior: still.matches ? "instant" : "smooth" }), $("picked").focus({ preventScroll: true });
+        if (chip.top < 0 || chip.bottom > innerHeight) scrollTo({ top: 0, behavior: reduced() ? "instant" : "smooth" }), $("picked").focus({ preventScroll: true });
       });
       addEventListener("popstate", () => ((chosen = new URLSearchParams(location.search).get("line")), marked()));
       // ── The hero: the price, its bottoms, and the three closest lines ──
@@ -1719,7 +1719,7 @@
         chart.onLayout(fit), titled.observe(title);
         const press = () => { for (const b of all("[data-view]")) b.setAttribute("aria-pressed", String(b.dataset.view === String(view))); tell(); };
         let goal = /** @type {{ from: number, to: number } | null} */ (null);
-        const glide = (/** @type {"all" | number} */ v) => { view = v; press(); controller.viewTo((goal = rangeOf(v)), still.matches ? 0 : GLIDE); };
+        const glide = (/** @type {"all" | number} */ v) => { view = v; press(); controller.viewTo((goal = rangeOf(v)), GLIDE); };
         const heard = new AbortController();
         $("spans").addEventListener("click", (event) => { const v = /** @type {HTMLElement} */ (event.target).closest?.("[data-view]")?.getAttribute("data-view"); if (v) glide(v === "all" ? v : Number(v)); }, { signal: heard.signal });
         chart.onLayout(() => { if (view !== null && !controller.target) controller.viewTo(rangeOf(view), 0); });
