@@ -17,13 +17,13 @@ impl<S> Default for Retained<S> {
 
 impl<S> Retained<S> {
     /// The kept state if it continues at row `next` under `version`; it is consumed either way.
-    pub(crate) fn take(&mut self, next: usize, version: Version) -> Option<S> {
+    pub fn take(&mut self, next: usize, version: Version) -> Option<S> {
         self.0
             .take()
             .and_then(|(at, kept, state)| (at == next && kept == version).then_some(state))
     }
 
-    pub(crate) fn keep(&mut self, next: usize, version: Version, state: S) {
+    pub fn keep(&mut self, next: usize, version: Version, state: S) {
         self.0 = Some((next, version, state));
     }
 }

@@ -3273,6 +3273,21 @@ const _Profitability = _s({
 
 /**
  * @typedef {{
+ *   burgerFloor: SeriesPattern1<?Dollars>,
+ *   mooijFloor: SeriesPattern1<?Dollars>,
+ *   rainbowLowestBand: SeriesPattern1<?Dollars>,
+ *   sminstonFloor: SeriesPattern1<?Dollars>,
+ * }} PowerLaw
+ */
+const _PowerLaw = _s({
+  burgerFloor: [_i1, 'burger_*'],
+  mooijFloor: [_i1, 'mooij_*'],
+  rainbowLowestBand: [_i1, 'rainbow_lowest_band'],
+  sminstonFloor: [_i1, 'sminston_*'],
+});
+
+/**
+ * @typedef {{
  *   value: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   mayerMultiple: SeriesPattern1<?Multiple>,
@@ -3498,6 +3513,7 @@ const _Ath = _s({
  *   range: MarketRange,
  *   sma: Ema<MarketPriceWithRatio>,
  *   ema: Ema<PriceWithRatio>,
+ *   powerLaw: PowerLaw,
  * }} Market
  */
 const _Market = _s({
@@ -3506,6 +3522,7 @@ const _Market = _s({
   range: [_MarketRange, '*'],
   sma: [(c, b) => _Ema(c, b, _MarketPriceWithRatio), '*_sma'],
   ema: [(c, b) => _Ema(c, b, _PriceWithRatio), '*_ema'],
+  powerLaw: [_PowerLaw, 'power_law_floor'],
 });
 
 /**
@@ -7233,7 +7250,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "e89ac7ef1f8bff1280fd8fa58de080a8421b34f0e07cec369d6541bdecb032f7";
+  static HASH = "f1c2d4960ad6d73b57a4ee55c05159a986d03790b2fe38de4f47621ce7d0cbda";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

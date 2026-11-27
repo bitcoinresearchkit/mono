@@ -38,6 +38,6 @@ impl ComputePlugin for Vecs {
         ath?;
         range?;
         moving_average?;
-        Ok(())
+        self.power_law.compute(indexer, prices, mappings, exit)
     }
 }
