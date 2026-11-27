@@ -3,8 +3,6 @@
 // the cycle bottoms since 2017. No DOM: the page's worker runs it.
 
 import { bottoms, miss, rank } from "./score.js";
-import { POWER_LAW } from "/modules/power-law/index.js";
-import { refitFloor } from "./refit.js";
 
 const DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
 /** A date's day, counted as the server's day1 counts. */
@@ -19,7 +17,6 @@ export const SHOWN = dayOf("2016-01-01");
 export const WEEK = { days: 7, day: 3 };
 /** The week a day is in. */
 export const weekOf = (/** @type {number} */ day) => Math.ceil((day - WEEK.day) / WEEK.days);
-const GENESIS = dayOf("2009-01-03"), RAINBOW = dayOf("2012-01-01");
 
 // ── The lines: each one a price by day, the set read from the server's catalog, so a line it starts serving joins ──
 
@@ -35,31 +32,6 @@ const LOW = 5;
 const SPAN = /** @type {Record<string, number>} */ ({ h: 1 / 24, d: 1, w: 7, m: 30, y: 365 });
 /** A window or an age in days, from the server's ids' way of writing it (`18m`). */
 const daysOf = (/** @type {string} */ n, /** @type {string} */ unit) => +n * SPAN[unit];
-/** A published power law fixed when it was fitted, by day: `log10 price = a + b · log10(days since genesis) − below`. */
-const law = (/** @type {number} */ a, /** @type {number} */ b, /** @type {number} */ below) => (/** @type {Float64Array} */ close) => {
-  const out = new Float64Array(close.length).fill(NaN);
-  for (let d = GENESIS + 1; d < out.length; d++) out[d] = 10 ** (a + b * Math.log10(d - GENESIS) - below);
-  return out;
-};
-/**
- * The bottom models worked out here from the date and the closes, by id, each as long as the closes, until the server
- * serves them; each with its author's own parameters, as their own source states them.
- */
-export const WORKED = /** @type {Record<string, (close: Float64Array) => Float64Array | Promise<Float64Array>>} */ ({
-  // Burger's support line (modules/power-law).
-  burger_power_law_floor: law(POWER_LAW.intercept, POWER_LAW.slope, POWER_LAW.support),
-  // Alexander Mooij's (btcpowerlaw.nl/about, its code): a trend of 10^-16.493 · days^5.688, the floor 0.42 of it.
-  mooij_power_law_floor: law(-16.493, 5.688, -Math.log10(0.42)),
-  // Sminston With's (sminstonwith.com): the 5% quantile line of every close before the day, from a year of closes on.
-  sminston_power_law_floor: (close) => refitFloor(close, GENESIS, 0.05, 365),
-  // The Rainbow chart's lowest band (blockchaincenter.net, its page's code): 10^(2.775 · ln(n + 1175) − 19.463), n the
-  // days since 2012-01-01, from which it draws.
-  rainbow_lowest_band: (close) => {
-    const out = new Float64Array(close.length).fill(NaN);
-    for (let d = RAINBOW; d < out.length; d++) out[d] = 10 ** (2.775 * Math.log(d - RAINBOW + 1175) - 19.463);
-    return out;
-  },
-});
 const alone = (/** @type {string} */ id) => /** @type {Made} */ ({ id, base: id, kind: "line" });
 /** A line at one of its base's levels, the level as the server's ids write it. @returns {Made} */
 const leveled = (/** @type {string} */ id, /** @type {string} */ base, /** @type {Kind} */ kind, /** @type {string} */ tag) => ({ id, base, kind, level: levelOf(tag) });
@@ -92,6 +64,9 @@ const RULES = [
   { parts: ["_realized_price"], pattern: /^age_(\d+)([a-z])_to_\d+[a-z]_realized_price$/, take: ([id, n, unit], _, into) => daysOf(n, unit) >= SPAN.y && (into.bands.push(alone(id)), true) },
   // Puell's transferred price.
   { parts: ["transferred_price"], pattern: /^transferred_price$/, take: ([id], _, into) => (into.bases.add(id), true) },
+  // The published power laws' floors, which the server serves each from its author's own parameters (`burger_power_law_floor`,
+  // Sminston With's refit each day on the closes before it) and the Rainbow chart's lowest band.
+  { parts: ["_power_law_floor", "rainbow_lowest_band"], pattern: /^(?:\w+_power_law_floor|rainbow_lowest_band)$/, take: ([id], _, into) => (into.bases.add(id), true) },
   // Every Bedrock floor (`bedrock_W_floor_…`, W its weighting; the cost-basis lines above a floor are not floors).
   { parts: ["_floor_p"], pattern: /^(bedrock_[a-z]+_floor)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => (into.floors.push(leveled(id, base, "floor", tag)), true) },
   // The price's moving averages and trailing lows of a year or more (shorter ones are trading levels, which a fall
@@ -100,7 +75,7 @@ const RULES = [
 ];
 /** The name parts the rules read: the catalog is asked for the names that contain one. */
 export const NAMED = [...new Set(RULES.flatMap((rule) => rule.parts))];
-/** Every line, from the names the server serves, in groups: the lines themselves, the lines worked out here, the percentiles, Bedrock's floors, then the rarity lines. @returns {Made[]} */
+/** Every line, from the names the server serves, in groups: the lines themselves, the percentiles, Bedrock's floors, then the rarity lines. @returns {Made[]} */
 export function linesOf(/** @type {Set<string>} */ served) {
   /** @type {Groups} */ const into = { bases: new Set(), bands: [], averages: [], percentiles: [], floors: [], rarity: [] }, taken = new Set();
   for (const id of served) for (const rule of RULES) {
@@ -112,7 +87,7 @@ export function linesOf(/** @type {Set<string>} */ served) {
   }
   // (A rule that took nothing: its parts don't bring its names, or the server stopped serving them. Either way, lines are missing.)
   for (const rule of RULES) if (!taken.has(rule)) throw new Error(`no line taken by the rule for ${rule.pattern}: the catalog's names with ${rule.parts.join(" or ")} have none it takes`);
-  return [...[...into.bases].map(alone), ...into.bands, ...into.averages, ...Object.keys(WORKED).map(alone), ...into.percentiles, ...into.floors, ...into.rarity];
+  return [...[...into.bases].map(alone), ...into.bands, ...into.averages, ...into.percentiles, ...into.floors, ...into.rarity];
 }
 
 // ── The bottoms ──
