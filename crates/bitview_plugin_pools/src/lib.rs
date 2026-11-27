@@ -16,7 +16,7 @@ use std::{collections::BTreeMap, ops::Deref};
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{Count, PoolSlug, Pools};
 use bitview_traversable::{AnyExportableVec, AnyStoredVec, Traversable, TreeNode};
-use bitview_vecs::CumulativeRolling;
+use bitview_vecs::{CumulativeRolling, PerBlockCumulativeRolling};
 use brk_types::Height;
 use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 
@@ -66,6 +66,15 @@ pub struct Vecs<M: StorageMode = Rw> {
         lead = "Blocks found by AntPool and the pools sharing its block templates."
     )]
     antpool_group: CumulativeRolling<Count, M>,
+    /// Blocks whose coinbase tag holds `Sv2/` in any letter case, as MARA Pool's first did at height
+    /// 975,369: what a pool says of its own blocks, taken as said and with no hand overrides, so a
+    /// block mined over Stratum V2 without the tag isn't counted.
+    #[traversable(
+        wrap = "stratum_v2",
+        rename = "tagged_block_count",
+        lead = "Blocks their pool tagged as mined over Stratum V2."
+    )]
+    stratum_v2_tagged: PerBlockCumulativeRolling<Count, M>,
 }
 
 /// Each pool's series, by its slug: their descriptions led by the pool they're of (see `Pool::lead`).

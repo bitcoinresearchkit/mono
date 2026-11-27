@@ -4492,6 +4492,10 @@ class Age(_Node):
     vintages: Vintage = _at(Vintage, 'vintage')
 
 
+class StratumV2(_Node):
+    tagged_block_count: Flow[Count] = _at(Flow, '*')
+
+
 class OutputCount(_Node):
     output_count: Flow[Count] = _at(Flow, '*')
 
@@ -5087,6 +5091,7 @@ class Pools(_Node):
     concentration: Concentration = _at(Concentration, 'pools_block_count')
     concentration_grouped: Concentration = _at(Concentration, 'pools_antpool_group_as_one_block_count')
     groups: Groups = _at(Groups, '*_antpool_group_block_count')
+    stratum_v2: StratumV2 = _at(StratumV2, 'stratum_v2_tagged_block_count')
 
 
 class Inputs(_Node):

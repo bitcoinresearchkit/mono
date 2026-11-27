@@ -3,7 +3,9 @@ use std::collections::BTreeMap;
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Hashrate, POOL_ATTRIBUTION_VERSION};
-use bitview_vecs::{CumulativeRolling, LazyWindowStartVec, shapes::Windows};
+use bitview_vecs::{
+    CumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows,
+};
 use brk_error::Result;
 use brk_types::Height;
 use vecdb::{BytesVec, ImportableVec, ReadableCloneableVec, Version};
@@ -53,6 +55,13 @@ impl Vecs {
             antpool_group: CumulativeRolling::import(
                 &db,
                 "pool_antpool_group_block_count",
+                version,
+                mappings,
+                window_starts,
+            )?,
+            stratum_v2_tagged: PerBlockCumulativeRolling::import(
+                &db,
+                "stratum_v2_tagged_block_count",
                 version,
                 mappings,
                 window_starts,

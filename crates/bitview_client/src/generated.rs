@@ -1686,6 +1686,9 @@ pub mod tree {
         halving_epochs: ByHalvingEpoch = "halving_epoch",
         vintages: Vintage = "vintage",
     } }
+    shape! { StratumV2 at "series().pools.stratum_v2" {
+        tagged_block_count: Flow<Count> = "*",
+    } }
     shape! { OutputCount at "series().addresses.reused.direct" {
         output_count: Flow<Count> = "*",
     } }
@@ -2234,6 +2237,7 @@ pub mod tree {
         concentration: Concentration = "pools_block_count",
         concentration_grouped: Concentration = "pools_antpool_group_as_one_block_count",
         groups: Groups = "*_antpool_group_block_count",
+        stratum_v2: StratumV2 = "stratum_v2_tagged_block_count",
     } }
     shape! { Inputs at "series().inputs" {
         count: FlowStats<Count, Option<CountFract>> = "input_*",

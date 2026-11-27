@@ -8,6 +8,10 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Blocks tagged as mined over Stratum V2 are counted, in the pools plugin (`stratum_v2_tagged_block_count`, one a
+  block, with its `_cumulative` and `_sum_*` windows): those whose coinbase tag holds `Sv2/` in any letter case, the
+  pool's own word, with no hand overrides (MARA Pool's 11 since height 975,369 so far). Studio shows them under Mining ›
+  Pools › Stratum V2 with their share of blocks, and the explorer's block page marks a tagged block. +36 KB on disk.
 - Five named models are served, so Studio's charts of them read the series instead of computing them on the page:
   the Pi cycle top (`price_sma_111d`, `price_sma_350d`, both served again since v0.12.2, `pi_cycle_top_line`,
   `pi_cycle_top`), the NVT signal (`nvt_signal`), stock-to-flow (`stock_to_flow`, `stock_to_flow_price`, PlanB's 2019

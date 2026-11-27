@@ -5063,6 +5063,15 @@ const _Age = _s({
 
 /**
  * @typedef {{
+ *   taggedBlockCount: Flow<Count>,
+ * }} StratumV2
+ */
+const _StratumV2 = _s({
+  taggedBlockCount: [_Flow, '*'],
+});
+
+/**
+ * @typedef {{
  *   outputCount: Flow<Count>,
  * }} OutputCount
  */
@@ -6131,6 +6140,7 @@ const _Pool = _s({
  *   concentration: Concentration,
  *   concentrationGrouped: Concentration,
  *   groups: Groups,
+ *   stratumV2: StratumV2,
  * }} Pools
  */
 const _Pools = _s({
@@ -6305,6 +6315,7 @@ const _Pools = _s({
   concentration: [_Concentration, 'pools_block_count'],
   concentrationGrouped: [_Concentration, 'pools_antpool_group_as_one_block_count'],
   groups: [_Groups, '*_antpool_group_block_count'],
+  stratumV2: [_StratumV2, 'stratum_v2_tagged_block_count'],
 });
 
 /**
@@ -7324,7 +7335,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "2334679546a9557c81ef4484c7fa4f268f50c4436a5b90bb470d192a9a6b8019";
+  static HASH = "6cd29ecc49a93825f08f5b0e1880356333fb5ce34ddc3c1d8e1a504cc87ced9f";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
