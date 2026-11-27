@@ -941,7 +941,7 @@
             <li><b>The weights are estimates.</b> Nobody knows which coins will move. An age's weight is a judgement from how coins of that age behaved before.</li>
           </ul>
           <p class="note">Every number is computed by this Bitview server from Bitcoin's public record; prices before late January 2015 come from exchange records. None of this is advice to buy or sell.</p>
-          <p class="more"><a id="in-studio" href="/studio/presets/bedrock/awake/floors-colored">Open this chart in Bitview Studio</a></p>
+          <p class="more"><a id="in-studio" href="/studio/presets/valuation/bedrock/awake/floors-colored">Open this chart in Bitview Studio</a></p>
 
           <footer>
             <div class="coins" role="group" aria-labelledby="coins-foot"><span id="coins-foot">Weight</span><button type="button" data-coins="awake" aria-pressed="true">Awake</button><button type="button" data-coins="mobile" aria-pressed="false">Mobile</button><span class="coins-said" aria-live="polite"></span></div>
@@ -1410,7 +1410,7 @@
         for (const b of all("[data-coins]")) b.setAttribute("aria-pressed", String(b.dataset.coins === mode));
         for (const el of all("[data-mode]")) el.textContent = mode;
         for (const el of all("[data-label]")) el.setAttribute("aria-label", /** @type {string} */ (el.dataset.label).replace("{coins}", `${mode} coins`));
-        /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/bedrock/${mode}/floors-colored`;
+        /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/valuation/bedrock/${mode}/floors-colored`;
       }
       function raiseHero(/** @type {Mode} */ mode, /** @type {Days} */ d) {
         built.abort(), (built = new AbortController());
