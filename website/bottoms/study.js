@@ -3,6 +3,7 @@
 // the cycle bottoms since 2017. No DOM: the page's worker runs it.
 
 import { bottoms, miss, rank } from "./score.js";
+import { POWER_LAW } from "/modules/power-law/index.js";
 
 const DAY = 864e5, DAY0 = Date.UTC(2009, 0, 1);
 /** A date's day, counted as the server's day1 counts. */
@@ -38,19 +39,16 @@ const RARITY = [
   "vaulted_price", "true_market_mean",
 ].flatMap((base) => [0.1, 0.5, 1, 2, 5].map((level) => /** @type {Made} */ ({ id: `${base}${base.endsWith("rarity_meter") ? "" : "_rarity"}_${tag(level)}`, base, kind: "rarity", level })));
 
-/** The three published lines the server is about to serve under these ids. Until it does, they are worked out here
- * from their published formulas; set to true once `/api/series/cvdd/day1` answers, and `published()` goes. */
-export const PUBLISHED_ARE_SERVED = false;
+/** The published lines the server works out from the chain (crates/bitview_plugin_cointime). */
 const PUBLISHED = ["cvdd", "balanced_price", "delta_price"];
-/** The lines worked out here: the published ones from the series in WHOLE, the power-law floor from the date alone. */
-const FORMULAS = [...(PUBLISHED_ARE_SERVED ? [] : PUBLISHED), "power_law_floor"];
+/** The one line worked out here, from the date alone. */
+const FORMULAS = ["power_law_floor"];
 const alone = (/** @type {string} */ id) => /** @type {Made} */ ({ id, base: id, kind: "line" });
 /** Every line, in the study's order. */
 export const LINES = [...ALONE.map(alone), ...FLOORS, ...[...PUBLISHED, "power_law_floor"].map(alone), ...RARITY];
 
-/** The series read whole, from their first day: the price and the halving epochs, which the bottoms come from, then
- * what the published formulas are made from (their sums run from the start). */
-export const WHOLE = [PRICE, EPOCH, ...(PUBLISHED_ARE_SERVED ? [] : ["circulating_supply", "coindays_destroyed_cumulative", "market_cap", "realized_cap", "realized_price"])];
+/** The series read whole, from their first day: the price and the halving epochs, which the bottoms come from. */
+export const WHOLE = [PRICE, EPOCH];
 /** The served lines read only on the days they are measured on (see `windows`). */
 export const WINDOWED = LINES.map((l) => l.id).filter((id) => !FORMULAS.includes(id) && !WHOLE.includes(id));
 
@@ -73,31 +71,11 @@ export function windows(/** @type {Bottom[]} */ lows, /** @type {number} */ last
 
 /** @typedef {(id: string) => Float64Array} Get a series by day, NaN where it has none, as long as the price */
 
-/** CVDD, balanced and delta price from their published formulas (sources in the study's formulas.md). */
-function published(/** @type {Get} */ get, /** @type {number} */ n) {
-  const price = get(PRICE), cdd = get("coindays_destroyed_cumulative"), supply = get("circulating_supply"), mcap = get("market_cap"), rcap = get("realized_cap"), rprice = get("realized_price");
-  const out = Object.fromEntries(PUBLISHED.map((k) => [k, new Float64Array(n).fill(NaN)]));
-  let vdd = 0, capSum = 0, capDays = 0;
-  for (let d = 1; d < n; d++) {
-    // (A day's coin days destroyed at that day's close.)
-    if (Number.isFinite(cdd[d])) vdd += (cdd[d] - (Number.isFinite(cdd[d - 1]) ? cdd[d - 1] : 0)) * (price[d] > 0 ? price[d] : 0);
-    if (mcap[d] > 0) (capSum += mcap[d]), capDays++;
-    const days = d - GENESIS;
-    if (days <= 0 || !(price[d] > 0)) continue;
-    const transferred = vdd / (days * supply[d]);
-    out.cvdd[d] = vdd / (days * 6_000_000);
-    out.balanced_price[d] = rprice[d] - transferred;
-    out.delta_price[d] = (rcap[d] - capSum / capDays) / supply[d];
-  }
-  return out;
-}
 /** Every line worked out here, by its id. */
 function formulas(/** @type {Get} */ get) {
-  const n = get(PRICE).length, out = PUBLISHED_ARE_SERVED ? {} : published(get, n);
-  // The power-law floor: Burger's fit (hcburger.com/blog/powerlaw, 2019), lowered by 0.45 in log10 to his own support line.
-  out.power_law_floor = new Float64Array(n).fill(NaN);
-  for (let d = GENESIS + 1; d < n; d++) out.power_law_floor[d] = 10 ** (-17.01593313 - 0.45 + 5.84509376 * Math.log10(d - GENESIS));
-  return out;
+  const n = get(PRICE).length, { intercept, slope, support } = POWER_LAW, floor = new Float64Array(n).fill(NaN);
+  for (let d = GENESIS + 1; d < n; d++) floor[d] = 10 ** (intercept - support + slope * Math.log10(d - GENESIS));
+  return { power_law_floor: floor };
 }
 /** Every line with its values: the served ones as `get` reads them, the others from their formulas. */
 export function lines(/** @type {Get} */ get) {
