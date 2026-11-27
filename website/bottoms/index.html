@@ -1202,6 +1202,7 @@
         <div class="shell">
           <h2 id="board-said">Every line, closest first.</h2>
           <p class="note" id="caveat"></p>
+          <p class="note" id="checked"></p>
           <p class="note">Bitview makes <span id="made">most of the lines here</span>: Bedrock, the rarity lines, and some of the prices they rest on. It made Bedrock and the rarity lines in 2026, after these bottoms: their place here describes the past, not a tested forecast. Every other line names where it comes from; those of 2019 were made after the first bottom here.</p>
           <figure class="field" id="field" role="img"></figure>
           <div class="table">
@@ -1215,9 +1216,10 @@
         <div class="shell pair">
           <div id="names">
           <h2>What the names mean.</h2>
-          <p class="body">Most lines are an average of the prices at which coins last moved, as the realized price is. Two kinds are Bitview's own.</p>
+          <p class="body">Most lines are an average of the prices at which coins last moved, as the realized price is, or a percentile of those prices. Two kinds are Bitview's own.</p>
           <dl class="names">
             <div><dt>Bedrock 99% floor</dt><dd>The price at which holders' losses would be as heavy as in the worst 1% of Bitcoin's history. A 98% floor is the worst 2%, and so on. Awake and mobile give more weight to coins that still move than to coins long idle, each in its own way. Unweighted counts every coin alike.</dd></div>
+            <div><dt>20th percentile realized price</dt><dd>The price under which a fifth of the coins last moved. A capitalized price counts dollars instead of coins: a fifth of the money paid for them.</dd></div>
             <div><dt>99% rarity line</dt><dd>The price at which Bitcoin would be as cheap, against the line it is named after, as on its cheapest 1 day in 100 since late 2012. Recent years count for more.</dd></div>
           </dl>
           </div>
@@ -1227,9 +1229,10 @@
             <li>Each day's price is held against the line as it stood the evening before, since some lines move on the day the price reaches them.</li>
             <li>A line is met where it stood. If it had risen above the price, it is met at the previous day's close instead.</li>
             <li>Lines with the same worst miss are ordered by their next worst.</li>
-            <li>Bottoms count from <span id="from-year">2017</span>, on daily closing prices. Ranked the same way on daily lows, Bedrock awake 99% floor also came first (checked Nov 26, 2026).</li>
+            <li>Bottoms count from <span id="from-year">2017</span>, on daily closing prices. Ranked the same way on daily lows, the mobile 20th percentile realized price also came first (checked Nov 27, 2026).</li>
+            <li>A line the price spent two weeks in three under is a ceiling, not a floor, and isn't ranked.</li>
             <li>The power-law floor's constants were fitted in 2019, with the Dec 2018 bottom in the data. Refitted on the closes before that fall, its miss there would be 41.6%, not <span id="fitted">31.6%</span>.</li>
-            <li>The median realized prices name no one: Glassnode publishes the same measure, and who was first isn't established.</li>
+            <li>The median realized prices name no one: Glassnode publishes the same measure, and who was first isn't established. Nor do the realized price's percentiles.</li>
           </ol>
           </div>
         </div>
@@ -1242,6 +1245,7 @@
             <div class="cols fine" aria-hidden="true"></div>
             <ol class="rank rest" id="rank-rest"></ol>
           </div>
+          <p class="note" id="ceilings"></p>
         </div>
       </section>
     </main>
@@ -1283,9 +1287,11 @@
       /** @typedef {import("./study.js").Ranked} Ranked */
       /** @typedef {import("./study.js").Bottom} Bottom */
       /** @typedef {import("./score.js").At} At */
-      /** The price by day, the bottoms, the first day shown, the ranking (once every line is measured), the first
-       * three lines' values (once read whole) and the price's candles (read last). */
-      let close = new Float64Array(0), lows = /** @type {Bottom[]} */ ([]), ranked = /** @type {Ranked[]} */ ([]);
+      /** The price by day, its bottoms, the ranking shown (the stored one, then today's) with the bottoms it was made
+       * on, the first three lines' values (once read whole) and the price's candles (read last). */
+      let close = new Float64Array(0), lows = /** @type {Bottom[]} */ ([]), ranked = /** @type {Ranked[]} */ ([]), judged = /** @type {Bottom[]} */ ([]);
+      /** The ranking shown: the stored one until today's is in; and the stored one, which every ranking of today's is told apart from. @type {import("./study.js").Board & { live: boolean } | null} */
+      let board = null, stored = /** @type {import("./study.js").Board | null} */ (null);
       /** @type {Map<string, Float64Array>} */ const lines = new Map();
       let candles = /** @type {{ open: Float64Array, high: Float64Array, low: Float64Array } | null} */ (null);
       /** Every line by week, a row each, from the week `from`: the chart's crowd (read last). */
@@ -1501,9 +1507,9 @@
          * the line under it) shaded out to `edge` percent. */
         const both = [{ values: stood, cls: "line" }, { values: close }];
         /** The days drawn around bottom `i`: from 12 before the first of its two prices to 8 after its low. */
-        const around = (/** @type {number} */ i) => { const a = /** @type {At} */ (first.row.at[i]), { low } = lows[i]; return [(a.met >= 0 ? a.met : low) - 12, Math.min(last, low + 8)]; };
+        const around = (/** @type {number} */ i) => { const a = /** @type {At} */ (first.row.at[i]), { low } = judged[i]; return [(a.met >= 0 ? a.met : low) - 12, Math.min(last, low + 8)]; };
         const draw = (/** @type {HTMLElement} */ box, /** @type {number} */ i, /** @type {number} */ wide, /** @type {number} */ edge, deep = 0) => {
-          const a = /** @type {At} */ (first.row.at[i]), { low } = lows[i], met = a.met >= 0, bottom = close[low], day = met ? a.met : low, top = met ? a.price : bottom, foot = met ? bottom : a.price;
+          const a = /** @type {At} */ (first.row.at[i]), { low } = judged[i], met = a.met >= 0, bottom = close[low], day = met ? a.met : low, top = met ? a.price : bottom, foot = met ? bottom : a.price;
           const [from, to] = around(i), drawn = sketch(box, from, to, both, 0.2, wide, deep), band = drawn.put("band", day, top);
           (band.style.width = `${edge - drawn.x(day)}%`), (band.style.height = `${drawn.y(foot) - drawn.y(top)}%`);
           return { ...drawn, met, low, day, top, foot };
@@ -1526,10 +1532,10 @@
         $("misses-shown").replaceChildren(...first.row.at.map((a, i) => {
           const li = el("li", a?.miss === first.worst ? "worst" : "");
           if (a) { const { put, low, day, top, foot } = draw(li.appendChild(el("div", "sketch")), i, 100, 100, deepest); put("dot", day, top), put("dot", low, foot); }
-          li.append(el("span", "fine", month(lows[i].low)), el("b", "num", a ? percent(a.miss) : "–"));
+          li.append(el("span", "fine", month(judged[i].low)), el("b", "num", a ? percent(a.miss) : "–"));
           return li;
         }));
-        $("score-said").textContent = `Its ${worded(lows.length)} misses, one at each bottom. The worst, ${percent(first.worst)}, is its score: a line is only as good as its worst bottom.`;
+        $("score-said").textContent = `Its ${worded(judged.length)} misses, one at each bottom. The worst, ${percent(first.worst)}, is its score: a line is only as good as its worst bottom.`;
       }
 
       function stripOf(/** @type {({ miss: number, n: number } | null)[]} */ misses, /** @type {number} */ wide) {
@@ -1562,7 +1568,7 @@
         return li;
       }
       function ranking() {
-        const first = ranked[0], done = lows.filter((l) => !l.open).length, open = lows.length - done;
+        const first = ranked[0], done = judged.filter((l) => !l.open).length, open = judged.length - done;
         // The board's top, beside the chart: its first ten (the first three alone on a phone).
         const top = $("top"), ten = ranked.slice(0, 10);
         ten.forEach((r, k) => {
@@ -1582,25 +1588,28 @@
         // its number while the server adds lines; the board below counts them.)
         $("said").textContent = `The price line closest to Bitcoin's cycle bottoms is ${ours(first) ? "Bitview's own, made after the fact" : fullName(first.row)}: within ${scoreOf(ten, 0, 1)} of each.`;
         $("board-said").textContent = `${ranked.length} lines, closest first.`;
-        $("caveat").textContent = `${capital(worded(lows.length))} ${lows.length === 1 ? "bottom" : "bottoms"} is very little to go on${open ? `, and ${done ? "one is" : "it is"} still open` : ""}. With ${ranked.length} lines tried, the first owes part of its place to chance.`;
+        $("caveat").textContent = `${capital(worded(judged.length))} ${judged.length === 1 ? "bottom" : "bottoms"} is very little to go on${open ? `, and ${done ? "one is" : "it is"} still open` : ""}. With ${ranked.length} lines tried, the first owes part of its place to chance.`;
         // The field: every line's worst miss along one line from the bottom, wide enough for the largest, to the next 20%.
         const scored = ranked.filter((r) => Number.isFinite(r.worst)), wide = Math.ceil(Math.max(...scored.map((r) => r.worst)) / 20) * 20, ends = el("p", "ends fine");
         for (let v = 0; v <= wide; v += 20) ends.appendChild(el("span", "", v ? `${v}%` : "the bottom")).style.setProperty("--at", `${(v / wide) * 100}%`);
         $("field").replaceChildren(el("figcaption", "edge", `Every line's worst miss. ${fullName(first.row)} is the red one.`), stripOf(scored.map((r) => ({ miss: r.worst, n: r.rank <= 3 ? r.rank : 0 })).reverse(), wide), ends);
         $("field").setAttribute("aria-label", `Every line's worst miss, from ${percent(first.worst)} to ${percent(scored[scored.length - 1].worst)}`);
-        for (const box of all(".table")) box.style.setProperty("--lows", String(lows.length));
-        for (const cols of all(".cols")) cols.replaceChildren(el("span"), el("span", "", "Line"), ...lows.map((l) => el("span", "", bottomName(l))), el("span", "", "Worst miss"));
+        for (const box of all(".table")) box.style.setProperty("--lows", String(judged.length));
+        for (const cols of all(".cols")) cols.replaceChildren(el("span"), el("span", "", "Line"), ...judged.map((l) => el("span", "", bottomName(l))), el("span", "", "Worst miss"));
         $("rank-top").replaceChildren(...ranked.slice(0, 10).map(rowOf));
         $("rank-rest").replaceChildren(...ranked.slice(10).map((r, i) => rowOf(r, i + 10)));
         $("rest-said").textContent = `The other ${ranked.length - 10} lines, in order.`;
+        $("ceilings").textContent = board?.ceilings.length ? `Not ranked, as ceilings: ${board.ceilings.map(fullName).join("; ")}.` : "";
       }
 
       // ── The reading ──
 
+      /** What a ranking says, to tell two apart: its bottoms, its lines' places and misses, and its ceilings. */
+      const told = (/** @type {import("./study.js").Board} */ b) => [b.lows, b.ranked.map((r) => [r.row.id, r.rank, r.row.at]), b.ceilings.map((m) => m.id)];
       const fail = (/** @type {string} */ why) => {
         /** @type {any} */ (window).bitviewLaunch?.ready();
         const failed = $("failed");
-        failed.textContent = `The page's numbers couldn't be read: ${why}.`;
+        failed.textContent = `The page's numbers couldn't be read: ${why}.${board?.live === false ? ` The ranking shown is that of ${dated(board.day)}.` : ""}`;
         const again = failed.appendChild(el("button", "", "Try again"));
         (/** @type {HTMLButtonElement} */ (again).type = "button"), again.addEventListener("click", () => location.reload());
         failed.hidden = false;
@@ -1615,10 +1624,16 @@
           });
           $("from-year").textContent = String(dateOf(FROM).getUTCFullYear());
           hero(), falls(), /** @type {any} */ (window).bitviewLaunch?.ready();
-        } else if (data.type === "ranked") (ranked = data.ranked), ranking(), heroChart?.drawn();
+        } else if (data.type === "ranked") {
+          // (Today's ranking replaces the stored one, and says so only when it differs: each of today's, as the ceilings can make a second.)
+          if (!data.live) stored = data;
+          else if (stored) $("checked").textContent = JSON.stringify(told(stored)) !== JSON.stringify(told(data)) ? `Ranked again on today's data: it differs from the ranking of ${dated(stored.day)} shown first.` : "";
+          (board = data), (ranked = data.ranked), (judged = data.lows), ranking(), heroChart?.drawn(), miss();
+        }
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); heroChart?.drawn(), miss(); }
         else if (data.type === "candles") (candles = data), heroChart?.drawn();
         else if (data.type === "crowd") (crowd = data), heroChart?.crowded();
+        else if (data.type === "unstored") $("checked").textContent = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`;
         else fail(data.why);
       };
       (worker.onerror = broke), (worker.onmessage = took);
