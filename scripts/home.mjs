@@ -12,7 +12,7 @@
 // the rows, every preloaded file there, fallback fonts kept inline in every page that uses them and the craft rules (balanced headings, pretty text, equal-width digits) in every page, and the stars on GitHub written into every page that counts them. Run it after changing an app, and
 // before a release:
 //
-//   bun scripts/home.mjs [server]              writes FROM_APPS, then checks
+//   bun scripts/home.mjs [server]              writes FROM_APPS and Bottoms' stored ranking (from bitview.space), then checks
 //   bun scripts/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
 //   bun scripts/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found), shot from this checkout's pages with bitview.space's data (server serves only the series check)
 //   bun scripts/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
@@ -90,6 +90,28 @@ const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http:
 if ((existsSync(SITEMAP) ? readFileSync(SITEMAP, "utf8") : "") !== sitemapXml) {
   if (check) problems.push("sitemap.xml isn't the front page's rows now: run bun scripts/home.mjs");
   else (writeFileSync(SITEMAP, sitemapXml), console.log(`sitemap.xml written: ${1 + apps.length + dev.length} pages`));
+}
+
+// ── Bottoms' stored ranking (bottoms/ranking.json): shown at once while the page ranks today's data, and where its
+// reads start. Its worker run here on bitview.space's data, its last ranking kept, written when it changed (its day
+// aside). Checked only for being there: a ranking older than the data is the page's to say. ──
+
+if (check) { if (!existsSync(join(SITE, "bottoms", "ranking.json"))) problems.push("bottoms/ranking.json is missing: run bun scripts/home.mjs"); }
+else {
+  const RANKING = join(SITE, "bottoms", "ranking.json"), real = globalThis.fetch, was = globalThis.self;
+  Bun.plugin({ name: "site root", setup: (build) => void build.onResolve({ filter: /^\/modules\// }, (at) => ({ path: join(SITE, at.path) })) });
+  // (The worker asks its own origin, here bitview.space, and its own files as a server would answer them.)
+  const own = (/** @type {URL} */ url) => (existsSync(fileURLToPath(url)) ? new Response(Bun.file(fileURLToPath(url))) : new Response(null, { status: 404 }));
+  globalThis.fetch = Object.assign((/** @type {any} */ url, /** @type {any} */ init) => (url instanceof URL && url.protocol === "file:" ? Promise.resolve(own(url)) : real(typeof url === "string" && url.startsWith("/") ? PROD + url : url, init)), real);
+  /** @type {any} */ let last = null;
+  const ended = new Promise((done, fail) => {
+    /** @type {any} */ (globalThis).self = { postMessage: (/** @type {any} */ message) => message.type === "ranked" && message.live ? (last = message) : message.type === "crowd" ? done(last) : message.type === "failed" && fail(new Error(`bottoms/worker.js: ${message.why}`)) };
+  });
+  await import(join(SITE, "bottoms", "worker.js"));
+  const { day, lows, ranked, ceilings } = await ended;
+  (globalThis.fetch = real), (globalThis.self = was);
+  const old = existsSync(RANKING) ? JSON.parse(readFileSync(RANKING, "utf8")) : null, now = { lows, ranked, ceilings };
+  if (JSON.stringify(old && { lows: old.lows, ranked: old.ranked, ceilings: old.ceilings }) !== JSON.stringify(now)) writeFileSync(RANKING, `${JSON.stringify({ day, ...now })}\n`), console.log(`bottoms/ranking.json written: ${ranked.length} lines ranked`);
 }
 
 // ── Every app on it ──

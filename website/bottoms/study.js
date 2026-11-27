@@ -32,12 +32,23 @@ const levelOf = (/** @type {string} */ tag) => +tag.replace("_", ".");
 const LOW = 5;
 /** The days in a moving average's window, as the server's ids write it (`200w`, `4y`). */
 const SPAN = /** @type {Record<string, number>} */ ({ d: 1, w: 7, m: 30, y: 365 });
-/** The one line worked out here, from the date alone. */
-const FORMULAS = ["power_law_floor"];
+/**
+ * The lines worked out here from the date alone, by id, each over `n` days: Burger's support line, until the server
+ * serves the power laws.
+ */
+export const WORKED = /** @type {Record<string, (n: number) => Float64Array>} */ ({
+  power_law_floor: (n) => {
+    const { intercept, slope, support } = POWER_LAW, floor = new Float64Array(n).fill(NaN);
+    for (let d = GENESIS + 1; d < n; d++) floor[d] = 10 ** (intercept - support + slope * Math.log10(d - GENESIS));
+    return floor;
+  },
+});
 const alone = (/** @type {string} */ id) => /** @type {Made} */ ({ id, base: id, kind: "line" });
 /** A line at one of its base's levels, the level as the server's ids write it. @returns {Made} */
 const leveled = (/** @type {string} */ id, /** @type {string} */ base, /** @type {Kind} */ kind, /** @type {string} */ tag) => ({ id, base, kind, level: levelOf(tag) });
-/** @typedef {{ bases: Set<string>, averages: Made[], floors: Made[], rarity: Made[] }} Groups */
+/** The cost-basis percentiles ranked: those under the median, where a floor would sit (the medians are ranked as the median realized and capitalized prices). */
+const MEDIAN = 50;
+/** @typedef {{ bases: Set<string>, averages: Made[], percentiles: Made[], floors: Made[], rarity: Made[] }} Groups */
 /**
  * The rules that make the lines from the names the server serves (its catalog), tried in order on each name; only
  * what they leave out is out. Each rule's `parts` are what every name its pattern takes contains: the catalog is
@@ -57,6 +68,9 @@ const RULES = [
   } },
   // The rarity meters, at their low levels.
   { parts: ["rarity"], pattern: /^(\w*rarity_meter)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => levelOf(tag) <= LOW && (into.rarity.push(leveled(id, base, "rarity", tag)), true) },
+  // The cost basis's percentiles under the median (`…cost_basis_by_coin_p5`: the price under which 5% of the coins last
+  // moved; `by_dollar`: 5% of their dollars), of all holders and the published split, unweighted or awake or mobile.
+  { parts: ["cost_basis_by_"], pattern: /^(?:sth_|lth_)?(?:awake_|mobile_)?cost_basis_by_(?:coin|dollar)_p(\d+)$/, take: ([id, tag], _, into) => levelOf(tag) < MEDIAN && (into.percentiles.push(alone(id)), true) },
   // Every Bedrock floor (`bedrock_W_floor_…`, W its weighting; the cost-basis lines above a floor are not floors).
   { parts: ["_floor_p"], pattern: /^(bedrock_[a-z]+_floor)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => (into.floors.push(leveled(id, base, "floor", tag)), true) },
   // The price's moving averages of a year or more (shorter ones are trading averages, which a fall cuts through).
@@ -64,9 +78,9 @@ const RULES = [
 ];
 /** The name parts the rules read: the catalog is asked for the names that contain one. */
 export const NAMED = [...new Set(RULES.flatMap((rule) => rule.parts))];
-/** Every line, from the names the server serves, in groups: the lines themselves, Bedrock's floors, then the rarity lines; and the formula lines. @returns {Made[]} */
+/** Every line, from the names the server serves, in groups: the lines themselves, the lines worked out here, the percentiles, Bedrock's floors, then the rarity lines. @returns {Made[]} */
 export function linesOf(/** @type {Set<string>} */ served) {
-  /** @type {Groups} */ const into = { bases: new Set(), averages: [], floors: [], rarity: [] }, taken = new Set();
+  /** @type {Groups} */ const into = { bases: new Set(), averages: [], percentiles: [], floors: [], rarity: [] }, taken = new Set();
   for (const id of served) for (const rule of RULES) {
     const m = rule.pattern.exec(id);
     if (!m) continue;
@@ -76,50 +90,65 @@ export function linesOf(/** @type {Set<string>} */ served) {
   }
   // (A rule that took nothing: its parts don't bring its names, or the server stopped serving them. Either way, lines are missing.)
   for (const rule of RULES) if (!taken.has(rule)) throw new Error(`no line taken by the rule for ${rule.pattern}: the catalog's names with ${rule.parts.join(" or ")} have none it takes`);
-  return [...[...into.bases].map(alone), ...into.averages, ...FORMULAS.map(alone), ...into.floors, ...into.rarity];
+  return [...[...into.bases].map(alone), ...into.averages, ...Object.keys(WORKED).map(alone), ...into.percentiles, ...into.floors, ...into.rarity];
 }
-/** The lines read from the server, of those made: all but the formula lines. */
-export const servedOf = (/** @type {Made[]} */ made) => made.map((l) => l.id).filter((id) => !FORMULAS.includes(id));
 
 // ── The bottoms ──
 
 /** @typedef {import("./score.js").Bottom} Bottom */
 /** The bottoms the lines are ranked on: those of the judged period. @returns {Bottom[]} */
 export const lowsOf = (/** @type {Float64Array} */ close, /** @type {Float64Array} */ epoch) => bottoms(close, epoch).filter((l) => l.low >= FROM);
+/** @typedef {{ day: number, lows: Bottom[], ranked: Ranked[], ceilings: Made[] }} Board a ranking as the page shows it: the last day it was made from, its bottoms, its lines in order, and the lines left out as ceilings */
 /**
- * The days a line is held to, so the only ones a served line is read on: each bottom's fall from its high to its
- * low (the open one's too: the days since its low so far don't move its miss), and the last day itself.
- * @returns {[number, number][]} each a first and a last day
+ * The days each line is read on for the ranking, a span per bottom: its fall from its high through the evening before
+ * its low, all `miss` reads (the open fall's days since its low so far don't move its miss). Where an earlier
+ * ranking (`known`, the stored one) says the price met the line on a day, only through the evening before that day:
+ * all `miss` needs to find the same day again. If it no longer finds it there, the line comes back unscored at that
+ * bottom (`stale`) and the rest of its fall is read.
+ * @returns {{ id: string, from: number, to: number }[]}
  */
-export function windows(/** @type {Bottom[]} */ lows, /** @type {number} */ last) {
-  const falls = lows.map((l) => /** @type {[number, number]} */ ([l.peak, l.low]));
-  return falls.some(([, to]) => to === last) ? falls : [...falls, [last, last]];
+export function spans(/** @type {Bottom[]} */ lows, /** @type {string[]} */ ids, /** @type {Board | null} */ known) {
+  const at = new Map(known?.ranked.map((r) => [r.row.id, r.row.at]));
+  return lows.flatMap(({ peak, low }) => {
+    const k = known?.lows.findIndex((l) => l.peak === peak) ?? -1;
+    return ids.map((id) => { const met = k >= 0 ? at.get(id)?.[k]?.met ?? -1 : -1; return { id, from: peak, to: (met > peak && met <= low ? met : low) - 1 }; });
+  });
 }
-
-// ── The lines worked out here ──
-
-/** @typedef {(id: string) => Float64Array} Get a series by day, NaN where it has none, as long as the price */
-
-/** Every line worked out here, by its id. */
-function formulas(/** @type {Get} */ get) {
-  const n = get(PRICE).length, { intercept, slope, support } = POWER_LAW, floor = new Float64Array(n).fill(NaN);
-  for (let d = GENESIS + 1; d < n; d++) floor[d] = 10 ** (intercept - support + slope * Math.log10(d - GENESIS));
-  return { power_law_floor: floor };
-}
-/** Each line made with its values: the served ones as `get` reads them, the others from their formulas. */
-export function lines(/** @type {Made[]} */ made, /** @type {Get} */ get) {
-  const worked = formulas(get);
-  return made.map((l) => /** @type {Line} */ ({ ...l, line: worked[l.id] ?? get(l.id) }));
+/** The spans read short of their bottom's eve (`spans`) whose line `ranked` left unscored there: the rest of the fall, to read. */
+export function stale(/** @type {Bottom[]} */ lows, /** @type {ReturnType<typeof spans>} */ read, /** @type {Ranked[]} */ ranked) {
+  const rows = new Map(ranked.map((r) => [r.row.id, r.row]));
+  return read.flatMap(({ id, from, to }) => {
+    const k = lows.findIndex((l) => l.peak === from), row = rows.get(id);
+    return row && to < lows[k].low - 1 && !row.at[k] ? [{ id, from: to + 1, to: lows[k].low - 1 }] : [];
+  });
 }
 
 // ── The ranking ──
 
-/** @typedef {Made & { at: (import("./score.js").At | null)[], today: number }} Row (`at`: one per bottom; `today`: the line's last value) */
+/** @typedef {Made & { at: (import("./score.js").At | null)[] }} Row (`at`: one per bottom) */
 /** @typedef {{ row: Row, rank: number, worst: number }} Ranked (`rank`: shared by lines equal at every bottom; `worst`: its largest miss, Infinity with no value at a bottom) */
 /** Every line held to each bottom, in the ranking's order. @returns {Ranked[]} */
 export function ranking(/** @type {Float64Array} */ close, /** @type {Bottom[]} */ lows, /** @type {Line[]} */ all) {
+  return rank(all.map(({ line, ...made }) => /** @type {Row} */ ({ ...made, at: lows.map((l) => miss(close, line, l)) })), lows.map((_, k) => k));
+}
+/**
+ * A line the price closed under in two weeks of three since the judged period began is a ceiling, not a floor: it isn't
+ * ranked. (Not half: lines cluster at 49–52%, which would move in and out from release to release; none lie between 53
+ * and 84%.)
+ */
+const CEILING = 2 / 3;
+/**
+ * Whether a line is a ceiling, from its value each week from week `from` (the server's weeks, a week's value its last
+ * day's) against the price's close on those days.
+ */
+export function ceiling(/** @type {Float64Array} */ close, /** @type {ArrayLike<number | null>} */ weekly, /** @type {number} */ from) {
   const last = close.length - 1;
-  return rank(all.map(({ line, ...made }) => /** @type {Row} */ ({ ...made, at: lows.map((l) => miss(close, line, l)), today: Number.isFinite(line[last]) ? line[last] : NaN })), lows.map((_, k) => k));
+  let weeks = 0, under = 0;
+  for (let w = Math.max(0, weekOf(FROM) - from); w < weekly.length; w++) {
+    const v = weekly[w], c = close[Math.min(last, (from + w) * WEEK.days + WEEK.day)];
+    if (v != null && v === v && c > 0) weeks++, (under += +(c < v));
+  }
+  return under >= weeks * CEILING;
 }
 
 // ── The lines' names: every one from its definition above, so a name says exactly which line it is ──
@@ -136,7 +165,11 @@ function baseName(/** @type {string} */ id, /** @type {number | undefined} */ le
   let m = /^price_(sma|ema)_(\d+)(w|y)$/.exec(id);
   if (m) return `${m[2]}-${m[3] === "w" ? "week" : "year"} ${m[1] === "ema" ? "exponential average" : "average"}`;
   if ((m = /^bedrock_(\w+)_floor$/.exec(id))) return `Bedrock ${m[1]} ${level}% floor`;
-  if ((m = /^(sth_|lth_)?(awake_|mobile_)?(median_)?(realized|capitalized)_price$/.exec(id))) { const said = `${HOLDER[m[1]] ?? ""}${m[2]?.replace("_", " ") ?? ""}${m[3] ? "median " : ""}${m[4]} price`; return said[0].toUpperCase() + said.slice(1); }
+  // (A cost basis by coin is a realized price, by dollar a capitalized one: the median by coin is the median realized price.)
+  if ((m = /^(sth_|lth_)?(awake_|mobile_)?(?:(median_)?(realized|capitalized)_price|cost_basis_by_(coin|dollar)_p(\d+))$/.exec(id))) {
+    const said = `${HOLDER[m[1]] ?? ""}${m[2]?.replace("_", " ") ?? ""}${m[3] ? "median " : m[6] ? `${m[6]}th percentile ` : ""}${m[4] ?? (m[5] === "coin" ? "realized" : "capitalized")} price`;
+    return said[0].toUpperCase() + said.slice(1);
+  }
   throw new Error(`a line with no name: ${id}`);
 }
 /** A line's name, from its definition: its base's, then for a rarity line its level, as the share of days it is rarer than (the meters are rarity lines by their own name). */
@@ -152,8 +185,8 @@ const CREDIT = /** @type {Record<string, string>} */ ({
   realized_price: "Coin Metrics, 2018", sth_realized_price: SPLIT, lth_realized_price: SPLIT,
   active_price: "Dor Shahar, 2021", vaulted_price: COINTIME, cointime_price: COINTIME, true_market_mean: COINTIME,
 });
-/** The bases Bitview constructed (no earlier outside source found): every price weighted awake or mobile, and the capitalized prices; and the one others publish too with no first author established. */
-const OWN = /^(sth_|lth_)?((awake|mobile)_\w+|(median_)?capitalized_price)$/, UNKNOWN = /^(sth_|lth_)?median_realized_price$/;
+/** The bases Bitview constructed (no earlier outside source found): every price weighted awake or mobile, and the capitalized prices (the cost basis by dollar); and those others publish too with no first author established. */
+const OWN = /^(sth_|lth_)?((awake|mobile)_\w+|(median_)?capitalized_price|cost_basis_by_dollar_p\d+)$/, UNKNOWN = /^(sth_|lth_)?(median_realized_price|cost_basis_by_coin_p\d+)$/;
 /** Who made a line: "Bitview" (its floors, its rarity lines, the bases it constructed), a published line's credit, or "" where no first author could be established. */
 export function maker(/** @type {Made} */ m) {
   if (m.kind !== "line" || OWN.test(m.id)) return "Bitview";
