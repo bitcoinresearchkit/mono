@@ -24,8 +24,16 @@ fn power_law(day: Day1, intercept: f64, slope: f64) -> Cents {
     Cents::from(10f64.powf(intercept + slope * days.log10() + 2.0))
 }
 
+/// Burger's power law: its intercept and slope, and how far under it (in log10) his support line sits.
+const BURGER: (f64, f64) = (-17.015_933_13, 5.845_093_76);
+const BURGER_SUPPORT: f64 = 0.45;
+
 pub(super) fn burger(_: Height, day: Day1) -> Cents {
-    power_law(day, -17.015_933_13 - 0.45, 5.845_093_76)
+    power_law(day, BURGER.0, BURGER.1)
+}
+
+pub(super) fn burger_floor(_: Height, day: Day1) -> Cents {
+    power_law(day, BURGER.0 - BURGER_SUPPORT, BURGER.1)
 }
 
 pub(super) fn mooij(_: Height, day: Day1) -> Cents {

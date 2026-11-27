@@ -3273,6 +3273,7 @@ const _Profitability = _s({
 
 /**
  * @typedef {{
+ *   burger: SeriesPattern1<?Dollars>,
  *   burgerFloor: SeriesPattern1<?Dollars>,
  *   mooijFloor: SeriesPattern1<?Dollars>,
  *   rainbowLowestBand: SeriesPattern1<?Dollars>,
@@ -3280,10 +3281,11 @@ const _Profitability = _s({
  * }} PowerLaw
  */
 const _PowerLaw = _s({
-  burgerFloor: [_i1, 'burger_*'],
-  mooijFloor: [_i1, 'mooij_*'],
+  burger: [_i1, 'burger_*'],
+  burgerFloor: [_i1, 'burger_*_floor'],
+  mooijFloor: [_i1, 'mooij_*_floor'],
   rainbowLowestBand: [_i1, 'rainbow_lowest_band'],
-  sminstonFloor: [_i1, 'sminston_*'],
+  sminstonFloor: [_i1, 'sminston_*_floor'],
 });
 
 /**
@@ -3522,7 +3524,7 @@ const _Market = _s({
   range: [_MarketRange, '*'],
   sma: [(c, b) => _Ema(c, b, _MarketPriceWithRatio), '*_sma'],
   ema: [(c, b) => _Ema(c, b, _PriceWithRatio), '*_ema'],
-  powerLaw: [_PowerLaw, 'power_law_floor'],
+  powerLaw: [_PowerLaw, 'power_law'],
 });
 
 /**
@@ -7250,7 +7252,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "f1c2d4960ad6d73b57a4ee55c05159a986d03790b2fe38de4f47621ce7d0cbda";
+  static HASH = "2886ab6fd0613290ecba79f6af47f8fbafe9e79e626beffdfed178bfef164990";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

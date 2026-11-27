@@ -8,6 +8,8 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Burger's power law itself is served too, as `burger_power_law` beside `burger_power_law_floor`, both computed on
+  read from the block's day.
 - Four power-law floors under the price, per block, in the market plugin (`market.power_law`):
   `burger_power_law_floor` (Burger's support line, 2019), `mooij_power_law_floor` (0.42 of Mooij's trend,
   btcpowerlaw.nl), `rainbow_lowest_band` (the bottom line of blockchaincenter.net's Rainbow chart) and
