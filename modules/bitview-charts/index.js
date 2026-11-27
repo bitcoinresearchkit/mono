@@ -447,12 +447,19 @@ export class Chart {
     if (this.seams) this.#schedule();
   }
 
+  /** The series pointed at, the legend's lit one. */
+  #focus() {
+    const crosshair = this.crosshair;
+    return crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
+  }
+
   /** @param {boolean} [whole] @returns {void} */
   render(whole = false) {
     this.whole = false;
-    const time = this.time, crosshair = this.crosshair;
+    const time = this.time, crosshair = this.crosshair, focus = this.#focus();
     for (let k = 0; k < this.panes.length; k++) {
       const pane = this.panes[k];
+      pane.focus = focus;
       pane.fit(time);
       if (pane.draw(time, this.theme, this.dpr, whole)) this.seams = true;
     }
@@ -485,7 +492,9 @@ export class Chart {
     }
     this.timeAxis.draw(time, this.theme, this.dpr, time.width, this.panes);
     this.crosshair.draw(time, this.panes, Math.max(0, this.height - this.timeHeight), this.left, this.theme, this.dpr, this.timeAxis, this.separatorLit);
-    const read = crosshair.pointed !== undefined ? crosshair.pointed : crosshair.index === crosshair.index ? crosshair.hit : null;
+    const read = this.#focus();
+    // (Hit as placed above, after the panes drew: a yielded pane's tags follow it at the next frame.)
+    if (read !== focus && this.panes.some((pane) => pane.yields[0] || pane.yields[1])) this.invalidate();
     for (const pane of this.panes) if (pane.legend) pane.legend.point(pane.legend.itemOf(read)), pane.legend.read(crosshair.index, (series, v) => pane.words(series, v, time), (series) => pane.restOf(series, time));
     for (let k = 0; k < this.panes.length; k++) this.panes[k].drawOver(time, this.dpr);
     if (time.from !== this.drawnFrom || time.to !== this.drawnTo) {

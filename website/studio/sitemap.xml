@@ -1822,9 +1822,11 @@
 <url><loc>https://bitview.space/studio/presets/price/returns/return</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/returns/growth</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/moving-averages-sma/compare</loc></url>
+<url><loc>https://bitview.space/studio/presets/price/moving-averages-sma/fibonacci</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/moving-averages-sma/price-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/moving-averages-sma/mayer-multiple</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/moving-averages-ema/compare</loc></url>
+<url><loc>https://bitview.space/studio/presets/price/moving-averages-ema/fibonacci</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/moving-averages-ema/price-ratio</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/range</loc></url>
 <url><loc>https://bitview.space/studio/presets/price/technical/rsi</loc></url>

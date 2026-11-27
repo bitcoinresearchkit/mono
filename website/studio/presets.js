@@ -925,13 +925,19 @@ export function studioPresets(client, facts, report = (problem) => console.error
   const underTenthSatVb = [tx.fees.zeroFee.txCount, tx.fees.txCountByFeeRate.under0p1SatVb];
   const underOneSatVb = [...underTenthSatVb, ...(/** @type {const} */ (["_0p1To0p25SatVb", "_0p25To0p5SatVb", "_0p5To1SatVb"])).map((key) => tx.fees.txCountByFeeRate[key])];
 
+  /** The spans of a Fibonacci ribbon: drawn on a chart of their own, so the well-known ones read apart on Compare. */
+  const FIBONACCI = new Set(["_8d", "_13d", "_21d", "_34d", "_55d", "_89d", "_144d"]);
   /** @param {any} node @param {string} kind */
   const averages = (node, kind) => {
-    const list = entries(node), colors = list.map((_, i) => recencyColor(list.length - 1 - i, list.length)), long = node._200d;
+    const list = entries(node), long = node._200d;
     if (!long?.ratio) throw new Error(`Moving averages: no 200-day ${kind} with its ratio`);
-    const over = (/** @type {string} */ name, /** @type {Layer} */ ratio, /** @type {string} */ title, /** @type {boolean} */ mayer) => chart(name, title, [price(), series(own(long), `200-day ${kind}`, { color: colors[list.findIndex(([key]) => key === "_200d")] }), { ...ratio, pane: 2, ...around(1) }], { log: [2], was: Object.fromEntries(list.filter(([, value]) => Boolean(value.mayerMultiple) === mayer).map(([key]) => [spanLabel(key), key])) });
+    const [known, fibonacci] = [false, true].map((on) => list.filter(([key]) => FIBONACCI.has(key) === on)), color = (/** @type {number} */ i, /** @type {number} */ count) => recencyColor(count - 1 - i, count);
+    const lines = (/** @type {[string, any][]} */ spans) => spans.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: color(i, spans.length) }));
+    const longColor = color(known.findIndex(([key]) => key === "_200d"), known.length);
+    const over = (/** @type {string} */ name, /** @type {Layer} */ ratio, /** @type {string} */ title, /** @type {boolean} */ mayer) => chart(name, title, [price(), series(own(long), `200-day ${kind}`, { color: longColor }), { ...ratio, pane: 2, ...around(1) }], { log: [2], was: Object.fromEntries(list.filter(([, value]) => Boolean(value.mayerMultiple) === mayer).map(([key]) => [spanLabel(key), key])) });
     return section(`Moving averages, ${kind}`, [
-      chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }))]),
+      chart("Compare", `${kind}s of the price`, [price(), ...lines(known)]),
+      chart("Fibonacci", `${kind}s of the price over Fibonacci spans`, [price(), ...lines(fibonacci)]),
       over("Price ratio", series(long.ratio, "Price ratio"), `200-day ${kind}`, false),
       long.mayerMultiple && over("Mayer multiple", series(long.mayerMultiple, "Mayer multiple", { levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }), `200-day ${kind} and the Mayer multiple`, true),
     ]);
