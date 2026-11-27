@@ -5,7 +5,7 @@ use std::{
 };
 
 use bitview_query::Query;
-use bitview_types::{PageSize, Pagination, SearchQuery, SeriesInfo};
+use bitview_types::{PageSize, SearchQuery, SeriesInfo, SeriesListQuery};
 use brk_types::TagHasher;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
@@ -64,7 +64,7 @@ fn list_tag(names: &[&str]) -> Etag {
     names.hash(&mut hasher);
     format!(
         "list-{}-{}-{:x}",
-        *Pagination::DEFAULT_PER_PAGE,
+        *SeriesListQuery::DEFAULT_PER_PAGE,
         PageSize::MAX,
         hasher.finish(),
     )

@@ -1432,10 +1432,11 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/list",
         summary: "Series list",
-        description: "Paginated flat list of all available series names.",
+        description: "Paginated flat list of the available series names: all of them, or with `q` only those that contain that text as written (a plain match, unlike `search_series`; at most 1024 UTF-8 bytes).",
         path_parameters: &[
         ],
         query_parameters: &[
+            Parameter { api_name: "q", name: "q", required: false, value_name: "string", repeatable: false, description: Some("Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)") },
             Parameter { api_name: "page", name: "page", required: false, value_name: "integer", repeatable: false, description: Some("Zero-based page number (default: 0)") },
             Parameter { api_name: "per_page", name: "per-page", required: false, value_name: "integer", repeatable: false, description: Some("Results per page, 1 to 1,000 (default: 1000)") },
         ],

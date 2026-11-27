@@ -8,7 +8,7 @@ use bitview_catalog::TreeNode;
 use bitview_plugin::PluginSet;
 use bitview_primitives::{Accumulation, Index, SeriesName};
 use bitview_traversable::Traversable;
-use bitview_types::{DetailedSeriesCount, PaginatedSeries, Pagination, SeriesCount, SeriesInfo};
+use bitview_types::{DetailedSeriesCount, PaginatedSeries, SeriesCount, SeriesInfo, SeriesListQuery};
 use quickmatch::QuickMatch;
 use rustc_hash::{FxHashMap, FxHashSet};
 use vecdb::AnyExportableVec;
@@ -243,20 +243,31 @@ impl<'a> SeriesRegistry<'a> {
         &self.series_names
     }
 
-    pub(crate) fn series_page(&'static self, pagination: Pagination) -> PaginatedSeries {
-        let len = self.series_names.len();
-        let per_page = pagination.per_page();
-        let start = pagination.start(len);
-        let end = pagination.end(len);
+    /// A page of the names, or of those that contain `query.q` (one scan of the names: they are
+    /// held in memory, and the route is far from hot).
+    pub(crate) fn series_page(&'static self, query: &SeriesListQuery) -> PaginatedSeries {
+        let matching: Vec<&'static str>;
+        let names: &[&'static str] = if query.q.is_empty() {
+            &self.series_names
+        } else {
+            matching = (self.series_names.iter().copied())
+                .filter(|name| name.contains(query.q.as_str()))
+                .collect();
+            &matching
+        };
+        let len = names.len();
+        let per_page = query.per_page();
+        let start = query.start(len);
+        let end = query.end(len);
         let max_page = len.div_ceil(per_page).saturating_sub(1);
 
         PaginatedSeries {
-            current_page: pagination.page(),
+            current_page: query.page(),
             max_page,
             total_count: len,
             per_page,
-            has_more: pagination.page() < max_page,
-            series: self.series_names[start..end]
+            has_more: query.page() < max_page,
+            series: names[start..end]
                 .iter()
                 .map(|&s| Cow::Borrowed(s))
                 .collect(),

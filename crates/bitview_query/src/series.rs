@@ -5,8 +5,8 @@ use bitview_primitives::{
     BlockHashPrefix, Date, DifficultyEpoch, HalvingEpoch, Index, SeriesName, TxOutIndex,
 };
 use bitview_types::{
-    DetailedSeriesCount, Format, PaginatedSeries, Pagination, RangeIndex, SearchQuery, SeriesInfo,
-    SeriesSelection,
+    DetailedSeriesCount, Format, PaginatedSeries, RangeIndex, SearchQuery, SeriesInfo,
+    SeriesListQuery, SeriesSelection,
 };
 use brk_types::{Height, Timestamp, TxIndex, Version};
 use itoa::Buffer;
@@ -483,8 +483,8 @@ impl Query {
         self.registry().indexes()
     }
 
-    pub fn series_list(&self, pagination: Pagination) -> PaginatedSeries {
-        self.registry().series_page(pagination)
+    pub fn series_list(&self, query: &SeriesListQuery) -> PaginatedSeries {
+        self.registry().series_page(query)
     }
 
     pub fn series_catalog(&self) -> &'static TreeNode {
