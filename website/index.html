@@ -38,12 +38,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
-    <title>Bitview</title>
-    <meta name="description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
+    <title>Bitview: Bitcoin on-chain charts, explorer and apps</title>
+    <meta name="description" content="Bitcoin read straight from its chain: thousands of on-chain charts, an explorer for every block, transaction and address, and apps on price, mining and holders. Free and open source." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview" />
-    <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node." />
+    <meta property="og:title" content="Bitview: Bitcoin on-chain charts, explorer and apps" />
+    <meta property="og:description" content="Bitcoin read straight from its chain: thousands of on-chain charts, an explorer for every block, transaction and address, and apps on price, mining and holders. Free and open source." />
     <link rel="canonical" href="https://bitview.space/" />
     <meta property="og:url" content="https://bitview.space/" />
     <meta property="og:image" content="https://bitview.space/assets/home/og.jpg" />
@@ -2265,6 +2265,7 @@
         </div>
         <div id="footer-apps">
           <h3>Apps</h3>
+          <a href="/studio/">Studio</a><a href="/oracle/">Oracle</a><a href="/explorer/">Explorer</a><a href="/globe/">Globe</a><a href="/trail/">The Satoshi Trail</a><a href="/stack/">Stack</a><a href="/compass/">Compass</a><a href="/bedrock/">Bedrock</a><a href="/bottoms/">Bottoms</a><a href="/calendar/">Calendar</a><a href="/miners/">Miners</a>
         </div>
         <div>
           <h3>Developers</h3>
@@ -2322,7 +2323,7 @@
         return `${days} day${days > 1 ? "s" : ""}`;
       };
 
-      // FROM_APPS is written by scripts/home.mjs from the apps' own pages: run it after changing one.
+      // FROM_APPS, and the footer's app links, are written by scripts/home.mjs from the apps' own pages: run it after changing one.
       /** @typedef {{ id: string, name: string, kind?: string, line: string, about: string, href: string, live?: boolean, made?: string, copy?: string, face?: string }} Title */
       /** @type {Title[]} */
       const APPS = /** @type {any[]} */ ([
@@ -2998,7 +2999,6 @@
         target.focus({ preventScroll: true });
         target.scrollIntoView({ block: "nearest", inline: "nearest", behavior: reduced ? "auto" : "smooth" });
       });
-      $("footer-apps").append(...APPS.map((t) => el("a", { href: t.href }, t.name)));
       $("public").hidden = location.hostname === "bitview.space";
       round();
       setInterval(round, 30_000);
