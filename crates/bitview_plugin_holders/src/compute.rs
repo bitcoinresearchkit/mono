@@ -53,6 +53,7 @@ impl ComputePlugin for Vecs {
             Height::from(start),
             &day_models::Inputs {
                 supply: &all.supply.read_only_boxed_clone(),
+                supply_profit: &all.supply_profit.read_only_boxed_clone(),
                 realized_cap: &all.cap.read_only_boxed_clone(),
                 spot,
             },

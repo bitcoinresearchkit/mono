@@ -4831,6 +4831,7 @@ const _Entry = _s({
  *   over4m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis>,
  *   over6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis>,
  *   mvrvZ: SeriesPattern9<?Float>,
+ *   sellerExhaustion: SeriesPattern9<?Float>,
  * }} Holders
  */
 const _Holders = _s({
@@ -4842,6 +4843,7 @@ const _Holders = _s({
   over4m: [(c, b) => _CreationCohort(c, b, _SharedSupply, _SharedCapital, _HoldersActivity, _HoldersRealized, _Unrealized, _HoldersCostBasis), '*_over_4m'],
   over6m: [(c, b) => _CreationCohort(c, b, _SharedSupply, _SharedCapital, _HoldersActivity, _HoldersRealized, _Unrealized, _HoldersCostBasis), '*_over_6m'],
   mvrvZ: [_i9, 'mvrv_z'],
+  sellerExhaustion: [_i9, 'seller_exhaustion'],
 });
 
 /**
@@ -7277,7 +7279,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "c290564979bd286b52c8c22f14c39ba7589f4f96824f883e3f4f98f82b36aee2";
+  static HASH = "55f012c90cdfbb996160cb7165dd3bab51833b4c26b60f4903d59b18ae925b11";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

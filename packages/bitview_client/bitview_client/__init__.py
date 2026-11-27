@@ -4387,6 +4387,7 @@ class Holders(_Node):
     over_4m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), '*_over_4m')
     over_6m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), '*_over_6m')
     mvrv_z: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, 'mvrv_z')
+    seller_exhaustion: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, 'seller_exhaustion')
 
 
 class Vintage(_Node):
