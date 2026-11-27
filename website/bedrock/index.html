@@ -847,7 +847,9 @@
             <span data-for="awake">The <b>Awake</b> weight builds on the Cointime framework. It looks back: for each age, take every coin that was ever that old and see what share has moved since. Coins that stayed that old for longer count for more. The other choice, Mobile, comes from Coinflow, a Bitview model, and looks ahead, to the chance that a coin that old ever moves again.</span>
             <span data-for="mobile">The <b>Mobile</b> weight comes from Coinflow, a Bitview model. It looks ahead: for each age, the estimated chance that a coin that old ever moves again, judged from how fast coins of each age have moved so far. The other choice, Awake, builds on the Cointime framework and looks back, at the share of coins that old that have moved since.</span>
           </p>
-          <p class="body">With either weight, a coin that just moved counts almost fully, and one that hasn't moved in fifteen years counts for almost nothing. The whole page follows the weight you pick. The weight is borrowed; the ranking and the floors that follow are Bedrock's own.</p>
+          <p class="body">With either weight, a coin that just moved counts almost fully, and one that hasn't moved in fifteen years counts for almost nothing.</p>
+          <p class="body">A common shortcut is to leave out every coin unmoved for over seven or ten years. But a cutoff is a cliff: a coin a day short of it counts in full, one a day past it not at all, so the choice of cutoff decides whether the <output id="cliff">–</output> BTC aged seven to ten years count. Old coins do wake up: in 2025, 312,000 BTC over seven years old moved, 130,000 of them over ten. And a cutoff counts every younger coin in full, lost ones too. Neither weight has a cliff: each age counts by how often coins that old have moved, so no age is all in or all out.</p>
+          <p class="body">The whole page follows the weight you pick. The weight is borrowed; the ranking and the floors that follow are Bedrock's own.</p>
         </div>
       </section>
 
@@ -980,6 +982,8 @@
         ["2y_to_3y", "2 to 3 years"], ["3y_to_4y", "3 to 4 years"], ["4y_to_5y", "4 to 5 years"], ["5y_to_6y", "5 to 6 years"], ["6y_to_7y", "6 to 7 years"],
         ["7y_to_8y", "7 to 8 years"], ["8y_to_10y", "8 to 10 years"], ["10y_to_12y", "10 to 12 years"], ["12y_to_15y", "12 to 15 years"], ["over_15y", "over 15 years"],
       ];
+      /** The ages between a seven- and a ten-year cutoff. */
+      const CLIFF = ["7y_to_8y", "8y_to_10y"].map((id) => AGES.findIndex(([age]) => age === id));
       /** The first day counted, about when the price starts being read from the chain itself; before it, calibration. */
       const FROM = Math.round((Date.UTC(2015, 0, 1) - EPOCH) / DAY);
       const SAND = 5, ROCK = 10;
@@ -1200,6 +1204,7 @@
         if (box.children.length !== ages.length) box.replaceChildren(...ages.map(() => document.createElement("i")));
         const bars = /** @type {HTMLElement[]} */ ([...box.children]);
         ages.forEach((age, k) => (bars[k].style.setProperty("--coins", String(age.coins / most)), bars[k].style.setProperty("--weight", String(age.weight))));
+        $("cliff").textContent = coins(CLIFF.reduce((n, k) => n + ages[k].coins, 0));
         const sum = ages.reduce((n, age) => n + age.coins, 0), counted = ages.reduce((n, age) => n + age.coins * age.weight, 0);
         let on = -1;
         const pick = (/** @type {number} */ k) => {
