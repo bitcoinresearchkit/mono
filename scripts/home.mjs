@@ -290,14 +290,14 @@ const CARDS = {
 };
 // (Every page in the rows: its canonical address and its preview's its own on bitview.space, wherever it's served from
 // (next.bitview.space, someone's own server: one page, not copies); its preview named, described and pictured, the
-// picture its card, shown large. Studio's address is each place's, set as it opens, so its own isn't checked.)
+// picture its card, shown large. Studio's and the Explorer's address is each place's, set as it opens, so theirs isn't checked.)
 for (const href of [...apps, ...dev]) {
   const file = join(SITE, href, "index.html");
   if (!existsSync(file)) continue;
   const page = readFileSync(file, "utf8"), head = page.slice(0, page.indexOf("</head>")), url = `${ORIGIN}${href}`;
   const meta = Object.fromEntries(tags(head, "meta").map((tag) => [tag.property ?? tag.name, tag.content]));
   const wrong = (/** @type {string} */ what) => problems.push(`${href}: ${what}`);
-  if (href !== "/studio/") {
+  if (href !== "/studio/" && href !== "/explorer/") {
     if (tags(head, "link").find((tag) => tag.rel === "canonical")?.href !== url) wrong(`its canonical link isn't ${url}`);
     if (meta["og:url"] !== url) wrong(`its og:url isn't ${url}`);
   }

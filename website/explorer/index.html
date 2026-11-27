@@ -9,9 +9,7 @@
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#09090b" />
     <title>Explorer · Bitview</title>
     <meta name="description" content="What it takes to get into the next Bitcoin block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." />
-    <link rel="canonical" href="https://bitview.space/explorer/" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://bitview.space/explorer/" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Explorer · Bitview" />
     <meta property="og:description" content="What it takes to get into the next Bitcoin block, and every block, transaction and address: where a payment is, when it gets in and what it paid, read exactly from the chain." />
@@ -2297,6 +2295,13 @@
         tx: (txid) => `${BASE}tx/${txid}`,
         address: (a) => `${BASE}address/${encodeURIComponent(a)}`,
       };
+      // Each place names its own address to search engines as it opens, and the HTML names none: Google trusts a script's
+      // canonical only where the page's first has none to contradict it.
+      const canonical = document.head.appendChild(Object.assign(document.createElement("link"), { rel: "canonical" }));
+      const placeAt = (path) => {
+        if (path !== location.pathname) history.replaceState(null, "", path + location.hash);
+        canonical.href = `https://bitview.space/explorer/${path.slice(BASE.length)}`;
+      };
       const linkTo = (r) => (r.kind === "home" ? BASE : r.kind === "tx" ? url.tx(r.txid) : r.kind === "address" ? url.address(r.address) : /^next-\d+$/.test(r.ref) ? url.ahead(Number(r.ref.slice(5))) : url.block(r.ref));
 
       const fig = (name, value, note = "") => `<div><dt class="label">${name}</dt><dd>${value}</dd><small>${note || "&nbsp;"}</small></div>`;
@@ -2342,7 +2347,7 @@
         const h = b.height;
         if (state.view === v && v.ref !== String(h)) {
           v.ref = String(h);
-          history.replaceState(null, "", url.block(h));
+          placeAt(url.block(h));
           document.title = `Block ${int(h)} · Explorer · Bitview`;
         }
         const [[profit], [loss], [destroyed], [cdd], price, chain] = await Promise.all([
@@ -3161,9 +3166,11 @@
                           ? { kind: "block", ref: `next-${Number(ref)}` }
                           : { kind: "home" }
                         : null;
-        if (!route) return { kind: "missing" };
-        const canonical = linkTo(route);
-        if (canonical !== location.pathname) history.replaceState(null, "", canonical + location.hash);
+        if (!route) {
+          canonical.removeAttribute("href");
+          return { kind: "missing" };
+        }
+        placeAt(linkTo(route));
         return route;
       }
       const isHeight = (r) => /^\d{1,7}$/.test(r);
