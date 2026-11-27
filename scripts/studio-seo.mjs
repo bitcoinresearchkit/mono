@@ -197,22 +197,31 @@ const live = new Set(urls), before = writtenBytes("page-info.json.gz");
 const pageInfoBefore = before.length ? JSON.parse(gunzipSync(before).toString("utf8")) : {};
 /** A page's series, in its order, each once. @param {any} info @returns {string[]} */
 const seriesOf = (info) => [...new Set((info?.json_ld?.distribution ?? []).map((/** @type {{ name: string }} */ source) => source.name))];
+/** How many words the last parts of two addresses begin with in common ("pi-cycle-bottom", "pi-cycle": 2). @param {string} a @param {string} b */
+const sharedStart = (a, b) => {
+  const [x, y] = [a, b].map((address) => address.replace(/\/$/, "").split("/").at(-1).split("-"));
+  let n = 0;
+  while (n < x.length && x[n] === y[n]) n++;
+  return n;
+};
 /**
  * Where an address gone opens now: of the charts under the nearest section still there, the one showing the gone
- * page's series earliest in its order (its first, else its second, ...), then the one showing fewest besides (the
- * closest, not the busiest), then the first in the page's order; the section itself when none shows any of them.
+ * page's series earliest in its order (its first, else its second, ...), then the one whose name begins with most of the
+ * gone one's words (a twin keeps its name's start: Pi cycle bottom, Pi cycle; after the series, so a shared generic
+ * word never outranks a page's own series), then the one showing fewest besides (the closest, not the busiest), then
+ * the first in the page's order; the section itself when none shows any of them.
  * @param {string} address
  */
 const successor = (address) => {
   let section = address;
   do section = section.replace(/[^/]+\/?$/, ""); while (!live.has(section));
   const series = seriesOf(pageInfoBefore[address]);
-  /** @type {{ chart: string, hits: boolean[], size: number } | null} */
+  /** @type {{ chart: string, words: number, hits: boolean[], size: number } | null} */
   let best = null;
   for (const chart of book.presets.filter((chart) => chart.startsWith(section))) {
-    const shows = new Set(seriesOf(pageInfo[chart])), hits = series.map((name) => shows.has(name));
+    const words = sharedStart(address, chart), shows = new Set(seriesOf(pageInfo[chart])), hits = series.map((name) => shows.has(name));
     const first = best ? hits.findIndex((hit, i) => hit !== best.hits[i]) : -1;
-    if (!best || (first >= 0 ? hits[first] : shows.size < best.size)) best = { chart, hits, size: shows.size };
+    if (!best || (first >= 0 ? hits[first] : words !== best.words ? words > best.words : shows.size < best.size)) best = { chart, words, hits, size: shows.size };
   }
   return best?.hits.includes(true) ? best.chart : section;
 };
