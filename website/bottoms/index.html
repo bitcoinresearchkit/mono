@@ -1254,8 +1254,12 @@
     </footer>
 
     <script type="module">
-      import { createChart, Candles, Custom, Line, lastIn } from "/modules/bitview-charts/index.js";
-      import { fullName, maker, weekOf, FROM, SHOWN, WEEK } from "./study.js";
+      // (The worker starts before the page's own modules load, so its reads run beside them, not after them. What it
+      // says before the page can take it is kept, then taken in order.)
+      const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
+      /** @type {Event[]} */ const early = [];
+      worker.onmessage = worker.onerror = (event) => void early.push(event);
+      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, maker, weekOf, FROM, SHOWN, WEEK }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js")]);
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const all = (/** @type {string} */ selector) => /** @type {HTMLElement[]} */ ([...document.querySelectorAll(selector)]);
@@ -1593,7 +1597,6 @@
 
       // ── The reading ──
 
-      const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
       const fail = (/** @type {string} */ why) => {
         /** @type {any} */ (window).bitviewLaunch?.ready();
         const failed = $("failed");
@@ -1602,8 +1605,8 @@
         (/** @type {HTMLButtonElement} */ (again).type = "button"), again.addEventListener("click", () => location.reload());
         failed.hidden = false;
       };
-      worker.onerror = (event) => fail(event.message || "its worker couldn't start");
-      worker.onmessage = ({ data }) => {
+      const broke = (/** @type {ErrorEvent} */ event) => fail(event.message || "its worker couldn't start");
+      const took = (/** @type {MessageEvent} */ { data }) => {
         if (data.type === "price") {
           (close = data.close), (lows = data.lows);
           lows.forEach((l, k) => {
@@ -1618,6 +1621,8 @@
         else if (data.type === "crowd") (crowd = data), heroChart?.crowded();
         else fail(data.why);
       };
+      (worker.onerror = broke), (worker.onmessage = took);
+      for (const event of early) event instanceof MessageEvent ? took(event) : broke(/** @type {ErrorEvent} */ (event));
       // (The chart's colours are the scheme's, and its room over the price the title's: made again when the scheme
       // changes, and once the page's face is in.)
       const again = () => { if (close.length) hero(); };

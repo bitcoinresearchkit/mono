@@ -88,11 +88,11 @@ export const servedOf = (/** @type {Made[]} */ made) => made.map((l) => l.id).fi
 export const lowsOf = (/** @type {Float64Array} */ close, /** @type {Float64Array} */ epoch) => bottoms(close, epoch).filter((l) => l.low >= FROM);
 /**
  * The days a line is held to, so the only ones a served line is read on: each bottom's fall from its high to its
- * low, through the last day for the one still open, and the last day itself.
+ * low (the open one's too: the days since its low so far don't move its miss), and the last day itself.
  * @returns {[number, number][]} each a first and a last day
  */
 export function windows(/** @type {Bottom[]} */ lows, /** @type {number} */ last) {
-  const falls = lows.map((l) => /** @type {[number, number]} */ ([l.peak, l.open ? last : l.low]));
+  const falls = lows.map((l) => /** @type {[number, number]} */ ([l.peak, l.low]));
   return falls.some(([, to]) => to === last) ? falls : [...falls, [last, last]];
 }
 
