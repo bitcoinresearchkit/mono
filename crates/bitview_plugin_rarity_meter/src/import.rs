@@ -6,7 +6,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use brk_error::Result;
 
-use crate::{STORAGE, Vecs, components, extremes, inner};
+use crate::{STORAGE, Vecs, compass, components, extremes, inner};
 
 impl Vecs {
     pub fn import(
@@ -27,6 +27,7 @@ impl Vecs {
             full: inner::RarityMeterInner::import(&db, "rarity_meter", version, mappings)?,
             local: inner::RarityMeterInner::import(&db, "local_rarity_meter", version, mappings)?,
             cycle: inner::RarityMeterInner::import(&db, "cycle_rarity_meter", version, mappings)?,
+            compass: compass::Compass::import(&db, version, mappings, cointime, coinflow, price)?,
             db,
         };
         STORAGE.finalize_database(&this.db)?;

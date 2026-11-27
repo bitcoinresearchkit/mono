@@ -179,6 +179,9 @@ OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stac
 # A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
 # average).
 Multiple = float
+# A Compass mood: 0 Optimism, 1 Calm, 2 Anxiety, 3 Hope, 4 Doubt, 5 Worry, 6 Relief, 7 Apathy,
+# 8 Fear; undefined (null) before the Compass has its inputs.
+Mood = int
 # Index of a half-year (6 months).
 Month6 = int
 # Index of a quarter (3 months).
@@ -231,6 +234,8 @@ HalvingEpoch = int
 Format = Literal["json", "csv"]
 # A floating-point value without a specific unit.
 Float = float
+# Yes or no: 1 yes, 0 no; undefined (null) where the question doesn't apply yet.
+Flag = int
 # Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
 # A number of things expected from chance: a sum of probabilities.
@@ -3081,6 +3086,20 @@ F = TypeVar('F')
 G = TypeVar('G')
 H = TypeVar('H')
 
+class CompassSeries(_Node):
+    index: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, '*_index')
+    short_term_cloud_position: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, '*_short_term_cloud_position')
+    long_term_cloud_position: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, '*_long_term_cloud_position')
+    mood: SeriesPattern9[Optional[Mood]] = _at(SeriesPattern9, '*_mood')
+    extreme: SeriesPattern9[Optional[Flag]] = _at(SeriesPattern9, '*_extreme')
+    mood_days: SeriesPattern9[Optional[Days]] = _at(SeriesPattern9, '*_mood_days')
+
+
+class Compass(_Node):
+    mobile: CompassSeries = _at(CompassSeries, 'mobile_*')
+    awake: CompassSeries = _at(CompassSeries, 'awake_*')
+
+
 class Meter(_Node):
     p0_1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p0_1')
     p0_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p0_5')
@@ -3325,6 +3344,7 @@ class RarityMeter(_Node):
     full: Meter = _at(Meter, '*')
     local: Meter = _at(Meter, 'local_*')
     cycle: Meter = _at(Meter, 'cycle_*')
+    compass: Compass = _at(Compass, 'compass')
 
 
 class UnweightedEntrySupplyBelowP99_9Floor(_Node):

@@ -713,6 +713,11 @@
  * @typedef {number} FeeRate
  */
 /**
+ * Yes or no: 1 yes, 0 no; undefined (null) where the question doesn't apply yet.
+ *
+ * @typedef {number} Flag
+ */
+/**
  * A floating-point value without a specific unit.
  *
  * @typedef {number} Float
@@ -977,6 +982,12 @@
  * Index of a half-year (6 months).
  *
  * @typedef {number} Month6
+ */
+/**
+ * A Compass mood: 0 Optimism, 1 Calm, 2 Anxiety, 3 Hope, 4 Doubt, 5 Worry, 6 Relief, 7 Apathy,
+ * 8 Fear; undefined (null) before the Compass has its inputs.
+ *
+ * @typedef {number} Mood
  */
 /**
  * A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
@@ -2048,6 +2059,36 @@ const _s = (children) => (c, b) => _n(c, b, children);
 
 /**
  * @typedef {{
+ *   index: SeriesPattern9<?Float>,
+ *   shortTermCloudPosition: SeriesPattern9<?Float>,
+ *   longTermCloudPosition: SeriesPattern9<?Float>,
+ *   mood: SeriesPattern9<?Mood>,
+ *   extreme: SeriesPattern9<?Flag>,
+ *   moodDays: SeriesPattern9<?Days>,
+ * }} CompassSeries
+ */
+const _CompassSeries = _s({
+  index: [_i9, '*_index'],
+  shortTermCloudPosition: [_i9, '*_short_term_cloud_position'],
+  longTermCloudPosition: [_i9, '*_long_term_cloud_position'],
+  mood: [_i9, '*_mood'],
+  extreme: [_i9, '*_extreme'],
+  moodDays: [_i9, '*_mood_days'],
+});
+
+/**
+ * @typedef {{
+ *   mobile: CompassSeries,
+ *   awake: CompassSeries,
+ * }} Compass
+ */
+const _Compass = _s({
+  mobile: [_CompassSeries, 'mobile_*'],
+  awake: [_CompassSeries, 'awake_*'],
+});
+
+/**
+ * @typedef {{
  *   p0_1: SeriesPattern1<?Dollars>,
  *   p0_5: SeriesPattern1<?Dollars>,
  *   p1: SeriesPattern1<?Dollars>,
@@ -2558,6 +2599,7 @@ const _RarityMeterAgeAggregate = _s({
  *   full: Meter,
  *   local: Meter,
  *   cycle: Meter,
+ *   compass: Compass,
  * }} RarityMeter
  */
 const _RarityMeter = _s({
@@ -2566,6 +2608,7 @@ const _RarityMeter = _s({
   full: [_Meter, '*'],
   local: [_Meter, 'local_*'],
   cycle: [_Meter, 'cycle_*'],
+  compass: [_Compass, 'compass'],
 });
 
 /**
@@ -7281,7 +7324,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "50de53355c8a8d22b42011cb7c1cb418da2662b4969c881e538845ef89c1d1d8";
+  static HASH = "2334679546a9557c81ef4484c7fa4f268f50c4436a5b90bb470d192a9a6b8019";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

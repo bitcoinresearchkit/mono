@@ -451,6 +451,18 @@ impl SeriesValue for Year10 {
 pub mod tree {
     use super::*;
 
+    shape! { CompassSeries at "series().rarity_meter.compass.awake" {
+        index: SeriesPattern9<Option<Float>> = "*_index",
+        short_term_cloud_position: SeriesPattern9<Option<Float>> = "*_short_term_cloud_position",
+        long_term_cloud_position: SeriesPattern9<Option<Float>> = "*_long_term_cloud_position",
+        mood: SeriesPattern9<Option<Mood>> = "*_mood",
+        extreme: SeriesPattern9<Option<Flag>> = "*_extreme",
+        mood_days: SeriesPattern9<Option<Days>> = "*_mood_days",
+    } }
+    shape! { Compass at "series().rarity_meter.compass" {
+        mobile: CompassSeries = "mobile_*",
+        awake: CompassSeries = "awake_*",
+    } }
     shape! { Meter at "series().rarity_meter.cycle" {
         p0_1: SeriesPattern1<Option<Dollars>> = "*_p0_1",
         p0_5: SeriesPattern1<Option<Dollars>> = "*_p0_5",
@@ -667,6 +679,7 @@ pub mod tree {
         full: Meter = "*",
         local: Meter = "local_*",
         cycle: Meter = "cycle_*",
+        compass: Compass = "compass",
     } }
     shape! { UnweightedEntrySupplyBelowP99_9Floor at "series().bedrock.unweighted.entry_supply.below_p99_9_floor" {
         btc: SeriesPattern1<Option<Bitcoin>> = "bedrock_unweighted_entry_supply_*",

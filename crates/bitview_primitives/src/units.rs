@@ -13,6 +13,17 @@ scalar! {
 }
 
 scalar! {
+    /// A Compass mood: 0 Optimism, 1 Calm, 2 Anxiety, 3 Hope, 4 Doubt, 5 Worry, 6 Relief, 7 Apathy,
+    /// 8 Fear; undefined (null) before the Compass has its inputs.
+    nullable int Mood(i8)
+}
+
+scalar! {
+    /// Yes or no: 1 yes, 0 no; undefined (null) where the question doesn't apply yet.
+    nullable int Flag(i8)
+}
+
+scalar! {
     /// A floating-point value without a specific unit.
     float Float(f32)
 }
