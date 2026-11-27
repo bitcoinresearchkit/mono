@@ -1251,7 +1251,7 @@
           // (A view never leaves the days with floors: no wider than all of them, and held on them at either end, but
           // for the blank a chart keeps past the last.)
           const { time } = chart;
-          (time.minSpacing = time.dataWidth / (d.last - d.first)), (time.minDataShare = time.dataWidth / time.width);
+          (time.minSpacing = time.dataWidth / (d.last - d.first)), (time.minDataShare = 1);
           if (h > 0) pane.setScale("right", { top: ((top?.() ?? 0) + 14) / h, bottom: 14 / h }), chart.invalidate(true);
         });
         return { chart, tell };

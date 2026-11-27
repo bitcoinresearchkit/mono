@@ -2,7 +2,7 @@
 // The timeline every pane shares: one time a logical index (the chart's dates, in seconds), the view (a logical range,
 // from `from` to `to`, fractions allowed), and where each index is across the plot. A pan moves the view by whole CSS
 // pixels (the rest kept for the next one), so a picture drawn before can be moved instead of drawn again. Its data
-// always holds part of the view (`minDataShare` of its width, or all of the data where it's less), a pan, a flick or a
+// always holds part of the view (`minDataShare` of its width less the right offset, or all of the data where it's less), a pan, a flick or a
 // zoom held there; zoomed in to `maxSpacing` CSS pixels a point at most, out to all of the data (or `minSpacing`). A
 // zoom keeps the point under the pointer where it is (what's looked at stays put). Its plot resized, the view's the same
 // points (stretched), past the zoom's bound if it takes it.
@@ -59,6 +59,8 @@ export class Timeline {
     this.minSpacing = minSpacing;
     this.maxSpacing = maxSpacing;
     this.minDataShare = minDataShare;
+    /** The share its data holds of a view panned past its end, where a page gives that side its own (its start held whole, its end let go a little); `minDataShare` when not said. @type {number | undefined} */
+    this.minEndShare = undefined;
     /** The first point with data (a page's series starting after its times do): where its data begins, as the view's held on it (see held). */
     this.first = 0;
     /** A pan's part of a pixel, kept for the next. */
@@ -242,14 +244,25 @@ export class Timeline {
    * @param {number} from @param {number} to
    */
   held(from, to) {
-    const span = to - from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last - this.first);
-    return from > last - hold ? last - hold - from : to < this.first + hold ? this.first + hold - to : 0;
+    const { last, start, end } = this.holds(to - from);
+    return from > last - end ? last - end - from : to < start ? start - to : 0;
+  }
+
+  /**
+   * Where a view `span` wide is held: `start`, the least its end is at (panned back past its data's start); `end`, the
+   * points its data holds of it panned past its end; and its last point. Its shares are of the room its points have
+   * (the view less the right offset): all of the data shown as `show` shows it is held where it is, at a share of 1.
+   * @param {number} span
+   */
+  holds(span) {
+    const last = Math.max(this.length - 1, 0), data = last - this.first, blank = (span * (this.width - this.dataWidth)) / this.width, room = span - blank;
+    return { last, start: this.first + Math.min(room * this.minDataShare, data) + blank, end: Math.min(room * (this.minEndShare ?? this.minDataShare), data) };
   }
 
   /** How far it can pan (CSS pixels) to `px`'s side (over 0: earlier points coming in) before an end holds it. @param {number} px */
   room(px) {
-    const span = this.to - this.from, last = Math.max(this.length - 1, 0), hold = Math.min(span * this.minDataShare, last - this.first);
-    return Math.max(0, (px > 0 ? this.to - this.first - hold : last - hold - this.from) * this.spacing);
+    const { last, start, end } = this.holds(this.to - this.from);
+    return Math.max(0, (px > 0 ? this.to - start : last - end - this.from) * this.spacing);
   }
 
   /** Its spacing within bounds, and its data holding its share of the view (all of it where there's less). */
