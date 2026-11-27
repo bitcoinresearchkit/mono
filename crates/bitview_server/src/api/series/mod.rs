@@ -13,8 +13,8 @@ use bitview_catalog::TreeNode;
 use bitview_primitives::{Index, SeriesName};
 use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery, SeriesAnchor};
 use bitview_types::{
-    DataRangeFormat, DetailedSeriesCount, Format, PaginatedSeries, Pagination, SearchQuery,
-    SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
+    DataRangeFormat, DetailedSeriesCount, Format, PaginatedSeries, SearchQuery, SeriesData,
+    SeriesInfo, SeriesListQuery, SeriesNameWithIndex, SeriesSelection,
 };
 use brk_types::Version;
 use serde_json::Value;
@@ -31,11 +31,15 @@ use crate::{
 
 /// A page of the names, at most a thousand of them, from the registry in memory: settled, as only
 /// a release changes it.
-pub fn serve_list(state: AppState, headers: &HeaderMap, pagination: Pagination) -> Response {
+pub fn serve_list(state: AppState, headers: &HeaderMap, query: SeriesListQuery) -> Response {
+    if query.q.len() > MAX_INPUT_BYTES {
+        return Error::bad_request(format!("list filter exceeds {MAX_INPUT_BYTES} UTF-8 bytes"))
+            .into_response();
+    }
     let tag = state.series_bodies.list.clone();
     state.respond_now(
         headers,
-        Answer::json(tag, move |q| Ok(q.series_list(pagination))).settled(true),
+        Answer::json(tag, move |q| Ok(q.series_list(&query))).settled(true),
     )
 }
 
@@ -274,15 +278,15 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             async |
                 headers: HeaderMap,
                 RequestState(state): RequestState,
-                Query(pagination): Query<Pagination>
+                Query(query): Query<SeriesListQuery>
             | {
-                serve_list(state, &headers, pagination)
+                serve_list(state, &headers, query)
             },
             |op| op
                 .id("list_series")
                 .tag(tags::SERIES)
                 .summary("Series list")
-                .description("Paginated flat list of all available series names.")
+                .description(&format!("Paginated flat list of the available series names: all of them, or with `q` only those that contain that text as written (a plain match, unlike `search_series`; at most {MAX_INPUT_BYTES} UTF-8 bytes)."))
                 .json_response::<PaginatedSeries>()
                 .not_modified(),
         ),

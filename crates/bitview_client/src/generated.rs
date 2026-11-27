@@ -2772,15 +2772,19 @@ impl BitviewClient {
 
     /// Series list
     ///
-    /// Paginated flat list of all available series names.
+    /// Paginated flat list of the available series names: all of them, or with `q` only those that contain that text as written (a plain match, unlike `search_series`; at most 1024 UTF-8 bytes).
     ///
     /// Endpoint: `GET /api/series/list`
     pub fn list_series(
         &self,
+        q: Option<&str>,
         page: Option<usize>,
         per_page: Option<usize>,
     ) -> Result<PaginatedSeries> {
         let mut query = Vec::new();
+        if let Some(v) = q {
+            query.push(query_pair("q", v));
+        }
         if let Some(v) = page {
             query.push(query_pair("page", v));
         }

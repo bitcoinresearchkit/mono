@@ -3,23 +3,27 @@ use serde::{Deserialize, Serialize};
 
 use crate::PageSize;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Pagination {
+pub struct SeriesListQuery {
+    /// Only the names that contain this text, as written: no words, case folding or wildcards (default: every name)
+    #[serde(default)]
+    #[schemars(example = &"rarity")]
+    pub q: String,
     /// Zero-based page number (default: 0)
     #[serde(default, deserialize_with = "crate::de_plain")]
     #[schemars(extend("examples" = [0, 1, 2]))]
     pub page: usize,
     /// Results per page, 1 to 1,000 (default: 1000)
     #[serde(
-        default = "Pagination::default_per_page",
+        default = "SeriesListQuery::default_per_page",
         deserialize_with = "crate::de_plain"
     )]
     #[schemars(extend("examples" = [100, 1000]))]
     pub per_page: PageSize,
 }
 
-impl Pagination {
+impl SeriesListQuery {
     pub const DEFAULT_PER_PAGE: PageSize = PageSize::new(PageSize::MAX);
 
     fn default_per_page() -> PageSize {

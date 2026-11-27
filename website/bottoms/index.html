@@ -9,17 +9,17 @@
     <meta name="theme-color" content="#f3f2ee" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f1113" media="(prefers-color-scheme: dark)" />
     <title>Bottoms · Bitview</title>
-    <meta name="description" content="250 price lines, ranked by how close each came to Bitcoin's cycle bottoms." />
+    <meta name="description" content="Price lines, ranked by how close each came to Bitcoin's cycle bottoms." />
     <link rel="canonical" href="https://bitview.space/bottoms/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/bottoms/" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bottoms · Bitview" />
-    <meta property="og:description" content="250 price lines, ranked by how close each came to Bitcoin's cycle bottoms." />
+    <meta property="og:description" content="Price lines, ranked by how close each came to Bitcoin's cycle bottoms." />
     <meta property="og:image" content="https://bitview.space/assets/cards/bottoms.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Bottoms: 250 price lines drawn with Bitcoin's price since 2016, the three closest to its cycle bottoms in colour, and the ranking beside them" />
+    <meta property="og:image:alt" content="Bottoms: price lines drawn with Bitcoin's price since 2016, the three closest to its cycle bottoms in colour, and the ranking beside them" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="preload" href="/assets/fonts/Archivo.core.woff2" as="font" type="font/woff2" crossorigin />
@@ -1574,8 +1574,9 @@
         // (The one line whose constants were fitted with a bottom in view: its miss there, beside what an independent refit gives.)
         const fitted = ranked.find((r) => r.row.id === "power_law_floor")?.row.at[0];
         if (fitted) $("fitted").textContent = percent(fitted.miss);
-        // (The finding, in a sentence, once there is one.)
-        $("said").textContent = `Of ${ranked.length} price lines, the closest to Bitcoin's cycle bottoms is ${ours(first) ? "Bitview's own, made after the fact" : fullName(first.row)}: within ${scoreOf(ten, 0, 1)} of each.`;
+        // (The finding, in a sentence, once there is one. No count in it: the share card pictures it, and a picture keeps
+        // its number while the server adds lines; the board below counts them.)
+        $("said").textContent = `The price line closest to Bitcoin's cycle bottoms is ${ours(first) ? "Bitview's own, made after the fact" : fullName(first.row)}: within ${scoreOf(ten, 0, 1)} of each.`;
         $("board-said").textContent = `${ranked.length} lines, closest first.`;
         $("caveat").textContent = `${capital(worded(lows.length))} ${lows.length === 1 ? "bottom" : "bottoms"} is very little to go on${open ? `, and ${done ? "one is" : "it is"} still open` : ""}. With ${ranked.length} lines tried, the first owes part of its place to chance.`;
         // The field: every line's worst miss along one line from the bottom, wide enough for the largest, to the next 20%.
