@@ -16,14 +16,14 @@ A link carries a whole chart: https://bitview.space/studio/#chart= followed by t
 {"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}
 ```
 
-A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), and, for a preset over a trailing window, "window" (24h, 1w, 30d or 1y), for a preset with a pane of two views, "show" (the view's name, as "net" or "dollars"), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&interval=1W. A chart's link takes the same after its chart.
+A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), and, for a preset over a trailing window, "window" (24h, 1w, 30d or 1y), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&interval=1W. A chart's link takes the same after its chart.
 
 ## A chart
 - "layers" (the one thing needed): its layers, in order (see below).
 - "title".
 - "index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).
 - "range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".
-- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares) or draws them as a heatmap ("rows": each layer a row of cells colored by its value, about the level they share if any; daily or coarser, two or more layers on one scale), "outline": true outlines a heatmap's region under that level, "gradient" colors its heatmap (a heatmap of an amount, or its layers as one without a level: "inferno" if none, "magma", "viridis" or "plasma"), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). "views": [{"name": "Sides", "mode": 1}, {"name": "Net", "mode": 0}] gives a pane two views of its subject, shown one at a time (Show as, in its menu): each its name and its own fields as above; the layers in it with "view": 2 are the second's, the others the first's, and "show": 2 opens it on the second. Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.
+- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares) or draws them as a heatmap ("rows": each layer a row of cells colored by its value, about the level they share if any; daily or coarser, two or more layers on one scale), "outline": true outlines a heatmap's region under that level, "gradient" colors its heatmap (a heatmap of an amount, or its layers as one without a level: "inferno" if none, "magma", "viridis" or "plasma"), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.
 - "halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).
 - "legend": "off": no legend over the panes.
 - "drawings" (see below).
@@ -106,72 +106,62 @@ An assistant without web access can't look names up: whoever uses it can, or can
 Each section's page lists its charts; each chart's own address is in https://bitview.space/studio/sitemap.xml. Every page is also there as Markdown, at its address and .md (after a section's, which ends in a slash, index.html.md), as below.
 
 - Price (27): https://bitview.space/studio/presets/price/index.html.md
-  - All-time high (2): https://bitview.space/studio/presets/price/all-time-high/index.html.md
   - Returns (5): https://bitview.space/studio/presets/price/returns/index.html.md
-  - Moving averages (5): https://bitview.space/studio/presets/price/moving-averages/index.html.md
-  - Range (1): https://bitview.space/studio/presets/price/range/index.html.md
+  - Moving averages, SMA (3): https://bitview.space/studio/presets/price/moving-averages-sma/index.html.md
+  - Moving averages, EMA (2): https://bitview.space/studio/presets/price/moving-averages-ema/index.html.md
   - Technical (12): https://bitview.space/studio/presets/price/technical/index.html.md
-- Valuation (227): https://bitview.space/studio/presets/valuation/index.html.md
-  - Compass (5): https://bitview.space/studio/presets/valuation/compass/index.html.md
-  - Cointime prices (7): https://bitview.space/studio/presets/valuation/cointime-prices/index.html.md
-  - Rarity meter (194): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
-- Supply (5): https://bitview.space/studio/presets/supply/index.html.md
-- Holders (529): https://bitview.space/studio/presets/holders/index.html.md
+- Valuation (273): https://bitview.space/studio/presets/valuation/index.html.md
+  - On-chain prices (18): https://bitview.space/studio/presets/valuation/on-chain-prices/index.html.md
+  - Rarity meter (197): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
+  - Realized cap (4): https://bitview.space/studio/presets/valuation/realized-cap/index.html.md
+  - Cost basis (15): https://bitview.space/studio/presets/valuation/cost-basis/index.html.md
+  - Bedrock (23): https://bitview.space/studio/presets/valuation/bedrock/index.html.md
+- Profit and loss (16): https://bitview.space/studio/presets/profit-and-loss/index.html.md
+- Supply (10): https://bitview.space/studio/presets/supply/index.html.md
+- Activity (17): https://bitview.space/studio/presets/activity/index.html.md
+  - Cointime (9): https://bitview.space/studio/presets/activity/cointime/index.html.md
+- Holders (4536): https://bitview.space/studio/presets/holders/index.html.md
   - Compare (26): https://bitview.space/studio/presets/holders/compare/index.html.md
-  - All coins (52): https://bitview.space/studio/presets/holders/all-coins/index.html.md
-  - Short-term holders (60): https://bitview.space/studio/presets/holders/short-term-holders/index.html.md
-  - Long-term holders (58): https://bitview.space/studio/presets/holders/long-term-holders/index.html.md
-  - Age cutoffs (253): https://bitview.space/studio/presets/holders/age-cutoffs/index.html.md
-  - Entry price (80): https://bitview.space/studio/presets/holders/entry-price/index.html.md
-- Coin age (3176): https://bitview.space/studio/presets/coin-age/index.html.md
-  - Age bands (985): https://bitview.space/studio/presets/coin-age/age-bands/index.html.md
-  - At or above each age (683): https://bitview.space/studio/presets/coin-age/over-an-age/index.html.md
-  - Under each age (758): https://bitview.space/studio/presets/coin-age/under-an-age/index.html.md
-  - Halving epochs (173): https://bitview.space/studio/presets/coin-age/halving-epochs/index.html.md
-  - Vintages (576): https://bitview.space/studio/presets/coin-age/vintages/index.html.md
-- Profitability (588): https://bitview.space/studio/presets/profitability/index.html.md
-  - All coins (196): https://bitview.space/studio/presets/profitability/all-coins/index.html.md
-  - Short-term holders (196): https://bitview.space/studio/presets/profitability/short-term-holders/index.html.md
-  - Long-term holders (196): https://bitview.space/studio/presets/profitability/long-term-holders/index.html.md
-- UTXOs (1213): https://bitview.space/studio/presets/utxos/index.html.md
-  - By amount (328): https://bitview.space/studio/presets/utxos/by-amount/index.html.md
-  - At or above each UTXO amount (324): https://bitview.space/studio/presets/utxos/over-an-amount/index.html.md
-  - Under each UTXO amount (324): https://bitview.space/studio/presets/utxos/under-an-amount/index.html.md
-  - By type (235): https://bitview.space/studio/presets/utxos/by-type/index.html.md
-- Addresses (1157): https://bitview.space/studio/presets/addresses/index.html.md
+  - Short-term holders (55): https://bitview.space/studio/presets/holders/short-term-holders/index.html.md
+  - Long-term holders (53): https://bitview.space/studio/presets/holders/long-term-holders/index.html.md
+  - Under each age (792): https://bitview.space/studio/presets/holders/under-an-age/index.html.md
+  - At or above each age (735): https://bitview.space/studio/presets/holders/over-an-age/index.html.md
+  - Age bands (1044): https://bitview.space/studio/presets/holders/age-bands/index.html.md
+  - Vintages (540): https://bitview.space/studio/presets/holders/vintages/index.html.md
+  - Halving epochs (163): https://bitview.space/studio/presets/holders/halving-epochs/index.html.md
+  - Bought at a discount or premium (76): https://bitview.space/studio/presets/holders/bought-at-a-discount-or-premium/index.html.md
+  - Profit bands (588): https://bitview.space/studio/presets/holders/profit-bands/index.html.md
+  - Awake coins (232): https://bitview.space/studio/presets/holders/awake-coins/index.html.md
+  - Mobile coins (232): https://bitview.space/studio/presets/holders/mobile-coins/index.html.md
+- Mining (675): https://bitview.space/studio/presets/mining/index.html.md
+  - Hashing (11): https://bitview.space/studio/presets/mining/hashing/index.html.md
+  - Difficulty (6): https://bitview.space/studio/presets/mining/difficulty/index.html.md
+  - Halvings (3): https://bitview.space/studio/presets/mining/halvings/index.html.md
+  - Rewards (7): https://bitview.space/studio/presets/mining/rewards/index.html.md
+  - Pools (648): https://bitview.space/studio/presets/mining/pools/index.html.md
+- Fees (43): https://bitview.space/studio/presets/fees/index.html.md
+  - By fee rate (20): https://bitview.space/studio/presets/fees/by-fee-rate/index.html.md
+  - Block space by effective fee rate (16): https://bitview.space/studio/presets/fees/block-space-by-effective-fee-rate/index.html.md
+- Network (548): https://bitview.space/studio/presets/network/index.html.md
+  - Blocks (17): https://bitview.space/studio/presets/network/blocks/index.html.md
+  - Transactions (159): https://bitview.space/studio/presets/network/transactions/index.html.md
+  - Inputs (96): https://bitview.space/studio/presets/network/inputs/index.html.md
+  - Outputs (59): https://bitview.space/studio/presets/network/outputs/index.html.md
+  - OP_RETURN (206): https://bitview.space/studio/presets/network/op-return/index.html.md
+  - Inputs and outputs (11): https://bitview.space/studio/presets/network/inputs-and-outputs/index.html.md
+- UTXOs (1063): https://bitview.space/studio/presets/utxos/index.html.md
+  - By amount (285): https://bitview.space/studio/presets/utxos/by-amount/index.html.md
+  - At or above each UTXO amount (285): https://bitview.space/studio/presets/utxos/over-an-amount/index.html.md
+  - Under each UTXO amount (285): https://bitview.space/studio/presets/utxos/under-an-amount/index.html.md
+  - By type (206): https://bitview.space/studio/presets/utxos/by-type/index.html.md
+- Addresses (1049): https://bitview.space/studio/presets/addresses/index.html.md
   - Count (4): https://bitview.space/studio/presets/addresses/count/index.html.md
-  - Reused addresses (13): https://bitview.space/studio/presets/addresses/reused/index.html.md
-  - Addresses with more than one spent output (11): https://bitview.space/studio/presets/addresses/respent/index.html.md
+  - Reused addresses (11): https://bitview.space/studio/presets/addresses/reused/index.html.md
+  - Addresses with more than one spent output (9): https://bitview.space/studio/presets/addresses/respent/index.html.md
   - Addresses with exposed keys or scripts (3): https://bitview.space/studio/presets/addresses/exposed/index.html.md
   - Supply (3): https://bitview.space/studio/presets/addresses/supply/index.html.md
   - Capital (3): https://bitview.space/studio/presets/addresses/capital/index.html.md
-  - By type (184): https://bitview.space/studio/presets/addresses/by-type/index.html.md
-  - By balance (315): https://bitview.space/studio/presets/addresses/by-balance/index.html.md
-  - At or above each address balance (310): https://bitview.space/studio/presets/addresses/over-a-balance/index.html.md
-  - Under each address balance (310): https://bitview.space/studio/presets/addresses/under-a-balance/index.html.md
-- Mining (988): https://bitview.space/studio/presets/mining/index.html.md
-  - Hashing (6): https://bitview.space/studio/presets/mining/hashing/index.html.md
-  - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/index.html.md
-  - Halvings (2): https://bitview.space/studio/presets/mining/halvings/index.html.md
-  - Rewards (12): https://bitview.space/studio/presets/mining/rewards/index.html.md
-  - Pools (965): https://bitview.space/studio/presets/mining/pools/index.html.md
-- Network (1065): https://bitview.space/studio/presets/network/index.html.md
-  - Blocks (20): https://bitview.space/studio/presets/network/blocks/index.html.md
-  - Transactions (303): https://bitview.space/studio/presets/network/transactions/index.html.md
-  - Inputs (150): https://bitview.space/studio/presets/network/inputs/index.html.md
-  - Outputs (103): https://bitview.space/studio/presets/network/outputs/index.html.md
-  - OP_RETURN (350): https://bitview.space/studio/presets/network/op-return/index.html.md
-  - Chain statistics (139): https://bitview.space/studio/presets/network/chain-statistics/index.html.md
-- Cointime (330): https://bitview.space/studio/presets/cointime/index.html.md
-  - Activity (8): https://bitview.space/studio/presets/cointime/activity/index.html.md
-  - Value (6): https://bitview.space/studio/presets/cointime/value/index.html.md
-  - Age bands (97): https://bitview.space/studio/presets/cointime/age-bands/index.html.md
-  - Awake coins (218): https://bitview.space/studio/presets/cointime/awake-coins/index.html.md
-- Coinflow (317): https://bitview.space/studio/presets/coinflow/index.html.md
-  - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/index.html.md
-  - Mobile coins (218): https://bitview.space/studio/presets/coinflow/mobile-coins/index.html.md
-- Bedrock (23): https://bitview.space/studio/presets/bedrock/index.html.md
-  - Compare (5): https://bitview.space/studio/presets/bedrock/compare/index.html.md
-  - Awake (6): https://bitview.space/studio/presets/bedrock/awake/index.html.md
-  - Mobile (6): https://bitview.space/studio/presets/bedrock/mobile/index.html.md
-  - Unweighted (6): https://bitview.space/studio/presets/bedrock/unweighted/index.html.md
+  - By type (160): https://bitview.space/studio/presets/addresses/by-type/index.html.md
+  - By balance (287): https://bitview.space/studio/presets/addresses/by-balance/index.html.md
+  - At or above each address balance (284): https://bitview.space/studio/presets/addresses/over-a-balance/index.html.md
+  - Under each address balance (284): https://bitview.space/studio/presets/addresses/under-a-balance/index.html.md

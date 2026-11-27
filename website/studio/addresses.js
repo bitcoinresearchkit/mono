@@ -1,10 +1,15 @@
 // @ts-check
 /** @typedef {{ presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number, window?: string }>, clashes: string[] }} AddressBook */
 
+/** A step of a place as it's written in an address. @param {string} text */
+export const slug = (text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
+  .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
+
 /**
  * Two under one place still alike are each tagged with a short hash of their name, so an address is the same whatever
  * else exists.
- * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build).
+ * A preset once at an address keeps it for its window; a clash goes in `clashes` (seo.mjs stops the build). Old
+ * addresses are moved.txt's (seo.mjs).
  * @param {{ p: string[], w?: Record<string, string> }[]} list @returns {Generator<void, AddressBook>}
  */
 export function* addressSteps(list) {
@@ -12,8 +17,6 @@ export function* addressSteps(list) {
   let done = 0;
   const words = new Map();
   const word = (/** @type {string} */ text) => words.get(text) ?? words.set(text, slug(text)).get(text);
-  const slug = (/** @type {string} */ text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
-    .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
   const tag = (/** @type {string} */ text) => {
     let h = 2166136261;
     for (const c of text) h = Math.imul(h ^ /** @type {number} */ (c.codePointAt(0)), 16777619);

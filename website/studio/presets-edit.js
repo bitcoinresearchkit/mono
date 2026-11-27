@@ -12,7 +12,7 @@ import { $, all$, escapeHtml, isOpen } from "/studio/dom.js";
 import { inSlices } from "/studio/timing.js";
 import { monthYear, plural } from "/studio/format.js";
 import { ICONS } from "/studio/icons.js";
-import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneGradient, rowsUnfit, showView, STACKS, summed } from "/studio/vocabulary.js";
+import { gradable, HEAT_GRADIENTS, MODES, newPaneIn, OUTLINES, outlinable, paneGradient, rowsUnfit, STACKS, summed } from "/studio/vocabulary.js";
 import { AVERAGES, INTERVAL_LABEL } from "/studio/intervals.js";
 import { uid } from "/studio/math.js";
 import { changeOver, defaultSize, figuresRoom, lastShown, paneShows } from "/studio/chart.js";
@@ -40,9 +40,9 @@ import { placeNames, presetNodeAt, folderById, presetChart, presetEdited, preset
  */
 // seo.mjs checks each is a preset.
 const RECOMMENDED = [
-  "Valuation › Price by MVRV zone", "Price › Technical › Halving cycles", "Valuation › On-chain prices", "Valuation › Market and realized cap", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
-  "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price and value",
-  "Supply › Inflation", "Valuation › Rarity meter › Full › Bands", "Bedrock › Unweighted › Floors", "Network › Transactions › Count",
+  "Valuation › Price by MVRV zone", "Price › Technical › Halving cycles", "Valuation › On-chain prices › Compare", "Valuation › Market and realized cap", "Valuation › MVRV", "Holders › Age bands › Compare › Supply share",
+  "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price",
+  "Supply › Inflation", "Valuation › Rarity meter › Full, bands", "Valuation › Bedrock › Unweighted › Floors", "Network › Transactions › Count",
 ];
 
 /** @type {WeakSet<Page>} */
@@ -260,7 +260,7 @@ function recommendedPage() {
 const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
 const tick = (/** @type {boolean} */ on) => (on ? ICONS.check : '<i class="menu-space"></i>');
 /** @param {Pane} pane */
-const paneChip = (pane) => `${pane.lens ? `${pane.lens.as[pane.lens.at]} · ` : ""}${pane.stack === "percent" ? "100%" : pane.stack === "stack" ? "Stacked" : `${MODES[paneMode(pane)].chip}${pane.stack === "rows" ? " · Heatmap" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
+const paneChip = (pane) => `${pane.stack === "percent" ? "100%" : pane.stack === "stack" ? "Stacked" : `${MODES[paneMode(pane)].chip}${pane.stack === "rows" ? " · Heatmap" : ""}`}${pane.reverse ? " · Rev" : ""}${((average) => average.active ? ` · ${average.active}` : "")(averageFor(chart, pane))}`;
 /** @param {string} id @param {(pane: Pane) => void} edit */
 const editPane = (id, edit, look = false) => commit((doc) => {
   const pane = doc.panes.find((item) => item.id === id);
@@ -273,8 +273,6 @@ const setPaneOutline = (id, on) => editPane(id, (pane) => (on ? (pane.outline = 
 /** @param {string} id @param {string} gradient */
 const setPaneGradient = (id, gradient) => editPane(id, (pane) => (gradient !== HEAT_GRADIENTS[0][0] ? (pane.gradient = gradient) : delete pane.gradient), true);
 const setPaneAverage = (id, average) => editPane(id, (pane) => (average ? (pane.average = average) : delete pane.average));
-/** @param {string} id @param {0 | 1} at */
-const setPaneView = (id, at) => (saveView(), commit((doc) => showView(doc, id, at), { look: true }));
 /** @param {Pane} pane */
 const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack === "rows" ? "First at the top" : pane.stack ? "First at the foot" : "First in front"], [true, pane.stack === "rows" ? "Last at the top" : pane.stack ? "Last at the foot" : "Last in front"]]);
 const toggleLog = (id) => {
@@ -289,7 +287,6 @@ function scaleChoices(id) {
   if (!pane) return [];
   const current = averageFor(chart, pane), ticking = chart.layers.some((layer) => layer.pane === id && !layer.hidden && LIVE.has(layer.series ?? ""));
   return [
-    ...(pane.lens ? pane.lens.as.map((name, k) => ({ key: `view:${k}`, group: "Show as", label: name, current: pane.lens?.at === k, run: () => setPaneView(id, /** @type {0 | 1} */ (k)) })) : []),
     ...(summed(pane) ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a heatmap (use linear or log)` }), run: () => setPaneMode(id, m) }))),
     ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, ...(stack === "rows" && rowsUnfit(chart, pane) ? { disabled: rowsUnfit(chart, pane) } : {}), run: () => setPaneStack(id, stack) })),
     ...(chart.layers.filter((layer) => layer.pane === id).length > 1 ? ordersOf(pane).map(([reverse, name]) => ({ key: `order:${reverse ? "last" : "first"}`, group: "Order", label: name, current: Boolean(pane.reverse) === reverse, run: () => setPaneReverse(id, reverse) })) : []),
@@ -442,6 +439,6 @@ export {
   
   presetPages, presetRow, presetsArrived, presetsGroup, presetsPage, 
   RECOMMENDED, refocus, resetPreset, revealNearest, roomsAhead, scaleGroup, scaleMenu, setFull,
-  setLegend, setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, setPaneView, slideLayers, slipsOf, tick, toggleHalvings,
+  setLegend, setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, slideLayers, slipsOf, tick, toggleHalvings,
   toggleLog, vocabNow,
 };

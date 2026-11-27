@@ -6,7 +6,7 @@ import { createChart, press, picture as chartPicture, Candles, Gradient, Levels,
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
 import { hexToOklch, nameDistance, ofPalette, onCurve, pageInk, SWATCHES, TONE, warmLift, isColor } from "/studio/color.js";
-import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
+import { AGES, ALL_TIME, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowMeaning, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
 import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
@@ -25,11 +25,11 @@ import {
 } from "/studio/format.js";
 import { CHEVRON, dashGlyph, ICONS } from "/studio/icons.js";
 import {
-  asideLayers, asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
+  asRows, automaticZero, drawnInto, nameLayer, averageBlocked, belowOf, blankChart, BUBBLE_HIDE, BUBBLE_HIDES, BUBBLE_SIZE, BUBBLE_SIZES, BY_LEVELS,
   cloudLayers, COLOR_MODES, COLORED_FROM, DASHES, dashOf, DEFAULT_MEASURE, defaultOpacity, EDGES, edgesOf, failing,
   fittable, FLIP_APART, fromOf, HEAT_GRADIENTS, heatLike, hideText, hollowOf, kindColor, kindLook, layersColors, LINE_TYPE, lineTypeOf,
   LOOK_KEYS, makeLayer, MARK_PLACES, markable, MARKER, MAX_PANES, measureOf, newPaneIn, nextLetter, offScale, ONE_SCALE,
-  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, showView, signedMeasure, stretchResult,
+  oneScale, OPACITIES, opacityOf, OUTLINED, placedOn, poolPath, poolSeries, resultText, shapeKey, signedMeasure, stretchResult,
   toggleMember, TREND_FLIP, TWO_KEPT, TWO_OR_ONE, twoSided, unfitted, WIDTHS,
 } from "/studio/vocabulary.js";
 import {
@@ -66,8 +66,8 @@ import {
 } from "/studio/formulas.js";
 import { modeOf, labelOf, paneMode, layerById, stackOf, lineLook, STACK_WIDTH, fillOf, named, bandOf, lineAt, gradientTable, titleOf, seriesMark, derivedTitle, legendEntry, levelSteps, rangeOf } from "/studio/looks.js";
 import { renderRanges, fitTitle, titleReads, typedFrom, renderInterval, renderWindow, renderChartPath } from "/studio/toolbar.js";
-import { validate, linkLookOf, contentOf, showLinkView, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
-import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
+import { validate, linkLookOf, contentOf, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
+import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, routeOrMoved, wherePresetsWere, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
 import { fitted, laidOver, wordsOn, dropOwnLayers, sketches, Sketch, ownLayers, repaintDrawings, rulerReading, tagShapes, plotBox, timeLine, onScreen, tickOn, hover } from "/studio/sketch.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
@@ -101,6 +101,8 @@ export function whole(full) {
   EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
   LIVE = new Map([[tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats]]);
   knowCohorts(full.AGE_RANGE_NAMES);
+  // (A chart drawn before the tree came has its window only now.)
+  if (chart) renderWindow();
 }
 /** @param {string[]} path */
 function nodeAt(path) {
@@ -534,17 +536,33 @@ function followPool(layer) {
 
 /**
  * By its place in the catalog (its last window step), never by its name, which puts it anywhere
- * (`market_cap_delta_1y_percent`).
+ * (`market_cap_delta_1y_percent`). A sum's windows offer its running total too (ALL_TIME), the `cumulative` beside
+ * them or beside their `sum`.
  * @param {string} name @returns {{ window: string, at: Map<string, string> } | null}
  */
 function seriesWindow(name) {
-  const steps = catalogIndex?.get(name)?.split("."), i = steps ? steps.findLastIndex(isWindowKey) : -1;
+  const { steps, i } = windowStep(name);
   if (!steps || i < 0) return null;
-  const at = new Map(Object.keys(nodeAt(steps.slice(0, i)) ?? {}).filter(isWindowKey).flatMap((key) => ((other) => (other ? [[key, other]] : []))(nameAt([...steps.slice(0, i), key, ...steps.slice(i + 1)].join(".")))));
+  const head = steps.slice(0, i), tail = steps.slice(i + 1), total = steps[i] === ALL_TIME;
+  const windows = total && nodeAt([...head, "sum"]) ? [...head, "sum"] : head, holder = windows.at(-1) === "sum" ? windows.slice(0, -1) : windows;
+  const named = (/** @type {string[]} */ path) => nameAt([...path, ...tail].join("."));
+  const at = new Map(Object.keys(nodeAt(windows) ?? {}).filter(isWindowKey).flatMap((key) => ((other) => (other ? [[key, other]] : []))(named([...windows, key]))));
+  if (total && !at.size) return null;
+  const all = named([...holder, ALL_TIME]);
+  if (all) at.set(ALL_TIME, all);
   return { window: steps[i], at };
 }
-/** @param {Chart} doc */
+const windowStep = (/** @type {string} */ name) => ((steps) => ({ steps, i: steps ? steps.findLastIndex((step) => isWindowKey(step) || step === ALL_TIME) : -1 }))(catalogIndex?.get(name)?.split("."));
+/** @param {{ layers: { series?: string, formula?: string }[] }} doc */
 const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [layer.series] : []), ...(layer.formula ? seriesNamed(layer.formula) : [])]);
+/**
+ * Its series, each as its windows' family (any of its windows, all time too, is the same one): what folding a chart's
+ * window away can't change.
+ * @param {{ layers: { series?: string, formula?: string }[] }} doc
+ */
+const windowFamilies = (doc) => JSON.stringify([...new Set(seriesOf(doc).map(windowFamily))].sort());
+// (Its place in the catalog but its window, and the sum it's a window of: a sum's windows and its running total are one.)
+const windowFamily = (/** @type {string} */ name) => ((at) => (at.steps && at.i >= 0 ? at.steps.filter((step, k) => k !== at.i && !(k === at.i - 1 && step === "sum")).join(".") : name))(windowStep(name));
 /**
  * @typedef {{ window: string, offered: string[], at: Map<string, Map<string, string>> }} ChartWindow a chart's
  * window, the windows it offers, shortest first, and each of its windowed series at each of them
@@ -552,23 +570,27 @@ const seriesOf = (doc) => doc.layers.flatMap((layer) => [...(layer.series ? [lay
 /** @type {Map<string, ChartWindow | null>} */
 const windowsFound = new Map();
 /**
- * One window every windowed series is over, else null. The catalog is indexed first so a chart opens over the right
- * series, except for a chart whose names hold no window key (`_<key>`): no walk to learn it has none.
+ * One window every windowed series is over, else null; none where one is read for its change (READS_CHANGE). The
+ * catalog is indexed first so a chart opens over the right series, except for a chart whose names hold no window key
+ * (`_<key>`): no walk to learn it has none.
  * @param {Chart} doc @returns {ChartWindow | null}
  */
 function chartWindow(doc) {
-  const names = seriesOf(doc), key = names.join(" ");
+  // (By its layers as written: a series read for its change has no window, beside it alone it has.)
+  const key = doc.layers.map((layer) => `${layer.series ?? ""} ${layer.formula ?? ""}`).join("\n");
   let found = windowsFound.get(key);
   if (found !== undefined) return found;
   found = null;
-  if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`)))) {
+  const names = seriesOf(doc);
+  if (names.some((name) => name.split("_").some((part) => isWindowKey(`_${part}`) || part === ALL_TIME))) {
+    if (!tree) return null;
     indexCatalog();
     let window = "", offered = /** @type {string[] | null} */ (null);
-    const at = new Map();
+    const at = new Map(), changed = new Set(doc.layers.flatMap((layer) => (layer.formula ? seriesNamed(layer.formula, "change") : [])));
     for (const name of names) {
       const its = seriesWindow(name);
       if (!its) continue;
-      if (window && its.window !== window) {
+      if (changed.has(name) || (window && its.window !== window)) {
         offered = null;
         break;
       }
@@ -585,12 +607,12 @@ function chartWindow(doc) {
 function atWindow(doc, to) {
   const now = chartWindow(doc);
   if (!now || now.window === to || !now.offered.includes(to)) return doc;
-  const swap = (/** @type {string} */ name) => (now.at.get(name) ?? ((its) => (its?.window === now.window ? its.at : undefined))(seriesWindow(name)))?.get(to) ?? name;
+  const swap = (/** @type {string} */ name) => now.at.get(name)?.get(to) ?? name;
   // (Only as the presets say a window: the whole of a label, or closing a name or what's before its colon, after a
   // comma or "per" (", 30 days", see appended), and as an adjective ("30-day"); never inside another name, as an age
   // band's "1 day to under 1 week old".)
-  const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`), windowSaid(to)).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
-  for (const layer of [...doc.layers, ...asideLayers(doc)]) {
+  const said = (/** @type {string} */ text) => text.replace(new RegExp(`(?<=^|, |per )${windowSaid(now.window)}(?=:|$)`, "i"), (_, at) => (at ? windowSaid(to) : capitalized(windowSaid(to)))).replace(new RegExp(`(?<![\\w-])${windowAdjective(now.window)}(?![\\w-])`), windowAdjective(to));
+  for (const layer of doc.layers) {
     if (layer.series) {
       layer.series = swap(layer.series);
       delete layer.path;
@@ -608,16 +630,6 @@ function atWindow(doc, to) {
 
 /** @param {Chart} doc */
 function normalize(doc) {
-  // The shown view emptied: the other takes its place and no lens remains, so nothing is lost unsaid.
-  for (const pane of doc.panes) {
-    if (pane.lens && !doc.layers.some((layer) => layer.pane === pane.id)) showView(doc, pane.id, pane.lens.at ? 0 : 1);
-    if (!pane.lens) continue;
-    const { layers, drawings, ...fields } = pane.lens.other, aside = { ...doc, panes: [{ ...fields, id: pane.id }], layers, drawings };
-    normalize(aside);
-    const { id: _id, ...kept } = aside.panes[0];
-    if (aside.layers.length) pane.lens.other = { ...kept, layers: aside.layers, ...(aside.drawings ? { drawings: aside.drawings } : {}) };
-    else delete pane.lens;
-  }
   for (const layer of doc.layers) {
     if (layer.maxInterval && !INTERVAL_ORDER.includes(layer.maxInterval)) delete layer.maxInterval;
     if (!intervalFits(layer.maxInterval, doc.index)) doc.index = /** @type {string} */ (layer.maxInterval);
@@ -708,10 +720,6 @@ function normalize(doc) {
   const seen = new Set();
   for (const layer of doc.layers) {
     if (seen.has(layer.letter)) layer.letter = nextLetter({ ...doc, layers: doc.layers.filter((other) => other !== layer) });
-    seen.add(layer.letter);
-  }
-  for (const layer of asideLayers(doc)) {
-    if (seen.has(layer.letter)) layer.letter = nextLetter(doc);
     seen.add(layer.letter);
   }
   const order = new Map(doc.panes.map((pane, i) => [pane.id, i]));
@@ -951,7 +959,9 @@ const rekey = (doc, id) => {
   const old = doc.id;
   doc.id = id;
   moveView(old, id);
-  for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, inspector.formulaDrafts])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
+  // (Formula drafts are the inspector's, loaded with the rest: before it, there are none. Presets reorganized as they
+  // arrive can come first.)
+  for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, ...(inspector ? [inspector.formulaDrafts] : [])])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
   if (chart === doc) library.active = id;
   if (displayed?.doc.id === old) (displayed.doc.id = id), (displayed.look = lookKey(displayed.doc));
   if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
@@ -3038,7 +3048,6 @@ function placeLegends() {
       const element = legend.element;
       if (!element.classList.contains("legend")) (element.classList.add("legend", "strip"), strip(element), legendWidth.observe(element));
       if (element.dataset.pane !== pane.id) (element.dataset.pane = pane.id), legendShown.delete(element);
-      placeLensSwitch(element, pane);
     });
   }
   if (!chartShown()) return;
@@ -3046,29 +3055,6 @@ function placeLegends() {
   sizePanes();
   marginsSet = "";
   relayout();
-}
-/** @param {HTMLElement} lens */
-const leadFor = (lens) => /** @type {HTMLElement | null} */ (lens.nextElementSibling)?.style.setProperty("--lead", `${lens.offsetWidth ? lens.offsetWidth + 6 : 0}px`);
-// (Its width changed later (a font come, a finger's wider buttons): on the next frame, not in the observer's round,
-// where the row it moves, watched too (see legendWidth), would loop it.)
-const lensWidth = new ResizeObserver((entries) => requestAnimationFrame(() => entries.forEach(({ target }) => leadFor(/** @type {HTMLElement} */ (target)))));
-/** @param {HTMLElement} legend @param {Pane} pane */
-function placeLensSwitch(legend, pane) {
-  let lens = /** @type {HTMLElement | null} */ (legend.previousElementSibling?.matches(".lens-switch") ? legend.previousElementSibling : null);
-  if (!pane.lens) return lens && (lens.remove(), legend.style.removeProperty("--lead"));
-  if (!lens) {
-    lens = Object.assign(document.createElement("div"), { className: "tabs lens-switch" });
-    lens.setAttribute("role", "group");
-    legend.before(lens);
-    lensWidth.observe(lens);
-  }
-  const { as, at } = pane.lens, key = `${pane.id} ${at} ${as.join(" ")}`;
-  if (lens.dataset.key !== key) {
-    lens.dataset.key = key;
-    lens.setAttribute("aria-label", `Pane ${chart.panes.indexOf(pane) + 1} shown as`);
-    lens.innerHTML = as.map((name, k) => `<button type="button" data-show-view="${k}" data-pane="${pane.id}" aria-pressed="${at === k}">${escapeHtml(name)}</button>`).join("");
-    leadFor(lens);
-  }
 }
 let bandLit = /** @type {string | null} */ (null);
 const submenus = [$("submenu")], subSetups = /** @type {((menu: HTMLElement) => void)[]} */ ([]);
@@ -5372,6 +5358,9 @@ function loadPresets() {
   return (presetsLoad ??= (async () => {
     presetsFailed = false;
     const list = await readPresetList();
+    // (An edited preset whose place is gone, or the open one, is found by what it shows, its windows folded, which
+    // takes the series tree, and where it went: read first, then.)
+    if (((places) => [...library.presets, chart].some((doc) => doc?.preset !== undefined && !places.has(doc.preset)))(new Set(list.map((preset) => JSON.stringify(preset.p))))) await Promise.all([import("/studio/client.js"), wherePresetsWere()]);
     // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
     await aFrame();
     presets = list;
@@ -5393,9 +5382,10 @@ function loadPresets() {
     // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
     whenIdle(addressesSoon);
     withRest(() => whenIdle(command.ranksSoon));
-    if (pendingRoute && started) withRest(() => {
-      const asked = pendingRoute, route = routeOf(asked), here = Boolean(history.state?.route);
+    if (pendingRoute && started) withRest(async () => {
+      const asked = pendingRoute;
       pendingRoute = "";
+      const route = await routeOrMoved(asked), here = Boolean(history.state?.route);
       const { route: _, ...state } = history.state ?? {};
       if (here) history.replaceState(state, "");
       if (here && route) "preset" in route ? grid.go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
@@ -5653,7 +5643,7 @@ function writeLayers() {
     const layers = chart.layers.filter((layer) => layer.pane === pane.id);
     /** @type {[string, string][]} */
     const rows = [["head:pane", `<div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${presetsEdit.paneChip(pane)}" data-tip="${pane.lens ? "Show as, scale" : "Scale"}, stack, order and average">${presetsEdit.paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${presetsEdit.paneChip(pane)}" data-tip="Scale, stack, order and average">${presetsEdit.paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
               ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} pane">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(paneShows(chart, pane.id))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
@@ -6907,7 +6897,7 @@ withRest(() => {
 });
 $("window").addEventListener("click", (event) => {
   const found = chartWindow(chart);
-  if (found) menus.showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(4, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">Each value is its series over the ${windowSaid(found.window).replace(/^1 /, "")} before it.</div>`, ({ window }) => menus.switchWindow(window));
+  if (found) menus.showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(5, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">${windowMeaning(found.window)}</div>`, ({ window }) => menus.switchWindow(window));
 });
 $("interval").addEventListener("click", (event) => {
   const supported = menus.supportedIntervals();
@@ -7013,6 +7003,8 @@ $("import-file").addEventListener("change", async (event) => {
   await loadPresets().catch(() => {});
   try {
     const parsed = JSON.parse(await file.text());
+    // (Its edited presets are adopted by where they went.)
+    if (parsed?.presets?.length) await wherePresetsWere();
     if (Array.isArray(parsed?.charts)) {
       const folders = new Map(foldersOf(parsed.folders, []).map((folder) => [folder.id, { ...folder, id: uid() }]));
       /** @type {Map<string, Chart>} */
@@ -7974,8 +7966,6 @@ document.addEventListener("click", (event) => {
   if (check) return pickLayer(/** @type {string} */ (check.dataset.pickLayer), event.shiftKey);
   const marker = closest(event, "[data-markers]");
   if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : presetsEdit.toggleHalvings();
-  const view = closest(event, "[data-show-view]");
-  if (view) return presetsEdit.setPaneView(/** @type {string} */ (view.dataset.pane), /** @type {0 | 1} */ (Number(view.dataset.showView)));
   const paneEye = closest(event, "[data-pane-eye]");
   if (paneEye) return inspector.hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id), paneShows(chart, /** @type {string} */ (paneEye.dataset.paneEye)));
   if (closest(event, "#templates [data-gallery-retry]")) return retryPresets();
@@ -8589,11 +8579,10 @@ const currentRead = (/** @type {number} */ run, /** @type {number} */ at) => run
 /**
  * @param {Chart} doc
  * @param {ReturnType<typeof linkLookOf>} look
- * @param {{ index: string, range: string, window?: string, show?: string }} [made]
+ * @param {{ index: string, range: string, window?: string }} [made]
  */
 function takeLinkLook(doc, look, made) {
   doc.range = look.range ?? made?.range ?? doc.range;
-  ((show) => show !== undefined && showLinkView(doc, show))(look.show ?? made?.show);
   const offered = chartWindow(doc)?.offered ?? [], window = (look.window && windowNamed(look.window, offered)) || made?.window;
   if (window) atWindow(doc, window);
   doc.index = (look.index && menus.supportedIntervals(doc)(look.index) ? look.index : undefined) ?? made?.index ?? doc.index;
@@ -8620,8 +8609,10 @@ async function linked(written, shared, run, at = 0, base32 = false) {
       }
     })() : await fromLink(/** @type {string} */ (shared), base32);
     if (!doc.layers.length) throw new Error("it lists no layers");
+    const look = shared === null ? null : linkLookOf(new URLSearchParams(plain ? written.replace(/^.*(?:\}|%7d|%257d)/is, "") : location.hash.slice(1)));
+    if (look?.window) await import("/studio/client.js");
     if (!currentRead(run, at)) return null;
-    if (shared !== null) takeLinkLook(doc, linkLookOf(new URLSearchParams(plain ? written.replace(/^.*(?:\}|%7d|%257d)/is, "") : location.hash.slice(1))));
+    if (look) takeLinkLook(doc, look);
     const twin = twinOf(doc);
     const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
     if (shared !== null && !picturing) history.replaceState(home ? { ...(history.state?.home ? history.state : {}), ...homeState() } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
@@ -8745,7 +8736,8 @@ window.addEventListener("keydown", (event) => document.body.hasAttribute("data-p
 
 async function settle(ms = 60_000) {
   const end = performance.now() + ms, left = () => Math.max(0, end - performance.now()), LATE = Symbol(), late = () => new Promise((done) => setTimeout(() => done(LATE), left()));
-  if ((await Promise.race([navigating, late()])) === LATE || (await Promise.race([document.fonts.ready, late()])) === LATE) throw new Error("The chart is still loading");
+  // (The rest too: a heatmap's drawing is told there, and a chart not yet drawn reaches it before it's read.)
+  if ((await Promise.race([navigating, late()])) === LATE || (await Promise.race([document.fonts.ready, late()])) === LATE || (await Promise.race([loadRest(), late()])) === LATE) throw new Error("The chart is still loading");
   while (home || !chart.layers.length || !settled() || !heatmaps.heatIn()) {
     if (home) throw new Error("No chart is open (Studio shows Home)");
     if (!chart.layers.length) throw new Error("The chart has no layers");
@@ -9001,7 +8993,9 @@ async function start() {
   const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
   const asked = !shared && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
   if (asked) await loadPresets().catch(() => {});
-  const routed = asked ? routeOf(asked) : null;
+  const routed = asked ? await routeOrMoved(asked) : null;
+  // (A window is read from the series tree, which a first chart doesn't otherwise wait for.)
+  if (routed && "preset" in routed && linkLookOf(new URLSearchParams(location.hash.slice(1)), routed.window).window) await import("/studio/client.js");
   chart = (routed && "preset" in routed ? presetByAddress(routed.preset, routed.window) : resumed) || chart;
   if (first && routed && "preset" in routed) {
     const draft = previewCharts.findIndex((doc) => drafts.has(doc));
@@ -9045,7 +9039,7 @@ export {
   acrossUnfit, afterHands, answers, applyPanel, applyTheme, asThen, atWindow, averageFor, bandLit, beltStop, boxing,
   bubbleRing, buildAsked, buildChart, byBlock, byKeys, byTouch, canLook, canTravel, capturing,
   cardsSeen, catalogIndex, catalogIntervals, changesOf, chart, chartAgain, chartById, chartHeight, chartImage, chartNow, chartSans,
-  chartShown, chartSize, CHART_TEXT, chartWindow, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
+  chartShown, chartSize, CHART_TEXT, chartWindow, windowFamilies, chooseDrawings, chosen, clearLayerPicks, clearLook, client, closePreview, CLOUD,
   cohortColor, cohortName, cohortShort, cohortWho, colorName, colorPane, commit, comparePeriods, crossMoved, css,
   dataRevision, dateGoes, DEFAULTS, deleteChart, deleteFolder, dialogsShown, discard, dismissPalette, displayed, draft,
   drafts, drawCards, drawGallery, drawingsHidden, drawPresetMarks, drawTrail, drawVersion, drawYours, editChart, edits,

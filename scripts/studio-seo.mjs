@@ -18,8 +18,8 @@ import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { addressesOf } from "../website/studio/addresses.js";
-import { CHAIN_STATISTICS } from "../website/studio/chain-statistics.js";
+import { addressesOf, slug } from "../website/studio/addresses.js";
+import { placeWas } from "../website/studio/places-were.js";
 import { studioApplication, presetInfo, sectionInfo, presetDataset, presetDistributions, STUDIO_TITLE, STUDIO_DESCRIPTION, STUDIO_ORIGIN } from "../website/studio/page-info.js";
 import { shownStep } from "../website/studio/words.js";
 
@@ -66,18 +66,21 @@ const TITLE_RULES = [
   ["a month that isn't an age", (text) => /(?<!\b(?:by|per|each) )\bmonths?\b(?![^,:]*\bold\b)/.test(text)],
   ["all addresses", (text) => /\ball addresses\b/i.test(text)],
 ];
-// (Chain statistics' charts keep the names of the site they reproduce: no rule of these is theirs.)
-const ruled = presets.filter((preset) => !preset.p.includes(CHAIN_STATISTICS));
 /** Every step of every place, once, by its key. @type {Map<string, string[]>} */
 const steps = new Map();
-for (const preset of ruled) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
+for (const preset of presets) for (let i = 1; i <= preset.p.length; i++) steps.set(JSON.stringify(preset.p.slice(0, i)), preset.p.slice(0, i));
 /** Every name shown, each with whether it's a title and its place: titles, legends, the tree's steps as shown. @type {[string, boolean, string[]][]} */
 const shown = [
-  ...ruled.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
+  ...presets.flatMap((preset) => [[preset.t, true, preset.p], ...preset.c.layers.flatMap((layer) => (layer.label ? [[layer.label, false, preset.p]] : []))]),
   ...[...steps.values()].map((path) => [shownStep(labels, path), false, path]),
 ];
 const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
 if (broken.length) throw new Error(`${broken.length} name${broken.length === 1 ? "" : "s"} shown break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);
+// One subject a preset, all of it in view: at most two panes shown, the price's (hidden over the chain's workings)
+// aside, and no pane of its own hidden, so nothing is drawn that a reader can't see.
+const PRICE = client.series.price.ohlc.name, paneOf = (/** @type {{ pane?: number }} */ layer) => layer.pane ?? 1;
+const unseen = presets.filter(({ c }) => ((shown) => shown.size > 2 || Array.from({ length: Math.max(...c.layers.map(paneOf)) }, (_, i) => i + 1).some((pane) => !shown.has(pane) && !c.layers.some((layer) => paneOf(layer) === pane && layer.series === PRICE)))(new Set(c.layers.filter((layer) => !layer.hidden).map(paneOf))));
+if (unseen.length) throw new Error(`${unseen.length} preset${unseen.length === 1 ? "" : "s"} with a pane hidden or past two:\n  ${unseen.slice(0, 20).map(({ p }) => p.join(" › ")).join("\n  ")}`);
 // The presets the empty chart offers first (the app's RECOMMENDED), each one of them: a place renamed would drop it.
 const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(presetsEdit)?.[1];
 if (!recommended) throw new Error("No RECOMMENDED in presets-edit.js");
@@ -86,6 +89,28 @@ const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place
 if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
 const book = addressesOf(presets);
+// Old addresses, each opening what's there now: a preset moved (see places-were.js) keeps each it had, never over a
+// place there now. Written to moved.txt, the one table the server and the page both send old addresses by.
+const addressOf = (/** @type {string[]} */ path) => `/presets/${path.map(slug).join("/")}`;
+const alias = (/** @type {string} */ address, /** @type {{ path: string[] } | { preset: number, window?: string }} */ to) => book.at.has(address) || book.at.set(address, to);
+const sameStart = (/** @type {string[]} */ a, /** @type {string[]} */ b) => ((at) => (at < 0 ? a : a.slice(0, at)))(a.findIndex((step, d) => step !== b[d]));
+const goneSections = new Map();
+for (const [i, preset] of presets.entries()) for (const { path: old, window: folded } of placeWas(preset.p)) {
+  alias(addressOf(old), folded ? { preset: i, window: folded } : { preset: i });
+  // (Its windows had their own addresses beside the chart: each window's name there, as the chart was named then (a
+  // window named after the chart, "Supply, all time", was named after its old name) and where the window's place
+  // went since. A chart folded into this one had none of this one's windows.)
+  if (!folded) for (const [name, window] of Object.entries(preset.w ?? {})) {
+    const leaf = /** @type {string} */ (preset.p.at(-1)), then = name.startsWith(leaf) ? [[...old.slice(0, -1), old.at(-1) + name.slice(leaf.length)]] : [];
+    for (const place of [[...old.slice(0, -1), name], ...then, ...placeWas([...preset.p.slice(0, -1), name]).map((was) => was.path)]) alias(addressOf(place), { preset: i, window });
+  }
+  // (A section gone opens the deepest section that holds all of its charts now.)
+  for (let depth = 1; depth < old.length; depth++) {
+    const key = JSON.stringify(old.slice(0, depth)), parent = preset.p.slice(0, -1);
+    if (!book.sections.has(key)) goneSections.set(key, { old: old.slice(0, depth), now: sameStart(goneSections.get(key)?.now ?? parent, parent) });
+  }
+}
+for (const { old, now } of goneSections.values()) alias(`${addressOf(old)}/`, { path: now });
 
 const about = /<section id="about"[^>]*>([\s\S]*?)<\/section>/.exec(html)?.[1];
 if (!about) throw new Error("No about section in the page: llms.txt is made from it");
@@ -142,7 +167,7 @@ for (const [key, address] of book.sections) {
 for (const [i, preset] of presets.entries()) {
   const canonical = `${ORIGIN}${book.presets[i]}`, info = presetInfo(preset, labels), distributions = presetDistributions(preset, client.series);
   pageInfo[book.presets[i]] = { ...info, canonical, json_ld: presetDataset(preset, labels, client.series, canonical),
-    markdown: `# ${preset.t}\n\n${info.description}\n\n[Open this chart](${canonical})\n\n## What the chart shows\n\n${preset.c.layers.map((layer, i) => `- ${String.fromCharCode(65 + i)}: ${layer.label ?? layer.series ?? (layer.formula ? `Formula ${layer.formula}` : layer.heatmap ? `Cost basis distribution: ${layer.heatmap}` : layer.profile ? `Cost basis profile: ${layer.profile.join(", ")}` : `Cloud between ${(layer.cloud ?? []).join(" and ")}`)}${layer.view === 2 ? ` (shown as ${preset.c.panes[(layer.pane ?? 1) - 1]?.views?.[1]?.name ?? "its other view"})` : layer.hidden ? " (hidden initially)" : ""}`).join("\n")}\n\n## Data sources\n\n${distributions.map((source) => `- ${source.name}: [${source.encodingFormat === "text/csv" ? "CSV" : "JSON"}](${source.contentUrl})`).join("\n")}\n` };
+    markdown: `# ${preset.t}\n\n${info.description}\n\n[Open this chart](${canonical})\n\n## What the chart shows\n\n${preset.c.layers.map((layer, i) => `- ${String.fromCharCode(65 + i)}: ${layer.label ?? layer.series ?? (layer.formula ? `Formula ${layer.formula}` : layer.heatmap ? `Cost basis distribution: ${layer.heatmap}` : layer.profile ? `Cost basis profile: ${layer.profile.join(", ")}` : `Cloud between ${(layer.cloud ?? []).join(" and ")}`)}${layer.hidden ? " (hidden initially)" : ""}`).join("\n")}\n\n## Data sources\n\n${distributions.map((source) => `- ${source.name}: [${source.encodingFormat === "text/csv" ? "CSV" : "JSON"}](${source.contentUrl})`).join("\n")}\n` };
 }
 pageInfo["/"] = { title: STUDIO_TITLE, description: STUDIO_DESCRIPTION, canonical: `${ORIGIN}/`, json_ld: studioApplication(`${ORIGIN}/`, STUDIO_DESCRIPTION), markdown: `# Bitview Studio\n\n${STUDIO_DESCRIPTION}\n\n[Browse the presets](${ORIGIN}/presets/)\n\n[Guide for assistants](${ORIGIN}/llms.txt)\n` };
 
@@ -166,7 +191,7 @@ if (book.clashes.length) {
 const opens = (path) => {
   const to = book.at.get(path);
   if (!to) return "nothing";
-  if (!("preset" in to)) return path;
+  if (!("preset" in to)) return /** @type {string} */ (book.sections.get(JSON.stringify(to.path)));
   return to.window ? `${book.presets[to.preset]}#window=${to.window}` : book.presets[to.preset];
 };
 const live = new Set(urls), before = writtenBytes("page-info.json.gz");
@@ -192,10 +217,16 @@ const successor = (address) => {
   }
   return best?.hits.includes(true) ? best.chart : section;
 };
-const moved = new Map();
-for (const [path, to] of book.at) if ("window" in to) moved.set(path, opens(path));
 const rows = written("moved.txt").split("\n").filter(Boolean).map((line) => line.split("\t"));
-const changed = rows.filter(([path, to]) => book.at.has(path) && opens(path) !== to);
+// An old address another opens now, kept once it's been one: a place moved (see places-were.js) has old addresses for
+// what's under it now too, never had.
+const sitemapBefore = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&").slice(ORIGIN.length));
+const known = new Set([...sitemapBefore, ...rows.map(([path]) => path)]);
+const moved = new Map();
+for (const [path] of book.at) if (known.has(path) && opens(path) !== path) moved.set(path, opens(path));
+// (What a row opened is followed: a chart moved since opens at its new address, its window or state kept.)
+const followed = (/** @type {string} */ to) => ((place, state) => (state === undefined ? opens(place) : `${opens(place).split("#")[0]}#${state}`))(...to.split("#"));
+const changed = rows.filter(([path, to]) => book.at.has(path) && opens(path) !== followed(to));
 if (changed.length) {
   console.error(`Moved addresses that open another place now, or nothing, ${changed.length}:\n${changed.slice(0, 12).map(([path, to]) => `  ${path}: ${to} → ${opens(path)}`).join("\n")}${changed.length > 12 ? `\n  and ${changed.length - 12} more` : ""}`);
   if (!drop) {
@@ -203,14 +234,15 @@ if (changed.length) {
     process.exit(1);
   }
 }
-// The rest kept, each opening its place while that's there, else its place's successor (a new page at one takes it).
+// The rest kept, each opening its place while that's there, else where its place moved (its own window kept), else its
+// place's successor (a new page at one takes it).
 for (const [path, to] of rows) {
-  const place = to.split("#")[0];
-  if (!moved.has(path) && !live.has(path)) moved.set(path, live.has(place) ? to : successor(place));
+  const [place, state] = to.split("#"), now = live.has(place) ? place : moved.get(place) ?? successor(place);
+  if (!moved.has(path) && !live.has(path)) moved.set(path, state === undefined ? now : `${now.split("#")[0]}#${state}`);
 }
 // Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
 // word (its layer reads nothing, so it isn't made). Named, and each sent to its successor only when meant (--drop).
-const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&").slice(ORIGIN.length)).filter((path) => !live.has(path) && !moved.has(path));
+const gone = sitemapBefore.filter((path) => !live.has(path) && !moved.has(path));
 if (gone.length && !drop) {
   console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((path) => `  ${path} → ${successor(path)}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
   console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun scripts/studio-seo.mjs --drop");

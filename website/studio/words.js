@@ -56,22 +56,27 @@ export const placeEdge = (key, end) => {
 export const isWindowKey = (key) => ((read) => Boolean(read && read.bound === "_" && !read.side && !read.high && "hdwmy".includes(read.low.unit)))(readKey(key));
 // `by` is made on first read, not for every series a walk passes.
 export const isLeaf = (node) => Boolean(node) && typeof node.name === "string" && typeof node.indexes === "function";
+/** A windowed sum's running total, the window lens's last choice: the `cumulative` beside the sum's windows. */
+export const ALL_TIME = "cumulative";
 /**
  * A window counts fixed days, never calendar ones (lookback.rs): its months are said as 30 days each.
  * @param {string} key
  */
 export const windowSaid = (key) => {
+  if (key === ALL_TIME) return "all time";
   const read = readKey(key);
   return read?.bound === "_" && read.low.unit === "m" && !read.high ? `${read.low.value * 30} days` : spanLabel(key);
 };
 /** @param {string} key */
-export const windowShort = (key) => windowSaid(key).replace(/^(\d+) (\w)\w*$/, "$1$2");
+export const windowShort = (key) => (key === ALL_TIME ? "all" : windowSaid(key)).replace(/^(\d+) (\w)\w*$/, "$1$2");
 /** @param {string} words @param {string[]} keys */
 export const windowNamed = (words, keys) => ((said) => keys.find((key) => windowShort(key).toLowerCase() === said))(words.trim().toLowerCase());
 /** @param {string} words */
 export const adjective = (words) => words.replace(/^(\d+) (\w+?)s?$/, "$1-$2");
 /** @param {string} key */
-export const windowAdjective = (key) => adjective(windowSaid(key));
+export const windowAdjective = (key) => (key === ALL_TIME ? "all-time" : adjective(windowSaid(key)));
+/** @param {string} key */
+export const windowMeaning = (key) => (key === ALL_TIME ? "Each value is its running total since the start." : `Each value is its series over the ${windowSaid(key).replace(/^1 /, "")} before it.`);
 
 /**
  * `from`: a band holds its low edge (ages, amounts, balances, losses, fee rates); `through`: its high one (profits).

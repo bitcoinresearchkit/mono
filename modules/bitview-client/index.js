@@ -7587,12 +7587,12 @@ class BitviewClient extends BitviewClientBase {
     "discount": {
       "id": "discount",
       "short": "Discount",
-      "long": "Discount Coins"
+      "long": "Bought at a Discount"
     },
     "premium": {
       "id": "premium",
       "short": "Premium",
-      "long": "Premium Coins"
+      "long": "Bought at a Premium"
     }
   });
 

@@ -1995,13 +1995,13 @@
       }
 
       @media (min-width: 761px) and (min-height: 501px) {
-        body:is([data-panel="open"], [data-peek]) :is(.legend, .lens-switch) {
+        body:is([data-panel="open"], [data-peek]) .legend {
           display: none;
         }
       }
 
       @media (max-width: 760px), (max-height: 500px) {
-        body[data-sheet="panel"] :is(.legend, .lens-switch) {
+        body[data-sheet="panel"] .legend {
           display: none;
         }
       }
@@ -2014,7 +2014,7 @@
         position: absolute;
         top: 4px;
         right: 8px;
-        left: calc(15px + var(--lead, 0px));
+        left: 15px;
         z-index: 3;
         display: flex;
         gap: 2px;
@@ -5612,7 +5612,7 @@
           height: calc(var(--control-hit) + 1px);
         }
 
-        :is(.legend, .tabs.lens-switch) {
+        .legend {
           top: 11px;
         }
 
@@ -5950,14 +5950,14 @@
           <h2>Opening a chart from a link</h2>
           <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
-          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), and, for a preset over a trailing window, "window" (24h, 1w, 30d or 1y), for a preset with a pane of two views, "show" (the view's name, as "net" or "dollars"), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&amp;interval=1W. A chart's link takes the same after its chart.</p>
+          <p>A preset has an address of its own, https://bitview.space/studio/presets/ and its place (see the sitemap), which opens that preset itself. After it, # and what to look at, all of it optional: "range" (3M, 1Y, 4Y, 8Y or Max) or "from" and "to" (dates, as 2021-01-01 or 2021-01-01T14:30: "from" alone runs up to now), "interval" (10m, 30m, 1h, 4h, 12h, 1D, 3D, 1W, 1M, 3M, 6M, 1Y or 10Y), and, for a preset over a trailing window, "window" (24h, 1w, 30d or 1y), written as Studio's buttons show them and read in any case, as in https://bitview.space/studio/presets/valuation/mvrv#from=2021-01-01&amp;to=2022-06-30 or https://bitview.space/studio/presets/valuation/mvrv#range=1Y&amp;interval=1W. A chart's link takes the same after its chart.</p>
           <h2>A chart</h2>
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
             <li>"title".</li>
             <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
             <li>"range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
-            <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares) or draws them as a heatmap ("rows": each layer a row of cells colored by its value, about the level they share if any; daily or coarser, two or more layers on one scale), "outline": true outlines a heatmap's region under that level, "gradient" colors its heatmap (a heatmap of an amount, or its layers as one without a level: "inferno" if none, "magma", "viridis" or "plasma"), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). "views": [{"name": "Sides", "mode": 1}, {"name": "Net", "mode": 0}] gives a pane two views of its subject, shown one at a time (Show as, in its menu): each its name and its own fields as above; the layers in it with "view": 2 are the second's, the others the first's, and "show": 2 opens it on the second. Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.</li>
+            <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares) or draws them as a heatmap ("rows": each layer a row of cells colored by its value, about the level they share if any; daily or coarser, two or more layers on one scale), "outline": true outlines a heatmap's region under that level, "gradient" colors its heatmap (a heatmap of an amount, or its layers as one without a level: "inferno" if none, "magma", "viridis" or "plasma"), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front, "average": "7d" averages every layer before stacking ("7d", "30d", "90d" or "1y"; absent: raw). Formulas always read raw measurements. A pane containing a heatmap or profile stays raw. Without them, the first pane is logarithmic and the others linear.</li>
             <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).</li>
             <li>"legend": "off": no legend over the panes.</li>
             <li>"drawings" (see below).</li>

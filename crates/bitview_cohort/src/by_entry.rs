@@ -17,8 +17,8 @@ impl EntryPrice {
 }
 
 pub const ENTRY_NAMES: ByEntry<CohortName> = ByEntry {
-    discount: CohortName::new("discount", "Discount", "Discount Coins"),
-    premium: CohortName::new("premium", "Premium", "Premium Coins"),
+    discount: CohortName::new("discount", "Discount", "Bought at a Discount"),
+    premium: CohortName::new("premium", "Premium", "Bought at a Premium"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
