@@ -4054,12 +4054,13 @@ class WithDelta(_Node, Generic[A, B]):
 
 
 class Supply(_Node):
-    circulating: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
+    circulating: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'circulating_supply')
     burned: ValueFlow = _at(ValueFlow, 'burned')
     inflation_rate: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, 'inflation_rate')
     velocity: Velocity = _at(Velocity, 'velocity')
     market_cap: WithDelta[Optional[Dollars], Optional[Dollars]] = _at(WithDelta, 'market_cap')
-    nvt: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'nvt')
+    nvt: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*')
+    nvt_signal: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_signal')
 
 
 class BalanceUtxos(_Node):
@@ -5526,7 +5527,7 @@ class SeriesTree(_Node):
     holders: Holders = _at(Holders, 'age')
     entry: Entry = _at(Entry, 'entry')
     profitability: Profitability = _at(Profitability, 'sth')
-    supply: Supply = _at(Supply, 'circulating_supply')
+    supply: Supply = _at(Supply, 'nvt')
     cointime: Cointime = _at(Cointime, 'age')
     coinflow: Coinflow = _at(Coinflow, 'age')
     bedrock: Bedrock = _at(Bedrock, 'bedrock')

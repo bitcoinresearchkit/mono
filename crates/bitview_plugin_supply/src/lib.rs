@@ -56,4 +56,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Null without a wholly priced volume window or when volume is zero.
     #[traversable(lead = "NVT: the network's market value against a day's unadjusted transfer value.")]
     nvt: LazyPerBlock<Multiple>,
+    /// NVT signal (Dmitry Kalichkin, 2018): market cap divided by the mean daily transfer volume
+    /// in USD over the trailing 90 days (the 90-day sum over 90), the volume `nvt` uses. The
+    /// window ends at the represented block, so each value reads only what came before it. Null
+    /// without a wholly priced 90-day window or when volume is zero.
+    #[traversable(lead = "NVT signal: the market cap against 90 days of transfer volume, Kalichkin's smoothed NVT.")]
+    nvt_signal: LazyPerBlock<Multiple>,
 }

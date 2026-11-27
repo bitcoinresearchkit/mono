@@ -1300,12 +1300,13 @@ pub mod tree {
         delta: Delta<B> = "*_delta",
     } }
     shape! { Supply at "series().supply" {
-        circulating: SeriesPattern1<Option<Bitcoin>> = "*",
+        circulating: SeriesPattern1<Option<Bitcoin>> = "circulating_supply",
         burned: ValueFlow = "burned",
         inflation_rate: SeriesPattern1<Option<Percent>> = "inflation_rate",
         velocity: Velocity = "velocity",
         market_cap: WithDelta<Option<Dollars>, Option<Dollars>> = "market_cap",
-        nvt: SeriesPattern1<Option<Multiple>> = "nvt",
+        nvt: SeriesPattern1<Option<Multiple>> = "*",
+        nvt_signal: SeriesPattern1<Option<Multiple>> = "*_signal",
     } }
     shape! { BalanceUtxos at "series().addresses.balances._0_sats.utxos" {
         count: WithDelta<Count, CountSigned> = "*",
@@ -2615,7 +2616,7 @@ pub mod tree {
         holders: Holders = "age",
         entry: Entry = "entry",
         profitability: Profitability = "sth",
-        supply: Supply = "circulating_supply",
+        supply: Supply = "nvt",
         cointime: Cointime = "age",
         coinflow: Coinflow = "age",
         bedrock: Bedrock = "bedrock",

@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31752 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31753 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -198,6 +198,7 @@
 - `supply.velocity` (2): `velocity_btc`, `velocity_usd`
 - `supply.market_cap` (9): `market_cap`, `market_cap_delta_24h`, `market_cap_delta_1w`, `market_cap_delta_1m`, `market_cap_delta_1y`
 - `supply.nvt` (1): `nvt`
+- `supply.nvt_signal` (1): `nvt_signal`
 
 ### cointime
 

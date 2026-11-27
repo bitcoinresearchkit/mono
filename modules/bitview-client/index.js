@@ -4136,15 +4136,17 @@ const _WithDelta = _s({
  *   velocity: Velocity,
  *   marketCap: WithDelta<?Dollars, ?Dollars>,
  *   nvt: SeriesPattern1<?Multiple>,
+ *   nvtSignal: SeriesPattern1<?Multiple>,
  * }} Supply
  */
 const _Supply = _s({
-  circulating: [_i1, '*'],
+  circulating: [_i1, 'circulating_supply'],
   burned: [_ValueFlow, 'burned'],
   inflationRate: [_i1, 'inflation_rate'],
   velocity: [_Velocity, 'velocity'],
   marketCap: [_WithDelta, 'market_cap'],
-  nvt: [_i1, 'nvt'],
+  nvt: [_i1, '*'],
+  nvtSignal: [_i1, '*_signal'],
 });
 
 /**
@@ -7254,7 +7256,7 @@ const _SeriesTree = _s({
   holders: [_Holders, 'age'],
   entry: [_Entry, 'entry'],
   profitability: [_Profitability, 'sth'],
-  supply: [_Supply, 'circulating_supply'],
+  supply: [_Supply, 'nvt'],
   cointime: [_Cointime, 'age'],
   coinflow: [_Coinflow, 'age'],
   bedrock: [_Bedrock, 'bedrock'],
@@ -7269,7 +7271,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "cec8408fbb3431998a65edc83a9db212c2b1a130ec91f2a9de9c2e535b2ebc46";
+  static HASH = "98546c1f2ea50dbe564d1811f76d27317e394e8537a4d02e15a37f6f299b7c4e";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
