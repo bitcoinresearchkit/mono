@@ -23,11 +23,11 @@
  *   families and cutoffs read it (see Dimension), and `inWhole`, its members within their whole (see Naming)
  * @typedef {{ within?: string, of?: Whole, lookOf?: (key: string) => { color: string, opacity?: number } | undefined }} Kin
  *   what a band family's options and its cutoffs' share (see family)
- * @typedef {{ name: Name, title: string, c: Sketch, priceHidden?: boolean, was?: Record<string, string> }} ChartNode
+ * @typedef {{ name: Name, title: string, c: Sketch, unpriced?: boolean, was?: Record<string, string> }} ChartNode
  *   `was`: its places from when it was one chart a window, each that window's key (see Preset's `w`)
- * @typedef {(name: Name, title: string, layers: Layer[], options?: { index?: string, log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, priceHidden?: boolean, window?: string, windows?: string[], was?: Record<string, string> }) => ChartNode} ChartBuilder
+ * @typedef {(name: Name, title: string, layers: Layer[], options?: { index?: string, log?: number[], stack?: Record<number, string>, average?: Record<number, string>, size?: Record<number, number>, range?: string, halvings?: boolean, unpriced?: boolean, window?: string, windows?: string[], was?: Record<string, string> }) => ChartNode} ChartBuilder
  * @typedef {{ name: Name, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
- *   about the chain's workings, not the market (the price over them hidden: see priced)
+ *   about the chain's workings, not the market (no price over them: see priced)
  * @typedef {(name: Name, items: (ChartNode | SectionNode | null | undefined | false)[], options?: { workings?: boolean, icon?: string }) => SectionNode} SectionBuilder
  */
 
@@ -179,7 +179,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       const log = options.log?.includes(n) || withPrice;
       return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.average?.[n] ? { average: options.average[n] } : {}), ...(options.size?.[n] ? { size: options.size[n] } : {}) };
     });
-    return { name, title, c: { layers, panes, ...(options.index ? { index: options.index } : {}), ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}), ...(was ? { was } : {}) };
+    return { name, title, c: { layers, panes, ...(options.index ? { index: options.index } : {}), ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.unpriced ? { unpriced: true } : {}), ...(was ? { was } : {}) };
   };
   /** @param {Name} name @param {string | undefined} who @param {Layer[]} layers @param {Parameters<ChartBuilder>[3]} [options] */
   const measure = (name, who, layers, options = {}) => chart(name, who ? `${shownOf(name)}: ${who}` : shownOf(name), layers, options);
@@ -984,12 +984,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ]),
     ], { icon: "candles" }),
     section("Valuation", [
-      chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.marketCap, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
+      chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.marketCap, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], unpriced: true }),
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       // Gradient stops are places in MVRV's range at a day (0.40 to 9.0): 0.66 at 3%, 1 at 7%, 2 at 19%.
       chart("MVRV by value", "MVRV colored by its value", [price(), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, type: "line", width: 2, byGradient: true, gradient: [[3, "red"], [7, "gray"], [19, "green"]], levels: [{ value: 1, color: "gray", dash: 3 }] })], { log: [2] }),
-      chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", color: "gray", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
+      chart("Price by MVRV zone", "The price by its MVRV zone", [series(t.price.close, "Price by zone", { colorFrom: "B", color: "gray", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2], unpriced: true }),
       chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.marketCap.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.marketCap.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
       // The volatility is the 30 days' own, not annualized (× √(30/365)).
       chart("Seller exhaustion", "Seller exhaustion constant", [price(), { formula: `${t.holders.all.supply.inProfit.share.name} / 100 * volatility(A, 30d) / 100 * ${Math.sqrt(30 / 365).toFixed(4)}`, label: "Seller exhaustion constant", format: "ratio", pane: 2, color: "orange" }], { log: [2] }),
@@ -1164,13 +1164,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ...perBlockFan(mining.rewards.fees, "Fees per block, in dollars", "Fees per block, in dollars", true, usd),
       ...spread(tx.fees.effectiveFeeRate, "Fee rate", "transactions' effective fee rates", "orange", true),
       ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
-        { ...price(), hidden: true },
-        { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
-        { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate", pane: 2, color: "orange", width: 2 },
-        { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", pane: 2, color: "orange", width: 1, opacity: 0.5, hidden: true },
-        { cloud: ["B", "D"], label: "25th to 75th", color: "orange", opacity: 0.25, pane: 2 },
-        series(blocks.fullness.avg._1m, `Block fullness, ${windowAdjective("_1m")} average`, { pane: 3, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
-      ], { log: [2], average: { 2: "7d" }, size: { 1: 1, 2: 2, 3: 1.4 } })] : []),
+        { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", color: "orange", width: 1, opacity: 0.5, hidden: true },
+        { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate", color: "orange", width: 2 },
+        { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", color: "orange", width: 1, opacity: 0.5, hidden: true },
+        { cloud: ["A", "C"], label: "25th to 75th", color: "orange", opacity: 0.25 },
+        series(blocks.fullness.avg._1m, `Block fullness, ${windowAdjective("_1m")} average`, { pane: 2, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
+      ], { log: [1], average: { 1: "7d" }, size: { 1: 2, 2: 1.4 }, unpriced: true })] : []),
       section("By fee rate", feeRates(tx.fees.txCountByFeeRate, (said) => `transactions paying ${said}`, "fee rate", { disjoint: true, more: [
         chart("Under 1 sat/vB, by month", "Transactions paying under 1 sat/vB, by month", [
           { formula: `100 * (${underOneSatVb.map(step).join(" + ")}) / (${txSteps})`, label: "Share of transactions", type: "histogram", color: "orange", format: "percent", maxInterval: "month1" },
@@ -1313,11 +1312,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
   /** @param {any} node @param {string} name @param {string} what @param {string} color @param {boolean} [estimated] */
   function spread(node, name, what, color, estimated = false) {
     const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => isLeaf(node?.[key]));
-    return fan(name, `Median and percentiles of ${what} in each block, ${adjective(windowSaid("_1w"))} average`, keys.map((key) => [key, series(node[key], statLabel(key, estimated), { pane: 2 })]), color, { average: "7d" });
+    return fan(name, `Median and percentiles of ${what} in each block, ${adjective(windowSaid("_1w"))} average`, keys.map((key) => [key, series(node[key], statLabel(key, estimated))]), color, { average: "7d" });
   }
   /**
    * On a log scale (they span orders of magnitude; `log` false, a share's, linear), where tails decades past the middle
-   * (the empty blocks' months, a fee's spikes) are out of the axis' fit, drawn past its edges.
+   * (the empty blocks' months, a fee's spikes) are out of the axis' fit, drawn past its edges. No price: about blocks.
    * @param {string} name
    * @param {string} title
    * @param {[string, Layer][]} lines
@@ -1327,11 +1326,11 @@ export function studioPresets(client, facts, report = (problem) => console.error
   function fan(name, title, lines, color, { log = true, average = "", window = undefined } = {}) {
     const keys = lines.map(([key]) => key);
     if (!keys.includes("median")) return [];
-    const at = (/** @type {string} */ key) => letter(1 + keys.indexOf(key));
+    const at = (/** @type {string} */ key) => letter(keys.indexOf(key));
     const tail = (/** @type {string} */ key) => (log && ["min", "p10", "p90", "max"].includes(key) ? { fit: false } : {});
-    const layers = lines.map(([key, layer]) => ({ ...layer, pane: 2, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1 } : { width: 1, opacity: 0.5, hidden: true }) }));
-    const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, pane: 2, ...tail(low) }] : []);
-    return [chart(name, title, [{ ...price(), hidden: true }, ...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [2] : [], ...(average ? { average: { 2: average } } : {}), size: { 1: 1.4, 2: 3 }, window })];
+    const layers = lines.map(([key, layer]) => ({ ...layer, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, ...tail(low) }] : []);
+    return [chart(name, title, [...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [1] : [], ...(average ? { average: { 1: average } } : {}), window, unpriced: true })];
   }
   function statLabel(/** @type {string} */ key, estimated = false) {
     return key === "avg" ? "Average" : key === "min" ? (estimated ? "Low estimate" : "Lowest") : key === "max" ? (estimated ? "High estimate" : "Highest") : percentileLabel(percentile(key));
@@ -1651,20 +1650,20 @@ export function studioPresets(client, facts, report = (problem) => console.error
   }
 
   /**
-   * The price over a chart, in a pane above. Shown, it leaves room for one pane of the chart's own: a second (a flow's
-   * dollars beside its bitcoin) shows only over the chain's workings, where the price is hidden.
-   * @param {Sketch} c @param {boolean} hidden @returns {Sketch}
+   * The price over a chart, in a pane above, leaving room for one pane of the chart's own; `unpriced` (the chain's
+   * workings), none, and the chart's own panes as written: a second (a flow's dollars beside its bitcoin) shows only there.
+   * @param {Sketch} c @param {boolean} unpriced @returns {Sketch}
    */
-  const priced = (c, hidden) => {
+  const priced = (c, unpriced) => {
     const at = c.layers.findIndex((layer) => layer.series === t.price.ohlc.name);
-    if (at === 0 && (c.layers[0].pane ?? 1) === 1) return c;
+    if (unpriced || (at === 0 && (c.layers[0].pane ?? 1) === 1)) return c;
     // Layers are named by their place, A first: a chart that names one would be read wrong with another before it.
-    if (at > 0 || c.layers.some((layer) => layer.cloud || /\b[A-Z]{1,2}\b/.test(layer.formula ?? ""))) throw new Error(`A preset names its layers by place without the price first: ${c.layers.map((layer) => layer.label).join(", ")}`);
-    const panes = c.panes ?? [{ mode: 0 }], first = panes[0], own = hidden ? c.layers : c.layers.filter((layer) => (layer.pane ?? 1) === 1);
+    if (at > 0 || c.layers.some((layer) => layer.cloud || layer.trend || layer.ref || layer.colorFrom || /\b[A-Z]{1,2}\b/.test(layer.formula ?? ""))) throw new Error(`A preset names its layers by place without the price first: ${c.layers.map((layer) => layer.label).join(", ")}`);
+    const first = (c.panes ?? [{ mode: 0 }])[0];
     return {
       ...c,
-      layers: [{ ...price(), ...(hidden ? { hidden: true } : {}) }, ...own.map((layer) => ({ ...layer, pane: (layer.pane ?? 1) + 1 }))],
-      panes: [{ mode: 1, size: 1.4 }, { ...first, size: first.size ?? 3 }, ...(hidden ? panes.slice(1) : [])],
+      layers: [price(), ...c.layers.filter((layer) => (layer.pane ?? 1) === 1).map((layer) => ({ ...layer, pane: 2 }))],
+      panes: [{ mode: 1, size: 1.4 }, { ...first, size: first.size ?? 3 }],
     };
   };
 
@@ -1685,7 +1684,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         walk(more.length ? item.items.concat(more) : item.items, place, workings || Boolean(item.workings));
         continue;
       }
-      presets.push({ p: place, t: item.title, c: priced(item.c, workings || Boolean(item.priceHidden)), ...(icon ? { s: icon } : {}), ...(item.was ? { w: Object.fromEntries(Object.entries(item.was).map(([name, key]) => [name, windowShort(key)])) } : {}) });
+      presets.push({ p: place, t: item.title, c: priced(item.c, workings || Boolean(item.unpriced)), ...(icon ? { s: icon } : {}), ...(item.was ? { w: Object.fromEntries(Object.entries(item.was).map(([name, key]) => [name, windowShort(key)])) } : {}) });
       icon = "";
     }
   };
