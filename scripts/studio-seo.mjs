@@ -76,11 +76,10 @@ const shown = [
 ];
 const broken = shown.flatMap(([text, title, path]) => TITLE_RULES.flatMap(([rule, breaks, titles]) => ((title || !titles) && breaks(text) ? [`${rule}: "${text}" (${path.join(" › ")})`] : [])));
 if (broken.length) throw new Error(`${broken.length} name${broken.length === 1 ? "" : "s"} shown break${broken.length === 1 ? "s" : ""} the rules:\n  ${broken.slice(0, 20).join("\n  ")}${broken.length > 20 ? `\n  and ${broken.length - 20} more` : ""}`);
-// One subject a preset, all of it in view: at most two panes shown, the price's (hidden over the chain's workings)
-// aside, and no pane of its own hidden, so nothing is drawn that a reader can't see.
-const PRICE = client.series.price.ohlc.name, paneOf = (/** @type {{ pane?: number }} */ layer) => layer.pane ?? 1;
-const unseen = presets.filter(({ c }) => ((shown) => shown.size > 2 || Array.from({ length: Math.max(...c.layers.map(paneOf)) }, (_, i) => i + 1).some((pane) => !shown.has(pane) && !c.layers.some((layer) => paneOf(layer) === pane && layer.series === PRICE)))(new Set(c.layers.filter((layer) => !layer.hidden).map(paneOf))));
-if (unseen.length) throw new Error(`${unseen.length} preset${unseen.length === 1 ? "" : "s"} with a pane hidden or past two:\n  ${unseen.slice(0, 20).map(({ p }) => p.join(" › ")).join("\n  ")}`);
+// One subject a preset, all of it in view: no layer hidden, at most two panes, each with a layer.
+const paneOf = (/** @type {{ pane?: number }} */ layer) => layer.pane ?? 1;
+const unseen = presets.filter(({ c }) => c.layers.some((layer) => layer.hidden) || (c.panes ?? []).length > 2 || (c.panes ?? []).some((_, i) => !c.layers.some((layer) => paneOf(layer) === i + 1)));
+if (unseen.length) throw new Error(`${unseen.length} preset${unseen.length === 1 ? "" : "s"} with a layer hidden, a pane empty or past two:\n  ${unseen.slice(0, 20).map(({ p }) => p.join(" › ")).join("\n  ")}`);
 // The presets the empty chart offers first (the app's RECOMMENDED), each one of them: a place renamed would drop it.
 const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(presetsEdit)?.[1];
 if (!recommended) throw new Error("No RECOMMENDED in presets-edit.js");

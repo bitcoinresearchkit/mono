@@ -466,7 +466,6 @@ export function studioPresets(client, facts, report = (problem) => console.error
       unrealized && section("Unrealized", [
         chart("Profit and loss", titled("Unrealized profit and loss"), [
           series(unrealized.profit, "Profit", { color: "green" }), series(unrealized.loss, "Loss", { color: "red" }),
-          ...(unrealized.grossPnl ? [series(unrealized.grossPnl, "Gross", { color: "gray", hidden: true })] : []),
         ]),
         chart("Net profit and loss", titled("Net unrealized profit and loss"), [series(unrealized.netPnl, "Net", baseline)]),
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
@@ -487,7 +486,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ]),
     chart("Realized price z-score", titled("Realized price z-score"), [
       price(),
-      ...["_1y", "_2y", "_4y", ""].map((key, i) => ({ formula: key ? `zscore(${ratio}, ${key.slice(1)})` : `zscore(${ratio})`, label: key ? windowSaid(key) : "All time", pane: 2, format: "number", ...around(0), ...shades(i, 4), ...(key === "_4y" ? {} : { hidden: true }) })),
+      ...["_1y", "_2y", "_4y", ""].map((key, i) => ({ formula: key ? `zscore(${ratio}, ${key.slice(1)})` : `zscore(${ratio})`, label: key ? windowSaid(key) : "All time", pane: 2, format: "number", ...around(0), ...shades(i, 4) })),
     ]),
   ];
   /**
@@ -514,43 +513,43 @@ export function studioPresets(client, facts, report = (problem) => console.error
       urpd && chart("Cumulative profile", titled("Supply profile, cumulative from the price"), [price(), { profile: [urpd], cumulative: true, ...weighed }]),
       chart("Realized price", titled("Realized price"), [
         price(), series(cost.byCoin.realizedPrice, "Realized price", { color: color ?? "orange" }),
-        ...(cost.byCoin.medianRealizedPrice ? [series(cost.byCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
-        ...(cost.min ? [series(cost.min, "Lowest", { color: "red", dash: 3, hidden: true }), series(cost.max, "Highest", { color: "green", dash: 3, hidden: true })] : []),
         ...(cost.byCoin.avg?.mvrv ? [series(cost.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) })] : []),
       ], { log: [2] }),
       ...(cost.byCoin.avg?.mvrv && !cost.byCoin.avg.mvrv.formula ? deviationCharts(cost.byCoin.realizedPrice.name, cost.byCoin.avg.mvrv.name, titled) : []),
       cost.byDollar && chart("Capitalized price", titled("Capitalized price"), [
         price(), series(cost.byDollar.capitalizedPrice, "Capitalized price", { color: color ?? "green" }),
-        ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
         series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
       ], { log: [2] }),
-      ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, !oldest),
+      ...percentiles(cost.byCoin, "Percentiles by coin", titled("Cost basis percentiles, by coin"), PRICE_COLORS.realizedPrice, !oldest, cost.min && [cost.min, cost.max]),
       ...(cost.byDollar ? percentiles(cost.byDollar, "Percentiles by dollar", titled("Cost basis percentiles, by dollar"), PRICE_COLORS.capitalizedPrice) : []),
       ...[[cost.supplyDensity, "Supply", color ?? "orange"], [cost.capitalDensity, "Capital", color ?? "sky"]].flatMap(([node, label, hue]) => {
         if (!node) return [];
         const parts = [["total", label, hue], ["inProfit", "In profit", "green"], ["inLoss", "In loss", "red"]];
         return [chart(`${label} density`, titled(`Share of ${label.toLowerCase()} with a cost basis within 5% of the price`),
-          parts.map(([key, name, color]) => series(node[key], name, { color, ...(key === "total" ? {} : { hidden: true }) })))];
+          parts.map(([key, name, color]) => series(node[key], name, { color })))];
       }),
     ];
   }
   /**
    * `outer` false (the oldest holder groups by coin, see OLDEST): their low-tail coins were mined for next to nothing
    * (5th $0, 10th cents) and would stretch the scale down to them, so only the inner band shows and every percentile
-   * under the median is out of the axis' fit.
-   * @param {any} node @param {string} name @param {string} title @param {string} color @param {boolean} [outer]
+   * under the median is out of the axis' fit. `ends`: its lowest and highest cost basis, the ends of its lines.
+   * @param {any} node @param {string} name @param {string} title @param {string} color @param {boolean} [outer] @param {[any, any]} [ends]
    */
-  const percentiles = (node, name, title, color, outer = true) => {
+  const percentiles = (node, name, title, color, outer = true, ends = undefined) => {
     const list = entries(node).filter(([key, value]) => isLeaf(value) && Number.isFinite(percentile(key))).sort(([a], [b]) => percentile(a) - percentile(b));
     if (!list.length) return [];
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
     // The low tail and the band its edge bounds are out of the axis' fit: drawn past the plot's foot where they're far
         // under the price, the axis framed on the price and the core.
     const cut = outer ? 25 : 50, edges = outer ? [5, 25, 75, 95] : [25, 75], tail = (/** @type {string} */ key) => (percentile(key) < cut ? { fit: false } : {});
-    const lines = list.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...tail(key), ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5, ...(edges.includes(percentile(key)) ? {} : { hidden: true }) }) }));
-    const at = (/** @type {number} */ p) => ((i) => (i >= 0 ? letter(1 + i) : undefined))(list.findIndex(([key]) => percentile(key) === p));
+    // The bands and their edges; each percentile is in the lines' chart beside it.
+    const shown = list.filter(([key]) => key === "median" || edges.includes(percentile(key)));
+    const lines = shown.map(([key, value]) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color, ...tail(key), ...(key === "median" ? { width: 2 } : { width: 1, opacity: 0.5 }) }));
+    const at = (/** @type {number} */ p) => ((i) => (i >= 0 ? letter(1 + i) : undefined))(shown.findIndex(([key]) => percentile(key) === p));
     const band = (/** @type {number} */ low, /** @type {number} */ high, /** @type {number} */ opacity) => ((a, b) => (a && b ? [{ cloud: [a, b], label: `${percentileLabel(low)} to ${percentileLabel(high)}`, color, opacity, ...(low < cut ? { fit: false } : {}) }] : []))(at(low), at(high));
-    const ramped = ramp(list.length, 25, 160), each = list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: ramped[i], width: key === "median" ? 2 : 1, ...tail(key), ...(!outer && percentile(key) < 25 ? { hidden: true } : {}) }));
+    const all = [...(ends ? [["min", ends[0], "Lowest"]] : []), ...list.map(([key, value]) => [key, key === "median" && median ? median : value, percentileLabel(percentile(key))]), ...(ends ? [["max", ends[1], "Highest"]] : [])];
+    const ramped = ramp(all.length, 25, 160), each = all.map(([key, value, label], i) => series(value, label, { color: ramped[i], width: key === "median" ? 2 : 1, ...(key === "min" ? { fit: false } : tail(key)) }));
     return [chart(name, title, [price(), ...lines, ...(outer ? band(5, 95, 0.15) : []), ...band(25, 75, 0.3)]), chart(`${name.replace(/^Percentiles/, "Percentile lines")}`, title.replace(/^Cost basis percentiles/, "Cost basis percentile lines"), [price(), ...each])];
   };
 
@@ -584,10 +583,13 @@ export function studioPresets(client, facts, report = (problem) => console.error
       activePrice: [ct.prices.active.value, ct.prices.active.ratio],
     })[key];
   };
-  /** @param {any} node @param {(v: any) => any} pick @param {(p: number) => boolean} [shown] */
-  const bandLines = (node, pick, shown = (/** @type {number} */ p) => p <= 20 || p >= 80 || p === 50) => {
+  /** The meter reads its tails against the median: the bands between add nothing to it. @param {number} p */
+  const tailOrMedian = (p) => p <= 20 || p >= 80 || p === 50;
+  /** @param {any} node @param {(v: any) => any} pick @param {(p: number) => boolean} [drawn] */
+  const bandLines = (node, pick, drawn = tailOrMedian) => {
     const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k))), ps = bands.map(([k]) => percentile(k));
-    return bands.map(([k, v], i) => series(pick(v), bandLabel(percentile(k), pick(v).name), { ...rarityLook(ps[i] < 50 ? ps[i - 1] ?? ps[i] : ps[i], ps[i] === 50), ...(shown(percentile(k)) ? {} : { hidden: true }) }));
+    // Each band's look is its neighbor's on the cheap side, so the looks are taken before the bands between go.
+    return bands.map(([k, v], i) => series(pick(v), bandLabel(percentile(k), pick(v).name), rarityLook(ps[i] < 50 ? ps[i - 1] ?? ps[i] : ps[i], ps[i] === 50))).filter((_, i) => drawn(ps[i]));
   };
   /** @param {number} p @param {boolean} [median] */
   const rarityLook = (p, median = p === 50) => {
@@ -596,7 +598,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
   };
   /** @param {Layer[]} head @param {any} node @param {(v: any) => any} pick */
   const bandLayers = (head, node, pick) => {
-    const ps = bandPercentiles(node);
+    const ps = bandPercentiles(node).filter(tailOrMedian);
     return [...head, ...bandLines(node, pick), ...rarityTails((p) => letter(head.length + ps.indexOf(p)), ps)];
   };
   /** @param {any} node */
@@ -929,7 +931,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     if (!long?.ratio) throw new Error(`Moving averages: no 200-day ${kind} with its ratio`);
     const over = (/** @type {string} */ name, /** @type {Layer} */ ratio, /** @type {string} */ title, /** @type {boolean} */ mayer) => chart(name, title, [price(), series(own(long), `200-day ${kind}`, { color: colors[list.findIndex(([key]) => key === "_200d")] }), { ...ratio, pane: 2, ...around(1) }], { log: [2], was: Object.fromEntries(list.filter(([, value]) => Boolean(value.mayerMultiple) === mayer).map(([key]) => [spanLabel(key), key])) });
     return section(`Moving averages, ${kind}`, [
-      chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i], ...(["_50d", "_200d", "_200w"].includes(key) ? {} : { hidden: true }) }))]),
+      chart("Compare", `${kind}s of the price`, [price(), ...list.map(([key, value], i) => series(own(value), `${windowAdjective(key)} ${kind}`, { color: colors[i] }))]),
       over("Price ratio", series(long.ratio, "Price ratio"), `200-day ${kind}`, false),
       long.mayerMultiple && over("Mayer multiple", series(long.mayerMultiple, "Mayer multiple", { levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }), `200-day ${kind} and the Mayer multiple`, true),
     ]);
@@ -955,10 +957,10 @@ export function studioPresets(client, facts, report = (problem) => console.error
       chart("All-time high, drawdown", "Price drawdown from its all-time high", [price(), series(m.ath.high, "All-time high", { color: "green" }), series(m.ath.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })]),
       chart("All-time high, days since", "Days since the price's all-time high", [series(m.ath.daysSince, "Days since", { color: "orange" }), series(m.ath.daysBetweenMax, "Longest between", { color: "gray" })]),
       section("Returns", [
-        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !overYears(key)).map(([key, value], i, all) => series(value, windowSaid(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
+        chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !overYears(key)).map(([key, value], i, all) => series(value, windowSaid(key), { ...baseline, ...shades(i, all.length) }))),
         // Over years, returns run from −80% to millions of percent: growth multiples on a log scale, 1× no change.
-        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => overYears(key)).map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowSaid(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
-        chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3), ...(span === "4y" ? {} : { hidden: true }) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray", hidden: true }]),
+        chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => overYears(key)).map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowSaid(key), format: "ratio", ...around(1), ...shades(i, all.length) })), { log: [1] }),
+        chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray" }]),
         chart("Return", "30-day price return", [price(), series(m.returns._1m, "30-day return", { pane: 2, ...baseline })], { was: returnsWere(false) }),
         chart("Growth", "4-year price growth", [price(), { formula: `1 + ${m.returns._4y.name} / 100`, label: "4-year growth", format: "ratio", pane: 2, ...around(1) }], { log: [2], was: returnsWere(true) }),
       ]),
@@ -976,7 +978,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         // neither the 2015 nor the 2018 low.
         chart("Pi cycle bottom", "Pi cycle bottom", [price(), { formula: "ema(A, 150d)", label: "150-day EMA", color: "green" }, { formula: "0.745 * sma(A, 471d)", label: "471-day SMA × 0.745", color: "red" }, { formula: "B < C", type: "signal", ref: "A", label: "Bottom signal", color: "green" }]),
         chart("Golden and death crosses", "Golden and death crosses", [price(), { formula: "sma(A, 50d)", label: "50-day SMA", color: "amber" }, { formula: "sma(A, 200d)", label: "200-day SMA", color: "sky" }, { formula: "(B > C) - (B < C)", type: "signal", ref: "A", place: "below", results: true, label: "Cross", color: "green" }]),
-        chart("Trailing stop", "A 20-day trailing stop", [price(), { formula: "shift(highest(A, 20d), 1d)", label: "20-day high", color: "gray", dash: 2, hidden: true }, { formula: "shift(lowest(A, 20d), 1d)", label: "20-day low", color: "gray", dash: 2, hidden: true }, { trend: ["B", "C"], ref: "A", label: "Trailing stop", color: "red", colorBelow: "green", width: 2 }], { range: "1y" }),
+        chart("Trailing stop", "A 20-day trailing stop", [price(), { formula: "shift(highest(A, 20d), 1d)", label: "20-day high", color: "gray", dash: 2 }, { formula: "shift(lowest(A, 20d), 1d)", label: "20-day low", color: "gray", dash: 2 }, { trend: ["B", "C"], ref: "A", label: "Trailing stop", color: "red", colorBelow: "green", width: 2 }], { range: "1y" }),
         ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `halving(A, ${n})`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: recencyColor(n, cycles) }))], { log: [2], halvings: true, range: "max" }))(epoch + 1),
         chart("Years", "The price's years, each from its start", [price(), ...Array.from({ length: 8 }, (_, k) => ({ formula: `year(A, ${year - 7 + k})`, label: String(year - 7 + k), pane: 2, color: recencyColor(k, 8) }))], { log: [2], range: "8y" }),
         .../** @type {[string, string, string, number, string, number, { halvings?: boolean, range: string }][]} */ ([["Halving cycles overlaid", "The price's cycle since the last halving, over the ones before it", "halving", epoch, "cycle", Math.min(3, epoch - 1), { halvings: true, range: "4y" }], ["Years overlaid", "The price's year so far, over the ones before it", "year", year, "year", 3, { range: "1y" }]]).map(([name, title, f, now, what, before, options]) =>
@@ -1086,11 +1088,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
       chart("Vaulted and active", "Vaulted and active supply", [["vaulted", "Vaulted"], ["active", "Active"]].map(([key, label]) => series(ct.supply[key].btc, label, { color: PRICE_COLORS[key], type: "area" })), { stack: { 1: "stack" } }),
     ], { icon: "coins" }),
     section("Activity", [
-      chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
+      chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" })]),
       ...market("UTXOs", { Change: "UTXO change", Spent: "UTXOs spent" }),
       ...market("Activity"),
       ...inDollars(t.holders.all.activity.transferVolume, "Transfer volume, in dollars", "Transfer volume, in dollars"),
       section("Cointime", [
+        chart("Adjusted velocity", "Cointime-adjusted velocity", [series(ct.adjusted.velocity.btc, "In bitcoin", { color: "violet" }), series(ct.adjusted.velocity.usd, "In dollars", { color: "sky" })]),
         ...flow(ct.activity.coinblocksCreated, "Coin blocks created", "Coin blocks created"),
         ...flow(ct.activity.coinblocksDestroyed, "Coin blocks destroyed", "Coin blocks destroyed"),
         ...flow(ct.activity.coinblocksStored, "Coin blocks stored", "Coin blocks stored"),
@@ -1118,7 +1121,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     ], { icon: "people" }),
     section("Mining", [
       section("Hashing", [
-        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true })], { log: [1] }),
+        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3 }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray" })], { log: [1] }),
         chart("Hash rate drawdown", "Hash rate drawdown from its all-time high", [series(mining.hashrate.drawdown, "Drawdown", { color: "red", type: "area" })]),
         // On a log scale: it has grown by decades with the hash rate.
         chart("Block work", "Block work, the hashes expected to find the blocks", windows(blocks.work.sum, ""), { log: [1], was: allTimeWas("Block work") }),
@@ -1164,9 +1167,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
       ...perBlockFan(mining.rewards.fees, "Fees per block, in dollars", "Fees per block, in dollars", true, usd),
       ...spread(tx.fees.effectiveFeeRate, "Fee rate", "transactions' effective fee rates", "orange", true),
       ...(isLeaf(tx.fees.effectiveFeeRate?.median) && blocks.fullness?.avg?._1m ? [chart("Fee rate and fullness", "Transaction fee rates and block fullness", [
-        { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", color: "orange", width: 1, opacity: 0.5, hidden: true },
+        { formula: tx.fees.effectiveFeeRate.p25.name, label: "25th", color: "orange", width: 1, opacity: 0.5 },
         { formula: tx.fees.effectiveFeeRate.median.name, label: "Median fee rate", color: "orange", width: 2 },
-        { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", color: "orange", width: 1, opacity: 0.5, hidden: true },
+        { formula: tx.fees.effectiveFeeRate.p75.name, label: "75th", color: "orange", width: 1, opacity: 0.5 },
         { cloud: ["A", "C"], label: "25th to 75th", color: "orange", opacity: 0.25 },
         series(blocks.fullness.avg._1m, `Block fullness, ${windowAdjective("_1m")} average`, { pane: 2, color: "sky", levels: [{ value: 100, color: "gray", dash: 3 }] }),
       ], { log: [1], average: { 1: "7d" }, size: { 1: 2, 2: 1.4 }, unpriced: true })] : []),
@@ -1328,7 +1331,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     if (!keys.includes("median")) return [];
     const at = (/** @type {string} */ key) => letter(keys.indexOf(key));
     const tail = (/** @type {string} */ key) => (log && ["min", "p10", "p90", "max"].includes(key) ? { fit: false } : {});
-    const layers = lines.map(([key, layer]) => ({ ...layer, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1 } : { width: 1, opacity: 0.5, hidden: true }) }));
+    const layers = lines.map(([key, layer]) => ({ ...layer, color, ...tail(key), ...(key === "median" ? { width: 2 } : key === "avg" ? { width: 1 } : { width: 1, opacity: 0.5 }) }));
     const band = (/** @type {string} */ low, /** @type {string} */ high, /** @type {string} */ label, /** @type {number} */ opacity) => (keys.includes(low) && keys.includes(high) ? [{ cloud: [at(low), at(high)], label, color, opacity, ...tail(low) }] : []);
     return [chart(name, title, [...layers, ...band("p10", "p90", "10th to 90th", 0.15), ...band("p25", "p75", "25th to 75th", 0.25)], { log: log ? [1] : [], ...(average ? { average: { 1: average } } : {}), window, unpriced: true })];
   }
@@ -1448,7 +1451,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     /** @param {string} said */
     const title = (said) => capitalized(`${said} cost basis by dollar of each holder group's mobile coins, with the trends of the three youngest groups`);
     // Over all its coins, not its mobile ones alone.
-    const edges = short.flatMap(([key, label]) => [series(t.holders[key].costBasis.min, `${label}, lowest cost basis of all its coins`, { color: "gray", hidden: true }), series(t.holders[key].costBasis.max, `${label}, highest cost basis of all its coins`, { color: "gray", hidden: true })]);
+    const edges = short.flatMap(([key, label]) => [series(t.holders[key].costBasis.min, `${label}, lowest cost basis of all its coins`, { color: "gray", opacity: 0.4 }), series(t.holders[key].costBasis.max, `${label}, highest cost basis of all its coins`, { color: "gray", opacity: 0.4 })]);
     const trends = (/** @type {number} */ from) => short.map(([, label, color], i) => ({ trend: [letter(from + 2 * i), letter(from + 1 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 }));
     /**
          * Layer letters: the price A, the short-term lines B to D, the long-term E to G, all holders' H, the clouds I and
@@ -1548,7 +1551,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
         ...change(a.funded.delta, "Change", of("Funded address count change")),
         ...flow(a.new, "New", of(numberOf("new addresses"))),
         // Each block's distinct addresses, averaged over a window: not the distinct addresses of the window.
-        chart("Active per block", of("Average number of active addresses per block"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { extra: { color: ramp(all.length)[i], ...(key === "active" ? {} : { hidden: true }) } }))),
+        chart("Active per block", of("Average number of active addresses per block"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { extra: { color: ramp(all.length)[i] } }))),
       ]),
       ...addressKinds.map((kind) => {
         const k = a[kind.key], who = capitalized(kind.set);

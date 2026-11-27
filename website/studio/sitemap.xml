@@ -2146,6 +2146,7 @@
 <url><loc>https://bitview.space/studio/presets/activity/coin-days-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/activity/transfer-volume-in-dollars</loc></url>
+<url><loc>https://bitview.space/studio/presets/activity/cointime/adjusted-velocity</loc></url>
 <url><loc>https://bitview.space/studio/presets/activity/cointime/coin-blocks-created</loc></url>
 <url><loc>https://bitview.space/studio/presets/activity/cointime/coin-blocks-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/activity/cointime/coin-blocks-stored</loc></url>
