@@ -34,36 +34,49 @@ const LOW = 5;
 const SPAN = /** @type {Record<string, number>} */ ({ d: 1, w: 7, m: 30, y: 365 });
 /** The one line worked out here, from the date alone. */
 const FORMULAS = ["power_law_floor"];
-/** What every name the rules below read contains: the catalog is asked for these names alone. */
-export const NAMED = ["rarity", "_floor_p", "price_sma_", "price_ema_"];
 const alone = (/** @type {string} */ id) => /** @type {Made} */ ({ id, base: id, kind: "line" });
 /** A line at one of its base's levels, the level as the server's ids write it. @returns {Made} */
 const leveled = (/** @type {string} */ id, /** @type {string} */ base, /** @type {Kind} */ kind, /** @type {string} */ tag) => ({ id, base, kind, level: levelOf(tag) });
+/** @typedef {{ bases: Set<string>, averages: Made[], floors: Made[], rarity: Made[] }} Groups */
 /**
- * Every line, from the names the server serves (its catalog), in groups: the lines themselves, Bedrock's floors,
- * then the rarity lines. One rule each, and only what they leave out is out:
- * - a price the server ranks the price's ratio to (it serves `B_ratio_rarity_…`) is a reference price: ranked as
- *   it is and at each low rarity level. Its age slices (`age_…`) are cuts of the holders, not models; the short-
- *   and long-term holders are the published split.
- * - the rarity meters, at their low levels;
- * - every Bedrock floor (`bedrock_W_floor_…`, W its weighting; the cost-basis lines above a floor are not floors);
- * - the price's moving averages of a year or more (shorter ones are trading averages, which a fall cuts through);
- * - the formula lines.
- * @returns {Made[]}
+ * The rules that make the lines from the names the server serves (its catalog), tried in order on each name; only
+ * what they leave out is out. Each rule's `parts` are what every name its pattern takes contains: the catalog is
+ * asked for those names alone (`NAMED`), so a rule and the names it reads are written together. `take` files a
+ * matched name and says whether it was taken (a name not taken goes on to the next rule).
+ * @type {{ parts: string[], pattern: RegExp, take: (m: RegExpExecArray, served: Set<string>, into: Groups) => boolean }[]}
  */
+const RULES = [
+  // A price the server ranks the price's ratio to (it serves `B_ratio_rarity_…`) is a reference price: ranked as it is
+  // and at each low rarity level. Its age slices (`age_…`) are cuts of the holders, not models; the short- and
+  // long-term holders are the published split.
+  { parts: ["rarity"], pattern: /^(\w+?)_rarity_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], served, into) => {
+    if (base.startsWith("age_") || !served.has(`${base}_ratio_rarity_p${tag}`)) return false;
+    into.bases.add(base);
+    if (levelOf(tag) <= LOW) into.rarity.push(leveled(id, base, "rarity", tag));
+    return true;
+  } },
+  // The rarity meters, at their low levels.
+  { parts: ["rarity"], pattern: /^(\w*rarity_meter)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => levelOf(tag) <= LOW && (into.rarity.push(leveled(id, base, "rarity", tag)), true) },
+  // Every Bedrock floor (`bedrock_W_floor_…`, W its weighting; the cost-basis lines above a floor are not floors).
+  { parts: ["_floor_p"], pattern: /^(bedrock_[a-z]+_floor)_p(\d+(?:_\d+)?)$/, take: ([id, base, tag], _, into) => (into.floors.push(leveled(id, base, "floor", tag)), true) },
+  // The price's moving averages of a year or more (shorter ones are trading averages, which a fall cuts through).
+  { parts: ["price_sma_", "price_ema_"], pattern: /^price_(?:sma|ema)_(\d+)([dwmy])$/, take: ([id, n, unit], _, into) => +n * SPAN[unit] >= SPAN.y && (into.averages.push(alone(id)), true) },
+];
+/** The name parts the rules read: the catalog is asked for the names that contain one. */
+export const NAMED = [...new Set(RULES.flatMap((rule) => rule.parts))];
+/** Every line, from the names the server serves, in groups: the lines themselves, Bedrock's floors, then the rarity lines; and the formula lines. @returns {Made[]} */
 export function linesOf(/** @type {Set<string>} */ served) {
-  /** @type {Set<string>} */ const bases = new Set();
-  /** @type {Made[]} */ const averages = [], /** @type {Made[]} */ floors = [], /** @type {Made[]} */ rarity = [];
-  for (const id of served) {
-    let m = /^(\w+?)_rarity_p(\d+(?:_\d+)?)$/.exec(id);
-    if (m && !m[1].startsWith("age_") && served.has(`${m[1]}_ratio_rarity_p${m[2]}`)) {
-      bases.add(m[1]);
-      if (levelOf(m[2]) <= LOW) rarity.push(leveled(id, m[1], "rarity", m[2]));
-    } else if ((m = /^(\w*rarity_meter)_p(\d+(?:_\d+)?)$/.exec(id)) && levelOf(m[2]) <= LOW) rarity.push(leveled(id, m[1], "rarity", m[2]));
-    else if ((m = /^(bedrock_[a-z]+_floor)_p(\d+(?:_\d+)?)$/.exec(id))) floors.push(leveled(id, m[1], "floor", m[2]));
-    else if ((m = /^price_(?:sma|ema)_(\d+)([dwmy])$/.exec(id)) && +m[1] * SPAN[m[2]] >= SPAN.y) averages.push(alone(id));
+  /** @type {Groups} */ const into = { bases: new Set(), averages: [], floors: [], rarity: [] }, taken = new Set();
+  for (const id of served) for (const rule of RULES) {
+    const m = rule.pattern.exec(id);
+    if (!m) continue;
+    // (A name this pattern takes that none of its parts are in: the catalog wouldn't have brought it.)
+    if (!rule.parts.some((part) => id.includes(part))) throw new Error(`${id}: a rule takes it, but its name parts (${rule.parts.join(", ")}) don't ask the catalog for it`);
+    if (rule.take(m, served, into)) { taken.add(rule); break; }
   }
-  return [...[...bases].map(alone), ...averages, ...FORMULAS.map(alone), ...floors, ...rarity];
+  // (A rule that took nothing: its parts don't bring its names, or the server stopped serving them. Either way, lines are missing.)
+  for (const rule of RULES) if (!taken.has(rule)) throw new Error(`no line taken by the rule for ${rule.pattern}: the catalog's names with ${rule.parts.join(" or ")} have none it takes`);
+  return [...[...into.bases].map(alone), ...into.averages, ...FORMULAS.map(alone), ...into.floors, ...into.rarity];
 }
 /** The lines read from the server, of those made: all but the formula lines. */
 export const servedOf = (/** @type {Made[]} */ made) => made.map((l) => l.id).filter((id) => !FORMULAS.includes(id));
