@@ -9,13 +9,13 @@
     <meta name="theme-color" content="#f3f2ee" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0f1113" media="(prefers-color-scheme: dark)" />
     <title>Bottoms · Bitview</title>
-    <meta name="description" content="Price lines, ranked by how close each came to Bitcoin's cycle bottoms." />
+    <meta name="description" content="Every price line, ranked by how close it came to Bitcoin's cycle bottoms." />
     <link rel="canonical" href="https://bitview.space/bottoms/" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/bottoms/" />
     <meta property="og:site_name" content="Bitview" />
     <meta property="og:title" content="Bottoms · Bitview" />
-    <meta property="og:description" content="Price lines, ranked by how close each came to Bitcoin's cycle bottoms." />
+    <meta property="og:description" content="Every price line, ranked by how close it came to Bitcoin's cycle bottoms." />
     <meta property="og:image" content="https://bitview.space/assets/cards/bottoms.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
@@ -49,6 +49,13 @@
 
       /* A results sheet, by day or by night: paper and ink, a black board, and three colours for the three lines at
          the top of the ranking. The chart reads its colours from here. */
+      /* (A colour, so it's settled where it's set, by the page's scheme: the board, dark inside, keeps the page's black.) */
+      @property --board {
+        syntax: "<color>";
+        inherits: true;
+        initial-value: #101114;
+      }
+
       :root {
         color-scheme: light dark;
         --sans: Archivo, -apple-system, system-ui, sans-serif;
@@ -59,17 +66,15 @@
         --text: light-dark(#33363c, #c6c7ca);
         --soft: light-dark(#5f636b, #91959c);
         --rule: light-dark(rgb(16 17 20 / 0.14), rgb(241 240 236 / 0.16));
-        /* Every other line, behind the price: each one faint, so the tone deepens where many run together. */
-        --crowd: light-dark(rgb(16 17 20 / 0.07), rgb(241 240 236 / 0.08));
+        /* Every other line, behind the price, at most this deep where hundreds run together: each line faint on its own
+           (the chart's CROWD), the deepening capped here, a haze under the price and the three, not a band of ink. */
+        --crowd: light-dark(rgb(16 17 20 / 0.4), rgb(241 240 236 / 0.4));
         --one: light-dark(#cc350d, #ff6a45);
-        --two: light-dark(#1d5cf0, #6b9dff);
-        --three: light-dark(#08845a, #33c48c);
+        --two: light-dark(#622cb5, #9167ea);
+        --three: light-dark(#00a99c, #41dfcf);
         /* (A place's number on its colour.) */
         --on-mark: light-dark(#fff, #0f1113);
         --board: light-dark(#101114, #1a1d21);
-        --board-ink: #f1f0ec;
-        --board-soft: #a3a6ac;
-        --board-rule: rgb(241 240 236 / 0.15);
       }
 
       *,
@@ -148,15 +153,6 @@
         line-height: 16px;
       }
 
-      /* After a line's name wherever lines are listed: where it comes from, when Bitview doesn't make it. Quiet beside the name. */
-      .from {
-        color: var(--soft);
-        font-size: 12px;
-        font-weight: 500;
-        letter-spacing: 0;
-        white-space: nowrap;
-      }
-
       /* A line's place in the ranking: the first three in their colours, as on the chart. */
       .n {
         display: inline-grid;
@@ -186,8 +182,10 @@
           background: var(--two);
         }
 
+        /* (Dark on both teals: white on the light one is 2.9:1.) */
         &[data-n="3"] {
           background: var(--three);
+          color: #0f1113;
         }
       }
 
@@ -237,12 +235,11 @@
         }
       }
 
-      /* The chart's zoom: its verb, then one outlined control. A single outline says "one of these views"; separate chips would say "filters". */
+      /* The chart's zoom: one outlined control, named for readers by its group's label (no word shown: the years say it). A single outline says "one of these views"; separate chips would say "filters". */
       .zoom {
         display: flex;
         flex: none;
         align-items: center;
-        gap: 8px;
         color: var(--soft);
         font-size: 12.5px;
         font-weight: 600;
@@ -272,6 +269,14 @@
           &[aria-pressed="true"] {
             background: var(--ink);
             color: var(--paper);
+            /* (Its ring in ink: in its own paper it wouldn't show.) */
+            outline-color: var(--ink);
+          }
+
+          @media (hover: hover) {
+            &:hover:not([aria-pressed="true"]) {
+              color: var(--ink);
+            }
           }
 
           /* (A finger's 44px, unseen, up and down only.) */
@@ -309,14 +314,8 @@
           line-height: 1.3;
         }
 
-        /* (Room for the finding before it is known: nothing under it moves when it lands.) */
         #said {
-          min-height: 3lh;
           text-wrap: balance;
-
-          @media (width >= 900px) {
-            min-height: 2lh;
-          }
         }
 
         /* The chart's key, and for a day under the pointer its reading: the day, then the price and the three lines
@@ -372,15 +371,33 @@
         flex-direction: column;
         height: var(--under);
         padding: 12px max(20px, env(safe-area-inset-right)) 0 var(--gutter);
+        color-scheme: dark;
         background: var(--board);
-        color: var(--board-ink);
-        --soft: var(--board-soft);
+        color: var(--ink);
         contain: strict;
 
+        /* (The way to every line: on a phone the board shows three. A finger's 44px, unseen: the board's edge leaves
+           12px over it, so the rest is under it, over the first row, which isn't a control.) */
         .heads {
+          position: relative;
+          z-index: 1;
           flex: none;
-          color: var(--board-soft);
-          text-align: right;
+          align-self: flex-end;
+          padding: 12px 10px 18px;
+          margin: -12px -10px -18px;
+          color: var(--soft);
+          text-decoration: none;
+
+          &::after {
+            content: "↓" / "";
+            margin-left: 0.3em;
+          }
+
+          @media (hover: hover) {
+            &:hover {
+              color: var(--ink);
+            }
+          }
         }
 
         /* (Only the rows that fit whole: one that wouldn't goes to a column out of sight.) */
@@ -401,15 +418,15 @@
           align-items: center;
           width: 100%;
           min-height: 34px;
-          border-top: 1px solid var(--board-rule);
+          border-top: 1px solid var(--rule);
           font-size: 13.5px;
           font-weight: 600;
           line-height: 1.15;
         }
 
         .n:not([data-n="1"], [data-n="2"], [data-n="3"]) {
-          background: var(--board-rule);
-          color: var(--board-ink);
+          background: var(--rule);
+          color: var(--ink);
         }
 
         .value {
@@ -442,7 +459,7 @@
           small {
             display: block;
             margin-top: 4px;
-            color: var(--board-soft);
+            color: var(--soft);
             font-size: 12px;
             font-weight: 500;
             letter-spacing: 0;
@@ -468,12 +485,14 @@
           height: auto;
           padding: env(safe-area-inset-top) max(28px, env(safe-area-inset-right)) 0 28px;
 
-          /* (On the bar's own line: the one band across the page's top.) */
+          /* (On the bar's own line: the one band across the page's top, the whole band its reach.) */
           .heads {
             display: flex;
             align-items: center;
             justify-content: flex-end;
             height: var(--band);
+            padding-block: 0;
+            margin-block: 0;
           }
 
           /* (The rows share the column's height, the first taking the most: no room left over under the last.) */
@@ -507,15 +526,6 @@
               text-align: left;
             }
 
-            #own {
-              margin-top: 5px;
-            }
-
-            small {
-              margin-top: 6px;
-              font-size: 13.5px;
-            }
-
             .value {
               font-size: 84px;
             }
@@ -531,11 +541,17 @@
         position: absolute;
         inset: 40% calc(var(--side) + var(--gutter)) auto var(--gutter);
         z-index: 3;
+        width: fit-content;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--paper);
         color: var(--ink);
         font-weight: 600;
 
+        /* (A finger's 44px, unseen, up and down.) */
         button {
-          margin-left: 8px;
+          padding-block: 14px;
+          margin: -14px 0 -14px 8px;
           text-decoration: underline;
           border: 0;
           background: none;
@@ -572,19 +588,17 @@
         }
       }
 
-      /* The board itself, edge to edge on black: inside it the page's tokens are the board's. */
+      /* The board itself, edge to edge on black: dark inside, so the page's tokens take their night values. */
       .board {
         margin-top: clamp(52px, 9vh, 96px);
         padding-bottom: clamp(40px, 7vh, 72px);
+        color-scheme: dark;
         background: var(--board);
-        color: var(--board-ink);
+        color: var(--ink);
         --paper: var(--board);
-        --ink: var(--board-ink);
-        --soft: var(--board-soft);
-        --rule: var(--board-rule);
       }
 
-      /* The small print (what the names mean, the rules, every other line), said quietly. */
+      /* The small print (what the names mean, the rules), said quietly. */
       .quiet {
         h2 {
           font-size: 20px;
@@ -921,47 +935,118 @@
         background: var(--paper);
         color: var(--soft);
 
-        span {
+        > * {
           text-align: right;
           text-wrap: balance;
         }
 
-        span:nth-child(2) {
+        > :nth-child(2) {
           text-align: left;
         }
 
-        > span:last-child {
+        /* (A column to sort by: its whole cell, and a finger's 44px up and down, unseen; its arrow says smallest
+           first.) */
+        button {
+          width: 100%;
+          padding: 14px 0;
+          margin-block: -14px;
+          border: 0;
+          background: none;
+          text-align: inherit;
+          cursor: pointer;
+
+          &::after {
+            content: " ↑" / "";
+          }
+
+          @media (hover: hover) {
+            &:hover {
+              color: var(--ink);
+            }
+          }
+        }
+
+        /* (The column sorted by, in ink and underlined; pressed again it does nothing.) */
+        [aria-sort] button {
           color: var(--ink);
+          cursor: default;
+          text-decoration: underline 2px;
+          text-underline-offset: 5px;
+
+        }
+      }
+
+      /* Finding a line by its name, over the table. (16px: a smaller field zooms the page on an iPhone.) */
+      .find {
+        display: block;
+        width: min(100%, 320px);
+        margin-top: 28px;
+        padding: 10px 12px;
+        border: 1px solid var(--rule);
+        border-radius: 8px;
+        background: none;
+        color: var(--ink);
+        font: inherit;
+        font-size: 16px;
+
+        &::placeholder {
+          color: var(--soft);
+        }
+
+      }
+
+      /* (What the finder found: nothing while it's empty.) */
+      #found {
+        margin-top: 8px;
+
+        &:empty {
+          margin: 0;
+        }
+
+        & + .table {
+          margin-top: 16px;
         }
       }
 
       .rank {
         li {
-          row-gap: 7px;
-          padding-block: 13px;
+          padding-block: 8px;
           border-bottom: 1px solid var(--rule);
+        }
+
+        /* (Laid out only near the screen: hundreds of rows.) */
+        &#rank li {
+          content-visibility: auto;
+          contain-intrinsic-block-size: auto 38px;
         }
 
         .n {
           justify-self: start;
           padding-inline: 4px;
+          font-size: 14px;
         }
 
         .who {
           min-width: 0;
-          color: var(--ink);
-          font-size: 15.5px;
-          font-weight: 650;
-          line-height: 1.2;
+          color: var(--text);
+          font-size: 14.5px;
+          font-weight: 450;
+          line-height: 1.3;
         }
 
         .at {
           justify-self: end;
           color: var(--soft);
-          font-size: 14px;
+          font-size: 13.5px;
 
           /* (The worst of a line's misses: its score.) */
           &.worst {
+            color: var(--ink);
+            font-weight: 650;
+          }
+
+          /* (The column the table is sorted by, read down it.) */
+          &.by {
             color: var(--ink);
             font-weight: 650;
           }
@@ -970,32 +1055,18 @@
         .score {
           justify-self: end;
           color: var(--ink);
-          font-size: 24px;
+          font-size: 17px;
         }
 
-        /* (Every other line, laid out only near the screen.) */
-        &.rest li {
-          padding-block: 8px;
-          content-visibility: auto;
-          contain-intrinsic-block-size: auto 38px;
-
-          .n {
-            font-size: 14px;
-          }
-
-          .who {
-            color: var(--text);
-            font-size: 14.5px;
-            font-weight: 450;
-            line-height: 1.3;
-          }
-
-          .at {
-            font-size: 13.5px;
-          }
-
+        /* (Sorted by a bottom, that column alone leads: the worst miss, its cell and the score, steps back.) */
+        #table:has(.cols [aria-sort]:not([data-k="-1"])) & {
           .score {
-            font-size: 17px;
+            color: var(--soft);
+          }
+
+          .at.worst:not(.by) {
+            color: var(--soft);
+            font-weight: inherit;
           }
         }
       }
@@ -1038,20 +1109,30 @@
           column-gap: 8px;
         }
 
+        .find {
+          width: 100%;
+        }
+
+        /* (The names sit over their row's misses: "Line" is read, not shown, so each cell keeps its header.) */
         .cols {
-          span:nth-child(2) {
-            display: none;
+          > :nth-child(2) {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
           }
 
-          span {
+          > * {
             text-align: left;
           }
 
-          > span:nth-child(3) {
+          > :nth-child(3) {
             grid-column-start: 2;
           }
 
-          > span:last-child {
+          > :last-child {
             text-align: right;
             white-space: nowrap;
           }
@@ -1080,8 +1161,11 @@
             }
           }
 
-          &.rest li {
+          li {
             row-gap: 3px;
+          }
+
+          &#rank li {
             contain-intrinsic-block-size: auto 70px;
           }
         }
@@ -1133,8 +1217,9 @@
       footer {
         margin-top: clamp(52px, 9vh, 96px);
         padding-block: 24px calc(40px + env(safe-area-inset-bottom));
+        color-scheme: dark;
         background: var(--board);
-        color: var(--board-soft);
+        color: var(--soft);
         font-size: 14px;
         line-height: 1.45;
 
@@ -1153,23 +1238,22 @@
       <header class="bar">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <div class="zoom">
-          <span aria-hidden="true">Zoom</span>
           <div class="spans" id="spans" role="group" aria-label="Zoom the chart">
-            <button type="button" data-view="all" aria-pressed="true" aria-label="Every year shown">All</button>
+            <button type="button" data-view="all" aria-pressed="true" aria-label="All years">All</button>
           </div>
         </div>
       </header>
       <div class="title" id="title">
         <h1>Bottoms</h1>
-        <p id="said">Price lines, ranked by how close each came to Bitcoin's cycle bottoms.</p>
+        <p id="said">Every price line, ranked by how close it came to Bitcoin's cycle bottoms.</p>
         <p class="read" id="read" aria-hidden="true"><span id="when"></span><span></span><span data-n="1"></span><span data-n="2"></span><span data-n="3"></span></p>
       </div>
       <figure class="chart" id="chart" tabindex="0" aria-label="Bitcoin's price day by day, its cycle bottoms marked, every ranked line in grey behind it and the three that came closest in colour"></figure>
-      <div class="failed" id="failed" hidden></div>
+      <div class="failed" id="failed" role="alert" hidden></div>
       <div class="tower" id="tower">
-        <p class="heads fine">Worst miss · smaller is better</p>
+        <a class="heads fine" id="every" href="#ranking">Every line</a>
         <ol id="top" aria-label="The closest lines and each one's worst miss">
-          <li class="first"><i class="n" data-n="1">1</i><span class="who"><span class="label">&nbsp;</span><small id="own">&nbsp;</small></span><span class="off"><b class="value num"></b><small>furthest from a bottom</small></span></li>
+          <li class="first"><i class="n" data-n="1">1</i><span class="who"><span class="label">&nbsp;</span></span><span class="off"><b class="value num"></b><small>worst miss · smaller is better</small></span></li>
           <li><i class="n" data-n="2">2</i><span class="label">&nbsp;</span><b class="value num"></b></li>
           <li><i class="n" data-n="3">3</i><span class="label">&nbsp;</span><b class="value num"></b></li>
         </ol>
@@ -1198,29 +1282,17 @@
         </div>
       </section>
 
-      <section class="part board" id="ranking">
-        <div class="shell">
-          <h2 id="board-said">Every line, closest first.</h2>
-          <p class="note" id="caveat"></p>
-          <p class="note" id="checked"></p>
-          <p class="note">Bitview makes <span id="made">most of the lines here</span>: Bedrock, the rarity lines, and some of the prices they rest on. It made Bedrock and the rarity lines in 2026, after these bottoms: their place here describes the past, not a tested forecast. Every other line names where it comes from; those of 2019 were made after the first bottom here.</p>
-          <figure class="field" id="field" role="img"></figure>
-          <div class="table">
-            <div class="cols fine" aria-hidden="true"></div>
-            <ol class="rank" id="rank-top"></ol>
-          </div>
-        </div>
-      </section>
-
       <section class="part quiet">
         <div class="shell pair">
           <div id="names">
           <h2>What the names mean.</h2>
-          <p class="body">Most lines are an average of the prices at which coins last moved, as the realized price is, or a percentile of those prices. Two kinds are Bitview's own.</p>
+          <p class="body">Most lines are an average of the prices at which coins last moved, as the realized price is, or a percentile of those prices. Bedrock floors and rarity lines are Bitview's own.</p>
           <dl class="names">
-            <div><dt>Bedrock 99% floor</dt><dd>The price at which holders' losses would be as heavy as in the worst 1% of Bitcoin's history. A 98% floor is the worst 2%, and so on. Awake and mobile give more weight to coins that still move than to coins long idle, each in its own way. Unweighted counts every coin alike.</dd></div>
+            <div><dt>Bedrock 99% floor</dt><dd>The price at which holders' losses would be as heavy as in the worst 1% of Bitcoin's history. A 98% floor is the worst 2%, and so on.</dd></div>
+            <div><dt>Awake and mobile</dt><dd>Give more weight to coins that still move than to coins long idle. Awake counts each coin by how much of its age band's holding time has been spent, mobile by how likely its age band is ever to be spent. Unweighted counts every coin alike.</dd></div>
             <div><dt>20th percentile realized price</dt><dd>The price under which a fifth of the coins last moved. A capitalized price counts dollars instead of coins: a fifth of the money paid for them.</dd></div>
             <div><dt>99% rarity line</dt><dd>The price at which Bitcoin would be as cheap, against the line it is named after, as on its cheapest 1 day in 100 since late 2012. Recent years count for more.</dd></div>
+            <div><dt>Long-term holders</dt><dd>Holders of coins that haven't moved for 150 days or more.</dd></div>
           </dl>
           </div>
           <div id="rules">
@@ -1229,30 +1301,32 @@
             <li>Each day's price is held against the line as it stood the evening before, since some lines move on the day the price reaches them.</li>
             <li>A line is met where it stood. If it had risen above the price, it is met at the previous day's close instead.</li>
             <li>Lines with the same worst miss are ordered by their next worst.</li>
-            <li>Bottoms count from <span id="from-year">2017</span>, on daily closing prices. Ranked the same way on daily lows, the mobile 20th percentile realized price also came first (checked Nov 27, 2026).</li>
-            <li>A line the price spent two weeks in three under is a ceiling, not a floor, and isn't ranked.</li>
-            <li>The power-law floor's constants were fitted in 2019, with the Dec 2018 bottom in the data. Refitted on the closes before that fall, its miss there would be 41.6%, not <span id="fitted">31.6%</span>.</li>
-            <li>The median realized prices name no one: Glassnode publishes the same measure, and who was first isn't established. Nor do the realized price's percentiles.</li>
+            <li>Bottoms count from <span id="from-year">2017</span>, on daily closing prices.</li>
           </ol>
           </div>
         </div>
       </section>
 
-      <section class="part quiet" id="everything">
+      <section class="part board" id="ranking">
         <div class="shell">
-          <h2 id="rest-said">Every other line, in order.</h2>
-          <div class="table">
-            <div class="cols fine" aria-hidden="true"></div>
-            <ol class="rank rest" id="rank-rest"></ol>
+          <h2 id="board-said">Every line, closest first.</h2>
+          <p class="note" id="caveat"></p>
+          <p class="note" id="checked"></p>
+          <figure class="field" id="field" role="img"></figure>
+          <input class="find" id="find" type="search" placeholder="Find a line" aria-label="Find a line by its name" autocomplete="off" />
+          <p class="note" id="found" aria-live="polite"></p>
+          <div class="table" id="table" role="table" aria-label="Every line's misses, sorted by the column whose header is marked">
+            <div class="cols fine" id="cols" role="row"></div>
+            <ol class="rank" id="rank" role="rowgroup"></ol>
           </div>
-          <p class="note" id="ceilings"></p>
         </div>
       </section>
+
     </main>
 
     <footer>
       <div class="shell">
-        <p>Every number is worked out in this page from Bitview's daily series. The power-law floor is Harold Christopher Burger's support line of 2019.</p>
+        <p>Every number is worked out in this page from Bitview's daily series. Each model uses its author's own parameters, from their own source.</p>
         <p>None of this is advice to buy or sell.</p>
       </div>
     </footer>
@@ -1263,7 +1337,7 @@
       const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
       /** @type {Event[]} */ const early = [];
       worker.onmessage = worker.onerror = (event) => void early.push(event);
-      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, maker, weekOf, FROM, SHOWN, WEEK }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js")]);
+      const [{ createChart, Candles, Custom, Line, lastIn }, { fullName, weekOf, FROM, SHOWN, WEEK }] = await Promise.all([import("/modules/bitview-charts/index.js"), import("./study.js")]);
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const all = (/** @type {string} */ selector) => /** @type {HTMLElement[]} */ ([...document.querySelectorAll(selector)]);
@@ -1276,7 +1350,8 @@
       const month = (/** @type {number} */ day) => { const d = dateOf(day); return `${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
       const WHOLE = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
       const usd = (/** @type {number} */ v) => (v >= 100 ? `$${WHOLE.format(v)}` : v >= 1 ? `$${v.toFixed(2)}` : `$${v.toPrecision(2)}`);
-      const percent = (/** @type {number} */ v, places = 1) => `${v.toFixed(places)}%`;
+      /** A miss as every place on the page shows it: to two decimals (lines that read the same are ordered by their next worst). */
+      const percent = (/** @type {number} */ v) => `${v.toFixed(2)}%`;
       const NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
       const worded = (/** @type {number} */ n) => NUMBERS[n] ?? String(n);
       const capital = (/** @type {string} */ s) => s[0].toUpperCase() + s.slice(1);
@@ -1294,8 +1369,8 @@
       let board = null, stored = /** @type {import("./study.js").Board | null} */ (null);
       /** @type {Map<string, Float64Array>} */ const lines = new Map();
       let candles = /** @type {{ open: Float64Array, high: Float64Array, low: Float64Array } | null} */ (null);
-      /** Every line by week, a row each, from the week `from`: the chart's crowd (read last). */
-      let crowd = /** @type {{ from: number, weeks: number, values: Float32Array } | null} */ (null);
+      /** Every line by week from the week `from`, as the worker sends them, `weeks` values a line: the chart's crowd. */
+      let crowd = /** @type {{ from: number, weeks: number, sent: Float32Array[] } | null} */ (null);
       const bottomName = (/** @type {Bottom} */ l) => (l.open ? `${month(l.low)}, so far` : month(l.low));
 
       // ── The hero: the price, its bottoms, and the three closest lines ──
@@ -1306,6 +1381,8 @@
       const colour = (/** @type {string} */ name) => { probe.style.color = `var(--${name})`; return getComputedStyle(probe).color; };
       const FONT = "500 12px Archivo, -apple-system, system-ui, sans-serif";
       const GLIDE = 420;
+      /** Each line of the chart's crowd on its layer: faint alone, deepening where lines run together, up to --crowd. */
+      const CROWD = 0.12;
       /** @type {{ destroy: () => void, drawn: () => void, crowded: () => void } | null} */
       let heroChart = null;
       /** What the chart shows: every day from the first shown, one bottom's fall (its index), or the reader's own view (null). */
@@ -1320,27 +1397,34 @@
         chart.setTimes(times);
         // (The view holds on the days shown: no day before the first, and past the last a quarter of it at most.)
         (chart.time.first = SHOWN), (chart.time.minDataShare = 1), (chart.time.minEndShare = 0.75);
-        // The crowd: every line by week behind everything, each stroked faint on its own, so where many run together shows.
-        const quiet = colour("crowd");
+        // The crowd: every line by week behind everything, each stroked faint (CROWD) on a layer of its own, the layer laid
+        // on once at --crowd's alpha, so where many run together the tone deepens to that and no further. Drawn again as
+        // each ask's lines land.
+        const [red, green, blue, deepest = 1] = /** @type {number[]} */ (colour("crowd").match(/[\d.]+/g)?.map(Number));
+        const layer = document.createElement("canvas"), pen = layer.getContext("2d");
+        if (!pen) throw new Error("the crowd's layer has no 2D context");
         const crowded = pane.add(new Custom({
           draw(g, { time, scale, x0, x1 }) {
             if (!crowd) return;
-            const { from: first, weeks, values } = crowd;
+            const { from: first, weeks, sent } = crowd;
             const a = Math.max(0, weekOf(Math.floor(time.index(x0))) - first - 1), b = Math.min(weeks - 1, weekOf(Math.ceil(time.index(x1))) - first + 1);
             // (A strip clear of its weeks: nothing of it there.)
             if (b < a) return;
             const xs = new Float64Array(b - a + 1);
             for (let w = a; w <= b; w++) xs[w - a] = time.x(Math.min(last, (first + w) * WEEK.days + WEEK.day));
-            (g.strokeStyle = quiet), (g.lineWidth = Math.max(1, pane.height / 400)), (g.lineJoin = "round");
-            for (let row = 0; row < values.length; row += weeks) {
-              g.beginPath();
-              for (let w = a, pen = false; w <= b; w++) {
+            if (layer.width !== g.canvas.width || layer.height !== g.canvas.height) (layer.width = g.canvas.width), (layer.height = g.canvas.height);
+            pen.resetTransform(), pen.clearRect(0, 0, layer.width, layer.height), pen.setTransform(g.getTransform());
+            (pen.strokeStyle = `rgb(${red} ${green} ${blue} / ${CROWD})`), (pen.lineWidth = Math.max(1, pane.height / 400)), (pen.lineJoin = "round");
+            for (const values of sent) for (let row = 0; row < values.length; row += weeks) {
+              pen.beginPath();
+              for (let w = a, down = false; w <= b; w++) {
                 const v = values[row + w];
-                if (!(v > 0)) pen = false;
-                else pen ? g.lineTo(xs[w - a], scale.y(v)) : (g.moveTo(xs[w - a], scale.y(v)), (pen = true));
+                if (!(v > 0)) down = false;
+                else down ? pen.lineTo(xs[w - a], scale.y(v)) : (pen.moveTo(xs[w - a], scale.y(v)), (down = true));
               }
-              g.stroke();
+              pen.stroke();
             }
+            g.save(), g.resetTransform(), (g.globalAlpha = deepest), g.drawImage(layer, 0, 0), g.restore();
           },
         }, { behind: true }));
         /** The price: its closes as a line, and once its candles are read, candles in a view zoomed in. @type {InstanceType<typeof Line> | InstanceType<typeof Candles>} */
@@ -1348,8 +1432,6 @@
         /** The three closest lines, by place. @type {InstanceType<typeof Line>[]} */
         let coloured = [];
         /** @type {(Float64Array | undefined)[]} */ let tops = [];
-        // (Under the price's line; over its candles, where a line through them is what is read.)
-        const order = () => pane.order(price instanceof Candles && price.bodies ? [price, ...coloured.toReversed()] : [...coloured.toReversed(), price]);
         function drawn() {
           if (candles && !(price instanceof Candles)) pane.remove(price), (price = pane.add(new Candles({ ...candles, close, up: paper, down: ink, upWick: ink, downWick: ink, upBorder: ink, downBorder: ink, color: ink, outline: paper })));
           for (const line of coloured) pane.remove(line);
@@ -1357,7 +1439,8 @@
           coloured = tops.flatMap((values, k) => (values ? [new Line({ values, color: tones[k], width: k ? 1.5 : 2 })] : []));
           // (None widens the scale: the price alone sets it.)
           for (const line of coloured) (line.fit = () => {}), pane.add(line);
-          order(), chart.invalidate(true), tell();
+          // (The price over the three, as a line or as candles.)
+          pane.order([...coloured.toReversed(), price]), chart.invalidate(true), tell();
         }
         // (Over everything: each bottom marked on the price and named at the foot, with where each coloured line was
         // that day.)
@@ -1414,7 +1497,7 @@
           const next = index === index ? Math.max(SHOWN, Math.min(last, index)) : null;
           if (next !== hovered) (hovered = next), tell();
         });
-        chart.onRange(() => { order(), tell(); });
+        chart.onRange(tell);
         const title = $("title"), { time, controller } = chart;
         /** The days a view shows: all of them, or a bottom's fall from a month before its high to 200 days after its low. */
         const rangeOf = (/** @type {"all" | number} */ v) => { const every = time.shown(last - SHOWN + 1); return v === "all" ? every : { from: lows[v].peak - 30, to: Math.min(lows[v].low + 200, every.to) }; };
@@ -1544,31 +1627,36 @@
         for (const m of misses) { if (!m) continue; const mark = strip.appendChild(el("i")); (mark.style.left = `${(m.miss / wide) * 100}%`), m.n && (mark.dataset.n = String(m.n)); }
         return strip;
       }
-      /** A line's worst miss as a list shows it: to `least` decimals, or to as many as tell it from a neighbour in the list whose worst differs (lines with the very same worst read the same: their next worst orders them). */
-      function scoreOf(/** @type {Ranked[]} */ rows, /** @type {number} */ i, /** @type {number} */ least) {
-        const r = rows[i];
-        if (!Number.isFinite(r.worst)) return "–";
-        for (let places = least; ; places++) {
-          const said = percent(r.worst, places), alike = (/** @type {Ranked | undefined} */ o) => o && o.worst !== r.worst && percent(o.worst, places) === said;
-          if (places === 6 || !(alike(rows[i - 1]) || alike(rows[i + 1]))) return said;
-        }
-      }
-      /** Bitview makes it: a Bedrock floor, a rarity line, or a base it constructed. */
-      const ours = (/** @type {Ranked} */ r) => maker(r.row) === "Bitview";
-      /** A line's name as a list writes it: with where it comes from, unless Bitview makes it. */
-      const named = (/** @type {Ranked} */ r) => (ours(r) || !maker(r.row) ? [fullName(r.row)] : [fullName(r.row), " ", el("small", "from", maker(r.row))]);
-      /** A line's row, by its index in the order: its place, its name, its miss at each bottom (the worst one marked), its worst. */
-      function rowOf(/** @type {Ranked} */ r, /** @type {number} */ i) {
-        const li = el("li");
-        li.appendChild(el("i", "n", String(r.rank))).dataset.n = String(r.rank);
-        li.appendChild(el("span", "who")).append(...named(r));
-        const score = scoreOf(ranked, i, 2);
-        r.row.at.forEach((at, k) => li.append(el("span", `at${k ? "" : " first"}${at?.miss === r.worst ? " worst" : ""}`, !at ? "–" : at.miss === r.worst ? score : percent(at.miss, 2))));
-        li.append(el("b", "score num", score));
+      /** The column the table is sorted by, smallest first: a bottom's index, or -1 for the worst miss. */
+      let sortedBy = -1;
+      /** A line's worst miss, or a dash for a line with none. */
+      const scoreOf = (/** @type {Ranked} */ r) => (Number.isFinite(r.worst) ? percent(r.worst) : "–");
+      /** A line's row: its place, its name, its miss at each bottom (the worst one marked), its worst; a table's row to
+       * assistive tech, its name the row's header. */
+      function rowOf(/** @type {Ranked} */ r) {
+        const li = el("li"), cell = (/** @type {HTMLElement} */ e, role = "cell") => (e.setAttribute("role", role), e);
+        li.setAttribute("role", "row");
+        li.appendChild(cell(el("i", "n", String(r.rank)))).dataset.n = String(r.rank);
+        li.append(cell(el("span", "who", fullName(r.row)), "rowheader"));
+        r.row.at.forEach((at, k) => li.append(cell(el("span", `at${k ? "" : " first"}${at?.miss === r.worst ? " worst" : ""}${k === sortedBy ? " by" : ""}`, at ? percent(at.miss) : "–"))));
+        li.append(cell(el("b", "score num", scoreOf(r))));
         return li;
       }
+      /** The table's rows whose names hold what's typed in the finder, in its column's order, rows with no value there
+       * last (each keeps its rank: the sort is the table's, not the ranking's). */
+      function sorted() {
+        const key = (/** @type {Ranked} */ r) => { const v = sortedBy < 0 ? r.worst : r.row.at[sortedBy]?.miss; return v != null && Number.isFinite(v) ? v : Infinity; };
+        // (Each typed word in the name, in letters and digits only: "200 week", "200-week" and "long term mobile 30" all
+        // find their lines.)
+        const plain = (/** @type {string} */ t) => t.toLowerCase().replace(/[^a-z0-9]+/g, ""), typed = /** @type {HTMLInputElement} */ ($("find")).value;
+        const words = typed.split(/[\s-]+/).map(plain).filter(Boolean), shown = ranked.filter((r) => { const name = plain(fullName(r.row)); return words.every((w) => name.includes(w)); });
+        $("found").textContent = !words.length ? "" : shown.length ? `${shown.length} of ${ranked.length} lines.` : `No line's name has "${typed.trim()}". Not ranked: averages and lows shorter than a year, percentiles above the median, rarity levels above 5%, short-term holders' lines, coins under a year old, and lines the price stayed under.`;
+        for (const head of all("#cols [data-k]")) head.dataset.k === String(sortedBy) ? head.setAttribute("aria-sort", "ascending") : head.removeAttribute("aria-sort");
+        $("rank").replaceChildren(...shown.map((r, i) => ({ r, i })).sort((a, b) => key(a.r) - key(b.r) || a.i - b.i).map(({ r }) => rowOf(r)));
+      }
+      $("find").addEventListener("input", sorted);
       function ranking() {
-        const first = ranked[0], done = judged.filter((l) => !l.open).length, open = judged.length - done;
+        const first = ranked[0], open = judged.some((l) => l.open);
         // The board's top, beside the chart: its first ten (the first three alone on a phone).
         const top = $("top"), ten = ranked.slice(0, 10);
         ten.forEach((r, k) => {
@@ -1576,30 +1664,28 @@
           if (!li) (li = top.appendChild(el("li", "more"))), li.append(el("i", "n"), el("span", "label"), el("b", "value num"));
           const n = /** @type {HTMLElement} */ (li.querySelector(".n"));
           (n.textContent = String(r.rank)), (n.dataset.n = String(r.rank));
-          // (The first says so in words under its name.)
-          /** @type {HTMLElement} */ (li.querySelector(".label")).replaceChildren(...(k ? named(r) : [fullName(r.row)])), (/** @type {HTMLElement} */ (li.querySelector(".value")).textContent = scoreOf(ten, k, 1));
+          /** @type {HTMLElement} */ (li.querySelector(".label")).textContent = fullName(r.row), (/** @type {HTMLElement} */ (li.querySelector(".value")).textContent = scoreOf(r));
         });
-        $("own").textContent = ours(first) ? "Bitview's own line" : maker(first.row) || "\u00a0";
-        $("made").textContent = `${ranked.filter(ours).length} of the ${ranked.length} lines here`;
-        // (The one line whose constants were fitted with a bottom in view: its miss there, beside what an independent refit gives.)
-        const fitted = ranked.find((r) => r.row.id === "power_law_floor")?.row.at[0];
-        if (fitted) $("fitted").textContent = percent(fitted.miss);
-        // (The finding, in a sentence, once there is one. No count in it: the share card pictures it, and a picture keeps
-        // its number while the server adds lines; the board below counts them.)
-        $("said").textContent = `The price line closest to Bitcoin's cycle bottoms is ${ours(first) ? "Bitview's own, made after the fact" : fullName(first.row)}: within ${scoreOf(ten, 0, 1)} of each.`;
         $("board-said").textContent = `${ranked.length} lines, closest first.`;
-        $("caveat").textContent = `${capital(worded(judged.length))} ${judged.length === 1 ? "bottom" : "bottoms"} is very little to go on${open ? `, and ${done ? "one is" : "it is"} still open` : ""}. With ${ranked.length} lines tried, the first owes part of its place to chance.`;
+        $("every").textContent = `All ${ranked.length} lines`;
+        $("caveat").textContent = `Ranked on the ${worded(judged.length)} ${judged.length === 1 ? "bottom" : "bottoms"} so far${open ? ", one still open" : ""}: the order will change as new ones come.`;
         // The field: every line's worst miss along one line from the bottom, wide enough for the largest, to the next 20%.
         const scored = ranked.filter((r) => Number.isFinite(r.worst)), wide = Math.ceil(Math.max(...scored.map((r) => r.worst)) / 20) * 20, ends = el("p", "ends fine");
-        for (let v = 0; v <= wide; v += 20) ends.appendChild(el("span", "", v ? `${v}%` : "the bottom")).style.setProperty("--at", `${(v / wide) * 100}%`);
+        for (let v = 0; v <= wide; v += 20) ends.appendChild(el("span", "", `${v}%`)).style.setProperty("--at", `${(v / wide) * 100}%`);
         $("field").replaceChildren(el("figcaption", "edge", `Every line's worst miss. ${fullName(first.row)} is the red one.`), stripOf(scored.map((r) => ({ miss: r.worst, n: r.rank <= 3 ? r.rank : 0 })).reverse(), wide), ends);
         $("field").setAttribute("aria-label", `Every line's worst miss, from ${percent(first.worst)} to ${percent(scored[scored.length - 1].worst)}`);
-        for (const box of all(".table")) box.style.setProperty("--lows", String(judged.length));
-        for (const cols of all(".cols")) cols.replaceChildren(el("span"), el("span", "", "Line"), ...judged.map((l) => el("span", "", bottomName(l))), el("span", "", "Worst miss"));
-        $("rank-top").replaceChildren(...ranked.slice(0, 10).map(rowOf));
-        $("rank-rest").replaceChildren(...ranked.slice(10).map((r, i) => rowOf(r, i + 10)));
-        $("rest-said").textContent = `The other ${ranked.length - 10} lines, in order.`;
-        $("ceilings").textContent = board?.ceilings.length ? `Not ranked, as ceilings: ${board.ceilings.map(fullName).join("; ")}.` : "";
+        $("table").style.setProperty("--lows", String(judged.length));
+        /** A column's header: a button that sorts by it, smallest first (pressed again it does nothing: there is no other order). */
+        const head = (/** @type {string} */ name, /** @type {number} */ k) => {
+          const h = el("span"), b = /** @type {HTMLButtonElement} */ (h.appendChild(el("button", "", name)));
+          h.setAttribute("role", "columnheader"), (h.dataset.k = String(k));
+          (b.type = "button"), b.addEventListener("click", () => k !== sortedBy && ((sortedBy = k), sorted(), $("table").getBoundingClientRect().top < 0 && $("table").scrollIntoView()));
+          return h;
+        };
+        const place = el("span"), line = el("span", "", "Line");
+        place.setAttribute("role", "columnheader"), place.setAttribute("aria-label", "Place"), line.setAttribute("role", "columnheader");
+        $("cols").replaceChildren(place, line, ...judged.map((l, k) => head(month(l.low), k)), head("Worst miss", -1));
+        sorted();
       }
 
       // ── The reading ──
@@ -1609,7 +1695,7 @@
       const fail = (/** @type {string} */ why) => {
         /** @type {any} */ (window).bitviewLaunch?.ready();
         const failed = $("failed");
-        failed.textContent = `The page's numbers couldn't be read: ${why}.${board?.live === false ? ` The ranking shown is that of ${dated(board.day)}.` : ""}`;
+        failed.textContent = `Bitview's data didn't load (${why}).${board?.live === false ? ` The ranking shown is that of ${dated(board.day)}.` : ""} Try again in a minute.`;
         const again = failed.appendChild(el("button", "", "Try again"));
         (/** @type {HTMLButtonElement} */ (again).type = "button"), again.addEventListener("click", () => location.reload());
         failed.hidden = false;
@@ -1632,7 +1718,7 @@
         }
         else if (data.type === "lines") { for (const l of data.lines) lines.set(l.id, l.line); heroChart?.drawn(), miss(); }
         else if (data.type === "candles") (candles = data), heroChart?.drawn();
-        else if (data.type === "crowd") (crowd = data), heroChart?.crowded();
+        else if (data.type === "crowd") (crowd ??= { from: data.from, weeks: data.weeks, sent: /** @type {Float32Array[]} */ ([]) }).sent.push(data.values), heroChart?.crowded();
         else if (data.type === "unstored") $("checked").textContent = `The ranking stored with the page couldn't be read (${data.why}): it's ranked on today's data alone.`;
         else fail(data.why);
       };
