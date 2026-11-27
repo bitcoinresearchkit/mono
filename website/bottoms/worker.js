@@ -46,7 +46,10 @@ async function catalog() {
 const post = (/** @type {any} */ message, /** @type {Transferable[]} */ handed = []) => /** @type {any} */ (self).postMessage(message, handed);
 
 async function main() {
-  const named = catalog(), [price, epochs] = await read([PRICE, EPOCH], 0), n = price.start + price.data.length, last = n - 1;
+  const named = catalog();
+  // (Read beside the price but awaited after it: its failure is said once, where it's awaited, not first as an unhandled rejection.)
+  named.catch(() => {});
+  const [price, epochs] = await read([PRICE, EPOCH], 0), n = price.start + price.data.length, last = n - 1;
   /** What was read of each series, on the price's days: NaN where nothing was. @type {Map<string, Float64Array>} */ const got = new Map();
   const put = (/** @type {string} */ id, /** @type {{ start: number, data: (number | null)[] }} */ body) => {
     const out = got.get(id) ?? new Float64Array(n).fill(NaN);
