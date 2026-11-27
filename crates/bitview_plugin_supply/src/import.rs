@@ -6,12 +6,12 @@ use bitview_plugin_transactions::Vecs as TransactionsVecs;
 use bitview_primitives::{Multiple, PartsPerMillionSigned64};
 use bitview_vecs::{
     LazyFiatPerBlock, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock,
-    LazyRollingDeltasFiatFromHeight, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    LazyRollingDeltasFiatFromHeight, LazyWindowStartVec, PricedSum, ValuePerBlockCumulativeRolling,
     ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
-use brk_types::{Height, Sats, Version};
-use vecdb::{BinaryTransform, Ident, LazyVec, ReadableCloneableVec};
+use brk_types::{Cents, Height, Sats, Version};
+use vecdb::{BinaryTransform, Ident, LazyDeltaVec, LazyVec, ReadableCloneableVec};
 
 use crate::{STORAGE, Vecs, velocity};
 
@@ -92,6 +92,27 @@ impl Vecs {
             mappings,
         );
 
+        // Kalichkin's 90 days of volume: a dollar sum, none until the window is wholly priced.
+        let volume_90d = LazyDeltaVec::<Height, Cents, Cents, PricedSum>::new(
+            "transfer_volume_sum_90d_cents",
+            version,
+            transactions.transfer_volume.cumulative.cents.resolutions.height_source().read_only_boxed_clone(),
+            mappings.lookback.start_vec(90).read_only_boxed_clone(),
+        );
+        let nvt_signal_source = LazyIndexedVec::new(
+            "nvt_signal_source",
+            version,
+            &all_chain.market_cap,
+            &volume_90d,
+            |_, cap: Cents, volume: Cents| Multiple::from(f64::from(cap) * 90.0 / f64::from(volume)),
+        );
+        let nvt_signal = LazyPerBlock::from_height_source::<Ident>(
+            "nvt_signal",
+            version,
+            &nvt_signal_source,
+            mappings,
+        );
+
         let this = Self {
             db,
             circulating,
@@ -101,6 +122,7 @@ impl Vecs {
             market_cap,
             market_cap_delta,
             nvt,
+            nvt_signal,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

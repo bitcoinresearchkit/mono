@@ -3662,6 +3662,13 @@ class PowerLaw(_Node):
     sminston_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sminston_*_floor')
 
 
+class PiCycle(_Node):
+    sma_111d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'price_sma_111d')
+    sma_350d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'price_sma_350d')
+    line: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_line')
+    top: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*')
+
+
 class MarketPriceWithRatio(_Node):
     value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
@@ -3771,6 +3778,7 @@ class Market(_Node):
     returns: ByLookbackPeriod = _at(ByLookbackPeriod, '*_return')
     range: MarketRange = _at(MarketRange, '*')
     sma: Ema[MarketPriceWithRatio] = _at((Ema, MarketPriceWithRatio), '*_sma')
+    pi_cycle: PiCycle = _at(PiCycle, 'pi_cycle_top')
     ema: Ema[PriceWithRatio] = _at((Ema, PriceWithRatio), '*_ema')
     power_law: PowerLaw = _at(PowerLaw, 'power_law')
 
@@ -3914,15 +3922,17 @@ class TxValue(_Node):
 
 
 class Rewards(_Node):
-    coinbase: ValueFlow = _at(ValueFlow, '*')
+    coinbase: ValueFlow = _at(ValueFlow, 'coinbase')
     subsidy: TxValue = _at(TxValue, 'subsidy')
     puell_multiple: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'puell_multiple')
+    stock_to_flow: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*')
+    stock_to_flow_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_price')
     fees: ValueFlowStats = _at(ValueFlowStats, 'fees')
     unclaimed: ValueFlow = _at(ValueFlow, 'unclaimed_rewards')
 
 
 class Mining(_Node):
-    rewards: Rewards = _at(Rewards, 'coinbase')
+    rewards: Rewards = _at(Rewards, 'stock_to_flow')
     hashrate: Rate = _at(Rate, 'hashrate')
     hash_price: HashPriceValue[Optional[HashPrice]] = _at(HashPriceValue, '*_price')
     hash_value: HashPriceValue[Optional[HashValue]] = _at(HashPriceValue, '*_value')
@@ -4046,12 +4056,13 @@ class WithDelta(_Node, Generic[A, B]):
 
 
 class Supply(_Node):
-    circulating: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
+    circulating: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, 'circulating_supply')
     burned: ValueFlow = _at(ValueFlow, 'burned')
     inflation_rate: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, 'inflation_rate')
     velocity: Velocity = _at(Velocity, 'velocity')
     market_cap: WithDelta[Optional[Dollars], Optional[Dollars]] = _at(WithDelta, 'market_cap')
-    nvt: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'nvt')
+    nvt: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*')
+    nvt_signal: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_signal')
 
 
 class BalanceUtxos(_Node):
@@ -4375,6 +4386,8 @@ class Holders(_Node):
     under_6m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis), '*_under_6m')
     over_4m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), '*_over_4m')
     over_6m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), '*_over_6m')
+    mvrv_z: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, 'mvrv_z')
+    seller_exhaustion: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, 'seller_exhaustion')
 
 
 class Vintage(_Node):
@@ -5518,7 +5531,7 @@ class SeriesTree(_Node):
     holders: Holders = _at(Holders, 'age')
     entry: Entry = _at(Entry, 'entry')
     profitability: Profitability = _at(Profitability, 'sth')
-    supply: Supply = _at(Supply, 'circulating_supply')
+    supply: Supply = _at(Supply, 'nvt')
     cointime: Cointime = _at(Cointime, 'age')
     coinflow: Coinflow = _at(Coinflow, 'age')
     bedrock: Bedrock = _at(Bedrock, 'bedrock')

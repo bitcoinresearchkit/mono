@@ -3290,6 +3290,21 @@ const _PowerLaw = _s({
 
 /**
  * @typedef {{
+ *   sma111d: SeriesPattern1<?Dollars>,
+ *   sma350d: SeriesPattern1<?Dollars>,
+ *   line: SeriesPattern1<?Dollars>,
+ *   top: SeriesPattern1<?Multiple>,
+ * }} PiCycle
+ */
+const _PiCycle = _s({
+  sma111d: [_i1, 'price_sma_111d'],
+  sma350d: [_i1, 'price_sma_350d'],
+  line: [_i1, '*_line'],
+  top: [_i1, '*'],
+});
+
+/**
+ * @typedef {{
  *   value: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   mayerMultiple: SeriesPattern1<?Multiple>,
@@ -3514,6 +3529,7 @@ const _Ath = _s({
  *   returns: ByLookbackPeriod,
  *   range: MarketRange,
  *   sma: Ema<MarketPriceWithRatio>,
+ *   piCycle: PiCycle,
  *   ema: Ema<PriceWithRatio>,
  *   powerLaw: PowerLaw,
  * }} Market
@@ -3523,6 +3539,7 @@ const _Market = _s({
   returns: [_ByLookbackPeriod, '*_return'],
   range: [_MarketRange, '*'],
   sma: [(c, b) => _Ema(c, b, _MarketPriceWithRatio), '*_sma'],
+  piCycle: [_PiCycle, 'pi_cycle_top'],
   ema: [(c, b) => _Ema(c, b, _PriceWithRatio), '*_ema'],
   powerLaw: [_PowerLaw, 'power_law'],
 });
@@ -3828,14 +3845,18 @@ const _TxValue = _s({
  *   coinbase: ValueFlow,
  *   subsidy: TxValue,
  *   puellMultiple: SeriesPattern1<?Multiple>,
+ *   stockToFlow: SeriesPattern1<?Float>,
+ *   stockToFlowPrice: SeriesPattern1<?Dollars>,
  *   fees: ValueFlowStats,
  *   unclaimed: ValueFlow,
  * }} Rewards
  */
 const _Rewards = _s({
-  coinbase: [_ValueFlow, '*'],
+  coinbase: [_ValueFlow, 'coinbase'],
   subsidy: [_TxValue, 'subsidy'],
   puellMultiple: [_i1, 'puell_multiple'],
+  stockToFlow: [_i1, '*'],
+  stockToFlowPrice: [_i1, '*_price'],
   fees: [_ValueFlowStats, 'fees'],
   unclaimed: [_ValueFlow, 'unclaimed_rewards'],
 });
@@ -3849,7 +3870,7 @@ const _Rewards = _s({
  * }} Mining
  */
 const _Mining = _s({
-  rewards: [_Rewards, 'coinbase'],
+  rewards: [_Rewards, 'stock_to_flow'],
   hashrate: [_Rate, 'hashrate'],
   hashPrice: [_HashPriceValue, '*_price'],
   hashValue: [_HashPriceValue, '*_value'],
@@ -4119,15 +4140,17 @@ const _WithDelta = _s({
  *   velocity: Velocity,
  *   marketCap: WithDelta<?Dollars, ?Dollars>,
  *   nvt: SeriesPattern1<?Multiple>,
+ *   nvtSignal: SeriesPattern1<?Multiple>,
  * }} Supply
  */
 const _Supply = _s({
-  circulating: [_i1, '*'],
+  circulating: [_i1, 'circulating_supply'],
   burned: [_ValueFlow, 'burned'],
   inflationRate: [_i1, 'inflation_rate'],
   velocity: [_Velocity, 'velocity'],
   marketCap: [_WithDelta, 'market_cap'],
-  nvt: [_i1, 'nvt'],
+  nvt: [_i1, '*'],
+  nvtSignal: [_i1, '*_signal'],
 });
 
 /**
@@ -4807,6 +4830,8 @@ const _Entry = _s({
  *   under6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis>,
  *   over4m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis>,
  *   over6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis>,
+ *   mvrvZ: SeriesPattern9<?Float>,
+ *   sellerExhaustion: SeriesPattern9<?Float>,
  * }} Holders
  */
 const _Holders = _s({
@@ -4817,6 +4842,8 @@ const _Holders = _s({
   under6m: [(c, b) => _CreationCohort(c, b, _SharedSupply, _SharedCapital, _HoldersActivity, _AdjustedRealized, _Unrealized, _HoldersCostBasis), '*_under_6m'],
   over4m: [(c, b) => _CreationCohort(c, b, _SharedSupply, _SharedCapital, _HoldersActivity, _HoldersRealized, _Unrealized, _HoldersCostBasis), '*_over_4m'],
   over6m: [(c, b) => _CreationCohort(c, b, _SharedSupply, _SharedCapital, _HoldersActivity, _HoldersRealized, _Unrealized, _HoldersCostBasis), '*_over_6m'],
+  mvrvZ: [_i9, 'mvrv_z'],
+  sellerExhaustion: [_i9, 'seller_exhaustion'],
 });
 
 /**
@@ -7237,7 +7264,7 @@ const _SeriesTree = _s({
   holders: [_Holders, 'age'],
   entry: [_Entry, 'entry'],
   profitability: [_Profitability, 'sth'],
-  supply: [_Supply, 'circulating_supply'],
+  supply: [_Supply, 'nvt'],
   cointime: [_Cointime, 'age'],
   coinflow: [_Coinflow, 'age'],
   bedrock: [_Bedrock, 'bedrock'],
@@ -7252,7 +7279,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "2886ab6fd0613290ecba79f6af47f8fbafe9e79e626beffdfed178bfef164990";
+  static HASH = "55f012c90cdfbb996160cb7165dd3bab51833b4c26b60f4903d59b18ae925b11";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

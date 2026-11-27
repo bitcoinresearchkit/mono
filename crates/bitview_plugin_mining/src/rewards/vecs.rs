@@ -1,8 +1,10 @@
-use bitview_primitives::{Multiple, PartsPerMillion32};
+use bitview_primitives::{Float, Multiple, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyPerBlock, LazyPercentCumulativeRolling, ValuePerBlockCumulativeRolling, ValuePerBlockFull,
+    LazyPerBlock, LazyPercentCumulativeRolling, Price, ValuePerBlockCumulativeRolling,
+    ValuePerBlockFull,
 };
+use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -28,6 +30,17 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// year has exchange prices, or when its issuance value is zero.
     #[traversable(lead = "Puell Multiple: miners' daily issuance value against its yearly average.")]
     pub puell_multiple: LazyPerBlock<Multiple>,
+    /// Stock-to-flow (PlanB, 2019): the bitcoin mined so far (the claimed subsidy's running
+    /// total) divided by the past year's (its trailing-365-day sum), so in years of issuance.
+    /// Both end at the represented block. Null while the year reaches back to the first block
+    /// (until early January 2010), whose flow would be every coin mined.
+    #[traversable(lead = "Stock-to-flow: the bitcoin mined so far against the past year's.")]
+    pub stock_to_flow: LazyPerBlock<Float>,
+    /// PlanB's stock-to-flow model price (PlanB, 2019, "Modeling Bitcoin Value with Scarcity"):
+    /// market value `exp(14.6) · SF^3.3` in dollars, divided by the bitcoin mined so far. His
+    /// published coefficients, never refitted, so each value depends only on the blocks up to it.
+    #[traversable(lead = "Stock-to-flow model price: PlanB's price for the stock-to-flow of the day.")]
+    pub stock_to_flow_price: Price<LazyPerBlock<Cents>>,
     /// Sum of input value minus output value across the block's non-coinbase
     /// transactions.
     #[traversable(lead = "Fees: what transactions paid miners.")]

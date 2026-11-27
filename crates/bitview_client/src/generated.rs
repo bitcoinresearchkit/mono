@@ -958,6 +958,12 @@ pub mod tree {
         rainbow_lowest_band: SeriesPattern1<Option<Dollars>> = "rainbow_lowest_band",
         sminston_floor: SeriesPattern1<Option<Dollars>> = "sminston_*_floor",
     } }
+    shape! { PiCycle at "series().market.pi_cycle" {
+        sma_111d: SeriesPattern1<Option<Dollars>> = "price_sma_111d",
+        sma_350d: SeriesPattern1<Option<Dollars>> = "price_sma_350d",
+        line: SeriesPattern1<Option<Dollars>> = "*_line",
+        top: SeriesPattern1<Option<Multiple>> = "*",
+    } }
     shape! { MarketPriceWithRatio at "series().market.sma._200d" {
         value: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
@@ -1057,6 +1063,7 @@ pub mod tree {
         returns: ByLookbackPeriod = "*_return",
         range: MarketRange = "*",
         sma: Ema<MarketPriceWithRatio> = "*_sma",
+        pi_cycle: PiCycle = "pi_cycle_top",
         ema: Ema<PriceWithRatio> = "*_ema",
         power_law: PowerLaw = "power_law",
     } }
@@ -1180,14 +1187,16 @@ pub mod tree {
         share: Share = "*_share",
     } }
     shape! { Rewards at "series().mining.rewards" {
-        coinbase: ValueFlow = "*",
+        coinbase: ValueFlow = "coinbase",
         subsidy: TxValue = "subsidy",
         puell_multiple: SeriesPattern1<Option<Multiple>> = "puell_multiple",
+        stock_to_flow: SeriesPattern1<Option<Float>> = "*",
+        stock_to_flow_price: SeriesPattern1<Option<Dollars>> = "*_price",
         fees: ValueFlowStats = "fees",
         unclaimed: ValueFlow = "unclaimed_rewards",
     } }
     shape! { Mining at "series().mining" {
-        rewards: Rewards = "coinbase",
+        rewards: Rewards = "stock_to_flow",
         hashrate: Rate = "hashrate",
         hash_price: HashPriceValue<Option<HashPrice>> = "*_price",
         hash_value: HashPriceValue<Option<HashValue>> = "*_value",
@@ -1293,12 +1302,13 @@ pub mod tree {
         delta: Delta<B> = "*_delta",
     } }
     shape! { Supply at "series().supply" {
-        circulating: SeriesPattern1<Option<Bitcoin>> = "*",
+        circulating: SeriesPattern1<Option<Bitcoin>> = "circulating_supply",
         burned: ValueFlow = "burned",
         inflation_rate: SeriesPattern1<Option<Percent>> = "inflation_rate",
         velocity: Velocity = "velocity",
         market_cap: WithDelta<Option<Dollars>, Option<Dollars>> = "market_cap",
-        nvt: SeriesPattern1<Option<Multiple>> = "nvt",
+        nvt: SeriesPattern1<Option<Multiple>> = "*",
+        nvt_signal: SeriesPattern1<Option<Multiple>> = "*_signal",
     } }
     shape! { BalanceUtxos at "series().addresses.balances._0_sats.utxos" {
         count: WithDelta<Count, CountSigned> = "*",
@@ -1584,6 +1594,8 @@ pub mod tree {
         under_6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis> = "*_under_6m",
         over_4m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis> = "*_over_4m",
         over_6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis> = "*_over_6m",
+        mvrv_z: SeriesPattern9<Option<Float>> = "mvrv_z",
+        seller_exhaustion: SeriesPattern9<Option<Float>> = "seller_exhaustion",
     } }
     shape! { Vintage at "series().age.vintages" {
         _2009: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis> = "*_2009",
@@ -2608,7 +2620,7 @@ pub mod tree {
         holders: Holders = "age",
         entry: Entry = "entry",
         profitability: Profitability = "sth",
-        supply: Supply = "circulating_supply",
+        supply: Supply = "nvt",
         cointime: Cointime = "age",
         coinflow: Coinflow = "age",
         bedrock: Bedrock = "bedrock",

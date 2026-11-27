@@ -10,7 +10,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Sats};
 use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 
-use crate::{STORAGE, Vecs, columns::Columns, section::Imports};
+use crate::{STORAGE, Vecs, columns::Columns, day_models::DayModels, section::Imports};
 
 impl Vecs {
     pub fn import(
@@ -46,11 +46,13 @@ impl Vecs {
             |_, sats: Sats, price| sats.value_at(price),
         )
         .read_only_boxed_clone();
+        let day_models = DayModels::import(&db, version, mappings.height.day1.read_only_boxed_clone())?;
         STORAGE.finalize_database(&db)?;
         Ok(Self {
             db,
             cohorts,
             columns,
+            day_models,
             all_supply: supply.read_only_boxed_clone(),
             all_market_cap,
         })

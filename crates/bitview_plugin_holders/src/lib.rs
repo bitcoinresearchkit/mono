@@ -7,6 +7,7 @@ mod capital;
 mod columns;
 mod compute;
 mod cost_basis;
+mod day_models;
 mod dependencies;
 mod import;
 mod metrics;
@@ -26,6 +27,7 @@ use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
 use columns::Columns;
+use day_models::DayModels;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("holders"), Version::new(5));
 pub const ID: PluginId = STORAGE.id();
@@ -40,6 +42,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// What the block loop writes for each group, its series' sources.
     #[traversable(hidden)]
     columns: AgeAggregate<Columns<M>>,
+    #[traversable(flatten)]
+    day_models: DayModels<M>,
     #[traversable(skip)]
     all_supply: ReadableBoxedVec<Height, Sats>,
     #[traversable(skip)]

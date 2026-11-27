@@ -1,7 +1,7 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Multiple, PartsPerMillion32};
+use bitview_primitives::{Float, Multiple, PartsPerMillion32};
 use bitview_vecs::{
-    LazyIndexedVec, LazyPerBlock, LazyPercentCumulativeRolling, LazyWindowStartVec,
+    LazyIndexedVec, LazyPerBlock, LazyPercentCumulativeRolling, LazyWindowStartVec, Price,
     ValuePerBlockCumulativeRolling, ValuePerBlockFull,
     ops::{OneMinusPpm, Quotient},
     shapes::Windows,
@@ -48,6 +48,33 @@ impl Vecs {
             mappings,
         );
 
+        // PlanB's stock and flow: every coin mined so far, and the past year's.
+        let stock_to_flow_source = LazyIndexedVec::new(
+            "stock_to_flow_source",
+            version,
+            subsidy.cumulative.sats.resolutions.height_source(),
+            &subsidy.sum._1y.sats.height,
+            |_, stock: Sats, flow: Sats| Float::from(stock_to_flow(stock, flow)),
+        );
+        let stock_to_flow = LazyPerBlock::from_height_source::<Ident>(
+            "stock_to_flow",
+            version,
+            &stock_to_flow_source,
+            mappings,
+        );
+        let stock_to_flow_price = Price::from_height_source(
+            "stock_to_flow_price",
+            version,
+            &LazyIndexedVec::new(
+                "stock_to_flow_price_cents_source",
+                version,
+                subsidy.cumulative.sats.resolutions.height_source(),
+                &subsidy.sum._1y.sats.height,
+                |_, stock: Sats, flow: Sats| Cents::from(planb_price_cents(stock, flow)),
+            ),
+            mappings,
+        );
+
         // Claimed subsidy over coinbase, so an underclaimed coinbase stays within 0..=100%;
         // the coinbase is read first.
         let subsidy_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
@@ -71,6 +98,8 @@ impl Vecs {
             coinbase,
             subsidy,
             puell_multiple,
+            stock_to_flow,
+            stock_to_flow_price,
             fees,
             unclaimed: ValuePerBlockCumulativeRolling::import(
                 db,
@@ -83,4 +112,20 @@ impl Vecs {
             subsidy_share,
         })
     }
+}
+
+/// The coins mined so far over the past year's; NaN while that year reaches back to the first
+/// block (2009): its flow is then every coin mined, not a year's.
+fn stock_to_flow(stock: Sats, flow: Sats) -> f64 {
+    if flow >= stock {
+        return f64::NAN;
+    }
+    f64::from(stock) / f64::from(flow)
+}
+
+/// PlanB's model price in cents (PlanB, 2019, "Modeling Bitcoin Value with Scarcity"): market value
+/// `exp(14.6) · SF^3.3` dollars, his published coefficients, over the stock.
+fn planb_price_cents(stock: Sats, flow: Sats) -> f64 {
+    let market_value = 14.6f64.exp() * stock_to_flow(stock, flow).powf(3.3);
+    market_value / (f64::from(stock) / 100_000_000.0) * 100.0
 }

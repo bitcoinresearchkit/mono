@@ -6757,6 +6757,7 @@
 /presets/price/returns/6-months	/presets/price/returns/return#window=180d
 /presets/price/returns/6-years	/presets/price/returns/growth#window=6y
 /presets/price/returns/8-years	/presets/price/returns/growth#window=8y
+/presets/price/technical/pi-cycle-bottom	/presets/price/technical/pi-cycle
 /presets/profitability/	/presets/holders/profit-bands/
 /presets/profitability/all-coins/	/presets/holders/profit-bands/all-coins/
 /presets/profitability/all-coins/0-minus-10-percent-in-loss/	/presets/holders/profit-bands/all-coins/0-minus-10-percent-in-loss/
