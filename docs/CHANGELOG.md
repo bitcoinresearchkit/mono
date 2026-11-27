@@ -8,6 +8,13 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 
 ## Unreleased
 
+- Five named models are served, so Studio's charts of them read the series instead of computing them on the page:
+  the Pi cycle top (`price_sma_111d`, `price_sma_350d`, both served again since v0.12.2, `pi_cycle_top_line`,
+  `pi_cycle_top`), the NVT signal (`nvt_signal`), stock-to-flow (`stock_to_flow`, `stock_to_flow_price`, PlanB's 2019
+  coefficients, flow as the past year's actual issuance, not the halving schedule), and at `day1` the MVRV Z-score
+  (`mvrv_z`, its deviation up to each day, never over all history) and seller exhaustion (`seller_exhaustion`). Each
+  description cites its author and year. Studio's Pi cycle bottom chart is gone. +1.1 MB on disk.
+
 - Burger's power law itself is served too, as `burger_power_law` beside `burger_power_law_floor` (both computed on
   read from the block's day), and Studio's "Power law" preset draws the two served series instead of its own formulas.
 - Four power-law floors under the price, per block, in the market plugin (`market.power_law`):
