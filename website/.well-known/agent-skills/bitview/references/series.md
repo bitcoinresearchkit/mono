@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31755 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31756 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -180,6 +180,7 @@
 
 - `holders.all` (218): `circulating_supply`, `circulating_supply_usd`, `market_cap`, `supply_in_profit`, `supply_in_profit_usd`
 - `holders.sth` (220): `sth_supply`, `sth_supply_usd`, `sth_market_cap`, `sth_supply_in_profit`, `sth_supply_in_profit_usd`
+- `holders.mvrv_z` (1): `mvrv_z`
 
 ### entry
 

@@ -1594,6 +1594,7 @@ pub mod tree {
         under_6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis> = "*_under_6m",
         over_4m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis> = "*_over_4m",
         over_6m: CreationCohort<SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis> = "*_over_6m",
+        mvrv_z: SeriesPattern9<Option<Float>> = "mvrv_z",
     } }
     shape! { Vintage at "series().age.vintages" {
         _2009: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis> = "*_2009",

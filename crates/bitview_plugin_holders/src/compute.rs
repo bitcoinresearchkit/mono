@@ -6,7 +6,7 @@ use brk_error::Result;
 use brk_types::{Height, Version};
 use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec, ReadableVec};
 
-use crate::{Dependencies, Vecs, section::Rest, sources::Sources};
+use crate::{Dependencies, Vecs, day_models, section::Rest, sources::Sources};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -47,12 +47,24 @@ impl ComputePlugin for Vecs {
             spot,
             exit,
         })?;
+        write_locked(self.cohorts.iter_any_stored_mut(), exit)?;
+        let all = &self.columns.all;
+        self.day_models.compute(
+            Height::from(start),
+            &day_models::Inputs {
+                supply: &all.supply.read_only_boxed_clone(),
+                realized_cap: &all.cap.read_only_boxed_clone(),
+                spot,
+            },
+            exit,
+        )?;
         debug_assert_eq!(
             self.iter_any_stored_mut().count(),
-            self.columns.iter_any_stored_mut().count() + self.cohorts.iter_any_stored_mut().count(),
-            "every output is a column or derived from them"
+            self.columns.iter_any_stored_mut().count()
+                + self.cohorts.iter_any_stored_mut().count()
+                + self.day_models.iter_any_stored_mut().count(),
+            "every output is a column, derived from them, or a day model"
         );
-        write_locked(self.cohorts.iter_any_stored_mut(), exit)?;
         self.db.flush();
         Ok(())
     }
