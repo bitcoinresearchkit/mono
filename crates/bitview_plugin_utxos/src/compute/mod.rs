@@ -6,6 +6,7 @@ use bitview_compute::undo_chunks;
 use bitview_distribution::{readers::ColumnReaders, replay};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
+use brk_types::Height;
 
 use crate::{Dependencies, Vecs};
 
@@ -29,6 +30,7 @@ impl ComputePlugin for Vecs {
             |vecs, utxos, heights, prices| {
                 let output_heights = mappings.output_heights.load_full();
                 let mut columns = ColumnReaders::new(indexer, &output_heights);
+                let from = Height::from(heights.start);
                 // An ordinary update is one chunk, the protected tail, written with its undo.
                 for (blocks, tail) in undo_chunks(heights) {
                     process_chunk(
@@ -42,7 +44,8 @@ impl ComputePlugin for Vecs {
                         exit,
                     )?;
                 }
-                Ok(())
+                vecs.amount_gini
+                    .compute(&vecs.cohorts.amounts, mappings, from, exit)
             },
         )
     }

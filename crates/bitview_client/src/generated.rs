@@ -1572,6 +1572,7 @@ pub mod tree {
     shape! { Utxos at "series().utxos" {
         amounts: AmountRange<Zero, Cohort> = "*",
         types: UtxosSpendableType = "script",
+        amount_gini: SeriesPattern9<Option<Float>> = "utxo_*_gini",
     } }
     shape! { CreationCohort<A, B, C, D, E, F> at "series().entry.discount" {
         supply: A = "*",

@@ -6,7 +6,7 @@ use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 use vecdb::ReadableCloneableVec;
 
-use crate::{SAVED_CHECKPOINTS, STORAGE, Vecs, metrics::CohortMetrics};
+use crate::{SAVED_CHECKPOINTS, STORAGE, Vecs, gini::AmountGini, metrics::CohortMetrics};
 impl Vecs {
     pub fn import(
         context: ImportContext<'_>,
@@ -25,10 +25,12 @@ impl Vecs {
             &prices.spot.cents.height.read_only_boxed_clone(),
             totals,
         )?;
+        let amount_gini = AmountGini::import(&db, STORAGE.schema_version())?;
         let this = Self {
             db,
             caps,
             cohorts,
+            amount_gini,
             live: None,
         };
         STORAGE.finalize_database(&this.db)?;
