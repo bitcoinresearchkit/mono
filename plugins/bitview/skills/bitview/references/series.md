@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31757 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31758 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -159,6 +159,7 @@
 
 - `utxos.amounts` (911): `amount_0_sats_utxo_count`, `amount_0_sats_utxo_count_delta_24h`, `amount_0_sats_utxo_count_delta_1w`, `amount_0_sats_utxo_count_delta_1m`, `amount_0_sats_utxo_count_delta_1y`
 - `utxos.types` (640): `p2pk_supply`, `p2pk_supply_usd`, `p2pk_market_cap`, `p2pk_supply_delta_24h`, `p2pk_supply_delta_1w`
+- `utxos.amount_gini` (1): `utxo_amount_gini`
 
 ### addresses
 

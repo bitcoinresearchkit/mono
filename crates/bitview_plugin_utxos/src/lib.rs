@@ -2,6 +2,7 @@ mod block;
 mod checkpoint;
 mod compute;
 mod dependencies;
+mod gini;
 mod import;
 mod metrics;
 mod state;
@@ -15,6 +16,7 @@ use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
+use gini::AmountGini;
 use metrics::CohortMetrics;
 use state::UTXOStates;
 
@@ -32,4 +34,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     caps: M::WriteOnly<RealizedCaps<CAP_COUNT>>,
     #[traversable(flatten)]
     cohorts: CohortMetrics<M>,
+    #[traversable(flatten)]
+    amount_gini: AmountGini<M>,
 }

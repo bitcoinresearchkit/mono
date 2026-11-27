@@ -4361,6 +4361,7 @@ class AmountRange(_Node, Generic[A, B]):
 class Utxos(_Node):
     amounts: AmountRange[Zero, Cohort] = _at((AmountRange, Zero, Cohort), '*')
     types: UtxosSpendableType = _at(UtxosSpendableType, 'script')
+    amount_gini: SeriesPattern9[Optional[Float]] = _at(SeriesPattern9, 'utxo_*_gini')
 
 
 class CreationCohort(_Node, Generic[A, B, C, D, E, F]):

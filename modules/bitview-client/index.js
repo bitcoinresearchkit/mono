@@ -4780,11 +4780,13 @@ const _AmountRange = (c, b, f0, f1) => _n(c, b, {
  * @typedef {{
  *   amounts: AmountRange<Zero, Cohort>,
  *   types: UtxosSpendableType,
+ *   amountGini: SeriesPattern9<?Float>,
  * }} Utxos
  */
 const _Utxos = _s({
   amounts: [(c, b) => _AmountRange(c, b, _Zero, _Cohort), '*'],
   types: [_UtxosSpendableType, 'script'],
+  amountGini: [_i9, 'utxo_*_gini'],
 });
 
 /**
@@ -7279,7 +7281,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "55f012c90cdfbb996160cb7165dd3bab51833b4c26b60f4903d59b18ae925b11";
+  static HASH = "50de53355c8a8d22b42011cb7c1cb418da2662b4969c881e538845ef89c1d1d8";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
