@@ -73,7 +73,15 @@ impl Vecs {
                 self.prices
                     .compute(from, holders, &self.supply, &self.caps, exit)?;
                 self.prices
-                    .compute_ratios(from, &prices.spot.cents.height, exit)
+                    .compute_ratios(from, &prices.spot.cents.height, exit)?;
+                self.prices.compute_sums(
+                    from,
+                    &prices.spot.usd.height,
+                    &holders.cohorts.all.activity.coindays_destroyed.block,
+                    &all_chain.market_cap,
+                    &mappings.timestamp.monotonic,
+                    exit,
+                )
             },
             || {
                 self.reserve_risk

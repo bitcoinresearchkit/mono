@@ -7,10 +7,11 @@ use vecdb::{Database, ReadableCloneableVec, Rw, StorageMode};
 
 use crate::Component;
 
-/// A median creation price's component, with the price and spot's ratio to it. The ratio is a
-/// lazy quotient: one division per value read, no disk.
+/// The component of a price with no stored spot ratio (a median creation price, a cointime price
+/// computed on read), with the price and spot's ratio to it. The ratio is a lazy quotient: one
+/// division per value read, no disk.
 #[derive(Traversable)]
-pub struct MedianComponent<M: StorageMode = Rw> {
+pub struct LazyComponent<M: StorageMode = Rw> {
     #[traversable(flatten, rename = "value")]
     price: Price<LazyPerBlock<Cents>>,
     /// Spot price divided by the price described above, computed from cent-precision prices:
@@ -22,7 +23,7 @@ pub struct MedianComponent<M: StorageMode = Rw> {
     pub component: Component<M>,
 }
 
-impl MedianComponent {
+impl LazyComponent {
     /// `price` names the price, its spot ratio and the component's series (its source's id).
     pub fn import(
         db: &Database,

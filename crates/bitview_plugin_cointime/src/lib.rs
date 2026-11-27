@@ -73,8 +73,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// capitalization values the supply from cumulative destroyed value.
     caps: CapVecs<M>,
     /// Cointime reference prices translate activity-adjusted capitalization or
-    /// value into a price per BTC, each beside spot's ratio to it. They are
-    /// model-derived benchmarks, not traded market prices.
+    /// value into a price per BTC, each beside spot's ratio to it; beside them, the
+    /// lines priced from destroyed coin days and average capitalization (transferred,
+    /// balanced, terminal, CVDD and delta). They are model-derived benchmarks, not
+    /// traded market prices.
     pub prices: PricesVecs<M>,
     /// Cointime-adjusted rates reweight conventional supply rates by
     /// liveliness, cumulative coinblocks destroyed divided by cumulative

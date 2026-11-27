@@ -13,13 +13,14 @@ use brk_types::{Cents, Version};
 use rayon::prelude::*;
 use vecdb::{Database, Rw, StorageMode};
 
-use super::{Component, median_component::MedianComponent};
+use super::{Component, lazy_component::LazyComponent};
 
 /// The reference prices whose spot ratios the meter ranks: every holder cohort's four creation
 /// prices, of its coins, its awake coins and its mobile coins, and the cointime prices. Each
 /// component's series follow its price's id: its bands `<price>_rarity_<percentile>`
 /// (`sth_median_realized_price_rarity_p1`), their ratios `<price>_ratio_rarity_<percentile>`; a
-/// median also publishes its price and spot ratio (`sth_median_realized_price`, `..._ratio`).
+/// price with no stored spot ratio (a median, CVDD, the balanced and delta prices) also publishes
+/// its price and a lazy spot ratio (`sth_median_realized_price`, `..._ratio`).
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
     #[traversable(flatten)]
@@ -41,6 +42,24 @@ pub struct AllComponents<M: StorageMode = Rw> {
     /// circulating supply multiplied by liveliness.
     #[traversable(lead = "True market mean: the realized cap without what miners received, per coin of the supply in use.")]
     true_market_mean: Component<M>,
+    /// Cointime price: cumulative cointime value destroyed divided by cumulative coinblocks
+    /// stored, as a price per BTC.
+    #[traversable(lead = "Cointime price: the value of the holding time spent, for each unit stored.")]
+    cointime_price: Component<M>,
+    /// Active price: realized price divided by liveliness, cumulative coinblocks destroyed over
+    /// cumulative coinblocks created.
+    #[traversable(lead = "Active price: the realized price, scaled by how much of the supply is in use.")]
+    active_price: Component<M>,
+    /// CVDD: coin days destroyed valued at spot and summed, over the market's age in days and
+    /// 6 million.
+    #[traversable(lead = "CVDD: the value of all coin days destroyed, over the market's age in days and 6 million.")]
+    cvdd: LazyComponent<M>,
+    /// Balanced price: the realized price less the transferred price.
+    #[traversable(lead = "Balanced price: the realized price less the transferred price.")]
+    balanced_price: LazyComponent<M>,
+    /// Delta price: realized capitalization less average capitalization, per coin.
+    #[traversable(lead = "Delta price: the realized cap less the average cap, per coin.")]
+    delta_price: LazyComponent<M>,
 }
 
 /// A cohort's prices: of its coins, and of its awake and mobile coins.
@@ -67,10 +86,10 @@ pub struct CohortComponents<M: StorageMode = Rw> {
     capitalized_price: Component<M>,
     /// The median creation price, weighted by BTC supply.
     #[traversable(lead = "Median realized price: about half the coins last moved below it, half above.")]
-    median_realized_price: MedianComponent<M>,
+    median_realized_price: LazyComponent<M>,
     /// The median creation price, weighted by creation-date USD value.
     #[traversable(lead = "Median capitalized price: about half the coins, by the dollars they cost, last moved below it.")]
-    median_capitalized_price: MedianComponent<M>,
+    median_capitalized_price: LazyComponent<M>,
 }
 
 struct Imports<'a> {
@@ -93,9 +112,9 @@ impl Imports<'_> {
         )
     }
 
-    /// A median's component over its owner's price, with a lazy spot ratio.
-    fn median(&self, name: &str, price: &Price<LazyPerBlock<Cents>>) -> Result<MedianComponent> {
-        MedianComponent::import(
+    /// The component of a price with no stored spot ratio, with a lazy one.
+    fn lazy(&self, name: &str, price: &Price<LazyPerBlock<Cents>>) -> Result<LazyComponent> {
+        LazyComponent::import(
             self.db,
             name,
             self.version,
@@ -117,9 +136,9 @@ impl Imports<'_> {
                 realized_price: self.mean(&name("realized_price"), &by_coin.avg)?,
                 capitalized_price: self.mean(&name("capitalized_price"), &by_dollar.avg)?,
                 median_realized_price: self
-                    .median(&name("median_realized_price"), &by_coin.percentiles.median)?,
+                    .lazy(&name("median_realized_price"), &by_coin.percentiles.median)?,
                 median_capitalized_price: self
-                    .median(&name("median_capitalized_price"), &by_dollar.percentiles.median)?,
+                    .lazy(&name("median_capitalized_price"), &by_dollar.percentiles.median)?,
             })
         };
         Ok(BySupply {
@@ -175,6 +194,11 @@ impl Components {
                     vaulted_price: imports.mean("vaulted_price", &cointime.prices.vaulted)?,
                     true_market_mean: imports
                         .mean("true_market_mean", &cointime.prices.true_market_mean)?,
+                    cointime_price: imports.mean("cointime_price", &cointime.prices.cointime)?,
+                    active_price: imports.mean("active_price", &cointime.prices.active)?,
+                    cvdd: imports.lazy("cvdd", &cointime.prices.cvdd)?,
+                    balanced_price: imports.lazy("balanced_price", &cointime.prices.balanced)?,
+                    delta_price: imports.lazy("delta_price", &cointime.prices.delta)?,
                 },
                 sth: by_supply!(Sth, sth),
                 lth: by_supply!(Lth, lth),
@@ -201,6 +225,11 @@ impl Components {
                     cohort: all,
                     vaulted_price,
                     true_market_mean,
+                    cointime_price,
+                    active_price,
+                    cvdd,
+                    balanced_price,
+                    delta_price,
                 },
             sth,
             lth,
@@ -220,7 +249,15 @@ impl Components {
                     &mut supply.median_capitalized_price.component,
                 ]
             })
-            .chain([vaulted_price, true_market_mean])
+            .chain([
+                vaulted_price,
+                true_market_mean,
+                cointime_price,
+                active_price,
+                &mut cvdd.component,
+                &mut balanced_price.component,
+                &mut delta_price.component,
+            ])
     }
 
     pub(crate) fn local(&self) -> [&Component; 6] {
@@ -241,6 +278,7 @@ impl Components {
             cohort,
             vaulted_price,
             true_market_mean,
+            ..
         } = &self.cohorts.all;
         [
             &cohort.raw.realized_price,

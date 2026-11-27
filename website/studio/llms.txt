@@ -105,16 +105,16 @@ An assistant without web access can't look names up: whoever uses it can, or can
 
 Each section's page lists its charts; each chart's own address is in https://bitview.space/studio/sitemap.xml. Every page is also there as Markdown, at its address and .md (after a section's, which ends in a slash, index.html.md), as below.
 
-- Price (26): https://bitview.space/studio/presets/price/index.html.md
+- Price (27): https://bitview.space/studio/presets/price/index.html.md
   - All-time high (2): https://bitview.space/studio/presets/price/all-time-high/index.html.md
   - Returns (5): https://bitview.space/studio/presets/price/returns/index.html.md
   - Moving averages (5): https://bitview.space/studio/presets/price/moving-averages/index.html.md
   - Range (1): https://bitview.space/studio/presets/price/range/index.html.md
-  - Technical (11): https://bitview.space/studio/presets/price/technical/index.html.md
-- Valuation (214): https://bitview.space/studio/presets/valuation/index.html.md
+  - Technical (12): https://bitview.space/studio/presets/price/technical/index.html.md
+- Valuation (227): https://bitview.space/studio/presets/valuation/index.html.md
   - Compass (5): https://bitview.space/studio/presets/valuation/compass/index.html.md
   - Cointime prices (7): https://bitview.space/studio/presets/valuation/cointime-prices/index.html.md
-  - Rarity meter (184): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
+  - Rarity meter (194): https://bitview.space/studio/presets/valuation/rarity-meter/index.html.md
 - Supply (5): https://bitview.space/studio/presets/supply/index.html.md
 - Holders (529): https://bitview.space/studio/presets/holders/index.html.md
   - Compare (26): https://bitview.space/studio/presets/holders/compare/index.html.md

@@ -35,6 +35,7 @@
 import { HOLDER_COLORS, LANDSCAPE, SKY, holderColor, recencyColor, wheelColor } from "./palette.js";
 import { AGES, BALANCES, EDGES, HOLDERS, UTXO_AMOUNTS, adjective, band, capitalized, dimensionBand, holderName, inSentence, isLeaf, isWindowKey, placeEdge, spanLabel, windowAdjective, windowSaid, windowShort } from "./words.js";
 import { chainStatistics } from "./chain-statistics.js";
+import { POWER_LAW } from "../modules/power-law/index.js";
 
 /** @param {any} n */
 const byDate = (n) => isLeaf(n) && n.indexes().includes("day1");
@@ -93,7 +94,8 @@ const FEATURE_PHRASES = {
 const sighashName = (/** @type {string} */ key) => key.replace(/^(\w+?)(AnyoneCanPay)?$/, (_, type, anyone) => `SIGHASH_${type.toUpperCase()}${anyone ? "|SIGHASH_ANYONECANPAY" : ""}`);
 
 /** Each price keeps its own color wherever it's drawn (a chart of its own, among others, a meter's reference). */
-const PRICE_COLORS = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ realizedPrice: "orange", capitalizedPrice: "green", trueMarketMean: "sky", cointime: "violet", vaulted: "teal", active: "red" }));
+const PRICE_COLORS = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ realizedPrice: "orange", capitalizedPrice: "green", trueMarketMean: "sky", cointime: "violet", vaulted: "teal", active: "red", cvdd: "emerald", balanced: "cyan", delta: "purple" }));
+const PRICE_NAMES = /** @type {Readonly<Record<string, string>>} */ (Object.freeze({ cvdd: "CVDD" }));
 /** A count summed since the start: its month's color, not gray, which reads as off. */
 const SUM_COLOR = "blue";
 const PER_BLOCK_COLOR = "sky";
@@ -583,7 +585,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
     const list = entries(node), weighted = (/** @type {string} */ k) => k === "awake" || k === "mobile";
     const who = kind ? capitalized(holderName(cohort).of(kind)) : holderName(cohort).who;
     return [
-      ...list.filter(([k]) => !weighted(k)).map(([k, v]) => component(v, words(k), who, referenceOf(cohort, kind, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")])),
+      ...list.filter(([k]) => !weighted(k)).map(([k, v]) => component(v, PRICE_NAMES[k] ?? words(k), who, referenceOf(cohort, kind, k), PRICE_COLORS[k] ?? PRICE_COLORS[k.replace(/Price$/, "")])),
       ...list.filter(([k]) => weighted(k)).map(([k, v]) => section(capitalized(k), rarityComponents(cohort, v, k))),
     ];
   };
@@ -595,6 +597,8 @@ export function studioPresets(client, facts, report = (problem) => console.error
       capitalizedPrice: [cost?.byDollar.capitalizedPrice, cost?.byDollar.avg.ratio],
       vaultedPrice: [ct.prices.vaulted.value, ct.prices.vaulted.ratio],
       trueMarketMean: [ct.prices.trueMarketMean.value, ct.prices.trueMarketMean.ratio],
+      cointimePrice: [ct.prices.cointime.value, ct.prices.cointime.ratio],
+      activePrice: [ct.prices.active.value, ct.prices.active.ratio],
     })[key];
   };
   /** @param {any} node @param {(v: any) => any} pick @param {(p: number) => boolean} [shown] */
@@ -963,6 +967,9 @@ export function studioPresets(client, facts, report = (problem) => console.error
         chart("Volatility", "Annualized price volatility", [price(), { formula: "volatility(A, 30d)", label: "30 days", pane: 2, color: "sky" }, { formula: "volatility(A, 1y)", label: "1 year", pane: 2, color: "violet" }]),
         // Marked where the 111-day crosses over twice the 350-day.
         chart("Pi cycle", "Pi cycle top", [price(), { formula: "sma(A, 111d)", label: "111-day SMA", color: "green" }, { formula: "2 * sma(A, 350d)", label: "350-day SMA × 2", color: "red" }, { formula: "B > C", type: "signal", ref: "A", label: "Top signal", color: "red" }]),
+        // Trader Dončić's 2021 twin of the top. 0.745, not the 0.475 of one TradingView text, which crosses at
+        // neither the 2015 nor the 2018 low.
+        chart("Pi cycle bottom", "Pi cycle bottom", [price(), { formula: "ema(A, 150d)", label: "150-day EMA", color: "green" }, { formula: "0.745 * sma(A, 471d)", label: "471-day SMA × 0.745", color: "red" }, { formula: "B < C", type: "signal", ref: "A", label: "Bottom signal", color: "green" }]),
         chart("Golden and death crosses", "Golden and death crosses", [price(), { formula: "sma(A, 50d)", label: "50-day SMA", color: "amber" }, { formula: "sma(A, 200d)", label: "200-day SMA", color: "sky" }, { formula: "(B > C) - (B < C)", type: "signal", ref: "A", place: "below", results: true, label: "Cross", color: "green" }]),
         chart("Trailing stop", "A 20-day trailing stop", [price(), { formula: "shift(highest(A, 20d), 1d)", label: "20-day high", color: "gray", dash: 2, hidden: true }, { formula: "shift(lowest(A, 20d), 1d)", label: "20-day low", color: "gray", dash: 2, hidden: true }, { trend: ["B", "C"], ref: "A", label: "Trailing stop", color: "red", colorBelow: "green", width: 2 }], { range: "1y" }),
         ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `halving(A, ${n})`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: recencyColor(n, cycles) }))], { log: [2], halvings: true, range: "max" }))(epoch + 1),
@@ -988,8 +995,12 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // The subsidy as 52,560 blocks a year (the schedule, not the blocks found); the model price is PlanB's 2019 fit
             // of market cap to it (e^14.6 × S2F^3.3).
       ((supply, epoch) => ((s2f) => chart("Stock-to-flow", "Stock-to-flow", [price(), { formula: `exp(14.6) * (${s2f}) ^ 3.3 / ${supply}`, label: "Model price", format: "usd", color: "violet", dash: 3 }, { formula: s2f, label: "Stock-to-flow", format: "number", pane: 2, color: "orange" }], { log: [2] }))(`${supply} / (50 * 0.5 ^ ${epoch} * 52560)`))(t.holders.all.supply.total.btc.name, blocks.halving.epoch.name),
+      (({ intercept, slope, support }, days) => chart("Power law", "Power-law fit and support line", [price(), { formula: `10 ^ (${intercept} + ${slope} * log(${days}))`, label: "Power-law fit", format: "usd", color: "violet", dash: 3 }, { formula: `10 ^ (${intercept} - ${support} + ${slope} * log(${days}))`, label: "Power-law floor", format: "usd", color: "green" }]))(POWER_LAW, "(date - 2009-01-03) / 86400"),
       chart("RHODL", "RHODL ratio", [price(), series(t.age.rhodlRatio, "RHODL ratio", { pane: 2 })], { log: [2] }),
       chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: PRICE_COLORS.realizedPrice }), series(ct.prices.trueMarketMean.value, "True market mean", { color: PRICE_COLORS.trueMarketMean }), series(ct.prices.cointime.value, "Cointime price", { color: PRICE_COLORS.cointime }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: PRICE_COLORS.capitalizedPrice })]),
+      // Terminal marks the tops; the other three sit under the price at the lows.
+      chart("Cumulative destruction", "CVDD, balanced, transferred and terminal prices", [price(), series(ct.prices.cvdd, PRICE_NAMES.cvdd, { color: PRICE_COLORS.cvdd }), series(ct.prices.balanced, "Balanced price", { color: PRICE_COLORS.balanced }), series(ct.prices.transferred, "Transferred price", { color: "gray" }), series(ct.prices.terminal, "Terminal price", { color: "red" })]),
+      chart("Delta price", "Delta price and realized price", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: PRICE_COLORS.realizedPrice }), series(ct.prices.delta, "Delta price", { color: PRICE_COLORS.delta })]),
       cloudsChart(),
       section("Compass", compassCharts()),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", PRICE_COLORS.active, PRICE_COLORS.vaulted, PRICE_COLORS.cointime][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1], as: ["Caps", "Shares"] }),
