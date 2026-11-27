@@ -32,6 +32,13 @@ const TAG = PILL;
 /** Nearer a tag than this, an axis label is dropped. */
 const COVER = TAG / 2 + 10;
 /**
+ * More than two tags burying more than this share of the labels that would show yield: only the price's and the focused
+ * series' stay. Two, the price and one line, always fit. (Swept over 632 presets at 382 and 1440: sides of 3 or 4 tags
+ * bury a quarter or a third, one or two labels in six to eight; the many-line ones 0.43 and up, as SMA and EMA compare
+ * at 1440. Set in the gap, so a pan's label more or less rarely tips a side.)
+ */
+const BURIED = 0.4;
+/**
  * `fixed`: never moved; `dashed`: never stretched; `immovable`: nor panned; `over`: own layer, drawn whole each frame;
  * `scaled: false`: not on its side's scale; `viewed`: brought to the view before each draw; `crosshair`: never pictured.
  * @typedef {{
@@ -162,6 +169,11 @@ export class Pane {
     this.tagY = new Float64Array(8);
     this.tagPlace = new Float64Array(8);
     this.tagStep = 0;
+    /** The series pointed at (the legend's lit one), set by the chart each frame. @type {Series | null} */
+    this.focus = null;
+    this.drawnFocus = /** @type {Series | null} */ (null);
+    /** Per side: its tags yielded (only the price's and the focus' drawn). */
+    this.yields = [false, false];
     this.wholeCost = 0;
     this.still = false;
     /** @type {Theme | null} */
@@ -664,9 +676,11 @@ export class Pane {
     const slow = !fixed && this.wholeCost > SLOW;
     if (slow && same && !moves && !dashed && this.snapSpacing !== this.snapSpacing && this.sharp) this.#snap(dpr);
     const stretch = spacing / this.snapSpacing, stretches = slow && same && !moves && !dashed && stretch >= 0.5 && stretch <= 2;
+    // (Yielded tags follow the focus: its tag drawn, the last one's gone.)
+    const refocus = this.focus !== this.drawnFocus && (this.yields[0] || this.yields[1]);
     if (moves && (!by || !immovable)) {
       if (!by) {
-        if (overs !== this.drawnOvers) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
+        if (overs !== this.drawnOvers || refocus) (this.drawnOvers = overs), this.#axes(time, theme, dpr);
         // (A series `over` may follow the pointer: drawn whole each frame, so not still.)
         this.still = !own;
         return false;
@@ -698,7 +712,7 @@ export class Pane {
       this.sharp = false;
       // (Its tags read the view's end: its axes drawn again where that's another point.)
       const first = Math.max(0, time.firstVisible);
-      if (overs !== this.drawnOvers || ((time.lastVisible !== this.axesEnd || first > this.tagsFrom || first <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
+      if (overs !== this.drawnOvers || refocus || ((time.lastVisible !== this.axesEnd || first > this.tagsFrom || first <= this.tagsOut) && this.#tagged())) this.#axes(time, theme, dpr);
     }
     this.scale.drawnNow();
     this.left?.drawnNow();
@@ -718,7 +732,7 @@ export class Pane {
 
   /** @param {import("./timeline.js").Timeline} time @param {Theme} theme @param {number} dpr */
   #axes(time, theme, dpr) {
-    (this.tagsFrom = Infinity), (this.tagsOut = -1);
+    (this.tagsFrom = Infinity), (this.tagsOut = -1), (this.drawnFocus = this.focus);
     this.axisG.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.#axis(this.axisG, this.scale, time, theme, dpr, 0, this.width - this.plot, 0);
     if (this.leftG && this.leftWidth) {
@@ -729,7 +743,7 @@ export class Pane {
         lg.fillStyle = theme.background;
         lg.fillRect(0, 0, this.leftWidth, this.height);
         if (this.separated) this.#separator(lg, theme, dpr, 0, this.leftWidth);
-        this.drawnTags[1].lines.length = 0;
+        (this.drawnTags[1].lines.length = 0), (this.yields[1] = false);
       }
     }
     this.axesEnd = time.lastVisible;
@@ -763,15 +777,24 @@ export class Pane {
     this.drawnTickCounts[slot] = count;
     const stepAt = (/** @type {number} */ v) => this.stepAt(v, scale);
     // (Tags placed first: a label within COVER of one is dropped.)
-    const tags = this.#placeTags(scale, time, side), place = this.tagPlace, page = this.pageTags[side], labels = this.drawnLabels[side];
+    const page = this.pageTags[side], labels = this.drawnLabels[side], place = this.tagPlace;
     (page.count = 0), (page.length = this.height);
     for (let k = 0; k < this.series.length; k++) if (!this.series[k].hidden && !this.series[k].faint) this.series[k].axisTags?.(side, page.add, scale, stepAt);
     for (let k = 0; k < page.count; k++) page.at[k] = Math.min(Math.max(page.at[k], TAG / 2), this.height - TAG / 2);
-    const free = (/** @type {number} */ y) => {
-      if (!(y > 6 && y < this.height - 6) || page.covers(y, COVER)) return false;
-      for (let t = 0; t < tags; t++) if (Math.abs(place[t] - y) < COVER) return false;
-      return true;
+    const fits = (/** @type {number} */ y) => y > 6 && y < this.height - 6 && !page.covers(y, COVER);
+    const tagged = (/** @type {number} */ y, /** @type {number} */ n) => {
+      for (let t = 0; t < n; t++) if (Math.abs(place[t] - y) < COVER) return true;
+      return false;
     };
+    let tags = this.#placeTags(scale, time, side, false), fit = 0, buried = 0;
+    for (let k = 0; k < count; k++) {
+      const y = scale.own(this.axisTicks[k]);
+      if (fits(y)) fit++, tagged(y, tags) && buried++;
+    }
+    // (Too many to read beside their labels: the legend, name and value, holds the rest.)
+    this.yields[side] = tags > 2 && buried > BURIED * fit;
+    if (this.yields[side]) tags = this.#placeTags(scale, time, side, true);
+    const free = (/** @type {number} */ y) => fits(y) && !tagged(y, tags);
     // (Each label on its gridline, or none: never moved off the line it names.)
     if (labels.at.length < count) labels.at = new Float64Array(count * 2);
     labels.count = 0;
@@ -874,17 +897,17 @@ export class Pane {
   }
 
   /**
-     * Into tagLines, tagIndex, tagAt and tagPlace; returns their count.
-     * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side
+     * Into tagLines, tagIndex, tagAt and tagPlace; returns their count. `yielded`: the price's and the focus' alone.
+     * @param {Scale} scale @param {import("./timeline.js").Timeline} time @param {number} side @param {boolean} yielded
      */
-  #placeTags(scale, time, side) {
+  #placeTags(scale, time, side, yielded) {
     const log = scale.mode === "log", relative = scale.relative, from = this.#from(time), lines = this.tagLines, owners = this.tagSeries, end = time.lastVisible;
     lines.length = 0;
     owners.length = 0;
     for (let k = 0; k < this.series.length; k++) {
       if (this.sides[k] !== side) continue;
       const series = this.series[k], line = lineOf(series);
-      if (!line || !line.tag || series.hidden || series.faint || series.overlay) continue;
+      if (!line || !line.tag || series.hidden || series.faint || series.overlay || (yielded && !line.priceLine && series !== this.focus && line !== this.focus)) continue;
       // (A price line's at its line, whatever the view's end: never the line without its tag.)
       const base = relative ? line.first(from) : 1, i = line.priceLine ? line.last(log) : line.lastBy(end, log);
       if (i >= 0 && i < from && i > this.tagsOut) this.tagsOut = i;
