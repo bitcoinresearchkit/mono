@@ -301,7 +301,8 @@ export class Band {
     outline.start(g, (to - from + 2) * 2);
     g.fillStyle = color;
     g.beginPath();
-    let px = 0, pu = 0, pd = 0, pc = -1;
+    let px = 0, pu = 0, pd = 0, pc = -1, start = zoomedIn ? 0 : Math.ceil(viewFrom + (from * span) / width - NOISE);
+    const xs = outline.xs, ups = outline.ups, downs = outline.downs, bent = outline.bent;
     for (let k = from; k <= to; k++) {
       if (zoomedIn) {
         const lo = toEdge ? upper[k] : lower[k], hi = upper[k];
@@ -335,11 +336,16 @@ export class Band {
         continue;
       }
       // (A pixel column: its last point with both edges, the band broken at any point without in it.)
-      const first = Math.max(0, Math.ceil(viewFrom + (k * span) / width - NOISE)), last = Math.min(n - 1, Math.ceil(viewFrom + ((k + 1) * span) / width - NOISE) - 1);
+      // (Each column starts where the last ended; outline.add written out: without a JIT, a call a column costs more than its work.)
+      const end = Math.ceil(viewFrom + ((k + 1) * span) / width - NOISE), first = start < 0 ? 0 : start, last = end - 1 < n - 1 ? end - 1 : n - 1;
+      start = end;
       if (last < first) continue;
       if (fast && /** @type {Int32Array} */ (gaps)[first] > last) {
-        const hi = upper[last], lo = lower[last];
-        this.#put(((last - viewFrom) * width) / span, bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta), toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta), !colors || colors[last] === pass);
+        const mine = !colors || colors[last] === pass;
+        if (!mine && !outline.count) continue;
+        const hi = upper[last], lo = lower[last], at = outline.count++;
+        (xs[at] = ((last - viewFrom) * width) / span), (ups[at] = bottom - kk * ((log ? Math.log10(hi) : hi * m + c) - ta)), (downs[at] = toEdge ? edgeY : bottom - kk * ((log ? Math.log10(lo) : lo * m + c) - ta)), (bent[at] = 0);
+        if (!mine) outline.close();
         continue;
       }
       let at = -1;

@@ -132,6 +132,43 @@ const pen = {
     } else this.close();
     (this.has = true), (this.px = x), (this.py = y), (this.color = color), (this.cut = cut);
   },
+  /**
+   * #plain's vertices (x NaN: a lift), each as `to(x, y, 0, false)`; a solid line's in one loop with its state in
+   * locals: without a JIT, a call and its property traffic a vertex cost more than the vertex.
+   * @param {Float64Array} xs @param {Float64Array} ys @param {Int32Array} ids @param {number} count
+   */
+  trail(xs, ys, ids, count) {
+    if (this.period || this.ruling || this.pass >= 0) {
+      for (let v = 0; v < count; v++) xs[v] === xs[v] ? ((this.id = ids[v]), this.to(xs[v], ys[v], 0, false)) : this.lift();
+      return;
+    }
+    const g = /** @type {CanvasRenderingContext2D} */ (this.g), dpr = this.dpr;
+    let on = this.on, has = this.has, cut = this.cut, at = this.y, runX = this.runX, px = this.px, py = this.py, drew = false;
+    for (let v = 0; v < count; v++) {
+      const x = xs[v];
+      if (x !== x || !has || cut) {
+        if (on && runX === runX) g.lineTo(runX, at);
+        (on = false), (runX = NaN);
+        if (x !== x) {
+          has = false;
+          continue;
+        }
+      }
+      const y = Math.round(ys[v] * dpr) / dpr;
+      if (has && !cut) {
+        if (!on) g.moveTo(px, py), (on = true), (at = py), (runX = NaN);
+        if (y === at) runX = x;
+        else {
+          if (runX === runX) g.lineTo(runX, at);
+          g.lineTo(x, y);
+          (at = y), (runX = NaN);
+        }
+      }
+      (has = true), (cut = false), (px = x), (py = y), (drew = true);
+    }
+    (this.on = on), (this.has = has), (this.cut = cut), (this.y = at), (this.runX = runX), (this.px = px), (this.py = py);
+    if (drew) this.color = 0;
+  },
   lift() {
     this.close();
     this.has = false;
@@ -189,6 +226,11 @@ class Columns {
   }
 }
 
+/**
+ * #plain's vertices for pen.trail, handed over each TRAIL: drawn as they're found (WebKit with its JIT drew slower given
+ * a whole line's calls at once), at most three more each segment.
+ */
+const TRAIL = 128, XS = new Float64Array(TRAIL + 3), YS = new Float64Array(TRAIL + 3), IDS = new Int32Array(TRAIL + 3);
 let ORDER = new Int32Array(0), STARTS = new Int32Array(0);
 /**
  * A counting sort: one walk, not one a color.
@@ -398,63 +440,61 @@ export class Line {
     const columns = this.columns, mask = columns.size - 1;
     if (columns.version !== this.version || columns.log !== log) (columns.version = this.version), (columns.log = log), columns.now++;
     const now = columns.now, cA = columns.a, cB = columns.b, cStamp = columns.stamp, origin = Math.round(from * px);
-    let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width - NOISE);
-    for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
+    const first = Math.floor(x0) - 1, last = Math.ceil(x1) + 1;
+    let start = Math.ceil(from + (first * span) / width - NOISE);
+    const xs = XS, ys = YS, ids = IDS;
+    let count = 0;
+    for (let x = first; x <= last; x++) {
       const end = Math.ceil(from + ((x + 1) * span) / width - NOISE), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
       start = end;
-      pen.id = a;
-      const slot = (x + origin) & mask;
-      if (cStamp[slot] === now && cA[slot] === a && cB[slot] === b) {
-        this.#run(from, px, columns.lo[slot], columns.hi[slot], columns.loAt[slot], columns.hiAt[slot], bottom, k, ta, m, c, log);
-        continue;
-      }
-      let lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, i = a, clean = true;
-      while (i <= b) {
-        if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
-          let size = Math.min(i ? i & -i : 1 << 30, 1 << (31 - Math.clz32(b - i + 1)));
-          for (; size >= 1 << FIRST; size >>= 1) {
-            const level = 31 - Math.clz32(size) - FIRST;
-            if (level >= levels.length) continue;
-            const at = levels[level], k = i >> (level + FIRST);
-            if (k >= at.lo.length || (log ? at.low[k] : at.nan[k])) continue;
-            if (at.lo[k] < lo) (lo = at.lo[k]), (loAt = at.loAt[k]);
-            if (at.hi[k] > hi) (hi = at.hi[k]), (hiAt = at.hiAt[k]);
+      // (Only a column's first vertex carries its first point, for the dash ruler.)
+      let id = a;
+      const slot = (x + origin) & mask, hit = cStamp[slot] === now && cA[slot] === a && cB[slot] === b;
+      let lo = hit ? columns.lo[slot] : Infinity, hi = hit ? columns.hi[slot] : -Infinity, loAt = hit ? columns.loAt[slot] : 0, hiAt = hit ? columns.hiAt[slot] : 0, i = hit ? b + 1 : a, clean = !hit;
+      for (;;) {
+        if (count >= TRAIL) pen.trail(xs, ys, ids, count), (count = 0);
+        let gap = false;
+        while (i <= b) {
+          if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
+            let size = Math.min(i ? i & -i : 1 << 30, 1 << (31 - Math.clz32(b - i + 1)));
+            for (; size >= 1 << FIRST; size >>= 1) {
+              const level = 31 - Math.clz32(size) - FIRST;
+              if (level >= levels.length) continue;
+              const at = levels[level], k = i >> (level + FIRST);
+              if (k >= at.lo.length || (log ? at.low[k] : at.nan[k])) continue;
+              if (at.lo[k] < lo) (lo = at.lo[k]), (loAt = at.loAt[k]);
+              if (at.hi[k] > hi) (hi = at.hi[k]), (hiAt = at.hiAt[k]);
+              break;
+            }
+            if (size >= 1 << FIRST) {
+              i += size;
+              continue;
+            }
+          }
+          const v = values[i++];
+          if (log ? v > 0 : v === v) {
+            if (v < lo) (lo = v), (loAt = i - 1);
+            if (v > hi) (hi = v), (hiAt = i - 1);
+          } else {
+            (gap = true), (clean = false);
             break;
           }
-          if (size >= 1 << FIRST) {
-            i += size;
-            continue;
-          }
         }
-        const v = values[i];
-        if (log ? v > 0 : v === v) {
-          if (v < lo) (lo = v), (loAt = i);
-          if (v > hi) (hi = v), (hiAt = i);
-        } else {
-          if (lo <= hi) this.#run(from, px, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log), (lo = Infinity), (hi = -Infinity);
-          pen.lift();
-          clean = false;
+        // (Low and high at their own points' x: a trend through a column draws as one slope, not stairs.)
+        if (lo <= hi) {
+          const loFirst = loAt <= hiAt, p = loFirst ? lo : hi, q = loFirst ? hi : lo;
+          (xs[count] = ((loFirst ? loAt : hiAt) - from) * px), (ys[count] = bottom - k * ((log ? Math.log10(p) : p * m + c) - ta)), (ids[count++] = id);
+          (xs[count] = ((loFirst ? hiAt : loAt) - from) * px), (ys[count] = bottom - k * ((log ? Math.log10(q) : q * m + c) - ta)), (ids[count++] = -1);
+          id = -1;
+          if (!gap && clean) (cStamp[slot] = now), (cA[slot] = a), (cB[slot] = b), (columns.lo[slot] = lo), (columns.hi[slot] = hi), (columns.loAt[slot] = loAt), (columns.hiAt[slot] = hiAt);
         }
-        i++;
-      }
-      if (lo <= hi) {
-        this.#run(from, px, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log);
-        if (clean) (cStamp[slot] = now), (cA[slot] = a), (cB[slot] = b), (columns.lo[slot] = lo), (columns.hi[slot] = hi), (columns.loAt[slot] = loAt), (columns.hiAt[slot] = hiAt);
+        if (!gap) break;
+        // (A lift after a lift does nothing.)
+        if (!count || xs[count - 1] === xs[count - 1]) xs[count++] = NaN;
+        (lo = Infinity), (hi = -Infinity);
       }
     }
-  }
-
-  /**
-     * Low and high at their own points' x: a trend through a column draws as one slope, not stairs.
-     * @param {number} from @param {number} px @param {number} lo @param {number} hi @param {number} loAt @param {number} hiAt
-     * @param {number} bottom @param {number} k @param {number} ta @param {number} m @param {number} c @param {boolean} log
-     */
-  #run(from, px, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log) {
-    const loX = (loAt - from) * px, loY = bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta);
-    const hiX = (hiAt - from) * px, hiY = bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta);
-    // (Only the first vertex carries pen.id, for the dash ruler.)
-    if (loAt <= hiAt) pen.to(loX, loY, 0, false), (pen.id = -1), pen.to(hiX, hiY, 0, false);
-    else pen.to(hiX, hiY, 0, false), (pen.id = -1), pen.to(loX, loY, 0, false);
+    pen.trail(xs, ys, ids, count);
   }
 
   /**
