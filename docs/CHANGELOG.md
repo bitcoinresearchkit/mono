@@ -17,6 +17,12 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 - The Gini coefficient of UTXO amounts is served at `day1` (`utxo_amount_gini`, Corrado Gini's, 1912), read from the
   amount bands at each day's last block, so a floor under the figure for each output alone. Studio's Gini chart reads
   it instead of combining 29 band series on the page (5.6 ms a request, now 0.4 ms). +20 KB on disk.
+- Compass is served at `day1`, for mobile and awake coins (`mobile_compass_*`, `awake_compass_*`): `index` (0 Fear to
+  100 Optimism), `short_term_cloud_position` and `long_term_cloud_position` (-1 to 1), `mood` (0 Optimism to 8 Fear),
+  `extreme` (1 when the price is further from a cloud than on 99 in 100 earlier days) and `mood_days` (the mood's run so
+  far). Each day reads its close and earlier days only. Two value types are new: `Mood` and `Flag`. The Compass page
+  reads them instead of computing them; today's card now moves with each block, not with the live price between
+  blocks. +280 KB on disk.
 
 - Burger's power law itself is served too, as `burger_power_law` beside `burger_power_law_floor` (both computed on
   read from the block's day), and Studio's "Power law" preset draws the two served series instead of its own formulas.

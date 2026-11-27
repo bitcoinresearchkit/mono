@@ -37,6 +37,7 @@ impl ComputePlugin for Vecs {
         ];
         jobs.into_par_iter().try_for_each(|(inner, components)| {
             inner.compute(components, spot, starting_height, exit)
-        })
+        })?;
+        self.compass.compute(starting_height, exit)
     }
 }

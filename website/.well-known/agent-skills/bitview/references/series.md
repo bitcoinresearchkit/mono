@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31758 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31770 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -229,6 +229,7 @@
 - `rarity_meter.components` (3548): `realized_price_ratio_rarity_p0_1`, `realized_price_rarity_p0_1`, `realized_price_ratio_rarity_p0_5`, `realized_price_rarity_p0_5`, `realized_price_ratio_rarity_p1`
 - `rarity_meter.extremes` (100): `supply_in_loss`, `supply_in_loss_rarity_p0_1`, `supply_in_loss_rarity_p0_5`, `supply_in_loss_rarity_p1`, `supply_in_loss_rarity_p2`
 - `rarity_meter.full` (21): `rarity_meter_p0_1`, `rarity_meter_p0_5`, `rarity_meter_p1`, `rarity_meter_p2`, `rarity_meter_p5`
+- `rarity_meter.compass` (12): `mobile_compass_index`, `mobile_compass_short_term_cloud_position`, `mobile_compass_long_term_cloud_position`, `mobile_compass_mood`, `mobile_compass_extreme`
 
 ## Families
 

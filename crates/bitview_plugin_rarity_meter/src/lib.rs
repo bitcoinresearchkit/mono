@@ -1,5 +1,6 @@
 mod band;
 mod block_decay_percentiles;
+mod compass;
 mod component;
 mod component_price;
 mod components;
@@ -20,6 +21,7 @@ use vecdb::{Database, Rw, StorageMode};
 
 use band::Band;
 use block_decay_percentiles::{BlockDecayPercentiles, START_HEIGHT};
+use compass::Compass;
 use component::Component;
 use components::Components;
 use extremes::Extremes;
@@ -58,4 +60,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// realized prices.
     #[traversable(lead = "Cycle Rarity Meter: how rare the price is against what the whole supply cost, over the cycle.")]
     cycle: RarityMeterInner<M>,
+    /// Compass (bitview.space/compass): the price against what young and old coins cost.
+    #[traversable(lead = "Compass: where the price sits against what young and old coins cost.")]
+    compass: Compass<M>,
 }
