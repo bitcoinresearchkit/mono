@@ -1590,8 +1590,9 @@
         const chart = createChart(box, { theme: { background: paper, text: soft, grid: "transparent", font: FONT, crosshair: ink, across: "transparent", badge: ink, separator: "transparent", active: "transparent" }, axis: 0, leftAxis: 0, timeHeight: 28, embedded: true, dateFormat: (t) => dated(Math.round((t * 1000 - EPOCH) / DAY)) });
         const pane = chart.addPane({ scale: { mode: "log", top: 0, bottom: 0 }, format: () => "" });
         chart.setTimes(times);
-        // (The view holds on the days shown: no day before the first, and past the last a quarter of it at most.)
-        (chart.time.first = SHOWN), (chart.time.minDataShare = 1), (chart.time.minEndShare = 0.75);
+        // (The view holds on the days shown: no day before the first, and past the last a quarter of the room at most.)
+        (chart.time.first = SHOWN), (chart.time.minDataShare = 1);
+        chart.onLayout(() => (chart.time.minEndShare = (0.75 * chart.time.dataWidth) / chart.time.width));
         // The crowd: every line by week behind everything, each stroked faint (CROWD) on a layer of its own, the layer laid
         // on once at --crowd's alpha, so where many run together the tone deepens to that and no further. Drawn again as
         // each ask's lines land.

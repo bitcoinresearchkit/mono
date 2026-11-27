@@ -190,10 +190,17 @@ export class Timeline {
     return from > last - end ? last - end - from : to < start ? start - to : 0;
   }
 
-  /** Shares are of the room its points have (the view less the right offset), so 1 holds all the data shown. @param {number} span */
+  /**
+   * Both shares are of the whole view: `start`, the least its end is at, so that panned back the data holds
+   * `minDataShare` of it (1: the first point at the left edge); `end`, the points its data holds of it panned past its
+   * end, `minEndShare` of it, or `minDataShare` where a page gives it none (a page that wants the last point to stop at the
+   * end of the room its points have, the view less the right offset, says `dataWidth / width`). Each is capped at all
+   * of the data, the start's with the offset's strip beyond the last point.
+   * @param {number} span
+   */
   holds(span) {
-    const last = Math.max(this.length - 1, 0), data = last - this.first, blank = (span * (this.width - this.dataWidth)) / this.width, room = span - blank;
-    return { last, start: this.first + Math.min(room * this.minDataShare, data) + blank, end: Math.min(room * (this.minEndShare ?? this.minDataShare), data) };
+    const last = Math.max(this.length - 1, 0), data = last - this.first, blank = (span * (this.width - this.dataWidth)) / this.width;
+    return { last, start: this.first + Math.min(span * this.minDataShare, data + blank), end: Math.min(span * (this.minEndShare ?? this.minDataShare), data) };
   }
 
   /** @param {number} px */
