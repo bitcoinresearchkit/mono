@@ -1,7 +1,7 @@
 // The front page, kept in step with the apps it opens: each app's name and words read from its own page and written
 // into the front page's FROM_APPS (its title before " · Bitview", else its launch tag's data-app; its meta
-// description), and what it can't take from them checked: every app in the repository on it, every Studio chart and
-// section it or another page links to in Studio's sitemap, every series it draws on the server, the pool logos' list
+// description) and its footer's app links, and what it can't take from them checked: every app in the repository on
+// it, every Studio chart and section it or another page links to in Studio's sitemap, every series it draws on the server, the pool logos' list
 // every page draws from (assets/pools/logos.js) against that folder's files; who uses Bitview (assets/used-by/list.js)
 // against its logos, and written where it's shown (docs/README.md, /dev's strip, /api's line). With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
@@ -48,6 +48,8 @@ const plain = (/** @type {string} */ text, /** @type {string} */ where) =>
     problems.push(`${where}: an entity this script doesn't know, ${whole} (add it to named)`);
     return whole;
   }).replace(/\s+/g, " ").trim();
+/** Text for HTML, an attribute's too. */
+const escape = (/** @type {string} */ text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
 /** A tag's attributes, as HTML reads them: in any order, quoted either way or not at all. */
 const attributes = (/** @type {string} */ tag) => Object.fromEntries([...tag.matchAll(/([\w:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)].map(([, key, a, b, c]) => [key.toLowerCase(), a ?? b ?? c]));
 /** The page's tags of a name, each its attributes. */
@@ -76,10 +78,14 @@ const literal = (/** @type {unknown} */ value) => JSON.stringify(value).replaceA
 const block = `/* from the apps */\n      const FROM_APPS = {\n${Object.entries(from).map(([href, said]) => `        ${literal(href)}: { ${Object.entries(/** @type {object} */ (said ?? {})).map(([key, value]) => `${literal(key)}: ${literal(value)}`).join(", ")} },`).join("\n")}\n      };\n      /* /from the apps */`;
 const marked = /\/\* from the apps \*\/[\s\S]*?\/\* \/from the apps \*\//;
 if (!marked.test(html)) throw new Error(`No "/* from the apps */" block in ${PAGE}`);
-const written = html.replace(marked, () => block);
+// (The footer's apps too, as links in the HTML: a crawler that runs no script still finds every app from the front page.)
+const footerApps = `<div id="footer-apps">\n          <h3>Apps</h3>\n          ${apps.map((href) => `<a href="${href}">${escape(from[href]?.name ?? "")}</a>`).join("")}\n        </div>`;
+const footerMarked = /<div id="footer-apps">[\s\S]*?<\/div>/;
+if (!footerMarked.test(html)) throw new Error(`No <div id="footer-apps"> in ${PAGE}`);
+const written = html.replace(marked, () => block).replace(footerMarked, () => footerApps);
 if (written !== html) {
-  if (check) problems.push(`FROM_APPS isn't what the apps say now: run bun scripts/home.mjs`);
-  else (writeFileSync(PAGE, written), (html = written), console.log(`FROM_APPS written: ${apps.length + dev.length} pages read`));
+  if (check) problems.push(`FROM_APPS or the footer's apps aren't what the apps say now: run bun scripts/home.mjs`);
+  else (writeFileSync(PAGE, written), (html = written), console.log(`FROM_APPS and the footer's apps written: ${apps.length + dev.length} pages read`));
 }
 
 // ── The sitemap: the front page and every page in its rows (Studio's places in its own, studio/sitemap.xml) ──
@@ -365,8 +371,6 @@ for (const path of studioPaths) if (!sitemap.has(path)) problems.push(`/studio/p
   }
   if (wrong.length) problems.push(`assets/used-by/list.js isn't the folder's logos: ${wrong.join("; ")}`);
   else {
-    /** Text for HTML, an attribute's too. */
-    const escape = (/** @type {string} */ text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
     /** Each user with its logo's ratio and its scale (1 unless set): what both writers size it by. */
     const users = USERS.map(({ scale = 1, ...user }) => ({ ...user, scale, ratio: Number(ratios.get(user.logo)) }));
     // The README: each logo as published, its dark one in GitHub's dark mode, 22 px high at scale 1, about GitHub's
