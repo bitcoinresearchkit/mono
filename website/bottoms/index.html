@@ -1574,8 +1574,9 @@
         // (The one line whose constants were fitted with a bottom in view: its miss there, beside what an independent refit gives.)
         const fitted = ranked.find((r) => r.row.id === "power_law_floor")?.row.at[0];
         if (fitted) $("fitted").textContent = percent(fitted.miss);
-        // (The finding, in a sentence, once there is one.)
-        $("said").textContent = `Of ${ranked.length} price lines, the closest to Bitcoin's cycle bottoms is ${ours(first) ? "Bitview's own, made after the fact" : fullName(first.row)}: within ${scoreOf(ten, 0, 1)} of each.`;
+        // (The finding, in a sentence, once there is one. No count in it: the share card pictures it, and a picture keeps
+        // its number while the server adds lines; the board below counts them.)
+        $("said").textContent = `The price line closest to Bitcoin's cycle bottoms is ${ours(first) ? "Bitview's own, made after the fact" : fullName(first.row)}: within ${scoreOf(ten, 0, 1)} of each.`;
         $("board-said").textContent = `${ranked.length} lines, closest first.`;
         $("caveat").textContent = `${capital(worded(lows.length))} ${lows.length === 1 ? "bottom" : "bottoms"} is very little to go on${open ? `, and ${done ? "one is" : "it is"} still open` : ""}. With ${ranked.length} lines tried, the first owes part of its place to chance.`;
         // The field: every line's worst miss along one line from the bottom, wide enough for the largest, to the next 20%.
