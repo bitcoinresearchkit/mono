@@ -19,16 +19,11 @@ impl Vecs {
         let from = indexer.compute_start().height;
         let close = &prices.spot.cents.height;
 
-        for (days, sma) in self.sma.periods.iter_mut() {
-            sma.cents.compute_rolling_average(
-                from,
-                &priced_starts(lookback.start_vec(days)),
-                close,
-                &mut sma.window,
-                exit,
-            )?;
+        for (_, sma) in self.sma.periods.iter_mut() {
+            sma.source.compute(from, lookback, close, exit)?;
             sma.price.compute_ratio(from, close, exit)?;
         }
+        self.pi_cycle.compute(from, lookback, close, exit)?;
 
         for (days, state) in self.ema_stored.iter_mut() {
             state.compute_rolling_ema(

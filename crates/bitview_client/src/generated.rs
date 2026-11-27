@@ -958,6 +958,12 @@ pub mod tree {
         rainbow_lowest_band: SeriesPattern1<Option<Dollars>> = "rainbow_lowest_band",
         sminston_floor: SeriesPattern1<Option<Dollars>> = "sminston_*_floor",
     } }
+    shape! { PiCycle at "series().market.pi_cycle" {
+        sma_111d: SeriesPattern1<Option<Dollars>> = "price_sma_111d",
+        sma_350d: SeriesPattern1<Option<Dollars>> = "price_sma_350d",
+        line: SeriesPattern1<Option<Dollars>> = "*_line",
+        top: SeriesPattern1<Option<Multiple>> = "*",
+    } }
     shape! { MarketPriceWithRatio at "series().market.sma._200d" {
         value: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
@@ -1057,6 +1063,7 @@ pub mod tree {
         returns: ByLookbackPeriod = "*_return",
         range: MarketRange = "*",
         sma: Ema<MarketPriceWithRatio> = "*_sma",
+        pi_cycle: PiCycle = "pi_cycle_top",
         ema: Ema<PriceWithRatio> = "*_ema",
         power_law: PowerLaw = "power_law",
     } }

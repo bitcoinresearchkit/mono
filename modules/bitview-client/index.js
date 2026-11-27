@@ -3290,6 +3290,21 @@ const _PowerLaw = _s({
 
 /**
  * @typedef {{
+ *   sma111d: SeriesPattern1<?Dollars>,
+ *   sma350d: SeriesPattern1<?Dollars>,
+ *   line: SeriesPattern1<?Dollars>,
+ *   top: SeriesPattern1<?Multiple>,
+ * }} PiCycle
+ */
+const _PiCycle = _s({
+  sma111d: [_i1, 'price_sma_111d'],
+  sma350d: [_i1, 'price_sma_350d'],
+  line: [_i1, '*_line'],
+  top: [_i1, '*'],
+});
+
+/**
+ * @typedef {{
  *   value: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   mayerMultiple: SeriesPattern1<?Multiple>,
@@ -3514,6 +3529,7 @@ const _Ath = _s({
  *   returns: ByLookbackPeriod,
  *   range: MarketRange,
  *   sma: Ema<MarketPriceWithRatio>,
+ *   piCycle: PiCycle,
  *   ema: Ema<PriceWithRatio>,
  *   powerLaw: PowerLaw,
  * }} Market
@@ -3523,6 +3539,7 @@ const _Market = _s({
   returns: [_ByLookbackPeriod, '*_return'],
   range: [_MarketRange, '*'],
   sma: [(c, b) => _Ema(c, b, _MarketPriceWithRatio), '*_sma'],
+  piCycle: [_PiCycle, 'pi_cycle_top'],
   ema: [(c, b) => _Ema(c, b, _PriceWithRatio), '*_ema'],
   powerLaw: [_PowerLaw, 'power_law'],
 });
@@ -7252,7 +7269,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "2886ab6fd0613290ecba79f6af47f8fbafe9e79e626beffdfed178bfef164990";
+  static HASH = "cec8408fbb3431998a65edc83a9db212c2b1a130ec91f2a9de9c2e535b2ebc46";
 
   INDEXES = /** @type {const} */ ([
     "minute10",

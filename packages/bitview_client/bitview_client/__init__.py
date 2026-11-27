@@ -3662,6 +3662,13 @@ class PowerLaw(_Node):
     sminston_floor: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sminston_*_floor')
 
 
+class PiCycle(_Node):
+    sma_111d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'price_sma_111d')
+    sma_350d: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'price_sma_350d')
+    line: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_line')
+    top: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*')
+
+
 class MarketPriceWithRatio(_Node):
     value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
@@ -3771,6 +3778,7 @@ class Market(_Node):
     returns: ByLookbackPeriod = _at(ByLookbackPeriod, '*_return')
     range: MarketRange = _at(MarketRange, '*')
     sma: Ema[MarketPriceWithRatio] = _at((Ema, MarketPriceWithRatio), '*_sma')
+    pi_cycle: PiCycle = _at(PiCycle, 'pi_cycle_top')
     ema: Ema[PriceWithRatio] = _at((Ema, PriceWithRatio), '*_ema')
     power_law: PowerLaw = _at(PowerLaw, 'power_law')
 
