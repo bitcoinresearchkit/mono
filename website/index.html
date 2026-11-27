@@ -2701,7 +2701,7 @@
         { name: "Price", href: "/studio/presets/price/in-dollars", series: ["price"], colors: ["#f6f3ee"], log: true, unit: (v) => dollars(v) },
         { name: "Hashrate", href: "/studio/presets/mining/hashing/hash-rate", series: ["hashrate"], colors: ["#3ccf7c"], log: true, unit: (v) => `${short(v).replace(/([A-Z])$/, "\u2009$1")}H/s` },
         { name: "Market and realized cap", href: "/studio/presets/valuation/market-and-realized-cap", series: ["market_cap", "realized_cap"], colors: ["#f6f3ee", "#4cc9f0"], log: true, unit: (v) => dollars(v) },
-        { name: "Supply in profit", href: "/studio/presets/holders/all-coins/supply/in-profit-and-loss", series: ["supply_in_profit"], colors: ["#3ccf7c"], unit: (v) => `${short(v)}\u2009₿` },
+        { name: "Supply in profit", href: "/studio/presets/supply/in-profit-and-loss", series: ["supply_in_profit"], colors: ["#3ccf7c"], unit: (v) => `${short(v)}\u2009₿` },
         { name: "NUPL", href: "/studio/presets/valuation/nupl", series: ["nupl"], colors: ["#c77dff"], unit: (v) => v.toFixed(2) },
         { name: "Difficulty", href: "/studio/presets/mining/difficulty/history", series: ["difficulty"], colors: ["#ffd166"], log: true, unit: (v) => short(v) },
         { name: "Sats per dollar", href: "/studio/presets/price/sats-per-dollar", series: ["sats_per_dollar"], colors: ["#ff8a3d"], log: true, unit: (v) => `${grouped(v)}\u2009sats` },
@@ -2824,17 +2824,15 @@
       const TOPICS = [
         ["price", "Price", "#f6c445", "price"],
         ["valuation", "Valuation", "#ff8a3d", "mvrv"],
-        ["mining", "Mining", "#3ccf7c", "hashrate"],
-        ["holders", "Holders", "#4cc9f0", "realized_price"],
-        ["profitability", "Profitability", "#2ec4b6", "supply_in_profit"],
+        ["profit-and-loss", "Profit and loss", "#2ec4b6", "supply_in_profit"],
         ["supply", "Supply", "#a78bfa", "inflation_rate"],
+        ["activity", "Activity", "#a3e635", "transfer_volume_sum_1m"],
+        ["holders", "Holders", "#4cc9f0", "realized_price"],
+        ["mining", "Mining", "#3ccf7c", "hashrate"],
+        ["fees", "Fees", "#fb7185", "fees_sum_1m"],
         ["network", "Network", "#60a5fa", "utxo_count"],
-        ["addresses", "Addresses", "#f472b6"],
         ["utxos", "UTXOs", "#38bdf8", "utxo_count"],
-        ["coin-age", "Coin age", "#fb923c"],
-        ["cointime", "Cointime", "#c084fc"],
-        ["coinflow", "Coinflow", "#34d399"],
-        ["bedrock", "Bedrock", "#22d3ee", "realized_price"],
+        ["addresses", "Addresses", "#f472b6"],
       ];
       const topics = row("topics-title");
       const topicTiles = TOPICS.map(([slug, name, hue, series]) => {
@@ -2850,7 +2848,7 @@
       /** @type {Promise<void> | null} */
       let counting$ = null;
       const countCharts = () => (counting$ ??= read("/studio/llms.txt", "text").then((/** @type {string} */ text) => {
-        const counted = new Map([...text.matchAll(/^- [^(\n]+\((\d+)\): \S*\/studio\/presets\/([a-z0-9-]+)\/$/gm)].map((m) => [m[2], Number(m[1])]));
+        const counted = new Map([...text.matchAll(/^- [^(\n]+\((\d+)\): \S*\/studio\/presets\/([a-z0-9-]+)\/index\.html\.md$/gm)].map((m) => [m[2], Number(m[1])]));
         let total = 0;
         for (const { slug, count } of topicTiles) {
           const n = counted.get(slug) ?? 0;

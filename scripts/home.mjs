@@ -247,7 +247,7 @@ const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntr
  * screen's size if not 1200×630 (drawn at twice the density, the card shrunk to fit), and what's done on it
  * first, if anything (Logs: only series answered, no one's addresses in a picture that lasts). */
 const CARDS = {
-  studio: { url: "/studio/presets/coin-age/age-bands/compare/realized-cap-share", screen: [1600, 840] },
+  studio: { url: "/studio/presets/holders/age-bands/compare/realized-cap-share", screen: [1600, 840] },
   oracle: { url: "/oracle/" },
   explorer: { url: "/explorer/" },
   globe: { url: "/globe/" },
@@ -419,7 +419,7 @@ const QUALITY = { jpeg: 60, webp: 70 };
  * cut, in its screen's points: [x, y, width, height]. A cover 960×600 and 720 wide (@720, the apps' grid's, from
  * phones to a 1440 desk at 2×); a banner 1,900 wide and 2,880 (@2x). */
 const PICTURES = {
-  studio: { url: "/studio/presets/coin-age/age-bands/compare/realized-cap-share", screen: [2600, 1150], cover: [682, 70, 1488, 930], banner: [270, 70, 1900, 930] },
+  studio: { url: "/studio/presets/holders/age-bands/compare/realized-cap-share", screen: [2600, 1150], cover: [682, 70, 1488, 930], banner: [270, 70, 1900, 930] },
   oracle: { url: "/oracle/", cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
   explorer: { url: "/explorer/", cover: [8, 60, 1344, 840] },
   globe: { url: "/globe/", hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
