@@ -64,7 +64,7 @@ export function presetDistributions(preset, tree) {
 /** @param {Preset} preset @param {Record<string, string>} labels @param {any} tree @param {string} canonical */
 export function presetDataset(preset, labels, tree, canonical) {
   return { "@context": "https://schema.org", "@type": "Dataset", name: preset.t, description: presetInfo(preset, labels).description, url: canonical,
-    isAccessibleForFree: true, creator: { "@type": "Organization", name: "Bitview", url: "https://bitview.space" },
+    isAccessibleForFree: true, license: "https://creativecommons.org/licenses/by/4.0/", creator: { "@type": "Organization", name: "Bitview", url: "https://bitview.space" },
     distribution: presetDistributions(preset, tree) };
 }
 
