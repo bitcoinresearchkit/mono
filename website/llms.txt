@@ -1,6 +1,6 @@
 # Bitview
 
-> Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node. 31753 on-chain time-series and 113 API operations.
+> Bitview is a free, open-source Bitcoin data server: on-chain metrics, blocks, mempool and mining data, with charts and an API, at bitview.space or beside your own Bitcoin Core node. 31755 on-chain time-series and 113 API operations.
 
 ## API
 

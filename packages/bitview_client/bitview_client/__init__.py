@@ -3922,15 +3922,17 @@ class TxValue(_Node):
 
 
 class Rewards(_Node):
-    coinbase: ValueFlow = _at(ValueFlow, '*')
+    coinbase: ValueFlow = _at(ValueFlow, 'coinbase')
     subsidy: TxValue = _at(TxValue, 'subsidy')
     puell_multiple: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'puell_multiple')
+    stock_to_flow: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*')
+    stock_to_flow_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_price')
     fees: ValueFlowStats = _at(ValueFlowStats, 'fees')
     unclaimed: ValueFlow = _at(ValueFlow, 'unclaimed_rewards')
 
 
 class Mining(_Node):
-    rewards: Rewards = _at(Rewards, 'coinbase')
+    rewards: Rewards = _at(Rewards, 'stock_to_flow')
     hashrate: Rate = _at(Rate, 'hashrate')
     hash_price: HashPriceValue[Optional[HashPrice]] = _at(HashPriceValue, '*_price')
     hash_value: HashPriceValue[Optional[HashValue]] = _at(HashPriceValue, '*_value')

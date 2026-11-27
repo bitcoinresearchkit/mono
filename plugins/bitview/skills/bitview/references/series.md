@@ -1,6 +1,6 @@
 # Bitview series by topic
 
-31753 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
+31755 series. Find one with `GET https://bitview.space/api/series/search?q=<plain words>`; this map is for browsing. Each branch lists its series count and first ids; a family's later members are left out of the branches, as they repeat the first one's series.
 
 ## Branches
 
@@ -109,7 +109,7 @@
 
 ### mining
 
-- `mining.rewards` (123): `coinbase`, `coinbase_usd`, `coinbase_cumulative`, `coinbase_cumulative_usd`, `coinbase_sum_24h`
+- `mining.rewards` (125): `coinbase`, `coinbase_usd`, `coinbase_cumulative`, `coinbase_cumulative_usd`, `coinbase_sum_24h`
 - `mining.hashrate` (7): `hashrate`, `hashrate_sma_1w`, `hashrate_sma_1m`, `hashrate_sma_2m`, `hashrate_sma_1y`
 - `mining.hash_price` (3): `hash_price`, `hash_price_atl`, `hash_price_rebound`
 - `mining.hash_value` (3): `hash_value`, `hash_value_atl`, `hash_value_rebound`

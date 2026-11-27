@@ -1187,14 +1187,16 @@ pub mod tree {
         share: Share = "*_share",
     } }
     shape! { Rewards at "series().mining.rewards" {
-        coinbase: ValueFlow = "*",
+        coinbase: ValueFlow = "coinbase",
         subsidy: TxValue = "subsidy",
         puell_multiple: SeriesPattern1<Option<Multiple>> = "puell_multiple",
+        stock_to_flow: SeriesPattern1<Option<Float>> = "*",
+        stock_to_flow_price: SeriesPattern1<Option<Dollars>> = "*_price",
         fees: ValueFlowStats = "fees",
         unclaimed: ValueFlow = "unclaimed_rewards",
     } }
     shape! { Mining at "series().mining" {
-        rewards: Rewards = "coinbase",
+        rewards: Rewards = "stock_to_flow",
         hashrate: Rate = "hashrate",
         hash_price: HashPriceValue<Option<HashPrice>> = "*_price",
         hash_value: HashPriceValue<Option<HashValue>> = "*_value",

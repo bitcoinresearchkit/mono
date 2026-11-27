@@ -1001,9 +1001,7 @@ export function studioPresets(client, facts, report = (problem) => console.error
       // A day's volume swings: faint, its 90-day average the signal, as the hash rate's.
       chart("NVT", "Network value to transactions (NVT)", [price(), series(sup.nvt, "NVT", { pane: 2, color: "orange", width: 1, opacity: 0.4 }), series(sup.nvtSignal, "NVT signal", { pane: 2, color: "orange", width: 2 })], { log: [2] }),
       ((cap, thermo) => chart("Thermocap multiple", "Thermocap multiple", [price(), { formula: `${cap} / ${thermo}`, label: "Thermocap multiple", format: "ratio", pane: 2 }], { log: [2] }))(sup.marketCap.value.name, ct.caps.thermo.name),
-      // The subsidy as 52,560 blocks a year (the schedule, not the blocks found); the model price is PlanB's 2019 fit
-            // of market cap to it (e^14.6 × S2F^3.3).
-      ((supply, epoch) => ((s2f) => chart("Stock-to-flow", "Stock-to-flow", [price(), { formula: `exp(14.6) * (${s2f}) ^ 3.3 / ${supply}`, label: "Model price", format: "usd", color: "violet", dash: 3 }, { formula: s2f, label: "Stock-to-flow", format: "number", pane: 2, color: "orange" }], { log: [2] }))(`${supply} / (50 * 0.5 ^ ${epoch} * 52560)`))(t.holders.all.supply.total.btc.name, blocks.halving.epoch.name),
+      chart("Stock-to-flow", "Stock-to-flow", [price(), series(mining.rewards.stockToFlowPrice, "Model price", { color: "violet", dash: 3 }), series(mining.rewards.stockToFlow, "Stock-to-flow", { pane: 2, color: "orange" })], { log: [2] }),
       chart("Power law", "Power-law fit and support line", [price(), series(m.powerLaw.burger, "Power-law fit", { color: "violet", dash: 3 }), series(m.powerLaw.burgerFloor, "Power-law floor", { color: "green" })]),
       chart("RHODL", "RHODL ratio", [price(), series(t.age.rhodlRatio, "RHODL ratio", { pane: 2 })], { log: [2] }),
       section("On-chain prices", [

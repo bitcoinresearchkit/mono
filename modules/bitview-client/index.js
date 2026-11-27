@@ -3845,14 +3845,18 @@ const _TxValue = _s({
  *   coinbase: ValueFlow,
  *   subsidy: TxValue,
  *   puellMultiple: SeriesPattern1<?Multiple>,
+ *   stockToFlow: SeriesPattern1<?Float>,
+ *   stockToFlowPrice: SeriesPattern1<?Dollars>,
  *   fees: ValueFlowStats,
  *   unclaimed: ValueFlow,
  * }} Rewards
  */
 const _Rewards = _s({
-  coinbase: [_ValueFlow, '*'],
+  coinbase: [_ValueFlow, 'coinbase'],
   subsidy: [_TxValue, 'subsidy'],
   puellMultiple: [_i1, 'puell_multiple'],
+  stockToFlow: [_i1, '*'],
+  stockToFlowPrice: [_i1, '*_price'],
   fees: [_ValueFlowStats, 'fees'],
   unclaimed: [_ValueFlow, 'unclaimed_rewards'],
 });
@@ -3866,7 +3870,7 @@ const _Rewards = _s({
  * }} Mining
  */
 const _Mining = _s({
-  rewards: [_Rewards, 'coinbase'],
+  rewards: [_Rewards, 'stock_to_flow'],
   hashrate: [_Rate, 'hashrate'],
   hashPrice: [_HashPriceValue, '*_price'],
   hashValue: [_HashPriceValue, '*_value'],
@@ -7271,7 +7275,7 @@ class BitviewClient extends BitviewClientBase {
   VERSION = "v0.13.0";
 
   /** The client's content stamp: the SHA-256 of `core.js`, then this file with this value empty, so any other byte of either changes it. */
-  static HASH = "98546c1f2ea50dbe564d1811f76d27317e394e8537a4d02e15a37f6f299b7c4e";
+  static HASH = "16ee558a44f01a0abb28a260f9861691ea92ff5f3fea471421388c24c281967f";
 
   INDEXES = /** @type {const} */ ([
     "minute10",
