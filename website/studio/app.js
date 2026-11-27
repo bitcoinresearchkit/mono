@@ -1,12 +1,12 @@
 // @ts-check
-import { BitviewClient } from "/modules/bitview-client/index.js";
-import XKCD from "/modules/xkcd-colors/index.js";
+import { askRest, command, gestures, grid, heatmaps, inspector, loadRest, menus, pen, presetsEdit, withRest, xkcd } from "/studio/later.js";
+import { BitviewClientBase, _endpoint, dateToIndex, indexToDate } from "/modules/bitview-client/core.js";
 // (Studio's chart library: bitview-charts.)
 import { Navigator, windowOn } from "/modules/bitview-charts/navigator.js";
 import { createChart, press, picture as chartPicture, Candles, Gradient, Levels, compact as libraryWords, lastIn } from "/modules/bitview-charts/index.js";
 import { barCorner as BAR_CORNER } from "/modules/bitview-charts/bar-style.js";
 import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
-import { hexToOklch, nameDistance, ofPalette, onCurve, pageInk, SWATCHES, TONE, warmLift } from "/studio/color.js";
+import { hexToOklch, nameDistance, ofPalette, onCurve, pageInk, SWATCHES, TONE, warmLift, isColor } from "/studio/color.js";
 import { AGES, HOLDERS, capitalized, dimensionBand, holderName, isLeaf, isWindowKey, windowAdjective, windowNamed, windowSaid, windowShort } from "/studio/words.js";
 import { presetsKept } from "/studio/presets-kept.js";
 import { initialsOf, initialsWord } from "/studio/initials.js";
@@ -14,12 +14,12 @@ import { aside, catalogWalk, isSeriesName } from "/studio/catalog-walk.js";
 import { startWorker } from "/studio/workers.js";
 import {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, MEDIA, NAMED_KEY, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  MAC, MEDIA, NAMED_KEY, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport, focusKey, restoreFocus, isOpen, onClosed, fadeOut, cutFade, fading, scrolled, fixedOrigin, placeFixed,
 } from "/studio/dom.js";
 import { motionClock } from "/modules/motion/clock.js";
 import { reduced as motionReduced, whenReduced } from "/modules/motion/reduced.js";
-import { until, whenIdle } from "/studio/timing.js";
-import { clamp, hashOf, lowerBound, uid } from "/studio/math.js";
+import { until, whenIdle, serial } from "/studio/timing.js";
+import { clamp, hashOf, lowerBound, uid, onScaleAll, meansOf } from "/studio/math.js";
 import {
   ago, dollarsAndCents, format, FORMATS, grouped, humanize, humanizeKey, MONTHS, plural, showsTimes, toTheCent,
   UNIT_NAMES, unitOf,
@@ -65,93 +65,17 @@ import {
   writeText, zoom,
 } from "/studio/chart.js";
 import {
-  actionable, actionsFor, activeOption, addedFrom, afterDrawn, applyScope, AROUND, browseInstead, browseRows, byUse,
-  catalogTops, chartActions, chartsPage, choose, columnsOf, commandItem, commands, dangerous, datePage, drawOptions,
-  finder, findSeries, fitScore, formulaAt, goesOn, goUp, headMenu, insertPiece, isOwnFormula, keyboard, keyboardKey,
-  keyed, layerRow, leavePages, leaveScope, litFirst, meansOf, nodeAt, openPage, optionsHtml, otherLayerRows, outOfData,
-  palette, PALETTE_PAGE, paletteKeys, paletteMenuGone, paneRow, placeOnHome, pointsOf, popPage, presetPicked, preview,
-  previewDate, rank, ranksSoon, readColor, readDate, recentRow, renderPath, rowText, scalePane, searchCase,
-  searchSeries, searchText, seriesPicked, settingChoices, settingsNow, showActions, showFormula, showPage, startFinder,
-  stepSignal, stretchOf, textWords, timesPage, typedWords, underHome, USED, useScore, wayText,
-} from "/studio/command.js";
-import {
-  backChip, backOf, beltPopover, beltSide, beltTabs, beltTool, boxKey, dockChoices, drawingAt, drawingById,
-  drawingNames, dropOwnLayers, endName, endsGlyph, endsPopover, hasLook, hostIn, hover, laidOver, LENS, LENS_ZOOM,
-  lookFor, newDrawing, onScreen, ownLayers, pickTool, placeBelt, plotBox, plotPoint, pointFrom, putDown, reachOf,
-  repaintDrawings, reshapeBelt, rovingBelt, rulerReading, setDrawSlider, setLook, shareAlong, sideAt, Sketch, sketches,
-  tagShapes, tickOn, timeLine, toggleBelt, turnBelt, upright, wordsIn, wordsOn,
-} from "/studio/drawing.js";
-import {
   bandSum, FUNCTIONS, isBandSum, paneAt, parse, refsOf, renamed, seriesNamed, unfitHere, windowsOf,
 } from "/studio/formulas.js";
-import {
-  aheadOf, allShelfSteps, arrive, asPlace, backToHome, batch, beginOnTime, besideItem, bezierOf, bubblesAt, cardOf,
-  cardQueue, CARDS, chartCounts, chartLabel, chartMark, chartMenu, chartPathRows, childrenOf, clearPicks, closeDialogs,
-  depthOf, derivedTitle, dialogOpeners, dialogScrims, dragSheet, drawPreview, drawThumb, duplicateCharts, fillRow,
-  fillSlot, folderActions, folderById, folderPath, folderRow, folderRows, forgetPaletteMarks, freshThumb, GALLERY_PAGE,
-  galleryFound, galleryQueue, gallerySeen, galleryWait, giveUpUnframed, go, gridActions, groupRows, groupShut, heatSamples,
-  heightsSheet, homeName, isIn, isOpen, itemOf, itemsOf, keepNaming, KEPT_PRESET_MARKS, keptMarkKey, keyMenuAt,
-  keysCame, landingIn, leafRow, leave, leftPlaces, legendEntry, markOf, morph, morphing, movingSide, naming, newChart, newFolder,
-  nextCard, nextGallery, NO_MARK, numbered, onceKeys, onChart, onClosed, onScaleAll, orphan, pageIn, pageOut, paint,
-  paletteMarksAsked, panelSize, parentOf, pickChart, picked, placeItems, placeNames, placesFor, placesOf, PRESET_MARKS,
-  presetMark, presetMarkKey, presetMarkQueue, presetMarksAsked, presetName, presetNodeAt, presetOf, presetParts,
-  presetRankOf, presetSearch, presetTiles, presetTree, previewBars, previewIndex, previewKey, previewOf, PREVIEWS,
-  previewSvg, queueYours, recommendedCards, recommendedDrawn, recommendedKey, renderChartPath, renderDoors,
-  renderGallery, renderHomeHead, renderHorizon, renderPicked, renderRecommended, renderSideNav, renderTheme,
-  renderYours, reorderable, restOf, retryFailed, retryPlots, roveList, sampleable, sampleIndex, savePreviews,
-  saveThumbs, searchNow, sectionKeys, sectionRows, seePaletteMarks, serial, seriesMark, setChildren, setParent,
-  sheetGoes, sheetTaken, shelfSteps, shortCount, showDialog, shownCharts, showPick, SIDE_PRESETS, sideHead, sideId,
-  sideKey, sideMoved, sideTree, sizeSheet, slide, slideAway, slides, speedOf, startGalleryRest, startListKeys,
-  stepChart, stepShelf, stillness, stretched, themeMenu, thumbKey, THUMBS, tileOpen, titleOf, toggleFolder, toggleGroup,
-  toggleSection, treeOf, unstretched, updateMark, validChartMark, validDrawingKey, validPreview, validThumb,
-  walkCards, writeTile, yourQueue, yoursFound, yoursSeen, yoursShown,
-} from "/studio/grid.js";
-import { dragToReorder, onHold, startGestures, stopCarrying } from "/studio/gestures.js";
-import {
-  addDrawn, boxTo, bubbleColumns, cellText, closeCell, drawingMenu, drawingRows, drawnSteps, dressField,
-  duplicateDrawings, finishPath, flipDrawings, flipsOf, gesturing, heatCome, heatDays, heatExtras, heatFresh,
-  heatIn, heatLook, heatLooks, heatPump, heatRows, heatSeries, heatWaiters, heatWants, hold, inBox, logRows, moveTo,
-  noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placingPath, pointsApart, pressAt, profileHit,
-  profileShares, profilesUnder, readingLine, removeDrawing, removeDrawings, rowsOf, setCohorts, showBox, shownHeats,
-  simplify, toggleCohort,
-} from "/studio/heatmaps.js";
-import {
-  acceptSuggestion, addFormula, addFrom, addLevel, addStop, afterPress, applyFormula, applyFormulaLeft, assistKey,
-  bandOf, barAt, changeSeries, chooseSuggestion, closestSeries, colorLevels, colorModeChoices, colorSlot, colorSource,
-  copyName, drawPlanes, drawWhenReady, dropSuggestions, duplicateLayer, duplicateLayers, editAdded, editById,
-  editingMany, editLayer, editPicked, fillOf, flushPick, focusKey, formatMenu, formulaDrafts, formulaFieldLeft,
-  fromChoices, gradientEdit, gradientTable, hexField, hideLayers, HUES, inHand, insertAtCaret, inspectorDue, keepFocus, labelOf,
-  layerActions, layerById, layerMenu, layersMenu, leaveFormula, levelRows, levelSteps, lineAt, lineLook, lineMenu,
-  markTyping, modeOf, moveLayer, moveStop, multiEdit, named, overShort, ownColor, paneMenu, paneMode,
-  penColors, periodsOf, pick, pickAt, pickedAt, pickedLayers, pickedOf, pickPoint, pickPress, placeAssist, placeOf,
-  planeHtml, planeOf, planeTarget, pruneDrafts, rangeOf, readNumber, readsOf, readyPage, refMenu, removeLayer,
-  removeLayers, removeStop, renderInspector, renderLayersBar, replaceSeries, resetFor, restoreFocus, reverseGradient,
-  rewrite, setColor, setFit, setLineLook, setSlider, sharedBy, showEvery, showPicks, showSelection, showStop,
-  showSuggestions, slider, sliders, soloLayer, STACK_WIDTH, stackedIn, stackOf, suggest, suggestHere, TAG_NEEDS_LINE,
-  toggleDescription, toggleHidden, underColorMenu, updateCallHelp, updateFormula,
-} from "/studio/inspector.js";
-import {
-  APART, apartFonts, apartLayout, canvasReadable, cascades, closedAt, closedOwner, contentOf, copyLink, cutFade,
-  datedView, dismissMenu, download, downloadAll, drawMarks, fadeOut, fading, fieldOpener, FIELDS, fitted, fitTitle,
-  fixedOrigin, flyout, focusMenu, fromLink, hideMenu, hideSubmenu, keepCarriedView, leaveTitle, letGo, linkLookOf, showLinkView,
-  linksOf, measureLegends, menuGoBack, menuOf, menuScrim, menusShown, NO_INTERVAL, onRail, openCascade,
-  openedImages, outlineMenuTarget, ownerNow, pinFlyout, placeFixed, portable, qrCode, railed, readChart, renderInterval,
-  renderRanges, renderWindow, switchWindow, sameChart, scrolled, setApart, setMenuBack, setRange, shareLink, showMenu,
-  shownAs, startCascade, startFlyouts, stepInterval, supportedIntervals, switchInterval, titleReads, TOO_SMALL,
-  toSketch, twinOf, typedFrom, UNREADABLE, validate, viewDates, walkMenu,
-} from "/studio/menus.js";
-import {
-  addressesSoon, adoptPresets, aFrame, BASE, copyPreset, dropLayers, fullOn,
-  idsNow, isLinkHash, keptAsStored, keptPreset, layOutAlone, looksOf, markersHtml, missedSaid, openPreset, openPresetMenu,
-  paneActions, paneChip, presetActions, presetById, presetChart, presetDoc, presetEdited, presetIdOf, presetIndex,
-  presetLink, presetLook, presetRow, presetsArrived, presetsGroup, presetShowing, presetsPage,
-  presetsSettled, pristine, prunePresets, refocus, resetPreset, revealNearest, roomsAhead, routeOf, scaleMenu, setFull,
-  setPaneGradient, setPaneMode, setPaneOutline, setPaneReverse, setPaneStack, setPaneView, showAddress, slipsOf, toggleHalvings, toggleLog,
-} from "/studio/presets-edit.js";
+import { modeOf, labelOf, paneMode, layerById, stackOf, lineLook, STACK_WIDTH, fillOf, named, bandOf, lineAt, gradientTable, titleOf, seriesMark, derivedTitle, legendEntry, levelSteps, rangeOf } from "/studio/looks.js";
+import { renderRanges, fitTitle, titleReads, typedFrom, renderInterval, renderWindow, renderChartPath } from "/studio/toolbar.js";
+import { validate, linkLookOf, contentOf, showLinkView, datedView, sameChart, readChart, twinOf, keepCarriedView, fromLink, readsOf } from "/studio/charts-read.js";
+import { presetTree, presetNodeAt, presetName, placeNames, folderById, backToHome, asPlace, homeName, presetById, showAddress, prunePresets, presetChart, presetIndex, presetDoc, isLinkHash, routeOf, BASE, presetLink, presetEdited, looksOf, aFrame, idsNow, adoptPresets, pristine, keptAsStored, presetShowing, addressesSoon, presetLook, keptPreset, presetIdOf, presetsSettled } from "/studio/preset-charts.js";
+import { fitted, laidOver, wordsOn, dropOwnLayers, sketches, Sketch, ownLayers, repaintDrawings, rulerReading, tagShapes, plotBox, timeLine, onScreen, tickOn, hover } from "/studio/sketch.js";
 /** @import { ChartPoint, Resolved, Result, Span } from "/studio/chart.js" */
 /** @import { Action, Command, Page } from "/studio/command.js" */
 /** @import { Node, Vector } from "/studio/formulas.js" */
-/** @import { Place, PresetNode, Preview } from "/studio/grid.js" */
+/** @import { Place, PresetNode } from "/studio/preset-charts.js" */
 /** @import { HeatLook } from "/studio/heatmaps.js" */
 /** @import { Landing } from "/studio/gestures.js" */
 /** @import { Preset } from "/studio/presets-edit.js" */
@@ -162,11 +86,41 @@ document.getElementById("page-info")?.remove();
 
 // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
 // (The server that serves the page; the page built on its own names its server.)
-const client = new BitviewClient({ baseUrl: location.origin, timeout: 30_000, memCache: false, browserCache: false });
+export const CLIENT = { baseUrl: location.origin, timeout: 30_000, memCache: false, browserCache: false };
+/**
+ * The client: core's alone (all a first chart asks) till the rest brings the whole one (see whole).
+ * @type {import("/modules/bitview-client/index.js").BitviewClient}
+ */
+let client = /** @type {any} */ (Object.assign(new BitviewClientBase(CLIENT), {
+  /** @param {string} name @param {any} index */
+  seriesEndpoint(name, index) { return _endpoint(/** @type {any} */ (this), name, index); },
+  /** (The whole client's getSeriesInfo.) @param {string} name @param {any} [options] */
+  getSeriesInfo(name, options) { return /** @type {any} */ (this).getJson(`/api/series/${encodeURIComponent(name)}`, options); },
+}));
 /** The server the page draws from, as its words name it: its host, as written (a prefix too, if it has one). */
 const SERVER_HOST = new URL(client.baseUrl).host;
 for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
-const tree = client.series;
+/** The catalog: the whole client's tree, none till it comes (see whole). @type {any} */
+let tree;
+/**
+ * The whole client, from client.js, in before the rest's other modules run. @param {import("/modules/bitview-client/index.js").BitviewClient} full
+ */
+export function whole(full) {
+  client = full;
+  tree = full.series;
+  EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
+  LIVE = new Map([[tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats]]);
+  knowCohorts(full.AGE_RANGE_NAMES);
+}
+/** The catalog's node at a path (its own keys only: no "constructor" off a prototype), or undefined. @param {string[]} path */
+function nodeAt(path) {
+  let node = /** @type {any} */ (tree);
+  for (const key of path) {
+    if (!node || typeof node !== "object" || !Object.hasOwn(node, key)) return undefined;
+    node = node[key];
+  }
+  return node;
+}
 /**
  * The series at a path, by its current name (charts keep a series' dotted catalog path with its name, so a rename
  * still finds it); nothing if the path is gone. @param {string} path
@@ -250,6 +204,10 @@ function stillStep(shown) {
 /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
 const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout"), wordsWait: parseFloat(css("--words-wait")), wordsIn: parseFloat(css("--words-in")) };
 const phone = matchMedia(MEDIA.phone);
+/** Whether the sidebar is a rail of icons. */
+const railed = () => document.body.dataset.sidebar === "collapsed";
+/** Whether the sidebar's list shows as the rail (a phone's is a sheet, whole). */
+const onRail = () => railed() && !phone.matches;
 /** Whether the sidebar's list is owed: not written while the layout's a phone's, where it never shows (see renderCharts; here, as charts are listed at the start). */
 let listOwed = false;
 /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
@@ -278,16 +236,16 @@ const sheetWhole = () => heldUpright.matches && document.body.dataset.sheetSize 
 const tablet = matchMedia("(max-width: 1100px)");
 /** Studio's version: the Bitview server's that serves it (it comes with it), as it says it (a release's, `v0.12.2`; a build of a commit, next's, `a1b2c3d`), once it's said (else ""). */
 let studioVersion = "";
-client.getVersion().then((said) => {
+withRest(() => client.getVersion().then((said) => {
   studioVersion = typeof said === "string" ? said : "";
   $("home-version").textContent = studioVersion;
-}).catch(() => {});
+}).catch(() => {}));
 for (const element of all$("[data-icon]")) element.insertAdjacentHTML("afterbegin", ICONS[element.dataset.icon] ?? "");
 
 // ── Vocabulary, as the page's state has it (the rest, stateless, in the leaf modules) ─
 
 /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first). */
-const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
+const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
 /** Each index's times from its first, as far as they've been asked for: the same for every series at it, made once. @type {Map<string, number[]>} */
 const indexTimes = new Map();
 /** An index's times from `start`, `count` of them (a series' as loaded). */
@@ -297,7 +255,7 @@ function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @
   for (let i = times.length; i < start + count; i++) times.push(timeAt(index, i));
   return times.slice(start, start + count);
 }
-const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
+const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
 /**
  * A color's lightness, chroma and hue as the theme shows it. The palette's (see ofPalette) on the dark as they are; on
  * the light, their lightness turned over along one curve: white as black and black as white, Bitview's band (0.5 to
@@ -316,7 +274,7 @@ function shownOklch(/** @type {string} */ color) {
  * @type {{ name: string, l: number, c: number, h: number }[] | null}
  */
 let names = null;
-const namesAt = () => (names ??= XKCD.map(([name, hex]) => { const [l, c, h] = hexToOklch(hex); return { name, l, c, h }; }));
+const namesAt = () => (names ??= xkcd.default.map(([name, hex]) => { const [l, c, h] = hexToOklch(hex); return { name, l, c, h }; }));
 /** Bitview's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
 const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalized(key));
 /** Each color's name as found (by the theme it's shown in: see colorName), a few hundred kept. */
@@ -374,7 +332,7 @@ const reshape = (layer, edit) => {
   // (The kind its look before was: the one it came back to, else the one it left.)
   if (chart?.layers.includes(layer)) looksLeft.set(key, { to: shapeKey(layer), kind: back ? was.kind : kind, before, after });
   // (Colored by its levels again: one added meanwhile, its color.)
-  if (layer.byLevels && BY_LEVELS.has(type)) colorLevels(layer);
+  if (layer.byLevels && BY_LEVELS.has(type)) inspector.colorLevels(layer);
 };
 /** Whether a signal shows: itself shown, on a layer there and shown (hidden with it, else). @param {Layer} layer @param {Chart} [doc] */
 const signalShown = (layer, doc = chart) => layer.type === "signal" && !layer.hidden && ((on) => Boolean(on && !on.hidden))(doc.layers.find((item) => item.id === layer.ref));
@@ -461,19 +419,29 @@ const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it o
  * report it: the same bands, see ageBand in presets.js).
  */
 /** @typedef {{ id: string, shown: string, brief: string, who: string, age: boolean }} HeatCohort */
-const HEAT_COHORTS = /** @type {HeatCohort[]} */ ([
-  ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
-  ...Object.entries(client.AGE_RANGE_NAMES).flatMap(([key, { id, short }]) => {
-    const band = dimensionBand(key, AGES);
-    return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
-  }),
-]);
+/** (None till the whole client names the age bands: see whole, and knowCohorts.) @type {HeatCohort[]} */
+let HEAT_COHORTS = [];
+/** @type {Map<string, HeatCohort>} */
+let HEAT_BY_ID = new Map();
 /** A URPD cohort, by its id (one Bitview doesn't have, a link's typo or one renamed: undefined). */
-const HEAT_BY_ID = new Map(HEAT_COHORTS.map((c) => [c.id, c])), heatCohort = (/** @type {string} */ id) => HEAT_BY_ID.get(id);
+const heatCohort = (/** @type {string} */ id) => HEAT_BY_ID.get(id);
 /** Whether Bitview has a heatmap's holder group (see heatCohort). @param {Layer} layer */
 const heatKnown = (layer) => (layer.type === "profile" ? (layer.profile ?? []).every((id) => heatCohort(id)) : Boolean(heatCohort(layer.heatmap ?? "all")));
 /** The URPD's holder groups (all coins and the age cutoffs), then its age bands, the youngest first. */
-const HEAT_HOLDERS = HEAT_COHORTS.filter((c) => !c.age).map((c) => c.id), HEAT_AGES = HEAT_COHORTS.filter((c) => c.age).map((c) => c.id);
+let HEAT_HOLDERS = /** @type {string[]} */ ([]), HEAT_AGES = /** @type {string[]} */ ([]);
+/** The cohorts, by the client's age bands (see whole). @param {Record<string, { id: string, short: string }>} ageNames */
+function knowCohorts(ageNames) {
+  HEAT_COHORTS = [
+    ...Object.keys(HOLDERS).map((key) => holderName(key)).flatMap((h) => (h.urpd ? [{ id: h.urpd, shown: h.shown, brief: h.brief, who: h.who, age: false }] : [])),
+    ...Object.entries(ageNames).flatMap(([key, { id, short }]) => {
+      const band = dimensionBand(key, AGES);
+      return band ? [{ id: `age_${id}`, shown: capitalized(band.said), brief: short.replace("-", "–"), who: band.who, age: true }] : [];
+    }),
+  ];
+  HEAT_BY_ID = new Map(HEAT_COHORTS.map((c) => [c.id, c]));
+  HEAT_HOLDERS = HEAT_COHORTS.filter((c) => !c.age).map((c) => c.id);
+  HEAT_AGES = HEAT_COHORTS.filter((c) => c.age).map((c) => c.id);
+}
 /**
  * Each holder group's color, one palette wherever it's drawn (see palette.js, the presets' too): its own (all coins
  * green, short-term holders orange, long-term blue, the age cutoffs around them; the URPD's age_under_4m is the
@@ -612,8 +580,8 @@ function spanParts(from, to, index = shownIndex()) {
 
 // ── Formulas ──────────────────────────────────────────────────────────────
 
-/** A formula on a series by its name, the way a new formula on an empty chart starts. */
-const EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
+/** How a new formula on an empty chart starts (a letter till the whole client names the price). */
+let EXAMPLE = "sma(A, 200d)";
 
 // ── Charts: the document ──────────────────────────────────────────────────
 
@@ -842,9 +810,10 @@ function normalize(doc) {
     if (name) layer.series = name;
     else if (catalogIndex?.has(layer.series)) layer.path = catalogIndex.get(layer.series);
   }
-  // So do the series a formula names, their paths kept beside it.
+  // So do the series a formula names, their paths kept beside it (as they are till the tree's in: the catalog's take
+  // normalizes again).
   for (const layer of doc.layers) {
-    if (layer.formula === undefined) continue;
+    if (layer.formula === undefined || !tree) continue;
     /** @type {Record<string, string>} */
     const paths = {}, names = new Map();
     for (const name of seriesNamed(layer.formula)) {
@@ -867,7 +836,8 @@ function normalize(doc) {
   // (A profile: its holder groups each once (none: it draws nothing till one's picked), its color its first one's (its
   // letter's, its legend's), each group's own kept only where it isn't the group's, and only for those in it.)
   for (const layer of doc.layers) {
-    if (layer.type !== "profile") continue;
+    // (Its groups' colors come with the whole client: a profile draws once it's in.)
+    if (layer.type !== "profile" || !tree) continue;
     layer.profile = [...new Set(layer.profile ?? [])];
     // (A group taken out takes its color with it, as a link keeps them.)
     for (const [cohort, color] of Object.entries(layer.cohortColors ?? {})) if (color === cohortColor(cohort) || !layer.profile.includes(cohort)) delete /** @type {Record<string, string>} */ (layer.cohortColors)[cohort];
@@ -1247,7 +1217,7 @@ const rekey = (doc, id) => {
   const old = doc.id;
   doc.id = id;
   moveView(old, id);
-  for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, formulaDrafts])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
+  for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, inspector.formulaDrafts])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
   if (chart === doc) library.active = id;
   if (displayed?.doc.id === old) (displayed.doc.id = id), (displayed.look = lookKey(displayed.doc));
   if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
@@ -1318,14 +1288,16 @@ function inLibrary(doc) {
   return library.charts.some((other) => other.id === doc.id);
 }
 /**
- * The catalog indexed (`catalogIndex`, `catalogIntervals`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
- * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
+ * The catalog indexed (`catalogIndex`, `catalogIntervals`, `byBlock`, `sharedTops`): in a worker, off the page's thread (long on a
+ * phone without its JIT, in a launch's first seconds), begun with the rest, as what asks for it is (its own copy of
+ * the client, fetched beside a first chart's data, held that data up); without one (or it failing), here, a slice at a time while the
  * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
  * series added) has the rest done here at once, never waiting on the worker or an idle moment: a hidden tab's are
  * throttled (to one a minute, after five minutes hidden).
  */
 const indexCatalog = (() => {
-  const walk = catalogWalk(tree, INTERVAL_ORDER);
+  /** @type {ReturnType<typeof catalogWalk> | undefined} */
+  let walk;
   /** What it found, the catalog's: the first to come, the worker's or the page's own. */
   const take = (/** @type {{ index: Map<string, string>, intervals: Map<string, readonly string[]>, sharedTops: Set<string> }} */ found) => {
     if (catalogIndex) return;
@@ -1335,17 +1307,22 @@ const indexCatalog = (() => {
     for (const name of found.sharedTops) sharedTops.add(name);
     seriesCount = catalogIndex.size - byBlock.size;
     $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
-    whenIdle(ranksSoon);
+    withRest(() => whenIdle(command.ranksSoon));
     // (After what asked for it: its work isn't held up, nor failed, by this.)
     queueMicrotask(() => {
       // (Saved if that learned anything: a series' path, a formula's.)
       const docs = [...library.charts, ...library.presets], before = docs.map((doc) => JSON.stringify(doc));
       for (const doc of docs) normalize(doc);
       if (docs.some((doc, i) => JSON.stringify(doc) !== before[i])) save();
+      // (The chart drawn before the tree came, by a series' old name (renamed since): drawn again by its new one.)
+      if (docs.includes(chart) && JSON.stringify(chart) !== before[docs.indexOf(chart)]) draw();
     });
   };
   /** Walked here while `more` says (it's told how many nodes so far). */
   const run = (/** @type {(done: number) => boolean} */ more) => {
+    // (By the whole client's tree: see whole.)
+    if (!tree) return;
+    walk ??= catalogWalk(tree, INTERVAL_ORDER);
     for (let done = 0; !catalogIndex && more(done); done++) {
       const step = walk.next();
       if (step.done) return take(step.value);
@@ -1359,7 +1336,7 @@ const indexCatalog = (() => {
     };
     whenIdle(step, { timeout: 3000 });
   };
-  try {
+  withRest(() => { try {
     const worker = startWorker(new URL("./catalog-worker.js", import.meta.url)), done = () => worker.terminate();
     // (Its answer unread (an error, one that can't be delivered or read): walked here, as without one.)
     worker.onmessage = ({ data }) => {
@@ -1377,7 +1354,7 @@ const indexCatalog = (() => {
     worker.postMessage(INTERVAL_ORDER);
   } catch {
     here();
-  }
+  } });
   return () => run(() => true);
 })();
 /** @type {Chart} */
@@ -1588,8 +1565,8 @@ function tellUnsaved() {
   if (Date.now() - unsavedToldAt < 60_000) return;
   unsavedToldAt = Date.now();
   const why = readOnly ? unsavedWhy : "full";
-  if (why === "unreadable") return notice("Your saved charts can't be read in this browser. They're left untouched, and changes here won't be saved", { label: "Download", run: () => (downloadStored(), downloadAll(true)) });
-  notice(why === "newer" ? "A newer Studio saved your charts: changes here can't be saved. Download them, then reload" : "Not saved: storage is full or blocked. Download your charts to keep them", { label: "Download", run: () => downloadAll(true) });
+  if (why === "unreadable") return notice("Your saved charts can't be read in this browser. They're left untouched, and changes here won't be saved", { label: "Download", run: () => (downloadStored(), menus.downloadAll(true)) });
+  notice(why === "newer" ? "A newer Studio saved your charts: changes here can't be saved. Download them, then reload" : "Not saved: storage is full or blocked. Download your charts to keep them", { label: "Download", run: () => menus.downloadAll(true) });
 }
 /** The library as stored, as it is (one this can't read): a file of it. */
 function downloadStored() {
@@ -1598,7 +1575,7 @@ function downloadStored() {
     stored = localStorage.getItem(STORE) ?? "";
   } catch {}
   if (!stored) return notice("Nothing saved to download");
-  download(`bitview-charts-as-stored-${new Date().toLocaleDateString("en-CA")}.json`, new Blob([stored], { type: "application/json" }));
+  menus.download(`bitview-charts-as-stored-${new Date().toLocaleDateString("en-CA")}.json`, new Blob([stored], { type: "application/json" }));
 }
 /**
  * What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. `open`:
@@ -1606,10 +1583,14 @@ function downloadStored() {
  */
 function flushEdits(open = false) {
   // (Those left with the window ended too, as the window's return would: a title trimmed.)
-  if (!open) (endTyping(), naming?.finish(), ((ends) => (leftOpen.clear(), ends.forEach((end) => end())))([...leftOpen.values()]));
-  applyFormulaLeft();
-  const formula = /** @type {HTMLTextAreaElement | null} */ (document.getElementById("formula"));
-  if (formula && document.activeElement === formula && selected) applyFormula(selected, formula.value);
+  if (!open) (endTyping(), ((ends) => (leftOpen.clear(), ends.forEach((end) => end())))([...leftOpen.values()]));
+  // (A name being given, a formula being typed: the rest's, none before it's in.)
+  withRest(() => {
+    if (!open) grid.naming?.finish();
+    inspector.applyFormulaLeft();
+    const formula = /** @type {HTMLTextAreaElement | null} */ (document.getElementById("formula"));
+    if (formula && document.activeElement === formula && selected) inspector.applyFormula(selected, formula.value);
+  });
 }
 /**
  * Writes the library at the page's next idle moment (a second at most), once for all asked for till then: never put
@@ -1722,9 +1703,10 @@ function reconcile(stored = storedSince(), saving = false, writing = false) {
   const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id) ?? library.presets.find((doc) => doc.id === chart.id || (chart.preset !== undefined && doc.preset === chart.preset)) ?? chart;
   drawThumbs();
   if (isOpen($("palette"))) showPalette();
-  if (current === chart) return (pruneDrafts(), renderCharts());
+  // (A formula's draft is the inspector's, none before the rest is in.)
+  if (current === chart) return (withRest(() => inspector.pruneDrafts()), renderCharts());
   chart = /** @type {Chart} */ (current);
-  pruneDrafts();
+  withRest(() => inspector.pruneDrafts());
   // (Its steps were of the chart as it was here: let go of, said (they'd take back the other tab's edit too).)
   if (edits.past.length || edits.future.length) notice("Edited in another tab. Undo starts over from here");
   edits.past = [];
@@ -1910,7 +1892,7 @@ function redoLast() {
 /** ⌘Z's step (`back`) or ⇧⌘Z's: what's being typed, and a color picked, kept first, a step of their own read with the rest. */
 function takeStep(/** @type {boolean} */ back) {
   leaveField();
-  flushPick();
+  inspector.flushPick();
   travelIn(historyFor(back), back);
 }
 /** A step back (`back`) or forth in a history: the Library's (null), the open chart's, another's as it lies. */
@@ -1939,9 +1921,9 @@ function offPage() {
 function moveStep(/** @type {{ past: ChartStep[], future: ChartStep[] }} */ steps, /** @type {boolean} */ back, /** @type {string} */ now) {
   const { state } = /** @type {ChartStep} */ (steps[back ? "past" : "future"].pop());
   steps[back ? "future" : "past"].push({ state: now, at: ++stepCount });
-  const drawn = drawnSteps.get(state);
-  drawnSteps.delete(state);
-  if (drawn) noteDrawn(now, drawn);
+  const drawn = heatmaps.drawnSteps.get(state);
+  heatmaps.drawnSteps.delete(state);
+  if (drawn) heatmaps.noteDrawn(now, drawn);
   return { state, drawn };
 }
 /**
@@ -1985,7 +1967,7 @@ function travel(/** @type {boolean} */ back) {
   // A field being typed into is kept first (a step of its own: the steps are read after it), a color picked and
   // waiting for its frame too; what's being drawn or moved, of the chart as it is, goes.
   leaveField();
-  flushPick();
+  inspector.flushPick();
   // (Nothing to go to: what's being drawn stays as it is.)
   if (!edits[back ? "past" : "future"].length) return;
   stopDrawing();
@@ -2023,11 +2005,14 @@ function changed(announce, keepMenu = false) {
   announce &&= !isPreview(chart);
   revision++;
   if (!chartChanged) (chartChanged = true), queueMicrotask(() => (chartChanged = false));
-  if (!keepMenu) hideMenu();
+  // (Before the rest, no menu is open, no formula unfinished, no drawing chosen.)
+  withRest(() => {
+    if (!keepMenu) menus.hideMenu();
+    // (A formula left unfinished over one that's since changed (⌘K, an undo, the layer gone): let go for good.)
+    inspector.pruneDrafts();
+    chosen = new Set([...chosen].filter((id) => pen.drawingById(id)));
+  });
   if (!layerById(selected)) selected = "";
-  // (A formula left unfinished over one that's since changed (⌘K, an undo, the layer gone): let go for good.)
-  pruneDrafts();
-  chosen = new Set([...chosen].filter((id) => drawingById(id)));
   for (const id of layerPicks) if (!layerById(id)) layerPicks.delete(id);
   if (!layerById(layerPickLast)) layerPickLast = [...layerPicks][0] ?? "";
   if (!layerById(pickHead)) pickHead = layerPickLast;
@@ -2356,7 +2341,7 @@ function openChart(doc) {
   // (Left, a chart started here is kept for good: undoing its first edit makes it a draft only while it's still on screen.
   // Left a draft again, it keeps that step's place: brought back to redo it (see redoLibrary), kept again.)
   if (chart && chart !== doc && !isPreview(chart)) keptByEdit.delete(chart);
-  stopCarrying();
+  gestures.stopCarrying();
   // What's being typed is kept, on the chart it was typed on.
   leaveField();
   saveView();
@@ -2391,8 +2376,8 @@ function openChart(doc) {
   edits.key = "";
   edits.held = 0;
   revision++;
-  hideMenu();
-  putDown();
+  menus.hideMenu();
+  pen.putDown();
   save();
   refresh(true);
 }
@@ -2590,14 +2575,35 @@ const recentCharts = () => viewed().flatMap((id) => {
  */
 function openRecent(id) {
   const doc = chartById(id), preset = doc ? presetIndex(doc) : presetById(id);
-  if (preset >= 0) return openPreset(preset);
+  if (preset >= 0) return presetsEdit.openPreset(preset);
   delete document.body.dataset.sheet;
-  go(doc);
+  grid.go(doc);
 }
 /** A chart of Recent's mark: a preset's as the sidebar draws it (asked for, see presetMarksAsked), else its own. @param {{ doc: Chart, preset: number }} item */
 // (An edited preset's, before the presets are read: its mark as kept, by its copy, as the presets' rows will have it.)
-const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(presetMarkKey(preset)) || presetMarksAsked.add(preset), presetMark(preset)) : doc.preset !== undefined && presetMarks.has(keptMarkKey(doc)) ? markOf(presetMarks.get(keptMarkKey(doc)) ?? NO_MARK) : chartMark(doc));
+const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(grid.presetMarkKey(preset)) || grid.presetMarksAsked.add(preset), grid.presetMark(preset)) : doc.preset !== undefined && presetMarks.has(grid.keptMarkKey(doc)) ? grid.markOf(presetMarks.get(grid.keptMarkKey(doc)) ?? grid.NO_MARK) : grid.chartMark(doc));
 
+/**
+ * The focus, where what had it goes (`away`: put away, the panel closed, the sidebar slid off; else removed, once
+ * the page is drawn again), on the first of `next` that shows (a row's successor, the button that brings it back):
+ * never lost to the page. A focus nowhere (after a click on the chart) stays nowhere.
+ * @param {Element | null} away @param {...(() => Element | null | undefined)} next
+ */
+function keepFocus(away, ...next) {
+  const had = document.activeElement;
+  if (!had || had === document.body) return;
+  const go = () => {
+    for (const pick of next) {
+      const element = pick();
+      if (element instanceof HTMLElement && element.isConnected && !away?.contains(element) && element.checkVisibility({ checkVisibilityCSS: true })) return (element.focus({ preventScroll: true }), true);
+    }
+    return false;
+  };
+  if (away?.contains(had)) return void go();
+  // (Gone: once the page is drawn again; what takes its place still coming in, once it's in.)
+  const lost = () => !had.isConnected || document.activeElement === document.body || !had.checkVisibility();
+  requestAnimationFrame(() => lost() && !go() && setTimeout(() => lost() && go(), MOTION.page + 40));
+}
 // ── Sidebar ───────────────────────────────────────────────────────────────
 
 function applySidebar() {
@@ -2619,9 +2625,12 @@ function applyPanel(state = prefs.panel) {
 const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
 // (Shown or not, the panes' room over their lines again: their legends there only while it's not, see .legend.)
 new MutationObserver(() => (fitMargins(), respot(), panelShown() && layersBehind ? writeLayers() : valuesSoon())).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
+function fullOn() {
+  return /** @type {HTMLElement} */ (document.querySelector(".app")).hasAttribute("data-full");
+}
 function togglePanel(open = !panelShown()) {
   if (!chart.layers.length) return;
-  if (!open) stopCarrying();
+  if (!open) gestures.stopCarrying();
   if (phone.matches) {
     if (open) document.body.dataset.sheet = "panel";
     else if (document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
@@ -2741,7 +2750,7 @@ for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
     shown = phone.matches && document.body.dataset.sheet === "panel";
     // (Its slide in or out, and the dim's, begun once frames come on time: the chart laid out again beside it stalls
     // the frame they'd begin in, iOS showing the sheet more than half in at once, or gone in one frame.)
-    if (shown !== was) beginOnTime(...[panel, $("scrim")].flatMap((element) => element.getAnimations().filter((animation) => animation instanceof CSSTransition)));
+    if (shown !== was) grid.beginOnTime(...[panel, $("scrim")].flatMap((element) => element.getAnimations().filter((animation) => animation instanceof CSSTransition)));
     const modal = (wasModal = shown && sheetWhole());
     for (const element of [$("sidebar"), ...(/** @type {HTMLElement} */ (document.querySelector(".card-inner"))).children, ...(/** @type {HTMLElement} */ (panel.parentElement)).children]) {
       if (!element.contains(panel) && element.id !== "scrim" && !element.classList.contains("mobile-bar")) /** @type {HTMLElement} */ (element).inert = modal;
@@ -2765,7 +2774,7 @@ function toggleSidebar() {
   // (The rail's folders never open: the rows in them gone as it narrows, back as it widens, fading in; the others
   // gliding to their places as its width eases, not standing in them before it's moved. Where they are, read
   // first: as the last frame laid them out, nothing to lay out again.)
-  const before = listRows($("chart-list")), was = placesOf([...before.keys()], (row) => before.get(row)), scrolled = $("chart-list").scrollTop;
+  const before = listRows($("chart-list")), was = grid.placesOf([...before.keys()], (row) => before.get(row)), scrolled = $("chart-list").scrollTop;
   prefs.sidebar = prefs.sidebar === "collapsed" ? "expanded" : "collapsed";
   savePrefs();
   // (While it slides, its words clipped by it, not cut short anew each frame: till its width's slide ends.)
@@ -2779,7 +2788,7 @@ function toggleSidebar() {
   while (top?.classList.contains("in-folder")) top = top.previousElementSibling;
   if (inFolder) /** @type {HTMLElement | null | undefined} */ (top?.querySelector(".folder-item"))?.focus({ preventScroll: true });
   applySidebar();
-  movingSide(renderCharts);
+  grid.movingSide(renderCharts);
   // (The list where it was: the first row in sight (or, gone, the nearest before it there still, its folder's) where it
   // was, not the list scrolled to where its other rows put it. Widened again, the rail not scrolled since: the open
   // list's first row in sight as it was before it narrowed (the rail, shorter, couldn't hold its place).)
@@ -2797,7 +2806,7 @@ function toggleSidebar() {
   // (No motion to it (transitions held off meanwhile: a width dragged): no slide to wait on.)
   if (!widthMoving()) document.body.removeAttribute("data-sliding");
   // (The list's one stop for Tab on a row in sight.)
-  roveList();
+  grid.roveList();
   keepFocus(putAway, () => $("sidebar-toggle"));
 }
 // (Slid, once its width's done moving: one turned back midway is cancelled, the one taking its place still going
@@ -3040,11 +3049,12 @@ animateMark();
  * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
  * the page's own font files (no second copy of them), as "Inter Chart" from 500 up (a variable font: a canvas's
  * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
- * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. Begun as the
- * page started, with the page's own Inter (see the first script). Until it's in, the page's font: the page shows at
- * once, never held for it (a canvas has no font-display, and measures its words by the font's name).
+ * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. Begun with the
+ * page (see the first script), its last face only (a first screen's characters); the core's (é, ≥, °: a name, a
+ * drawing's words) with the rest. Till one's in, the page's font: a canvas has no font-display, and asks for none.
  */
-const chartFont = document.fonts.load('500 10px "Inter Chart"').then((faces) => faces.length > 0, () => false);
+const chartFaces = [...document.fonts].filter((face) => face.family.replace(/"/g, "") === "Inter Chart");
+const chartFont = (chartFaces.at(-1)?.load() ?? Promise.reject()).then(() => true, () => false);
 let chartSans = css("--sans");
 /** The size of every word on the chart (CSS pixels): its axes', its tags', its marks', its navigator's; its legends' the same (see .legend). */
 const CHART_TEXT = 12;
@@ -3221,16 +3231,18 @@ addEventListener("resize", () => {
   card.style.setProperty("--card-motion", "0s");
   requestAnimationFrame(() => requestAnimationFrame(() => card.style.removeProperty("--card-motion")));
 });
-// Once it's in (before the first frame when it already is), the chart's words in it, measured again (a new name: the
-// axes' kept widths are by the font's).
-chartFont.then((loaded) => {
+// Once a face is in (the first before the first frame when it already is), the chart's words in it, measured again (a
+// new name: the axes' kept widths are by the font's).
+const chartFontIn = (/** @type {boolean} */ loaded) => {
   if (!loaded) return;
   chartSans = css("--chart-sans");
   navigatorFont = "";
   engine.theme = chartTheme();
   engine.invalidate(true);
   drawOverview();
-});
+};
+chartFont.then(chartFontIn);
+withRest(() => void chartFaces[0]?.load().then(() => chartFontIn(true), () => {}));
 /** The layers' order as last put in order (see build). */
 let drawnOrder = "";
 /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
@@ -3337,10 +3349,15 @@ async function draw(refit = false, fresh = false) {
   if (showLoading) $("unreached").hidden = true;
   // Data from memory, asked before the latest block: its tails come again. (Its span as asked: what it reaches.)
   const live = !FINE.has(doc.index) || spanOf(doc)?.live !== false;
+  // (A heatmap, a profile, bubbles: drawn by the rest, asked for with its data, see later.js.)
+  const rest = doc.layers.some((layer) => heatLike(layer) || layer.type === "bubbles") ? loadRest() : undefined;
+  // (A sum of bands (over, under) finds its bands by the tree.)
+  if (doc.layers.some((layer) => /\b(over|under)\(/.test(layer.formula ?? ""))) await import("/studio/client.js");
   const result = await resolve(doc, fresh || stale(doc));
+  await rest;
   // (Its data come while the chart grows out of its tile: drawn once it's grown, not built mid-motion (a phone's
   // build of a big one, a second, held the motion still).)
-  if (showLoading || later) await Promise.all(morphing.map((animation) => animation.finished.catch(() => {})));
+  if (showLoading || later) await Promise.all((grid?.morphing ?? []).map((animation) => animation.finished.catch(() => {})));
   if (version !== drawVersion) return false;
   // (Back to the grid while it grew (its growth cancelled): built when it's opened again, as it grows (see
   // leaveHome's undrawn), not during the shrink.)
@@ -3369,8 +3386,9 @@ async function draw(refit = false, fresh = false) {
   const reveal = first && doc.layers.length > 0 && !reduced() && !fromHome;
   build(withLook(structuredClone(chart)), Object.assign(result, { key: asking.key, version, live }), refit);
   for (const wake of [...drawnWaiters]) wake();
-  renderLayers();
-  renderInspector();
+  // (A first chart drawn, on screen: what it didn't need, asked for now, see later.js.)
+  requestAnimationFrame(() => setTimeout(askRest));
+  withRest(layersPanels);
   updateStatus();
   // (What it shows said once drawn, not only on focus.)
   describePlot();
@@ -3384,6 +3402,11 @@ async function draw(refit = false, fresh = false) {
     chartElement.addEventListener("animationend", () => chartElement.classList.remove("reveal"), { once: true });
   }
   return true;
+}
+/** The layers' list and the inspector, as a draw leaves them. */
+function layersPanels() {
+  renderLayers();
+  inspector.renderInspector();
 }
 /** The kinds the library colors by a gradient itself (see buildChart's `graded`): lines, areas and trends by height, dots and bars each by its value. */
 const GRADED = new Set(["line", "area", "trend", "dots", "histogram"]);
@@ -3563,27 +3586,27 @@ function buildChart(doc, data, refit) {
       // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
       // don't count), the price's then (its closes, see Heat).
       // (Its reference kept while it's the same map: a rebuild during a block's refresh draws on, see viewHeat.)
-      const look = /** @type {HeatLook} */ (heatLook(doc, layer, data, op)), was = heatLooks.get(layer.id), known = heatKnown(layer);
+      const look = /** @type {HeatLook} */ (heatmaps.heatLook(doc, layer, data, op)), was = heatmaps.heatLooks.get(layer.id), known = heatKnown(layer);
       if (was && was.cohort === look.cohort && was.weight === look.weight && was.grid?.agg === look.grid?.agg && was.measure === look.measure) look.reference = was.reference;
       // (A profile's days last shown kept while they're read the same way: a group added draws the others at once.)
       if (was?.kind === "profile" && look.kind === "profile" && was.weight === look.weight && was.grid?.agg === look.grid?.agg) look.last = was.last;
       // (Of a holder group Bitview doesn't have (as drawn: a valid one highlighted in ⌘K previews): nothing drawn,
       // nothing asked for, no rows.)
-      if (known) heatLooks.set(layer.id, look);
-      else heatLooks.delete(layer.id), heatWants.delete(layer.id);
+      if (known) heatmaps.heatLooks.set(layer.id, look);
+      else heatmaps.heatLooks.delete(layer.id), heatmaps.heatWants.delete(layer.id);
       // (A value its scale draws: a number, and above 0 on a log one.)
       const log = modeOf(doc, layer) === 1, drawable = (/** @type {number} */ value) => Number.isFinite(value) && (!log || value > 0);
       const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && !heatLike(other) && other.type !== "signal" && !unfitted(doc, other) && data.results.get(other.id)?.values?.some(drawable));
       // (Hidden, not drawn: nothing to ask for.)
-      if (layer.hidden) heatWants.delete(layer.id);
+      if (layer.hidden) heatmaps.heatWants.delete(layer.id);
       series = again ?? new Heat(pane, layer.side, layer.id, layer.type === "profile");
       series.engine.hidden = !shown;
       series.alone = alone;
       series.redraw();
-      if (layer.type === "profile") profileShares(layer.id, series);
+      if (layer.type === "profile") heatmaps.profileShares(layer.id, series);
       // (Kept up with live only where drawn: see movePrice.)
-      if (known) heatSeries.add(series);
-      else heatSeries.delete(series);
+      if (known) heatmaps.heatSeries.add(series);
+      else heatmaps.heatSeries.delete(series);
     } else if (layer.type === "bubbles") {
       // (On the layer they're on, at its scale (see normalize: its pane, its side); on none, along their pane's middle,
       // on a scale of their own. Sized against the largest in view, or of all their history: see Bubbles.)
@@ -3623,7 +3646,7 @@ function buildChart(doc, data, refit) {
     if (heatLike(layer)) series.set(heatKnown(layer) ? columnBy(data.times.length, (i) => result?.closes?.[i] ?? NaN) : EMPTY);
     // (Bubbles' sizes, each date's own value, and places, the value there of the layer they're on, as drawn (a
     // stack's, its total); on none, its pane's middle.)
-    else if (layer.type === "bubbles") result?.values ? series.set(...bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
+    else if (layer.type === "bubbles") result?.values ? series.set(...heatmaps.bubbleColumns(doc, data, layer, stacked)) : series.set(EMPTY, EMPTY);
     else if (!result?.values && again && before?.shown) {
       series instanceof Standard ? setColumn(series, EMPTY, false) : series instanceof Shading ? series.set(EMPTY) : series.set({ low: EMPTY, high: EMPTY });
       if (series.engine instanceof Candles) series.engine.setValues({ open: EMPTY, high: EMPTY, low: EMPTY, close: EMPTY });
@@ -3719,11 +3742,11 @@ function buildChart(doc, data, refit) {
   engine.invalidate(true);
   markSignals(doc, data, drawn, old);
   for (const series of old) {
-    heatSeries.delete(series), dropOwnLayers(series);
+    heatmaps?.heatSeries.delete(series), dropOwnLayers(series);
     ((pane) => [series.engine, series.edge].forEach((own) => own && pane?.remove(own)))(engine.panes[seriesPane(series)]);
   }
   while (engine.panes.length > Math.max(1, doc.panes.length)) engine.removePane(engine.panes[engine.panes.length - 1]);
-  for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
+  if (heatmaps) for (const id of heatmaps.heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatmaps.heatLooks.delete(id), heatmaps.heatWants.delete(id);
   // (Each new series' sketch: its drawings, halving marks, a trend's ends.)
   for (const [id, series] of drawn) if (!sketches.has(series)) sketches.set(series, new Sketch(id, series));
   // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
@@ -3941,7 +3964,7 @@ let pointedOption = false;
 // (its keyboard in use, it has).
 {
   const list = $("palette-list"), light = glides(list), coarse = matchMedia("(hover: none) and (pointer: coarse)");
-  new MutationObserver(() => (!coarse.matches || keyboard()) && light(list.querySelector('[aria-selected="true"]'), !pointedOption)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
+  new MutationObserver(() => (!coarse.matches || command.keyboard()) && light(list.querySelector('[aria-selected="true"]'), !pointedOption)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
 }
 // The sidebar's rows, a chart's, a folder's, a group's head (a row too: it goes to its page; on the rail, its mark's own
 // square lights it): the one pointed at (folding, none: the highlight would show whole over a row half shown); a row
@@ -4002,7 +4025,7 @@ function crossMoved(param) {
   else if (crossSet) return void ((engine.crosshair.pointed = dotLineOf(crossSet.layer)), !crossHeld && !exporting && holdCross());
   const time = param.time === undefined ? null : /** @type {number} */ (param.time);
   // (The profiles whose bars it's among: not a picture's, see presentLegends.)
-  const profiles = heatLooks.size && !exporting ? profilesUnder(param) : [];
+  const profiles = heatmaps?.heatLooks.size && !exporting ? heatmaps.profilesUnder(param) : [];
   // (A finger's kept where it is: on a profile's bars, or past the data (the slots after its last point), on the
   // view's last day, the one they show.)
   const kept = time ?? ((profiles.length || (param.logical ?? -1) >= engine.time.length) && resolved ? resolved.times[lastShown()] ?? null : null);
@@ -4032,10 +4055,10 @@ function crossMoved(param) {
   // (Where it is in its pane: a binned layer reads the price there, see hoveredIn; gone, read again, back at rest.)
   const wasAt = heatAt;
   heatAt = param.point && param.pane !== undefined ? { pane: param.pane, y: param.point.y } : null;
-  if (heatLooks.size && (heatAt || wasAt)) valuesSoon();
+  if (heatmaps?.heatLooks.size && (heatAt || wasAt)) valuesSoon();
   // (The bar under it lit, the frontmost profile's.)
   const point = param.point;
-  if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof profileHit>} */ hit, layer) => hit ?? profileHit(layer, point), null) : null);
+  if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof heatmaps.profileHit>} */ hit, layer) => hit ?? heatmaps.profileHit(layer, point), null) : null);
   // (Kept, nothing else pointed at: in its own pane's empty space (its legend's lit item never flickers as the pointer
   // crosses gaps); off its pane or the chart, none.)
   bandLit = bandAt(param) ?? ((param.point && !profileLit && bandLit && seriesPane(drawn.get(bandLit)) === param.pane) ? bandLit : null);
@@ -4139,14 +4162,14 @@ function placeByKeys(/** @type {number} */ i) {
     if (!rect) return;
     placing = { rect, host: point.layer, down: { x: NaN, y: NaN }, held: false, clicks: true, keys: true, stroke: [] };
     pathResume = null;
-    draft = newDrawing(kind, point.layer.id, [spot, [...spot]]);
+    draft = pen.newDrawing(kind, point.layer.id, [spot, [...spot]]);
     repaintDrawings();
     renderBelt();
     return void (said.textContent = `First ${kind === "path" ? "point" : part} at ${at(spot)}`);
   }
-  const drawing = draft && placing ? { ...draft, points: [draft.points[0], spot] } : newDrawing(kind, point.layer.id, [spot]);
+  const drawing = draft && placing ? { ...draft, points: [draft.points[0], spot] } : pen.newDrawing(kind, point.layer.id, [spot]);
   // (Both on one spot: the other's still to place.)
-  if (PAIRED.has(kind) && !pointsApart(drawing)) return void (said.textContent = `Its other ${part} is on its first: move it first`);
+  if (PAIRED.has(kind) && !heatmaps.pointsApart(drawing)) return void (said.textContent = `Its other ${part} is on its first: move it first`);
   keyValue = null;
   // (Kept, the tool's in hand again for the next one.)
   takeUp(toolKept ? kind : "", toolKept, true);
@@ -4155,7 +4178,7 @@ function placeByKeys(/** @type {number} */ i) {
   // (Said once it's there: a chart full, its notice says why not.)
   const reading = kind === "ruler" ? rulerReading(drawing) : null;
   if (kind === "ruler") said.textContent = reading ? `${reading.name}: ${reading.figures.join(", ")} over ${reading.span}` : "Nothing measured";
-  else if (drawingById(drawing.id)) said.textContent = `${TOOLS[kind].name} ${kind === "hline" ? `at ${amountOn(point.layer, point.value)}` : kind === "vline" ? `at ${pointLabel(time)}` : `from ${at(drawing.points[0])} to ${at(spot)}`}`;
+  else if (pen.drawingById(drawing.id)) said.textContent = `${TOOLS[kind].name} ${kind === "hline" ? `at ${amountOn(point.layer, point.value)}` : kind === "vline" ? `at ${pointLabel(time)}` : `from ${at(drawing.points[0])} to ${at(spot)}`}`;
 }
 $("plot-keys").addEventListener("focus", () => (describePlot(), tool && renderBelt()));
 // (Left for another window, it's where it was when the window's back.)
@@ -4202,7 +4225,7 @@ function relayout() {
     layoutOwed = false;
     // (A layout's motion, the chart's size held: only the belt follows its box; the navigator stretches as the chart
     // does (its brush in shares), the rest laid out once it ends (releaseSize).)
-    if (sizeHeld) return void placeBelt();
+    if (sizeHeld) return void pen?.placeBelt();
     // (The lens shows what the chart draws next: after this frame's changes.)
     if (lensAt) lookAt(lensAt);
     // The chart's width, for spacing and the range controls.
@@ -4225,7 +4248,7 @@ function relayout() {
       if (chart) renderRanges();
     }
     drawOverview();
-    placeBelt();
+    pen?.placeBelt();
     if (restarted) notice(`The chart moved: ${CLICK} the drawing's first point again`);
     placePlotKeys();
     if (chartShown()) sizePanes();
@@ -4367,7 +4390,7 @@ function drawOverview() {
       // The shape: smooth (each pixel's column its mean: a sketch of the series, not its noise). (A few points in
       // one column, a mean is one point, no line: their lowest and highest then.)
       let points = meansOf(scaled, canvas.width);
-      if (points.length < 2) points = columnsOf(scaled, canvas.width);
+      if (points.length < 2) points = command.columnsOf(scaled, canvas.width);
       overviewShape = { key, n: scaled.length, lo, hi, points };
     }
     let { lo, hi } = overviewShape;
@@ -4518,7 +4541,7 @@ engine.onRange(() => {
   // (The lens shows the view as it's drawn next, moved by a key, a range, the navigator.)
   if (lensAt) lookAt(lensAt);
   nameAxis();
-  if (writing) placeField();
+  if (writing) heatmaps.placeField();
   lightBubble(bubbleAt.time, bubbleAt.pane);
   viewMoved();
   placeBrush();
@@ -4731,9 +4754,9 @@ function drawLens() {
   lensFrame = 0;
   const loupe = $("loupe"), at = lensAt;
   if (!at) return void (loupe.hidden = true);
-  const ratio = devicePixelRatio || 1, size = Math.round(LENS * ratio), canvas = /** @type {HTMLCanvasElement} */ (loupe.firstElementChild);
+  const ratio = devicePixelRatio || 1, size = Math.round(pen.LENS * ratio), canvas = /** @type {HTMLCanvasElement} */ (loupe.firstElementChild);
   if (canvas.width !== size) canvas.width = canvas.height = size;
-  const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), span = LENS / LENS_ZOOM / 2, k = LENS_ZOOM * ratio;
+  const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), span = pen.LENS / pen.LENS_ZOOM / 2, k = pen.LENS_ZOOM * ratio;
   context.clearRect(0, 0, size, size);
   context.imageSmoothingQuality = "high";
   // Each of the chart's layers (its panes', its axes', the drawings'), in order, the part under the lens (not the
@@ -4757,12 +4780,12 @@ function drawLens() {
   context.strokeStyle = css("--ink");
   context.stroke();
   // On the pointer; a finger's above it, else beside it, else below it: the first on screen and clear of it.
-  const room = (/** @type {number} */ value, /** @type {number} */ most) => Math.min(Math.max(8, value), most - LENS - 8);
-  let left = at.x - LENS / 2, top = at.y - LENS / 2;
+  const room = (/** @type {number} */ value, /** @type {number} */ most) => Math.min(Math.max(8, value), most - pen.LENS - 8);
+  let left = at.x - pen.LENS / 2, top = at.y - pen.LENS / 2;
   if (at.touch) {
-    const clear = (/** @type {number} */ x, /** @type {number} */ y) => !(at.x > x - 36 && at.x < x + LENS + 36 && at.y > y - 36 && at.y < y + LENS + 36);
-    const near = at.x > innerWidth / 2 ? at.x - LENS - 36 : at.x + 36;
-    [left, top] = [[room(left, innerWidth), at.y - LENS - 36], [room(near, innerWidth), room(top, innerHeight)], [room(left, innerWidth), at.y + 36]].find(([x, y]) => y >= 8 && y <= innerHeight - LENS - 8 && clear(x, y)) ?? [room(left, innerWidth), room(at.y - LENS - 36, innerHeight)];
+    const clear = (/** @type {number} */ x, /** @type {number} */ y) => !(at.x > x - 36 && at.x < x + pen.LENS + 36 && at.y > y - 36 && at.y < y + pen.LENS + 36);
+    const near = at.x > innerWidth / 2 ? at.x - pen.LENS - 36 : at.x + 36;
+    [left, top] = [[room(left, innerWidth), at.y - pen.LENS - 36], [room(near, innerWidth), room(top, innerHeight)], [room(left, innerWidth), at.y + 36]].find(([x, y]) => y >= 8 && y <= innerHeight - pen.LENS - 8 && clear(x, y)) ?? [room(left, innerWidth), room(at.y - pen.LENS - 36, innerHeight)];
   }
   loupe.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
   loupe.hidden = false;
@@ -4789,7 +4812,7 @@ function takeUp(/** @type {DrawingKind | "select" | "magnifier" | ""} */ what, k
   keyValue = null;
   reshaped = new Map();
   $("select-box").hidden = true;
-  hold("");
+  heatmaps.hold("");
   document.body.toggleAttribute("data-drawing", Boolean(kind) || selectingArea);
   if (lens !== magnifying) {
     magnifying = lens;
@@ -4829,7 +4852,7 @@ const BELT_TOOLS = ["cursor", "select", ...KINDS, "magnifier"];
 function renderBelt() {
   // (Its state as the belt's: a path being placed, its points are steps.)
   syncUndo();
-  const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
+  const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(pen.drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
   const was = belt.hidden || belt.classList.contains("held") || reduced() ? null : belt.getBoundingClientRect();
   // (Its parts where they were, by their ids: kept ones move from there, see reshapeBelt.)
   const partsWere = was ? new Map(all$("[id]", belt).map((part) => [part.id, part.getBoundingClientRect()])) : null;
@@ -4852,17 +4875,17 @@ function renderBelt() {
     return;
   }
   // (Carried, it turns as it goes: its side is set on release.)
-  if (!belt.classList.contains("held")) belt.classList.toggle("upright", upright(prefs.belt.dock));
-  const kinds = new Set(tool ? [tool] : drawings.map((item) => item.kind)), look = (/** @type {string} */ part) => lookFor(part, drawings);
+  if (!belt.classList.contains("held")) belt.classList.toggle("upright", pen.upright(prefs.belt.dock));
+  const kinds = new Set(tool ? [tool] : drawings.map((item) => item.kind)), look = (/** @type {string} */ part) => pen.lookFor(part, drawings);
   const pressed = (/** @type {string} */ each) => (each === "cursor" ? !tool && !selectingArea && !magnifying : each === "select" ? selectingArea : each === "magnifier" ? magnifying : tool === each);
   const tools = BELT_TOOLS.map((each) => {
-    const { name, tip = name, key, kbd, icon } = beltTool(each);
+    const { name, tip = name, key, kbd, icon } = pen.beltTool(each);
     // (The ways of looking, the magnifier and the drawings' eye, apart from the ways of drawing.)
     return `${each === "magnifier" ? '<i class="belt-rule"></i>' : ""}<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" data-tip="${escapeHtml(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
   }).join("") + (chart.drawings?.length ? `<button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings (they're kept)"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
   const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escapeHtml(label)}" data-tip="${escapeHtml(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
   // Each look shown as the first drawing that has it has it; set, it's set on each that has it.
-  const has = (/** @type {string} */ part) => [...kinds].some((each) => hasLook(each, part));
+  const has = (/** @type {string} */ part) => [...kinds].some((each) => pen.hasLook(each, part));
   const context = !kinds.size ? "" : [
     ...(has("color") ? [
       button("color", `Color: ${colorName(look("color").color)}`, `<i class="swatch" style="--c:${escapeHtml(cssColor(look("color").color))}"></i>`),
@@ -4870,12 +4893,12 @@ function renderBelt() {
     ] : []),
     ...(has("width") ? [button("width", `Width: ${look("width").width}px`, ICONS.weight), button("dash", `Line style: ${dashOf(look("dash").dash)[1]}`, dashGlyph(dashOf(look("dash").dash)[2], dashOf(look("dash").dash)[3]))] : []),
     // (Words' size and background: a text's, a labelled line's; with a tool, the Text tool's.)
-    ...((tool ? tool === "text" : Boolean(wordsIn(drawings))) ? ((words) => [
+    ...((tool ? tool === "text" : Boolean(pen.wordsIn(drawings))) ? ((words) => [
       button("size", `Size: ${SIZE_NAMES[words.size ?? TEXT_SIZE]}`, `<span class="belt-size" style="--s: ${({ 11: 10, 13: 12, 16: 14, 22: 17 })[words.size ?? TEXT_SIZE] ?? 12}px">A</span>`),
-      button("back", `Background: ${backOf(words.back)[1]}`, backChip(words.back ?? "", words.color)),
-    ])(tool ? prefs.pen : /** @type {Drawing} */ (wordsIn(drawings))) : []),
-    ...([...kinds].some((each) => THROUGH.has(each)) ? [button("ends", `Ends: ${endName(look("ends").start)}, ${endName(look("ends").end).toLowerCase()}`, endsGlyph(look("ends").start, look("ends").end))] : []),
-    ...(drawings.length && [...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
+      button("back", `Background: ${pen.backOf(words.back)[1]}`, pen.backChip(words.back ?? "", words.color)),
+    ])(tool ? prefs.pen : /** @type {Drawing} */ (pen.wordsIn(drawings))) : []),
+    ...([...kinds].some((each) => THROUGH.has(each)) ? [button("ends", `Ends: ${pen.endName(look("ends").start)}, ${pen.endName(look("ends").end).toLowerCase()}`, pen.endsGlyph(look("ends").start, look("ends").end))] : []),
+    ...(drawings.length && [...kinds].some((each) => pen.hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
     // (A phone's: what's done to them (its text, its label, duplicate, remove) behind one ⋯, as a layer's are, the
     // looks in view: nothing past the strip's edge at any width. See selectionActions.)
     ...(drawings.length && phone.matches ? [
@@ -4884,7 +4907,7 @@ function renderBelt() {
       ...(drawing?.kind === "text" ? [button("text", "Edit the text", ICONS.pencil, false)] : []),
       ...(drawing && LINES.has(drawing.kind) ? [button("label", TOUCH ? (drawing.label ? "Edit the label" : "Add a label") : drawing.label ? "Edit the label (or double-click it)" : "Add a label (or double-click the line)", ICONS.label, false)] : []),
       // (Each flip that changes how they show, as their menu offers it.)
-      ...flipsOf(drawings.map((item) => item.id)).map(([across, way, icon]) => button(`flip-${across ? "x" : "y"}`, `Flip ${way}`, ICONS[icon], false)),
+      ...heatmaps.flipsOf(drawings.map((item) => item.id)).map(([across, way, icon]) => button(`flip-${across ? "x" : "y"}`, `Flip ${way}`, ICONS[icon], false)),
       button("duplicate", drawings.length > 1 ? `Duplicate ${drawings.length} drawings` : "Duplicate", ICONS.duplicate, false, keyText("⌘D")),
       button("remove", drawings.length > 1 ? `Remove ${drawings.length} drawings` : "Remove", ICONS.trash, false, "⌫"),
     ] : []),
@@ -4897,7 +4920,7 @@ function renderBelt() {
   // The tools, then what's in hand; drawings selected, only theirs (esc, or a click on the chart, and the tools are back).
   const html = `<button type="button" class="grip" id="belt-grip" aria-haspopup="menu" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           <div class="belt-row ${drawings.length || context ? "" : "spread"}">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
-          ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escapeHtml(tool ? `Next ${TOOLS[tool].noun}` : drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
+          ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escapeHtml(tool ? `Next ${TOOLS[tool].noun}` : drawing ? pen.drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
           ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}`;
   // (Its words set in place: the plot taking the focus or giving it up, as a belt's button is pressed, changes only
   // them, and the button pressed stays the one clicked.)
@@ -4916,35 +4939,37 @@ function renderBelt() {
     restoreFocus(belt, focus);
     // (Its button in focus gone with what it was for (a drawing removed): the chart's keys take it, not the page.)
     if (focus && document.activeElement === document.body && !$("plot-keys").hidden) $("plot-keys").focus({ preventScroll: true });
-    rovingBelt();
+    pen.rovingBelt();
     // The button in focus gone with what it was for (a drawing removed from it): D's keys end with it.
     if (focus && !belt.contains(document.activeElement) && beltKeys) {
       beltKeys = false;
       belt.classList.remove("keys");
       return renderBelt();
     }
-    placeBelt(false, true);
-    if (was) reshapeBelt(was, /** @type {Map<string, DOMRect>} */ (partsWere));
+    pen.placeBelt(false, true);
+    if (was) pen.reshapeBelt(was, /** @type {Map<string, DOMRect>} */ (partsWere));
     return;
   }
   writeHow();
-  placeBelt(false, true);
+  pen.placeBelt(false, true);
 }
 /** The belt's one stop for Tab (a toolbar's: the arrows within): the button last in focus, else the tool in hand. */
 let beltStop = "";
-$("belt").addEventListener("focusin", (event) => {
-  beltStop = /** @type {HTMLElement} */ (event.target).id;
-  rovingBelt();
+withRest(() => {
+  $("belt").addEventListener("focusin", (event) => {
+    beltStop = /** @type {HTMLElement} */ (event.target).id;
+    pen.rovingBelt();
+  });
+  phone.addEventListener("change", () => (renderBelt(), pen.rovingBelt()));
 });
-phone.addEventListener("change", () => (renderBelt(), rovingBelt()));
 /**
  * The drawing tools put away, now: off (shown again only while drawing, or with a drawing selected), and whatever's in
  * hand with them, else they'd stay for it (a path being placed kept as it is, a tool, the magnifier, a selection,
  * their keys).
  */
 function hideBelt() {
-  finishPath();
-  putDown();
+  heatmaps.finishPath();
+  pen.putDown();
   chooseDrawings([]);
   beltKeys = false;
   $("belt").classList.remove("keys");
@@ -4991,11 +5016,11 @@ $("belt").addEventListener("focusout", (event) => {
 $("belt").addEventListener("keydown", (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey) return;
   // A tool's key picks it only once D was pressed (its keys show then); else keys are the chart's, as anywhere.
-  const each = $("belt").classList.contains("keys") ? BELT_TOOLS.find((item) => beltTool(item).key && beltTool(item).key === event.key.toUpperCase()) : undefined;
+  const each = $("belt").classList.contains("keys") ? BELT_TOOLS.find((item) => pen.beltTool(item).key && pen.beltTool(item).key === event.key.toUpperCase()) : undefined;
   const buttons = all$("button", $("belt")), at = buttons.indexOf(/** @type {HTMLElement} */ (document.activeElement));
   const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[event.key];
   if (each) {
-    pickTool(each);
+    pen.pickTool(each);
     leaveBelt();
   } else if (step && at >= 0) buttons[clamp(at + step, 0, buttons.length - 1)]?.focus();
   else if (event.key === "Escape" && $("belt").classList.contains("keys")) leaveBelt();
@@ -5009,41 +5034,41 @@ $("menu").addEventListener("click", (event) => {
   if (!pick) return;
   event.stopPropagation();
   const side = pick.dataset.pickStart !== undefined ? "start" : "end";
-  setLook(side, (side === "start" ? pick.dataset.pickStart : pick.dataset.pickEnd) || undefined, "", true);
+  pen.setLook(side, (side === "start" ? pick.dataset.pickStart : pick.dataset.pickEnd) || undefined, "", true);
   for (const each of all$(`[data-pick-${side}]`, $("menu"))) each.setAttribute("aria-pressed", String(each === pick));
 }, true);
 $("belt").addEventListener("click", (event) => {
   const button = closest(event, "button");
   if (!button) return;
   // (The grip by keys, ↵ or space: the sides it docks on, as dragging it does; by a pointer, it's dragged.)
-  if (button.id === "belt-grip") return void (event.detail === 0 && menuOf(button, dockChoices(), null, "", { title: "Dock the drawing tools" }));
-  const { tool: each, belt: part = "" } = button.dataset, drawings = [...chosen], drawing = chosen.size === 1 ? drawingById(drawings[0]) : undefined, look = lookFor(part);
+  if (button.id === "belt-grip") return void (event.detail === 0 && menus.menuOf(button, pen.dockChoices(), null, "", { title: "Dock the drawing tools" }));
+  const { tool: each, belt: part = "" } = button.dataset, drawings = [...chosen], drawing = chosen.size === 1 ? pen.drawingById(drawings[0]) : undefined, look = pen.lookFor(part);
   // (Its second click, a double-click: the tool kept in hand, for several; text, one at a time.)
   if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return takeUp(/** @type {DrawingKind} */ (each), true);
-  if (each) return pickTool(each);
+  if (each) return pen.pickTool(each);
   if (part === "hide") return hideDrawings(!drawingsHidden);
   if (!look) return;
-  if (part === "ends") return endsPopover(button);
-  const words = tool ? prefs.pen : wordsIn([...chosen].map(drawingById));
+  if (part === "ends") return pen.endsPopover(button);
+  const words = tool ? prefs.pen : pen.wordsIn([...chosen].map(pen.drawingById));
   if (part === "size") {
     const now = words?.size ?? TEXT_SIZE;
-    return beltPopover(button, "Size", beltTabs("Size", SIZES.map((size) => `<button type="button" data-pick-size="${size}" aria-pressed="${now === size}" aria-label="${SIZE_NAMES[size]}" data-tip="${SIZE_NAMES[size]}, ${size}px">${SIZE_SHORT[size]}</button>`)), ({ pickSize }) => pickSize && setLook("size", Number(pickSize)));
+    return pen.beltPopover(button, "Size", pen.beltTabs("Size", SIZES.map((size) => `<button type="button" data-pick-size="${size}" aria-pressed="${now === size}" aria-label="${SIZE_NAMES[size]}" data-tip="${SIZE_NAMES[size]}, ${size}px">${SIZE_SHORT[size]}</button>`)), ({ pickSize }) => pickSize && pen.setLook("size", Number(pickSize)));
   }
   if (part === "back") {
     const now = words?.back ?? "", color = words?.color ?? PEN_COLOR;
-    return beltPopover(button, "Background", beltTabs("Background", BACKS.map(([back, text, tip]) => `<button type="button" data-pick-back="${back}" aria-pressed="${now === back}" aria-label="${text}" data-tip="${text}: ${tip.toLowerCase()}">${backChip(back, color)}</button>`)), ({ pickBack }) => pickBack !== undefined && setLook("back", pickBack || undefined));
+    return pen.beltPopover(button, "Background", pen.beltTabs("Background", BACKS.map(([back, text, tip]) => `<button type="button" data-pick-back="${back}" aria-pressed="${now === back}" aria-label="${text}" data-tip="${text}: ${tip.toLowerCase()}">${pen.backChip(back, color)}</button>`)), ({ pickBack }) => pickBack !== undefined && pen.setLook("back", pickBack || undefined));
   }
   if (part === "label" && drawing) return startLabel(drawing, drawing.at, button);
-  if (part === "color") penColors(button);
+  if (part === "color") inspector.penColors(button);
   else if (part === "width" || part === "opacity") {
-    beltPopover(button, part === "width" ? "Width" : "Opacity", slider(`draw-${part}`, look), () => {});
+    pen.beltPopover(button, part === "width" ? "Width" : "Opacity", inspector.slider(`draw-${part}`, look), () => {});
     $(`draw-${part}`)?.focus();
-  } else if (part === "dash") beltPopover(button, "Line style", beltTabs("Line style", DASHES.map(([dash, text, length, gap]) => `<button type="button" data-pick-dash="${dash}" aria-pressed="${look.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`)), ({ pickDash }) => pickDash !== undefined && setLook("dash", Number(pickDash)));
+  } else if (part === "dash") pen.beltPopover(button, "Line style", pen.beltTabs("Line style", DASHES.map(([dash, text, length, gap]) => `<button type="button" data-pick-dash="${dash}" aria-pressed="${look.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`)), ({ pickDash }) => pickDash !== undefined && pen.setLook("dash", Number(pickDash)));
   else if (part === "text" && drawing) startTyping(drawing, button);
-  else if (part === "flip-x" || part === "flip-y") flipDrawings(drawings, part === "flip-x");
-  else if (part === "duplicate") duplicateDrawings(drawings);
-  else if (part === "remove") removeDrawings(drawings);
-  else if (part === "actions") menuOf(button, drawingRows(drawings, button), null, beltSide(), { title: drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings` });
+  else if (part === "flip-x" || part === "flip-y") heatmaps.flipDrawings(drawings, part === "flip-x");
+  else if (part === "duplicate") heatmaps.duplicateDrawings(drawings);
+  else if (part === "remove") heatmaps.removeDrawings(drawings);
+  else if (part === "actions") menus.menuOf(button, heatmaps.drawingRows(drawings, button), null, pen.beltSide(), { title: drawing ? pen.drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings` });
 });
 // A grid of swatches: the arrows go across it and up and down it (in a menu, before its own, which go down a list).
 document.addEventListener("keydown", (event) => {
@@ -5059,7 +5084,9 @@ document.addEventListener("keydown", (event) => {
   if (next) next.focus();
   else if (event.key === "ArrowDown") /** @type {HTMLElement | undefined} */ (all$("#menu button").find((button) => grid.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING && !grid.contains(button)))?.focus();
 }, true);
-sliders($("menu"), { valueOf: (id) => ((look) => (look ? SLIDERS[id].of(look) : undefined))(lookFor(id === "draw-width" ? "width" : "opacity")), set: (id, value) => setDrawSlider(/** @type {"draw-width" | "draw-opacity"} */ (id), value) });
+withRest(() => {
+  inspector.sliders($("menu"), { valueOf: (id) => ((look) => (look ? SLIDERS[id].of(look) : undefined))(pen.lookFor(id === "draw-width" ? "width" : "opacity")), set: (id, value) => pen.setDrawSlider(/** @type {"draw-width" | "draw-opacity"} */ (id), value) });
+});
 // Its grip carries it, turning as it nears a side; let go, it docks on the side it'd come to rest by, thrown (restOf),
 // where along it it would.
 $("belt").addEventListener("pointerdown", (event) => {
@@ -5076,7 +5103,7 @@ $("belt").addEventListener("pointerdown", (event) => {
     trail = [...trail.filter((point) => now - point.at <= 100), { x: at.clientX, y: at.clientY, at: now }];
     Object.assign(belt.style, { left: `${at.clientX - offset.x - canvas.left}px`, top: `${at.clientY - offset.y - canvas.top}px` });
     const plot = plotBox();
-    if (plot) turnBelt(upright(sideAt(at.clientX - canvas.left, at.clientY - canvas.top, plot)));
+    if (plot) pen.turnBelt(pen.upright(pen.sideAt(at.clientX - canvas.left, at.clientY - canvas.top, plot)));
   };
   const end = (/** @type {PointerEvent | null} */ at) => {
     belt.classList.remove("held");
@@ -5084,15 +5111,15 @@ $("belt").addEventListener("pointerdown", (event) => {
     const plot = plotBox();
     // Let go: on the side it's on, where along it its middle is. (Taken away, by a touch that scrolled: back.)
     if (plot && at) {
-      const thrown = (/** @type {number} */ from, /** @type {(point: { x: number, y: number }) => number} */ along) => restOf(from, speedOf(trail, along)) - from;
+      const thrown = (/** @type {number} */ from, /** @type {(point: { x: number, y: number }) => number} */ along) => grid.restOf(from, grid.speedOf(trail, along)) - from;
       const by = { x: thrown(at.clientX, (point) => point.x), y: thrown(at.clientY, (point) => point.y) };
-      const now = belt.getBoundingClientRect(), side = sideAt(at.clientX + by.x - canvas.left, at.clientY + by.y - canvas.top, plot);
-      const middle = upright(side) ? (now.top + by.y + now.height / 2 - canvas.top - plot.top) / plot.height : (now.left + by.x + now.width / 2 - canvas.left - plot.left) / plot.width;
+      const now = belt.getBoundingClientRect(), side = pen.sideAt(at.clientX + by.x - canvas.left, at.clientY + by.y - canvas.top, plot);
+      const middle = pen.upright(side) ? (now.top + by.y + now.height / 2 - canvas.top - plot.top) / plot.height : (now.left + by.x + now.width / 2 - canvas.left - plot.left) / plot.width;
       Object.assign(prefs.belt, { dock: side, at: clamp(middle, 0, 1) });
       savePrefs();
     }
-    turnBelt(upright(prefs.belt.dock));
-    placeBelt(true);
+    pen.turnBelt(pen.upright(prefs.belt.dock));
+    pen.placeBelt(true);
   };
   press(event, { captor: belt, move: carry, end });
 });
@@ -5100,7 +5127,9 @@ $("belt").addEventListener("pointerdown", (event) => {
 // ── Bubbles: a series' sizes on another layer ───────────────────────────────
 
 // ── Heatmaps: the URPD, a day a column ──────────────────────────────────────
-document.addEventListener("visibilitychange", () => document.hidden && [...heatWaiters].forEach((wake) => wake()));
+withRest(() => {
+  document.addEventListener("visibilitychange", () => document.hidden && [...heatmaps.heatWaiters].forEach((wake) => wake()));
+});
 /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
 let heatAt = null;
 /**
@@ -5171,111 +5200,113 @@ $("chart").addEventListener("pointerleave", (event) => magnifying && event.point
 // (A scale reset by a double-click on its axis, the pointer still: the lens after it.)
 $("chart").addEventListener("dblclick", () => lensAt && lookAt(lensAt));
 $("chart").addEventListener("wheel", () => lensAt && lookAt(lensAt), { passive: true });
-$("chart").addEventListener("pointerdown", (event) => {
-  // (Any press on the chart let go of with no release (cancelled, its touch lost, the window left) while no gesture's
-  // held: what's placed click by click goes with it.)
-  press(event, {
-    end: (release) => {
-      if (!release && !gesturing()) stopDrawing();
-    },
-  });
-  // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan. A
-  // finger's move, another finger down too: the move let go, the drawing as it was, nothing pinched.)
-  if (otherPointer(event)) {
-    event.preventDefault();
-    event.stopPropagation();
-    swallow = true;
-    if (moving && gestureTouch && event.pointerType === "touch") stopDrawing();
-    return;
-  }
-  // (A finger come down while another is on the chart (panning it): the chart's, its pinch, whatever's under it. One
-  // letting a finger's crosshair go, the chart's too (it pans), unless a tool's in hand: see fingerCross.)
-  if (event.pointerType === "touch" && [...fingers].some((id) => id !== event.pointerId)) return;
-  if (fingerCross.dismissing && !tool) return;
-  if (writing) $("draw-text").blur();
-  // (A legend takes its own presses: a click on a name, ⌘ or ⇧ too, is the layer's, not a drawing's.)
-  if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend, #full")) return;
-  // (The magnifier by touch, on the axes too: the lens above the finger as it moves; the chart doesn't pan meanwhile.)
-  if (magnifying && event.pointerType !== "mouse") return void (take(event), lookAt({ x: event.clientX, y: event.clientY, touch: true }));
-  const pane = paneAt(event.clientY);
-  if (!pane) return;
-  const at = plotPoint(event.clientX, event.clientY, pane.rect);
-  // A press on an axis scales it, whatever's drawing.
-  if (at.x < 0 || at.x > engine.time.width) return;
-  // A box around drawings: the Select tool's, or ⌘ and a drag (a chord: the keys held don't come up).
-  if (!tool && (selectingArea || boxKey(event))) {
-    take(event);
-    hideHints();
-    boxing = { pane: pane.index, rect: pane.rect, start: at, now: at };
-    return showBox();
-  }
-  if (tool) {
-    // Placed click by click: this press ends it, at its release; its end where it's pressed (a finger still till
-    // it lifts moves nothing: a mouse's hovered there first).
-    if (placing) {
-      take(event);
-      // (Its pane read as it is now: laid out anew since (a height changed), the press lands where it's pressed.)
-      Object.assign(placing, { rect: paneRect(placing.host) ?? placing.rect, down: at, held: true, keys: false });
-      return placeTo(event);
+withRest(() => {
+  $("chart").addEventListener("pointerdown", (event) => {
+    // (Any press on the chart let go of with no release (cancelled, its touch lost, the window left) while no gesture's
+    // held: what's placed click by click goes with it.)
+    press(event, {
+      end: (release) => {
+        if (!release && !heatmaps.gesturing()) stopDrawing();
+      },
+    });
+    // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan. A
+    // finger's move, another finger down too: the move let go, the drawing as it was, nothing pinched.)
+    if (heatmaps.otherPointer(event)) {
+      event.preventDefault();
+      event.stopPropagation();
+      swallow = true;
+      if (moving && gestureTouch && event.pointerType === "touch") stopDrawing();
+      return;
     }
-    // (Drawn to a value within reach: a line's ends, a box's corners, a level; not a ruler's: it reads its dates.
-    // Nowhere to place it, the press is the chart's: it pans.)
-    const host = hostIn(pane.index), point = host && pointFrom(at, host, { free: tool === "brush" || tool === "text", pull: (POINTED.has(tool) && tool !== "ruler") || tool === "hline" ? !event.altKey : false });
-    if (!host || !point) return;
+    // (A finger come down while another is on the chart (panning it): the chart's, its pinch, whatever's under it. One
+    // letting a finger's crosshair go, the chart's too (it pans), unless a tool's in hand: see fingerCross.)
+    if (event.pointerType === "touch" && [...fingers].some((id) => id !== event.pointerId)) return;
+    if (fingerCross.dismissing && !tool) return;
+    if (writing) $("draw-text").blur();
+    // (A legend takes its own presses: a click on a name, ⌘ or ⇧ too, is the layer's, not a drawing's.)
+    if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend, #full")) return;
+    // (The magnifier by touch, on the axes too: the lens above the finger as it moves; the chart doesn't pan meanwhile.)
+    if (magnifying && event.pointerType !== "mouse") return void (take(event), lookAt({ x: event.clientX, y: event.clientY, touch: true }));
+    const pane = paneAt(event.clientY);
+    if (!pane) return;
+    const at = pen.plotPoint(event.clientX, event.clientY, pane.rect);
+    // A press on an axis scales it, whatever's drawing.
+    if (at.x < 0 || at.x > engine.time.width) return;
+    // A box around drawings: the Select tool's, or ⌘ and a drag (a chord: the keys held don't come up).
+    if (!tool && (selectingArea || pen.boxKey(event))) {
+      take(event);
+      hideHints();
+      boxing = { pane: pane.index, rect: pane.rect, start: at, now: at };
+      return heatmaps.showBox();
+    }
+    if (tool) {
+      // Placed click by click: this press ends it, at its release; its end where it's pressed (a finger still till
+      // it lifts moves nothing: a mouse's hovered there first).
+      if (placing) {
+        take(event);
+        // (Its pane read as it is now: laid out anew since (a height changed), the press lands where it's pressed.)
+        Object.assign(placing, { rect: paneRect(placing.host) ?? placing.rect, down: at, held: true, keys: false });
+        return placeTo(event);
+      }
+      // (Drawn to a value within reach: a line's ends, a box's corners, a level; not a ruler's: it reads its dates.
+      // Nowhere to place it, the press is the chart's: it pans.)
+      const host = pen.hostIn(pane.index), point = host && pen.pointFrom(at, host, { free: tool === "brush" || tool === "text", pull: (POINTED.has(tool) && tool !== "ruler") || tool === "hline" ? !event.altKey : false });
+      if (!host || !point) return;
+      take(event);
+      placing = { rect: pane.rect, host, down: at, held: true, clicks: false, stroke: [{ ...at, point }] };
+      pathResume = null;
+      if (tool !== "text") draft = pen.newDrawing(tool, host.id, POINTED.has(tool) ? [point, [...point]] : [point]);
+      return repaintDrawings();
+    }
+    const hit = pen.drawingAt(event.clientX, event.clientY, pen.reachOf(event));
+    // A press on nothing pans; a click there lets the selected drawings go (at its release, unmoved; a ⇧-click that
+    // missed one changes nothing).
+    if (!hit) return void (chosen.size && !event.shiftKey && heatmaps.pressAt(event, ""));
+    // By touch, one not selected is the chart's still: a drag over it pans (a finger's wide reach on it moves nothing);
+    // a tap selects it, then it's taken as a pointer takes it. (A pen points as a mouse does.)
+    if (event.pointerType === "touch" && !chosen.has(hit.drawing.id)) return void heatmaps.pressAt(event, hit.drawing.id);
     take(event);
-    placing = { rect: pane.rect, host, down: at, held: true, clicks: false, stroke: [{ ...at, point }] };
-    pathResume = null;
-    if (tool !== "text") draft = newDrawing(tool, host.id, POINTED.has(tool) ? [point, [...point]] : [point]);
-    return repaintDrawings();
-  }
-  const hit = drawingAt(event.clientX, event.clientY, reachOf(event));
-  // A press on nothing pans; a click there lets the selected drawings go (at its release, unmoved; a ⇧-click that
-  // missed one changes nothing).
-  if (!hit) return void (chosen.size && !event.shiftKey && pressAt(event, ""));
-  // By touch, one not selected is the chart's still: a drag over it pans (a finger's wide reach on it moves nothing);
-  // a tap selects it, then it's taken as a pointer takes it. (A pen points as a mouse does.)
-  if (event.pointerType === "touch" && !chosen.has(hit.drawing.id)) return void pressAt(event, hit.drawing.id);
-  take(event);
-  const id = hit.drawing.id;
-  // ⇧: in or out of the selection.
-  if (event.shiftKey) return chooseDrawings(chosen.has(id) ? [...chosen].filter((other) => other !== id) : [...chosen, id]);
-  // Taken by its body, it moves with every other selected; by one of its points, it alone is reshaped.
-  if (!chosen.has(id)) chooseDrawings([id]);
-  // (A line across's dot is its body: it has nothing to reshape. A label taken slides along its line, alone.)
-  const reshape = hit.handle >= 0 && (POINTED.has(hit.drawing.kind) || hit.drawing.kind === "brush"), slide = hit.over === "label", group = reshape || slide ? [id] : [...chosen];
-  moving = { originals: new Map(group.map((each) => [each, drawingById(each) ?? hit.drawing])), target: id, handle: reshape ? hit.handle : -1, slide, rect: pane.rect, start: at, moved: false, cursor: ["nwse", "nesw", "ns", "ew"].includes(hit.over) ? `${hit.over}-resize` : "grabbing" };
-}, true);
-$("chart").addEventListener("pointermove", (event) => {
-  if (otherPointer(event)) return;
-  if (placing) return void (placing.keys || placeTo(event));
-  if (moving) return moveTo(event);
-  if (boxing) return boxTo(event);
-  hover(event.buttons || tool || selectingArea ? null : drawingAt(event.clientX, event.clientY));
-});
-$("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
-// Double-click a text: typed into, where it is; a line: its label, typed where the click was (on it: typed into).
-$("chart").addEventListener("dblclick", (event) => {
-  const hit = tool ? null : drawingAt(event.clientX, event.clientY);
-  if (!hit) return;
-  event.stopPropagation();
-  if (hit.drawing.kind === "text") return startTyping(hit.drawing);
-  if (!LINES.has(hit.drawing.kind)) return;
-  const pane = paneAt(event.clientY), series = drawn.get(hit.drawing.layer), line = timeLine(), size = sketches.get(series)?.size;
-  if (hit.over === "label" || !pane || !series || !line || !size) return startLabel(hit.drawing);
-  const at = plotPoint(event.clientX, event.clientY, pane.rect);
-  startLabel(hit.drawing, shareAlong(hit.drawing, onScreen(hit.drawing, series, line), size, at.x, at.y));
-}, true);
-// A right-click on a drawing: its menu, as a layer's row has.
-$("chart").addEventListener("contextmenu", (event) => {
-  const hit = tool || placing ? null : drawingAt(event.clientX, event.clientY);
-  // (Else a layer's, as its row's: its legend item, or its line or tag under the pointer (the one its legend lights).)
-  const item = !hit && !tool && !placing ? /** @type {HTMLElement | null} */ (closest(event, "#chart .legend [data-select]")) : null;
-  const layer = item?.dataset.select ?? (!hit && !tool && !placing && litLayer && layerById(litLayer) ? litLayer : null);
-  if (layer && !TOUCH) return void (event.preventDefault(), layerMenu(item ?? $("plot-keys"), layer, { x: event.clientX, y: event.clientY }));
-  if (!hit) return;
-  event.preventDefault();
-  if (!chosen.has(hit.drawing.id)) chooseDrawings([hit.drawing.id]);
-  drawingMenu({ x: event.clientX, y: event.clientY });
+    const id = hit.drawing.id;
+    // ⇧: in or out of the selection.
+    if (event.shiftKey) return chooseDrawings(chosen.has(id) ? [...chosen].filter((other) => other !== id) : [...chosen, id]);
+    // Taken by its body, it moves with every other selected; by one of its points, it alone is reshaped.
+    if (!chosen.has(id)) chooseDrawings([id]);
+    // (A line across's dot is its body: it has nothing to reshape. A label taken slides along its line, alone.)
+    const reshape = hit.handle >= 0 && (POINTED.has(hit.drawing.kind) || hit.drawing.kind === "brush"), slide = hit.over === "label", group = reshape || slide ? [id] : [...chosen];
+    moving = { originals: new Map(group.map((each) => [each, pen.drawingById(each) ?? hit.drawing])), target: id, handle: reshape ? hit.handle : -1, slide, rect: pane.rect, start: at, moved: false, cursor: ["nwse", "nesw", "ns", "ew"].includes(hit.over) ? `${hit.over}-resize` : "grabbing" };
+  }, true);
+  $("chart").addEventListener("pointermove", (event) => {
+    if (heatmaps.otherPointer(event)) return;
+    if (placing) return void (placing.keys || placeTo(event));
+    if (moving) return heatmaps.moveTo(event);
+    if (boxing) return heatmaps.boxTo(event);
+    hover(event.buttons || tool || selectingArea ? null : pen.drawingAt(event.clientX, event.clientY));
+  });
+  $("chart").addEventListener("pointerleave", () => !placing && !moving && hover(null));
+  // Double-click a text: typed into, where it is; a line: its label, typed where the click was (on it: typed into).
+  $("chart").addEventListener("dblclick", (event) => {
+    const hit = tool ? null : pen.drawingAt(event.clientX, event.clientY);
+    if (!hit) return;
+    event.stopPropagation();
+    if (hit.drawing.kind === "text") return startTyping(hit.drawing);
+    if (!LINES.has(hit.drawing.kind)) return;
+    const pane = paneAt(event.clientY), series = drawn.get(hit.drawing.layer), line = timeLine(), size = sketches.get(series)?.size;
+    if (hit.over === "label" || !pane || !series || !line || !size) return startLabel(hit.drawing);
+    const at = pen.plotPoint(event.clientX, event.clientY, pane.rect);
+    startLabel(hit.drawing, pen.shareAlong(hit.drawing, onScreen(hit.drawing, series, line), size, at.x, at.y));
+  }, true);
+  // A right-click on a drawing: its menu, as a layer's row has.
+  $("chart").addEventListener("contextmenu", (event) => {
+    const hit = tool || placing ? null : pen.drawingAt(event.clientX, event.clientY);
+    // (Else a layer's, as its row's: its legend item, or its line or tag under the pointer (the one its legend lights).)
+    const item = !hit && !tool && !placing ? /** @type {HTMLElement | null} */ (closest(event, "#chart .legend [data-select]")) : null;
+    const layer = item?.dataset.select ?? (!hit && !tool && !placing && litLayer && layerById(litLayer) ? litLayer : null);
+    if (layer && !TOUCH) return void (event.preventDefault(), inspector.layerMenu(item ?? $("plot-keys"), layer, { x: event.clientX, y: event.clientY }));
+    if (!hit) return;
+    event.preventDefault();
+    if (!chosen.has(hit.drawing.id)) chooseDrawings([hit.drawing.id]);
+    heatmaps.drawingMenu({ x: event.clientX, y: event.clientY });
+  });
 });
 /** What's being drawn or moved, let go of as it was. */
 function stopDrawing() {
@@ -5285,7 +5316,7 @@ function stopDrawing() {
   keyValue = null;
   reshaped = new Map();
   $("select-box").hidden = true;
-  hold("");
+  heatmaps.hold("");
   renderBelt();
   repaintDrawings();
 }
@@ -5296,30 +5327,30 @@ function placeTo(event) {
     const coalesced = event.getCoalescedEvents?.() ?? [];
     for (const each of coalesced.length ? coalesced : [event]) {
       // Each point half the way from the last to the pointer: the hand's tremor taken out.
-      const raw = plotPoint(each.clientX, each.clientY, placing.rect), last = placing.stroke[placing.stroke.length - 1];
+      const raw = pen.plotPoint(each.clientX, each.clientY, placing.rect), last = placing.stroke[placing.stroke.length - 1];
       const x = (last.x + raw.x) / 2, y = (last.y + raw.y) / 2;
       if (Math.hypot(x - last.x, y - last.y) < 1) continue;
-      const point = pointFrom({ x, y }, host, { free: true });
+      const point = pen.pointFrom({ x, y }, host, { free: true });
       placing.stroke.push({ x, y, point });
       if (point) draft.points.push(point);
     }
     return repaintDrawings();
   }
-  const point = draft && pointFrom(plotPoint(event.clientX, event.clientY, placing.rect), host, { pull: tool !== "vline" && tool !== "ruler" && !event.altKey });
+  const point = draft && pen.pointFrom(pen.plotPoint(event.clientX, event.clientY, placing.rect), host, { pull: tool !== "vline" && tool !== "ruler" && !event.altKey });
   if (!point || !draft) return;
   draft = { ...draft, points: [...draft.points.slice(0, -1), point] };
   repaintDrawings();
 }
 /** Let go: a click on a line's or a box's first point leaves its second to the next click; else it's placed. */
 function placed(event) {
-  const at = plotPoint(event.clientX, event.clientY, placing.rect), still = Math.hypot(at.x - placing.down.x, at.y - placing.down.y) < 4;
+  const at = pen.plotPoint(event.clientX, event.clientY, placing.rect), still = Math.hypot(at.x - placing.down.x, at.y - placing.down.y) < 4;
   // A path's points, one a click (its first stretch dragged, or not), each the next's start; the last clicked again
   // (a double-click's second), it's done.
   if (tool === "path" && draft) {
     if (placing.clicks) return void (Object.assign(placing, { held: false }), placePathPoint(event.pointerType === "touch" ? 16 : 4));
     Object.assign(placing, { clicks: true, held: false });
     if (!still) draft = { ...draft, points: [...draft.points, [...(draft.points.at(-1) ?? [0, 0])]] };
-    return pathMoved();
+    return heatmaps.pathMoved();
   }
   if (PAIRED.has(tool) && still && !placing.clicks) {
     Object.assign(placing, { clicks: true, held: false });
@@ -5331,14 +5362,14 @@ function placed(event) {
   takeUp(again ? kind : "", again, true);
   if (kind === "text") {
     // (Its middle where the click was.)
-    const point = pointFrom(at, host, { free: true });
-    return void (point && startTyping(newDrawing("text", host.id, [point])));
+    const point = pen.pointFrom(at, host, { free: true });
+    return void (point && startTyping(pen.newDrawing("text", host.id, [point])));
   }
   if (kind === "brush" && drawing) {
-    stroke.push({ ...at, point: pointFrom(at, host, { free: true }) });
-    let kept = simplify(stroke, 0.75);
+    stroke.push({ ...at, point: pen.pointFrom(at, host, { free: true }) });
+    let kept = heatmaps.simplify(stroke, 0.75);
     // (Tolerance grows until it fits: only a long scribble gets there.)
-    for (let tolerance = 1.5; kept.length > MAX_STROKE; tolerance *= 1.5) kept = simplify(stroke, tolerance);
+    for (let tolerance = 1.5; kept.length > MAX_STROKE; tolerance *= 1.5) kept = heatmaps.simplify(stroke, tolerance);
     drawing = { ...drawing, points: /** @type {[number, number][]} */ (kept.map((each) => each.point).filter(Boolean)) };
   }
   if (!drawing) return repaintDrawings();
@@ -5351,12 +5382,12 @@ function placed(event) {
 function placePathPoint(reach = 4) {
   if (!draft) return;
   const placed = /** @type {[number, number]} */ (draft.points.at(-1)), before = draft.points.at(-2);
-  if (before && !pointsApart({ ...draft, points: [before, placed] }, reach)) return void finishPath();
+  if (before && !heatmaps.pointsApart({ ...draft, points: [before, placed] }, reach)) return void heatmaps.finishPath();
   pathTaken = [];
   draft = { ...draft, points: [...draft.points, [...placed]] };
   // (As many points as a link keeps: at the most, it's done.)
-  if (draft.points.length > MAX_STROKE) return void (finishPath(), notice(`A path holds up to ${MAX_STROKE} points`));
-  pathMoved();
+  if (draft.points.length > MAX_STROKE) return void (heatmaps.finishPath(), notice(`A path holds up to ${MAX_STROKE} points`));
+  heatmaps.pathMoved();
 }
 /** A path being placed: the points taken back from it (⌫, ⌘Z), the last last, for ⇧⌘Z to put back. @type {[number, number][]} */
 let pathTaken = [];
@@ -5375,7 +5406,7 @@ function unplacePath() {
   }
   pathTaken.push(/** @type {[number, number]} */ (draft.points.at(-2)));
   draft = { ...draft, points: [...draft.points.slice(0, -2), /** @type {[number, number]} */ (draft.points.at(-1))] };
-  pathMoved();
+  heatmaps.pathMoved();
   return true;
 }
 /** A path being placed, the last point taken back from it put back. Whether one was. */
@@ -5387,19 +5418,19 @@ function replacePath() {
     draft = { ...was, points: [first, /** @type {[number, number]} */ (was.points.at(-1))] };
     pathTaken = taken;
     pathResume = null;
-    return pathMoved(), true;
+    return heatmaps.pathMoved(), true;
   }
   const point = placingPath() ? pathTaken.pop() : undefined;
   if (!point || !draft) return false;
   draft = { ...draft, points: [...draft.points.slice(0, -1), point, /** @type {[number, number]} */ (draft.points.at(-1))] };
-  pathMoved();
+  heatmaps.pathMoved();
   return true;
 }
 /** A drawing placed, into the chart: a ruler's measure shown (it passes); its two points on one spot, nothing to draw. */
 function keepDrawing(/** @type {Drawing} */ drawing) {
-  if (!drawing.points.length || (PAIRED.has(drawing.kind) && !pointsApart(drawing)) || (drawing.kind === "path" && drawing.points.length < 2)) return repaintDrawings();
+  if (!drawing.points.length || (PAIRED.has(drawing.kind) && !heatmaps.pointsApart(drawing)) || (drawing.kind === "path" && drawing.points.length < 2)) return repaintDrawings();
   if (drawing.kind === "ruler") return void ((measuring = drawing), repaintDrawings());
-  addDrawn(drawing);
+  heatmaps.addDrawn(drawing);
 }
 let undoTook = "", picks = 0;
 /** Let go of drawings: moved, they're the chart's where they are (one undo); not moved, it was a click: they're selected. */
@@ -5407,7 +5438,7 @@ function moved() {
   const { originals } = moving, now = [...reshaped.values()].filter((drawing) => JSON.stringify(drawing) !== JSON.stringify(originals.get(drawing.id)));
   moving = null;
   reshaped = new Map();
-  hold("");
+  heatmaps.hold("");
   if (!now.length) return repaintDrawings();
   commit((doc) => doc.drawings?.forEach((item) => {
     const moved = now.find((drawing) => drawing.id === item.id);
@@ -5424,7 +5455,7 @@ function boxed() {
   const found = [];
   for (const layer of chart.layers) {
     const sketch = layer.pane === id ? sketches.get(drawn.get(layer.id)) : null;
-    if (sketch) for (const { drawing, points } of sketch.fresh().shown) if (inBox(drawing, points, box, sketch.size)) found.push(drawing.id);
+    if (sketch) for (const { drawing, points } of sketch.fresh().shown) if (heatmaps.inBox(drawing, points, box, sketch.size)) found.push(drawing.id);
   }
   if (selectingArea) takeUp("");
   chooseDrawings(found);
@@ -5436,15 +5467,15 @@ function boxed() {
  * @param {Drawing} drawing @param {HTMLElement | null} back
  */
 function startTyping(drawing, back = null) {
-  const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), fresh = !drawingById(drawing.id);
+  const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), fresh = !pen.drawingById(drawing.id);
   writing = { drawing, fresh, back };
   field.maxLength = 500;
   field.placeholder = "Text";
   field.setAttribute("aria-label", "Text");
   typingIn = drawing.id;
   field.value = drawing.text ?? "";
-  dressField(drawing);
-  placeField();
+  heatmaps.dressField(drawing);
+  heatmaps.placeField();
   field.focus();
   field.setSelectionRange(field.value.length, field.value.length);
   repaintDrawings();
@@ -5463,8 +5494,8 @@ function startLabel(drawing, at = drawing.at, back = null) {
   field.setAttribute("aria-label", "Label");
   labelTyping = drawing.id;
   field.value = drawing.label ?? "";
-  dressField(drawing);
-  placeField();
+  heatmaps.dressField(drawing);
+  heatmaps.placeField();
   field.focus();
   field.select();
   repaintDrawings();
@@ -5482,8 +5513,8 @@ function endTyping() {
     writing = null;
     labelTyping = "";
     $("draw-text").hidden = true;
-    if (label === (drawing.label ?? "") && drawing.at === drawingById(drawing.id)?.at) return repaintDrawings();
-    return editById(drawing.id, (item) => {
+    if (label === (drawing.label ?? "") && drawing.at === pen.drawingById(drawing.id)?.at) return repaintDrawings();
+    return inspector.editById(drawing.id, (item) => {
       if (label) Object.assign(item, { label, ...(drawing.at === undefined ? {} : { at: drawing.at }) });
       else {
         delete item.label;
@@ -5495,12 +5526,14 @@ function endTyping() {
   writing = null;
   typingIn = "";
   $("draw-text").hidden = true;
-  if (!text.trim()) return fresh ? repaintDrawings() : removeDrawing(drawing.id);
+  if (!text.trim()) return fresh ? repaintDrawings() : heatmaps.removeDrawing(drawing.id);
   if (text === drawing.text) return repaintDrawings();
-  if (fresh) return addDrawn({ ...drawing, text });
-  editById(drawing.id, (item) => (item.text = text));
+  if (fresh) return heatmaps.addDrawn({ ...drawing, text });
+  inspector.editById(drawing.id, (item) => (item.text = text));
 }
-$("draw-text").addEventListener("input", placeField);
+withRest(() => {
+  $("draw-text").addEventListener("input", heatmaps.placeField);
+});
 // (The window left (a phone's app switched), it stays as it is till the window's back: see leftOpen.)
 $("draw-text").addEventListener("blur", () => leftWith($("draw-text"), endTyping) || endTyping());
 $("draw-text").addEventListener("keydown", (event) => {
@@ -5580,7 +5613,7 @@ const listWritten = new WeakMap();
 /** A list's rows as last written, each with its key (see writeList). @param {HTMLElement} container */
 const listRows = (container) => new Map((listWritten.get(container) ?? []).map(([key], i) => [/** @type {HTMLElement} */ (container.children[i]), key]));
 /** Where a written list's rows are now, by key (see slide). @param {HTMLElement} container */
-const listPlaces = (container) => ((rows) => placesOf([...rows.keys()], (row) => rows.get(row)))(listRows(container));
+const listPlaces = (container) => ((rows) => grid.placesOf([...rows.keys()], (row) => rows.get(row)))(listRows(container));
 /**
  * A written list's rows gliding from where they were (`was`, see listPlaces) to where they are: those in sight, before
  * or after (none other's seen moving), each over the others on its ground, one come fading in as they uncover it.
@@ -5589,7 +5622,7 @@ const listPlaces = (container) => ((rows) => placesOf([...rows.keys()], (row) =>
 function glideList(list, was) {
   const sight = list.getBoundingClientRect(), after = listRows(list);
   const seen = (/** @type {number | undefined} */ top) => top !== undefined && top < sight.bottom && top > sight.top - 60;
-  slide([...after.keys()].filter((row) => seen(row.getBoundingClientRect().top) || seen(was.get(after.get(row)))), (row) => after.get(row), was, { fade: true, layout: true });
+  grid.slide([...after.keys()].filter((row) => seen(row.getBoundingClientRect().top) || seen(was.get(after.get(row)))), (row) => after.get(row), was, { fade: true, layout: true });
 }
 /**
  * A list written again only where it changed: each part kept where its key is (its element, its hover, what it's
@@ -5674,14 +5707,80 @@ function patchNode(live, a, b) {
  * the height.
  * @typedef {{ washes: [number, string, string, number, number][], dots: [string, number, number][], lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number] | [string, (number | null)[], string | null, string | null, number | null, (string | null)[]])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb
  */
+// One pass per chart squeezes every layer, with its formulas and its pane's scale, to a few dozen points: up to
+// three of them make the chart's mark, each one alone makes its layer's mark in the legend. Monthly data is
+// enough, except where windows run (sma, stdev…: a short one would be a point there): those use the chart's
+// own interval. Only the drawings are kept, by chart, with what they were drawn from and the day; a change, or a
+// new day, redraws them.
+
+const THUMBS = "bitview-studio:thumbs";
+/** The presets' marks kept in this browser, the last drawn: a visit shows them at once, not drawn anew first (as a chart's, see THUMBS); let go of first, as the thumbs are, when storage is full. */
+const PRESET_MARKS = "bitview-studio:preset-marks";
+const THUMB_POINTS = 28;
+/** The drawings' version: one kept from before it (drawn by older rules) isn't reused. Drawings only, never saved charts or preferences. */
+const MARK_VERSION = "4:";
+const validDrawingKey = (key) => typeof key === "string" && key.startsWith(MARK_VERSION);
+const validYs = (ys) => Array.isArray(ys) && ys.length >= 2 && ys.length <= THUMB_POINTS && ys.every((y) => y === null || (typeof y === "number" && y >= 0 && y <= 1));
+const validLevel = (y) => typeof y === "number" && y >= 0 && y <= 1;
+const MARK_KINDS = new Set(["area", "baseline", "bars", "dots"]);
+/** A mark's lines, as kept: each its color, its points, its kind (and a two-sided one's other color, its level), its dates' colors. */
+const validLines = (/** @type {any} */ lines) => Array.isArray(lines) && lines.length <= 3
+  && lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] == null || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4])))
+    && (line[5] === undefined || (Array.isArray(line[5]) && line[5].length === line[1].length && line[5].every((color) => color === null || isColor(color)))));
+/**
+ * A mark, as kept: its lines (see validLines); a heatmap's wash about one of them (that line, the colors over it and
+ * under it, its band's foot and top); a few of the largest bubbles, dots (each its color, across, up).
+ */
+const validChartMark = (/** @type {any} */ mark) => typeof mark === "object" && mark !== null && validLines(mark.lines)
+  && Array.isArray(mark.washes) && mark.washes.length <= 1 && mark.washes.every((wash) => Array.isArray(wash) && Number.isInteger(wash[0]) && wash[0] >= 0 && wash[0] < mark.lines.length && isColor(wash[1]) && isColor(wash[2]) && validLevel(wash[3]) && validLevel(wash[4]))
+  && Array.isArray(mark.dots) && mark.dots.length <= 4 && mark.dots.every((dot) => Array.isArray(dot) && isColor(dot[0]) && validLevel(dot[1]) && validLevel(dot[2]));
+const validThumb = (thumb) => validDrawingKey(thumb?.key) && validChartMark(thumb)
+  && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
+  && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
+// A card is the chart's plot, small: every pane in its band (with the chart's scale margins), every layer shown in
+// it as its type (see previewSvg), over the view the chart was left at (else its range), a point per few pixels. Drawn
+// from the chart's own data, which is then at hand when it opens.
+
+const PREVIEWS = "bitview-studio:previews";
+/**
+ * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, one of
+ * its lines across, or bubbles of one size, `w` across), `c` its color (`c2` under its base), `d` its line (or its
+ * bars, or bubbles, above the base, `d2` those below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
+ * its line style, `op` its opacity, `end` its latest point, `f` an area's fill (its top's opacity and its foot's: see fillOf),
+ * `o` outlined (see OUTLINED): its layer's place, from 1 (its marks drawn together, see previewSvg).
+ * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number, w?: number, z?: [number, string][] }} PlotMark
+ * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
+ * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
+ * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
+ */
+/** Each kind, with what it can't be drawn without. */
+const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w", "top", "bottom"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"], profile: ["f", "top", "bottom"] };
+const isPath = (d) => typeof d === "string" && /^[MLHVZh\d. -]*$/.test(d);
+const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
+  && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op, mark.w].every((n) => n === undefined || Number.isFinite(n))
+  && (mark.up === undefined || typeof mark.up === "boolean") && (mark.f === undefined || (Array.isArray(mark.f) && mark.f.every(Number.isFinite))) && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
+  && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)))
+  && (mark.img === undefined || (typeof mark.img === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mark.img)));
+const validPreview = (item) => validDrawingKey(item?.key) && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
+/** The most a shelf shows (its section's first), and a grid at once (more, a button away). */
+const SHELF = 12, GALLERY_PAGE = 60;
+/**
+ * The presets' rows as the sidebar last drew them, open, and the sections open then (see presetParts): kept in this
+ * browser, the first to go when it's full, as a picture's are.
+ */
+const SIDE_PRESETS = "bitview-studio:side-presets";
+/** What's picked from ⌘K's search, how often and when: what's used most, lately, comes first. */
+const USED = "bitview-studio:used";
 /** @type {Map<string, Thumb & { key: string }>} */
 const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
-const saveThumbsSoon = writeSoon(saveThumbs);
+const saveThumbsSoon = writeSoon(() => grid.saveThumbs());
 /** Brings every chart's mini chart up to date, one chart at a time, in the background. */
 const drawThumbs = serial(async () => {
-  for (const id of [...thumbs.keys()]) if (orphan(id)) thumbs.delete(id);
+  // (They're the grid's: drawn as it comes.)
+  if (!grid) return void withRest(drawThumbs);
+  for (const id of [...thumbs.keys()]) if (grid.orphan(id)) thumbs.delete(id);
   let drew = false;
-  for (const doc of [...library.charts, ...previewCharts, ...(chart?.preset !== undefined ? [chart] : [])]) drew = (await freshThumb(doc)) || drew;
+  for (const doc of [...library.charts, ...previewCharts, ...(chart?.preset !== undefined ? [chart] : [])]) drew = (await grid.freshThumb(doc)) || drew;
   // Stored a moment after (passes follow each edit: one write for many).
   if (drew) saveThumbsSoon();
 });
@@ -5696,15 +5795,21 @@ addEventListener("storage", (event) => {
   }
   for (const [id, thumb] of Object.entries(stored ?? {})) {
     const doc = chartById(id);
-    if (!doc || !validThumb(thumb) || thumb.key !== thumbKey(doc) || thumbs.get(id)?.key === thumb.key) continue;
+    if (!doc || !validThumb(thumb) || thumb.key !== grid.thumbKey(doc) || thumbs.get(id)?.key === thumb.key) continue;
     thumbs.set(id, thumb);
-    updateMark(doc);
+    grid.updateMark(doc);
   }
 });
 // ── The page's tiles: each chart drawn as it shows; a chart grows out of its card ──────────────────
 /** @type {Map<string, Preview & { key: string }>} */
 const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
-const savePreviewsSoon = writeSoon(savePreviews);
+const savePreviewsSoon = writeSoon(() => grid.savePreviews());
+/**
+ * Rows `n` a ×10 in price, each the same share of its price: where a price falls among them (`at`, the row it's in
+ * and how far into it), the row it's in (`cell`), a row's floor price (`price`), and the row a floor price is
+ * (`floor`: as the URPD writes it, rounded). @param {number} n
+ */
+const logRows = (n) => ({ at: (/** @type {number} */ price) => n * Math.log10(price * 100), cell: (/** @type {number} */ price) => Math.floor(n * Math.log10(price * 100)), price: (/** @type {number} */ row) => 10 ** (row / n) / 100, floor: (/** @type {number} */ price) => Math.round(n * Math.log10(price * 100)) });
 /**
  * The density a picture's heatmaps are sampled at: 50 rows a ×10 (a tile's few hundred pixels tall); their days, a
  * tile's (32: about 10 pixels a day) and Quick Look's (96).
@@ -5731,35 +5836,37 @@ function renderHome() {
     leftPlace = null;
     history.replaceState(homeState(), "");
   }
-  renderHomeHead();
-  renderDoors();
-  renderHorizon();
-  renderYours();
-  renderGallery();
-  giveUpUnframed();
+  grid.renderHomeHead();
+  grid.renderDoors();
+  grid.renderHorizon();
+  grid.renderYours();
+  grid.renderGallery();
+  grid.giveUpUnframed();
   // (Searched: how many found, of both.)
   const query = $("home-filter").value.trim();
-  $("home-count").textContent = query ? `${grouped.format(yoursFound + galleryFound)} found` : "";
+  $("home-count").textContent = query ? `${grouped.format(grid.yoursFound + grid.galleryFound)} found` : "";
 }
 $("chart-path").addEventListener("click", (/** @type {MouseEvent} */ event) => {
   const anchor = closest(event, "button");
-  if (anchor) menuOf(anchor, chartPathRows());
+  if (anchor) menus.menuOf(anchor, grid.chartPathRows());
 });
 const yourTilesSeen = new IntersectionObserver((entries) => {
-  for (const entry of entries) (entry.isIntersecting ? yoursSeen.add(entry.target) : yoursSeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
-  queueYours();
+  for (const entry of entries) (entry.isIntersecting ? grid.yoursSeen.add(entry.target) : grid.yoursSeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
+  grid.queueYours();
 });
-const yoursStill = stillness();
+// (Home's tests of being still, the grid's once it's in: Home waits for it.)
+let yoursStill = () => true, galleryStill = yoursStill;
+withRest(() => ((yoursStill = grid.stillness()), (galleryStill = grid.stillness()), grid.startGalleryRest()));
 const drawYours = serial(async () => {
-  for (const id of yourQueue) {
-    yourQueue.delete(id);
-    const doc = chartById(id) ?? [...presetTiles.keys()].find((tile) => tile.id === id);
+  for (const id of grid.yourQueue) {
+    grid.yourQueue.delete(id);
+    const doc = chartById(id) ?? [...grid.presetTiles.keys()].find((tile) => tile.id === id);
     if (!home || !doc?.layers.length) continue;
     // Drawn already (maybe from ⌘K), it's shown where it's still waited for (a preset's, from weekly data, as the
     // gallery's). A failed fetch isn't drawn (nor kept): it says so, and it's asked for again as the server answers
     // (see paint, retryPlots). Home still, each waiting tile's drawing starts at once (its fetch with it); else one
     // at a time, so a scroll doesn't ask for the tiles it passes.
-    const drawn = drawPreview(doc, presetTiles.has(doc) ? previewIndex(doc) : doc.index);
+    const drawn = grid.drawPreview(doc, grid.presetTiles.has(doc) ? grid.previewIndex(doc) : doc.index);
     if (!yoursStill()) await drawn;
   }
 });
@@ -5796,32 +5903,32 @@ function goTo(/** @type {Place} */ place) {
   // (Where the page was, read before its copy's put in (after, it'd be laid out at once for it); at its top already,
   // not put there again (a scroll written lays the page out first). Above it (Safari's bounce), not there.)
   const left = home && !same ? galleryPlace() : null, scrolledDown = !home || homeScroll().scrollTop !== 0;
-  if (home && !same) pageOut();
+  if (home && !same) grid.pageOut();
   /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
   if (!same) {
     if (left) {
       history.replaceState({ ...homeState(), place: left }, "");
-      leftPlaces.set(history.state.key, left);
+      grid.leftPlaces.set(history.state.key, left);
     }
     placeHome(place);
     galleryShown = GALLERY_PAGE;
-    clearPicks();
+    grid.clearPicks();
   }
   if (scrolledDown) homeScroll().scrollTop = 0;
   if (!home) return showHome();
   if (!same) history.pushState(homeState(uid()), "");
   const fromPage = $("home").contains(document.activeElement);
   renderHome();
-  if (!same) pageIn();
+  if (!same) grid.pageIn();
   if (scrolledDown) homeScroll().scrollTop = 0;
   // (Gone with the page it was on, the focus starts the new one: its name.)
   if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
 }
 let galleryShown = GALLERY_PAGE;
-$("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
+$("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && grid.shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
 // (A keyboard's focus come into it (Tab, the arrows, a menu's way back to its tile), for the keys to reach each; not
 // one put there by a click's or a tap's way back from its chart: that wrote its row whole, 15 ms on a desktop.)
-$("home").addEventListener("focusin", (event) => ((row) => row && /** @type {HTMLElement} */ (event.target).matches(":focus-visible") && fillRow(row))(closest(event, ".shelf-row, .grid-tiles")));
+$("home").addEventListener("focusin", (event) => ((row) => row && /** @type {HTMLElement} */ (event.target).matches(":focus-visible") && grid.fillRow(row))(closest(event, ".shelf-row, .grid-tiles")));
 // Every shelf measured again as the page's size changes (the window's, the sidebar's, a phone turned), shown at
 // another size than it was left at too; not as it's simply shown again: hidden, its shelves stayed as they were.
 {
@@ -5831,18 +5938,24 @@ $("home").addEventListener("focusin", (event) => ((row) => row && /** @type {HTM
     // (Hidden, none: its size as it was left kept.)
     if (!inlineSize || now === size) return;
     size = now;
-    allShelfSteps();
+    grid?.allShelfSteps();
   }).observe(/** @type {HTMLElement} */ ($("home").querySelector(".home-scroll")));
 }
 const galleryTilesSeen = new IntersectionObserver((entries) => {
-  for (const entry of entries) (entry.isIntersecting ? gallerySeen.add(entry.target) : gallerySeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
-  galleryQueue.clear();
-  for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
+  for (const entry of entries) (entry.isIntersecting ? grid.gallerySeen.add(entry.target) : grid.gallerySeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
+  grid.galleryQueue.clear();
+  for (const frame of grid.gallerySeen) if (frame.classList.contains("pending")) grid.galleryQueue.add(grid.presetOf(frame));
   drawGallery();
 });
 // (Ahead: the tiles a screen below the view, drawn while the grid's at rest (`galleryResting`, grid.js), after
 // those in view, one at a time: a scroll finds them drawn.)
 const galleryAhead = /** @type {Set<Element>} */ (new Set()), homeScroller = /** @type {HTMLElement} */ ($("home").querySelector(".home-scroll"));
+// (Its root the grid's own scroller: from the window's, what's past the scroller's edge is cut off, margin or not. Its
+// margin a screen, the scroller's height in pixels (a percentage there is of its width), made again as it's resized.)
+const aheadOf = (/** @type {number} */ height) => new IntersectionObserver((entries) => {
+  for (const entry of entries) entry.isIntersecting ? galleryAhead.add(entry.target) : galleryAhead.delete(entry.target);
+  drawGallery();
+}, { root: homeScroller, rootMargin: `0px 0px ${Math.round(height)}px 0px` });
 let galleryTilesAhead = aheadOf(homeScroller.clientHeight || innerHeight), aheadHeight = homeScroller.clientHeight;
 new ResizeObserver(() => {
   const height = homeScroller.clientHeight;
@@ -5853,23 +5966,21 @@ new ResizeObserver(() => {
   galleryTilesAhead = aheadOf(height);
   for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesAhead.observe(frame);
 }).observe(homeScroller);
-startGalleryRest();
-const galleryStill = stillness();
 const drawGallery = serial(async () => {
   const tried = /** @type {Set<number>} */ (new Set());
-  for (let i = nextGallery(tried); i >= 0; i = nextGallery(tried)) {
+  for (let i = grid.nextGallery(tried); i >= 0; i = grid.nextGallery(tried)) {
     tried.add(i);
     if (!presets?.[i] || !home || $("gallery").hidden || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
     const doc = presetDoc(i), have = previews.get(doc.id);
     // (A tile written of it as it was, kept since as opened or edited (in another tab): written again, as it is.)
-    for (const tile of all$(`.tile[data-preset="${i}"]:has(> [data-open-preset])`, $("gallery"))) if (tile.querySelector("[data-plot]")?.getAttribute("data-plot") !== doc.id) writeTile(tile, i);
-    if (have?.key === previewKey(doc)) paint(doc.id, have, true);
+    for (const tile of all$(`.tile[data-preset="${i}"]:has(> [data-open-preset])`, $("gallery"))) if (tile.querySelector("[data-plot]")?.getAttribute("data-plot") !== doc.id) grid.writeTile(tile, i);
+    if (have?.key === grid.previewKey(doc)) grid.paint(doc.id, have, true);
     else {
       // (In view and Home still: started without waiting on it, so every tile in view is asked for at once, each
       // drawn as its data comes. Moving, or a screen ahead, one at a time: a scroll doesn't ask for the tiles it
       // passes, nor those it may never reach. Each given up if the grid's drawn anew without it, see giveUpUnframed.)
-      const drawn = drawPreview(doc, previewIndex(doc));
-      if (![...gallerySeen].some((frame) => presetOf(frame) === i) || !galleryStill()) await galleryWait(drawn);
+      const drawn = grid.drawPreview(doc, grid.previewIndex(doc));
+      if (![...grid.gallerySeen].some((frame) => grid.presetOf(frame) === i) || !galleryStill()) await grid.galleryWait(drawn);
     }
   }
 });
@@ -5878,12 +5989,12 @@ $("home").addEventListener("click", (event) => {
   if (to) goTo(asPlace(JSON.parse(/** @type {string} */ (to.dataset.place))));
   else if (closest(event, "[data-gallery-more]")) {
     // (Where it was, the focus on the first one more.)
-    const place = galleryPlace(), from = galleryShown, grid = /** @type {HTMLElement} */ (closest(event, "[data-gallery-more]")).previousElementSibling?.getAttribute("data-list");
+    const place = galleryPlace(), from = galleryShown, list = /** @type {HTMLElement} */ (closest(event, "[data-gallery-more]")).previousElementSibling?.getAttribute("data-list");
     galleryShown += GALLERY_PAGE;
     renderHome();
     placeGallery(place);
-    const tile = $("gallery").querySelector(`[data-list="${grid}"]`)?.children[from];
-    /** @type {HTMLElement | null | undefined} */ ((tile?.matches(".tile-slot") ? fillSlot(/** @type {HTMLElement} */ (tile)) : tile)?.querySelector(".tile-open"))?.focus({ preventScroll: true });
+    const tile = $("gallery").querySelector(`[data-list="${list}"]`)?.children[from];
+    /** @type {HTMLElement | null | undefined} */ ((tile?.matches(".tile-slot") ? grid.fillSlot(/** @type {HTMLElement} */ (tile)) : tile)?.querySelector(".tile-open"))?.focus({ preventScroll: true });
   }
   else if (closest(event, "[data-gallery-retry]")) retryPresets();
   else if (closest(event, "[data-search-all]")) {
@@ -5894,24 +6005,24 @@ $("home").addEventListener("click", (event) => {
     renderHome();
     if (!byTouch) $("home-filter").focus({ preventScroll: true });
   }
-  else if (step && step.getAttribute("aria-disabled") !== "true") stepShelf(/** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")), Number(step.dataset.shelfStep));
+  else if (step && step.getAttribute("aria-disabled") !== "true") grid.stepShelf(/** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")), Number(step.dataset.shelfStep));
   else if (preset) pickPreset(Number(preset.dataset.openPreset));
 });
 
 // ── Picking charts in the grid, and what the bar does to them ──
 /** A tile's right-click: the bar's actions at the pointer, on the picks if it's one of them, else on it alone. */
-function tileMenu(id, point = /** @type {{ x: number, y: number } | undefined} */ (undefined), anchor = /** @type {HTMLElement} */ (tileOpen(id))) {
+function tileMenu(id, point = /** @type {{ x: number, y: number } | undefined} */ (undefined), anchor = /** @type {HTMLElement} */ (grid.tileOpen(id))) {
   // (On a picked card, it acts on every one picked; on another, on it alone: the picks stay as they are, it outlined.)
-  const target = picked.size && !picked.has(id) ? cardOf(id) : null;
-  queueMicrotask(() => target && !$("menu").hidden && outlineMenuTarget(target));
+  const target = grid.picked.size && !grid.picked.has(id) ? grid.cardOf(id) : null;
+  queueMicrotask(() => target && !$("menu").hidden && menus.outlineMenuTarget(target));
   // (Picked, on a phone, its sheet named for all it acts on: the cards out of sight under it (one alone: named as any is).)
-  const title = phone.matches && picked.has(id) ? plural(picked.size, "chart") : "";
-  menuOf(anchor, picked.has(id) ? gridActions() : chartActions(id, "tile"), point ?? null, "", { title });
+  const title = phone.matches && grid.picked.has(id) ? plural(grid.picked.size, "chart") : "";
+  menus.menuOf(anchor, grid.picked.has(id) ? grid.gridActions() : command.chartActions(id, "tile"), point ?? null, "", { title });
 }
 $("home-bar").addEventListener("click", (event) => {
   const button = closest(event, "[data-batch]");
   if (button?.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
-  else if (button) batch(/** @type {string} */ (button.dataset.batch), button);
+  else if (button) grid.batch(/** @type {string} */ (button.dataset.batch), button);
 });
 // A click on a tile picks it with ⌘ or ⇧, on its tick, or while others are picked; else (or by a key) it opens.
 $("home-grid").addEventListener("click", (event) => {
@@ -5919,9 +6030,9 @@ $("home-grid").addEventListener("click", (event) => {
   if (more) return tileMenu(/** @type {string} */ (more.dataset.tileMenu), undefined, more);
   const tile = closest(event, "[data-home-card]:not(.preview)"), check = closest(event, ".tile-check");
   if (!tile || closest(event, ".tile-rename")) return;
-  if (!(check || event.metaKey || event.ctrlKey || event.shiftKey || (picked.size && event.detail > 0))) return;
+  if (!(check || event.metaKey || event.ctrlKey || event.shiftKey || (grid.picked.size && event.detail > 0))) return;
   event.stopPropagation();
-  pickChart(/** @type {string} */ (tile.dataset.homeCard), event.shiftKey);
+  grid.pickChart(/** @type {string} */ (tile.dataset.homeCard), event.shiftKey);
 });
 // The filter: as typed; esc empties it, then leaves it.
 $("home-filter").addEventListener("input", () => renderHome());
@@ -5932,7 +6043,7 @@ $("home-filter").addEventListener("keydown", (event) => {
     if ($("home-filter").value) {
       $("home-filter").value = "";
       renderHome();
-    } else letGo($("home-filter"));
+    } else menus.letGo($("home-filter"));
   } else if (event.key === "ArrowDown" || event.key === "Enter") {
     // Down, or ↵, to the first chart through (yours first, then the presets').
     const tiles = all$(".tile:not(.waiting) > .tile-open", $("home")).filter((tile) => tile.checkVisibility()), first = tiles[0];
@@ -5952,16 +6063,16 @@ let deletedOpen = "";
 function showHome(push = true, /** @type {{ top: number, rows: Record<string, number> } | null} */ place = null) {
   /** The open chart's card drawn again once it's in (see below). @type {(() => void) | null} */
   let redrawCard = null;
-  stopCarrying();
+  gestures.stopCarrying();
   delete document.body.dataset.sheet;
   if (home) return;
   navigations++;
   // (A focus on the chart or a menu over it, before leaving lets it go: see below.)
-  const focusLeaves = onChart();
+  const focusLeaves = grid.onChart();
   // (A toast of the chart's edit stays with it: its Undo isn't the page's.)
   if (toastOf === chart) hideToast();
   // (Full screen is the chart's: the grid, as ever.)
-  setFull(false);
+  presetsEdit.setFull(false);
   leaveField();
   saveView();
   // The open chart as it is now: its card shows it before it shrinks into it. (Its data failed: none, its card's
@@ -5971,10 +6082,10 @@ function showHome(push = true, /** @type {{ top: number, rows: Record<string, nu
     // One drawn here as it is now already, of the same data (left as it was), kept; one as it is, its data since
     // moved on (a live price, a block: its last points), shown as it shrinks and drawn again in an idle moment once
     // it's in (not in the motion's frames).)
-    const key = chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : previewKey(chart);
+    const key = chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : grid.previewKey(chart);
     const drawCard = (/** @type {Chart} */ doc, /** @type {Resolved} */ data, /** @type {number} */ revision) => {
-      const drawn = { key, ...previewOf(doc, data) };
-      previews.set(doc.id, drawn), savePreviews(), cardsDrawn.set(doc.id, revision);
+      const drawn = { key, ...grid.previewOf(doc, data) };
+      previews.set(doc.id, drawn), grid.savePreviews(), cardsDrawn.set(doc.id, revision);
       return drawn;
     };
     if (!key || previews.get(chart.id)?.key !== key) drawCard(chart, resolved, dataRevision);
@@ -5982,14 +6093,14 @@ function showHome(push = true, /** @type {{ top: number, rows: Record<string, nu
       const doc = chart, data = resolved, revision = dataRevision, kept = previews.get(doc.id);
       // (Only while it's still the chart under the grid: another opened since, what a picture reads of the open one
       // (its bars' spacing, its room) is that one's; this card kept as it is till the next time.)
-      redrawCard = () => home && chart === doc && previews.get(doc.id) === kept && previewKey(doc) === key && paint(doc.id, drawCard(doc, data, revision), true);
+      redrawCard = () => home && chart === doc && previews.get(doc.id) === kept && grid.previewKey(doc) === key && grid.paint(doc.id, drawCard(doc, data, revision), true);
     }
   }
   // (A draft taken back only when Cancel (or esc) is the way there; one of yours never filled, whichever way; one
   // deleted, gone (nothing to shrink into).)
   const draft = deletedOpen === chart.id || (cancelling === chart.id && previousChart()) || emptyYours(chart) ? chart : null;
   cancelling = deletedOpen = "";
-  hideMenu();
+  menus.hideMenu();
   hideTip();
   if (selected) deselect();
   document.body.removeAttribute("data-peek");
@@ -5999,23 +6110,23 @@ function showHome(push = true, /** @type {{ top: number, rows: Record<string, nu
   if (push) history.pushState(homeState(uid()), "");
   /** Where the focus goes once the page is there (see below), and where it was as the way back began. */
   let focusTo = /** @type {HTMLElement | null} */ (null), focusWas = /** @type {Element | null} */ (null);
-  void morph(false, () => {
+  void grid.morph(false, () => {
     document.body.toggleAttribute("data-home", true);
     // (What's in hand let go of once the page is over the chart: the chart not drawn again for it, see
     // repaintDrawings.)
-    putDown();
+    pen.putDown();
     clearMeasure();
     // (A toast up stays, where it shows on this page: over its foot, not the chart's.)
     if ($("toast").classList.contains("visible")) placeToast();
     refresh();
     // (Back to the page from a chart opened from it: where it was, else where the chart's card is.)
-    const card = cardOf(chart.id);
+    const card = grid.cardOf(chart.id);
     if (place) placeGallery(place);
     else card?.scrollIntoView({ block: "nearest" });
     // (Its card in sight where the page came back to: the chart shrinks into it, the focus on it; else neither,
     // the page as it was left, a focus gone with the chart (or a menu over it) starting it: its name.)
     const box = card?.getBoundingClientRect(), view = homeScroll().getBoundingClientRect(), seen = Boolean(box && box.bottom > view.top && box.top < view.bottom);
-    focusTo = seen ? tileOpen(chart.id) : focusLeaves && (document.activeElement === document.body || onChart()) ? $("home-title") : null;
+    focusTo = seen ? grid.tileOpen(chart.id) : focusLeaves && (document.activeElement === document.body || grid.onChart()) ? $("home-title") : null;
     focusWas = document.activeElement;
     return draft || !seen ? null : card;
   }).then(() => {
@@ -6042,17 +6153,17 @@ function leaveHome(show = () => {}, /** @type {HTMLElement | null} */ before = n
   home = false;
   prefs.home = false;
   savePrefs();
-  picked.clear();
+  grid.picked.clear();
   // (Where the page was, kept in its step: Back comes back there. Read before anything changes on it: after, it'd
   // be laid out anew just to read it.)
   leftPlace = galleryPlace();
   show();
   // (A step from before steps had keys: given one.)
-  if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), leftPlaces.set(history.state.key, leftPlace));
+  if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), grid.leftPlaces.set(history.state.key, leftPlace));
   if (push) history.pushState({ chart: chart.id, fromHome: true, place: leftPlace }, "");
   const focused = $("home").contains(document.activeElement);
   // (Out of reach once the chart's over it: see .home, and showHome.)
-  return morph(true, () => {
+  return grid.morph(true, () => {
     // (Pressed as it was tapped, see go: as it grows, as it is.)
     before?.classList.remove("opening");
     document.body.removeAttribute("data-home");
@@ -6094,18 +6205,18 @@ const keepsLeaving = CSS.supports("overlay: auto");
   // (On a layer's settings (or several layers', together), Back is the list's way back, as ‹ is; on the list, the
   // sheet goes.)
   const closeSheet = () => {
-    if ((selected || editingMany()) && document.body.dataset.sheet === "panel") {
+    if ((selected || inspector.editingMany()) && document.body.dataset.sheet === "panel") {
       deselect();
       watch("sheet", true, closeSheet);
     } else delete document.body.dataset.sheet;
   };
   const sync = () => {
-    if (panelOpen && document.body.dataset.sheet !== "panel" && (selected || editingMany())) deselect();
+    if (panelOpen && document.body.dataset.sheet !== "panel" && (selected || inspector.editingMany())) deselect();
     panelOpen = document.body.dataset.sheet === "panel";
     // (The tab bar's Layers says its sheet's open, as it shows: lit.)
     $("mobile-layers").setAttribute("aria-expanded", String(panelOpen));
     watch("sheet", phone.matches && Boolean(document.body.dataset.sheet), closeSheet);
-    watch("menu", phone.matches && !$("menu").hidden && $("menu").classList.contains("as-sheet"), menuGoBack);
+    watch("menu", phone.matches && !$("menu").hidden && $("menu").classList.contains("as-sheet"), menus.menuGoBack);
   };
   new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
   new MutationObserver(sync).observe($("menu"), { attributes: true, attributeFilter: ["hidden", "class"] });
@@ -6116,27 +6227,27 @@ addEventListener("popstate", (event) => {
   stillStep(/** @type {PopStateEvent & { hasUAVisualTransition?: boolean }} */ (event).hasUAVisualTransition === true);
   // (The page left, where it was, by its step: its own can't be written now. Still coming back (a second step
   // taken at once), it isn't shown yet: nothing to keep.)
-  if (home && shownKey && document.body.hasAttribute("data-home")) leftPlaces.set(shownKey, galleryPlace());
+  if (home && shownKey && document.body.hasAttribute("data-home")) grid.leftPlaces.set(shownKey, galleryPlace());
   shownKey = event.state?.key;
   // (A step whose address holds a link, one put in or a picture's: its hashchange reads it; one that couldn't be
   // read, as it is.)
   if (location.hash !== brokenLink && isLinkHash(location.hash)) return;
-  closeDialogs();
+  grid.closeDialogs();
   if (event.state?.home) {
-    const to = asPlace(event.state.at), place = leftPlaces.get(event.state.key) ?? event.state.place ?? null;
+    const to = asPlace(event.state.at), place = grid.leftPlaces.get(event.state.key) ?? event.state.place ?? null;
     // (Back to where it was (from a chart), as much of it shown; elsewhere, as much as it showed when left, else a
     // page, nothing searched; its scroll as it was left, else its top.)
     if (JSON.stringify(to) !== JSON.stringify(homeAt)) {
       galleryShown = Number.isInteger(place?.shown) ? place.shown : GALLERY_PAGE;
       /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
-      clearPicks();
+      grid.clearPicks();
     }
     placeHome(to);
     if (!home) return showHome(false, place);
     const fromPage = $("home").contains(document.activeElement);
-    pageOut();
+    grid.pageOut();
     renderHome();
-    pageIn();
+    grid.pageIn();
     // (Gone with the page it was on, the focus starts the one come back to: its name.)
     if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
     if (place) placeGallery(place);
@@ -6163,60 +6274,62 @@ addEventListener("popstate", (event) => {
   // (Its step names what it opens (a preset edited since: its preview), so opening it pushes no step: Forward kept.)
   if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ ...history.state, chart: doc.id }, "");
   if (again) displayed = null;
-  go(doc, false);
+  grid.go(doc, false);
   if (again) refresh(true);
   showAddress();
 });
 // (The screen turned or resized mid-slide: each sheet's slide in flight is where it was going at once, laid out for
 // the screen it's on, not slid on by the old one's way. One stopped already stays so: finished, it'd be back.)
-addEventListener("resize", () => {
+withRest(() => addEventListener("resize", () => {
   for (const sheet of [$("panel"), $("menu"), ...all$("dialog")]) {
-    const slide = slides.get(sheet);
+    const slide = grid.slides.get(sheet);
     if (slide?.playState === "running" || slide?.playState === "paused") slide.finish();
   }
-});
+}));
 // The layers' sheet, by its handle or its head, or its list at its top (a phone's; upright, it opens at half).
-heightsSheet($("panel"), {
-  pulls: () => phone.matches && document.body.dataset.sheet === "panel",
-  grab: (event) => {
-    const from = event.clientY - $("panel").getBoundingClientRect().top;
-    return phone.matches && document.body.dataset.sheet === "panel" && from <= 56 && !closest(event, "button, input, textarea, a") && (from <= 22 ? "handle" : "head");
-  },
-  whole: sheetWhole,
-  size: panelSize,
-  close: () => $("scrim").click(),
-  scrim: $("scrim"),
+withRest(() => {
+  grid.heightsSheet($("panel"), {
+    pulls: () => phone.matches && document.body.dataset.sheet === "panel",
+    grab: (event) => {
+      const from = event.clientY - $("panel").getBoundingClientRect().top;
+      return phone.matches && document.body.dataset.sheet === "panel" && from <= 56 && !closest(event, "button, input, textarea, a") && (from <= 22 ? "handle" : "head");
+    },
+    whole: sheetWhole,
+    size: grid.panelSize,
+    close: () => $("scrim").click(),
+    scrim: $("scrim"),
+  });
 });
 // In the grid, the arrows walk the cards as they're laid out.
 $("home-grid").addEventListener("keydown", (event) => {
   const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key), focused = /** @type {HTMLElement} */ (document.activeElement);
-  if (arrow && event.altKey && !event.metaKey && !event.ctrlKey && focused.matches("[data-open-chart]") && reorderable()) {
+  if (arrow && event.altKey && !event.metaKey && !event.ctrlKey && focused.matches("[data-open-chart]") && grid.reorderable()) {
     event.preventDefault();
     const id = /** @type {string} */ (focused.dataset.openChart);
-    stepChart(id, event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1);
-    return void tileOpen(id)?.focus({ preventScroll: true });
+    grid.stepChart(id, event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1);
+    return void grid.tileOpen(id)?.focus({ preventScroll: true });
   }
   if (arrow && event.shiftKey && !event.altKey && !event.metaKey && !event.ctrlKey && focused.matches(".tile-open")) {
     event.preventDefault();
-    const next = nextCard(focused, event.key);
+    const next = grid.nextCard(focused, event.key);
     // (Charts alone picked: a shelf's last tile, to them all, isn't one.)
     if (!next?.matches(".tile-open")) return;
-    if (!picked.size) pickChart(/** @type {string} */ (focused.dataset.openChart));
-    pickChart(/** @type {string} */ (next.dataset.openChart), true);
+    if (!grid.picked.size) grid.pickChart(/** @type {string} */ (focused.dataset.openChart));
+    grid.pickChart(/** @type {string} */ (next.dataset.openChart), true);
     return void next.focus();
   }
   if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-  const cards = all$(CARDS, $("home-grid"));
+  const cards = all$(grid.CARDS, $("home-grid"));
   if ((event.key === " " || event.key.toLowerCase() === "x") && document.activeElement?.matches(".tile-open") && cards.includes(/** @type {HTMLElement} */ (document.activeElement))) {
     event.preventDefault();
-    return pickChart(/** @type {string} */ (/** @type {HTMLElement} */ (document.activeElement).dataset.openChart));
+    return grid.pickChart(/** @type {string} */ (/** @type {HTMLElement} */ (document.activeElement).dataset.openChart));
   }
-  walkCards($("home-grid"), event, cards);
+  grid.walkCards($("home-grid"), event, cards);
 });
 // (The presets' gallery's cards too: the arrows, Home and End, as the grid's.)
 $("gallery").addEventListener("keydown", (event) => {
   if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
-  walkCards($("gallery"), event);
+  grid.walkCards($("gallery"), event);
 });
 /**
  * The sidebar's charts, in the order you give them (new ones on top), ⌘1–⌘9 opening the first nine of its topmost open
@@ -6224,12 +6337,14 @@ $("gallery").addEventListener("keydown", (event) => {
  * again only where it changed (an edit that changes nothing in it, a formula typed, leaves it as it is).
  */
 function renderCharts() {
+  // (The sidebar's list is the grid's: written as it comes, see later.js.)
+  if (!grid) return void withRest(renderCharts);
   const current = home ? null : chart;
   // (On a phone the sidebar never shows: its list left unwritten, owed, till the layout turns wider or something
   // reads it: see sideList.)
   if (phone.matches) listOwed = true;
   else writeSideList(current);
-  renderSideNav();
+  grid.renderSideNav();
   // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
   $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
   // (A preset's: what can be done with it beside it, Reset once it's edited.)
@@ -6245,26 +6360,26 @@ function renderCharts() {
   else $("mobile-charts").removeAttribute("aria-current");
   if (home) $("mobile-add").removeAttribute("aria-haspopup");
   else $("mobile-add").setAttribute("aria-haspopup", "dialog");
-  keepNaming();
+  grid.keepNaming();
   renderHome();
   // (The empty chart's cards, where they show, one of them edited since: as it is now.)
-  if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
+  if (presets && !$("empty").hidden && grid.recommendedKey() !== grid.recommendedDrawn) grid.renderRecommended();
 }
 /** The sidebar's list written (see renderCharts): its rows, ⌘1–⌘9's keys, the presets' marks, the open one lit. @param {Chart | null} current */
 function writeSideList(current) {
   listOwed = false;
   /** A preview's row, its × (but the open one with nothing to go back to). */
-  const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${chartMark(doc)}<span class="label">${escapeHtml(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escapeHtml(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
+  const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escapeHtml(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${grid.chartMark(doc)}<span class="label">${escapeHtml(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escapeHtml(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
   // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
   // a chart, till something's in it.)
   // (On the rail, folders never open: each a door to what's in it, see railMenu.)
-  const listed = listedPreviews(), counts = chartCounts(), rail = onRail(), recents = recentCharts();
+  const listed = listedPreviews(), counts = grid.chartCounts(), rail = onRail(), recents = recentCharts();
   // (Recent reordered (a chart opened): the rows slid under the pointer, none of them pointed at: its highlight put
   // away till the pointer moves, see sidePoint.)
   const recentOrder = recents.map((item) => item.id).join();
   if (recentDrawn && recentOrder !== recentDrawn) (sideHeld = true), sideLight(null);
   recentDrawn = recentOrder;
-  const row = (/** @type {Chart} */ doc, depth = 0) => leafRow({ kind: "chart", id: doc.id, depth, mark: chartMark(doc), label: titleOf(doc), labelCls: doc.title ? "" : "derived", name: titleOf(doc) });
+  const row = (/** @type {Chart} */ doc, depth = 0) => grid.leafRow({ kind: "chart", id: doc.id, depth, mark: grid.chartMark(doc), label: titleOf(doc), labelCls: doc.title ? "" : "derived", name: titleOf(doc) });
   /** @type {[string, string][]} */
   const parts = [
     // Home first (Studio's start), a rule under it, scrolled with the rest: only the brand, the search and the
@@ -6274,29 +6389,29 @@ function writeSideList(current) {
     // The charts last opened first (the open one at their top, lit), under their head; then the previews under
     // theirs, then your charts under theirs (told apart; none, no heads), a new chart first among yours (where it'll
     // be once something's in it).
-    ...(recents.length ? [sideHead("recent", recents.length, false), ...(groupShut("recent") ? [] : recents.map((item) => /** @type {[string, string]} */ ([`recent:${item.id}`, `<div class="chart-row" data-recent-row="${item.id}" style="--depth: 0"><button type="button" class="nav-item chart-item" data-open-recent="${item.id}" data-tip="${escapeHtml(titleOf(item.doc))}">${recentMark(item)}<span class="label">${escapeHtml(titleOf(item.doc))}</span></button></div>`])))] : []),
-    ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
+    ...(recents.length ? [grid.sideHead("recent", recents.length, false), ...(grid.groupShut("recent") ? [] : recents.map((item) => /** @type {[string, string]} */ ([`recent:${item.id}`, `<div class="chart-row" data-recent-row="${item.id}" style="--depth: 0"><button type="button" class="nav-item chart-item" data-open-recent="${item.id}" data-tip="${escapeHtml(titleOf(item.doc))}">${recentMark(item)}<span class="label">${escapeHtml(titleOf(item.doc))}</span></button></div>`])))] : []),
+    ...(listed.length ? [grid.sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(grid.groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
     // (Yours under their name, always: closed, it's the way to open them again.)
-    sideHead("library", library.charts.length, Boolean(current && !isPreview(current) && current.preset === undefined)),
-    ...(groupShut("library") ? [] : [
+    grid.sideHead("library", library.charts.length, Boolean(current && !isPreview(current) && current.preset === undefined)),
+    ...(grid.groupShut("library") ? [] : [
     // (New chart first: what it makes is yours, here; folded away with them.)
     /** @type {[string, string]} */ (["new", `<div class="chart-row action-row" data-action-row="new" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
     // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
-    ...sideTree().map(({ item, depth }) => {
+    ...grid.sideTree().map(({ item, depth }) => {
       if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
-      return /** @type {[string, string]} */ ([`folder:${item.id}`, folderRow({ kind: "folder", id: item.id, depth, closed: item.closed || rail, holds: Boolean(current?.folder && isIn(current.folder, item.id)), rail, mark: folderMark(item), name: item.name, count: counts.get(item.id) ?? 0, place: { folder: item.id } })]);
+      return /** @type {[string, string]} */ ([`folder:${item.id}`, grid.folderRow({ kind: "folder", id: item.id, depth, closed: item.closed || rail, holds: Boolean(current?.folder && grid.isIn(current.folder, item.id)), rail, mark: folderMark(item), name: item.name, count: counts.get(item.id) ?? 0, place: { folder: item.id } })]);
     })]),
-    ...presetParts(),
+    ...grid.presetParts(),
   ];
   // (What it lists changed (a chart opened, saved, closed or deleted, a group come): its rows glide to their places,
   // none jumping there, unless what changed it moves them itself (see movingSide). Where they were, read only then.)
   const list = $("chart-list"), drawn = listWritten.get(list), keys = (/** @type {[string, string][]} */ items) => items.map(([key]) => key).join("\n");
-  const was = drawn && !sideMoved && !reduced() && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
+  const was = drawn && !grid.sideMoved && !reduced() && keys(drawn) !== keys(parts) ? listPlaces(list) : null;
   // (Its scroll edges measured on the next frame, once, as the page lays out anyway: not here, mid-change.)
   if (writeList(list, parts)) fitSoon(list, true);
   if (was) glideList(list, was);
   // (⌘1–⌘9 shown on the rows they open, those alone: their key, and their tip's.)
-  const keyed = numbered();
+  const keyed = grid.numbered();
   for (const button of all$("[data-kbd]", $("chart-list"))) {
     if (keyed.includes(button) || !/^⌘ [1-9]$/.test(button.dataset.kbd ?? "")) continue;
     button.querySelector(":scope > kbd.mod")?.remove();
@@ -6316,10 +6431,10 @@ function writeSideList(current) {
   // gone, nothing to draw.)
   // (Not before the presets are read: their rows as kept till then, see presetParts.)
   presetRowsSeen.disconnect();
-  presetMarkQueue.clear();
-  if (presets) for (const row of all$("[data-preset-row]", $("chart-list"))) if (!presetMarks.has(presetMarkKey(Number(row.dataset.presetRow)))) presetRowsSeen.observe(row);
+  grid.presetMarkQueue.clear();
+  if (presets) for (const row of all$("[data-preset-row]", $("chart-list"))) if (!presetMarks.has(grid.presetMarkKey(Number(row.dataset.presetRow)))) presetRowsSeen.observe(row);
   // (Recent's presets, their marks asked for as written.)
-  if (presetMarksAsked.size) drawPresetMarks();
+  if (grid.presetMarksAsked.size) drawPresetMarks();
   // The open one marked in place: a switch writes no row again (the focus on one stays where it is). (A preset's,
   // by which it is.)
   const openedPreset = current?.preset !== undefined ? presetIndex(current) : -1;
@@ -6332,45 +6447,45 @@ function writeSideList(current) {
     else button.removeAttribute("aria-current");
   }
   // (A preset picked: once its own row's drawn, its rows (Recent's too) shown.)
-  if (presetToReveal >= 0 && presetToReveal === openedPreset && $("chart-list").querySelector(`[data-open-preset="${openedPreset}"]`)) (presetToReveal = -1), revealNearest(openedPreset, /** @type {Chart} */ (current).id);
+  if (presetToReveal >= 0 && presetToReveal === openedPreset && $("chart-list").querySelector(`[data-open-preset="${openedPreset}"]`)) (presetToReveal = -1), presetsEdit.revealNearest(openedPreset, /** @type {Chart} */ (current).id);
   // (Its Tab stop, the open one marked first.)
-  roveList();
+  grid.roveList();
 }
 /** The presets' marks, as drawn (made as their rows come into sight; those of earlier visits, kept), by what each is of. @type {Map<string, Pick<Thumb, "lines" | "washes" | "dots">>} */
 const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([key, mark]) => validDrawingKey(key) && validChartMark(mark)) : []))(storage.get(PRESET_MARKS, {})));
-const savePresetMarks = writeSoon(() => storage.set(PRESET_MARKS, Object.fromEntries([...presetMarks].slice(-KEPT_PRESET_MARKS))));
+const savePresetMarks = writeSoon(() => storage.set(PRESET_MARKS, Object.fromEntries([...presetMarks].slice(-grid.KEPT_PRESET_MARKS))));
 /** ⌘K's preset rows in sight, their marks to draw; out of sight, or written again (see renderPalette), let go of. */
 const paletteMarksSeen = new IntersectionObserver((entries) => {
   for (const { target, isIntersecting } of entries) {
     const i = Number(/** @type {HTMLElement} */ (target).dataset.presetMark);
-    if (isIntersecting) presetMarksAsked.add(i), paletteMarksAsked.add(i);
-    else presetMarksAsked.delete(i), paletteMarksAsked.delete(i);
+    if (isIntersecting) grid.presetMarksAsked.add(i), grid.paletteMarksAsked.add(i);
+    else grid.presetMarksAsked.delete(i), grid.paletteMarksAsked.delete(i);
   }
   drawPresetMarks();
 }, { root: $("palette-list") });
 const presetRowsSeen = new IntersectionObserver((entries) => {
   for (const { target, isIntersecting } of entries) {
     const i = Number(/** @type {HTMLElement} */ (target).dataset.presetRow);
-    if (isIntersecting && !presetMarks.has(presetMarkKey(i))) presetMarkQueue.add(i);
-    else presetMarkQueue.delete(i);
+    if (isIntersecting && !presetMarks.has(grid.presetMarkKey(i))) grid.presetMarkQueue.add(i);
+    else grid.presetMarkQueue.delete(i);
   }
   drawPresetMarks();
 }, { root: $("chart-list") });
 const drawPresetMarks = serial(async () => {
   // (One at a time, as the queue is now: a row scrolled away meanwhile, out of it.)
-  while (presetMarkQueue.size || presetMarksAsked.size) {
-    const [i] = presetMarkQueue.size ? presetMarkQueue : presetMarksAsked;
-    presetMarkQueue.delete(i);
-    presetMarksAsked.delete(i);
-    if (!presets?.[i] || presetMarks.has(presetMarkKey(i))) continue;
-    const doc = presetDoc(i), key = presetMarkKey(i);
-    const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : NO_MARK;
+  while (grid.presetMarkQueue.size || grid.presetMarksAsked.size) {
+    const [i] = grid.presetMarkQueue.size ? grid.presetMarkQueue : grid.presetMarksAsked;
+    grid.presetMarkQueue.delete(i);
+    grid.presetMarksAsked.delete(i);
+    if (!presets?.[i] || presetMarks.has(grid.presetMarkKey(i))) continue;
+    const doc = presetDoc(i), key = grid.presetMarkKey(i);
+    const drawing = doc.layers.length ? await grid.drawThumb(structuredClone(doc)).catch(() => null) : grid.NO_MARK;
     if (!drawing) continue;
     presetMarks.set(key, { lines: drawing.lines, washes: drawing.washes, dots: drawing.dots });
     for (const [old] of presetMarks) if (presetMarks.size > 400) presetMarks.delete(old);
     savePresetMarks();
     // (Wherever it shows: its row, a menu of its section's.)
-    for (const mark of all$(`[data-preset-mark="${i}"]`)) mark.outerHTML = presetMark(i);
+    for (const mark of all$(`[data-preset-mark="${i}"]`)) mark.outerHTML = grid.presetMark(i);
   }
 });
 let sidePresets = ((kept) => (typeof kept?.open === "string" && Array.isArray(kept.parts) && kept.parts.every((part) => Array.isArray(part) && part.length === 2 && part.every((text) => typeof text === "string")) ? /** @type {{ open: string, parts: [string, string][] }} */ (kept) : null))(storage.get(SIDE_PRESETS, null));
@@ -6393,7 +6508,7 @@ function applyTheme(/** @type {boolean} */ anyway = false) {
   const swap = () => {
     // (As chosen when it runs: two changes queued are one. Where colors were picked, on the other surface.)
     light = lightChosen();
-    pickedAt.clear();
+    withRest(() => inspector.pickedAt.clear());
     document.documentElement.dataset.theme = prefs.theme;
     hexCache.clear();
     engine.theme = chartTheme();
@@ -6401,14 +6516,14 @@ function applyTheme(/** @type {boolean} */ anyway = false) {
     // (Its chart recolored inside the crossfade, not a frame after it: see buildSoon.)
     buildNow();
     if (home) renderHome();
-    if (presets && !$("empty").hidden) renderRecommended();
+    if (presets && !$("empty").hidden) grid.renderRecommended();
     // (Every chart's plot on screen in its tones: the tiles, the cards of charts to start from, ⌘K's preview, Quick
     // Look's.)
-    for (const [id, drawn] of previews) paint(id, drawn, true);
+    for (const [id, drawn] of previews) grid.paint(id, drawn, true);
     if (quick) quickShow();
     if (isOpen($("palette"))) renderPalette();
     // (Words being typed on the chart: in their tone on this surface.)
-    if (writing) dressField(writing.drawing);
+    if (writing) heatmaps.dressField(writing.drawing);
   };
   if (document.startViewTransition && !reduced()) document.startViewTransition(swap);
   else swap();
@@ -6432,7 +6547,7 @@ addEventListener("storage", ({ key, newValue }) => {
     prefsSeen[name] = JSON.stringify(/** @type {any} */ (read)[name]);
   }
   if (took.includes("theme")) {
-    renderTheme();
+    grid.renderTheme();
     applyTheme();
   }
   if (took.includes("sidebar")) (applySidebar(), renderCharts());
@@ -6444,8 +6559,20 @@ addEventListener("storage", ({ key, newValue }) => {
   if (took.includes("linkView")) (carrySpan(), renderLinkView(), !prefs.linkView && storeView(false));
   if (took.includes("presetsOpen") || took.includes("groupsOpen")) renderCharts();
 });
-renderTheme();
+withRest(() => {
+  grid.renderTheme();
+});
 renderLinkView();
+/** A CSS cubic-bezier's progress at a time (both 0 to 1), as the browser eases by it. @param {string} css */
+function bezierOf(css) {
+  const [a, b, c, d] = (css.match(/-?[\d.]+/g) ?? []).map(Number);
+  const at = (/** @type {number} */ p1, /** @type {number} */ p2, /** @type {number} */ s) => 3 * p1 * s * (1 - s) ** 2 + 3 * p2 * s * s * (1 - s) + s ** 3;
+  return (/** @type {number} */ t) => {
+    let lo = 0, hi = 1;
+    for (let k = 0; k < 24; k++) ((s) => (at(a, c, s) < t ? (lo = s) : (hi = s)))((lo + hi) / 2);
+    return at(b, d, (lo + hi) / 2);
+  };
+}
 const layoutCurve = bezierOf(MOTION.easeLayout);
 /**
  * A folder deleted: what's in it kept (its charts, its folders), a level up where it was, with an Undo; the focus,
@@ -6455,19 +6582,19 @@ const layoutCurve = bezierOf(MOTION.easeLayout);
 function deleteFolder(/** @type {string} */ id) {
   const at = library.folders.findIndex((folder) => folder.id === id), folder = library.folders[at];
   if (!folder) return;
-  const members = childrenOf(id), charts = library.charts.filter((doc) => isIn(doc.folder, id)).length, siblings = childrenOf(folder.parent), place = siblings.indexOf(folder);
+  const members = grid.childrenOf(id), charts = library.charts.filter((doc) => grid.isIn(doc.folder, id)).length, siblings = grid.childrenOf(folder.parent), place = siblings.indexOf(folder);
   library.folders.splice(at, 1);
   // (Kept with the library, as a chart's: another tab's copy of it doesn't bring it back.)
   library.deleted[id] = Date.now();
   // (What was in it where it was, in its order; its page open, the one it was in.)
-  for (const item of members) setParent(item, folder.parent);
+  for (const item of members) grid.setParent(item, folder.parent);
   // (Its page where the page is, or was left: the one it was in, from its top.)
   if ("folder" in homeAt && homeAt.folder === id) {
     placeHome({ folder: folder.parent ?? "" });
     leftPlace = null;
     if (home) history.replaceState(homeState(), "");
   }
-  setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
+  grid.setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
   save();
   renderCharts();
   const lost = !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected;
@@ -6481,17 +6608,17 @@ function deleteFolder(/** @type {string} */ id) {
     // (Its folder made again since under another id: that one.)
     const up = folder.parent ? folderNow(folder.parent) : undefined, again = /** @type {Folder} */ ({ ...folder, id: uid() }), gone = Boolean(up && !folderById(up));
     folderAgain.set(folder.id, again.id);
-    const back = itemsOf(keysNow(members.map(sideKey))).filter((item) => gone || parentOf(item) === up);
-    const parent = gone ? (back[0] ? parentOf(back[0]) : undefined) : up;
+    const back = grid.itemsOf(keysNow(members.map(grid.sideKey))).filter((item) => gone || grid.parentOf(item) === up);
+    const parent = gone ? (back[0] ? grid.parentOf(back[0]) : undefined) : up;
     parent ? (again.parent = parent) : delete again.parent;
-    if (gone) back.splice(0, back.length, ...back.filter((item) => parentOf(item) === parent));
-    const now = childrenOf(again.parent), first = now.findIndex((item) => back.includes(item));
+    if (gone) back.splice(0, back.length, ...back.filter((item) => grid.parentOf(item) === parent));
+    const now = grid.childrenOf(again.parent), first = now.findIndex((item) => back.includes(item));
     library.folders.splice(Math.min(at, library.folders.length), 0, again);
-    for (const item of back) setParent(item, again.id);
-    setChildren(back);
+    for (const item of back) grid.setParent(item, again.id);
+    grid.setChildren(back);
     const rest = now.filter((item) => !back.includes(item));
     rest.splice(first >= 0 ? first : Math.min(place, rest.length), 0, again);
-    setChildren(rest);
+    grid.setChildren(rest);
     save();
     renderCharts();
     return () => deleteFolder(folderNow(again.id));
@@ -6508,10 +6635,10 @@ function deleteChart(doc) {
   // (Where the focus goes, asked before what has it goes: the row after, else the one before, else New chart; from
   // the Charts page (its tile, its ⋯'s menu), that one's tile there.)
   const neighbor = library.charts[index + 1] ?? library.charts[index - 1], kept = () => Boolean(neighbor && library.charts.includes(neighbor));
-  const onPage = home && [document.activeElement, ownerNow(), performance.now() - closedAt < 1000 ? closedOwner : null].some((element) => element?.closest("#home"));
+  const onPage = home && [document.activeElement, menus.ownerNow(), performance.now() - menus.closedAt < 1000 ? menus.closedOwner : null].some((element) => element?.closest("#home"));
   // (There, the tile shown after it in its row, else the one before: a shelf shows some, a folder's elsewhere.)
-  const tile = onPage ? cardOf(doc.id) : null, beside = /** @type {HTMLElement | null | undefined} */ (tile?.nextElementSibling?.matches(".tile[data-home-card]") ? tile.nextElementSibling : tile?.previousElementSibling?.matches(".tile[data-home-card]") ? tile.previousElementSibling : null)?.dataset.homeCard;
-  keepFocus(null, () => (beside ? tileOpen(beside) : null), () => (kept() ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(/** @type {Chart} */ (neighbor).id)}"]`) : null), () => $("new-chart"), () => $("charts-nav"));
+  const tile = onPage ? grid.cardOf(doc.id) : null, beside = /** @type {HTMLElement | null | undefined} */ (tile?.nextElementSibling?.matches(".tile[data-home-card]") ? tile.nextElementSibling : tile?.previousElementSibling?.matches(".tile[data-home-card]") ? tile.previousElementSibling : null)?.dataset.homeCard;
+  keepFocus(null, () => (beside ? grid.tileOpen(beside) : null), () => (kept() ? $("chart-list").querySelector(`[data-open-chart="${CSS.escape(/** @type {Chart} */ (neighbor).id)}"]`) : null), () => $("new-chart"), () => $("charts-nav"));
   discard(doc);
   // On a phone, the open one deleted: back to the Charts page, its list (as Back, where it was opened from there),
   // another chart under it (see showHome); elsewhere, the next one open in its place.
@@ -6551,101 +6678,103 @@ function deleteChart(doc) {
   void until(() => chart !== doc, 4000).then(() => toast(text, { ...action, step }));
 }
 // ── Presses on every list and control, lists reordered by dragging, the sidebar's list by keys ──
-startGestures();
-dragToReorder($("chart-list"), {
-  item: "[data-chart-row], [data-folder-row]",
-  // (A row's → and ⋯ pressed: theirs, not a drag.)
-  refuse: (event) => Boolean(closest(event, ".chart-go, .chart-more")),
-  idOf: sideId,
-  label: (id) => (id.startsWith("f:") ? ((folder) => (folder ? `${folderMark(folder)}<span class="name">${escapeHtml(folder.name)}</span>` : ""))(folderById(id.slice(2))) : chartLabel(id.slice(2))),
-  landing: (x, y, ids) => {
-    const places = placesFor(ids), under = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-folder-row]"));
-    const onto = under && places.includes(under) ? under : null;
-    /** (At its row's level; after the last row of a folder, as far out as the pointer is, to the next row's level.) @param {Landing | null} at */
-    const level = (at) => {
-      if (!at || !("item" in at) || railed()) return at;
-      const depth = depthOf(at.item), next = places[places.indexOf(at.item) + 1], low = next ? depthOf(next) : 0;
-      if (!at.after || low >= depth) return { ...at, depth };
-      return { ...at, depth: clamp(Math.floor((x - at.item.getBoundingClientRect().left - 13) / 16), low, depth) };
-    };
-    if (onto) {
-      const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height, folder = folderById(onto.dataset.folderRow);
-      const first = places[places.indexOf(onto) + 1], inside = first && folder && parentOf(/** @type {Chart | Folder} */ (itemOf(sideId(first)))) === folder.id ? first : null;
-      if (share < 0.25) return level({ item: onto, after: false });
-      if (share > 0.75) return folder?.closed || onRail() ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
-      return { zone: onto };
-    }
-    return level(landingIn(places, y, sideId, ids));
-  },
-  land: (ids, at, y) => {
-    if ("zone" in at) return placeItems(ids, at.zone.dataset.folderRow, null, { dropY: y });
-    // (After a row, levels out from it: after the folder it's in at that level.)
-    let key = sideId(at.item);
-    for (let up = depthOf(at.item) - (at.depth ?? depthOf(at.item)); up > 0; up--) {
-      const item = itemOf(key), parent = item && parentOf(item);
-      if (parent) key = `f:${parent}`;
-    }
-    const { into, before } = besideItem(key, at.after, ids);
-    placeItems(ids, into, before, { dropY: y });
-  },
-  // (Held, its menu showed (see below): carried on from there, it goes, as iOS's does.)
-  lift: () => hideMenu(),
+withRest(() => {
+  gestures.startGestures();
+  gestures.dragToReorder($("chart-list"), {
+    item: "[data-chart-row], [data-folder-row]",
+    // (A row's → and ⋯ pressed: theirs, not a drag.)
+    refuse: (event) => Boolean(closest(event, ".chart-go, .chart-more")),
+    idOf: grid.sideId,
+    label: (id) => (id.startsWith("f:") ? ((folder) => (folder ? `${folderMark(folder)}<span class="name">${escapeHtml(folder.name)}</span>` : ""))(folderById(id.slice(2))) : grid.chartLabel(id.slice(2))),
+    landing: (x, y, ids) => {
+      const places = grid.placesFor(ids), under = /** @type {HTMLElement | null | undefined} */ (document.elementFromPoint(x, y)?.closest("[data-folder-row]"));
+      const onto = under && places.includes(under) ? under : null;
+      /** (At its row's level; after the last row of a folder, as far out as the pointer is, to the next row's level.) @param {Landing | null} at */
+      const level = (at) => {
+        if (!at || !("item" in at) || railed()) return at;
+        const depth = grid.depthOf(at.item), next = places[places.indexOf(at.item) + 1], low = next ? grid.depthOf(next) : 0;
+        if (!at.after || low >= depth) return { ...at, depth };
+        return { ...at, depth: clamp(Math.floor((x - at.item.getBoundingClientRect().left - 13) / 16), low, depth) };
+      };
+      if (onto) {
+        const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height, folder = folderById(onto.dataset.folderRow);
+        const first = places[places.indexOf(onto) + 1], inside = first && folder && grid.parentOf(/** @type {Chart | Folder} */ (grid.itemOf(grid.sideId(first)))) === folder.id ? first : null;
+        if (share < 0.25) return level({ item: onto, after: false });
+        if (share > 0.75) return folder?.closed || onRail() ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
+        return { zone: onto };
+      }
+      return level(grid.landingIn(places, y, grid.sideId, ids));
+    },
+    land: (ids, at, y) => {
+      if ("zone" in at) return grid.placeItems(ids, at.zone.dataset.folderRow, null, { dropY: y });
+      // (After a row, levels out from it: after the folder it's in at that level.)
+      let key = grid.sideId(at.item);
+      for (let up = grid.depthOf(at.item) - (at.depth ?? grid.depthOf(at.item)); up > 0; up--) {
+        const item = grid.itemOf(key), parent = item && grid.parentOf(item);
+        if (parent) key = `f:${parent}`;
+      }
+      const { into, before } = grid.besideItem(key, at.after, ids);
+      grid.placeItems(ids, into, before, { dropY: y });
+    },
+    // (Held, its menu showed (see below): carried on from there, it goes, as iOS's does.)
+    lift: () => menus.hideMenu(),
+  });
+  // A row's menu by touch: held, the one its ⋯ shows (by touch out of sight, the list kept quiet: see the rows' ⋯).
+  // (On the rail, a press shows it already.)
+  gestures.onHold($("chart-list"), ".nav-item, .list-head-name", (row) => ((more) => (more && !railed() ? () => (more.click(), true) : null))(/** @type {HTMLElement | null} */ (row.parentElement?.querySelector(':scope > .chart-more[aria-haspopup="menu"]') ?? null)));
+  gestures.dragToReorder($("home-grid"), {
+    item: "[data-home-card]",
+    label: grid.chartLabel,
+    idOf: (tile) => /** @type {string} */ (tile.dataset.homeCard),
+    carried: (id) => (grid.picked.has(id) ? grid.shownCharts().filter((doc) => grid.picked.has(doc.id)).map((doc) => doc.id) : [id]),
+    pick: (id) => !grid.picked.has(id) && grid.pickChart(id),
+    picking: () => grid.picked.size > 0,
+    unpick: () => grid.clearPicks(),
+    refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename, .tile.preview")),
+    still: () => !grid.reorderable(),
+    sticky: true,
+    landing: (x, y, ids) => {
+      const under = document.elementFromPoint(x, y), head = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-grid-folder]"));
+      if (head) return { zone: head };
+      // (Not among the previews: they're none of your charts' order.)
+      if (under?.closest(".grid-tiles.previews")) return undefined;
+      const tile = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-home-card]"));
+      // Off the tiles: on a folder's shelf, into it; elsewhere on the page's charts, into the folder it's in.
+      if (!tile) {
+        const head = under?.closest(".shelf")?.querySelector("[data-grid-folder]");
+        return head ? { zone: /** @type {HTMLElement} */ (head) } : under?.closest("#home-grid") ? { zone: $("home-grid") } : undefined;
+      }
+      if (ids.includes(/** @type {string} */ (tile.dataset.homeCard))) return null;
+      // (Beside it, in a grid of columns or on a shelf; above or below it, in a grid of one: a phone's, upright.)
+      const box = tile.getBoundingClientRect(), row = /** @type {HTMLElement} */ (tile.parentElement), down = row.matches(".grid-tiles") && getComputedStyle(row).gridTemplateColumns.split(" ").length < 2;
+      return down ? { item: tile, after: y > box.top + box.height / 2, down } : { item: tile, after: x > box.left + box.width / 2 };
+    },
+    land: (ids, at) => {
+      const keys = ids.map((id) => `c:${id}`);
+      if ("zone" in at) grid.placeItems(keys, at.zone.dataset.gridFolder || ("folder" in homeAt ? homeAt.folder : undefined));
+      else {
+        // (Beside a tile: in its folder, before or after it.)
+        const { into, before } = grid.besideItem(`c:${at.item.dataset.homeCard}`, at.after, keys);
+        grid.placeItems(keys, into, before);
+      }
+      grid.tileOpen(ids[0])?.focus({ preventScroll: true });
+    },
+  });
+  grid.startListKeys();
 });
-// A row's menu by touch: held, the one its ⋯ shows (by touch out of sight, the list kept quiet: see the rows' ⋯).
-// (On the rail, a press shows it already.)
-onHold($("chart-list"), ".nav-item, .list-head-name", (row) => ((more) => (more && !railed() ? () => (more.click(), true) : null))(/** @type {HTMLElement | null} */ (row.parentElement?.querySelector(':scope > .chart-more[aria-haspopup="menu"]') ?? null)));
-dragToReorder($("home-grid"), {
-  item: "[data-home-card]",
-  label: chartLabel,
-  idOf: (tile) => /** @type {string} */ (tile.dataset.homeCard),
-  carried: (id) => (picked.has(id) ? shownCharts().filter((doc) => picked.has(doc.id)).map((doc) => doc.id) : [id]),
-  pick: (id) => !picked.has(id) && pickChart(id),
-  picking: () => picked.size > 0,
-  unpick: () => clearPicks(),
-  refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename, .tile.preview")),
-  still: () => !reorderable(),
-  sticky: true,
-  landing: (x, y, ids) => {
-    const under = document.elementFromPoint(x, y), head = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-grid-folder]"));
-    if (head) return { zone: head };
-    // (Not among the previews: they're none of your charts' order.)
-    if (under?.closest(".grid-tiles.previews")) return undefined;
-    const tile = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-home-card]"));
-    // Off the tiles: on a folder's shelf, into it; elsewhere on the page's charts, into the folder it's in.
-    if (!tile) {
-      const head = under?.closest(".shelf")?.querySelector("[data-grid-folder]");
-      return head ? { zone: /** @type {HTMLElement} */ (head) } : under?.closest("#home-grid") ? { zone: $("home-grid") } : undefined;
-    }
-    if (ids.includes(/** @type {string} */ (tile.dataset.homeCard))) return null;
-    // (Beside it, in a grid of columns or on a shelf; above or below it, in a grid of one: a phone's, upright.)
-    const box = tile.getBoundingClientRect(), row = /** @type {HTMLElement} */ (tile.parentElement), down = row.matches(".grid-tiles") && getComputedStyle(row).gridTemplateColumns.split(" ").length < 2;
-    return down ? { item: tile, after: y > box.top + box.height / 2, down } : { item: tile, after: x > box.left + box.width / 2 };
-  },
-  land: (ids, at) => {
-    const keys = ids.map((id) => `c:${id}`);
-    if ("zone" in at) placeItems(keys, at.zone.dataset.gridFolder || ("folder" in homeAt ? homeAt.folder : undefined));
-    else {
-      // (Beside a tile: in its folder, before or after it.)
-      const { into, before } = besideItem(`c:${at.item.dataset.homeCard}`, at.after, keys);
-      placeItems(keys, into, before);
-    }
-    tileOpen(ids[0])?.focus({ preventScroll: true });
-  },
-});
-startListKeys();
 
 // ── Buttons (the open chart's, Home's new folder), the chart list's fit, the cards to start from ──
 $("keep").addEventListener("click", () => keepChart());
-$("preset-copy").addEventListener("click", () => copyPreset(presetIndex(chart)));
-$("preset-reset").addEventListener("click", () => resetPreset(chart));
+$("preset-copy").addEventListener("click", () => presetsEdit.copyPreset(presetIndex(chart)));
+$("preset-reset").addEventListener("click", () => presetsEdit.resetPreset(chart));
 $("chart-more").addEventListener("click", (event) => {
   const button = /** @type {HTMLElement} */ (event.currentTarget);
   // (On a phone, headed by the chart's whole name: its title may be cut short there.)
-  menuOf(button, headMenu());
+  menus.menuOf(button, command.headMenu());
 });
 $("home-new-folder").addEventListener("click", (event) => {
   event.preventDefault();
-  newFolder([], "folder" in homeAt ? homeAt.folder || undefined : undefined);
+  grid.newFolder([], "folder" in homeAt ? homeAt.folder || undefined : undefined);
 });
 $("chart-list").addEventListener("scroll", () => fitSoon($("chart-list"), true), { passive: true });
 new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"));
@@ -6655,16 +6784,16 @@ strip($("templates"));
 new ResizeObserver(() => fitStrip($("templates"))).observe($("templates"));
 /** The cards waiting, each one's drawing started: their fetches go together, each drawn as its data comes. */
 function drawCards() {
-  for (const i of cardQueue) {
-    cardQueue.delete(i);
-    const card = recommendedCards[i];
-    if (card && previews.get(card.doc.id)?.key !== previewKey(card.doc)) void drawPreview(card.doc, previewIndex(card.doc));
+  for (const i of grid.cardQueue) {
+    grid.cardQueue.delete(i);
+    const card = grid.recommendedCards[i];
+    if (card && previews.get(card.doc.id)?.key !== grid.previewKey(card.doc)) void grid.drawPreview(card.doc, grid.previewIndex(card.doc));
   }
 }
 const cardsSeen = new IntersectionObserver((entries) => {
   for (const entry of entries) {
     if (!entry.isIntersecting) continue;
-    cardQueue.add(Number(/** @type {HTMLElement} */ (entry.target).dataset.template));
+    grid.cardQueue.add(Number(/** @type {HTMLElement} */ (entry.target).dataset.template));
     cardsSeen.unobserve(entry.target);
   }
   drawCards();
@@ -6705,7 +6834,7 @@ function loadPresets() {
     presetTree();
     // (What a search reads (see searchNow), then their words each once, for a slip in a search (see slipsOf), and their
     // charts' ids (see presetById), gathered meanwhile: no keystroke, no way back to the grid, waits for them.)
-    whenIdle(searchNow);
+    withRest(() => whenIdle(grid.searchNow));
     whenIdle(idsNow);
     // (A search narrowed from the last one's found: of the list before, let go of.)
     presetsFound = { query: "", found: [] };
@@ -6722,33 +6851,33 @@ function loadPresets() {
     // (Asked first: making the one to open takes the open one's place.)
     const at = chart?.preset === undefined || (reading.hash && currentRead(reading.run, reading.at)) ? -1 : presetIndex(chart) >= 0 ? presetIndex(chart) : pristine(chart) && !handledYet ? presetShowing(chart) : -1, now = at >= 0 ? presetChart(at) : chart;
     if (now && now !== chart) openChart(now);
-    renderRecommended();
-    presetsArrived();
-    renderCharts();
+    withRest(() => (grid.renderRecommended(), presetsEdit.presetsArrived(), renderCharts()));
     // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
     whenIdle(addressesSoon);
-    whenIdle(ranksSoon);
-    // (An address that waited for them, opened now.)
-    if (pendingRoute && started) {
+    withRest(() => whenIdle(command.ranksSoon));
+    // (An address that waited for them, opened now, as the rest is in: its page may be the grid.)
+    if (pendingRoute && started) withRest(() => {
       // (Still on the step it was asked from, there; gone on since (a retry later, elsewhere), where it is now: a
       // missed one only said.)
       const asked = pendingRoute, route = routeOf(asked), here = Boolean(history.state?.route);
       pendingRoute = "";
       const { route: _, ...state } = history.state ?? {};
       if (here) history.replaceState(state, "");
-      if (here && route) "preset" in route ? go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
+      if (here && route) "preset" in route ? grid.go(presetByAddress(route.preset, route.window)) : goTo({ path: route.path });
       else if (here) missedRoute(asked);
-      else if (!route) notice(missedSaid(asked));
-    }
+      else if (!route) notice(presetsEdit.missedSaid(asked));
+    });
     return list;
   })().catch((error) => {
     // Not read: said where they'd be, with a way to try again (never on its own: no loop of attempts).
     presetsFailed = true;
-    renderRecommended();
-    presetsArrived();
-    renderHome();
-    // (The sidebar's presets as kept, let go of: its head alone.)
-    renderCharts();
+    withRest(() => {
+      grid.renderRecommended();
+      presetsEdit.presetsArrived();
+      renderHome();
+      // (The sidebar's presets as kept, let go of: its head alone.)
+      renderCharts();
+    });
     throw error;
   }));
 }
@@ -6756,7 +6885,7 @@ function loadPresets() {
 function retryPresets() {
   presetsLoad = presetsRead = null;
   presetsFailed = false;
-  renderRecommended();
+  grid.renderRecommended();
   void loadPresets().catch(() => {});
   if (isOpen($("palette"))) showPalette();
   renderHome();
@@ -6770,13 +6899,13 @@ function missedRoute(address) {
   if (home) {
     /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
     galleryShown = GALLERY_PAGE;
-    clearPicks();
+    grid.clearPicks();
     placeHome({ path: [] });
     history.replaceState(homeState(), "");
     renderCharts();
     homeScroll().scrollTop = 0;
   }
-  notice(missedSaid(address));
+  notice(presetsEdit.missedSaid(address));
 }
 /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
 let started = false;
@@ -6810,10 +6939,10 @@ function pickPreset(/** @type {number} */ i) {
   // (The group opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has
   // no sidebar to show it in.)
   if (!phone.matches) {
-    if (groupShut("presets")) (prefs.groupsOpen = [...prefs.groupsOpen, "presets"]), savePrefs();
+    if (grid.groupShut("presets")) (prefs.groupsOpen = [...prefs.groupsOpen, "presets"]), savePrefs();
     presetToReveal = i;
   }
-  openPreset(i);
+  presetsEdit.openPreset(i);
   // (The open one again, off the grid: nothing drawn the list, so it's drawn here.)
   if (!home && presetToReveal === i) renderCharts();
 }
@@ -6831,7 +6960,7 @@ let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
  * @returns {{ found: number[], count: number, partial: boolean }}
  */
 function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
-  const list = /** @type {Preset[]} */ (presets), query = words.join(" "), { texts: made, initials: madeInitials, titles, rank, order, exact } = presetSearch();
+  const list = /** @type {Preset[]} */ (presets), query = words.join(" "), { texts: made, initials: madeInitials, titles, rank, order, exact } = grid.presetSearch();
   // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
   // among them all at each match: thousands, a word or two typed.)
   const copies = new Map();
@@ -6847,7 +6976,7 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
   const texts = renamed.size ? made.slice() : made;
   const initials = renamed.size ? madeInitials.slice() : madeInitials;
   for (const [i, title] of renamed) {
-    texts[i] = `${made[i]} ${searchText(searchCase(title))}`;
+    texts[i] = `${made[i]} ${command.searchText(command.searchCase(title))}`;
     initials[i] = `${madeInitials[i]} ${initialsOf([title])}`;
   }
   const initialWords = words.map((word) => initialsWord(word) ? word : "\0");
@@ -6899,7 +7028,7 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
   // nearest first, then those more presets have), the first together found (where it's searched: a few tried, a
   // dozen at most), else the nearest of each. A slip only: the words as typed first.)
   if ((!found.length || partial) && !slipped) {
-    const extra = [...renamed.values()].map(searchCase), choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(slipsOf(word, texts, extra, initials)));
+    const extra = [...renamed.values()].map(command.searchCase), choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(presetsEdit.slipsOf(word, texts, extra, initials)));
     if (choices.some((options, k) => options[0] !== words[k])) {
       const anyHolds = (/** @type {string[]} */ some) => {
         for (let i = 0; i < texts.length; i++) if ((!under || under(i)) && some.every((word) => texts[i].includes(word) || (initialsWord(word) && initials[i].includes(word)))) return true;
@@ -6934,7 +7063,7 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
   const prefixes = words.map((word) => new RegExp(`(?:^|[^a-z0-9])${word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
   const fitOf = (/** @type {number} */ i) => {
     if (fits[i] < 0) {
-      const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = titles[i], lower = kept ? searchCase(titleOf(kept)) : null, title = lower === null ? named.title : searchText(lower);
+      const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = titles[i], lower = kept ? command.searchCase(titleOf(kept)) : null, title = lower === null ? named.title : command.searchText(lower);
       const isExact = named.name === query || (lower === null ? named.subject : lower.split(": ")[0]) === query;
       const initial = lower === null ? named.initials : initialsOf([lower]);
       const quality = words.every((_, k) => prefixes[k].test(texts[i])) ? 2 : words.every((_, k) => prefixes[k].test(texts[i]) || initials[i].includes(initialWords[k])) ? 1 : 0;
@@ -6944,7 +7073,7 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
     return fits[i];
   };
   // (A renamed one ranked by its title as it is now: see presetSearch.)
-  const rankOf = (/** @type {number} */ i) => ((title) => (title === undefined ? rank[i] : presetRankOf(list[i].p.length, title)))(renamed.get(i));
+  const rankOf = (/** @type {number} */ i) => ((title) => (title === undefined ? rank[i] : grid.presetRankOf(list[i].p.length, title)))(renamed.get(i));
   const byRank = (/** @type {number} */ a, /** @type {number} */ b) => rankOf(a) - rankOf(b) || a - b;
   // (Exactly what's typed: looked up, and the copies kept, whose title may say it now.)
   const best = [...new Set([...(exact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) >= 14).sort((a, b) => fitOf(b) - fitOf(a) || byRank(a, b)).slice(0, most);
@@ -6970,9 +7099,13 @@ function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ mo
   return { found: best, count: found.length, partial };
 }
 // Read once the page has settled: the recommended cards fill in, and ⌘K finds them at once.
-renderRecommended();
+withRest(() => {
+  grid.renderRecommended();
+});
 void loadPresets().catch(() => {});
-document.addEventListener("fullscreenchange", () => !document.fullscreenElement && fullOn() && setFull(false));
+withRest(() => {
+  document.addEventListener("fullscreenchange", () => !document.fullscreenElement && fullOn() && presetsEdit.setFull(false));
+});
 // (Full screen slides the header up by its own height, as it is: a phone's, a desktop's.)
 new ResizeObserver(([entry]) => /** @type {HTMLElement} */ (document.querySelector(".app")).style.setProperty("--head-height", `${entry.borderBoxSize[0].blockSize}px`)).observe(/** @type {HTMLElement} */ (document.querySelector(".card-head")));
 // Escape is the page's: it does here what it does, and goes no further, so a browser's own full screen (macOS's,
@@ -7015,9 +7148,11 @@ function renderLayers() {
   updateValues();
   if (layersBehind) return;
   layersBehind = true;
-  whenIdle((deadline) => layersBehind && (writeLayers(), roomsAhead(deadline)));
+  whenIdle((deadline) => layersBehind && withRest(() => (writeLayers(), presetsEdit.roomsAhead(deadline))));
 }
 function writeLayers() {
+  // (Its rows are the rest's: written as it comes.)
+  if (!presetsEdit) return void withRest(writeLayers);
   roomsAt = null;
   layersBehind = false;
   const list = $("layer-list");
@@ -7034,7 +7169,7 @@ function writeLayers() {
     const layers = chart.layers.filter((layer) => layer.pane === pane.id);
     /** @type {[string, string][]} */
     const rows = [["head:pane", `<div class="pane-head">
-              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="${pane.lens ? "Show as, scale" : "Scale"}, stack, order and average">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
+              <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${presetsEdit.paneChip(pane)}" data-tip="${pane.lens ? "Show as, scale" : "Scale"}, stack, order and average">${presetsEdit.paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
               ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} pane">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(paneShows(chart, pane.id))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
@@ -7061,7 +7196,7 @@ function writeLayers() {
     return { key: pane.id, open: `<section class="pane-group" data-pane="${pane.id}">`, rows };
   });
   /** @type {[string, string][]} */
-  const tail = [["drop-new", `<div class="drop-new" data-drop-new>Drop here for a new pane</div>`], ["markers", markersHtml()], ["adds", `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a layer</span><kbd>A</kbd></button></div>`]];
+  const tail = [["drop-new", `<div class="drop-new" data-drop-new>Drop here for a new pane</div>`], ["markers", presetsEdit.markersHtml()], ["adds", `<div class="layer-adds"><button type="button" class="nav-item" data-action="add-series">${ICONS.plus}<span class="label">Add a layer</span><kbd>A</kbd></button></div>`]];
   const keys = [...sections.map((section) => section.key), ...tail.map(([key]) => key)], was = layersWritten;
   layersWritten = { keys, tail };
   if (was.keys.length === keys.length && list.children.length === keys.length && was.keys.every((key, i) => key === keys[i])) {
@@ -7069,7 +7204,7 @@ function writeLayers() {
     tail.forEach(([, html], i) => html !== was.tail[i][1] && (list.children[sections.length + i].outerHTML = html));
     restoreFocus(list, focus);
   } else {
-    rewrite(list, [...sections.map(({ open, rows }) => `${open}${rows.map(([, html]) => html).join("")}</section>`), ...tail.map(([, html]) => html)].join(""));
+    inspector.rewrite(list, [...sections.map(({ open, rows }) => `${open}${rows.map(([, html]) => html).join("")}</section>`), ...tail.map(([, html]) => html)].join(""));
     sections.forEach(({ rows }, i) => listWritten.set(/** @type {HTMLElement} */ (list.children[i]), rows));
     restoreFocus(list, focus);
   }
@@ -7077,30 +7212,32 @@ function writeLayers() {
   updateValues();
   lightLegend(litLayer, true);
   list.classList.toggle("picking", layerPicks.size > 0);
-  renderLayersBar();
+  inspector.renderLayersBar();
 }
 
 // Layers dragged: before a layer (or after, on its lower half), in its pane; or below, into a new pane.
-dragToReorder($("layer-list"), {
-  item: ".layer-row[data-layer]",
-  label: (id) => ((layer) => (layer ? `${letterChip(layer)}<span class="name">${escapeHtml(labelOf(layer))}</span>` : ""))(layerById(id)),
-  idOf: (row) => /** @type {string} */ (row.dataset.layer),
-  carried: (id) => (layerPicks.has(id) ? chart.layers.filter((layer) => layerPicks.has(layer.id)).map((layer) => layer.id) : [id]),
-  pick: (id) => !layerPicks.has(id) && pickLayer(id),
-  picking: () => layerPicks.size > 0,
-  unpick: () => clearLayerPicks(),
-  refuse: (event) => Boolean(closest(event, "[data-toggle]")),
-  // (The new pane's place shows below; the panel keeps its height: a phone's sheet, as tall as what it holds, would
-  // grow under the finger. Nearing its edge, it scrolls there.)
-  lift: () => ($("panel").style.height = `${$("panel").offsetHeight}px`),
-  settle: () => ($("panel").style.height = ""),
-  landing: (x, y, ids) => {
-    const under = document.elementFromPoint(x, y), zone = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-drop-new]"));
-    if (zone) return { zone };
-    const pane = /** @type {HTMLElement | null | undefined} */ (under?.closest(".pane-group[data-pane]"));
-    return pane ? landingIn(all$(".layer-row[data-layer]", pane), y, (row) => /** @type {string} */ (row.dataset.layer), ids) : null;
-  },
-  land: dropLayers,
+withRest(() => {
+  gestures.dragToReorder($("layer-list"), {
+    item: ".layer-row[data-layer]",
+    label: (id) => ((layer) => (layer ? `${letterChip(layer)}<span class="name">${escapeHtml(labelOf(layer))}</span>` : ""))(layerById(id)),
+    idOf: (row) => /** @type {string} */ (row.dataset.layer),
+    carried: (id) => (layerPicks.has(id) ? chart.layers.filter((layer) => layerPicks.has(layer.id)).map((layer) => layer.id) : [id]),
+    pick: (id) => !layerPicks.has(id) && pickLayer(id),
+    picking: () => layerPicks.size > 0,
+    unpick: () => clearLayerPicks(),
+    refuse: (event) => Boolean(closest(event, "[data-toggle]")),
+    // (The new pane's place shows below; the panel keeps its height: a phone's sheet, as tall as what it holds, would
+    // grow under the finger. Nearing its edge, it scrolls there.)
+    lift: () => ($("panel").style.height = `${$("panel").offsetHeight}px`),
+    settle: () => ($("panel").style.height = ""),
+    landing: (x, y, ids) => {
+      const under = document.elementFromPoint(x, y), zone = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-drop-new]"));
+      if (zone) return { zone };
+      const pane = /** @type {HTMLElement | null | undefined} */ (under?.closest(".pane-group[data-pane]"));
+      return pane ? grid.landingIn(all$(".layer-row[data-layer]", pane), y, (row) => /** @type {string} */ (row.dataset.layer), ids) : null;
+    },
+    land: presetsEdit.dropLayers,
+  });
 });
 
 // ── Picking layers, and what the bar does to them ─────────────────────────
@@ -7112,7 +7249,7 @@ function showList() {
     lastOpen = selected;
     selected = "";
     renderLayers();
-    renderInspector();
+    inspector.renderInspector();
     updateLegends();
     respot();
   }
@@ -7121,7 +7258,7 @@ function showList() {
 }
 /** Picks a layer: added or taken off; with `range`, every one from the last picked (or the one open) to it. */
 function pickLayer(/** @type {string} */ id, range = false) {
-  hideMenu();
+  menus.hideMenu();
   // (Nothing picked, a run starts from the layer open, or the one last open: Back leaves it where a run starts.)
   const ids = chart.layers.map((layer) => layer.id), start = layerPicks.size ? layerPickLast : selected || lastOpen, from = ids.indexOf(start), to = ids.indexOf(id);
   if (range && from >= 0 && to >= 0) for (const other of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) layerPicks.add(other);
@@ -7130,7 +7267,7 @@ function pickLayer(/** @type {string} */ id, range = false) {
     layerPicks.delete(id);
     if (!layerPicks.has(layerPickLast)) layerPickLast = [...layerPicks].at(-1) ?? "";
     pickHead = layerPickLast;
-    return showPicks();
+    return inspector.showPicks();
   } else {
     // (The layer open, as a run from it takes it: picked with the one added.)
     if (!layerPicks.size && selected && selected !== id) layerPicks.add(selected);
@@ -7139,7 +7276,7 @@ function pickLayer(/** @type {string} */ id, range = false) {
   layerPickLast = range && from >= 0 ? start : id;
   pickHead = id;
   lastOpen = "";
-  showPicks();
+  inspector.showPicks();
 }
 /** ⇧↓ or ⇧↑: the run from where picking started to the next or previous layer (from the one open, or in focus, at first). */
 function extendPicks(/** @type {number} */ delta) {
@@ -7153,13 +7290,13 @@ function extendPicks(/** @type {number} */ delta) {
   for (const id of ids.slice(Math.min(from, head), Math.max(from, head) + 1)) layerPicks.add(id);
   layerPickLast = start;
   pickHead = ids[head];
-  showPicks();
+  inspector.showPicks();
   /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${pickHead}"]`))?.focus();
 }
 function pickEvery() {
   for (const layer of chart.layers) layerPicks.add(layer.id);
   layerPickLast = pickHead = chart.layers[0]?.id ?? "";
-  showPicks();
+  inspector.showPicks();
 }
 /** Mark picks in place (replacing a row held by touch would turn its release into a click). */
 function markPicks() {
@@ -7169,13 +7306,13 @@ function markPicks() {
     row.classList.toggle("picked", on);
     row.classList.toggle("selected", row.dataset.layer === selected);
     row.querySelector(".row-main")?.toggleAttribute("aria-current", row.dataset.layer === selected);
-    showPick(/** @type {HTMLInputElement} */ (row.querySelector(".row-check")), on);
+    grid.showPick(/** @type {HTMLInputElement} */ (row.querySelector(".row-check")), on);
   }
   markLegends();
   // (Marked here, not as last written: the next writes write them whole.)
   layersWritten = { keys: [], tail: [] };
-  renderLayersBar();
-  if (multiEdit) renderInspector();
+  inspector.renderLayersBar();
+  if (inspector.multiEdit) inspector.renderInspector();
 }
 /** No more picks; `refocus`: the focus goes back to the row last picked (from the bar's ×, it'd be lost). */
 function clearLayerPicks(refocus = false) {
@@ -7186,24 +7323,24 @@ function clearLayerPicks(refocus = false) {
 }
 /** What the bar (or a picked row's right-click, ⌘K, a key) does to the layers picked. @param {string} action @param {HTMLElement} [anchor] */
 function layersBatch(action, anchor) {
-  const ids = pickedLayers().map((layer) => layer.id);
+  const ids = inspector.pickedLayers().map((layer) => layer.id);
   if (action === "clear" || !ids.length) return clearLayerPicks(action === "clear");
   if (action === "edit") {
     // (One picked: its own settings, as selecting it opens them.)
     if (ids.length === 1) return select(ids[0]);
-    editPicked(true);
+    inspector.editPicked(true);
     /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
-  } else if (action === "hide") hideLayers(ids);
+  } else if (action === "hide") inspector.hideLayers(ids);
   else if (action === "duplicate") {
-    const copies = duplicateLayers(ids);
+    const copies = inspector.duplicateLayers(ids);
     if (!copies.length) return;
     layerPicks.clear();
     for (const id of copies) layerPicks.add(id);
     layerPickLast = pickHead = copies[0];
-    showPicks();
-  } else if (action === "move" && anchor) paneMenu(anchor, ids, () => refocus('[data-layers-batch="move"]'));
-  else if (action === "cloud" || action === "trend") addFrom(action, ids);
-  else if (action === "remove") removeLayers(ids);
+    inspector.showPicks();
+  } else if (action === "move" && anchor) inspector.paneMenu(anchor, ids, () => presetsEdit.refocus('[data-layers-batch="move"]'));
+  else if (action === "cloud" || action === "trend") inspector.addFrom(action, ids);
+  else if (action === "remove") inspector.removeLayers(ids);
 }
 $("layers-bar").addEventListener("click", (event) => {
   const button = closest(event, "[data-layers-batch]");
@@ -7224,12 +7361,12 @@ function select(id, sheet = true) {
   }
   if (selected && phone.matches && sheet) document.body.dataset.sheet = "panel";
   else if (selected && document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
-  showSelection();
+  inspector.showSelection();
   const layer = layerById(id), result = resolved?.results.get(id);
   if (layer?.series && result && !result.info && !result.missing) void info(layer.series).then(meta => {
     result.info = meta;
     result.unit = unitOf(meta.type);
-    if (selected === id && resolved?.results.get(id) === result) renderInspector();
+    if (selected === id && resolved?.results.get(id) === result) inspector.renderInspector();
   }, () => {});
   // (Drawings selected, let go: painted so.)
   if (unchosen) repaintDrawings();
@@ -7237,8 +7374,8 @@ function select(id, sheet = true) {
 }
 function deselect() {
   // (Several opened together: back to the list, still picked.)
-  if (editingMany()) {
-    editPicked(false);
+  if (inspector.editingMany()) {
+    inspector.editPicked(false);
     return void /** @type {HTMLElement | null} */ ($("layers-bar").querySelector('[data-layers-batch="edit"]'))?.focus();
   }
   const was = selected, fromSettings = $("inspector").contains(document.activeElement), peeking = document.body.hasAttribute("data-peek");
@@ -7247,7 +7384,7 @@ function deselect() {
   // (Open for the while, the panel goes: a key's focus in it to its button, else the chart.)
   if (peeking) keepFocus($("panel"), () => $("panel-toggle"), () => $("plot-keys"));
   document.body.removeAttribute("data-peek");
-  showSelection();
+  inspector.showSelection();
   if (fromSettings && !peeking) /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${was}"]`))?.focus();
 }
 
@@ -7255,7 +7392,7 @@ function deselect() {
 const DEFAULTS = {
   opacity: { is: (layer) => layer.opacity === undefined, set: (layer) => (layer.opacity = undefined), text: (layer) => `${Math.round(defaultOpacity(layer) * 100)}%`, focus: "#opacity" },
   width: { is: (layer) => layer.width === 1.5, set: (layer) => (layer.width = 1.5), text: "1.5px", focus: "#width" },
-  "fill-opacity": { is: (layer) => layer.fillOpacity === undefined, set: (layer) => (layer.fillOpacity = undefined), text: (layer) => `${Math.round(fillOf({ ...layer, fillOpacity: undefined }, stackedIn(layer))[0] * 100)}%`, focus: "#fill-opacity" },
+  "fill-opacity": { is: (layer) => layer.fillOpacity === undefined, set: (layer) => (layer.fillOpacity = undefined), text: (layer) => `${Math.round(fillOf({ ...layer, fillOpacity: undefined }, inspector.stackedIn(layer))[0] * 100)}%`, focus: "#fill-opacity" },
   base: { is: (layer) => baseOf(layer) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
   format: { is: (layer) => !layer.format, set: (layer) => (layer.format = undefined), text: "Automatic", focus: "#format" },
   "bubble-size": { is: (layer) => layer.size === undefined, set: (layer) => (layer.size = undefined), text: `${BUBBLE_SIZE}px`, focus: "#bubble-size" },
@@ -7267,7 +7404,7 @@ const SLIDERS = {
   // A drawing's, on the belt: the same stops, read the same (its look set by setDrawSlider).
   "draw-width": { label: "Width", stops: WIDTHS, of: (look) => look.width, text: (v) => `${v}px`, say: (v) => `${v} pixels` },
   "draw-opacity": { label: "Opacity", stops: OPACITIES, of: (look) => look.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent` },
-  "fill-opacity": { label: "Fill opacity", stops: OPACITIES, of: (layer) => fillOf(layer, stackedIn(layer))[0], text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.fillOpacity = v === fillOf({ ...layer, fillOpacity: undefined }, stackedIn(layer))[0] ? undefined : v) },
+  "fill-opacity": { label: "Fill opacity", stops: OPACITIES, of: (layer) => fillOf(layer, inspector.stackedIn(layer))[0], text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.fillOpacity = v === fillOf({ ...layer, fillOpacity: undefined }, inspector.stackedIn(layer))[0] ? undefined : v) },
   "bubble-size": { label: "Size", stops: BUBBLE_SIZES, of: (layer) => layer.size ?? BUBBLE_SIZE, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.size = v === BUBBLE_SIZE ? undefined : v) },
   "bubble-hide": { label: "Hide below", stops: BUBBLE_HIDES, of: (layer) => layer.hide ?? BUBBLE_HIDE, text: hideText, say: (v) => (v ? `${Math.round(v * 100)} percent of the largest` : "None"), set: (layer, v) => (layer.hide = v === BUBBLE_HIDE ? undefined : v) },
   opacity: { label: "Opacity", stops: OPACITIES, of: opacityOf, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === defaultOpacity(layer) ? undefined : v) },
@@ -7289,7 +7426,7 @@ function track(event, element, cursor, move) {
     move,
     end: () => {
       try {
-        flushPick();
+        inspector.flushPick();
       } finally {
         holding = 0;
         document.body.classList.remove(cursor);
@@ -7307,15 +7444,15 @@ function track(event, element, cursor, move) {
 $("inspector").addEventListener("pointerdown", (event) => {
   const bar = closest(event, "[data-gradient-bar]"), stops = layerById(selected)?.gradient;
   if (event.button !== 0 || !bar || !stops?.length) return;
-  const at = barAt(bar, event.clientX), k = stops.reduce((near, [place], i) => (Math.abs(place - at) < Math.abs(stops[near][0] - at) ? i : near), 0);
+  const at = inspector.barAt(bar, event.clientX), k = stops.reduce((near, [place], i) => (Math.abs(place - at) < Math.abs(stops[near][0] - at) ? i : near), 0);
   const cursor = (Math.abs(stops[k][0] - at) / 100) * bar.offsetWidth <= 22 ? /** @type {HTMLElement | null} */ (bar.querySelector(`.gradient-stop[data-stop="${k}"]`)) : null;
-  if (!cursor) return void (event.preventDefault(), gradientEdit((item) => addStop(item, at), true));
-  colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
-  pickPress(event, cursor, "scrubbing", (/** @type {{ clientX: number }} */ point) => {
-    const at = Math.round(barAt(bar, point.clientX)), now = layerById(selected)?.gradient?.[k]?.[0];
+  if (!cursor) return void (event.preventDefault(), inspector.gradientEdit((item) => inspector.addStop(item, at), true));
+  inspector.colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
+  inspector.pickPress(event, cursor, "scrubbing", (/** @type {{ clientX: number }} */ point) => {
+    const at = Math.round(inspector.barAt(bar, point.clientX)), now = layerById(selected)?.gradient?.[k]?.[0];
     if (now === undefined || Math.round(clamp(at, layerById(selected)?.gradient?.[k - 1]?.[0] ?? 0, layerById(selected)?.gradient?.[k + 1]?.[0] ?? 100)) === now) return;
-    editLayer((item) => moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
-    showStop(k);
+    inspector.editLayer((item) => inspector.moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
+    inspector.showStop(k);
   });
 });
 // A cursor by the keys: ← → a step (⇧, ten), ⌫ gone (two left at least).
@@ -7327,14 +7464,14 @@ $("inspector").addEventListener("keydown", (event) => {
     event.preventDefault();
     event.stopPropagation();
     // (The one moved, the one in hand: its row, its palette.)
-    colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
-    editLayer((item) => moveStop(item, k, (item.gradient?.[k]?.[0] ?? 0) + by * (event.shiftKey ? 10 : 1)), { coalesce: `stop:${selected}:${k}` });
-    return void (renderInspector(), refocus(`#inspector .gradient-stop[data-stop="${k}"]`));
+    inspector.colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
+    inspector.editLayer((item) => inspector.moveStop(item, k, (item.gradient?.[k]?.[0] ?? 0) + by * (event.shiftKey ? 10 : 1)), { coalesce: `stop:${selected}:${k}` });
+    return void (inspector.renderInspector(), presetsEdit.refocus(`#inspector .gradient-stop[data-stop="${k}"]`));
   }
   if (erasing(event)) {
     event.preventDefault();
     event.stopPropagation();
-    gradientEdit((item) => removeStop(item, k), true);
+    inspector.gradientEdit((item) => inspector.removeStop(item, k), true);
   }
 });
 // A place typed (or stepped by ↑ ↓): its color there as it's typed, between its neighbors, its keys within a second
@@ -7343,26 +7480,28 @@ $("inspector").addEventListener("keydown", (event) => {
 $("inspector").addEventListener("input", (event) => {
   const field = /** @type {HTMLInputElement} */ (event.target);
   if (!field.dataset?.stopAt) return;
-  const k = Number(field.dataset.stopAt), at = readNumber(field.value);
+  const k = Number(field.dataset.stopAt), at = inspector.readNumber(field.value);
   if (!field.value.trim() || !Number.isFinite(at)) return;
-  editLayer((item) => moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
+  inspector.editLayer((item) => inspector.moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
   // (Stepped, not typed (an InputEvent): the field at where it went, never past its neighbors.)
-  showStop(k, !(event instanceof InputEvent));
+  inspector.showStop(k, !(event instanceof InputEvent));
 });
 // (Left, not changed: a place stepped by ↑ ↓ is set by script, no `change` to follow.)
 $("inspector").addEventListener("focusout", (event) => {
   const field = /** @type {HTMLInputElement} */ (event.target);
-  if (field.dataset?.stopAt) showStop(Number(field.dataset.stopAt));
+  if (field.dataset?.stopAt) inspector.showStop(Number(field.dataset.stopAt));
 });
 // (Several at different stops ("Mixed"): a key steps from the first's, and sets them all there.)
-sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inHand()), set: setSlider });
+withRest(() => {
+  inspector.sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? inspector.sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inspector.inHand()), set: inspector.setSlider });
+});
 // ── Gradients: colors by value ───────────────────────────────────────────────
 /** Custom: the surface alone, its color picked live (the page stays open), Bitview's colors a step back. */
 function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {() => void} */ back) {
-  showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
-  setMenuBack(back);
-  drawPlanes();
-  planeOf(target)?.focus({ preventScroll: true });
+  menus.showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${inspector.planeHtml(color, target)}${inspector.hexField(target, color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? pen.beltSide() : "");
+  menus.setMenuBack(back);
+  inspector.drawPlanes();
+  inspector.planeOf(target)?.focus({ preventScroll: true });
 }
 // The panel's hex: ↵ takes what reads (a #fff, an OKLCH, a name too) and leaves it, esc leaves it; left, the panel's
 // drawn again (it shows the color as it is).
@@ -7371,31 +7510,33 @@ document.addEventListener("keydown", (event) => {
   if (!field.matches?.("#inspector .color-editor .hex") || composing(event) || (event.key !== "Enter" && event.key !== "Escape")) return;
   event.preventDefault();
   event.stopPropagation();
-  const color = event.key === "Enter" ? readColor(field.value) : null, key = field.closest("[data-palette]")?.getAttribute("data-palette");
-  if (color && key) editLayer((item) => setColor(item, key, color));
-  letGo(field);
+  const color = event.key === "Enter" ? command.readColor(field.value) : null, key = field.closest("[data-palette]")?.getAttribute("data-palette");
+  if (color && key) inspector.editLayer((item) => inspector.setColor(item, key, color));
+  menus.letGo(field);
 }, true);
 // (Another's hex (a level's, a popover's): ↵ takes what reads there too, before its menu closes.)
 document.addEventListener("keydown", (event) => {
   const field = event.target;
   if (event.key !== "Enter" || composing(event) || !(field instanceof HTMLInputElement) || !field.dataset.hex || field.matches("#inspector .color-editor .hex")) return;
-  const color = readColor(field.value);
-  if (color) pick(field.dataset.hex, color), flushPick();
+  const color = command.readColor(field.value);
+  if (color) inspector.pick(field.dataset.hex, color), inspector.flushPick();
 }, true);
-document.addEventListener("focusout", (event) => /** @type {HTMLElement} */ (event.target).matches?.("#inspector .color-editor .hex") && inspectorDue && afterPress(() => setTimeout(renderInspector)));
-// A color typed in hex (#3b82f6, or without its #): picked as the surface picks it, its ring moved there.
-document.addEventListener("input", (event) => {
-  const field = /** @type {HTMLInputElement} */ (event.target), name = field.dataset?.hex;
-  if (!name || !field.matches(".hex")) return;
-  const color = `#${field.value.trim().replace(/^#/, "").toLowerCase()}`;
-  if (!/^#[0-9a-f]{6}$/.test(color)) return;
-  const plane = planeOf(name), { u, t } = placeOf(color), named = field.closest(".field, .color-editor")?.querySelector(".color-now");
-  /** @type {HTMLElement | null | undefined} */ (field.closest(".color-editor")?.querySelector('.slot-chip[aria-pressed="true"]'))?.style.setProperty("--c", cssColor(color));
-  plane?.style.setProperty("--x", String(u));
-  plane?.style.setProperty("--y", String(t));
-  plane?.querySelector(".ring")?.setAttribute("style", `--c:${cssColor(color)}`);
-  if (named) named.textContent = colorName(color);
-  pick(name, color);
+withRest(() => {
+  document.addEventListener("focusout", (event) => /** @type {HTMLElement} */ (event.target).matches?.("#inspector .color-editor .hex") && inspector.inspectorDue && inspector.afterPress(() => setTimeout(inspector.renderInspector)));
+  // A color typed in hex (#3b82f6, or without its #): picked as the surface picks it, its ring moved there.
+  document.addEventListener("input", (event) => {
+    const field = /** @type {HTMLInputElement} */ (event.target), name = field.dataset?.hex;
+    if (!name || !field.matches(".hex")) return;
+    const color = `#${field.value.trim().replace(/^#/, "").toLowerCase()}`;
+    if (!/^#[0-9a-f]{6}$/.test(color)) return;
+    const plane = inspector.planeOf(name), { u, t } = inspector.placeOf(color), named = field.closest(".field, .color-editor")?.querySelector(".color-now");
+    /** @type {HTMLElement | null | undefined} */ (field.closest(".color-editor")?.querySelector('.slot-chip[aria-pressed="true"]'))?.style.setProperty("--c", cssColor(color));
+    plane?.style.setProperty("--x", String(u));
+    plane?.style.setProperty("--y", String(t));
+    plane?.querySelector(".ring")?.setAttribute("style", `--c:${cssColor(color)}`);
+    if (named) named.textContent = colorName(color);
+    inspector.pick(name, color);
+  });
 });
 // Keys move over a surface: ← → a degree of hue (on into the grays), ↑ ↓ a step of lightness; ⇧ for ten. (Before a
 // menu's own keys, when it's in one.)
@@ -7403,20 +7544,22 @@ document.addEventListener("keydown", (event) => {
   const plane = /** @type {HTMLElement} */ (event.target);
   if (!plane.classList?.contains("plane") || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
   const name = /** @type {string} */ (plane.dataset.plane);
-  if (!planeTarget(name)) return;
+  if (!inspector.planeTarget(name)) return;
   event.preventDefault();
   event.stopPropagation();
-  const { u, t } = placeOf(pickedOf(name));
+  const { u, t } = inspector.placeOf(inspector.pickedOf(name));
   const sign = event.key === "ArrowUp" || event.key === "ArrowRight" ? 1 : -1, steps = event.shiftKey ? 10 : 1;
-  if (upDown(event)) pickPoint(name, u, t - sign * steps * 0.02);
-  else pickPoint(name, u + (sign * steps * HUES) / 360, t);
+  if (upDown(event)) inspector.pickPoint(name, u, t - sign * steps * 0.02);
+  else inspector.pickPoint(name, u + (sign * steps * inspector.HUES) / 360, t);
 }, true);
 // A surface picks under the pointer, wherever it is (the inspector, a popover); by touch, as pickPress has it.
-document.addEventListener("pointerdown", (event) => {
-  const plane = closest(event, ".plane");
-  if (event.button !== 0 || !plane) return;
-  const name = /** @type {string} */ (plane.dataset.plane);
-  pickPress(event, plane, "picking", (/** @type {PointerEvent} */ point) => pickAt(name, point.clientX, point.clientY));
+withRest(() => {
+  document.addEventListener("pointerdown", (event) => {
+    const plane = closest(event, ".plane");
+    if (event.button !== 0 || !plane) return;
+    const name = /** @type {string} */ (plane.dataset.plane);
+    inspector.pickPress(event, plane, "picking", (/** @type {PointerEvent} */ point) => inspector.pickAt(name, point.clientX, point.clientY));
+  });
 });
 /** Mirror colors, status line, name placeholder: everything that follows the formula as it's typed. */
 /** The formula editor as tall as its lines, its width changed (a phone turned, the panel resized). */
@@ -7427,29 +7570,33 @@ const formulaFit = new ResizeObserver(([entry]) => {
   textarea.style.height = "auto";
   textarea.style.height = `${textarea.scrollHeight}px`;
 });
-$("inspector").addEventListener("scroll", placeAssist, true);
-addEventListener("resize", placeAssist);
-viewport.addEventListener("resize", placeAssist);
-viewport.addEventListener("scroll", placeAssist);
-document.addEventListener("selectionchange", updateCallHelp);
-document.addEventListener("input", updateCallHelp);
-document.addEventListener("focusout", () => requestAnimationFrame(updateCallHelp));
-document.addEventListener("focusout", (event) => {
-  const field = /** @type {HTMLInputElement} */ (event.target);
-  if (field.id === "base") {
-    // Its Reset put in or taken out (only it: the panel drawn again would lose the click that left the field).
-    const layer = layerById(selected), label = field.closest(".field")?.firstElementChild, reset = label?.querySelector(".reset");
-    if (layer && label && !DEFAULTS.base.is(layer) && !reset) label.insertAdjacentHTML("beforeend", resetFor("base", layer));
-    else if (layer && DEFAULTS.base.is(layer)) reset?.remove();
-    return;
-  }
-  if (field.id === "formula") formulaFieldLeft(/** @type {HTMLTextAreaElement} */ (event.target));
+withRest(() => {
+  $("inspector").addEventListener("scroll", inspector.placeAssist, true);
+  addEventListener("resize", inspector.placeAssist);
+  viewport.addEventListener("resize", inspector.placeAssist);
+  viewport.addEventListener("scroll", inspector.placeAssist);
+  document.addEventListener("selectionchange", inspector.updateCallHelp);
+  document.addEventListener("input", inspector.updateCallHelp);
+});
+withRest(() => {
+  document.addEventListener("focusout", () => requestAnimationFrame(inspector.updateCallHelp));
+  document.addEventListener("focusout", (event) => {
+    const field = /** @type {HTMLInputElement} */ (event.target);
+    if (field.id === "base") {
+      // Its Reset put in or taken out (only it: the panel drawn again would lose the click that left the field).
+      const layer = layerById(selected), label = field.closest(".field")?.firstElementChild, reset = label?.querySelector(".reset");
+      if (layer && label && !DEFAULTS.base.is(layer) && !reset) label.insertAdjacentHTML("beforeend", inspector.resetFor("base", layer));
+      else if (layer && DEFAULTS.base.is(layer)) reset?.remove();
+      return;
+    }
+    if (field.id === "formula") inspector.formulaFieldLeft(/** @type {HTMLTextAreaElement} */ (event.target));
+  });
 });
 // A number's field stepped by its arrows, as a number field is: a unit (with ⇧, ten).
 $("inspector").addEventListener("keydown", (event) => {
   const field = /** @type {HTMLInputElement} */ (event.target);
   if (!field.matches?.(".number-input") || (event.key !== "ArrowUp" && event.key !== "ArrowDown") || event.metaKey || event.ctrlKey || event.altKey) return;
-  const now = readNumber(field.value);
+  const now = inspector.readNumber(field.value);
   if (!Number.isFinite(now)) return;
   event.preventDefault();
   // (Rounded to the places it has, not to a precision: 1234567890123 and up step as they are.)
@@ -7460,32 +7607,32 @@ $("inspector").addEventListener("keydown", (event) => {
 });
 $("inspector").addEventListener("input", (event) => {
   const target = event.target;
-  if (target.id === "label") editLayer((layer) => nameLayer(layer, target.value.trim()), { coalesce: `label:${selected}` });
+  if (target.id === "label") inspector.editLayer((layer) => nameLayer(layer, target.value.trim()), { coalesce: `label:${selected}` });
   else if (target.id === "formula") {
-    markTyping();
-    drawWhenReady(selected, target.value);
+    inspector.markTyping();
+    inspector.drawWhenReady(selected, target.value);
     const layer = layerById(selected);
-    if (layer) updateFormula(layer);
-    suggestHere();
+    if (layer) inspector.updateFormula(layer);
+    inspector.suggestHere();
   } else if (target.id === "base") {
-    const base = readNumber(target.value);
-    if (Number.isFinite(base)) editLayer((layer) => (layer.base = base || undefined), { coalesce: `base:${selected}` });
+    const base = inspector.readNumber(target.value);
+    if (Number.isFinite(base)) inspector.editLayer((layer) => (layer.base = base || undefined), { coalesce: `base:${selected}` });
   } else if (target.id === "level-name-under") {
     // (The band under its levels: what its values read as.)
     const name = target.value.trim().slice(0, 40);
-    editLayer((layer) => (name ? (layer.underName = name) : delete layer.underName), { coalesce: `under-name:${selected}` });
+    inspector.editLayer((layer) => (name ? (layer.underName = name) : delete layer.underName), { coalesce: `under-name:${selected}` });
   } else if (target.id.startsWith("level-name-")) {
     // (A level's name: what the values from it up read as, in its color.)
     const i = Number(target.id.slice(11)), name = target.value.trim().slice(0, 40);
-    editLayer((layer) => {
+    inspector.editLayer((layer) => {
       const level = layer.levels?.[i];
       if (!level) return;
       if (name) level.name = name;
       else delete level.name;
     }, { coalesce: `level-name:${i}:${selected}` });
   } else if (target.id.startsWith("level-")) {
-    const i = Number(target.id.slice(6)), level = readNumber(target.value);
-    if (Number.isFinite(level)) editLayer((layer) => layer.levels?.[i] && (layer.levels[i].value = level), { coalesce: `level:${i}:${selected}` });
+    const i = Number(target.id.slice(6)), level = inspector.readNumber(target.value);
+    if (Number.isFinite(level)) inspector.editLayer((layer) => layer.levels?.[i] && (layer.levels[i].value = level), { coalesce: `level:${i}:${selected}` });
     // (Coloring it: the band under them follows in place, the field kept as it's typed in.)
     const layer = layerById(selected), under = $("inspector").querySelector(".under-label");
     if (under && layer?.levels?.length) under.innerHTML = `<span class="sign" aria-hidden="true">&lt;</span><span class="vh">Under </span>${Math.min(...layer.levels.map((item) => item.value))}`;
@@ -7500,7 +7647,7 @@ $("inspector").addEventListener("input", () => delete $("inspector").dataset.pre
 // A level's field left: the levels drawn again as they are now (in their order, the band under them shown once one's named).
 $("inspector").addEventListener("focusout", (event) => {
   if (!/** @type {HTMLElement} */ (event.target).closest?.(".levels")) return;
-  afterPress(() => requestAnimationFrame(() => !$("inspector").querySelector(".levels")?.contains(document.activeElement) && renderInspector()));
+  inspector.afterPress(() => requestAnimationFrame(() => !$("inspector").querySelector(".levels")?.contains(document.activeElement) && inspector.renderInspector()));
 });
 $("inspector").addEventListener("keydown", (event) => {
   // A picker (pane, format, color) opens its menu on ↑↓, as a select does: the keys don't go on to the layers.
@@ -7511,31 +7658,33 @@ $("inspector").addEventListener("keydown", (event) => {
   }
   if (event.target.id !== "formula" || composing(event)) return;
   if (event.key === "Escape" && (!$("suggest").hidden || !$("formula-call").hidden)) {
-    suggest.controller?.abort();
-    suggest.away = assistKey();
-    showSuggestions([]);
+    inspector.suggest.controller?.abort();
+    inspector.suggest.away = inspector.assistKey();
+    inspector.showSuggestions([]);
     event.preventDefault();
     event.stopPropagation();
   } else if (!$("suggest").hidden) {
-    const n = suggest.items.length, down = event.key === "ArrowDown";
-    if (down || event.key === "ArrowUp") chooseSuggestion(suggest.active < 0 ? (down ? 0 : n - 1) : (suggest.active + (down ? 1 : -1) + n) % n);
-    else if ((event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) && suggest.active >= 0) acceptSuggestion();
-    else if (event.key === "Enter" && !event.shiftKey) leaveFormula(event.target, true);
+    const n = inspector.suggest.items.length, down = event.key === "ArrowDown";
+    if (down || event.key === "ArrowUp") inspector.chooseSuggestion(inspector.suggest.active < 0 ? (down ? 0 : n - 1) : (inspector.suggest.active + (down ? 1 : -1) + n) % n);
+    else if ((event.key === "Enter" || (event.key === "Tab" && !event.shiftKey)) && inspector.suggest.active >= 0) inspector.acceptSuggestion();
+    else if (event.key === "Enter" && !event.shiftKey) inspector.leaveFormula(event.target, true);
     else return;
     event.preventDefault();
     event.stopPropagation();
   } else if ((event.key === "Enter" && !event.shiftKey) || event.key === "Escape") {
     // ↵ is done, as in every field (⇧↵ a line), once it reads; esc too, as typed, or as it last read (⌘Z takes it back).
     event.preventDefault();
-    leaveFormula(event.target, event.key === "Enter");
+    inspector.leaveFormula(event.target, event.key === "Enter");
   }
 });
 $("inspector").addEventListener("focusin", (event) => {
   if (event.target.id !== "formula") return;
-  suggestHere();
+  inspector.suggestHere();
 });
-document.addEventListener("selectionchange", () => document.activeElement?.id === "formula" && suggestHere());
-$("inspector").addEventListener("focusout", (event) => event.target.id === "formula" && dropSuggestions());
+withRest(() => {
+  document.addEventListener("selectionchange", () => document.activeElement?.id === "formula" && inspector.suggestHere());
+});
+$("inspector").addEventListener("focusout", (event) => event.target.id === "formula" && inspector.dropSuggestions());
 $("inspector").addEventListener("scroll", (event) => {
   if (event.target.id === "formula") $("formula-mirror").scrollTop = event.target.scrollTop;
 }, true);
@@ -7544,105 +7693,105 @@ $("inspector").addEventListener("mousedown", (event) => {
   const option = closest(event, "[data-suggest]");
   if (!option) return;
   event.preventDefault();
-  acceptSuggestion(Number(option.dataset.suggest));
+  inspector.acceptSuggestion(Number(option.dataset.suggest));
 });
 $("inspector").addEventListener("click", (event) => {
   const button = closest(event, "button");
   if (!button) return;
   const { type, dash, shape, fill, solid, hollow, place, side, priceLine, outline, fit, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
   const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
-  if (index) switchInterval(index);
+  if (index) menus.switchInterval(index);
   // (A gradient's color pressed by a pointer: the one nearest the press, taken as it went down (see the bar's
   // pointerdown), not the one whose reach is on top.)
-  else if (slot) (button.matches(".gradient-stop") && event.detail) || colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
+  else if (slot) (button.matches(".gradient-stop") && event.detail) || inspector.colorSlot.set(`${chart.id}:${selected}`, slot), inspector.renderInspector();
   else if (source && paletteKey) {
     // (Auto is a color: its own, set now; Palette and Custom, where to pick one: shown. Several in hand, theirs.)
-    const layers = inHand();
-    colorSource.set(`${chart.id}:${layers.map((item) => item.id).join()}:${paletteKey}`, { source, color: source === "auto" ? undefined : sharedBy(layers, (item) => ownColor(item, paletteKey)) });
-    if (source === "auto") editLayer((item) => setColor(item, paletteKey, ""));
-    renderInspector();
-  } else if (pickColor && paletteKey) editLayer((item) => setColor(item, paletteKey, pickColor));
-  else if (colorSelect) underColorMenu(button);
+    const layers = inspector.inHand();
+    inspector.colorSource.set(`${chart.id}:${layers.map((item) => item.id).join()}:${paletteKey}`, { source, color: source === "auto" ? undefined : inspector.sharedBy(layers, (item) => inspector.ownColor(item, paletteKey)) });
+    if (source === "auto") inspector.editLayer((item) => inspector.setColor(item, paletteKey, ""));
+    inspector.renderInspector();
+  } else if (pickColor && paletteKey) inspector.editLayer((item) => inspector.setColor(item, paletteKey, pickColor));
+  else if (colorSelect) inspector.underColorMenu(button);
   else if (act !== undefined) {
-    const row = layerActions(selected, "panel")[Number(act)], at = chart.layers.findIndex((layer) => layer.id === selected);
+    const row = inspector.layerActions(selected, "panel")[Number(act)], at = chart.layers.findIndex((layer) => layer.id === selected);
     if (!row) return;
     if (row.disabled) return notice(row.disabled);
-    if (row.page) return void ((page) => menuOf(button, page.options?.() ?? page.rows()))(row.page());
+    if (row.page) return void ((page) => menus.menuOf(button, page.options?.() ?? page.rows()))(row.page());
     row.run?.();
     // (Removed: the focus on the row in its place, or the way to add one.)
     if (row.key === "remove") (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? /** @type {HTMLElement | null} */ (document.querySelector("#empty [data-action='add-series']")))?.focus();
   }
-  else if (action === "pane-menu") paneMenu(button, inHand().map((layer) => layer.id), () => refocus("#pane"));
+  else if (action === "pane-menu") inspector.paneMenu(button, inspector.inHand().map((layer) => layer.id), () => presetsEdit.refocus("#pane"));
   // (A gradient's: a color added, one removed, one ready made (its menu), reversed, relative to all of history or up to each date.)
   else if ((action === "gradient-add" || button.dataset.stopRemove) && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
-  else if (action === "gradient-add") gradientEdit((item) => addStop(item), true);
-  else if (button.dataset.stopRemove) gradientEdit((item) => removeStop(item, Number(button.dataset.stopRemove)), true);
-  else if (action === "gradient-ready") menuOf(button, /** @type {any} */ (readyPage(selected).options?.() ?? []));
-  else if (action === "gradient-reverse") reverseGradient(selected), refocus('#inspector [data-action="gradient-reverse"]');
-  else if (button.dataset.gradientTo !== undefined) editLayer((item) => (item.upToDate = button.dataset.gradientTo ? true : undefined));
+  else if (action === "gradient-add") inspector.gradientEdit((item) => inspector.addStop(item), true);
+  else if (button.dataset.stopRemove) inspector.gradientEdit((item) => inspector.removeStop(item, Number(button.dataset.stopRemove)), true);
+  else if (action === "gradient-ready") menus.menuOf(button, /** @type {any} */ (inspector.readyPage(selected).options?.() ?? []));
+  else if (action === "gradient-reverse") inspector.reverseGradient(selected), presetsEdit.refocus('#inspector [data-action="gradient-reverse"]');
+  else if (button.dataset.gradientTo !== undefined) inspector.editLayer((item) => (item.upToDate = button.dataset.gradientTo ? true : undefined));
   // (A heatmap's holders or density: its page's choices, see heatRows; its measure or weight, one of its tabs.)
-  else if (action === "heat-menu") ((row) => (row?.disabled ? notice(row.disabled) : row?.page && ((page) => menuOf(button, page.options?.() ?? page.rows()))(row.page())))(heatRows(selected).find((row) => row.key === button.dataset.heat));
-  else if (button.dataset.heatSet) editLayer((item) => {
+  else if (action === "heat-menu") ((row) => (row?.disabled ? notice(row.disabled) : row?.page && ((page) => menus.menuOf(button, page.options?.() ?? page.rows()))(row.page())))(heatmaps.heatRows(selected).find((row) => row.key === button.dataset.heat));
+  else if (button.dataset.heatSet) inspector.editLayer((item) => {
     const value = button.dataset.value ?? "";
     if (button.dataset.heatSet === "measure") reshape(item, (one) => (one.measure = value === DEFAULT_MEASURE ? undefined : value));
     else if (button.dataset.heatSet === "view") item.cumulative = value === "cumulative" || undefined;
     else item.weight = value || undefined;
   });
-  else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") refMenu(button, selected);
-  else if (button.dataset.bubblesScale !== undefined) editLayer((layer) => (layer.scaleTo = button.dataset.bubblesScale === "all" ? "all" : undefined));
-  else if (button.id === "signal-times") noValues(selected) ? notice(noValues(selected)) : openPage(timesPage(selected));
-  else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
-  else if (action === "format-menu") formatMenu(button);
-  else if (action === "color-mode") menuOf(button, colorModeChoices(selected));
-  else if (action === "color-from") menuOf(button, fromChoices(selected));
+  else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") inspector.refMenu(button, selected);
+  else if (button.dataset.bubblesScale !== undefined) inspector.editLayer((layer) => (layer.scaleTo = button.dataset.bubblesScale === "all" ? "all" : undefined));
+  else if (button.id === "signal-times") noValues(selected) ? notice(noValues(selected)) : command.openPage(command.timesPage(selected));
+  else if (place) inspector.editLayer((layer) => (layer.place = place === "above" ? undefined : place));
+  else if (action === "format-menu") inspector.formatMenu(button);
+  else if (action === "color-mode") menus.menuOf(button, inspector.colorModeChoices(selected));
+  else if (action === "color-from") menus.menuOf(button, inspector.fromChoices(selected));
   else if (type && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
-  else if (type) editLayer((layer) => reshape(layer, (item) => (item.type = /** @type {Layer["type"]} */ (type))));
-  else if (button.dataset.cohortOf) toggleCohort(selected, button.dataset.cohortOf);
-  else if (button.dataset.cohortsIn || button.dataset.cohortsOut) button.getAttribute("aria-disabled") !== "true" && setCohorts(selected, /** @type {"holders" | "ages"} */ (button.dataset.cohortsIn ?? button.dataset.cohortsOut), Boolean(button.dataset.cohortsIn));
+  else if (type) inspector.editLayer((layer) => reshape(layer, (item) => (item.type = /** @type {Layer["type"]} */ (type))));
+  else if (button.dataset.cohortOf) heatmaps.toggleCohort(selected, button.dataset.cohortOf);
+  else if (button.dataset.cohortsIn || button.dataset.cohortsOut) button.getAttribute("aria-disabled") !== "true" && heatmaps.setCohorts(selected, /** @type {"holders" | "ages"} */ (button.dataset.cohortsIn ?? button.dataset.cohortsOut), Boolean(button.dataset.cohortsIn));
   else if (button.dataset.memberOf) {
     const member = button.dataset.memberOf;
-    editLayer((layer, doc) => (layer.from = fromOf(doc, toggleMember(doc, layer.from ?? [], member), layer.type)));
-    refocus(`#inspector [data-member-of="${CSS.escape(member)}"]`);
+    inspector.editLayer((layer, doc) => (layer.from = fromOf(doc, toggleMember(doc, layer.from ?? [], member), layer.type)));
+    presetsEdit.refocus(`#inspector [data-member-of="${CSS.escape(member)}"]`);
   }
-  else if (dash) editLayer((layer) => (layer.dash = Number(dash)));
-  else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
-  else if (fill) editLayer((layer) => (layer.fill = fill === "above" ? "above" : undefined));
-  else if (solid !== undefined) editLayer((layer) => (layer.solid = solid === "1" || undefined));
-  else if (hollow !== undefined) editLayer((layer) => (layer.hollow = hollow === "1" ? undefined : "none"));
-  else if (action === "add-level") addLevel();
-  else if (lineColor) lineMenu(button, lineColor, "color");
-  else if (lineDash) lineMenu(button, lineDash, "dash");
-  else if (levelMenu) menuOf(button, levelRows(selected, Number(levelMenu)));
+  else if (dash) inspector.editLayer((layer) => (layer.dash = Number(dash)));
+  else if (shape) inspector.editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
+  else if (fill) inspector.editLayer((layer) => (layer.fill = fill === "above" ? "above" : undefined));
+  else if (solid !== undefined) inspector.editLayer((layer) => (layer.solid = solid === "1" || undefined));
+  else if (hollow !== undefined) inspector.editLayer((layer) => (layer.hollow = hollow === "1" ? undefined : "none"));
+  else if (action === "add-level") inspector.addLevel();
+  else if (lineColor) inspector.lineMenu(button, lineColor, "color");
+  else if (lineDash) inspector.lineMenu(button, lineDash, "dash");
+  else if (levelMenu) menus.menuOf(button, inspector.levelRows(selected, Number(levelMenu)));
   else if (lineTag) {
     const layer = layerById(selected);
     // (No line, no value on the axis: nothing to turn on.)
     if (!layer || !lineAt(layer, lineTag)) return;
     // (Not to be had: why, said, as every control that can't be pressed says it (a finger has no tip).)
-    if (lineLook(layer, lineTag).line === false) return notice(TAG_NEEDS_LINE);
-    refocus(`[data-line-tag="${lineTag}"]`);
+    if (lineLook(layer, lineTag).line === false) return notice(inspector.TAG_NEEDS_LINE);
+    presetsEdit.refocus(`[data-line-tag="${lineTag}"]`);
     const on = !lineLook(layer, lineTag).tag;
-    setLineLook(selected, lineTag, "tag", on || undefined);
+    inspector.setLineLook(selected, lineTag, "tag", on || undefined);
     // (The panel isn't drawn again under a level's value being typed (Safari leaves the focus there): the button says it.)
     button.setAttribute("aria-pressed", String(on));
     button.dataset.tip = on ? "Its value on the axis" : "Show its value on the axis";
   }
-  else if (side) editLayer((layer) => (layer.side = side));
-  else if (priceLine) editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
-  else if (outline) editLayer((layer) => (layer.outline = outline === "1" || undefined));
-  else if (fit) editLayer((layer) => setFit(layer, fit));
-  else if (results) editLayer((layer) => (layer.results = results === "1" || undefined));
-  else if (insert) insertAtCaret(insert);
+  else if (side) inspector.editLayer((layer) => (layer.side = side));
+  else if (priceLine) inspector.editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
+  else if (outline) inspector.editLayer((layer) => (layer.outline = outline === "1" || undefined));
+  else if (fit) inspector.editLayer((layer) => inspector.setFit(layer, fit));
+  else if (results) inspector.editLayer((layer) => (layer.results = results === "1" || undefined));
+  else if (insert) inspector.insertAtCaret(insert);
   else if (reset) {
-    editLayer((layer) => DEFAULTS[reset].set(layer));
-    refocus(DEFAULTS[reset].focus);
+    inspector.editLayer((layer) => DEFAULTS[reset].set(layer));
+    presetsEdit.refocus(DEFAULTS[reset].focus);
   } else if (action === "deselect") deselect();
-  else if (action === "more") toggleDescription(button);
-  else if (action === "change-series") changeSeries(selected);
-  else if (action === "copy-name") copyName(layerById(selected)?.series ?? "");
+  else if (action === "more") inspector.toggleDescription(button);
+  else if (action === "change-series") inspector.changeSeries(selected);
+  else if (action === "copy-name") inspector.copyName(layerById(selected)?.series ?? "");
   else if (action === "replace") {
     const layer = layerById(selected);
     if (layer?.series) openPalette({ replace: layer.id, query: layer.series.replace(/_/g, " ") });
-  } else if (replace) replaceSeries(selected, replace);
+  } else if (replace) inspector.replaceSeries(selected, replace);
   else if (action === "retry") {
     const layer = layerById(selected);
     forget(layer?.series, chart.index);
@@ -7650,78 +7799,80 @@ $("inspector").addEventListener("click", (event) => {
     draw();
   }
 });
-document.addEventListener("contextmenu", (event) => {
-  // (By touch, a sidebar row's long press: its hold shows its menu, see onHold. Not a key's (⇧F10), a mouse's, nor
-  // a field's own.)
-  if (byTouch && closest(event, "#chart-list") && !typing(event.target)) return void event.preventDefault();
-  // (The browser's own, after the menu key opened a row's menu: that one's open.)
-  if (event.isTrusted && performance.now() - keyMenuAt < 500 && closest(event, "#chart-list")) return void event.preventDefault();
-  // (A row on the rail: its one menu, as pointing at it or pressing it shows (see railMenu).)
-  const railItem = onRail() && !closest(event, ".row-rename, .folder-rename") ? /** @type {HTMLElement | null} */ (closest(event, "#chart-list > *")?.querySelector(":scope > :is([data-open-chart], [data-open-preset], [data-folder-item], [data-section-item], [data-group-item])") ?? null) : null;
-  if (railItem) {
+withRest(() => {
+  document.addEventListener("contextmenu", (event) => {
+    // (By touch, a sidebar row's long press: its hold shows its menu, see onHold. Not a key's (⇧F10), a mouse's, nor
+    // a field's own.)
+    if (byTouch && closest(event, "#chart-list") && !typing(event.target)) return void event.preventDefault();
+    // (The browser's own, after the menu key opened a row's menu: that one's open.)
+    if (event.isTrusted && performance.now() - grid.keyMenuAt < 500 && closest(event, "#chart-list")) return void event.preventDefault();
+    // (A row on the rail: its one menu, as pointing at it or pressing it shows (see railMenu).)
+    const railItem = onRail() && !closest(event, ".row-rename, .folder-rename") ? /** @type {HTMLElement | null} */ (closest(event, "#chart-list > *")?.querySelector(":scope > :is([data-open-chart], [data-open-preset], [data-folder-item], [data-section-item], [data-group-item])") ?? null) : null;
+    if (railItem) {
+      event.preventDefault();
+      return railMenuKept(railItem);
+    }
+    const tile = closest(event, "[data-home-card]");
+    if (tile && !closest(event, ".tile-rename")) {
+      event.preventDefault();
+      // By touch, a long press picks the tile instead (above).
+      if (TOUCH) return;
+      return tileMenu(tile.dataset.homeCard, { x: event.clientX, y: event.clientY });
+    }
+    // (A preset's, as its ⋯.)
+    const presetAt = closest(event, "[data-preset], [data-preset-row]");
+    if (presetAt) {
+      event.preventDefault();
+      if (TOUCH && presetAt.matches("[data-preset]")) return;
+      const more = /** @type {HTMLElement} */ (presetAt.querySelector("[data-preset-menu]"));
+      return presetsEdit.openPresetMenu(more, { x: event.clientX, y: event.clientY });
+    }
+    const groupAt = closest(event, "#chart-list [data-group]");
+    if (groupAt) {
+      event.preventDefault();
+      return menus.menuOf(/** @type {HTMLElement} */ (groupAt.querySelector(railed() ? ".list-head-name" : "[data-group-menu]")), grid.groupRows(/** @type {Group} */ (groupAt.dataset.group)), { x: event.clientX, y: event.clientY });
+    }
+    const sectionRow = closest(event, "[data-section-row]");
+    if (sectionRow) {
+      event.preventDefault();
+      return menus.menuOf(/** @type {HTMLElement} */ (sectionRow.querySelector(railed() ? ".folder-item" : "[data-section-menu]")), grid.sectionRows(/** @type {string} */ (sectionRow.dataset.sectionRow)), { x: event.clientX, y: event.clientY });
+    }
+    const folderRow = closest(event, "[data-folder-row], [data-grid-folder]");
+    if (folderRow && !closest(event, ".folder-rename")) {
+      event.preventDefault();
+      // (Yours, all of them: no menu of its own.)
+      // (Its ⋯, out of sight on the rail: the row it's on there.)
+      const more = /** @type {HTMLElement | null} */ (folderRow.querySelector("[data-folder-menu]"));
+      return more ? grid.folderActions(railed() && folderRow.matches("[data-folder-row]") ? /** @type {HTMLElement} */ (folderRow.querySelector(".folder-item")) : more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY }) : undefined;
+    }
+    const previewRow = closest(event, "[data-preview-row]:not(:has(.row-rename))");
+    const previewed = previewRow && chartById(/** @type {string} */ (/** @type {HTMLElement} */ (previewRow).dataset.previewRow));
+    if (previewRow && previewed?.layers.length) {
+      event.preventDefault();
+      return grid.chartMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), previewed.id, { x: event.clientX, y: event.clientY });
+    }
+    const chartRow = closest(event, "[data-chart-row]:not(:has(.row-rename))");
+    const layerRow = closest(event, ".layer-row[data-layer]");
+    const paneHead = closest(event, ".pane-head");
+    if (paneHead) {
+      event.preventDefault();
+      const more = /** @type {HTMLElement} */ (paneHead.querySelector("[data-pane-menu]"));
+      return presetsEdit.paneActions(more, /** @type {string} */ (more.dataset.paneMenu), { x: event.clientX, y: event.clientY });
+    }
+    if (!chartRow && !layerRow) return;
     event.preventDefault();
-    return railMenuKept(railItem);
-  }
-  const tile = closest(event, "[data-home-card]");
-  if (tile && !closest(event, ".tile-rename")) {
-    event.preventDefault();
-    // By touch, a long press picks the tile instead (above).
-    if (TOUCH) return;
-    return tileMenu(tile.dataset.homeCard, { x: event.clientX, y: event.clientY });
-  }
-  // (A preset's, as its ⋯.)
-  const presetAt = closest(event, "[data-preset], [data-preset-row]");
-  if (presetAt) {
-    event.preventDefault();
-    if (TOUCH && presetAt.matches("[data-preset]")) return;
-    const more = /** @type {HTMLElement} */ (presetAt.querySelector("[data-preset-menu]"));
-    return openPresetMenu(more, { x: event.clientX, y: event.clientY });
-  }
-  const groupAt = closest(event, "#chart-list [data-group]");
-  if (groupAt) {
-    event.preventDefault();
-    return menuOf(/** @type {HTMLElement} */ (groupAt.querySelector(railed() ? ".list-head-name" : "[data-group-menu]")), groupRows(/** @type {Group} */ (groupAt.dataset.group)), { x: event.clientX, y: event.clientY });
-  }
-  const sectionRow = closest(event, "[data-section-row]");
-  if (sectionRow) {
-    event.preventDefault();
-    return menuOf(/** @type {HTMLElement} */ (sectionRow.querySelector(railed() ? ".folder-item" : "[data-section-menu]")), sectionRows(/** @type {string} */ (sectionRow.dataset.sectionRow)), { x: event.clientX, y: event.clientY });
-  }
-  const folderRow = closest(event, "[data-folder-row], [data-grid-folder]");
-  if (folderRow && !closest(event, ".folder-rename")) {
-    event.preventDefault();
-    // (Yours, all of them: no menu of its own.)
-    // (Its ⋯, out of sight on the rail: the row it's on there.)
-    const more = /** @type {HTMLElement | null} */ (folderRow.querySelector("[data-folder-menu]"));
-    return more ? folderActions(railed() && folderRow.matches("[data-folder-row]") ? /** @type {HTMLElement} */ (folderRow.querySelector(".folder-item")) : more, /** @type {string} */ (more.dataset.folderMenu), { x: event.clientX, y: event.clientY }) : undefined;
-  }
-  const previewRow = closest(event, "[data-preview-row]:not(:has(.row-rename))");
-  const previewed = previewRow && chartById(/** @type {string} */ (/** @type {HTMLElement} */ (previewRow).dataset.previewRow));
-  if (previewRow && previewed?.layers.length) {
-    event.preventDefault();
-    return chartMenu(/** @type {HTMLElement} */ (previewRow.querySelector("[data-open-chart]")), previewed.id, { x: event.clientX, y: event.clientY });
-  }
-  const chartRow = closest(event, "[data-chart-row]:not(:has(.row-rename))");
-  const layerRow = closest(event, ".layer-row[data-layer]");
-  const paneHead = closest(event, ".pane-head");
-  if (paneHead) {
-    event.preventDefault();
-    const more = /** @type {HTMLElement} */ (paneHead.querySelector("[data-pane-menu]"));
-    return paneActions(more, /** @type {string} */ (more.dataset.paneMenu), { x: event.clientX, y: event.clientY });
-  }
-  if (!chartRow && !layerRow) return;
-  event.preventDefault();
-  const point = { x: event.clientX, y: event.clientY };
-  if (chartRow) chartMenu(/** @type {HTMLElement} */ (chartRow.querySelector("[data-open-chart]")), /** @type {string} */ (chartRow.dataset.chartRow), point);
-  // (By touch, a long press picks the row instead: see dragToReorder.)
-  else if (TOUCH || !layerRow) return;
-  // (On a picked row, it acts on every one picked; on another, on it alone: the picks stay as they are.)
-  else if (layerPicks.has(/** @type {string} */ (layerRow.dataset.layer))) layersMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), point);
-  else {
-    layerMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), /** @type {string} */ (layerRow.dataset.layer), point);
-    // (On it alone, beside picks: outlined, so it's clear which.)
-    if (layerPicks.size && !$("menu").hidden) outlineMenuTarget(layerRow);
-  }
+    const point = { x: event.clientX, y: event.clientY };
+    if (chartRow) grid.chartMenu(/** @type {HTMLElement} */ (chartRow.querySelector("[data-open-chart]")), /** @type {string} */ (chartRow.dataset.chartRow), point);
+    // (By touch, a long press picks the row instead: see dragToReorder.)
+    else if (TOUCH || !layerRow) return;
+    // (On a picked row, it acts on every one picked; on another, on it alone: the picks stay as they are.)
+    else if (layerPicks.has(/** @type {string} */ (layerRow.dataset.layer))) inspector.layersMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), point);
+    else {
+      inspector.layerMenu(/** @type {HTMLElement} */ (layerRow.querySelector("[data-select]")), /** @type {string} */ (layerRow.dataset.layer), point);
+      // (On it alone, beside picks: outlined, so it's clear which.)
+      if (layerPicks.size && !$("menu").hidden) menus.outlineMenuTarget(layerRow);
+    }
+  });
 });
 
 // ── Adding layers ─────────────────────────────────────────────────────────
@@ -7735,8 +7886,8 @@ const STACKED_ONLY = `A chart holds up to ${MAX_PANES} panes, and the last is a 
 function comparePeriods(id, which, over = false) {
   const layer = layerById(id);
   if (!layer) return;
-  const periods = periodsOf(layer, which, over), what = which === "cycles" ? "halving cycles" : "years";
-  if (!periods.length) return void notice(overShort(which));
+  const periods = inspector.periodsOf(layer, which, over), what = which === "cycles" ? "halving cycles" : "years";
+  if (!periods.length) return void notice(inspector.overShort(which));
   if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the ${what} need one of their own`);
   const unfit = unfitHere([periods[0].formula]);
   if (unfit) return void notice(unfit);
@@ -7754,9 +7905,9 @@ function comparePeriods(id, which, over = false) {
   // (Once they're drawn, all of history in view, the first cycle from its start: the view moved there, not its
   // range. An edit since (an undo), not.)
   const go = ++dateGoes, at = revision;
-  const drawn = () => revision === at && (!settled() ? afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
-  afterDrawn(go, drawn);
-  toast(over ? `Added ${labelOf(layer)}'s ${what} over each other: each over the ${periods.length - 1} before it` : `Added ${labelOf(layer)}'s ${periods.length} ${what}, each from its start`, editAdded(first));
+  const drawn = () => revision === at && (!settled() ? command.afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
+  command.afterDrawn(go, drawn);
+  toast(over ? `Added ${labelOf(layer)}'s ${what} over each other: each over the ${periods.length - 1} before it` : `Added ${labelOf(layer)}'s ${periods.length} ${what}, each from its start`, inspector.editAdded(first));
 }
 
 // ── Series search: bitview.space's, on this machine ───────────────────────
@@ -7770,7 +7921,7 @@ function comparePeriods(id, which, over = false) {
  * Whenever: no clock decides it.
  */
 let putAway = /** @type {any} */ (null);
-const putAside = (anywhere = false) => (putAway = { chart: chart.id, home, browsing: palette.op.kind === "browse", anywhere, state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
+const putAside = (anywhere = false) => (putAway = { chart: chart.id, home, browsing: command.palette.op.kind === "browse", anywhere, state: { path: command.palette.path.slice(), pages: command.palette.pages, root: command.palette.root, query: command.palette.query, landOn: command.palette.items[command.palette.active]?.key ?? null } });
 /** Whether ⌘K is being put away (esc, its close buttons, a click beside it), not closed by what it ran. */
 let dismissing = false;
 /** ⌘K put away: at once (for what follows), or `leaving`, by the person (see leave). */
@@ -7778,18 +7929,18 @@ function dismissPalette(leaving = false) {
   dismissing = true;
   putAside();
   // (Quick Look in it put away with it, as it starts.)
-  if (leaving) quickHide(), leave($("palette"));
+  if (leaving) quickHide(), grid.leave($("palette"));
   else $("palette").hidePopover();
 }
 $("palette").addEventListener("cancel", () => ((dismissing = true), putAside()));
 // (Closed by a series it added, or a preset it opened (for wherever the next opens): where it was kept.)
 onClosed($("palette"), () => {
-  if (!dismissing && !isOpen($("palette")) && (presetPicked() || seriesPicked())) putAside(presetPicked());
+  if (!dismissing && !isOpen($("palette")) && (command.presetPicked() || command.seriesPicked())) putAside(command.presetPicked());
   dismissing = false;
   // (A page left as it was when closed: what it began taken back, and gone from where ⌘K comes back to. Open again by
   // then (a row that closes it and opens a page, New folder's), the pages are the new ones: see openPalette.)
-  const left = isOpen($("palette")) ? -1 : palette.pages.findIndex((page) => page.left);
-  if (left >= 0) leavePages(left);
+  const left = isOpen($("palette")) ? -1 : command.palette.pages.findIndex((page) => page.left);
+  if (left >= 0) command.leavePages(left);
 });
 /** Whether ⌘K was opened by Home's search, to be on it (see placeOnHome); its arrivals there, counted (see openPalette). */
 let paletteOnField = false, paletteArrivals = 0;
@@ -7801,17 +7952,17 @@ let paletteOnField = false, paletteArrivals = 0;
 const keepOnHome = () => {
   if (!isOpen($("palette"))) return;
   const was = $("palette").getBoundingClientRect();
-  placeOnHome();
+  command.placeOnHome();
   const now = $("palette").getBoundingClientRect();
   if (now.x === was.x && now.y === was.y && now.width === was.width && now.height === was.height) return;
-  if (ownerNow()?.closest("#palette")) paletteMenuGone();
+  if (menus.ownerNow()?.closest("#palette")) command.paletteMenuGone();
   trailDrawn = "";
-  renderPath();
+  command.renderPath();
 };
 new ResizeObserver(keepOnHome).observe($("home"));
-new MutationObserver(() => underHome()).observe($("palette"), { attributes: true, attributeFilter: ["data-on-home", "data-leaving", "data-arriving"] });
+new MutationObserver(() => command.underHome()).observe($("palette"), { attributes: true, attributeFilter: ["data-on-home", "data-leaving", "data-arriving"] });
 // (Opened or closed, said as it is, in the same frame.)
-$("palette").addEventListener("beforetoggle", (event) => underHome(/** @type {ToggleEvent} */ (event).newState === "open"));
+$("palette").addEventListener("beforetoggle", (event) => command.underHome(/** @type {ToggleEvent} */ (event).newState === "open"));
 viewport.addEventListener("resize", keepOnHome);
 viewport.addEventListener("scroll", keepOnHome);
 /**
@@ -7825,13 +7976,13 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   const spot = resume && putAway?.browsing && (putAway.anywhere || (putAway.chart === chart.id && putAway.home === home)) ? putAway.state : null;
   putAway = null;
   countSaidFor = "";
-  hideMenu();
+  menus.hideMenu();
   // Opened afresh, it starts at the search (or where adding a series last added from, on this chart).
-  const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
-  if (!spot) leavePages(0);
-  Object.assign(palette, spot ?? { pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
+  const back = add && !query && command.addedFrom?.chart === chart.id ? command.addedFrom : null;
+  if (!spot) command.leavePages(0);
+  Object.assign(command.palette, spot ?? { pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
   paletteShown = null;
-  palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into, bubbles } : { kind: "browse" };
+  command.palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into, bubbles } : { kind: "browse" };
   const dialog = $("palette"), input = $("palette-input");
   if (!isOpen(dialog)) (trailDrawn = ""), dialog.removeAttribute("data-half");
   // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped (the Search tab too: a keyboard
@@ -7839,19 +7990,19 @@ function openPalette({ add = false, replace = /** @type {string | null} */ (null
   // once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
   const keys = !TOUCH || byKeys || typing;
   // (Opened again as it leaves: it stays, put away no more.)
-  if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
+  if (dialog.dataset.leaving) (dismissing = false), grid.arrive(dialog);
   // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
-  if (!isOpen(dialog)) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced());
+  if (!isOpen(dialog)) (paletteOnField = onField), command.placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced());
   // (Its second frame; frames not running (a tab put away as it opened), a moment on all the same: never left unseen.)
   // (This arrival's alone: ⌘K closed and opened again meanwhile, the next one's its own.)
   if (dialog.hasAttribute("data-arriving")) ((arrived) => (requestAnimationFrame(() => requestAnimationFrame(arrived)), setTimeout(arrived, 100)))(((arrival) => () => arrival === paletteArrivals && dialog.removeAttribute("data-arriving"))(++paletteArrivals));
-  if (!isOpen(dialog)) (input.inert = !keys), showDialog(dialog), (input.inert = false), !keys && dialog.focus();
+  if (!isOpen(dialog)) (input.inert = !keys), grid.showDialog(dialog), (input.inert = false), !keys && dialog.focus();
   if (typing && TOUCH) input.focus();
   // (Its series, those by block only said so, and how many there are: the catalog indexed the rest of the way first.)
   indexCatalog();
-  applyScope();
-  input.value = palette.query;
-  paletteKeys(true);
+  command.applyScope();
+  input.value = command.palette.query;
+  command.paletteKeys(true);
   showPalette();
 }
 // (By touch, ⌘K itself can have the focus, not its field: no keyboard till it's tapped.)
@@ -7860,16 +8011,17 @@ if (TOUCH) $("palette").tabIndex = -1;
 let byKeys = false;
 /** Whether the last thing done was a finger's (a mouse on a touch device isn't). */
 let byTouch = false;
-addEventListener("keydown", (event) => ((byKeys = true), (byTouch = false), TOUCH && keyboardKey(event) && keyed(true)), true);
+addEventListener("keydown", (event) => ((byKeys = true), (byTouch = false), TOUCH && command.keyboardKey(event) && command.keyed(true)), true);
 // (A touch heard at all, as WebKit needs to show a control pressed, :active, under a finger.)
 addEventListener("touchstart", () => {}, { passive: true });
-addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch"), keyed(false)), true);
-addEventListener("resize", () => isOpen($("palette")) && ((trailDrawn = ""), renderPath()));
+// (A press isn't held for the rest: till it's in, there's no ⌘K to tell.)
+addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch"), command?.keyed(false)), true);
+addEventListener("resize", () => isOpen($("palette")) && ((trailDrawn = ""), command.renderPath()));
 $("palette-scope").addEventListener("click", () => {
-  if (palette.path.length) {
-    goUp(0);
-    paletteKeys();
-  } else if (palette.adding || palette.formula) leaveScope();
+  if (command.palette.path.length) {
+    command.goUp(0);
+    command.paletteKeys();
+  } else if (command.palette.adding || command.palette.formula) command.leaveScope();
 });
 /** The trail as last drawn (drawn again only when it changes, or the window does). */
 let trailDrawn = "";
@@ -7896,19 +8048,19 @@ function drawTrail(crumbs, current) {
 function showPalette() {
   // (Its list written anew (typed into, opened, a page turned): its row lit as keys light it, till the pointer moves.)
   pointedOption = false;
-  const query = palette.query.trim();
-  palette.pending = null;
-  palette.controller?.abort();
+  const query = command.palette.query.trim();
+  command.palette.pending = null;
+  command.palette.controller?.abort();
   $("palette-glow").hidden = true;
-  renderPath();
-  if (palette.formula) return showFormula();
-  if (palette.pages.length) return showPage();
+  command.renderPath();
+  if (command.palette.formula) return command.showFormula();
+  if (command.palette.pages.length) return command.showPage();
   // In a folder, a search searches it first, at once (the crumbs say which), then every series, as the search answers:
   // one list, one ↵.
-  if (query && palette.path.length) {
+  if (query && command.palette.path.length) {
     const words = query.toLowerCase().split(/[\s_]+/).filter(Boolean);
     const found = new Set();
-    const stack = [[nodeAt(palette.path), ""]];
+    const stack = [[nodeAt(command.palette.path), ""]];
     while (stack.length && found.size < 200) {
       const [node, keys] = /** @type {[any, string]} */ (stack.pop());
       if (isLeaf(node)) {
@@ -7916,56 +8068,56 @@ function showPalette() {
       } else if (node && typeof node === "object") for (const key of Object.keys(node).reverse()) stack.push([aside(node, key), `${keys} ${humanizeKey(key)}`]);
     }
     const here = [...found].map((name) => ({ kind: "series", key: name, name, group: "In this folder" }));
-    palette.items = here;
-    palette.active = 0;
-    palette.moved = false;
+    command.palette.items = here;
+    command.palette.active = 0;
+    command.palette.moved = false;
     // (Searching, said by the glow, as the whole search says it, till every series is in; failing, said too.)
     $("palette-glow").hidden = false;
     renderPalette(true);
-    return searchSeries(query, (names) => [...here, ...(names ?? []).filter((name) => isSeriesName(name) && !found.has(name)).map((name) => ({ kind: "series", key: name, name, group: "Every series" }))]);
+    return command.searchSeries(query, (names) => [...here, ...(names ?? []).filter((name) => isSeriesName(name) && !found.has(name)).map((name) => ({ kind: "series", key: name, name, group: "Every series" }))]);
   }
   if (!query) {
-    const node = nodeAt(palette.path);
-    const folder = (palette.path.length ? Object.keys(node ?? {}) : catalogTops(node)).map((key) => {
+    const node = nodeAt(command.palette.path);
+    const folder = (command.palette.path.length ? Object.keys(node ?? {}) : command.catalogTops(node)).map((key) => {
       const child = node[key];
-      const group = palette.path.length ? "" : "Catalog";
-      return isLeaf(child) ? { kind: "series", key, name: child.name, group } : { kind: "folder", key, path: [...palette.path, key], group };
+      const group = command.palette.path.length ? "" : "Catalog";
+      return isLeaf(child) ? { kind: "series", key, name: child.name, group } : { kind: "folder", key, path: [...command.palette.path, key], group };
     }).filter((item) => item.kind === "series" || (node[item.key] && typeof node[item.key] === "object"));
-    const root = !palette.path.length;
-    const browsing = palette.adding || Boolean(palette.replacing) || !root;
+    const root = !command.palette.path.length;
+    const browsing = command.palette.adding || Boolean(command.palette.replacing) || !root;
     // ⌘K opens on where you were (the charts you last opened, not this one) and what to do; adding a series opens
     // on the series you last added, then the catalog.
-    const lastCharts = root ? recentCharts().filter((item) => home || item.id !== chart.id).slice(0, 3).map((item) => ({ ...recentRow(item), group: "Recent" })) : [];
+    const lastCharts = root ? recentCharts().filter((item) => home || item.id !== chart.id).slice(0, 3).map((item) => ({ ...command.recentRow(item), group: "Recent" })) : [];
     const recents = root && browsing ? recent().map((name) => ({ kind: "series", key: name, name, group: "Recent series" })) : [];
     const suggestions = root && browsing ? SUGGESTED.filter((name) => !gone.has(name) && !recents.some((item) => item.name === name)).map((name) => ({ kind: "series", key: name, name, group: "Suggested" })) : [];
-    const suggested = root ? commands().filter((command) => command.suggested).map(commandItem) : [];
+    const suggested = root ? command.commands().filter((command) => command.suggested).map(command.commandItem) : [];
     // What you pick most from here, lately: three, a step closer. (Named for what orders them: "Recently used" read as
     // "Recent" again, above it.)
-    const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingsNow().rows, ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
+    const usual = root && !browsing ? command.byUse([...command.commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...command.browseRows(), ...(home ? [] : [...command.settingsNow().rows, ...chart.layers.map(command.layerRow), ...chart.panes.map((pane, i) => command.paneRow(pane.id, i))])].filter((item) => command.useScore(item.key) > 0 && !command.dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
     const fresh = (item) => !usual.some((other) => other.key === item.key);
-    const others = root && palette.adding ? otherLayerRows() : [];
+    const others = root && command.palette.adding ? command.otherLayerRows() : [];
     // (Adding: what else a layer can be, first, a few rows in sight on any screen; then the series, what's added most,
     // then the catalog.)
-    palette.items = browsing ? [...others, ...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
+    command.palette.items = browsing ? [...others, ...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...command.browseRows().filter(fresh), ...suggested.filter(fresh)];
     // Coming back up, the row you came from stays highlighted; going in, the first.
-    palette.active = palette.items.findIndex((item) => (item.kind !== "series" || palette.path.length > 0) && item.key === palette.landOn);
+    command.palette.active = command.palette.items.findIndex((item) => (item.kind !== "series" || command.palette.path.length > 0) && item.key === command.palette.landOn);
     // (Adding with what else a layer can be first: it opens on the first, its list at its top, the kinds in sight;
     // else on the first series not in the chart yet: ↵ adds something new.)
-    if (palette.active < 0) palette.active = Math.max(0, palette.adding && !home && !others.length ? palette.items.findIndex((item) => item.kind === "series" && actionable(item) && !chart.layers.some((layer) => layer.series === item.name)) : 0);
-    palette.landOn = null;
+    if (command.palette.active < 0) command.palette.active = Math.max(0, command.palette.adding && !home && !others.length ? command.palette.items.findIndex((item) => item.kind === "series" && command.actionable(item) && !chart.layers.some((layer) => layer.series === item.name)) : 0);
+    command.palette.landOn = null;
     renderPalette();
     return;
   }
   // Charts and commands match here; series in the browser's catalog index.
-  const words = typedWords(query);
+  const words = command.typedWords(query);
   // Adding or replacing a series, only series are found: nothing else is built, to be dropped later.
-  const everything = !palette.adding && !palette.replacing;
+  const everything = !command.palette.adding && !command.palette.replacing;
   // A command leads only when the first word typed starts a word of its name ("download", "share"); otherwise (a word
   // of its description alone) it follows the series, which is what people search for. One of many of a kind (an
   // interval) leads only by its own name ("weekly", "1w"); by the kind ("interval"), the page that has them all, the
   // one in effect checked, does.
-  const leads = (command) => ((own) => [...own.words, ...own.joins].some((word) => word.startsWith(words[0])))(textWords((command.follows ?? command.title).toLowerCase()));
-  const found = !everything ? [] : rank(commands().map(commandItem), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
+  const leads = (said) => ((own) => [...own.words, ...own.joins].some((word) => word.startsWith(words[0])))(command.textWords((said.follows ?? said.title).toLowerCase()));
+  const found = !everything ? [] : command.rank(command.commands().map(command.commandItem), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
   // (Of those leading, a title starting with it first, "delete" Delete this chart; an interval's by its own name
   // after; one that destroys, so, last.)
   const titled = (/** @type {Command} */ command) => command.title.toLowerCase().startsWith(words[0]), ahead = found.filter((item) => leads(item.command));
@@ -7973,93 +8125,95 @@ function showPalette() {
   // Charts that match come before the series: a chart's title is a few words, matched, it's what's looked for.
   // (A few; more, all of them a row away, on their page, searched as here: as many as it lists, `count`.)
   const allOf = (/** @type {any[]} */ list, /** @type {string} */ group, /** @type {string} */ what, /** @type {() => Page} */ page, count = list.length, most = Infinity) => [...list.slice(0, 4), ...(count > 4 ? [{ kind: "row", key: `all:${group}`, icon: ICONS.browse, label: `All ${grouped.format(count)}${count >= most ? "+" : ""} ${what}`, verb: "Open", group, page: () => Object.assign(page(), { query }) }] : [])];
-  const chartsFound = !everything ? [] : rank([...listedPreviews(), ...library.charts].map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words);
-  const charts = allOf(chartsFound.filter((item) => home || item.key !== chart.id), "Charts", "charts found", chartsPage, chartsFound.length);
+  const chartsFound = !everything ? [] : command.rank([...listedPreviews(), ...library.charts].map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), command.rowText, words);
+  const charts = allOf(chartsFound.filter((item) => home || item.key !== chart.id), "Charts", "charts found", command.chartsPage, chartsFound.length);
   // The presets (once read), after yours: a few that match; all of them on their own page.
   const matched = everything && presets ? presetsMatching(words, 60) : null;
-  const presetRows = matched ? allOf(matched.found.map((i) => ({ ...presetRow(i, true), group: presetsGroup(matched.partial) })), presetsGroup(matched.partial), "presets found", () => presetsPage([]), undefined, 60) : [];
+  const presetRows = matched ? allOf(matched.found.map((i) => ({ ...presetsEdit.presetRow(i, true), group: presetsEdit.presetsGroup(matched.partial) })), presetsEdit.presetsGroup(matched.partial), "presets found", () => presetsEdit.presetsPage([]), undefined, 60) : [];
   // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
   // actions, by what they're of and what they are ("price color", "mvrv base").
   // (The chart's settings, as kept while ⌘K's open: see settingsNow.)
-  const settings = everything && !home ? settingsNow().rows : [];
-  const own = !everything ? [] : home ? rank(browseRows(), rowText, words) : [
-    ...rank(browseRows(), rowText, words),
-    ...rank(chart.layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })), rowText, words),
-    ...rank(chart.panes.map((pane, i) => ({ ...paneRow(pane.id, i), group: "Panes" })), rowText, words),
+  const settings = everything && !home ? command.settingsNow().rows : [];
+  const own = !everything ? [] : home ? command.rank(command.browseRows(), command.rowText, words) : [
+    ...command.rank(command.browseRows(), command.rowText, words),
+    ...command.rank(chart.layers.map((layer) => ({ ...command.layerRow(layer), group: "Layers" })), command.rowText, words),
+    ...command.rank(chart.panes.map((pane, i) => ({ ...command.paneRow(pane.id, i), group: "Panes" })), command.rowText, words),
     // (A setting by a word of its own, not its owner's alone: "mvrv" is the layer's row, "mvrv color" its color; or
     // of one of its choices: "gradient", its Colors, opened on Gradient.)
     // (A slip in a choice's name finds it too: "dashde".)
-    ...((choices) => ((said) => rank(settings.filter((row) => words.some((typed) => typed.length > 1 && (fitScore(row.itself, [typed]) || fitScore(choices(row).said, [typed])))), said, words, said))((/** @type {any} */ row) => `${wayText(row)} ${choices(row).said}`).slice(0, 4).map((row) => {
+    ...((choices) => ((said) => command.rank(settings.filter((row) => words.some((typed) => typed.length > 1 && (command.fitScore(row.itself, [typed]) || command.fitScore(choices(row).said, [typed])))), said, words, said))((/** @type {any} */ row) => `${command.wayText(row)} ${choices(row).said}`).slice(0, 4).map((row) => {
       // (Landed on by the words that don't name the setting nor its owner: "price line dashed", on Dashed; the
       // one they fit best: "dashed", Dashed, not Long dashes. Said at its end, where its value is: found by it,
       // "histogram" on a layer's As bubbles on…, it says why it's there.)
-      const asked = words.filter((typed) => typed.length > 1 && !fitScore(wayText(row), [typed]));
-      const chosen = asked.length ? choices(row).choices.map((choice) => /** @type {[any, number]} */ ([choice, fitScore(choice.label ?? "", asked)])).reduce((best, next) => (next[1] > best[1] ? next : best), [null, 0])[0] : null;
-      return chosen?.key == null ? row : { ...row, aside: chosen.label ?? row.aside, page: () => ((next) => ((palette.landOn = String(chosen.key)), next))(row.page()) };
-    }))(settingChoices()),
+      const asked = words.filter((typed) => typed.length > 1 && !command.fitScore(command.wayText(row), [typed]));
+      const chosen = asked.length ? choices(row).choices.map((choice) => /** @type {[any, number]} */ ([choice, command.fitScore(choice.label ?? "", asked)])).reduce((best, next) => (next[1] > best[1] ? next : best), [null, 0])[0] : null;
+      return chosen?.key == null ? row : { ...row, aside: chosen.label ?? row.aside, page: () => ((next) => ((command.palette.landOn = String(chosen.key)), next))(row.page()) };
+    }))(command.settingChoices()),
   ];
   // A date ("go to 2021", or just "nov 2021"): going there, on top.
-  const span = everything && !home && chart.layers.length ? readDate(query.replace(/^go ?to\s+/i, "")) : null;
+  const span = everything && !home && chart.layers.length ? command.readDate(query.replace(/^go ?to\s+/i, "")) : null;
   // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
   // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
-  const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
-  const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
+  const asFormula = everything && !home && !span && command.isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
+  const dated = span && !command.outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => command.previewDate(panel, span) }] : [];
   // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "layers".)
-  const others = palette.adding && !palette.path.length ? rank(otherLayerRows(), rowText, words) : [];
+  const others = command.palette.adding && !command.palette.path.length ? command.rank(command.otherLayerRows(), command.rowText, words) : [];
   const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
   const local = [...leading, ...asFormula, ...dated, ...strong, ...own, ...charts, ...presetRows, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
-  palette.moved = false;
+  command.palette.moved = false;
   // What matched here, while the series are looked for: at once when bitview.space answers; on this machine with
   // the series, a frame or two on (or first, for a key on the list: see above).
   // Back from a page to this search, on the row that led there.
-  const landOn = palette.landOn;
-  palette.landOn = null;
+  const landOn = command.palette.landOn;
+  command.palette.landOn = null;
   const landing = (items) => Math.max(0, items.findIndex((item) => item.key === landOn));
   const searching = () => {
-    palette.pending = null;
-    palette.items = local;
-    palette.active = landing(local);
-    palette.moved = false;
+    command.palette.pending = null;
+    command.palette.items = local;
+    command.palette.active = landing(local);
+    command.palette.moved = false;
     $("palette-glow").hidden = false;
     renderPalette(true);
   };
   // (This machine's search answering within a frame or two: drawn once, with its series, then; meanwhile a key on the
   // list (↵ too) draws these first and goes on with them, a click or a hover on the last query's rows only draws
   // them: nothing's done to a list no longer typed. The search still building: these now, its series after.)
-  if (finder.ready) palette.pending = searching;
+  if (command.finder.ready) command.palette.pending = searching;
   else searching();
   // ("add price" is a search for price: ↵ adds it. The top result leads, or the row come back to.)
-  searchSeries(query.replace(/^add\s+(?=\S)/i, ""), (names) => {
+  command.searchSeries(query.replace(/^add\s+(?=\S)/i, ""), (names) => {
     if (!names) return [...local, ...more];
     // (Series named as typed, by the starts of their names' words: this chart's own rows, its three best, before them,
     // not a screen of them; unless the person's moved to a row already.)
     const typedParts = words.flatMap((typed) => typed.split("_")).filter(Boolean);
-    const seriesByName = !palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
+    const seriesByName = !command.palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
     // (A series typed whole, by its id as pasted from the API or by its name as listed, "thermo cap": that series
     // first, ↵ adds it; the rest where they'd be.)
     const whole = query.trim().toLowerCase().replace(/^add\s+(?=\S)/, "").replace(/\s+/g, " ");
     const exact = names.find((name) => isSeriesName(name) && (name === whole || humanize(name).toLowerCase() === whole));
     const series = names.filter((name) => isSeriesName(name) && name !== exact).map((name) => ({ kind: "series", key: name, name, group: exact ? "More series" : "Series" }));
     const rows = [...(exact ? [{ kind: "series", key: exact, name: exact, group: "Series" }] : []), ...leading, ...asFormula, ...dated, ...strong, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...series, ...trailing, ...more];
-    return rows.length || !everything ? rows : browseInstead();
+    return rows.length || !everything ? rows : command.browseInstead();
   }, landing);
 }
-document.addEventListener("selectionchange", () => {
-  const input = /** @type {HTMLInputElement} */ ($("palette-input"));
-  if (document.activeElement !== input || !palette.formula || !isOpen($("palette"))) return;
-  if (`${input.value} ${input.selectionStart} ${input.selectionEnd}` !== formulaAt) showFormula();
+withRest(() => {
+  document.addEventListener("selectionchange", () => {
+    const input = /** @type {HTMLInputElement} */ ($("palette-input"));
+    if (document.activeElement !== input || !command.palette.formula || !isOpen($("palette"))) return;
+    if (`${input.value} ${input.selectionStart} ${input.selectionEnd}` !== command.formulaAt) command.showFormula();
+  });
 });
 function renderPalette(pending = false, note = "") {
-  updateCallHelp();
-  const searching = Boolean(palette.query.trim());
+  inspector.updateCallHelp();
+  const searching = Boolean(command.palette.query.trim());
   const list = $("palette-list");
   const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escapeHtml(note)}</li>` : "";
-  palette.items = palette.items.filter((item) => ((palette.replacing || palette.adding) && !palette.pages.length ? item.kind === "series" || item.kind === "folder" || (palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
+  command.palette.items = command.palette.items.filter((item) => ((command.palette.replacing || command.palette.adding) && !command.palette.pages.length ? item.kind === "series" || item.kind === "folder" || (command.palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
   // (A menu by one of its rows (its actions, on Home; a held row's), gone with them: another may take its place.)
-  if (ownerNow()?.closest("#palette-list")) paletteMenuGone();
+  if (menus.ownerNow()?.closest("#palette-list")) command.paletteMenuGone();
   // (Nothing found: the list alone, across.)
-  $("palette").toggleAttribute("data-none", !palette.items.length && !pending);
-  if (!palette.items.length) {
+  $("palette").toggleAttribute("data-none", !command.palette.items.length && !pending);
+  if (!command.palette.items.length) {
     list.innerHTML = tail || `<li class="note no-results">${searching ? "Nothing matches. Try other words, or describe what a series measures." : "Nothing here."}</li>`;
     $("palette-input").removeAttribute("aria-activedescendant");
     $("palette-preview").innerHTML = "";
@@ -8070,32 +8224,32 @@ function renderPalette(pending = false, note = "") {
     updatePaletteKeys();
     return;
   }
-  palette.active = Math.min(palette.active, Math.max(0, palette.items.length - 1));
+  command.palette.active = Math.min(command.palette.active, Math.max(0, command.palette.items.length - 1));
   // (A list lit at its top, that row doing nothing: the first that does lit instead; one that destroys, it stays where
   // it is, unlit, for an arrow to light.)
   // (A page asking for a value keeps its row lit as it's typed: its preview stays.)
-  if (!palette.moved && palette.active === 0 && !palette.pages.at(-1)?.input && !litFirst(palette.items[0])) palette.active = actionable(palette.items[0]) ? -1 : palette.items.findIndex(litFirst);
+  if (!command.palette.moved && command.palette.active === 0 && !command.palette.pages.at(-1)?.input && !command.litFirst(command.palette.items[0])) command.palette.active = command.actionable(command.palette.items[0]) ? -1 : command.palette.items.findIndex(command.litFirst);
   // A new list starts at its top (set before it's written: after, it would lay the list out at once); the same list
   // drawn again (a row acted on that stays, ⌘↵, results arriving) stays where it was scrolled, as many rows drawn.
-  const same = paletteShown !== null && paletteShown.page === (palette.pages.at(-1) ?? null) && paletteShown.query === palette.query && paletteShown.path === palette.path.join("/");
+  const same = paletteShown !== null && paletteShown.page === (command.palette.pages.at(-1) ?? null) && paletteShown.query === command.palette.query && paletteShown.path === command.palette.path.join("/");
   const kept = same ? list.scrollTop : 0;
   if (!same) list.scrollTop = 0;
-  paletteShown = { page: palette.pages.at(-1) ?? null, query: palette.query, path: palette.path.join("/") };
+  paletteShown = { page: command.palette.pages.at(-1) ?? null, query: command.palette.query, path: command.palette.path.join("/") };
   // (Its first rows, as many as a page shows and more, the one highlighted among them: the rest as it's scrolled
   // or moved through.)
-  palette.drawn = Math.min(palette.items.length, Math.max(PALETTE_PAGE, palette.active + PALETTE_PAGE / 2, same ? palette.drawn ?? 0 : 0));
-  list.innerHTML = optionsHtml(0, palette.drawn) + (tail ? tail.replace("<li ", "<li data-tail ") : "");
-  forgetPaletteMarks();
-  seePaletteMarks(list);
+  command.palette.drawn = Math.min(command.palette.items.length, Math.max(command.PALETTE_PAGE, command.palette.active + command.PALETTE_PAGE / 2, same ? command.palette.drawn ?? 0 : 0));
+  list.innerHTML = command.optionsHtml(0, command.palette.drawn) + (tail ? tail.replace("<li ", "<li data-tail ") : "");
+  grid.forgetPaletteMarks();
+  grid.seePaletteMarks(list);
   if (same) list.scrollTop = kept;
   // (A list taller than its rows, as many more as fill it: seen, laid out, on the next frame.)
-  if (palette.drawn < palette.items.length) requestAnimationFrame(() => list.scrollHeight <= list.clientHeight + 400 && drawOptions(palette.drawn + PALETTE_PAGE));
+  if (command.palette.drawn < command.palette.items.length) requestAnimationFrame(() => list.scrollHeight <= list.clientHeight + 400 && command.drawOptions(command.palette.drawn + command.PALETTE_PAGE));
   drawKeys(list);
   // A row landed on (coming back up) is brought into view, with its neighbors, where it's out of sight (in sight, the
   // list stays at its top: a short one's first heading cut by a scroll to its middle, for nothing).
-  ((row) => row && ((box, seen) => box.bottom > seen.bottom || box.top < seen.top)(row.getBoundingClientRect(), list.getBoundingClientRect()) && row.scrollIntoView({ block: same ? "nearest" : "center" }))(palette.active > 0 ? $(`option-${palette.active}`) : null);
-  activeOption();
-  preview();
+  ((row) => row && ((box, seen) => box.bottom > seen.bottom || box.top < seen.top)(row.getBoundingClientRect(), list.getBoundingClientRect()) && row.scrollIntoView({ block: same ? "nearest" : "center" }))(command.palette.active > 0 ? $(`option-${command.palette.active}`) : null);
+  command.activeOption();
+  command.preview();
 }
 /** The list ⌘K shows (its page, its search, its place in the catalog), to tell it drawn again from a new one; none when it opens. @type {{ page: any, query: string, path: string } | null} */
 let paletteShown = null;
@@ -8103,53 +8257,55 @@ let paletteShown = null;
 let countSaidFor = "";
 /** The footer names what Enter does to the highlighted row. */
 function updatePaletteKeys() {
-  const item = palette.items[palette.active];
+  const item = command.palette.items[command.palette.active];
   // (A series this chart has already: another of it, said so.)
   const twin = !home && item?.kind === "series" && chart.layers.some((layer) => layer.series === item.name);
-  const adds = home ? "New chart with it" : twin ? "Add again" : palette.into === "new" && chart.layers.length ? "Add to a new pane" : "Add to chart";
-  $("palette-primary").textContent = !item ? adds : item.kind === "command" ? (item.command.run ? "Run" : "Close") : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : palette.replacing ? "Use instead" : adds;
+  const adds = home ? "New chart with it" : twin ? "Add again" : command.palette.into === "new" && chart.layers.length ? "Add to a new pane" : "Add to chart";
+  $("palette-primary").textContent = !item ? adds : item.kind === "command" ? (item.command.run ? "Run" : "Close") : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : command.palette.replacing ? "Use instead" : adds;
   if (item?.kind === "insert") $("palette-primary").textContent = item.recipe ? adds : "Insert";
   if (item?.kind === "row") $("palette-primary").textContent = item.verb ?? (item.page ? "Open" : "Run");
-  if (item?.kind === "formula" && palette.editing) $("palette-primary").textContent = "Apply";
-  $("palette-more").hidden = actionsFor(item).length < 2;
+  if (item?.kind === "formula" && command.palette.editing) $("palette-primary").textContent = "Apply";
+  $("palette-more").hidden = command.actionsFor(item).length < 2;
   // (A row saying how things are, or what's still wanting, has nothing for ↵ to do: esc says that.)
-  $("palette-enter").hidden = $("palette-close-sep").hidden = !item || (item.kind !== "formula" && item.kind !== "insert" && item.kind !== "folder" && item.kind !== "chart" && !actionable(item));
+  $("palette-enter").hidden = $("palette-close-sep").hidden = !item || (item.kind !== "formula" && item.kind !== "insert" && item.kind !== "folder" && item.kind !== "chart" && !command.actionable(item));
   // (How many it found, while searching: the series' search stops at its 80, then "80+"; else how many series there are,
   // where they're searched. Not on a page, nor writing a formula.)
-  $("palette-count").hidden = palette.pages.length > 0 || palette.formula;
+  $("palette-count").hidden = command.palette.pages.length > 0 || command.palette.formula;
   if (!$("palette-glow").hidden) $("palette-count").textContent = "";
-  else if (palette.query.trim()) {
+  else if (command.palette.query.trim()) {
     // (A row to look elsewhere (out of this folder, or to browse instead) isn't one found.)
-    const found = palette.items.filter((row) => !row.elsewhere).length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
+    const found = command.palette.items.filter((row) => !row.elsewhere).length, more = command.palette.items.filter((row) => row.kind === "series").length >= 80;
     $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
     // (Said for a screen reader as the search answers: once a search, not again as the highlight moves.)
-    const said = `${palette.query}|${$("palette-count").textContent}`;
+    const said = `${command.palette.query}|${$("palette-count").textContent}`;
     if (said !== countSaidFor && isOpen($("palette")) && !$("palette-count").hidden) (countSaidFor = said), say($("palette-count").textContent);
   } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
 }
 
 /** The highlight, one row on (round past the ends), or several (⇧: five, stopping at the ends). */
 function move(delta, scroll = true) {
-  if (!palette.items.length) return;
-  palette.moved = true;
-  const n = palette.items.length;
+  if (!command.palette.items.length) return;
+  command.palette.moved = true;
+  const n = command.palette.items.length;
   // (From none lit: as from before the first, ↑ from past the last.)
-  palette.active = stepIn(palette.active, delta, n, Math.abs(delta) === 1);
+  command.palette.active = stepIn(command.palette.active, delta, n, Math.abs(delta) === 1);
   // (Moved by the pointer (no scroll asked), lit as a pointer lights, gliding; else by keys, at once.)
   pointedOption = !scroll;
-  drawOptions(palette.active + PALETTE_PAGE / 2);
+  command.drawOptions(command.palette.active + command.PALETTE_PAGE / 2);
   $("palette-list").querySelector('[aria-selected="true"]')?.setAttribute("aria-selected", "false");
-  const row = $(`option-${palette.active}`);
+  const row = $(`option-${command.palette.active}`);
   row?.setAttribute("aria-selected", "true");
   // (The first of its group with its group's name: it says what the row is.)
   const head = row?.previousElementSibling;
   if (scroll && head?.classList.contains("group")) head.scrollIntoView({ block: "nearest" });
   if (scroll) row?.scrollIntoView({ block: "nearest" });
-  activeOption();
-  preview();
+  command.activeOption();
+  command.preview();
 }
 // (Out of a phone's size with ⌘K open, its pane beside the list shows: what it says, drawn.)
-phone.addEventListener("change", () => isOpen($("palette")) && !phone.matches && preview());
+withRest(() => {
+  phone.addEventListener("change", () => isOpen($("palette")) && !phone.matches && command.preview());
+});
 
 // ── A color looked at in ⌘K, on the chart itself ─────────────────────────
 
@@ -8193,7 +8349,7 @@ let used = /** @type {Record<string, { n: number, at: number }>} */ (Object.from
 function noteUse(key) {
   used[key] = { n: (used[key]?.n ?? 0) + 1, at: Date.now() };
   // The sixty that weigh most are kept.
-  used = Object.fromEntries(Object.entries(used).sort(([a], [b]) => useScore(b) - useScore(a)).slice(0, 60));
+  used = Object.fromEntries(Object.entries(used).sort(([a], [b]) => command.useScore(b) - command.useScore(a)).slice(0, 60));
   storage.set(USED, used);
 }
 
@@ -8202,12 +8358,12 @@ function noteUse(key) {
 function goToTime(time, go = ++dateGoes) {
   // (Drawn first: a view set while it loads is the one it lands on undone. For this chart only, the latest Go: see
   // afterDrawn.)
-  if (!settled()) return afterDrawn(go, () => goToTime(time, go));
+  if (!settled()) return command.afterDrawn(go, () => goToTime(time, go));
   const range = shownSpan(), at = resolved ? lowerBound(resolved.times, time) : -1;
   if (!range || !resolved) return;
   // (Not in what's loaded now (an interval since, the oldest let go): there by its date, loaded first.)
   if (resolved.times[at] !== time) return goToDate({ from: time, to: time + INTERVAL_DAYS[chart.index] * 86400 - 1, day: true, label: pointLabel(time, chart.index) }, 0, go);
-  const half = Math.min(AROUND, range.to - range.from) / 2;
+  const half = Math.min(command.AROUND, range.to - range.from) / 2;
   autoScale();
   glide({ from: at - half, to: at + half });
 }
@@ -8226,14 +8382,14 @@ let dateGoes = 0;
  * drawn.)
  */
 function goToDate(span, by = 0, go = ++dateGoes) {
-  if (!span || outOfData(span)) return;
+  if (!span || command.outOfData(span)) return;
   // (Any other draw under way (another Go's, a block come in) would take the view back as it lands: once it has,
   // from what it drew.)
-  if (!settled()) return void afterDrawn(go, () => goToDate(span, by, go));
+  if (!settled()) return void command.afterDrawn(go, () => goToDate(span, by, go));
   const loaded = by > 0 && by === resolved?.version;
   // Past what a fine interval has loaded: the chunks around it load first (joined to those held when they meet,
   // the most held at once kept on its side), then the view goes there.
-  const held = spanOf(chart), stretch = stretchOf(span);
+  const held = spanOf(chart), stretch = command.stretchOf(span);
   if (held && !loaded && !stretch.loaded) {
     const latest = latestChunk(chart.index), to = clamp(chunkAt(chart.index, stretch.to), 0, latest), from = clamp(chunkAt(chart.index, stretch.from), 0, to);
     const meets = to + 1 >= held.from && from <= held.to + 1, older = to < held.from;
@@ -8246,16 +8402,16 @@ function goToDate(span, by = 0, go = ++dateGoes) {
     void draw();
     // (Loaded while this draw's the one drawn; another in its place (another interval), looked at again.)
     const mine = drawVersion;
-    return void afterDrawn(go, () => goToDate(span, mine, go));
+    return void command.afterDrawn(go, () => goToDate(span, mine, go));
   }
-  const { first, last } = pointsOf(span), range = shownSpan();
+  const { first, last } = command.pointsOf(span), range = shownSpan();
   autoScale();
   if (span.day || last - first < 8) {
     const half = range ? (range.to - range.from) / 2 : 60, center = (first + last) / 2;
     glide({ from: center - half, to: center + half });
   } else {
     // Its middle when it's wider than the chart shows (as loaded for it), else all of it.
-    const times = /** @type {Resolved} */ (resolved).times, middle = stretchOf(span);
+    const times = /** @type {Resolved} */ (resolved).times, middle = command.stretchOf(span);
     // (Its first and last bars whole at the edges: the library puts bar i at (i - from) bars in, its middle, so half a
     // bar more each side shows each whole, none of the days around it.)
     glide({ from: Math.max(first, lowerBound(times, middle.from)) - 0.5, to: Math.min(last, lowerBound(times, middle.to) - 1) + 0.5 });
@@ -8263,7 +8419,7 @@ function goToDate(span, by = 0, go = ++dateGoes) {
 }
 
 $("palette-input").addEventListener("input", (event) => {
-  palette.query = event.target.value;
+  command.palette.query = event.target.value;
   showPalette();
 });
 $("palette-input").addEventListener("keydown", (event) => {
@@ -8273,22 +8429,22 @@ $("palette-input").addEventListener("keydown", (event) => {
   const plain = !event.metaKey && !event.ctrlKey && !event.altKey;
   // (⌘Z, ⇧⌘Z: the chart's undo and redo, as everywhere, ⌘K open on it as it is now; while a value's written (a
   // formula, a name, a date), the writing's own.)
-  if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "z" && !palette.formula && !palette.pages.at(-1)?.input) {
+  if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "z" && !command.palette.formula && !command.palette.pages.at(-1)?.input) {
     event.preventDefault();
     event.shiftKey ? redoLast() : undoLast();
     // (Its field kept, the undo having let the page's go: the next ⌘Z, or ⇧⌘Z, is ⌘K's too.)
     showPalette();
-    return paletteKeys();
+    return command.paletteKeys();
   }
-  if (["ArrowDown", "ArrowUp", "ArrowRight", "Enter", "Tab"].includes(event.key)) palette.pending?.();
+  if (["ArrowDown", "ArrowUp", "ArrowRight", "Enter", "Tab"].includes(event.key)) command.palette.pending?.();
   if (event.key === "ArrowDown" && plain) move(event.shiftKey ? 5 : 1);
   else if (event.key === "ArrowUp" && plain) move(event.shiftKey ? -5 : -1);
-  else if (event.key === "Enter" && !event.altKey) event.repeat || choose(event.shiftKey, event.metaKey || event.ctrlKey);
-  else if (event.key === "ArrowRight" && plain && !event.shiftKey && palette.items[palette.active] && goesOn(palette.items[palette.active]) && event.target.selectionStart === event.target.value.length) event.repeat || choose();
-  else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) event.repeat || popPage();
-  else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) event.repeat || goUp(palette.path.length - 1);
-  else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) event.repeat || leaveScope();
-  else if (event.key === "Tab" && !event.shiftKey && palette.items[palette.active]?.kind === "insert") insertPiece(palette.items[palette.active]);
+  else if (event.key === "Enter" && !event.altKey) event.repeat || command.choose(event.shiftKey, event.metaKey || event.ctrlKey);
+  else if (event.key === "ArrowRight" && plain && !event.shiftKey && command.palette.items[command.palette.active] && command.goesOn(command.palette.items[command.palette.active]) && event.target.selectionStart === event.target.value.length) event.repeat || command.choose();
+  else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && command.palette.pages.length) event.repeat || command.popPage();
+  else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && command.palette.path.length) event.repeat || command.goUp(command.palette.path.length - 1);
+  else if (event.key === "Backspace" && !event.target.value && (command.palette.adding || command.palette.formula)) event.repeat || command.leaveScope();
+  else if (event.key === "Tab" && !event.shiftKey && command.palette.items[command.palette.active]?.kind === "insert") command.insertPiece(command.palette.items[command.palette.active]);
   else if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "y" && quickWorks()) quickToggle();
   // (esc puts Quick Look away, ⌘K staying: here, as a key, not as the dialog's cancel, which a browser lets be
   // stopped only once in a row.)
@@ -8299,156 +8455,166 @@ $("palette-input").addEventListener("keydown", (event) => {
 // Scrolled near its end, the next rows are written.
 $("palette-list").addEventListener("scroll", (event) => {
   const list = /** @type {HTMLElement} */ (event.currentTarget);
-  if (list.scrollTop + list.clientHeight > list.scrollHeight - 400) drawOptions((palette.drawn ?? 0) + PALETTE_PAGE);
+  if (list.scrollTop + list.clientHeight > list.scrollHeight - 400) command.drawOptions((command.palette.drawn ?? 0) + command.PALETTE_PAGE);
 }, { passive: true });
 $("palette-list").addEventListener("click", (event) => {
   const option = closest(event, "[data-option]"), more = closest(event, "[data-row-more]");
   if (!option) return;
-  if (palette.pending) return palette.pending();
+  if (command.palette.pending) return command.palette.pending();
   // (Its ⋯: its row lit (as the arrows light it: kept as results come), its actions by it.)
-  if (more) return void (move(Number(more.dataset.rowMore) - palette.active, false), showActions(more));
-  palette.active = Number(option.dataset.option);
-  choose(event.shiftKey);
+  if (more) return void (move(Number(more.dataset.rowMore) - command.palette.active, false), command.showActions(more));
+  command.palette.active = Number(option.dataset.option);
+  command.choose(event.shiftKey);
 });
 $("palette-list").addEventListener("mousemove", (event) => {
-  if (palette.pending) return palette.pending();
+  if (command.palette.pending) return command.palette.pending();
   const option = closest(event, "[data-option]");
-  if (option && Number(option.dataset.option) !== palette.active) move(Number(option.dataset.option) - palette.active, false);
+  if (option && Number(option.dataset.option) !== command.palette.active) move(Number(option.dataset.option) - command.palette.active, false);
 });
 // (The foot's ↵ and Actions as their keys: rows waiting, drawn first.)
 $("palette-enter").addEventListener("click", () => {
-  palette.pending?.();
-  choose(false);
-  if (isOpen($("palette"))) paletteKeys();
+  command.palette.pending?.();
+  command.choose(false);
+  if (isOpen($("palette"))) command.paletteKeys();
 });
-$("palette-actions").addEventListener("click", () => showActions());
+$("palette-actions").addEventListener("click", () => command.showActions());
 // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
 // (The result held, as it was: one replaced under the finger meanwhile (a search's later answer) is let go.)
-onHold($("palette-list"), "[data-option]", (option) => ((held) => () => {
-  if (palette.items[Number(option.dataset.option)] !== held) return false;
-  palette.active = Number(option.dataset.option);
-  if (actionsFor(palette.items[palette.active]).length < 2) return false;
-  showActions(option);
-  return true;
-})(palette.items[Number(option.dataset.option)]));
-// A preset's tile held (the gallery's, Recent's): its menu, as its ⋯ (a hold never opens it: a tap does).
-onHold($("home"), ".tile[data-preset] > [data-open-preset]", (open) => ((more) => (more ? () => (openPresetMenu(more), true) : null))(/** @type {HTMLElement | null} */ (open.parentElement?.querySelector("[data-preset-menu]") ?? null)));
+withRest(() => {
+  gestures.onHold($("palette-list"), "[data-option]", (option) => ((held) => () => {
+    if (command.palette.items[Number(option.dataset.option)] !== held) return false;
+    command.palette.active = Number(option.dataset.option);
+    if (command.actionsFor(command.palette.items[command.palette.active]).length < 2) return false;
+    command.showActions(option);
+    return true;
+  })(command.palette.items[Number(option.dataset.option)]));
+  // A preset's tile held (the gallery's, Recent's): its menu, as its ⋯ (a hold never opens it: a tap does).
+  gestures.onHold($("home"), ".tile[data-preset] > [data-open-preset]", (open) => ((more) => (more ? () => (presetsEdit.openPresetMenu(more), true) : null))(/** @type {HTMLElement | null} */ (open.parentElement?.querySelector("[data-preset-menu]") ?? null)));
+});
 $("palette-path").addEventListener("click", (event) => {
   const crumb = closest(event, "[data-depth]");
   if (!crumb || crumb.hasAttribute("aria-current")) return;
-  if (palette.pages.length) popPage(Number(crumb.dataset.depth));
-  else goUp(Number(crumb.dataset.depth));
-  paletteKeys();
+  if (command.palette.pages.length) command.popPage(Number(crumb.dataset.depth));
+  else command.goUp(Number(crumb.dataset.depth));
+  command.paletteKeys();
 });
 
 // ── Menus and toolbar ─────────────────────────────────────────────────────
 
-menuScrim.addEventListener("click", (event) => {
-  event.stopPropagation();
-  dismissMenu();
+withRest(() => {
+  menus.menuScrim.addEventListener("click", (event) => {
+    event.stopPropagation();
+    menus.dismissMenu();
+  });
 });
 // A menu placed for the screen as it was (a phone's sheet, a popover at its opener) isn't carried to another: the
 // screen turned, or a window made wider or narrower, it's put away. (Not as a keyboard makes it shorter.)
 {
   let wide = innerWidth;
-  addEventListener("resize", () => innerWidth !== wide && ((wide = innerWidth), !$("menu").hidden && dismissMenu()));
+  addEventListener("resize", () => innerWidth !== wide && ((wide = innerWidth), !$("menu").hidden && menus.dismissMenu()));
 }
 // ⌘K on a phone, a sheet of two heights as the layers', by its handle (and its list at its top, pulled down): whole as
 // it opens, and as its field's tapped; made half, the keyboard goes (the field and a row or two above it would be all
 // there was).
-{
-  const sheet = $("palette");
-  const size = (/** @type {boolean} */ whole) => {
-    sheet.toggleAttribute("data-half", !whole);
-    if (!whole && document.activeElement === $("palette-input")) sheet.focus();
-  };
-  // (A menu open in it (a result's actions) is dragged on its own: ⌘K under it stays.)
-  const menuIn = () => !$("menu").hidden && sheet.contains($("menu"));
-  heightsSheet(sheet, { pulls: () => phone.matches && isOpen(sheet) && !menuIn(), grab: (event) => phone.matches && isOpen(sheet) && !menuIn() && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
-  $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && onceKeys(() => isOpen(sheet) && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && sizeSheet(sheet, () => size(true))));
-}
-// A phone's menu sheet, dragged down by its top (its handle), or its rows at their top: as the layers' sheet goes, it
-// goes; else it comes back.
-{
-  const menu = $("menu");
-  // (How far down it showed as it was taken: sliding in or away, from there; its top as it shows; its height as taken,
-  // and whether it's pulled up past it.)
-  let base = 0, shown = 0, height = 0, pulled = false;
-  dragSheet(menu, {
-    pulls: () => menu.classList.contains("as-sheet") && !menu.hidden,
-    grab: (event) => {
-      if (!menu.classList.contains("as-sheet") || (event && !closest(event, ".menu-handle"))) return false;
-      // (Taken as it goes back down from a stretch: still as stretched as it shows, the finger's from there.)
-      const back = slides.get(menu), top = menu.getBoundingClientRect().top;
-      if (back && back.id !== "away" && (back.playState === "running" || back.playState === "paused")) {
-        back.cancel();
-        menu.style.height = menu.style.maxHeight = "";
-      }
-      const past = Math.max(0, menu.getBoundingClientRect().top - top);
-      base = past ? -unstretched(past) : sheetTaken(menu);
-      height = menu.offsetHeight;
-      if (past) (menu.style.maxHeight = "none"), (menu.style.height = `${height + past}px`);
-      menu.style.transition = "none";
-      return true;
-    },
-    // (Up past its top, it stretches, less and less, as the layers' sheet does; down, it follows the finger.)
-    move: (moved) => {
-      const by = moved + base;
-      pulled = by < 0;
-      menu.style.maxHeight = pulled ? "none" : "";
-      menu.style.height = pulled ? `${height + stretched(-by)}px` : "";
-      menu.style.transform = pulled ? "" : `translateY(${by}px)`;
-      shown = menu.getBoundingClientRect().top;
-    },
-    back: () => (menu.style.transition = menu.style.transform = menu.style.height = menu.style.maxHeight = ""),
-    // (Let go stretched, back to its height from where it showed; else gone if it'd come to rest low enough.)
-    release: (by, speed) => (pulled ? sizeSheet(menu, () => {}, shown, speed) : Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && slideAway(menu, hideMenu, shown, speed)),
-  });
-}
-// The shortcuts' and the guide's sheets, a phone's: dragged down by their handle, or their lines at their top, they
-// go as sheetGoes says (slid away, then closed: slideAway); else they come back.
-for (const sheet of [$("shortcuts"), $("guide")]) {
-  let base = 0, shown = 0;
-  dragSheet(sheet, {
-    pulls: () => phone.matches && isOpen(sheet),
-    grab: (event) => {
-      if (!phone.matches || !isOpen(sheet) || (event && !closest(event, ".menu-handle"))) return false;
-      base = sheetTaken(sheet);
-      sheet.style.transition = "none";
-      return true;
-    },
-    move: (by) => ((sheet.style.transform = `translateY(${Math.max(0, by + base)}px)`), (shown = sheet.getBoundingClientRect().top)),
-    back: () => (sheet.style.transition = sheet.style.transform = ""),
-    release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && slideAway(sheet, () => sheet.hidePopover(), shown, speed),
-  });
-}
-startCascade();
+withRest(() => {
+  {
+    const sheet = $("palette");
+    const size = (/** @type {boolean} */ whole) => {
+      sheet.toggleAttribute("data-half", !whole);
+      if (!whole && document.activeElement === $("palette-input")) sheet.focus();
+    };
+    // (A menu open in it (a result's actions) is dragged on its own: ⌘K under it stays.)
+    const menuIn = () => !$("menu").hidden && sheet.contains($("menu"));
+    grid.heightsSheet(sheet, { pulls: () => phone.matches && isOpen(sheet) && !menuIn(), grab: (event) => phone.matches && isOpen(sheet) && !menuIn() && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
+    $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && grid.onceKeys(() => isOpen(sheet) && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && grid.sizeSheet(sheet, () => size(true))));
+  }
+  // A phone's menu sheet, dragged down by its top (its handle), or its rows at their top: as the layers' sheet goes, it
+  // goes; else it comes back.
+  {
+    const menu = $("menu");
+    // (How far down it showed as it was taken: sliding in or away, from there; its top as it shows; its height as taken,
+    // and whether it's pulled up past it.)
+    let base = 0, shown = 0, height = 0, pulled = false;
+    grid.dragSheet(menu, {
+      pulls: () => menu.classList.contains("as-sheet") && !menu.hidden,
+      grab: (event) => {
+        if (!menu.classList.contains("as-sheet") || (event && !closest(event, ".menu-handle"))) return false;
+        // (Taken as it goes back down from a stretch: still as stretched as it shows, the finger's from there.)
+        const back = grid.slides.get(menu), top = menu.getBoundingClientRect().top;
+        if (back && back.id !== "away" && (back.playState === "running" || back.playState === "paused")) {
+          back.cancel();
+          menu.style.height = menu.style.maxHeight = "";
+        }
+        const past = Math.max(0, menu.getBoundingClientRect().top - top);
+        base = past ? -grid.unstretched(past) : grid.sheetTaken(menu);
+        height = menu.offsetHeight;
+        if (past) (menu.style.maxHeight = "none"), (menu.style.height = `${height + past}px`);
+        menu.style.transition = "none";
+        return true;
+      },
+      // (Up past its top, it stretches, less and less, as the layers' sheet does; down, it follows the finger.)
+      move: (moved) => {
+        const by = moved + base;
+        pulled = by < 0;
+        menu.style.maxHeight = pulled ? "none" : "";
+        menu.style.height = pulled ? `${height + grid.stretched(-by)}px` : "";
+        menu.style.transform = pulled ? "" : `translateY(${by}px)`;
+        shown = menu.getBoundingClientRect().top;
+      },
+      back: () => (menu.style.transition = menu.style.transform = menu.style.height = menu.style.maxHeight = ""),
+      // (Let go stretched, back to its height from where it showed; else gone if it'd come to rest low enough.)
+      release: (by, speed) => (pulled ? grid.sizeSheet(menu, () => {}, shown, speed) : Math.abs(by) >= 4 && grid.sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && grid.slideAway(menu, menus.hideMenu, shown, speed)),
+    });
+  }
+  // The shortcuts' and the guide's sheets, a phone's: dragged down by their handle, or their lines at their top, they
+  // go as sheetGoes says (slid away, then closed: slideAway); else they come back.
+  for (const sheet of [$("shortcuts"), $("guide")]) {
+    let base = 0, shown = 0;
+    grid.dragSheet(sheet, {
+      pulls: () => phone.matches && isOpen(sheet),
+      grab: (event) => {
+        if (!phone.matches || !isOpen(sheet) || (event && !closest(event, ".menu-handle"))) return false;
+        base = grid.sheetTaken(sheet);
+        sheet.style.transition = "none";
+        return true;
+      },
+      move: (by) => ((sheet.style.transform = `translateY(${Math.max(0, by + base)}px)`), (shown = sheet.getBoundingClientRect().top)),
+      back: () => (sheet.style.transition = sheet.style.transform = ""),
+      release: (by, speed) => Math.abs(by) >= 4 && grid.sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && grid.slideAway(sheet, () => sheet.hidePopover(), shown, speed),
+    });
+  }
+  menus.startCascade();
+});
 whenSubmenu((sub) => sub.addEventListener("keydown", (event) => {
   if (event.key === "ArrowLeft" || event.key === "Escape") {
     event.preventDefault();
     event.stopPropagation();
-    return hideSubmenu(levelOf(sub));
+    return menus.hideSubmenu(levelOf(sub));
   }
-  if (event.key === "Tab") return dismissMenu(true);
-  if (event.key === "ArrowRight" && cascades(/** @type {HTMLElement} */ (event.target))) {
+  if (event.key === "Tab") return menus.dismissMenu(true);
+  if (event.key === "ArrowRight" && menus.cascades(/** @type {HTMLElement} */ (event.target))) {
     event.preventDefault();
     event.stopPropagation();
-    return openCascade(/** @type {HTMLElement} */ (event.target), true);
+    return menus.openCascade(/** @type {HTMLElement} */ (event.target), true);
   }
-  if (walkMenu(event, sub)) hideSubmenu(levelOf(sub) + 1);
+  if (menus.walkMenu(event, sub)) menus.hideSubmenu(levelOf(sub) + 1);
 }));
-startFlyouts();
+withRest(() => {
+  menus.startFlyouts();
+});
 addEventListener("scroll", (event) => {
   const element = event.target instanceof Element ? event.target : /** @type {Element} */ (document.scrollingElement);
   if (scrolled.has(element)) return;
   for (const other of scrolled) if (!other.isConnected) scrolled.delete(other);
   scrolled.add(element);
 }, { capture: true, passive: true });
-document.addEventListener("focusin", (event) => {
-  const field = /** @type {HTMLElement} */ (event.target), from = /** @type {Element | null} */ (event.relatedTarget);
-  if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
-  if (closedOwner && (from?.closest("#menu, .submenu") || performance.now() - closedAt < 400)) fieldOpener.set(field, closedOwner);
-  else fieldOpener.delete(field);
+withRest(() => {
+  document.addEventListener("focusin", (event) => {
+    const field = /** @type {HTMLElement} */ (event.target), from = /** @type {Element | null} */ (event.relatedTarget);
+    if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
+    if (menus.closedOwner && (from?.closest("#menu, .submenu") || performance.now() - menus.closedAt < 400)) menus.fieldOpener.set(field, /** @type {HTMLElement} */ (menus.closedOwner));
+    else menus.fieldOpener.delete(field);
+  });
 });
 $("menu").addEventListener("keydown", (event) => {
   // Tab goes on from what opened the menu (on a color's Custom page, first through it: the way back, the surface,
@@ -8466,7 +8632,7 @@ $("menu").addEventListener("keydown", (event) => {
   if (event.key === "Tab" || done) {
     // (Tab, the browser's: on from the opener.)
     if (done) event.preventDefault(), event.stopPropagation();
-    return dismissMenu(true);
+    return menus.dismissMenu(true);
   }
   if (target.matches("input")) return;
   // A key shown beside an item does it, to what the menu is of: a layer's menu acts on that layer, selected or not.
@@ -8484,28 +8650,30 @@ $("menu").addEventListener("keydown", (event) => {
   if (event.key === "Escape" && $("menu").closest("#palette")) {
     event.preventDefault();
     event.stopPropagation();
-    hideMenu();
-    return paletteKeys();
+    menus.hideMenu();
+    return command.paletteKeys();
   }
-  if (event.key === "ArrowRight" && cascades(/** @type {HTMLElement} */ (event.target))) {
+  if (event.key === "ArrowRight" && menus.cascades(/** @type {HTMLElement} */ (event.target))) {
     event.preventDefault();
     event.stopPropagation();
-    return openCascade(/** @type {HTMLElement} */ (event.target), true);
+    return menus.openCascade(/** @type {HTMLElement} */ (event.target), true);
   }
-  if (walkMenu(event, $("menu"))) hideSubmenu();
+  if (menus.walkMenu(event, $("menu"))) menus.hideSubmenu();
 });
 // A press away closes the menu. (Inside it by its path as the press began: what it pressed may be redrawn meanwhile, as
 // a slider is at each step.)
-document.addEventListener("pointerdown", (event) => {
-  if (!$("menu").hidden && event.target !== menuScrim && !event.composedPath().includes($("menu")) && !submenus.some((sub) => event.composedPath().includes(sub)) && closest(event, "button") !== ownerNow()) hideMenu();
+withRest(() => {
+  document.addEventListener("pointerdown", (event) => {
+    if (!$("menu").hidden && event.target !== menus.menuScrim && !event.composedPath().includes($("menu")) && !submenus.some((sub) => event.composedPath().includes(sub)) && closest(event, "button") !== menus.ownerNow()) menus.hideMenu();
+  });
 });
 $("window").addEventListener("click", (event) => {
   const found = chartWindow(chart);
-  if (found) showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(4, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">Each value is its series over the ${windowSaid(found.window).replace(/^1 /, "")} before it.</div>`, ({ window }) => switchWindow(window));
+  if (found) menus.showMenu(event.currentTarget, `<div class="menu-group">Window</div><div class="menu-row" style="--cols: ${Math.min(4, found.offered.length)}">${found.offered.map((key) => `<button type="button" data-window="${key}" aria-checked="${found.window === key}" aria-label="${windowSaid(key)}">${windowShort(key)}</button>`).join("")}</div><div class="menu-note">Each value is its series over the ${windowSaid(found.window).replace(/^1 /, "")} before it.</div>`, ({ window }) => menus.switchWindow(window));
 });
 $("interval").addEventListener("click", (event) => {
-  const supported = supportedIntervals();
-  showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
+  const supported = menus.supportedIntervals();
+  menus.showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${menus.NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (supported(index) ? menus.switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${menus.NO_INTERVAL.toLowerCase()}`)));
 });
 /**
  * The chart's range shown (picked, or put back: see redrawChart): the view glides there, once the chunks it needs are
@@ -8531,30 +8699,34 @@ function showRange() {
 }
 // (A double-click or a double tap on the time axis: the chart's range shown again, as its button does: the view back
 // to it, at the latest.)
-engine.onTimeReset(() => !home && chartShown() && setRange(chart.range));
+engine.onTimeReset(() => !home && chartShown() && menus.setRange(chart.range));
 $("ranges").addEventListener("click", (event) => {
   const button = closest(event, "[data-range]");
   // (One that doesn't fit says why, as its key does: a tap, a finger's only way to ask.)
   if (button?.getAttribute("aria-disabled") === "true") notice(`${button.textContent} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
-  else if (button) setRange(/** @type {string} */ (button.dataset.range));
+  else if (button) menus.setRange(/** @type {string} */ (button.dataset.range));
 });
 $("title").addEventListener("input", (event) => (fitTitle(), commit((doc) => (doc.title = event.target.value), { coalesce: "title" })));
 // (Its font come late, measured again.)
 document.fonts.addEventListener("loadingdone", fitTitle);
 // (The window left (a phone's app switched), it's as it was till the window's back: see leftOpen.)
-$("title").addEventListener("blur", () => (leftWith($("title"), leaveTitle) || leaveTitle(), titleReads()));
+withRest(() => {
+  $("title").addEventListener("blur", () => (leftWith($("title"), menus.leaveTitle) || menus.leaveTitle(), titleReads()));
+});
 titleReads();
 phone.addEventListener("change", () => document.activeElement !== $("title") && titleReads());
 // (Left with the window (a phone's app switched), back in it: what it was typed from stays, esc's to take back. See
 // leftOpen: #title's own blur says so.)
-document.addEventListener("focusout", (event) => event.target instanceof HTMLInputElement && event.target.matches(FIELDS) && event.target.id !== "title" && leftWith(event.target, () => {}));
-document.addEventListener("focusin", (event) => {
-  if (!(event.target instanceof HTMLInputElement) || !event.target.matches(FIELDS) || leftOpen.has(event.target)) return;
-  typedFrom.set(event.target, event.target.value);
+withRest(() => {
+  document.addEventListener("focusout", (event) => event.target instanceof HTMLInputElement && event.target.matches(menus.FIELDS) && event.target.id !== "title" && leftWith(event.target, () => {}));
+  document.addEventListener("focusin", (event) => {
+    if (!(event.target instanceof HTMLInputElement) || !event.target.matches(menus.FIELDS) || leftOpen.has(event.target)) return;
+    typedFrom.set(event.target, event.target.value);
+  });
 });
 document.addEventListener("keydown", (event) => {
   const field = event.target;
-  if (!(field instanceof HTMLInputElement) || !field.matches(FIELDS) || composing(event) || (event.key !== "Enter" && event.key !== "Escape")) return;
+  if (!(field instanceof HTMLInputElement) || !field.matches(menus.FIELDS) || composing(event) || (event.key !== "Enter" && event.key !== "Escape")) return;
   event.preventDefault();
   if (event.key === "Escape" && typedFrom.has(field) && field.value !== typedFrom.get(field)) {
     field.value = typedFrom.get(field);
@@ -8562,14 +8734,14 @@ document.addEventListener("keydown", (event) => {
   }
   // The edit may have redrawn the field: leave whichever one has the focus now (for what opened the one typed in).
   const now = /** @type {HTMLElement | null} */ (document.activeElement);
-  if (now && now !== field && fieldOpener.has(field)) fieldOpener.set(now, /** @type {HTMLElement} */ (fieldOpener.get(field)));
-  if (now) letGo(now);
+  if (now && now !== field && menus.fieldOpener.has(field)) menus.fieldOpener.set(now, /** @type {HTMLElement} */ (menus.fieldOpener.get(field)));
+  if (now) menus.letGo(now);
 }, true);
 for (const id of ["undo", "home-undo"]) $(id).addEventListener("click", () => ($(id).getAttribute("aria-disabled") === "true" ? say("Nothing to undo") : undoLast()));
 for (const id of ["redo", "home-redo"]) $(id).addEventListener("click", () => ($(id).getAttribute("aria-disabled") === "true" ? say("Nothing to redo") : redoLast()));
 // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
 // Adding: one page, the series, and the other kinds of layer first (in the grid, a new chart).
-for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", () => (home ? newChart() : openPalette({ add: true })));
+for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", () => (home ? grid.newChart() : openPalette({ add: true })));
 // ── Share, import, export ─────────────────────────────────────────────────
 
 /** Where a device has a share sheet (a phone's), the link goes through it (copying, one of its ways); else it's copied. */
@@ -8582,26 +8754,26 @@ let shareAsk = 0;
 $("share").addEventListener("click", () => {
   const button = $("share");
   // (Open: a press closes it, as a menu's button does.)
-  if (ownerNow() === button && !$("menu").hidden) return hideMenu();
-  const doc = chart, ask = ++shareAsk, shown = menusShown, { copy, short } = linksOf(), copying = SHEET_SHARE ? Promise.resolve(false) : copyLink(copy);
+  if (menus.ownerNow() === button && !$("menu").hidden) return menus.hideMenu();
+  const doc = chart, ask = ++shareAsk, shown = menus.menusShown, { copy, short } = menus.linksOf(), copying = SHEET_SHARE ? Promise.resolve(false) : menus.copyLink(copy);
   // (Anything pressed while it's made, a key or the page (Escape, elsewhere, ⌘K): moved on from it.)
   const movedOn = () => ask === shareAsk && ++shareAsk;
   for (const type of ["pointerdown", "keydown"]) addEventListener(type, movedOn, { capture: true, once: true });
   void (async () => {
     // (Its code as large as the popover takes: a phone's sheet, the screen's width.)
-    const [copied, url, qr] = await Promise.all([copying, copy.catch(() => ""), short.then(qrCode)]);
+    const [copied, url, qr] = await Promise.all([copying, copy.catch(() => ""), short.then(menus.qrCode)]);
     for (const type of ["pointerdown", "keydown"]) removeEventListener(type, movedOn, true);
     if (!url) return notice("Couldn't make the link");
     // (Pressed again, moved on from, another chart or the grid shown, another menu opened meanwhile (closed since
     // too): nothing shown, what was done said.)
-    if (ask !== shareAsk || shown !== menusShown || chart !== doc || document.body.hasAttribute("data-home") || !$("menu").hidden) return void (copied && toast("Copied a link: it opens this chart for anyone"));
+    if (ask !== shareAsk || shown !== menus.menusShown || chart !== doc || document.body.hasAttribute("data-home") || !$("menu").hidden) return void (copied && toast("Copied a link: it opens this chart for anyone"));
     const done = SHEET_SHARE ? "" : copied ? "Link copied" : "Couldn't copy the link";
     const code = qr ? (SHEET_SHARE && phone.matches ? "Scan to open it on another phone" : "Scan to open it on a phone") : "Too long for a QR code";
     say([done, code].filter(Boolean).join(". "));
     // (The chart it opens and what was done, the link; under them its code, to scan; then what else.)
-    showMenu(button, `<div class="share-pop"><div class="share-text"><p class="share-title">${escapeHtml(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}</div>${qr ?? ""}<p class="share-said">${code}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
+    menus.showMenu(button, `<div class="share-pop"><div class="share-text"><p class="share-title">${escapeHtml(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}</div>${qr ?? ""}<p class="share-said">${code}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
       if (share === "open") window.open(url, "_blank", "noopener");
-      else if (share === "copy") (await copyLink(Promise.resolve(url))) ? toast("Copied a link: it opens this chart for anyone") : notice("Couldn't copy the link");
+      else if (share === "copy") (await menus.copyLink(Promise.resolve(url))) ? toast("Copied a link: it opens this chart for anyone") : notice("Couldn't copy the link");
       else if (share === "sheet") {
         try {
           await navigator.share({ title: titleOf(doc), url });
@@ -8703,7 +8875,7 @@ $("import-file").addEventListener("change", async (event) => {
       };
       const pathThere = (/** @type {Folder} */ folder) => namesOf(folder, (id) => made.get(id), made.size), here = new Map(), into = new Map();
       for (const folder of library.folders) ((key) => key !== null && here.set(key, here.has(key) ? null : folder.id))(target ? fromTarget(folder) : namesOf(folder, folderById, library.folders.length));
-      for (const [from, folder] of folders) ((id) => id && into.set(folder.id, id))(folderById(from) && (!target || isIn(from, target)) ? from : here.get(pathThere(folder)));
+      for (const [from, folder] of folders) ((id) => id && into.set(folder.id, id))(folderById(from) && (!target || grid.isIn(from, target)) ? from : here.get(pathThere(folder)));
       for (const doc of docs) if (doc.folder && into.has(doc.folder)) doc.folder = into.get(doc.folder);
       for (const [from, folder] of folders) if (into.has(folder.id) || (!holds.has(folder.id) && heldThere.has(folder.id))) folders.delete(from);
       const kept = new Set([...folders.values()].map((folder) => folder.id));
@@ -8720,7 +8892,7 @@ $("import-file").addEventListener("change", async (event) => {
       if (!docs.length && !edits.length && !folders.size && parsed.charts.length) return notice(parsed.charts.length === 1 ? "Its chart couldn't be read" : `None of its ${grouped.format(parsed.charts.length)} charts could be read`);
       if (!docs.length && !edits.length && !folders.size) throw new Error("No charts in it");
       library.presets = [...library.presets.filter((other) => !edits.some((doc) => doc.preset === other.preset)), ...edits];
-      const before = treeOf().map(({ item }) => sideKey(item)), among = library.charts.length > 0;
+      const before = grid.treeOf().map(({ item }) => grid.sideKey(item)), among = library.charts.length > 0;
       const order = orderOf(parsed.order).flatMap((key) => {
         const folder = key[0] === "f" ? folders.get(key.slice(2)) : undefined, doc = key[0] === "c" ? byId.get(key.slice(2)) : undefined;
         return folder ? [`f:${folder.id}`] : doc ? [`c:${doc.id}`] : [];
@@ -8736,8 +8908,8 @@ $("import-file").addEventListener("change", async (event) => {
       // (On the page they went to, your Library's or the folder's; picked to tell them from the charts already here
       // (into none, they're all there is).)
       goTo({ folder: target ?? "" });
-      picked.clear();
-      if (among) for (const doc of docs) picked.add(doc.id);
+      grid.picked.clear();
+      if (among) for (const doc of docs) grid.picked.add(doc.id);
       drawThumbs();
       renderCharts();
       const skipped = parsed.charts.length - docs.length - already, same = asThen([...docs, ...edits]), arranged = arrangedNow();
@@ -8750,7 +8922,7 @@ $("import-file").addEventListener("change", async (event) => {
         // another opens.)
         // (Edited presets kept as charts, with them.)
         const ids = new Set([...docs.map((doc) => doc.id), ...keptIds]);
-        for (const doc of library.charts.filter((doc) => ids.has(doc.id))) (discard(doc), picked.delete(doc.id));
+        for (const doc of library.charts.filter((doc) => ids.has(doc.id))) (discard(doc), grid.picked.delete(doc.id));
         for (const id of editIds) {
           const doc = library.presets.find((other) => other.id === id);
           if (!doc) continue;
@@ -8824,7 +8996,7 @@ function fromWritten(/** @type {string} */ raw) {
   lostDrawings = (parsed.drawings?.length ?? 0) - (doc.drawings?.length ?? 0);
   return doc;
 }
-addEventListener("pagehide", () => openedImages.splice(0).forEach((url) => URL.revokeObjectURL(url)));
+withRest(() => addEventListener("pagehide", () => menus.openedImages.splice(0).forEach((url) => URL.revokeObjectURL(url))));
 /**
  * The picture of the chart, as it shows: its title; each pane's legend where it stands; the source, the interval,
  * the view's dates and the date of the values the legends show. None where the browser would give noise for it.
@@ -8832,14 +9004,14 @@ addEventListener("pagehide", () => openedImages.splice(0).forEach((url) => URL.r
  * @param {{ width?: number, height?: number, scale?: number }} [size] @returns {Promise<HTMLCanvasElement>}
  */
 async function chartImage(size = {}, wait = false, grown = false) {
-  if (!canvasReadable()) throw new Error(UNREADABLE);
+  if (!menus.canvasReadable()) throw new Error(menus.UNREADABLE);
   const PAD = 28, FOOT = 40, title = titleOf(chart);
   // Laid out as its picture while it's read: at its size (a script's, whatever the window; else as shown), its panes
   // sized to it, its legends as the picture writes them (see presentLegends) and room made over the lines for them,
   // drawn at once (no frame waited for: a tab out of sight has none); then exactly as it was (its zoom, its size, its
   // margins, its legends).
   const element = $("chart"), wrapper = /** @type {HTMLElement} */ (element.firstElementChild), sized = Boolean(size.width && size.height);
-  const owner = shownAs();
+  const owner = menus.shownAs();
   const width = sized ? /** @type {number} */ (size.width) - PAD * 2 : element.clientWidth;
   // (Its title on two lines where one doesn't hold it, its head taller only then: a picture has no hover, no tap, to
   // read the rest.)
@@ -8848,7 +9020,7 @@ async function chartImage(size = {}, wait = false, grown = false) {
   if (!width || !height) throw new Error("The chart has no room: the window is of no size");
   /**
    * The chart laid out as its picture, `read` run on it at once (what it reads, given back), then put back exactly
-   * as it was. @template T @param {(layout: ReturnType<typeof apartLayout>) => T} read @returns {T}
+   * as it was. @template T @param {(layout: ReturnType<typeof menus.apartLayout>) => T} read @returns {T}
    */
   const asPicture = (read) => {
     // (As it is now: a pan between two of them (a probe's and the picture's), the one put back.)
@@ -8882,9 +9054,9 @@ async function chartImage(size = {}, wait = false, grown = false) {
       engine.render(true);
       updateReadout();
       // (Their block under the plot, out of its height at a size asked for: see chartImage for one too small.)
-      const together = setApart();
+      const together = menus.setApart();
       restoreLegends = () => (together(), presented());
-      const layout = apartLayout(width);
+      const layout = menus.apartLayout(width);
       // (Its legends set apart, under the plot: their block's height, out of the plot's at a size asked for.)
       const plot = sized ? height - layout.height : height;
       if (sized) element.style.height = `${plot}px`;
@@ -8931,21 +9103,21 @@ async function chartImage(size = {}, wait = false, grown = false) {
       if (crossSet) holdCross();
     }
   };
-  /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, layout: ReturnType<typeof apartLayout>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
+  /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof menus.measureLegends>, layout: ReturnType<typeof menus.apartLayout>, dates: ReturnType<typeof menus.viewDates>, axisHeight: number, leftWidth: number }} */
   let taken;
-  /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
+  /** @type {{ wants: NonNullable<ReturnType<typeof heatmaps.heatWants.get>>, keys: Set<string> }} */
   const extra = { wants: [], keys: new Set() };
-  heatExtras.add(extra);
+  heatmaps.heatExtras.add(extra);
   try {
     // (Too small a size to hold its legends under a plot of 160 pixels: laid out larger by the least of 1.25, 1.25²…
     // that holds them (up to about twice: drawn down further, its words would be too small to read), its shape the
     // same, and drawn down to the size asked for (see the resampling at its end): every name whole, nothing over the
     // lines. Once: a larger one is the picture, checked as laid out. None that holds them, no picture: why.)
     const grow = !sized ? 1 : asPicture((layout) => {
-      const holds = (/** @type {number} */ k) => height * k + (k - 1) * (HEAD + FOOT) - (k === 1 ? layout : apartLayout(width * k + (k - 1) * PAD * 2)).height >= 160;
+      const holds = (/** @type {number} */ k) => height * k + (k - 1) * (HEAD + FOOT) - (k === 1 ? layout : menus.apartLayout(width * k + (k - 1) * PAD * 2)).height >= 160;
       let k = 1;
       while (!grown && !holds(k) && k * 1.25 <= 2) k *= 1.25;
-      if (!holds(k)) throw new Error(TOO_SMALL);
+      if (!holds(k)) throw new Error(menus.TOO_SMALL);
       return k;
     });
     if (grow > 1) return chartImage({ width: /** @type {number} */ (size.width) * grow, height: /** @type {number} */ (size.height) * grow, scale: (size.scale ?? devicePixelRatio) / grow }, wait, true);
@@ -8953,19 +9125,19 @@ async function chartImage(size = {}, wait = false, grown = false) {
     // laid out so only while it's drawn), waited for with the page as it is, a few rounds while a draw asks for more
     // (a coarser day's columns, then their own); still missing after them, no picture: why. Not a tap's: a share
     // then would have lost the tap that allows it.)
-    if (sized && wait) for (let round = 0; shownHeats().length; round++) {
+    if (sized && wait) for (let round = 0; heatmaps.shownHeats().length; round++) {
       const asked = asPicture(() => {
         chartPicture(engine);
-        Object.assign(extra, { wants: [...heatWants.values()].flat(), keys: new Set(shownHeats().flatMap((look) => [...(look.keep ?? [])])) });
+        Object.assign(extra, { wants: [...heatmaps.heatWants.values()].flat(), keys: new Set(heatmaps.shownHeats().flatMap((look) => [...(look.keep ?? [])])) });
         // (Those not in, nor failed: a failed one won't come.)
-        return [...extra.keys].filter((key) => !heatDays.get(key)?.rows && !heatDays.get(key)?.failed);
+        return [...extra.keys].filter((key) => !heatmaps.heatDays.get(key)?.rows && !heatmaps.heatDays.get(key)?.failed);
       });
       if (!asked.length) break;
       if (round === 3) throw new Error("The heatmap's days are still loading");
-      heatPump();
-      await heatCome(asked, 20_000, () => shownAs() === owner);
+      heatmaps.heatPump();
+      await heatmaps.heatCome(asked, 20_000, () => menus.shownAs() === owner);
       // (The chart changed meanwhile (another opened, edited, another interval): none of it taken.)
-      if (shownAs() !== owner) throw new Error("The chart changed meanwhile");
+      if (menus.shownAs() !== owner) throw new Error("The chart changed meanwhile");
     }
     // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
     taken = asPicture((layout) => {
@@ -8979,12 +9151,12 @@ async function chartImage(size = {}, wait = false, grown = false) {
         repaintDrawings();
       }
       const scale = shot.width / width;
-      const pieces = measureLegends(scale);
+      const pieces = menus.measureLegends(scale);
       // (Its dates and its axes' size, as the shot has them.)
-      return { shot, scale, pieces, layout, dates: viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
+      return { shot, scale, pieces, layout, dates: menus.viewDates(), axisHeight: engine.timeHeight, leftWidth: engine.left };
     });
   } finally {
-    heatExtras.delete(extra);
+    heatmaps.heatExtras.delete(extra);
   }
   const { shot, scale, pieces, layout, dates, axisHeight, leftWidth } = taken;
   // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
@@ -8993,16 +9165,16 @@ async function chartImage(size = {}, wait = false, grown = false) {
   // (The legends set apart, under the plot, in columns, read across: each its mark, its full name,
   // its value at its column's end; pane after pane.)
   if (layout.items.length) {
-    const row = APART.row * scale, [markWidth, markHeight] = [APART.mark * scale, APART.markHeight * scale];
-    const { name: nameFont, value: valueFont } = apartFonts(scale, sans);
+    const row = menus.APART.row * scale, [markWidth, markHeight] = [menus.APART.mark * scale, menus.APART.markHeight * scale];
+    const { name: nameFont, value: valueFont } = menus.apartFonts(scale, sans);
     for (const item of layout.items) {
-      const x = item.x * scale, y = shot.height + item.y * scale, nameAt = x + (item.mark ? markWidth + APART.markGap * scale : 0);
+      const x = item.x * scale, y = shot.height + item.y * scale, nameAt = x + (item.mark ? markWidth + menus.APART.markGap * scale : 0);
       if (item.mark) pieces.push({ x, y: y + (row - markHeight) / 2, width: markWidth, height: markHeight, svg: item.mark, faded: item.faded });
       item.lines.forEach((text, i) => pieces.push({ x: nameAt, y: y + i * row, width: item.nameWidth * scale, height: row, faded: item.faded, text, font: nameFont, color: softColor, align: "left", cut: true }));
-      if (item.value) pieces.push({ x: (item.x + layout.column - APART.columnGap - item.valueWidth) * scale, y, width: item.valueWidth * scale, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
+      if (item.value) pieces.push({ x: (item.x + layout.column - menus.APART.columnGap - item.valueWidth) * scale, y, width: item.valueWidth * scale, height: row, faded: item.faded, text: item.value, font: valueFont, color: inkColor, align: "left", cut: true });
     }
   }
-  await drawMarks(pieces);
+  await menus.drawMarks(pieces);
   const px = (n) => Math.round(n * scale);
   const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
   const pad = px(PAD), head = px(HEAD), foot = px(FOOT), under = layout.items.length ? px(layout.height) : 0;
@@ -9173,7 +9345,7 @@ function tipWanted(/** @type {HTMLElement} */ target) {
   return !repeats || (target.closest(".sidebar") ? railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
 }
 function showTip(target) {
-  if (!target.isConnected || (ownerNow() === target && !$("menu").hidden)) return;
+  if (!target.isConnected || (menus?.ownerNow() === target && !$("menu").hidden)) return;
   // A tip names what only an icon or a value shows, or gives its keys: words shown whole, the same, nothing more
   // to say. The open sidebar names its items: there, an item's icon pointed at says it (as the rail does), its
   // name pointed at doesn't, unless it's cut short.
@@ -9195,7 +9367,7 @@ function showTip(target) {
   const rect = target.getBoundingClientRect();
   const box = tip.getBoundingClientRect();
   let left = rect.left + rect.width / 2 - box.width / 2, top = rect.bottom + 8;
-  const side = target.closest("#belt") ? beltSide() : "";
+  const side = target.closest("#belt") ? pen.beltSide() : "";
   if (side === "above") top = rect.top - box.height - 8;
   else if (side === "left" || side === "right") {
     left = side === "right" ? rect.right + 8 : rect.left - box.width - 8;
@@ -9280,6 +9452,8 @@ function syncUndo() {
   keep.dataset.tip = edited ? "Save this chart and your edits to your Library" : "Save this chart to your Library";
   keep.setAttribute("aria-label", edited ? "Save, edited" : "Save");
 }
+/** Whether a path is being placed (its first point placed). */
+const placingPath = () => tool === "path" && Boolean(draft && placing);
 /**
  * Whether ⌘Z (`back`) or ⇧⌘Z has a step to take, as undoLast and redoLast take them: a path's point being placed
  * (taken back, put back), a history's (see historyFor).
@@ -9529,14 +9703,14 @@ function showGuide() {
   const parts = [...$("about").children], [first, next] = parts.filter((part) => part.tagName === "H2").map((head) => parts.indexOf(head));
   const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
   $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. A preset you haven't edited shares its own address instead, with what you changed about how it's looked at. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
-  arrive($("guide"));
-  showDialog($("guide"));
+  grid.arrive($("guide"));
+  grid.showDialog($("guide"));
   $("guide").focus();
 }
 $("guide").addEventListener("click", async (event) => {
   const kind = /** @type {HTMLElement | null} */ (closest(event, "[data-guide]"))?.dataset.guide;
   if (!kind) return;
-  const copied = await copyLink(kind === "link" ? linksOf().copy : Promise.resolve(JSON.stringify(portable(chart), null, 2)));
+  const copied = await menus.copyLink(kind === "link" ? menus.linksOf().copy : Promise.resolve(JSON.stringify(menus.portable(chart), null, 2)));
   copied ? toast(kind === "link" ? "Copied the link" : "Copied the JSON") : notice("Couldn't copy");
 });
 /**
@@ -9555,8 +9729,8 @@ function keyGroupsNow() {
 function showShortcuts() {
   keyGroupsNow();
   renderSingleKeys();
-  arrive($("shortcuts"));
-  showDialog($("shortcuts"));
+  grid.arrive($("shortcuts"));
+  grid.showDialog($("shortcuts"));
   $("shortcuts").focus();
 }
 /** A key a hint says the page answers to: any, but a single one (a letter, a digit, a sign) once those are off. */
@@ -9614,7 +9788,7 @@ function updateStatus() {
   // live line read whenever it changes would, each second; the logo's name says the state alone.)
   const state = lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`;
   if (lost !== saidLost) (saidLost = lost), say(state);
-  renderHorizon();
+  grid?.renderHorizon();
   const said = {
     status: lost ? '<span class="live-off">Offline</span>' : "",
     block: liveHeight ? liveFigure(ICONS.cube, "Block", grouped.format(liveHeight)) : "",
@@ -9663,7 +9837,7 @@ function refresh(refit = false) {
   renderWindow();
   renderRanges();
   $("empty").hidden = chart.layers.length > 0;
-  if (presets && !$("empty").hidden && recommendedKey() !== recommendedDrawn) renderRecommended();
+  if (presets && !$("empty").hidden && grid.recommendedKey() !== grid.recommendedDrawn) grid.renderRecommended();
   const unseen = chart.layers.length > 0 && chart.layers.every((layer) => layer.hidden);
   $("all-hidden").hidden = !unseen;
   $("chart").classList.toggle("unseen", unseen);
@@ -9676,17 +9850,21 @@ function refresh(refit = false) {
   document.body.toggleAttribute("data-empty", !chart.layers.length);
   $("share").disabled = $("draw-toggle").disabled = $("panel-toggle").disabled = !chart.layers.length;
   if (!chart.layers.length && document.body.dataset.sheet === "panel") delete document.body.dataset.sheet;
-  renderCharts();
   $("stage-foot").hidden = !chart.layers.length;
   // (Placed once the chart's laid out: see placePlotKeys. Drawn under the page, it's placed once the page has gone.)
   if (home || !chart.layers.length) $("plot-keys").hidden = true;
   else if ($("plot-keys").hidden) relayout();
-  renderLayers();
-  renderInspector();
+  withRest(refreshPanels);
   updateStatus();
+  redrawChart(refit);
+}
+/** What shows beside the chart (the lists, the layers, the inspector, the belt) and its mini chart, as it is now: once the rest is in, as a first chart's drawn. */
+function refreshPanels() {
+  renderCharts();
+  renderLayers();
+  inspector.renderInspector();
   drawThumbs();
   renderBelt();
-  redrawChart(refit);
 }
 /**
  * The open chart drawn again as it is now, as little as that takes. Built from all it was built from, or asked of a
@@ -9744,17 +9922,17 @@ document.addEventListener("visibilitychange", () => document.hidden && buildNow(
 function railMenu(/** @type {HTMLElement} */ item, hover = false) {
   const folder = item.dataset.folderItem ? folderById(item.dataset.folderItem) : null, key = item.dataset.sectionItem, group = /** @type {Group | undefined} */ (item.dataset.groupItem);
   const doc = item.dataset.openChart ? chartById(item.dataset.openChart) : undefined, preset = item.dataset.openPreset;
-  if (doc) return menuOf(item, chartActions(doc.id, "row"), null, "right", { hover });
-  if (preset !== undefined) return menuOf(item, presetActions(Number(preset), "row"), null, "right", { hover });
-  if (group) return menuOf(item, groupRows(group), null, "right", { hover });
-  if (key) return menuOf(item, sectionFlyout(key), null, "right", { hover });
-  if (folder) menuOf(item, folderFlyout(folder.id), null, "right", { hover });
+  if (doc) return menus.menuOf(item, command.chartActions(doc.id, "row"), null, "right", { hover });
+  if (preset !== undefined) return menus.menuOf(item, presetsEdit.presetActions(Number(preset), "row"), null, "right", { hover });
+  if (group) return menus.menuOf(item, grid.groupRows(group), null, "right", { hover });
+  if (key) return menus.menuOf(item, sectionFlyout(key), null, "right", { hover });
+  if (folder) menus.menuOf(item, folderFlyout(folder.id), null, "right", { hover });
 }
 /** A rail row's menu kept open, the focus in it: shown already (pointed at), kept as it is; else shown, as a press does. */
 function railMenuKept(/** @type {HTMLElement} */ item) {
-  if ($("menu").hidden || ownerNow() !== item) return railMenu(item);
-  pinFlyout();
-  focusMenu();
+  if ($("menu").hidden || menus.ownerNow() !== item) return railMenu(item);
+  menus.pinFlyout();
+  menus.focusMenu();
 }
 /**
  * The name of what a menu's for, as its menu says it where it's out of sight (see menuOf): by what opened it (its
@@ -9783,15 +9961,15 @@ function menuNameOf(anchor) {
  * @param {string} id @returns {Action[]}
  */
 function folderFlyout(id) {
-  const counts = chartCounts(), own = () => folderRows(id, false, true).filter((row) => row.key !== "toggle" && row.key !== "view");
+  const counts = grid.chartCounts(), own = () => grid.folderRows(id, false, true).filter((row) => row.key !== "toggle" && row.key !== "view");
   return [
     // (The open chart, and the folder it's in at each level, marked: its way down, as the rail's icon is.)
-    ...childrenOf(id).map((each) => ("layers" in each
-      ? { key: each.id, icon: chartMark(each), label: titleOf(each), marked: !home && chart.id === each.id, run: () => go(chartById(each.id)) }
-      : { key: `f:${each.id}`, icon: folderMark(each), label: each.name, aside: shortCount(counts.get(each.id) ?? 0), marked: !home && Boolean(chart.folder && isIn(chart.folder, each.id)), page: () => ({ title: each.name, heading: true, rows: () => folderFlyout(each.id) }) })),
+    ...grid.childrenOf(id).map((each) => ("layers" in each
+      ? { key: each.id, icon: grid.chartMark(each), label: titleOf(each), marked: !home && chart.id === each.id, run: () => grid.go(chartById(each.id)) }
+      : { key: `f:${each.id}`, icon: folderMark(each), label: each.name, aside: grid.shortCount(counts.get(each.id) ?? 0), marked: !home && Boolean(chart.folder && grid.isIn(chart.folder, each.id)), page: () => ({ title: each.name, heading: true, rows: () => folderFlyout(each.id) }) })),
     // (Empty, said so: not its actions under its name as if what's in it were missing.)
-    ...(childrenOf(id).length ? [] : [{ key: "empty", label: "No charts yet", disabled: "Move charts here, or make one in it (New chart inside)" }]),
-    ...folderRows(id, false, true).filter((row) => row.key === "view").map((row) => ({ ...row, apart: true })),
+    ...(grid.childrenOf(id).length ? [] : [{ key: "empty", label: "No charts yet", disabled: "Move charts here, or make one in it (New chart inside)" }]),
+    ...grid.folderRows(id, false, true).filter((row) => row.key === "view").map((row) => ({ ...row, apart: true })),
     { key: "more", icon: ICONS.more, label: "More", page: () => ({ title: folderById(id)?.name ?? "", heading: true, rows: own }) },
   ];
 }
@@ -9800,15 +9978,15 @@ function sectionFlyout(key) {
   const node = presetNodeAt(JSON.parse(key)), all = /** @type {Preset[]} */ (presets);
   if (!node) return [];
   // (The open preset, and the section it's in at each level, marked, as a folder's are.)
-  const open = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = open < 0 ? [] : sectionKeys(open);
+  const open = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = open < 0 ? [] : grid.sectionKeys(open);
   // (Their marks drawn as they show, as a page of them has them.)
-  for (const each of node.items) if (typeof each === "number" && !presetMarks.has(presetMarkKey(each))) presetMarksAsked.add(each);
+  for (const each of node.items) if (typeof each === "number" && !presetMarks.has(grid.presetMarkKey(each))) grid.presetMarksAsked.add(each);
   drawPresetMarks();
   return [
     ...node.items.map((each) => (typeof each === "number"
       // (By its own name, as its row: retitled here, by that.)
-      ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : presetName(all[each])))(keptPreset(each)), run: () => pickPreset(each) }
-      : { key: each.key, icon: sectionMark(each), label: each.name, aside: shortCount(each.under.length), marked: holding.includes(each.key), page: () => ({ title: each.name, heading: true, rows: () => sectionFlyout(each.key) }) })),
+      ? { key: `p:${each}`, icon: grid.presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : presetName(all[each])))(keptPreset(each)), run: () => pickPreset(each) }
+      : { key: each.key, icon: sectionMark(each), label: each.name, aside: grid.shortCount(each.under.length), marked: holding.includes(each.key), page: () => ({ title: each.name, heading: true, rows: () => sectionFlyout(each.key) }) })),
     { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
   ];
 }
@@ -9818,10 +9996,10 @@ function sectionFlyout(key) {
 document.addEventListener("click", (event) => {
   // (A preset's ⋯, its row's in the sidebar, its tile's.)
   const presetMenu = closest(event, "[data-preset-menu]");
-  if (presetMenu) return openPresetMenu(presetMenu);
+  if (presetMenu) return presetsEdit.openPresetMenu(presetMenu);
   const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
   const { chartMenu: chartId, paneMenu: paneId, folderMenu: folderId, scaleMenu: scaleId } = menuFor?.dataset ?? {};
-  if (menuFor) return chartId ? chartMenu(menuFor, chartId) : paneId ? paneActions(menuFor, paneId) : folderId ? folderActions(menuFor, folderId) : scaleMenu(menuFor, /** @type {string} */ (scaleId));
+  if (menuFor) return chartId ? grid.chartMenu(menuFor, chartId) : paneId ? presetsEdit.paneActions(menuFor, paneId) : folderId ? grid.folderActions(menuFor, folderId) : presetsEdit.scaleMenu(menuFor, /** @type {string} */ (scaleId));
   // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
   // as fast as they come); renamed from its ⋯. A section of the presets and a group's head the same. On the rail, its
   // menu (see railMenu).
@@ -9829,15 +10007,15 @@ document.addEventListener("click", (event) => {
   const page = closest(event, "#chart-list .chart-go");
   if (page) return goTo(asPlace(JSON.parse(/** @type {string} */ (page.dataset.place))));
   const folderItem = closest(event, "[data-folder-item]");
-  if (folderItem) return railed() ? railMenu(folderItem) : toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
+  if (folderItem) return railed() ? railMenu(folderItem) : grid.toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
   const sectionMenu = closest(event, "[data-section-menu]");
-  if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
+  if (sectionMenu) return menus.menuOf(sectionMenu, grid.sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
   const groupItem = closest(event, "[data-group-item]");
-  if (groupItem) return railed() ? railMenu(groupItem) : toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
+  if (groupItem) return railed() ? railMenu(groupItem) : grid.toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
   const groupMenu = closest(event, "[data-group-menu]");
-  if (groupMenu) return menuOf(groupMenu, groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
+  if (groupMenu) return menus.menuOf(groupMenu, grid.groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
   const sectionItem = closest(event, "[data-section-item]");
-  if (sectionItem) return railed() ? railMenu(sectionItem) : toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
+  if (sectionItem) return railed() ? railMenu(sectionItem) : grid.toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
   const sidePreset = closest(event, "#chart-list [data-open-preset]");
   if (sidePreset) return pickPreset(Number(sidePreset.dataset.openPreset));
   const recentItem = closest(event, "[data-open-recent]");
@@ -9845,14 +10023,14 @@ document.addEventListener("click", (event) => {
   const check = closest(event, "[data-pick-layer]");
   if (check) return pickLayer(/** @type {string} */ (check.dataset.pickLayer), event.shiftKey);
   const marker = closest(event, "[data-markers]");
-  if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : toggleHalvings();
+  if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : presetsEdit.toggleHalvings();
   const view = closest(event, "[data-show-view]");
-  if (view) return setPaneView(/** @type {string} */ (view.dataset.pane), /** @type {0 | 1} */ (Number(view.dataset.showView)));
+  if (view) return presetsEdit.setPaneView(/** @type {string} */ (view.dataset.pane), /** @type {0 | 1} */ (Number(view.dataset.showView)));
   const paneEye = closest(event, "[data-pane-eye]");
-  if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id), paneShows(chart, /** @type {string} */ (paneEye.dataset.paneEye)));
+  if (paneEye) return inspector.hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id), paneShows(chart, /** @type {string} */ (paneEye.dataset.paneEye)));
   if (closest(event, "#templates [data-gallery-retry]")) return retryPresets();
   const template = closest(event, "[data-template]");
-  const card = template && recommendedCards[Number(template.dataset.template)];
+  const card = template && grid.recommendedCards[Number(template.dataset.template)];
   if (card) return pickPreset(card.preset);
   const found = closest(event, "[data-select], [data-toggle], [data-pane-mode], [data-pane-stack], [data-pane-reverse], [data-pane-outline], [data-pane-gradient], [data-action], .mobile-bar [data-sheet], [data-open-chart]");
   // (A legend item's mark is its switch only under a mouse, where its eye shows as it's pointed at: tapped, the item.)
@@ -9861,29 +10039,29 @@ document.addEventListener("click", (event) => {
   const { select: id, toggle, paneMode, paneStack, paneReverse, paneOutline, paneGradient, gradient, mode, action, sheet, openChart } = target.dataset;
   if (openChart) {
     delete document.body.dataset.sheet;
-    go(chartById(openChart));
+    grid.go(chartById(openChart));
   }
   // ⌘ or ⇧, or a click while some are picked (not a key: ↵ opens it): picked with the others; else opened. (↵ on
   // one picked among several: they're opened together, as the bar's Edit does.)
   else if (id && (event.metaKey || event.ctrlKey || event.shiftKey || (layerPicks.size && event.detail > 0))) pickLayer(id, event.shiftKey);
   else if (id && event.detail === 0 && layerPicks.size > 1 && layerPicks.has(id) && target.closest("#layer-list")) layersBatch("edit");
   else if (id) select(id);
-  else if (toggle) event.altKey ? soloLayer(toggle) : toggleHidden(toggle);
-  else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneMode(paneMode, Number(mode));
-  else if (paneStack) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneStack(paneStack, target.dataset.stack ?? "");
-  else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
-  else if (paneOutline) setPaneOutline(paneOutline, Boolean(target.dataset.outline));
-  else if (paneGradient) setPaneGradient(paneGradient, gradient ?? "");
+  else if (toggle) event.altKey ? inspector.soloLayer(toggle) : inspector.toggleHidden(toggle);
+  else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : presetsEdit.setPaneMode(paneMode, Number(mode));
+  else if (paneStack) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : presetsEdit.setPaneStack(paneStack, target.dataset.stack ?? "");
+  else if (paneReverse) presetsEdit.setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
+  else if (paneOutline) presetsEdit.setPaneOutline(paneOutline, Boolean(target.dataset.outline));
+  else if (paneGradient) presetsEdit.setPaneGradient(paneGradient, gradient ?? "");
   // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
   else if (action === "palette") openPalette({ resume: true });
   // (Home's search, drawn as a field: ⌘K afresh, its keyboard with it by touch, as a tap on a field asks.)
   else if (action === "search") openPalette({ typing: true, onField: target.matches(".home-search") });
-  else if (action === "new-chart") newChart();
+  else if (action === "new-chart") grid.newChart();
   else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
   else if (action === "add-series") openPalette({ add: true, typing: target.hasAttribute("data-typing") });
   else if (action === "leave-empty") leaveEmpty();
   else if (action === "import") importCharts(target.dataset.into);
-  else if (action === "download-all") downloadAll();
+  else if (action === "download-all") menus.downloadAll();
   // (Home, from anywhere, a chart too: a page of its own, not the one a chart was opened from (its path, Back, go
   // there). The sidebar's.)
   else if (action === "charts") goTo({ top: true });
@@ -9898,8 +10076,8 @@ document.addEventListener("click", (event) => {
   else if (action === "toggle-panel") togglePanel();
   else if (action === "link-view") linkView(!prefs.linkView);
   else if (action === "shortcuts") showShortcuts();
-  else if (action === "theme") themeMenu(target);
-  else if (action === "show-every") showEvery();
+  else if (action === "theme") grid.themeMenu(target);
+  else if (action === "show-every") inspector.showEvery();
   else if (action === "retry-all") {
     for (const name of drawSeries(chart)) {
       forget(name, chart.index);
@@ -9907,11 +10085,11 @@ document.addEventListener("click", (event) => {
     }
     draw();
   }
-  else if (action === "full") setFull();
-  else if (action === "draw") toggleBelt();
+  else if (action === "full") presetsEdit.setFull();
+  else if (action === "draw") pen.toggleBelt();
   else if (action === "close-palette") dismissPalette(true);
-  else if (action === "close-shortcuts") leave($("shortcuts"));
-  else if (action === "close-guide") leave($("guide"));
+  else if (action === "close-shortcuts") grid.leave($("shortcuts"));
+  else if (action === "close-guide") grid.leave($("guide"));
   else if (action === "guide") showGuide();
   else if (action === "close-sheet") {
     delete document.body.dataset.sheet;
@@ -9924,39 +10102,41 @@ document.addEventListener("click", (event) => {
   }
 });
 // A click beside a dialog (on its scrim, see showDialog) puts it away; a toast shown inside it moves back to the page.
-for (const dialog of all$("dialog")) {
-  const scrim = Object.assign(document.createElement("div"), { className: "dialog-scrim", popover: "manual" });
-  scrim.setAttribute("aria-hidden", "true");
-  scrim.addEventListener("click", () => (dialog.id === "palette" ? dismissPalette(true) : leave(dialog)));
-  dialog.before(scrim);
-  dialogScrims.set(dialog, scrim);
-  // (Closing: off the stack, its scrim gone with it, and the focus back where it was, as a modal's: there and then,
-  // before what follows moves it on.)
-  dialog.addEventListener("beforetoggle", (event) => {
-    if (/** @type {ToggleEvent} */ (event).newState !== "closed") return;
-    const to = dialogOpeners.get(dialog), at = document.activeElement;
-    if (dialogsShown.includes(dialog)) dialogsShown.splice(dialogsShown.indexOf(dialog), 1);
-    holdPage(dialog, false);
-    if (isOpen(scrim)) scrim.hidePopover();
-    if (to instanceof HTMLElement && to.isConnected && (!at || at === document.body || dialog.contains(at))) to.focus({ preventScroll: true });
-  });
-  // (esc: as it leaves, where the browser wouldn't play it: see leave. Unless something of it took the key: Quick Look.)
-  dialog.addEventListener("cancel", (event) => {
-    if (keepsLeaving || event.defaultPrevented) return;
-    event.preventDefault();
-    leave(dialog);
-  });
-  onClosed(dialog, () => $("toast").parentElement === dialog && (cutFade($("toast")), (topDialog() ?? document.body).append($("toast"))));
-  // (Closed: no series being added or replaced any more. Open again by then (a row that closes it and opens it another
-  // way: Bubbles, adding), its way the new one.)
-  if (dialog.id === "palette") onClosed(dialog, () => !isOpen(dialog) && palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
-}
+withRest(() => {
+  for (const dialog of all$("dialog")) {
+    const scrim = Object.assign(document.createElement("div"), { className: "dialog-scrim", popover: "manual" });
+    scrim.setAttribute("aria-hidden", "true");
+    scrim.addEventListener("click", () => (dialog.id === "palette" ? dismissPalette(true) : grid.leave(dialog)));
+    dialog.before(scrim);
+    grid.dialogScrims.set(dialog, scrim);
+    // (Closing: off the stack, its scrim gone with it, and the focus back where it was, as a modal's: there and then,
+    // before what follows moves it on.)
+    dialog.addEventListener("beforetoggle", (event) => {
+      if (/** @type {ToggleEvent} */ (event).newState !== "closed") return;
+      const to = grid.dialogOpeners.get(dialog), at = document.activeElement;
+      if (dialogsShown.includes(dialog)) dialogsShown.splice(dialogsShown.indexOf(dialog), 1);
+      holdPage(dialog, false);
+      if (isOpen(scrim)) scrim.hidePopover();
+      if (to instanceof HTMLElement && to.isConnected && (!at || at === document.body || dialog.contains(at))) to.focus({ preventScroll: true });
+    });
+    // (esc: as it leaves, where the browser wouldn't play it: see leave. Unless something of it took the key: Quick Look.)
+    dialog.addEventListener("cancel", (event) => {
+      if (keepsLeaving || event.defaultPrevented) return;
+      event.preventDefault();
+      grid.leave(dialog);
+    });
+    onClosed(dialog, () => $("toast").parentElement === dialog && (cutFade($("toast")), (topDialog() ?? document.body).append($("toast"))));
+    // (Closed: no series being added or replaced any more. Open again by then (a row that closes it and opens it another
+    // way: Bubbles, adding), its way the new one.)
+    if (dialog.id === "palette") onClosed(dialog, () => !isOpen(dialog) && command.palette.op.kind !== "formula" && (command.palette.op = { kind: "browse" }));
+  }
+});
 
 /**
  * Out of the field being typed into: what it holds kept (or, a text emptied, gone), and a formula left by a press
  * applied, there and then: on the chart it was typed on (another's opening).
  */
-const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), applyFormulaLeft());
+const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), inspector.applyFormulaLeft());
 // The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
 // under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the
 // page as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page
@@ -10001,7 +10181,7 @@ const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @t
     else delete document.body.dataset.keys;
     const keys = up && covering ? under : 0;
     if (keys !== covered) for (const sheet of [$("panel"), $("palette")]) sheet.style.setProperty("--keys", `${(covered = keys)}px`);
-    if (up) keysCame(), reveal();
+    if (up) grid.keysCame(), reveal();
   };
   viewport.addEventListener("resize", read);
   addEventListener("resize", read);
@@ -10024,7 +10204,7 @@ const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @t
       field.focus({ preventScroll: true });
       const at = document.caretPositionFromPoint?.(touch.clientX, touch.clientY);
       if (at?.offsetNode === field && (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) field.setSelectionRange(at.offset, at.offset);
-      if (field.closest("#panel") && heldUpright.matches && !sheetWhole()) onceKeys(() => document.activeElement === field && document.body.dataset.sheet === "panel" && !sheetWhole() && sizeSheet($("panel"), () => panelSize(true)));
+      if (field.closest("#panel") && heldUpright.matches && !sheetWhole()) grid.onceKeys(() => document.activeElement === field && document.body.dataset.sheet === "panel" && !sheetWhole() && grid.sizeSheet($("panel"), () => grid.panelSize(true)));
     },
     { capture: true, passive: false },
   );
@@ -10040,24 +10220,24 @@ document.addEventListener("keydown", (event) => {
   const mod = event.metaKey || event.ctrlKey;
   const key = event.key.toLowerCase();
   // (A modifier pressed alone (⇧, ⌘ held for the keys' hints): nothing pressed yet; a menu shown stays.)
-  if (flyout && event.getModifierState(event.key)) return;
-  if (flyout) {
+  if (menus.flyout && event.getModifierState(event.key)) return;
+  if (menus.flyout) {
     // (↑ ↓ into it only from nowhere, or from what opened it: from a field, a list, they're theirs, and it goes.)
-    const at = document.activeElement, free = !at || at === document.body || at === ownerNow();
+    const at = document.activeElement, free = !at || at === document.body || at === menus.ownerNow();
     if (!mod && free && upDown(event)) {
       event.preventDefault();
-      pinFlyout();
+      menus.pinFlyout();
       const items = all$("button:not(:disabled)", $("menu"));
       return void items[event.key === "ArrowDown" ? 0 : items.length - 1]?.focus();
     }
-    hideMenu();
+    menus.hideMenu();
     if (event.key === "Escape") return void event.preventDefault();
   }
   if (mod && key === "k") {
     event.preventDefault();
     if (!isOpen($("palette")) || $("palette").dataset.leaving) return openPalette({ resume: true });
-    if (!$("menu").hidden && $("menu").closest("#palette")) return void (hideMenu(), paletteKeys());
-    return showActions();
+    if (!$("menu").hidden && $("menu").closest("#palette")) return void (menus.hideMenu(), command.paletteKeys());
+    return command.showActions();
   }
   if (document.querySelector("dialog:popover-open")) return;
   // An open menu has the keys (its own, and its arrows): the chart's don't act behind it. Esc closes it.
@@ -10073,7 +10253,7 @@ document.addEventListener("keydown", (event) => {
   }
   if (mod && /^[1-9]$/.test(event.key) && !event.shiftKey && !event.altKey) {
     event.preventDefault();
-    numbered()[Number(event.key) - 1]?.click();
+    grid.numbered()[Number(event.key) - 1]?.click();
     return;
   }
   // Everything saves as you go: ⌘S just says so, instead of the browser saving the page; a preview, it keeps it.
@@ -10092,10 +10272,10 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     return redoLast();
   }
-  if (mod && key === "a" && yoursShown() && !typing(event.target)) {
+  if (mod && key === "a" && grid.yoursShown() && !typing(event.target)) {
     event.preventDefault();
-    for (const doc of shownCharts()) picked.add(doc.id);
-    return renderPicked();
+    for (const doc of grid.shownCharts()) grid.picked.add(doc.id);
+    return grid.renderPicked();
   }
   // A chart focused in the sidebar or the grid: ⌘D and ⌫ are its own (in the grid, the picks' too), not the open chart's.
   const inList = typing(event.target) || !document.activeElement?.matches?.(":focus-visible") ? null : /** @type {HTMLElement | null} */ (document.activeElement.closest("#chart-list, #home-grid"));
@@ -10105,29 +10285,29 @@ document.addEventListener("keydown", (event) => {
     const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
     if (!doc || isPreview(doc)) return;
     // (Once a press: held, the key repeats, and each copy's picks would be copied again for as long as it's held.)
-    if (key === "d") return void (event.repeat || (inGrid ? batch("duplicate", null, picked.has(id) ? null : [id]) : duplicateCharts([doc])));
+    if (key === "d") return void (event.repeat || (inGrid ? grid.batch("duplicate", null, grid.picked.has(id) ? null : [id]) : grid.duplicateCharts([doc])));
     // (One of the picks: they all go; one alone, alone. An Undo brings them back.)
-    return inGrid ? batch("delete", null, picked.has(id) ? null : [id]) : deleteChart(doc);
+    return inGrid ? grid.batch("delete", null, grid.picked.has(id) ? null : [id]) : deleteChart(doc);
   }
   // A layer's row: ⌥↑ ⌥↓ move it among its pane's, as a chart's row moves in the list.
   const layerRow = typing(event.target) ? null : /** @type {HTMLElement | null} */ (document.activeElement?.closest?.(".layer-row[data-layer]") ?? null);
   if (layerRow && event.altKey && !mod && upDown(event)) {
     event.preventDefault();
     const id = /** @type {string} */ (layerRow.dataset.layer);
-    moveLayer(id, event.key === "ArrowUp" ? -1 : 1);
-    return void refocus(`.layer-row[data-layer="${CSS.escape(id)}"] .row-main`);
+    inspector.moveLayer(id, event.key === "ArrowUp" ? -1 : 1);
+    return void presetsEdit.refocus(`.layer-row[data-layer="${CSS.escape(id)}"] .row-main`);
   }
   // Drawings selected: the arrows move them (⇧ further), ⌘ the arrows resize them; not from a list or the panel.
   if (chosen.size && !home && !event.altKey && ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) && !typing(event.target) && !document.activeElement?.closest?.("#chart-list, #panel, #belt")) {
     event.preventDefault();
-    return nudgeDrawings(event.key, event.shiftKey, mod, event.repeat);
+    return heatmaps.nudgeDrawings(event.key, event.shiftKey, mod, event.repeat);
   }
   // (⌘D alone: ⌘⇧D, ⌘⌥D are no one's here.)
   if (mod && !event.shiftKey && !event.altKey && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
     event.preventDefault();
     // (Once a press, as a chart's above.)
     if (event.repeat) return;
-    return chosen.size ? duplicateDrawings([...chosen]) : layerPicks.size ? layersBatch("duplicate") : duplicateLayer(selected);
+    return chosen.size ? heatmaps.duplicateDrawings([...chosen]) : layerPicks.size ? layersBatch("duplicate") : inspector.duplicateLayer(selected);
   }
   // ⌘A picks every layer while some are picked, or from the panel (on the chart, every drawing).
   if (mod && key === "a" && !home && chart.layers.length && !typing(event.target) && (layerPicks.size || $("layers-view").contains(document.activeElement))) {
@@ -10147,16 +10327,16 @@ document.addEventListener("keydown", (event) => {
   }
   // (Turned off, a letter, a digit or a sign alone does nothing here: only named keys, ⌫, esc, the arrows.)
   if (!prefs.keys && event.key.length === 1) return;
-  if (yoursShown() && erasing(event) && picked.size) {
+  if (grid.yoursShown() && erasing(event) && grid.picked.size) {
     event.preventDefault();
-    return batch("delete");
+    return grid.batch("delete");
   }
   // In the grid, only what isn't of a chart: the open one is out of sight.
   if (home && !["/", "n", "?", "\\", "escape"].includes(key)) return;
   if (event.key === "/") openPalette({ resume: true });
-  else if (key === "f" && event.shiftKey && !home) setFull();
-  else if (key === "f") addFormula();
-  else if (key === "n") newChart();
+  else if (key === "f" && event.shiftKey && !home) presetsEdit.setFull();
+  else if (key === "f") inspector.addFormula();
+  else if (key === "n") grid.newChart();
   else if (key === "a") openPalette({ add: true });
   else if (event.key === "?") showShortcuts();
   else if (event.key === "\\" && !phone.matches) toggleSidebar();
@@ -10165,13 +10345,13 @@ document.addEventListener("keydown", (event) => {
   else if (event.key === "Escape") {
     // (On the Charts page, the chart under it, out of sight, is left as it is: its tool, measure, picks.)
     if (!home && $("menu").hidden && clearMeasure()) return;
-    if (home && picked.size && $("menu").hidden) clearPicks();
-    else if (!$("menu").hidden) dismissMenu(true);
+    if (home && grid.picked.size && $("menu").hidden) grid.clearPicks();
+    else if (!$("menu").hidden) menus.dismissMenu(true);
     // (A path being placed, kept as it is: esc finishes it.)
-    else if (!home && (placing || moving || boxing)) finishPath() || stopDrawing();
+    else if (!home && (placing || moving || boxing)) heatmaps.finishPath() || stopDrawing();
     else if (!home && (tool || selectingArea || magnifying)) takeUp("");
     else if (!home && chosen.size) chooseDrawings([]);
-    else if (!home && editingMany()) deselect();
+    else if (!home && inspector.editingMany()) deselect();
     else if (!home && layerPicks.size) clearLayerPicks(true);
     else if (!home && selected) deselect();
     else if (document.body.hasAttribute("data-peek")) {
@@ -10185,29 +10365,29 @@ document.addEventListener("keydown", (event) => {
     // (Full screen's panel, opened for the while (P), put away first; nothing else to put away: out of full screen,
     // as anywhere (a press, not its repeat: one held unwinds the rest, not this too).)
     else if (!home && fullOn() && panelShown()) togglePanel(false);
-    else if (fullOn() && !event.repeat) setFull(false);
+    else if (fullOn() && !event.repeat) presetsEdit.setFull(false);
   } else if (upDown(event) && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
   else if (upDown(event)) selectBy(event.key === "ArrowDown" ? 1 : -1);
   // (A path being placed: its last point taken back.)
   else if (erasing(event) && !home && placing && tool === "path") unplacePath();
-  else if (erasing(event) && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
+  else if (erasing(event) && (chosen.size || layerPicks.size || selected)) chosen.size ? heatmaps.removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : inspector.removeLayer(selected);
   else if (key === "h" && event.shiftKey && chart.drawings?.length) hideDrawings(!drawingsHidden, true);
   else if (key === "h" && !event.shiftKey && layerPicks.size) layersBatch("hide");
-  else if (key === "h" && !event.shiftKey && layerById(selected)) toggleHidden(selected);
-  else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
+  else if (key === "h" && !event.shiftKey && layerById(selected)) inspector.toggleHidden(selected);
+  else if (key === "l" && chart.layers.length) presetsEdit.toggleLog(command.scalePane().id);
   else if (key === "m" && chart.layers.length) takeUp(tool === "ruler" ? "" : "ruler");
   else if (key === "d" && chart.layers.length) focusBelt();
-  else if (key === "g" && chart.layers.length) openPage(datePage());
+  else if (key === "g" && chart.layers.length) command.openPage(command.datePage());
   else if (event.key === "-" || event.key === "_") zoom(1.6);
   else if (event.key === "=" || event.key === "+") zoom(1 / 1.6);
   else if (["1", "2", "3", "4", "5"].includes(event.key)) {
     const [id, text] = RANGES[Number(event.key) - 1];
-    if (presetFits(id)) setRange(id);
+    if (presetFits(id)) menus.setRange(id);
     else notice(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
   }
-  else if (event.key === "[" || event.key === "]") stepInterval(event.key === "]" ? 1 : -1);
+  else if (event.key === "[" || event.key === "]") menus.stepInterval(event.key === "]" ? 1 : -1);
   // (A signal's marks stepped through, as a player's frames: before, after the middle of the view.)
-  else if ((event.key === "," || event.key === ".") && chart.layers.length) chart.layers.some((layer) => signalShown(layer)) ? stepSignal(event.key === "." ? 1 : -1) : notice("No signal shown to step through");
+  else if ((event.key === "," || event.key === ".") && chart.layers.length) chart.layers.some((layer) => signalShown(layer)) ? command.stepSignal(event.key === "." ? 1 : -1) : notice("No signal shown to step through");
   else return;
   event.preventDefault();
 });
@@ -10305,6 +10485,10 @@ $("live").addEventListener("animationend", (event) => event.animationName === "b
 let checking = false;
 async function checkLive() {
   if (document.visibilityState !== "visible" || checking) return;
+  // (The rest lost as it loaded, a chart drawn: asked again, as the device is back and each 15 seconds; till it's in,
+  // said as offline (the server unanswered, as it was). Not before the first draw: it's asked by it. In, this check
+  // is its own: it retries the rest's plots.)
+  if (!command) return void (displayed && loadRest().then(checkLive, () => ((answeredAt = 0), updateStatus())));
   checking = true;
   let health;
   try {
@@ -10315,12 +10499,12 @@ async function checkLive() {
     checking = false;
   }
   answeredAt = Date.now();
-  retryPlots();
+  grid?.retryPlots();
   // (A layer that couldn't load (bitview.space away a while): asked for again as it answers, not at the next block,
   // ten minutes on; drawn once, a new block's draw if one came. Not while it's still being drawn (a slow answer
   // never overtaken), nor under a menu (its button kept). Under the Charts page, once it's back: see leaveHome.)
   const idle = Boolean(chart && !home && settled() && $("menu").hidden);
-  const retry = idle && Boolean(resolved?.failed.length) && retryFailed(/** @type {Resolved} */ (resolved), chart.index);
+  const retry = idle && Boolean(resolved?.failed.length) && grid.retryFailed(/** @type {Resolved} */ (resolved), chart.index);
   // (A refresh that failed, its series' older points held: asked again at once too, not at the next block. A draw
   // for it asks the tails afresh.)
   const behind = idle && !retry && refreshFailed(chart);
@@ -10338,7 +10522,7 @@ async function checkLive() {
     repaintDrawings();
   }
   if (first) return void (retry && draw());
-  heatFresh();
+  heatmaps.heatFresh();
   const live = $("live");
   live.classList.remove("block");
   void live.offsetWidth;
@@ -10354,7 +10538,7 @@ addEventListener("online", () => (sayUnreached(), checkLive()));
 // (Hidden, nothing is asked: back in view, the minute starts over.)
 document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (answeredAt = Date.now()));
 document.addEventListener("visibilitychange", checkLive);
-checkLive();
+withRest(checkLive);
 
 // ── Live price: between blocks, the price's own layers follow it ──────────
 // bitview.space's live price (round-dollar outputs of the last blocks and the mempool), read each second while the
@@ -10366,9 +10550,8 @@ checkLive();
 
 /** The price's series, each with what the live price (in dollars) is in its unit. */
 const usd = (/** @type {number} */ price) => price, sats = (/** @type {number} */ price) => 1e8 / price;
-const LIVE = new Map([
-  [tree.price.ohlc.name, usd], [tree.price.close.name, usd], [tree.price.spot.name, usd], [tree.price.satsPerDollar.name, sats],
-]);
+/** (Named by the whole client: see whole.) @type {Map<string, (price: number) => number>} */
+let LIVE = new Map();
 /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
 function liveLayers() {
   if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
@@ -10419,7 +10602,7 @@ function movePrice(price) {
     showTimes(resolved.times);
     dataRevision++;
     // (A heatmap's bars too, at the price now: its newest column drawn there, see viewHeat.)
-    for (const series of heatSeries) for (let k = 0; k < added.length; k++) series.place(resolved.times.length - added.length + k, price);
+    for (const series of heatmaps.heatSeries) for (let k = 0; k < added.length; k++) series.place(resolved.times.length - added.length + k, price);
   }
   const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1;
   // The same price on the same data, for the same layers (as most polls bring): nothing to move.
@@ -10509,7 +10692,8 @@ function movePrice(price) {
 }
 let pricePending = false, priceTimer = 0, priceDelay = 1000;
 async function pollPrice() {
-  if (pricePending || document.visibilityState !== "visible") return;
+  // (Asked by the whole client: see whole.)
+  if (!tree || pricePending || document.visibilityState !== "visible") return;
   clearTimeout(priceTimer);
   pricePending = true;
   try {
@@ -10534,7 +10718,7 @@ async function pollPrice() {
   }
 }
 document.addEventListener("visibilitychange", pollPrice);
-pollPrice();
+withRest(pollPrice);
 
 // ── Start ─────────────────────────────────────────────────────────────────
 
@@ -10587,7 +10771,7 @@ function takeLinkLook(doc, look, made) {
   if (window) atWindow(doc, window);
   // (An interval the picker wouldn't offer (a layer's ceiling, a formula's needs, a series' intervals: see
   // supportedIntervals), as if it weren't said.)
-  doc.index = (look.index && supportedIntervals(doc)(look.index) ? look.index : undefined) ?? made?.index ?? doc.index;
+  doc.index = (look.index && menus.supportedIntervals(doc)(look.index) ? look.index : undefined) ?? made?.index ?? doc.index;
   if (look.range || look.view || made) {
     const all = viewsNow();
     delete all[doc.id];
@@ -10664,7 +10848,7 @@ addEventListener("hashchange", () => {
 });
 /** The address bar's link read, and its chart shown. */
 function readLink() {
-  closeDialogs();
+  grid.closeDialogs();
   // (The navigation this is, as navigate counts it: another chart opened meanwhile, the grid shown, this one's dropped.)
   const run = ++linkRun, at = navigations + 1;
   navigate((async () => {
@@ -10706,7 +10890,7 @@ let pictureRun = 0;
 async function showPicture() {
   const run = ++pictureRun;
   document.body.toggleAttribute("data-picture", true);
-  layOutAlone(true);
+  presetsEdit.layOutAlone(true);
   const image = /** @type {HTMLImageElement} */ ($("picture-img"));
   pictureDrawing();
   try {
@@ -10715,14 +10899,14 @@ async function showPicture() {
     await studio.ready();
     document.title = `${titleOf(chart)} · Bitview Studio`;
     const at = navigations;
-    if (await freshThumb(chart, true)) saveThumbsSoon();
+    if (await grid.freshThumb(chart, true)) saveThumbsSoon();
     const url = (await chartImage()).toDataURL("image/png");
     if (at !== navigations) throw new Error("Another chart was opened meanwhile");
     if (run !== pictureRun || !picturing) return;
     image.src = url;
     image.alt = `${titleOf(chart)}. ${chartFacts()}`;
     // (Its link as Copy link writes it, compressed: shown once it's this picture's.)
-    const link = await shareLink(chart);
+    const link = await menus.shareLink(chart);
     if (run !== pictureRun || !picturing) return;
     /** @type {HTMLAnchorElement} */ ($("picture-open")).href = link.slice(link.indexOf("#"));
     $("picture-open").hidden = false;
@@ -10764,8 +10948,8 @@ function leavePicture() {
   pictureRun++;
   document.body.removeAttribute("data-picture");
   if (/[#&]image=/.test(location.hash)) history.replaceState(history.state, "", `${location.pathname}${location.search}`);
-  setFull(false);
-  layOutAlone(false);
+  presetsEdit.setFull(false);
+  presetsEdit.layOutAlone(false);
   clearLink();
 }
 $("picture-leave").addEventListener("click", () => {
@@ -10792,19 +10976,19 @@ async function settle(ms = 60_000) {
   // (The time given for all of it: the chart's way there and the fonts too.)
   const end = performance.now() + ms, left = () => Math.max(0, end - performance.now()), LATE = Symbol(), late = () => new Promise((done) => setTimeout(() => done(LATE), left()));
   if ((await Promise.race([navigating, late()])) === LATE || (await Promise.race([document.fonts.ready, late()])) === LATE) throw new Error("The chart is still loading");
-  while (home || !chart.layers.length || !settled() || !heatIn()) {
+  while (home || !chart.layers.length || !settled() || !heatmaps.heatIn()) {
     if (home) throw new Error("No chart is open (Studio shows Home)");
     if (!chart.layers.length) throw new Error("The chart has no layers");
     if (!left()) throw new Error("The chart is still loading");
     // (Woken by the draw, else at the time given: no timer chain, which a hidden tab would slow to one a minute.)
     await new Promise((done) => {
-      const wake = () => (clearTimeout(timer), drawnWaiters.delete(wake), heatWaiters.delete(wake), done(undefined));
+      const wake = () => (clearTimeout(timer), drawnWaiters.delete(wake), heatmaps.heatWaiters.delete(wake), done(undefined));
       const timer = setTimeout(wake, left());
       drawnWaiters.add(wake);
-      heatWaiters.add(wake);
+      heatmaps.heatWaiters.add(wake);
       // (The chart drawn, a heatmap of it not two frames on: the library had nothing on its scale to draw it on
       // (see heatIn).)
-      const undrawn = settled() && !document.hidden ? shownHeats().filter((look) => !look.drawn && !look.undrawable) : [];
+      const undrawn = settled() && !document.hidden ? heatmaps.shownHeats().filter((look) => !look.drawn && !look.undrawable) : [];
       if (undrawn.length) requestAnimationFrame(() => requestAnimationFrame(() => (undrawn.forEach((look) => (look.undrawable = !look.drawn)), wake())));
     });
   }
@@ -10820,7 +11004,7 @@ async function settle(ms = 60_000) {
   if (!document.hidden) await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
   ended();
   // (That frame's draw asking a heatmap for days: waited for too.)
-  if (!heatIn()) return settle(left());
+  if (!heatmaps.heatIn()) return settle(left());
 }
 /** The picture a script last had (see png): made for the chart as it was, read again in parts. @type {{ wanted: string, url: string } | null} */
 let picture = null;
@@ -10837,7 +11021,7 @@ const studio = Object.freeze({
   /** A chart as a link writes it (an object, or its JSON): opened as its link would be; done once it's the one open. */
   open(/** @type {object | string} */ sketch) {
     const run = ++linkRun, at = navigations + 1;
-    closeDialogs();
+    grid.closeDialogs();
     if (document.body.hasAttribute("data-picture")) leavePicture();
     return navigate((async () => {
       const doc = await linked(typeof sketch === "string" ? sketch : JSON.stringify(sketch), null, run, at);
@@ -10871,7 +11055,7 @@ const studio = Object.freeze({
     await studio.ready();
     // (Its legends' marks its own lines, as the picture page draws them: not the faint ones they show till its mini
     // chart's drawn, which a page just opened, by a script, has yet to.)
-    if (await freshThumb(chart, true)) saveThumbsSoon();
+    if (await grid.freshThumb(chart, true)) saveThumbsSoon();
     // (Made for the chart as it is now, whole or its part 0; its parts after the first from that same picture, of the
     // same chart, cut alike, whatever's moved since (a live price each second); one asked for otherwise, none.)
     const wanted = JSON.stringify([chart.id, width, height, scale, type, quality, partSize]);
@@ -10889,14 +11073,14 @@ const studio = Object.freeze({
     return { part, parts, mime, base64: base64.slice(part * partSize, (part + 1) * partSize) };
   },
   /** The chart open, as a link writes it: a copy (changing it changes nothing here; open it to). */
-  chart: () => structuredClone(toSketch(chart)),
+  chart: () => structuredClone(menus.toSketch(chart)),
   /** Once it's drawn, its layers that show nothing, and why: [{ layer, error }], a missing series' closest too. */
   async errors() {
     await settle();
     return Promise.all(chart.layers.flatMap((layer) => {
       const result = resolved?.results.get(layer.id), error = result?.error ? result.detail ?? result.error : fromUnfit(chart, layer);
       if (!error) return [];
-      const closest = !layer.series ? null : result?.missing ? closestSeries(layer.series) : result?.detail === BY_BLOCK ? Promise.resolve(indexCatalog()).then(() => dailyOf(/** @type {string} */ (layer.series)) ?? closestSeries(/** @type {string} */ (layer.series))) : null;
+      const closest = !layer.series ? null : result?.missing ? inspector.closestSeries(layer.series) : result?.detail === BY_BLOCK ? Promise.resolve(indexCatalog()).then(() => dailyOf(/** @type {string} */ (layer.series)) ?? inspector.closestSeries(/** @type {string} */ (layer.series))) : null;
       return [closest ? closest.then((name) => ({ layer: layer.letter, error, ...(name ? { closest: name } : {}) })) : { layer: layer.letter, error }];
     }));
   },
@@ -10904,7 +11088,7 @@ const studio = Object.freeze({
   async search(/** @type {string} */ text, count = 10) {
     const most = Math.round(bounded(count, "count", 1, 50));
     indexCatalog();
-    return (await findSeries(String(text), most + 20)).filter((name) => !gone.has(name) && !byBlock.has(name)).slice(0, most);
+    return (await command.findSeries(String(text), most + 20)).filter((name) => !gone.has(name) && !byBlock.has(name)).slice(0, most);
   },
 });
 Object.defineProperty(window, "studio", { value: studio });
@@ -10939,7 +11123,7 @@ function placeGallery(place) {
 // ── Quick Look: ⌘K's highlighted chart, big ────────────────────────────────
 
 /** Quick Look works by a keyboard: none by touch, nor on a phone. */
-const quickWorks = () => keyboard() && !phone.matches;
+const quickWorks = () => command.keyboard() && !phone.matches;
 phone.addEventListener("change", () => phone.matches && quickHide());
 /** Whether a ⌘K row is a chart to look at. */
 const canLook = (/** @type {any} */ item) => Boolean(lookableAt(item));
@@ -10957,21 +11141,21 @@ const QUICK_PICTURE = { width: 1000, height: 560, points: 700 };
 const quickPictures = new Map();
 /** A chart's picture for Quick Look: drawn from its data on its own, at its interval, over its window (nothing opened). */
 function quickPicture(/** @type {Chart} */ doc) {
-  const key = `${doc.id}:${previewKey(doc)}:${light}`;
+  const key = `${doc.id}:${grid.previewKey(doc)}:${light}`;
   let made = quickPictures.get(key);
   if (made) quickPictures.delete(key);
   else made = (async () => {
     // (At an interval with as many points as it has room for, no finer: a week's for years, the chart's own for weeks.)
-    const index = await sampleable(doc, sampleIndex(doc, "week1", QUICK_PICTURE.points)), copy = { ...structuredClone(doc), index };
+    const index = await grid.sampleable(doc, grid.sampleIndex(doc, "week1", QUICK_PICTURE.points)), copy = { ...structuredClone(doc), index };
     const data = await resolve(copy).catch(() => null);
     // (Not drawn, or some of it missing: not kept, asked again next time.)
-    if (!data || retryFailed(data, index)) return void quickPictures.delete(key), null;
-    const [heat, bubbles] = await Promise.all([heatSamples(copy, data, previewBars(doc, index), HEAT_QUICK_COLUMNS), bubblesAt(doc, data, index)]);
+    if (!data || grid.retryFailed(data, index)) return void quickPictures.delete(key), null;
+    const [heat, bubbles] = await Promise.all([grid.heatSamples(copy, data, grid.previewBars(doc, index), HEAT_QUICK_COLUMNS), grid.bubblesAt(doc, data, index)]);
     // (Its bubbles' fetch failed, or the theme changed meanwhile: its heatmaps' colors another's, none; its days not all
     // in: shown, not kept.)
-    if (!bubbles || key !== `${doc.id}:${previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
+    if (!bubbles || key !== `${doc.id}:${grid.previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
     if (heat.whole === false) quickPictures.delete(key);
-    const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE, heat, bubbles);
+    const drawn = grid.previewOf(copy, data, grid.previewBars(doc, index), QUICK_PICTURE, heat, bubbles);
     // (Each layer's value at the picture's end, as the legend reads it there, a cloud's by the legend's own reading.)
     const values = new Map(copy.layers.flatMap((layer) => {
       const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
@@ -10980,8 +11164,8 @@ function quickPicture(/** @type {Chart} */ doc) {
       // share is of the days it draws, see profileReading.)
       if (layer.type === "heatmap") return ((sample) => {
         const fine = Boolean(sample?.fine?.rows), day = fine ? sample?.fine : sample?.open, measure = measureOf(layer);
-        const grid = fine ? logRows(rowsOf(layer)) : HEAT_PICTURE_GRID, cell = day?.rows ? closeCell(day, grid, measure) : null;
-        return cell ? [[layer.id, readingLine(cellText(cell, grid, measure))]] : [];
+        const grid = fine ? logRows(heatmaps.rowsOf(layer)) : HEAT_PICTURE_GRID, cell = day?.rows ? heatmaps.closeCell(day, grid, measure) : null;
+        return cell ? [[layer.id, heatmaps.readingLine(heatmaps.cellText(cell, grid, measure))]] : [];
       })(heat.get(layer.id));
       if (!high || result.error) return [];
       const at = lastIn(high, 0, drawn.end ?? high.length - 1);
@@ -11010,11 +11194,11 @@ function quickPicture(/** @type {Chart} */ doc) {
 function quickShow() {
   // (Where it can't show (the window made a phone's), one showing goes: it would show another than the one lit.)
   if (!quickWorks() || !isOpen($("palette"))) return void quickHide();
-  const look = lookableAt(palette.items[palette.active]), key = look ? JSON.stringify([look.doc.id, previewKey(look.doc), titleOf(look.doc), look.doc.layers.map(labelOf), light]) : "";
+  const look = lookableAt(command.palette.items[command.palette.active]), key = look ? JSON.stringify([look.doc.id, grid.previewKey(look.doc), titleOf(look.doc), look.doc.layers.map(labelOf), light]) : "";
   if (quick?.key === key && $("quick").matches(":popover-open")) return;
   quick = { key };
   $("quick-name").textContent = look ? titleOf(look.doc) : "";
-  $("quick-where").textContent = !look ? "" : look.i >= 0 ? `Presets › ${placeNames(/** @type {Preset[]} */ (presets)[look.i].p.slice(0, -1)).join(" › ")}` : isPreview(look.doc) ? "A preview" : look.doc.folder ? `Library › ${folderPath(look.doc.folder)}` : "Library";
+  $("quick-where").textContent = !look ? "" : look.i >= 0 ? `Presets › ${placeNames(/** @type {Preset[]} */ (presets)[look.i].p.slice(0, -1)).join(" › ")}` : isPreview(look.doc) ? "A preview" : look.doc.folder ? `Library › ${grid.folderPath(look.doc.folder)}` : "Library";
   $("quick-none").hidden = Boolean(look);
   /** @type {HTMLElement} */ ($("quick").querySelector("[data-quick-open]")).hidden = !look;
   const frame = $("quick-picture");
@@ -11029,7 +11213,7 @@ function quickShow() {
       plot.classList.remove("pending");
       if (!made) return void (plot.textContent = "Couldn't be drawn");
       const { drawn, values, bands } = made, { width: W, height: H } = QUICK_PICTURE;
-      plot.innerHTML = previewSvg(drawn, `quick-${doc.id}`, QUICK_PICTURE);
+      plot.innerHTML = grid.previewSvg(drawn, `quick-${doc.id}`, QUICK_PICTURE);
       // (Each layer's latest value by its name; each pane's highest and lowest where they are; the dates along its foot.)
       for (const value of all$("[data-quick-value]", frame)) {
         const id = /** @type {string} */ (value.dataset.quickValue), color = bands.get(id);
@@ -11041,7 +11225,7 @@ function quickShow() {
       /** @type {HTMLElement} */ (frame.querySelector(".quick-ticks")).innerHTML = (drawn.ticks ?? []).map((tick) => `<span style="left: ${((tick.x / W) * 100).toFixed(2)}%">${escapeHtml(tick.text)}</span>`).join("");
     }));
   }
-  arrive($("quick"));
+  grid.arrive($("quick"));
   if (!$("quick").matches(":popover-open")) $("quick").showPopover();
   $("palette-input").focus({ preventScroll: true });
 }
@@ -11051,7 +11235,7 @@ function quickHide() {
   quick = null;
   // (Its pictures not kept past it: the next look draws from the data as it is then.)
   quickPictures.clear();
-  leave($("quick"));
+  grid.leave($("quick"));
   if (isOpen($("palette"))) $("palette-input").focus({ preventScroll: true });
 }
 const quickToggle = () => (quick ? quickHide() : quickShow());
@@ -11060,7 +11244,7 @@ $("quick").addEventListener("pointerup", () => requestAnimationFrame(() => isOpe
 // (Its ×, or around it: put away.)
 $("quick").addEventListener("click", (event) => {
   // (Rows waiting drawn first, and the look then theirs: what shows is what opens.)
-  if (closest(event, "[data-quick-open]")) return void (palette.pending ? palette.pending() : quick?.key && choose());
+  if (closest(event, "[data-quick-open]")) return void (command.palette.pending ? command.palette.pending() : quick?.key && command.choose());
   if (event.target === $("quick") || closest(event, "[data-quick-close]")) quickHide();
 });
 $("palette-quick").addEventListener("click", () => (quickToggle(), $("palette-input").focus({ preventScroll: true })));
@@ -11118,7 +11302,7 @@ async function start() {
   // (An address of a section, there; one that's nothing, the presets' page, said; the presets unread, kept till they are.)
   if (asked) homeAt = routed && "path" in routed ? { path: routed.path } : presets ? { path: [] } : { top: true };
   if (asked && !routed && !presets) pendingRoute = asked;
-  else if (asked && !routed) setTimeout(() => notice(missedSaid(asked)));
+  else if (asked && !routed) setTimeout(() => withRest(() => notice(presetsEdit.missedSaid(asked))));
   // (Blank charts left elsewhere (a tab closed on one): let go of, the one open here aside.)
   for (const doc of library.charts.filter((doc) => doc !== chart && emptyYours(doc))) dropEmpty(doc);
   home = !shared && Boolean(asked ? !(routed && "preset" in routed) : there ? there.home : first || prefs.home);
@@ -11131,6 +11315,9 @@ async function start() {
   rememberViewed(chart.id);
   normalize(chart);
   save();
+  // (Home is the grid, an empty chart its cards: shown with the rest, so it's in first (not loading: said as at load);
+  // a chart, drawn first, then the rest: see later.js. Nothing drawn and the rest lost: offline, as at load.)
+  if (home || !chart.layers.length) await loadRest().catch((error) => (document.body.toggleAttribute("data-offline", true), Promise.reject(error)));
   // (Onto the grid, its chart drawn once it's opened: the grid's first moments its own, not shared with a chart's
   // build out of sight: see redrawChart.)
   refresh(!home);
@@ -11144,11 +11331,11 @@ async function start() {
   setTimeout(() => document.body.classList.remove("boot"), 1400);
   // Once the chart's asked for its data: the search's index builds, off the page, at once (search is this machine's
   // a second or so after a load, not after an idle moment a hidden tab may give late).
-  startFinder();
+  withRest(() => command.startFinder());
   // Charts this Studio couldn't read: kept aside, said once (again only when they change), to be had as a file
   // (Download all has them too).
   const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(hashOf(JSON.stringify(aside))) : "";
-  if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here and ${aside.length === 1 ? "was" : "were"} set aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
+  if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here and ${aside.length === 1 ? "was" : "were"} set aside`, { label: "Download", run: () => menus.download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
 }
 // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight, nor held from
 // input (see started).)
@@ -11174,7 +11361,7 @@ export {
   loadPresets, lookDoc, lookShown, magnifying, markFor, markPicks, marksOf, measure, measurer, measuring, memberable,
   menuNameOf, minedHalvings, morphFrom, mostBars, MOTION, motionsSized, moving, navBar, navigations, newDraft, nextHalvings,
   normalize, noteUse, notice, ontoData, openChart, openingView, openPalette, openView, ownerOf, paintNavigator,
-  paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending, pendingRoute, phone,
+  onRail, railed, paletteMarksSeen, paletteOnField, paletteOpenings, panelShown, paneShowing, pathResume, pending, pendingRoute, phone,
   pickPreset, picks, placeGallery, placing, pointedLayer, pointerOnChart, prefs, presetLabels, presetMarks, presets,
   presetsFailed, presetsMatching, pressedTile, previewCharts, previews, previousChart, profileColor, profileLit,
   putViews, quick, quickHide, quickShow, quickWorks, railMenu, railMenuKept, reaching, readOnly, readPresetList, recent,
@@ -11188,5 +11375,5 @@ export {
   tagLit, takeUp, takeView, THEMES, thumbs, timeAt, timesAt, toast, togglePanel, toggleSidebar, tokensMedia, tokensNow,
   tool, toolKept, touched, track, tree, trendShort, typingIn, undoLast, undoLibrary, undoToast, UNREAD,
   updatePaletteKeys, updateRowChanges, used, viewed, VIEWED, viewMoving, viewOn, viewsNow, viewTimes, widest,
-  windowTooLong, within, writeSideList, writing, yourTilesSeen, zeroFit,
+  windowTooLong, within, writeSideList, writing, yourTilesSeen, zeroFit, THUMBS, PRESET_MARKS, validDrawingKey, validChartMark, validThumb, PREVIEWS, validPreview, SHELF, GALLERY_PAGE, SIDE_PRESETS, MARK_VERSION, validLevel, validLines, validMark, validYs, MARK_KINDS, PLOT_NEEDS, THUMB_POINTS, isPath, USED, keepFocus, nodeAt, aheadOf, bezierOf, logRows, placingPath, fullOn,
 };

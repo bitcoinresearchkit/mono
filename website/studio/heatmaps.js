@@ -1,14 +1,13 @@
 // @ts-check
 // Heatmaps (the URPD, a day a column) and bubbles.
 import { channels, columnWidth, Custom, placeIndex, press, Profile } from "/modules/bitview-charts/index.js";
-import { capitalized, inSentence } from "/studio/words.js";
 import {
-  boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, cohortWho, commit,
-  css, draft, edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatAt, heatCohort,
-  heatKnown, keepDrawing, keyTime, lensAt, light, moving, notice, picks, placing, profileColor, profileLit, renderBelt,
-  reshape, reshaped, resolved, startLabel, startTyping, syncUndo, takeUp, tool, toolKept, undoToast, writing,
+  boxing, capturing, chart, chooseDrawings, chosen, client, cohortColor, cohortName, cohortShort, commit, css, draft,
+  edits, engine, exporting, gesturePointer, HEAT_AGES, HEAT_COHORTS, HEAT_HOLDERS, heatCohort, heatKnown, keepDrawing,
+  keyTime, lensAt, light, moving, notice, picks, placing, profileColor, profileLit, renderBelt, reshape, reshaped,
+  resolved, startLabel, startTyping, syncUndo, takeUp, toolKept, undoToast, writing, keepFocus, logRows, placingPath,
 } from "/studio/app.js";
-import { $, escapeHtml, TOUCH } from "/studio/dom.js";
+import { $, escapeHtml, TOUCH, isOpen, onClosed } from "/studio/dom.js";
 import { clamp, lowerBound, uid } from "/studio/math.js";
 import { until } from "/studio/timing.js";
 import { format, plural } from "/studio/format.js";
@@ -19,24 +18,23 @@ import {
 } from "/studio/vocabulary.js";
 import { BOXES, LINES, MAX_DRAWINGS, POINTED, pointOf, TEXT_SIZE, THROUGH, TOOLS } from "/studio/tools.js";
 import {
-  alpha, crossSet, cssColor, drawn, fingerCross, glide, Heat, ink, lastShown, paneBox, PROFILE_DIM, seriesPane,
-  seriesValue, seriesY, shownSpan, valuesSoon,
+  alpha, cssColor, drawn, fingerCross, glide, Heat, ink, lastShown, paneBox, PROFILE_DIM, seriesPane, seriesValue,
+  seriesY, shownSpan, valuesSoon,
 } from "/studio/chart.js";
 import { bothOf, choicePage } from "/studio/command.js";
 import {
-  barOf, boundsOf, drawingById, drawingNames, finite, labelPlace, lineThrough, onScreen, ownLayer, plotBox, plotPoint,
-  pointFrom, repaintDrawings, shareAlong, sketches, textPlace, timeLine, timeOfBar, toSegment, wordsColor,
-} from "/studio/drawing.js";
-import { isOpen, onClosed } from "/studio/grid.js";
-import { editById, gradientTable, keepFocus, layerById, modeOf } from "/studio/inspector.js";
+  drawingById, drawingNames, plotPoint,
+  pointFrom, shareAlong, timeOfBar, } from "/studio/drawing.js";
+import { editById, } from "/studio/inspector.js";
 import { menuOf } from "/studio/menus.js";
 import { refocus } from "/studio/presets-edit.js";
+import { measureName, weightName, layerById, modeOf, gradientTable } from "/studio/looks.js";
+import { barOf, boundsOf, finite, labelPlace, lineThrough, onScreen, ownLayer, plotBox, repaintDrawings, sketches, textPlace, timeLine, toSegment, wordsColor } from "/studio/sketch.js";
 /** @import { ChartStep } from "/studio/app.js" */
 /** @import { Chart, Drawing, DrawingKind, Layer } from "/studio/vocabulary.js" */
 /** @import { ChartPoint, ReadPoint, Resolved } from "/studio/chart.js" */
 /** @import { Action, Page } from "/studio/command.js" */
 /** @import { Vector } from "/studio/formulas.js" */
-
 
 /**
  * Bubbles' sizes, each date's own value, and places, the value there of the layer they're on as drawn (a stack's,
@@ -59,18 +57,6 @@ const mostIn = (values, range = { from: 0, to: values.length - 1 }) => {
   return most;
 };
 
-/** A heatmap's or a profile's measure by its name ("Supply"), its weight by its ("Every coin", "Awake"). @param {Layer} layer */
-const measureName = (layer) => HEAT_MEASURES.find(([id]) => id === measureOf(layer))?.[1];
-const weightName = (/** @type {Layer} */ layer) => HEAT_WEIGHTS.find(([id]) => id === (layer.weight ?? ""))?.[1];
-/** Its weight as its name ends with it (", awake"; every coin: nothing). @param {Layer} layer */
-const weightSaid = (layer) => (layer.weight ? `, ${/** @type {string} */ (weightName(layer)).toLowerCase()}` : "");
-/** A heatmap's name: its measure by cost basis, its weight's, then whose ("Supply by cost basis, awake: Short-term holders"). @param {Layer} layer */
-const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${measureName(layer)} by cost basis${weightSaid(layer)}: ${cohortWho(layer.heatmap ?? "all")}`;
-/**
- * A profile's name, as a heatmap's (see heatName): its measure's, its weight's, then whose, its holder groups (two
- * named, more counted: "Supply profile, awake: Long-term holders and short-term holders"). @param {Layer} layer
- */
-const profileName = (layer, grouped = true) => ((groups) => `${measureName(layer)} profile${weightSaid(layer)}${!grouped || !groups.length ? "" : `: ${groups.length > 2 ? capitalized(groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort, k) => (k ? inSentence(cohortWho(cohort)) : cohortWho(cohort))).join(" and ")}`}`)(layer.profile ?? []);
 /** What a profile is, said where one's added, and in a row's few words. */
 const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it last moved at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
 const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
@@ -168,12 +154,7 @@ function heatSection(layer) {
 const HEAT_COLUMN = 2;
 /** A heatmap's or a profile's rows a ×10 in price, as it's drawn (see heatGrid). @param {Layer} layer */
 const rowsOf = (layer) => layer.rows ?? DEFAULT_ROWS;
-/**
- * Rows `n` a ×10 in price, each the same share of its price: where a price falls among them (`at`, the row it's in
- * and how far into it), the row it's in (`cell`), a row's floor price (`price`), and the row a floor price is
- * (`floor`: as the URPD writes it, rounded). @param {number} n
- */
-const logRows = (n) => ({ at: (/** @type {number} */ price) => n * Math.log10(price * 100), cell: (/** @type {number} */ price) => Math.floor(n * Math.log10(price * 100)), price: (/** @type {number} */ row) => 10 ** (row / n) / 100, floor: (/** @type {number} */ price) => Math.round(n * Math.log10(price * 100)) });
+
 /**
  * How a heatmap's rows are cut, as the URPD's `agg` says it: `rows` a ×10 in price (each the same share of its
  * price, as a cost basis is read), on a log scale or a linear one (`even`: on a log one, rows even on the scale;
@@ -512,11 +493,7 @@ function profileHit(layer, point) {
 }
 /** The group of a profile's bar pointed at, if it's still in it and shown (none: ""). @param {string} id */
 const litCohort = (id) => ((layer) => (profileLit?.layer === id && layer && !layer.hidden && layer.profile?.includes(profileLit.cohort) ? profileLit.cohort : ""))(layerById(id));
-/** Where the crosshair is: one set here at its price, on its scale as it's drawn now (see crossSet); else the pointer. */
-function crossAt() {
-  const pinned = crossSet && drawn.get(crossSet.layer), y = pinned && crossSet ? seriesY(pinned, crossSet.price) : null;
-  return crossSet ? (pinned && y !== null ? { pane: seriesPane(pinned), y } : null) : heatAt;
-}
+
 /**
  * The binned layers' (by price: heatmaps, profiles) one rule for what they read: the crosshair's place, while a point
  * read follows it in a layer's pane (see readPoint), what's at its price read: its height, its price, and its row
@@ -772,8 +749,7 @@ function pathMoved() {
   syncUndo();
   $("chart-said").textContent = plural(/** @type {Drawing} */ (draft).points.length - 1, "point");
 }
-/** Whether a path is being placed (its first point placed). */
-const placingPath = () => tool === "path" && Boolean(draft && placing);
+
 /** A path being placed, kept as it is (the point following the pointer left out): two points at least, else let go. Whether one was. */
 function finishPath() {
   if (!placingPath() || !draft) return false;
@@ -1052,13 +1028,13 @@ function placeField() {
   Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
 }
 export {
-  addDrawn, amountsOf, boxTo, bubbleColumns, cellText, clearDrawings, closeCell, crossAt, drawingMenu, drawingRows,
+  addDrawn, amountsOf, boxTo, bubbleColumns, cellText, clearDrawings, closeCell, drawingMenu, drawingRows,
   drawnSteps, dressField, duplicateDrawings, finishPath, flipDrawings, flipsOf, fromClose, gesturing, gradientCell, gradientChannels, HEAT_ABOUT,
   HEAT_COLUMN, HEAT_FADE, HEAT_SHORT, heatCalendar, heatColor, heatCome, heatDayHeld, heatDayKey,
-  heatDays, heatExtras, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatName, heatPath,
+  heatDays, heatExtras, heatFresh, heatGrid, heatIn, heatLook, heatLooks, heatMost, heatPath,
   heatPump, heatReading, heatRows, heatSection, heatSeries, heatShown, heatWaiters, heatWants, hold, inBox, litCohort,
-  logRows, mostIn, moveTo, noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placeSaid, placingPath,
-  pointsApart, pressAt, priceSpan, PROFILE_ABOUT, PROFILE_SHORT, profileHit, profileName, profileShares, profilesUnder,
+  mostIn, moveTo, noteDrawn, nudgeDrawings, otherPointer, pathMoved, placeField, placeSaid, 
+  pointsApart, pressAt, priceSpan, PROFILE_ABOUT, PROFILE_SHORT, profileHit, profileShares, profilesUnder,
   readingLine, removeDrawing, removeDrawings, rowsOf, selectInView, setCohorts, showBox, shownHeats, simplify,
   toggleCohort, viewHeat, viewProfile,
 };

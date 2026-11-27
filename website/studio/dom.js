@@ -2,6 +2,8 @@
 // The page's means: its elements found and made, text made safe as HTML, keys and pointers read.
 import { KEY_GLYPHS, keyGlyph } from "/studio/icons.js";
 import { clamp } from "/studio/math.js";
+import { grid } from "/studio/later.js";
+import { MOTION, reduced } from "/studio/app.js";
 
 /** @type {(id: string) => any} */
 const $ = (id) => document.getElementById(id);
@@ -176,7 +178,165 @@ function holdPage(holder, on) {
   }
 }
 
+/** Rebuilding a panel's HTML would drop focus: these find the same control again afterwards. */
+function focusKey(container) {
+  const active = document.activeElement;
+  return active instanceof HTMLElement && container.contains(active) ? keyOf(active) : null;
+}
+/**
+ * What finds an element's like once it's drawn again: its id, or its tag and data (not what marks it for a moment:
+ * a tip, a key; a legend item named (pointed), a profile's group lit). @param {HTMLElement} element
+ */
+const keyOf = (element) => ({ tag: element.tagName, id: element.id, data: Object.entries(element.dataset).filter(([name]) => !["tip", "kbd", "pointed", "lit"].includes(name)) });
+function restoreFocus(container, key) {
+  if (!key || container.contains(document.activeElement)) return;
+  const find = () => (key.id ? container.querySelector(`#${CSS.escape(key.id)}`) : [...container.querySelectorAll(key.tag)].find((element) => element instanceof HTMLElement && key.data.length > 0 && key.data.every(([name, value]) => element.dataset[name] === value)));
+  let match = find();
+  // (Its like on a preset's tile written as a slot yet: the tile written for it, see fillSlot.)
+  const preset = match ? undefined : key.data.find(([name]) => name === "openPreset" || name === "presetMenu")?.[1], slot = preset === undefined ? null : container.querySelector(`.tile-slot[data-slot="${CSS.escape(preset)}"]`);
+  if (slot) (grid.fillSlot(/** @type {HTMLElement} */ (slot)), (match = find()));
+  /** @type {HTMLElement | null | undefined} */ (match)?.focus();
+}
+// Back and Forward, between the grid and the charts opened from it.
+/**
+ * Whether a dialog (⌘K, the guide, the shortcuts) is open. Each is a popover in the top layer, not a modal dialog
+ * (Safari's AutoFill measures a modal's whole page as ⌘K's field takes the focus); what a modal does, done here: the
+ * page behind held inert (holdPage), the keys kept in it, esc, a click beside it, Back on a phone.
+ * @param {Element} element
+ */
+function isOpen(element) {
+  return element.matches(":popover-open");
+}
+/** `then` once a dialog has closed (by then, maybe open again: it says so); `once`, the first time alone. @param {HTMLElement} element @param {() => void} then */
+function onClosed(element, then, once = false) {
+  const heard = (/** @type {Event} */ event) => {
+    if (/** @type {ToggleEvent} */ (event).oldState !== "open") return;
+    if (once) element.removeEventListener("toggle", heard);
+    then();
+  };
+  element.addEventListener("toggle", heard);
+}
+/**
+ * The elements scrolled, as their scroll events say (a scroll by hand or by script, its event at the next frame: one
+ * scrolled by script in the task it's faded out in isn't one yet): only they can be anywhere but at their start.
+ * Those gone let go of as another comes (a row written anew, its scroll put back, each time).
+ * @type {Set<Element>}
+ */
+const scrolled = new Set();
+/**
+ * Of a box that clips what's in it, its parts wholly out of its sight, the outermost (not looked into: a drawing's
+ * own parts; nor what moves (`moving`), what's in it might come into sight), each with its twin in the box's copy
+ * (walked alongside) and what holds its place as it's laid out (its display, its size: not as it shows, transformed);
+ * a part laid out in a line (inline, its size its content's) or a table's, none.
+ * @param {Element} element @param {Element} copy @param {Set<Element | null>} moving
+ * @returns {[Element, HTMLElement, Record<string, string>][]}
+ */
+function outOfSight(element, copy, moving) {
+  const view = element.getBoundingClientRect(), out = /** @type {[Element, HTMLElement, Record<string, string>][]} */ ([]);
+  const walk = (/** @type {Element} */ node, /** @type {Element} */ twin) => {
+    for (let i = 0; i < node.children.length; i++) {
+      const part = node.children[i], box = part.getBoundingClientRect();
+      if (moving.has(part)) continue;
+      if (box.bottom <= view.top || box.top >= view.bottom || box.right <= view.left || box.left >= view.right) {
+        const { display, width, height, boxSizing } = getComputedStyle(part);
+        if (box.width && box.height && /^(block|flex|grid|flow-root|inline-block|inline-flex|inline-grid|list-item)$/.test(display)) out.push([part, /** @type {HTMLElement} */ (twin.children[i]), { display, width, height, "box-sizing": boxSizing, "min-width": width, "max-width": width, "min-height": height, "max-height": height, flex: "none" }]);
+      } else if (part.childElementCount && !(part instanceof SVGElement)) walk(part, twin.children[i]);
+    }
+  };
+  if (!moving.has(element)) walk(element, copy);
+  return out;
+}
+/** A copy's twin of an element in what it's a copy of: the same way down. @param {Element} copy @param {Element} of @param {Element} element */
+function twinIn(copy, of, element) {
+  const way = [];
+  for (let at = element; at !== of; at = /** @type {Element} */ (at.parentElement)) way.push(Array.prototype.indexOf.call(/** @type {Element} */ (at.parentElement).children, at));
+  return way.reduceRight((into, i) => into.children[i], copy);
+}
+/**
+ * What's put away (a menu, a tip) seen going as it came: a copy of it as it was, where it was, playing its way out
+ * (out of reach, unread), the thing itself gone at once, as everything here knows it (a browser that doesn't play
+ * `display` out, Firefox, would drop it at once). Done once its copy's gone (at once, none made).
+ * (`prune`: its parts out of its sight copied empty, see below.)
+ * @param {HTMLElement} element @param {Keyframe[]} frames @returns {Promise<void> | undefined}
+ */
+function fadeOut(element, frames, duration = MOTION.micro, placed = false, easing = MOTION.easeLayout, prune = false) {
+  // (Hidden already, its way out is under way: left be. Shown, a copy going before is gone first.)
+  if (element.hidden) return;
+  cutFade(element);
+  // (Not seen (no box, or hidden by what it's in): nothing to see go.)
+  if (reduced() || !element.checkVisibility({ visibilityProperty: true })) return;
+  const copy = /** @type {HTMLElement} */ (element.cloneNode(true)), style = getComputedStyle(element), after = getComputedStyle(element, "::after");
+  // (What moves in it, where it's scrolled (those of it scrolled: none else can be, not read one by one, a page's every
+  // element) and how it shows, asked before its copy's put in: after, the copy would be styled and laid out at once
+  // for it.)
+  const moving = element.getAnimations({ subtree: true }), scrolls = /** @type {[Element, number, number][]} */ ([]);
+  for (const source of scrolled) if (element.contains(source) && (source.scrollTop || source.scrollLeft)) scrolls.push([source, source.scrollTop, source.scrollLeft]);
+  // (From where it shows: caught on its way in (a menu shut as it opens), its opacity and its place as they are
+  // then, not as it'd be once in.)
+  const shows = /** @type {Keyframe} */ ({ ...frames[0] });
+  for (const property of ["opacity", "transform", "translate", "scale"]) if (property in shows) shows[property] = style.getPropertyValue(property);
+  // (`prune`, where it's asked (the Charts page's step: a page of tiles copied whole had every one styled and laid out
+  // again for its way out): of what clips what's in it, its parts wholly out of its sight copied as boxes of the size
+  // they're laid out at, empty (a space in them: not :empty), held at it (their display and size theirs, firmly).)
+  const unseen = prune && (style.overflowX !== "visible" || style.overflowY !== "visible") ? outOfSight(element, copy, new Set(moving.map((animation) => /** @type {KeyframeEffect | null} */ (animation.effect)?.target ?? null))) : [];
+  const seen = (/** @type {Element} */ source) => !unseen.some(([part]) => part.contains(source));
+  for (const [, twin, held] of unseen) {
+    twin.replaceChildren(" ");
+    for (const [property, value] of Object.entries(held)) twin.style.setProperty(property, value, "important");
+  }
+  // (Its ids kept, as its styles and its drawings' references (an SVG's url(#…)) need them: after it, it's never the
+  // one an id finds while it's there.)
+  copy.inert = true;
+  copy.setAttribute("aria-hidden", "true");
+  // (Its way in not played again, nor any transition of its own (a sheet's from its start): it's going.)
+  copy.style.animation = "none";
+  copy.style.transition = "none";
+  // (`placed`: where it was in its own frame (a transformed one's, a sheet's, a dialog's), over what takes its place
+  // (a panel's view: shown, and its room at its end, by its own id's style).)
+  if (placed) Object.assign(copy.style, { position: "absolute", left: `${element.offsetLeft}px`, top: `${element.offsetTop}px`, width: `${element.offsetWidth}px`, height: `${element.offsetHeight}px`, margin: "0", display: style.display, visibility: "visible", zIndex: "3", pointerEvents: "none", ...(after.content !== "none" ? { paddingBottom: `calc(${style.paddingBottom} + ${after.height})` } : {}) });
+  element.after(copy);
+  // (Scrolled as it was, its own and what's in it; its drawings (a canvas) as they were.)
+  for (const [source, top, left] of scrolls) if (seen(source)) Object.assign(twinIn(copy, element, source), { scrollTop: top, scrollLeft: left });
+  for (const source of /** @type {HTMLCanvasElement[]} */ (all$("canvas", element))) if (source.width && source.height && seen(source)) /** @type {HTMLCanvasElement} */ (twinIn(copy, element, source)).getContext("2d")?.drawImage(source, 0, 0);
+  // (Moving as it was, its own and what's in it (a glide to a new place), on from where they'd got: not at their ends.)
+  for (const animation of moving) {
+    const effect = animation.effect, into = effect instanceof KeyframeEffect && !effect.pseudoElement && effect.target && seen(effect.target) ? twinIn(copy, element, effect.target) : undefined;
+    if (!into || animation instanceof CSSAnimation || animation instanceof CSSTransition || animation.playState === "idle") continue;
+    const own = /** @type {KeyframeEffect} */ (effect), twin = into.animate(own.getKeyframes(), own.getTiming());
+    twin.currentTime = animation.currentTime;
+    if (animation.playState === "paused") twin.pause();
+  }
+  const gone = () => {
+    copy.remove();
+    if (fading.get(element) === copy) fading.delete(element);
+  };
+  fading.set(element, copy);
+  return copy.animate([shows, ...frames.slice(1)], { duration, easing, fill: "forwards" }).finished.then(gone, gone);
+}
+/**
+ * Where a fixed element's 0, 0 lands: the viewport's corner, or, inside a dialog that's the frame for fixed elements
+ * (a blur or a transform makes it one), that dialog's. Positions in the viewport then come out right in either.
+ */
+function fixedOrigin(element) {
+  element.style.left = element.style.top = "0px";
+  const { left: x, top: y } = element.getBoundingClientRect();
+  return { x, y };
+}
+/**
+ * A fixed element put at `left`, `top` in the viewport (from its `origin`, see fixedOrigin), on whole device pixels:
+ * its text drawn the same wherever it's drawn (on a layer of its own as it opens or a highlight glides in it, or
+ * not), not a pixel's fraction off once it's painted again (Chromium).
+ */
+function placeFixed(/** @type {HTMLElement} */ element, /** @type {{ x: number, y: number }} */ origin, /** @type {number} */ left, /** @type {number} */ top) {
+  const onPixels = (/** @type {number} */ value) => Math.round(value * devicePixelRatio) / devicePixelRatio;
+  element.style.left = `${onPixels(left) - origin.x}px`;
+  element.style.top = `${onPixels(top) - origin.y}px`;
+}
+/** What's on its way out, by what it's a copy of (see fadeOut). @type {Map<HTMLElement, HTMLElement>} */
+const fading = new Map();
+/** Shown again (or on to a neighbor's, as a tip), its copy going is gone at once: one, never two. @param {HTMLElement} element */
+const cutFade = (element) => (fading.get(element)?.remove(), fading.delete(element));
 export {
   $, all$, CLICK, closest, composing, drawKeys, erasing, escapeHtml, holdPage, KEY_STEPS, keycaps, keysOf, keyText,
-  MAC, MEDIA, NAMED_KEY, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport,
+  MAC, MEDIA, NAMED_KEY, proseHtml, scrollsY, SLOP, stepIn, TOUCH, typing, upDown, viewport, focusKey, keyOf, restoreFocus, isOpen, onClosed, cutFade, fadeOut, fading, scrolled, outOfSight, twinIn, fixedOrigin, placeFixed,
 };

@@ -28,4 +28,22 @@ const until = (/** @type {() => boolean} */ test, /** @type {number} */ ms, step
   look();
 });
 
-export { inSlices, until, whenIdle };
+/** Work done one pass at a time: asked for again while one runs, it runs once more after. @param {() => Promise<void>} pass */
+function serial(pass) {
+  let running = false, again = false;
+  const run = async () => {
+    if (running) return void (again = true);
+    running = true;
+    try {
+      await pass();
+    } finally {
+      running = false;
+      if (again) {
+        again = false;
+        void run();
+      }
+    }
+  };
+  return run;
+}
+export { inSlices, until, whenIdle, serial };

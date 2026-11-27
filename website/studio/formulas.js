@@ -1,4 +1,5 @@
 // @ts-check
+import { menus } from "/studio/later.js";
 // What a formula is: its words, parsed, checked and computed over aligned layers.
 import { bandNames, inBands } from "/studio/bands.js";
 import { chart, engine, EXAMPLE, flowsAt, indexAt, timeAt, tree, windowTooLong } from "/studio/app.js";
@@ -11,7 +12,6 @@ import {
   windowPoints,
 } from "/studio/intervals.js";
 import { idOf, lastUsed, paneBox } from "/studio/chart.js";
-import { supportedIntervals } from "/studio/menus.js";
 /** @import { Layer } from "/studio/vocabulary.js" */
 
 // A small, safe expression language over aligned layers: no eval, vectors in, vectors out.
@@ -980,7 +980,7 @@ const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) =
 const unfitHere = (formulas) => {
   if (formulas.every((formula) => computableAt(formula, chart.index))) return "";
   // (Those they can be, one run of them: a fine one's too short, a coarse one's too few points.)
-  const supported = supportedIntervals(chart), fit = INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
+  const supported = menus.supportedIntervals(chart), fit = INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
   return `Not at ${INTERVAL_LABEL[chart.index]}${fit.length ? `: ${INTERVAL_LABEL[fit[0]]}${fit.length > 1 ? ` to ${INTERVAL_LABEL[/** @type {string} */ (fit.at(-1))]}` : ""}` : ""}`;
 };
 /** The pane under a point of the page (its index, its box), or none. */
