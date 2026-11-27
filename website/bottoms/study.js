@@ -119,7 +119,7 @@ export function fullName(/** @type {Made} */ m) {
 /** Where each line Bitview doesn't make comes from, as its source says (the study's formulas.md and origins.md): who published it and when. The year matters: a model of 2019 was made with the 2018 bottom known. */
 const COINTIME = "ARK Invest & Glassnode, 2023", SPLIT = "after Glassnode, 2020";
 const CREDIT = /** @type {Record<string, string>} */ ({
-  cvdd: "Willy Woo, 2019", balanced_price: "Woobull, 2019", delta_price: "David Puell, 2019", power_law_floor: "Burger, 2019",
+  cvdd: "Willy Woo, 2019", balanced_price: "David Puell, 2019", delta_price: "David Puell, 2019", power_law_floor: "Burger, 2019",
   realized_price: "Coin Metrics, 2018", sth_realized_price: SPLIT, lth_realized_price: SPLIT,
   active_price: "Dor Shahar, 2021", vaulted_price: COINTIME, cointime_price: COINTIME, true_market_mean: COINTIME,
 });
